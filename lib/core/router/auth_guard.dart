@@ -11,13 +11,17 @@ class AuthGuard {
 
   FutureOr<String?> call(BuildContext context, GoRouterState state) {
     final auth = ref.read(authStateProvider);
-    final isLoginRoute = state.matchedLocation == '/login';
+    final location = state.matchedLocation;
 
-    if (!auth.authenticated && !isLoginRoute) {
-      return '/login';
+    final isPublicRoute = location == '/' ||
+        location == '/login' ||
+        location.startsWith('/auth/');
+
+    if (!auth.authenticated) {
+      return isPublicRoute ? null : '/login';
     }
 
-    if (auth.authenticated && isLoginRoute) {
+    if (location == '/login' || location == '/') {
       return '/main/feed';
     }
 

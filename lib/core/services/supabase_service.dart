@@ -1,30 +1,60 @@
+import 'package:supabase_flutter/supabase_flutter.dart';
+
 class SupabaseService {
+  SupabaseService._();
+  static final SupabaseService instance = SupabaseService._();
+
+  SupabaseClient get client => Supabase.instance.client;
+  GoTrueClient get auth => client.auth;
+
   Future<void> signIn(String email, String password) async {
-    throw UnimplementedError('signIn');
+    await auth.signInWithPassword(email: email, password: password);
   }
 
   Future<void> signUp(String email, String password) async {
-    throw UnimplementedError('signUp');
+    await auth.signUp(email: email, password: password);
   }
 
   Future<void> signOut() async {
-    throw UnimplementedError('signOut');
+    await auth.signOut();
   }
 
-  Future<void> verifyOTP(String token) async {
-    throw UnimplementedError('verifyOTP');
+  Future<void> sendOtp(String email) async {
+    await auth.signInWithOtp(email: email);
   }
 
-  Future<Map<String, dynamic>> getCurrentUser() async {
-    throw UnimplementedError('getCurrentUser');
+  Future<void> verifyOtp(String email, String token) async {
+    await auth.verifyOTP(email: email, token: token, type: OtpType.email);
+  }
+
+  Map<String, dynamic>? getCurrentUser() {
+    final user = auth.currentUser;
+    if (user == null) return null;
+    return user.toJson();
   }
 
   Future<void> updateUser(Map<String, dynamic> patch) async {
-    throw UnimplementedError('updateUser');
+    await auth.updateUser(
+      UserAttributes(
+        email: patch['email'] as String?,
+        password: patch['password'] as String?,
+        data: patch['data'] as Map<String, dynamic>?,
+      ),
+    );
   }
 
   Future<void> softDeleteUser() async {
-    throw UnimplementedError('softDeleteUser');
+    final user = auth.currentUser;
+    if (user == null) throw Exception('No authenticated user');
+    await client
+        .from('users')
+        .update({
+          'deleted_at': DateTime.now().toIso8601String(),
+          'username': 'deleted_user_${user.id}',
+          'avatar_url': null,
+          'bio': null,
+        })
+        .eq('id', user.id);
   }
 
   Future<Map<String, dynamic>> createEvent(Map<String, dynamic> data) async {
@@ -112,7 +142,59 @@ class SupabaseService {
   }
 
   Future<Map<String, String>> fetchAppConfig() async {
-    throw UnimplementedError('fetchAppConfig');
+    final res = await client.from('app_config').select('key, value');
+    final map = <String, String>{};
+    for (final row in res) {
+      map[row['key'] as String] = row['value'] as String;
+    }
+    return map;
+  }
+
+  Future<int> getSignupShardGrant() async {
+    try {
+      final config = await fetchAppConfig();
+      return int.parse(config['economy.user_signup_shards'] ?? '256');
+    } catch (_) {
+      return 256;
+    }
+  }
+
+  Future<void> createUserProfile({
+    required String username,
+    required String displayName,
+    String? avatarUrl,
+  }) async {
+    final user = auth.currentUser;
+    if (user == null) throw Exception('No authenticated user');
+
+    final shards = await getSignupShardGrant();
+    final now = DateTime.now().toIso8601String();
+
+    await client.from('users').insert({
+      'id': user.id,
+      'username': username,
+      'display_name': displayName,
+      'avatar_url': avatarUrl,
+      'date_of_birth': null,
+      'bio': null,
+      'banned_at': null,
+      'ban_reason': null,
+      'deleted_at': null,
+      'personal_shards': shards,
+      'preshards': 0,
+      'subscription_tier': 'free',
+      'subscription_expires_at': null,
+      'created_at': now,
+      'updated_at': now,
+    });
+
+    await client.from('shard_ledger').insert({
+      'user_id': user.id,
+      'delta': shards,
+      'reason': 'admin_grant',
+      'reference_id': null,
+      'created_at': now,
+    });
   }
 
   Future<void> subscribeToMessages(String chatId, void Function(Map<String, dynamic>) onInsert) async {
