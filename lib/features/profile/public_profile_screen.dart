@@ -12,6 +12,8 @@ class PublicProfileScreen extends StatefulWidget {
 
 class _PublicProfileScreenState extends State<PublicProfileScreen> {
   Map<String, dynamic>? _profile;
+  String? _friendshipStatus;
+  String? _friendshipId;
   bool _loading = true;
   bool _sending = false;
 
@@ -24,7 +26,13 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
   Future<void> _load() async {
     try {
       final profile = await SupabaseService.instance.getUserProfile(widget.userId);
-      if (mounted) setState(() => _profile = profile);
+      final status = await SupabaseService.instance.getFriendshipStatus(widget.userId);
+      final fid = await SupabaseService.instance.getFriendshipIdForUser(widget.userId);
+      if (mounted) setState(() {
+        _profile = profile;
+        _friendshipStatus = status;
+        _friendshipId = fid;
+      });
     } catch (_) {
     } finally {
       if (mounted) setState(() => _loading = false);
@@ -41,11 +49,34 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
           const SnackBar(content: Text('Solicitud de amistad enviada')),
         );
       }
+      _load();
     } catch (e) {
       final msg = e.toString().replaceAll(RegExp(r'(Exception: |PostgrestException\([^)]*\))'), '').trim();
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(msg.isNotEmpty ? msg : 'Error al enviar solicitud')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _sending = false);
+    }
+  }
+
+  Future<void> _acceptRequest() async {
+    if (_friendshipId == null || _sending) return;
+    setState(() => _sending = true);
+    try {
+      await SupabaseService.instance.acceptFriendRequest(_friendshipId!);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Solicitud aceptada')),
+        );
+      }
+      _load();
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Error al aceptar solicitud')),
         );
       }
     } finally {
@@ -100,12 +131,19 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
           const SizedBox(height: 32),
           Row(
             children: [
-              Expanded(
-                child: VButton.emphasized(
-                  label: _sending ? 'Enviando...' : 'Agregar amigo',
-                  onPressed: _sendRequest,
+              Expanded(child: _buildActionButton()),
+              if (_friendshipStatus == 'pending' && _friendshipId != null)
+                const SizedBox(width: 8),
+              if (_friendshipStatus == 'pending' && _friendshipId != null)
+                Expanded(
+                  child: VButton(
+                    label: 'Rechazar',
+                    onPressed: () async {
+                      await SupabaseService.instance.declineFriendRequest(_friendshipId!);
+                      _load();
+                    },
+                  ),
                 ),
-              ),
             ],
           ),
           const SizedBox(height: 16),
@@ -119,6 +157,22 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildActionButton() {
+    if (_friendshipStatus == 'accepted') {
+      return VButton.emphasized(label: 'Amigos', onPressed: () {});
+    }
+    if (_friendshipStatus == 'pending' && _friendshipId != null) {
+      return VButton.emphasized(
+        label: _sending ? 'Aceptando...' : 'Aceptar solicitud',
+        onPressed: _acceptRequest,
+      );
+    }
+    return VButton.emphasized(
+      label: _sending ? 'Enviando...' : 'Agregar amigo',
+      onPressed: _sendRequest,
     );
   }
 }

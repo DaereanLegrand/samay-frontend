@@ -154,6 +154,33 @@ class SupabaseService {
     return friends;
   }
 
+  Future<String?> getFriendshipStatus(String userId) async {
+    final user = auth.currentUser;
+    if (user == null) return null;
+    final res = await client
+        .from('friendships')
+        .select('id, status, requester_id')
+        .or('and(requester_id.eq.${user.id},addressee_id.eq.$userId),and(requester_id.eq.$userId,addressee_id.eq.${user.id})')
+        .maybeSingle();
+    if (res == null) return null;
+    return res['status'] as String;
+  }
+
+  Future<String?> getFriendshipIdForUser(String userId) async {
+    final user = auth.currentUser;
+    if (user == null) return null;
+    final res = await client
+        .from('friendships')
+        .select('id')
+        .or('and(requester_id.eq.${user.id},addressee_id.eq.$userId),and(requester_id.eq.$userId,addressee_id.eq.${user.id})')
+        .maybeSingle();
+    return res?['id'] as String?;
+  }
+
+  Future<void> removeFriend(String friendshipId) async {
+    await client.from('friendships').delete().eq('id', friendshipId);
+  }
+
   Future<List<Map<String, dynamic>>> getFriendRequests() async {
     final user = auth.currentUser;
     if (user == null) throw Exception('No authenticated user');
