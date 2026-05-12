@@ -32,7 +32,11 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
 
     setState(() => _saving = true);
     await ref.read(authStateProvider.notifier).createProfile(username, displayName);
-    if (mounted) context.go('/main/feed');
+    if (!mounted) return;
+    setState(() => _saving = false);
+    if (ref.read(authStateProvider).error == null) {
+      context.go('/main/feed');
+    }
   }
 
   @override

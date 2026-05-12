@@ -14,6 +14,7 @@ import 'package:vive_app/features/profile/edit_profile_screen.dart';
 import 'package:vive_app/features/profile/settings_screen.dart';
 import 'package:vive_app/features/profile/public_profile_screen.dart';
 import 'package:vive_app/features/profile/delete_account_screen.dart';
+import 'package:vive_app/features/feed/feed_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   final authGuard = AuthGuard(ref);
@@ -49,7 +50,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       ShellRoute(
         builder: (_, _, child) => Scaffold(body: child),
         routes: [
-          GoRoute(path: '/main/feed', builder: (_, _) => const Scaffold()),
+          GoRoute(path: '/main/feed', builder: (_, _) => const FeedScreen()),
           GoRoute(path: '/main/groups', builder: (_, _) => const Scaffold()),
           GoRoute(path: '/main/events', builder: (_, _) => const Scaffold()),
           GoRoute(path: '/main/notifications', builder: (_, _) => const Scaffold()),
