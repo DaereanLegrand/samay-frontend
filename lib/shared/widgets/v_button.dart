@@ -84,7 +84,11 @@ class VButton extends StatelessWidget {
                 height: 20,
                 child: CircularProgressIndicator(strokeWidth: 2),
               )
-            : child ?? Text(label ?? ''),
+            : child ?? Text(
+                label ?? '',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
       ),
     );
   }
