@@ -252,23 +252,18 @@ class SupabaseService {
     final user = auth.currentUser;
     if (user == null) throw Exception('No authenticated user');
 
-    await client.from('groups').insert({
-      'name': data['name'],
-      'description': data['description'],
-      'cover_url': data['cover_url'],
-      'created_by_user_id': user.id,
-    });
-
     final rows = await client
         .from('groups')
+        .insert({
+          'name': data['name'],
+          'description': data['description'],
+          'cover_url': data['cover_url'],
+          'created_by_user_id': user.id,
+        })
         .select()
-        .eq('created_by_user_id', user.id)
-        .order('created_at', ascending: false)
-        .limit(1);
+        .single();
 
-    if (rows.isEmpty) throw Exception('No se pudo crear el grupo');
-
-    final group = Map<String, dynamic>.from(rows.first);
+    final group = Map<String, dynamic>.from(rows);
 
     await client.from('group_members').insert({
       'group_id': group['id'],
