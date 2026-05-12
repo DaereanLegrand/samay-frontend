@@ -217,10 +217,10 @@ class SupabaseService {
     if (user == null) throw Exception('No authenticated user');
     final res = await client
         .from('friendships')
-        .select('id, requester_id, addressee_id')
-        .eq('status', 'blocked');
+        .select('id, requester_id, addressee_id, status')
+        .eq('requester_id', user.id);
     return res
-        .where((e) => e['requester_id'] == user.id)
+        .where((e) => e['status'] == 'blocked')
         .map((e) => {
               'friendship_id': e['id'],
               'user_id': e['addressee_id'],
