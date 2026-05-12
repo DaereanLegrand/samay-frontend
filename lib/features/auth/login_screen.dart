@@ -30,19 +30,20 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     if (email.isEmpty || password.isEmpty) return;
     try {
       await ref.read(authStateProvider.notifier).signIn(email, password);
-      final auth = ref.read(authStateProvider);
-      if (!auth.authenticated) {
-        final msg = auth.error ?? 'Error desconocido al iniciar sesión';
-        if (mounted) {
-          showDialog(
-            context: context,
-            builder: (_) => AlertDialog(
-              title: const Text('Error'),
-              content: Text(msg),
-              actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('OK'))],
-            ),
-          );
-        }
+      if (mounted && ref.read(authStateProvider).authenticated) {
+        context.go('/main/feed');
+        return;
+      }
+      final msg = ref.read(authStateProvider).error ?? 'Error desconocido al iniciar sesión';
+      if (mounted) {
+        showDialog(
+          context: context,
+          builder: (_) => AlertDialog(
+            title: const Text('Error'),
+            content: Text(msg),
+            actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('OK'))],
+          ),
+        );
       }
     } catch (e) {
       if (mounted) {

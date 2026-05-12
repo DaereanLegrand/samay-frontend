@@ -26,17 +26,20 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
   Future<void> _load() async {
     try {
       final profile = await SupabaseService.instance.getUserProfile(widget.userId);
+      if (mounted) setState(() => _profile = profile);
+    } catch (_) {}
+
+    try {
       final status = await SupabaseService.instance.getFriendshipStatus(widget.userId);
+      if (mounted) setState(() => _friendshipStatus = status);
+    } catch (_) {}
+
+    try {
       final fid = await SupabaseService.instance.getFriendshipIdForUser(widget.userId);
-      if (mounted) setState(() {
-        _profile = profile;
-        _friendshipStatus = status;
-        _friendshipId = fid;
-      });
-    } catch (_) {
-    } finally {
-      if (mounted) setState(() => _loading = false);
-    }
+      if (mounted) setState(() => _friendshipId = fid);
+    } catch (_) {}
+
+    if (mounted) setState(() => _loading = false);
   }
 
   Future<void> _sendRequest() async {
