@@ -25,10 +25,37 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 
   Future<void> _login() async {
-    await ref.read(authStateProvider.notifier).signIn(
-          _emailController.text.trim(),
-          _passwordController.text,
+    final email = _emailController.text.trim();
+    final password = _passwordController.text;
+    if (email.isEmpty || password.isEmpty) return;
+    try {
+      await ref.read(authStateProvider.notifier).signIn(email, password);
+      final auth = ref.read(authStateProvider);
+      if (!auth.authenticated) {
+        final msg = auth.error ?? 'Error desconocido al iniciar sesión';
+        if (mounted) {
+          showDialog(
+            context: context,
+            builder: (_) => AlertDialog(
+              title: const Text('Error'),
+              content: Text(msg),
+              actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('OK'))],
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        showDialog(
+          context: context,
+          builder: (_) => AlertDialog(
+            title: const Text('Error'),
+            content: Text(e.toString().replaceAll(RegExp(r'\([^)]*\)'), '')),
+            actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('OK'))],
+          ),
         );
+      }
+    }
   }
 
   @override

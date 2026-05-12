@@ -27,9 +27,35 @@ class _SignupContactScreenState extends ConsumerState<SignupContactScreen> {
     final email = _emailController.text.trim();
     final password = _passwordController.text;
     if (email.isEmpty || password.length < 6) return;
-    await ref.read(authStateProvider.notifier).signUp(email, password);
-    if (mounted && ref.read(authStateProvider).authenticated) {
-      context.push('/auth/age-gate', extra: email);
+    try {
+      await ref.read(authStateProvider.notifier).signUp(email, password);
+      final auth = ref.read(authStateProvider);
+      if (auth.authenticated && mounted) {
+        context.push('/auth/age-gate', extra: email);
+      } else {
+        final msg = auth.error ?? 'Error desconocido al crear cuenta';
+        if (mounted) {
+          showDialog(
+            context: context,
+            builder: (_) => AlertDialog(
+              title: const Text('Error'),
+              content: Text(msg),
+              actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('OK'))],
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        showDialog(
+          context: context,
+          builder: (_) => AlertDialog(
+            title: const Text('Error'),
+            content: Text(e.toString().replaceAll(RegExp(r'\([^)]*\)'), '')),
+            actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('OK'))],
+          ),
+        );
+      }
     }
   }
 
