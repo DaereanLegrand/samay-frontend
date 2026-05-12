@@ -1,4 +1,5 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:uuid/uuid.dart';
 
 class SupabaseService {
   SupabaseService._();
@@ -252,31 +253,32 @@ class SupabaseService {
     final user = auth.currentUser;
     if (user == null) throw Exception('No authenticated user');
 
-    final rows = await client
-        .from('groups')
-        .insert({
-          'name': data['name'],
-          'description': data['description'],
-          'cover_url': data['cover_url'],
-          'created_by_user_id': user.id,
-        })
-        .select()
-        .single();
+    final groupId = const Uuid().v4();
 
-    final group = Map<String, dynamic>.from(rows);
+    await client.from('groups').insert({
+      'id': groupId,
+      'name': data['name'],
+      'description': data['description'],
+      'cover_url': data['cover_url'],
+      'created_by_user_id': user.id,
+    });
 
     await client.from('group_members').insert({
-      'group_id': group['id'],
+      'group_id': groupId,
       'user_id': user.id,
       'role': 'promotor',
     });
 
     await client.from('chats').insert({
       'type': 'group',
-      'reference_id': group['id'],
+      'reference_id': groupId,
     });
 
-    return group;
+    return {
+      'id': groupId,
+      'name': data['name'],
+      'description': data['description'],
+    };
   }
 
   Future<void> joinGroup(String groupId) async {

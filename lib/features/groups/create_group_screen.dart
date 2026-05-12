@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:vive_app/core/services/supabase_service.dart';
 import 'package:vive_app/shared/widgets/v_button.dart';
 import 'package:vive_app/shared/widgets/v_input.dart';
@@ -32,9 +33,15 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
         );
         context.pop();
       }
-    } catch (e) {
+    } catch (e, st) {
       setState(() => _loading = false);
-      final msg = e.toString().replaceAll(RegExp(r'(Exception: |PostgrestException\([^)]*\))'), '').trim();
+      debugPrint('createGroup error: $e\n$st');
+      String msg;
+      if (e is PostgrestException) {
+        msg = e.message;
+      } else {
+        msg = e.toString().replaceFirst('Exception: ', '');
+      }
       if (context.mounted) {
         showDialog(
           context: context,
