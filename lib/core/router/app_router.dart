@@ -102,6 +102,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/event/:eventId/collage', builder: (_, _) => const Scaffold()),
       GoRoute(path: '/event/:inviteToken', builder: (_, _) => const Scaffold()),
       GoRoute(
+        path: '/group/create',
+        builder: (_, _) => const CreateGroupScreen(),
+      ),
+      GoRoute(
         path: '/group/:groupId',
         builder: (_, state) => GroupDetailScreen(groupId: state.pathParameters['groupId']!),
       ),
@@ -119,10 +123,6 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/group/:groupId/create-event',
         builder: (_, state) => const Scaffold(),
-      ),
-      GoRoute(
-        path: '/group/create',
-        builder: (_, _) => const CreateGroupScreen(),
       ),
       GoRoute(
         path: '/groups/leaderboard',
