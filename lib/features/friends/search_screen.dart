@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:vive_app/core/services/supabase_service.dart';
-import 'package:vive_app/shared/widgets/v_button.dart';
 
 class SearchScreen extends StatefulWidget {
   const SearchScreen({super.key});
@@ -76,8 +75,7 @@ class _SearchScreenState extends State<SearchScreen> {
                     ),
                     title: Text(u['display_name'] as String? ?? ''),
                     subtitle: Text('@${u['username']}'),
-                    trailing: VButton(
-                      label: 'Agregar',
+                    trailing: TextButton(
                       onPressed: () async {
                         try {
                           await SupabaseService.instance.sendFriendRequest(u['id'] as String);
@@ -94,6 +92,7 @@ class _SearchScreenState extends State<SearchScreen> {
                           }
                         }
                       },
+                      child: const Text('Agregar'),
                     ),
                     onTap: () => context.push('/user/${u['id']}'),
                   );

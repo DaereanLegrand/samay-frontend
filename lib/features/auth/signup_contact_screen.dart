@@ -14,18 +14,23 @@ class SignupContactScreen extends ConsumerStatefulWidget {
 
 class _SignupContactScreenState extends ConsumerState<SignupContactScreen> {
   final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
 
   @override
   void dispose() {
     _emailController.dispose();
+    _passwordController.dispose();
     super.dispose();
   }
 
   Future<void> _continue() async {
     final email = _emailController.text.trim();
-    if (email.isEmpty) return;
-    await ref.read(authStateProvider.notifier).sendOtp(email);
-    if (mounted) context.push('/auth/verify', extra: email);
+    final password = _passwordController.text;
+    if (email.isEmpty || password.length < 6) return;
+    await ref.read(authStateProvider.notifier).signUp(email, password);
+    if (mounted && ref.read(authStateProvider).authenticated) {
+      context.push('/auth/age-gate', extra: email);
+    }
   }
 
   @override
@@ -40,12 +45,12 @@ class _SignupContactScreenState extends ConsumerState<SignupContactScreen> {
           children: [
             const SizedBox(height: 32),
             Text(
-              'Ingresa tu correo electrónico',
+              'Crea tu cuenta',
               style: Theme.of(context).textTheme.headlineMedium,
             ),
             const SizedBox(height: 8),
             Text(
-              'Te enviaremos un código de verificación',
+              'Ingresa tu correo y una contraseña',
               style: Theme.of(context).textTheme.bodyMedium,
             ),
             const SizedBox(height: 32),
@@ -54,6 +59,12 @@ class _SignupContactScreenState extends ConsumerState<SignupContactScreen> {
               label: 'Correo electrónico',
               keyboardType: TextInputType.emailAddress,
             ),
+            const SizedBox(height: 16),
+            VInput(
+              controller: _passwordController,
+              label: 'Contraseña (mínimo 6 caracteres)',
+              obscureText: true,
+            ),
             if (auth.error != null)
               Padding(
                 padding: const EdgeInsets.only(top: 16),
@@ -61,7 +72,7 @@ class _SignupContactScreenState extends ConsumerState<SignupContactScreen> {
               ),
             const Spacer(),
             VButton.emphasized(
-              label: 'Continuar',
+              label: 'Crear cuenta',
               loading: auth.loading,
               onPressed: _continue,
             ),
