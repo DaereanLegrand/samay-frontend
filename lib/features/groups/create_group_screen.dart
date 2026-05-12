@@ -32,9 +32,10 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
         context.pop();
       }
     } catch (e) {
+      final msg = e.toString().replaceAll(RegExp(r'(Exception: |PostgrestException\([^)]*\))'), '').trim();
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
+          SnackBar(content: Text(msg.isNotEmpty ? msg : 'Error al crear grupo')),
         );
       }
     } finally {

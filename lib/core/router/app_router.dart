@@ -129,11 +129,11 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (_, _) => const LeaderboardScreen(),
       ),
       GoRoute(path: '/chat/:chatId', builder: (_, _) => const Scaffold()),
+      GoRoute(path: '/user/search', builder: (_, _) => const SearchScreen()),
       GoRoute(
         path: '/user/:userId',
         builder: (_, state) => PublicProfileScreen(userId: state.pathParameters['userId']!),
       ),
-      GoRoute(path: '/user/search', builder: (_, _) => const SearchScreen()),
       GoRoute(path: '/friends/requests', builder: (_, _) => const RequestsScreen()),
       GoRoute(path: '/friends/list', builder: (_, _) => const FriendsListScreen()),
       GoRoute(path: '/settings/blocked', builder: (_, _) => const BlockedUsersScreen()),

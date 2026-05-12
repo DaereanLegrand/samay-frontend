@@ -190,25 +190,29 @@ class SupabaseService {
     final user = auth.currentUser;
     if (user == null) throw Exception('No authenticated user');
 
-    final groupRes = await client.from('groups').insert({
+    final rows = await client.from('groups').insert({
       'name': data['name'],
       'description': data['description'],
       'cover_url': data['cover_url'],
       'created_by_user_id': user.id,
-    }).select().single();
+    }).select();
+
+    if (rows.isEmpty) throw Exception('No se pudo crear el grupo');
+
+    final group = Map<String, dynamic>.from(rows.first);
 
     await client.from('group_members').insert({
-      'group_id': groupRes['id'],
+      'group_id': group['id'],
       'user_id': user.id,
       'role': 'promotor',
     });
 
     await client.from('chats').insert({
       'type': 'group',
-      'reference_id': groupRes['id'],
+      'reference_id': group['id'],
     });
 
-    return Map<String, dynamic>.from(groupRes);
+    return group;
   }
 
   Future<void> joinGroup(String groupId) async {
