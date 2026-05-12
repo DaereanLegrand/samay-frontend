@@ -1,9 +1,38 @@
 import 'package:flutter/material.dart';
+import 'package:vive_app/core/services/supabase_service.dart';
 import 'package:vive_app/shared/widgets/v_button.dart';
 
-class PublicProfileScreen extends StatelessWidget {
+class PublicProfileScreen extends StatefulWidget {
   final String userId;
   const PublicProfileScreen({super.key, required this.userId});
+
+  @override
+  State<PublicProfileScreen> createState() => _PublicProfileScreenState();
+}
+
+class _PublicProfileScreenState extends State<PublicProfileScreen> {
+  bool _sending = false;
+
+  Future<void> _sendRequest() async {
+    if (_sending) return;
+    setState(() => _sending = true);
+    try {
+      await SupabaseService.instance.sendFriendRequest(widget.userId);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Solicitud de amistad enviada')),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: ${e.toString().replaceFirst('Exception: ', '')}')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _sending = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -35,8 +64,8 @@ class PublicProfileScreen extends StatelessWidget {
             children: [
               Expanded(
                 child: VButton.emphasized(
-                  label: 'Agregar amigo',
-                  onPressed: () {},
+                  label: _sending ? 'Enviando...' : 'Agregar amigo',
+                  onPressed: _sendRequest,
                 ),
               ),
             ],
