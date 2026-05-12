@@ -25,13 +25,15 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
         'description': _descController.text.trim().isEmpty ? null : _descController.text.trim(),
         'cover_url': null,
       });
-      if (context.mounted) {
+      setState(() => _loading = false);
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Grupo creado')),
         );
         context.pop();
       }
     } catch (e) {
+      setState(() => _loading = false);
       final msg = e.toString().replaceAll(RegExp(r'(Exception: |PostgrestException\([^)]*\))'), '').trim();
       if (context.mounted) {
         showDialog(
@@ -43,8 +45,6 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
           ),
         );
       }
-    } finally {
-      if (mounted) setState(() => _loading = false);
     }
   }
 

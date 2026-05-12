@@ -41,6 +41,13 @@ class SettingsScreen extends ConsumerWidget {
           ),
           const Divider(),
           ListTile(
+            leading: const Icon(Icons.block),
+            title: const Text('Usuarios bloqueados'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => context.push('/settings/blocked'),
+          ),
+          const Divider(),
+          ListTile(
             leading: const Icon(Icons.delete_forever, color: Colors.red),
             title: const Text('Eliminar mi cuenta', style: TextStyle(color: Colors.red)),
             onTap: () => context.push('/settings/delete-account'),

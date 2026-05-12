@@ -223,6 +223,17 @@ class SupabaseService {
     return res.map((e) => Map<String, dynamic>.from(e)).toList();
   }
 
+  Future<bool> getBlockStatus(String userId) async {
+    final user = auth.currentUser;
+    if (user == null) return false;
+    final res = await client
+        .from('friendships')
+        .select('id')
+        .or('and(requester_id.eq.${user.id},addressee_id.eq.$userId,status.eq.blocked),and(requester_id.eq.$userId,addressee_id.eq.${user.id},status.eq.blocked)')
+        .maybeSingle();
+    return res != null;
+  }
+
   Future<Map<String, dynamic>> createGroup(Map<String, dynamic> data) async {
     final user = auth.currentUser;
     if (user == null) throw Exception('No authenticated user');

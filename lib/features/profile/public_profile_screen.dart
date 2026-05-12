@@ -14,6 +14,7 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
   Map<String, dynamic>? _profile;
   String? _friendshipStatus;
   String? _friendshipId;
+  bool _isBlocked = false;
   bool _loading = true;
   bool _sending = false;
 
@@ -37,6 +38,11 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
     try {
       final fid = await SupabaseService.instance.getFriendshipIdForUser(widget.userId);
       if (mounted) setState(() => _friendshipId = fid);
+    } catch (_) {}
+
+    try {
+      final blocked = await SupabaseService.instance.getBlockStatus(widget.userId);
+      if (mounted) setState(() => _isBlocked = blocked);
     } catch (_) {}
 
     if (mounted) setState(() => _loading = false);
@@ -103,7 +109,21 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
     final initials = displayName.substring(0, 1).toUpperCase();
 
     return Scaffold(
-      appBar: AppBar(title: Text(username != null ? '@$username' : 'Perfil')),
+      appBar: AppBar(
+        title: Text(username != null ? '@$username' : 'Perfil'),
+        actions: [
+          PopupMenuButton<String>(
+            onSelected: _handleMenuAction,
+            itemBuilder: (_) => [
+              if (_isBlocked)
+                const PopupMenuItem(value: 'unblock', child: Text('Desbloquear'))
+              else
+                const PopupMenuItem(value: 'block', child: Text('Bloquear')),
+              const PopupMenuItem(value: 'report', child: Text('Reportar')),
+            ],
+          ),
+        ],
+      ),
       body: ListView(
         padding: const EdgeInsets.all(24),
         children: [
@@ -164,6 +184,9 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
   }
 
   Widget _buildActionButton() {
+    if (_isBlocked) {
+      return VButton.emphasized(label: 'Bloqueado', onPressed: () {});
+    }
     if (_friendshipStatus == 'accepted') {
       return VButton.emphasized(label: 'Amigos', onPressed: () {});
     }
@@ -177,5 +200,54 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
       label: _sending ? 'Enviando...' : 'Agregar amigo',
       onPressed: _sendRequest,
     );
+  }
+
+  void _handleMenuAction(String action) {
+    switch (action) {
+      case 'block':
+        _blockUser();
+      case 'unblock':
+        _unblockUser();
+      case 'report':
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Reportar será implementado próximamente')),
+        );
+    }
+  }
+
+  Future<void> _blockUser() async {
+    try {
+      await SupabaseService.instance.blockUser(widget.userId);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Usuario bloqueado')),
+        );
+      }
+      _load();
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Error al bloquear')),
+        );
+      }
+    }
+  }
+
+  Future<void> _unblockUser() async {
+    try {
+      await SupabaseService.instance.unblockUser(widget.userId);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Usuario desbloqueado')),
+        );
+      }
+      _load();
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Error al desbloquear')),
+        );
+      }
+    }
   }
 }

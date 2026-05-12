@@ -58,7 +58,10 @@ class _MyGroupsScreenState extends State<MyGroupsScreen> {
                       Expanded(
                         child: VButton(
                           label: 'Crear grupo',
-                          onPressed: () => context.push('/group/create'),
+                          onPressed: () async {
+                            await context.push('/group/create');
+                            _load();
+                          },
                         ),
                       ),
                       const SizedBox(width: 8),
