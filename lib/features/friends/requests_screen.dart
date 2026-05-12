@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:vive_app/core/services/supabase_service.dart';
-import 'package:vive_app/shared/widgets/v_button.dart';
 
 class RequestsScreen extends StatefulWidget {
   const RequestsScreen({super.key});
@@ -13,6 +12,7 @@ class _RequestsScreenState extends State<RequestsScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   List<Map<String, dynamic>> _requests = [];
+  Map<String, String> _names = {};
   bool _loading = true;
 
   @override
@@ -26,7 +26,17 @@ class _RequestsScreenState extends State<RequestsScreen>
     setState(() => _loading = true);
     try {
       final res = await SupabaseService.instance.getFriendRequests();
-      setState(() => _requests = res);
+      final names = <String, String>{};
+      for (final r in res) {
+        if (!names.containsKey(r['user_id'] as String)) {
+          final profile = await SupabaseService.instance.getUserProfile(r['user_id'] as String);
+          names[r['user_id'] as String] = profile?['display_name'] as String? ?? profile?['username'] as String? ?? 'Usuario';
+        }
+      }
+      setState(() {
+        _requests = res;
+        _names = names;
+      });
     } catch (_) {
       setState(() => _requests = []);
     } finally {
@@ -88,27 +98,27 @@ class _RequestsScreenState extends State<RequestsScreen>
       itemCount: items.length,
       itemBuilder: (_, i) {
         final r = items[i];
+        final name = _names[r['user_id'] as String] ?? 'Usuario';
         return ListTile(
-          title: Text('Usuario ${r['user_id']}'),
+          title: Text(name),
           subtitle: Text(isReceived ? 'Te envió una solicitud' : 'Solicitud enviada'),
           trailing: isReceived
               ? Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    VButton(
-                      label: 'Aceptar',
+                    TextButton(
                       onPressed: () => _accept(r['friendship_id'] as String),
+                      child: const Text('Aceptar'),
                     ),
-                    const SizedBox(width: 8),
-                    VButton(
-                      label: 'Rechazar',
+                    TextButton(
                       onPressed: () => _decline(r['friendship_id'] as String),
+                      child: const Text('Rechazar'),
                     ),
                   ],
                 )
-              : VButton(
-                  label: 'Cancelar',
+              : TextButton(
                   onPressed: () => _decline(r['friendship_id'] as String),
+                  child: const Text('Cancelar'),
                 ),
         );
       },
