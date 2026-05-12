@@ -24,7 +24,7 @@ class _BlockedUsersScreenState extends State<BlockedUsersScreen> {
       final res = await SupabaseService.instance.getBlockedUsers();
       final profiles = <Map<String, dynamic>>[];
       for (final b in res) {
-        final profile = await SupabaseService.instance.getUserProfile(b['addressee_id'] as String);
+        final profile = await SupabaseService.instance.getUserProfile(b['user_id'] as String);
         if (profile != null) profiles.add(profile);
       }
       setState(() => _blocked = profiles);

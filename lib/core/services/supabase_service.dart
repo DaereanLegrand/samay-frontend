@@ -217,10 +217,15 @@ class SupabaseService {
     if (user == null) throw Exception('No authenticated user');
     final res = await client
         .from('friendships')
-        .select('id, addressee_id')
-        .eq('requester_id', user.id)
+        .select('id, requester_id, addressee_id')
         .eq('status', 'blocked');
-    return res.map((e) => Map<String, dynamic>.from(e)).toList();
+    return res
+        .where((e) => e['requester_id'] == user.id)
+        .map((e) => {
+              'friendship_id': e['id'],
+              'user_id': e['addressee_id'],
+            })
+        .toList();
   }
 
   Future<bool> getBlockStatus(String userId) async {
@@ -238,12 +243,19 @@ class SupabaseService {
     final user = auth.currentUser;
     if (user == null) throw Exception('No authenticated user');
 
-    final rows = await client.from('groups').insert({
+    await client.from('groups').insert({
       'name': data['name'],
       'description': data['description'],
       'cover_url': data['cover_url'],
       'created_by_user_id': user.id,
-    }).select();
+    });
+
+    final rows = await client
+        .from('groups')
+        .select()
+        .eq('created_by_user_id', user.id)
+        .order('created_at', ascending: false)
+        .limit(1);
 
     if (rows.isEmpty) throw Exception('No se pudo crear el grupo');
 
