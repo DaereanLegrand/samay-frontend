@@ -99,6 +99,19 @@ class SupabaseService {
     return res?['id'] as String?;
   }
 
+  Future<Map<String, dynamic>?> getFriendshipDetail(String userId) async {
+    final user = auth.currentUser;
+    if (user == null) return null;
+    final res = await client
+        .from('friendships')
+        .select('id, status, requester_id')
+        .or('and(requester_id.eq.${user.id},addressee_id.eq.$userId),and(requester_id.eq.$userId,addressee_id.eq.${user.id})')
+        .order('created_at', ascending: false)
+        .limit(1)
+        .maybeSingle();
+    return res != null ? Map<String, dynamic>.from(res) : null;
+  }
+
   Future<void> sendFriendRequest(String userId) async {
     final user = auth.currentUser;
     if (user == null) throw Exception('No authenticated user');

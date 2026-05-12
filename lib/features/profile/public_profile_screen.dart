@@ -14,6 +14,7 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
   Map<String, dynamic>? _profile;
   String? _friendshipStatus;
   String? _friendshipId;
+  bool _isIncoming = false;
   bool _isBlocked = false;
   bool _loading = true;
   bool _sending = false;
@@ -31,13 +32,15 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
     } catch (_) {}
 
     try {
-      final status = await SupabaseService.instance.getFriendshipStatus(widget.userId);
-      if (mounted) setState(() => _friendshipStatus = status);
-    } catch (_) {}
-
-    try {
-      final fid = await SupabaseService.instance.getFriendshipIdForUser(widget.userId);
-      if (mounted) setState(() => _friendshipId = fid);
+      final detail = await SupabaseService.instance.getFriendshipDetail(widget.userId);
+      if (mounted) {
+        final currentUserId = SupabaseService.instance.auth.currentUser?.id;
+        setState(() {
+          _friendshipStatus = detail?['status'] as String?;
+          _friendshipId = detail?['id'] as String?;
+          _isIncoming = detail != null && detail['requester_id'] != currentUserId;
+        });
+      }
     } catch (_) {}
 
     try {
@@ -147,7 +150,7 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
           const SizedBox(height: 8),
           Center(
             child: Text(
-              bio != null && bio.isNotEmpty ? bio! : 'Sin biografía',
+              bio != null && bio.isNotEmpty ? bio : 'Sin biografía',
               style: Theme.of(context).textTheme.bodyMedium,
             ),
           ),
@@ -160,7 +163,7 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
               if (_friendshipStatus == 'pending' && _friendshipId != null)
                 Expanded(
                   child: VButton(
-                    label: 'Rechazar',
+                    label: _isIncoming ? 'Rechazar' : 'Cancelar solicitud',
                     onPressed: () async {
                       await SupabaseService.instance.declineFriendRequest(_friendshipId!);
                       _load();
@@ -191,10 +194,17 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
       return VButton.emphasized(label: 'Amigos', onPressed: () {});
     }
     if (_friendshipStatus == 'pending' && _friendshipId != null) {
-      return VButton.emphasized(
-        label: _sending ? 'Aceptando...' : 'Aceptar solicitud',
-        onPressed: _acceptRequest,
-      );
+      if (_isIncoming) {
+        return VButton.emphasized(
+          label: _sending ? 'Aceptando...' : 'Aceptar solicitud',
+          onPressed: _acceptRequest,
+        );
+      } else {
+        return VButton.emphasized(
+          label: 'Solicitado',
+          onPressed: () {},
+        );
+      }
     }
     return VButton.emphasized(
       label: _sending ? 'Enviando...' : 'Agregar amigo',
