@@ -23,6 +23,7 @@ import 'package:vive_app/features/groups/create_group_screen.dart';
 import 'package:vive_app/features/groups/group_detail_screen.dart';
 import 'package:vive_app/features/groups/donate_shards_screen.dart';
 import 'package:vive_app/features/groups/leaderboard_screen.dart';
+import 'package:vive_app/features/groups/my_groups_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   final authGuard = AuthGuard(ref);
@@ -56,10 +57,39 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (_, state) => ProfileSetupScreen(email: state.extra as String),
       ),
       ShellRoute(
-        builder: (_, _, child) => Scaffold(body: child),
+        builder: (context, state, child) {
+          final tab = state.matchedLocation;
+          int currentIndex = 0;
+          if (tab.startsWith('/main/groups')) currentIndex = 1;
+          if (tab.startsWith('/main/events')) currentIndex = 2;
+          if (tab.startsWith('/main/notifications')) currentIndex = 3;
+          if (tab.startsWith('/main/profile')) currentIndex = 4;
+          return Scaffold(
+            body: child,
+            bottomNavigationBar: BottomNavigationBar(
+              currentIndex: currentIndex,
+              onTap: (i) {
+                switch (i) {
+                  case 0: context.go('/main/feed');
+                  case 1: context.go('/main/groups');
+                  case 2: context.go('/main/events');
+                  case 3: context.go('/main/notifications');
+                  case 4: context.go('/main/profile');
+                }
+              },
+              items: const [
+                BottomNavigationBarItem(icon: Icon(Icons.explore_outlined), label: 'Feed'),
+                BottomNavigationBarItem(icon: Icon(Icons.group_outlined), label: 'Grupos'),
+                BottomNavigationBarItem(icon: Icon(Icons.event_outlined), label: 'Eventos'),
+                BottomNavigationBarItem(icon: Icon(Icons.notifications_outlined), label: 'Notis'),
+                BottomNavigationBarItem(icon: Icon(Icons.person_outline), label: 'Perfil'),
+              ],
+            ),
+          );
+        },
         routes: [
           GoRoute(path: '/main/feed', builder: (_, _) => const FeedScreen()),
-          GoRoute(path: '/main/groups', builder: (_, _) => const Scaffold()),
+          GoRoute(path: '/main/groups', builder: (_, _) => const MyGroupsScreen()),
           GoRoute(path: '/main/events', builder: (_, _) => const Scaffold()),
           GoRoute(path: '/main/notifications', builder: (_, _) => const Scaffold()),
           GoRoute(path: '/main/profile', builder: (_, _) => const ProfileScreen()),

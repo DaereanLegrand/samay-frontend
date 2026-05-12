@@ -292,6 +292,26 @@ class SupabaseService {
     return res.length;
   }
 
+  Future<List<Map<String, dynamic>>> getMyGroups() async {
+    final user = auth.currentUser;
+    if (user == null) throw Exception('No authenticated user');
+    final memberships = await client
+        .from('group_members')
+        .select('group_id, role')
+        .eq('user_id', user.id);
+    if (memberships.isEmpty) return [];
+    final groupIds = memberships.map((m) => m['group_id'] as String).toList();
+    final groups = await client
+        .from('groups')
+        .select()
+        .inFilter('id', groupIds);
+    for (final g in groups) {
+      final m = memberships.firstWhere((m) => m['group_id'] == g['id']);
+      g['my_role'] = m['role'];
+    }
+    return groups.map((e) => Map<String, dynamic>.from(e)).toList();
+  }
+
   Future<List<Map<String, dynamic>>> loadMessages(String chatId, {int limit = 50, int offset = 0}) async {
     throw UnimplementedError('loadMessages');
   }
