@@ -11,7 +11,25 @@ class PublicProfileScreen extends StatefulWidget {
 }
 
 class _PublicProfileScreenState extends State<PublicProfileScreen> {
+  Map<String, dynamic>? _profile;
+  bool _loading = true;
   bool _sending = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    try {
+      final profile = await SupabaseService.instance.getUserProfile(widget.userId);
+      if (mounted) setState(() => _profile = profile);
+    } catch (_) {
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
 
   Future<void> _sendRequest() async {
     if (_sending) return;
@@ -37,8 +55,21 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_loading) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Perfil')),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    final p = _profile;
+    final displayName = p?['display_name'] as String? ?? 'Usuario';
+    final username = p?['username'] as String?;
+    final bio = p?['bio'] as String?;
+    final initials = displayName.substring(0, 1).toUpperCase();
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Perfil')),
+      appBar: AppBar(title: Text(username != null ? '@$username' : 'Perfil')),
       body: ListView(
         padding: const EdgeInsets.all(24),
         children: [
@@ -46,17 +77,23 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
             child: CircleAvatar(
               radius: 48,
               backgroundColor: Colors.grey[800],
-              child: const Icon(Icons.person, size: 48),
+              child: Text(initials, style: const TextStyle(fontSize: 24)),
             ),
           ),
           const SizedBox(height: 16),
           Center(
-            child: Text('Usuario', style: Theme.of(context).textTheme.headlineMedium),
+            child: Text(displayName, style: Theme.of(context).textTheme.headlineMedium),
           ),
+          if (username != null) ...[
+            const SizedBox(height: 4),
+            Center(
+              child: Text('@$username', style: Theme.of(context).textTheme.bodyMedium),
+            ),
+          ],
           const SizedBox(height: 8),
           Center(
             child: Text(
-              'Sin biografía',
+              bio != null && bio.isNotEmpty ? bio! : 'Sin biografía',
               style: Theme.of(context).textTheme.bodyMedium,
             ),
           ),

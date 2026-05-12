@@ -34,8 +34,13 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
     } catch (e) {
       final msg = e.toString().replaceAll(RegExp(r'(Exception: |PostgrestException\([^)]*\))'), '').trim();
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(msg.isNotEmpty ? msg : 'Error al crear grupo')),
+        showDialog(
+          context: context,
+          builder: (_) => AlertDialog(
+            title: const Text('Error'),
+            content: Text(msg.isNotEmpty ? msg : 'Error al crear grupo'),
+            actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('OK'))],
+          ),
         );
       }
     } finally {
