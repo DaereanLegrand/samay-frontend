@@ -74,31 +74,222 @@ class SupabaseService {
   }
 
   Future<void> sendFriendRequest(String userId) async {
-    throw UnimplementedError('sendFriendRequest');
+    final user = auth.currentUser;
+    if (user == null) throw Exception('No authenticated user');
+    await client.from('friendships').insert({
+      'requester_id': user.id,
+      'addressee_id': userId,
+      'status': 'pending',
+    });
   }
 
   Future<void> acceptFriendRequest(String friendshipId) async {
-    throw UnimplementedError('acceptFriendRequest');
+    await client
+        .from('friendships')
+        .update({'status': 'accepted'})
+        .eq('id', friendshipId);
   }
 
   Future<void> declineFriendRequest(String friendshipId) async {
-    throw UnimplementedError('declineFriendRequest');
+    await client.from('friendships').delete().eq('id', friendshipId);
   }
 
   Future<void> blockUser(String userId) async {
-    throw UnimplementedError('blockUser');
+    final user = auth.currentUser;
+    if (user == null) throw Exception('No authenticated user');
+    final existing = await client
+        .from('friendships')
+        .select('id')
+        .or('and(requester_id.eq.${user.id},addressee_id.eq.$userId),and(requester_id.eq.$userId,addressee_id.eq.${user.id})')
+        .maybeSingle();
+    if (existing != null) {
+      await client
+          .from('friendships')
+          .update({'status': 'blocked'})
+          .eq('id', existing['id'] as String);
+    } else {
+      await client.from('friendships').insert({
+        'requester_id': user.id,
+        'addressee_id': userId,
+        'status': 'blocked',
+      });
+    }
+  }
+
+  Future<void> unblockUser(String userId) async {
+    final user = auth.currentUser;
+    if (user == null) throw Exception('No authenticated user');
+    final existing = await client
+        .from('friendships')
+        .select('id')
+        .or('and(requester_id.eq.${user.id},addressee_id.eq.$userId),and(requester_id.eq.$userId,addressee_id.eq.${user.id})')
+        .maybeSingle();
+    if (existing != null) {
+      await client.from('friendships').delete().eq('id', existing['id'] as String);
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> searchUsers(String query) async {
+    final res = await client
+        .from('users')
+        .select('id, username, display_name, avatar_url')
+        .ilike('username', '$query%')
+        .isFilter('deleted_at', null)
+        .limit(20);
+    return res.map((e) => Map<String, dynamic>.from(e)).toList();
+  }
+
+  Future<List<Map<String, dynamic>>> getFriends() async {
+    final user = auth.currentUser;
+    if (user == null) throw Exception('No authenticated user');
+    final res = await client
+        .from('friendships')
+        .select('id, requester_id, addressee_id, status, created_at')
+        .or('and(requester_id.eq.${user.id},status.eq.accepted),and(addressee_id.eq.${user.id},status.eq.accepted)');
+    final friends = <Map<String, dynamic>>[];
+    for (final row in res) {
+      final friendId = row['requester_id'] == user.id ? row['addressee_id'] as String : row['requester_id'] as String;
+      friends.add({'friendship_id': row['id'], 'user_id': friendId});
+    }
+    return friends;
+  }
+
+  Future<List<Map<String, dynamic>>> getFriendRequests() async {
+    final user = auth.currentUser;
+    if (user == null) throw Exception('No authenticated user');
+    final received = await client
+        .from('friendships')
+        .select('id, requester_id, created_at')
+        .eq('addressee_id', user.id)
+        .eq('status', 'pending');
+    final sent = await client
+        .from('friendships')
+        .select('id, addressee_id, created_at')
+        .eq('requester_id', user.id)
+        .eq('status', 'pending');
+    return [
+      for (final r in received)
+        {'type': 'received', 'friendship_id': r['id'], 'user_id': r['requester_id'], 'created_at': r['created_at']},
+      for (final s in sent)
+        {'type': 'sent', 'friendship_id': s['id'], 'user_id': s['addressee_id'], 'created_at': s['created_at']},
+    ];
+  }
+
+  Future<List<Map<String, dynamic>>> getBlockedUsers() async {
+    final user = auth.currentUser;
+    if (user == null) throw Exception('No authenticated user');
+    final res = await client
+        .from('friendships')
+        .select('id, addressee_id')
+        .eq('requester_id', user.id)
+        .eq('status', 'blocked');
+    return res.map((e) => Map<String, dynamic>.from(e)).toList();
   }
 
   Future<Map<String, dynamic>> createGroup(Map<String, dynamic> data) async {
-    throw UnimplementedError('createGroup');
+    final user = auth.currentUser;
+    if (user == null) throw Exception('No authenticated user');
+
+    final groupRes = await client.from('groups').insert({
+      'name': data['name'],
+      'description': data['description'],
+      'cover_url': data['cover_url'],
+      'created_by_user_id': user.id,
+    }).select().single();
+
+    await client.from('group_members').insert({
+      'group_id': groupRes['id'],
+      'user_id': user.id,
+      'role': 'promotor',
+    });
+
+    await client.from('chats').insert({
+      'type': 'group',
+      'reference_id': groupRes['id'],
+    });
+
+    return Map<String, dynamic>.from(groupRes);
   }
 
   Future<void> joinGroup(String groupId) async {
-    throw UnimplementedError('joinGroup');
+    final user = auth.currentUser;
+    if (user == null) throw Exception('No authenticated user');
+    await client.from('group_members').insert({
+      'group_id': groupId,
+      'user_id': user.id,
+      'role': 'member',
+    });
   }
 
   Future<void> leaveGroup(String groupId) async {
-    throw UnimplementedError('leaveGroup');
+    final user = auth.currentUser;
+    if (user == null) throw Exception('No authenticated user');
+    await client
+        .from('group_members')
+        .delete()
+        .eq('group_id', groupId)
+        .eq('user_id', user.id);
+  }
+
+  Future<Map<String, dynamic>?> getGroup(String groupId) async {
+    final res = await client.from('groups').select().eq('id', groupId).maybeSingle();
+    if (res == null) return null;
+    return Map<String, dynamic>.from(res);
+  }
+
+  Future<List<Map<String, dynamic>>> getGroupMembers(String groupId) async {
+    final res = await client
+        .from('group_members')
+        .select('id, user_id, role, joined_at')
+        .eq('group_id', groupId);
+    return res.map((e) => Map<String, dynamic>.from(e)).toList();
+  }
+
+  Future<void> updateGroup(String groupId, Map<String, dynamic> patch) async {
+    await client.from('groups').update(patch).eq('id', groupId);
+  }
+
+  Future<void> kickMember(String groupId, String userId) async {
+    await client
+        .from('group_members')
+        .delete()
+        .eq('group_id', groupId)
+        .eq('user_id', userId);
+  }
+
+  Future<void> transferPromotor(String groupId, String newPromotorId) async {
+    final user = auth.currentUser;
+    if (user == null) throw Exception('No authenticated user');
+    await client
+        .from('group_members')
+        .update({'role': 'co_promotor'})
+        .eq('group_id', groupId)
+        .eq('user_id', user.id)
+        .eq('role', 'promotor');
+    await client
+        .from('group_members')
+        .update({'role': 'promotor'})
+        .eq('group_id', groupId)
+        .eq('user_id', newPromotorId);
+  }
+
+  Future<void> setMemberRole(String groupId, String userId, String role) async {
+    await client
+        .from('group_members')
+        .update({'role': role})
+        .eq('group_id', groupId)
+        .eq('user_id', userId);
+  }
+
+  Future<int> getUserGroupCount() async {
+    final user = auth.currentUser;
+    if (user == null) throw Exception('No authenticated user');
+    final res = await client
+        .from('group_members')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('role', 'promotor');
+    return res.length;
   }
 
   Future<List<Map<String, dynamic>>> loadMessages(String chatId, {int limit = 50, int offset = 0}) async {
@@ -130,7 +321,49 @@ class SupabaseService {
   }
 
   Future<void> donateToGroup(String groupId, int amount) async {
-    throw UnimplementedError('donateToGroup');
+    final user = auth.currentUser;
+    if (user == null) throw Exception('No authenticated user');
+
+    final userRes = await client.from('users').select('personal_shards').eq('id', user.id).single();
+    final currentShards = userRes['personal_shards'] as int;
+    if (currentShards < amount) throw Exception('No tienes suficientes shards');
+
+    final config = await fetchAppConfig();
+    final boostDays = int.parse(config['economy.group_shard_boost_days'] ?? '14');
+    final now = DateTime.now();
+
+    await client.rpc('donate_shards_to_group', params: {
+      'p_group_id': groupId,
+      'p_user_id': user.id,
+      'p_amount': amount,
+      'p_expires_at': now.add(Duration(days: boostDays)).toIso8601String(),
+    });
+  }
+
+  Future<List<Map<String, dynamic>>> getGroupContributions(String groupId) async {
+    final res = await client
+        .from('group_shard_contributions')
+        .select('id, user_id, shards_contributed, contributed_at, expires_at')
+        .eq('group_id', groupId)
+        .gt('expires_at', DateTime.now().toIso8601String())
+        .order('shards_contributed', ascending: false);
+    return res.map((e) => Map<String, dynamic>.from(e)).toList();
+  }
+
+  Future<int> getUserContributionToGroup(String groupId) async {
+    final user = auth.currentUser;
+    if (user == null) throw Exception('No authenticated user');
+    final res = await client
+        .from('group_shard_contributions')
+        .select('shards_contributed')
+        .eq('group_id', groupId)
+        .eq('user_id', user.id)
+        .gt('expires_at', DateTime.now().toIso8601String());
+    int total = 0;
+    for (final row in res) {
+      total += row['shards_contributed'] as int;
+    }
+    return total;
   }
 
   Future<void> purchaseCosmetic(String cosmeticId) async {
@@ -139,6 +372,26 @@ class SupabaseService {
 
   Future<void> reportContent(String targetType, String targetId, String reason) async {
     throw UnimplementedError('reportContent');
+  }
+
+  Future<List<Map<String, dynamic>>> getLeaderboard(String sizeTier) async {
+    final res = await client
+        .from('group_rank_snapshots')
+        .select('group_id, rank_position, score, member_count')
+        .eq('size_tier', sizeTier)
+        .order('rank_position', ascending: true)
+        .limit(100);
+    return res.map((e) => Map<String, dynamic>.from(e)).toList();
+  }
+
+  Future<Map<String, dynamic>?> getUserProfile(String userId) async {
+    final res = await client
+        .from('users')
+        .select('id, username, display_name, avatar_url, bio, personal_shards')
+        .eq('id', userId)
+        .maybeSingle();
+    if (res == null) return null;
+    return Map<String, dynamic>.from(res);
   }
 
   Future<Map<String, String>> fetchAppConfig() async {

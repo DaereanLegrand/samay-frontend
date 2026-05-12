@@ -15,6 +15,14 @@ import 'package:vive_app/features/profile/settings_screen.dart';
 import 'package:vive_app/features/profile/public_profile_screen.dart';
 import 'package:vive_app/features/profile/delete_account_screen.dart';
 import 'package:vive_app/features/feed/feed_screen.dart';
+import 'package:vive_app/features/friends/search_screen.dart';
+import 'package:vive_app/features/friends/requests_screen.dart';
+import 'package:vive_app/features/friends/friends_list_screen.dart';
+import 'package:vive_app/features/friends/blocked_users_screen.dart';
+import 'package:vive_app/features/groups/create_group_screen.dart';
+import 'package:vive_app/features/groups/group_detail_screen.dart';
+import 'package:vive_app/features/groups/donate_shards_screen.dart';
+import 'package:vive_app/features/groups/leaderboard_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   final authGuard = AuthGuard(ref);
@@ -63,16 +71,42 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/event/:eventId/photos', builder: (_, _) => const Scaffold()),
       GoRoute(path: '/event/:eventId/collage', builder: (_, _) => const Scaffold()),
       GoRoute(path: '/event/:inviteToken', builder: (_, _) => const Scaffold()),
-      GoRoute(path: '/group/:groupId', builder: (_, _) => const Scaffold()),
-      GoRoute(path: '/group/:groupId/members', builder: (_, _) => const Scaffold()),
-      GoRoute(path: '/group/:groupId/create-event', builder: (_, _) => const Scaffold()),
+      GoRoute(
+        path: '/group/:groupId',
+        builder: (_, state) => GroupDetailScreen(groupId: state.pathParameters['groupId']!),
+      ),
+      GoRoute(
+        path: '/group/:groupId/members',
+        builder: (_, state) => const Scaffold(),
+      ),
+      GoRoute(
+        path: '/group/:groupId/donate',
+        builder: (_, state) => DonateShardsScreen(
+          groupId: state.pathParameters['groupId']!,
+          groupName: state.extra as String? ?? 'Grupo',
+        ),
+      ),
+      GoRoute(
+        path: '/group/:groupId/create-event',
+        builder: (_, state) => const Scaffold(),
+      ),
+      GoRoute(
+        path: '/group/create',
+        builder: (_, _) => const CreateGroupScreen(),
+      ),
+      GoRoute(
+        path: '/groups/leaderboard',
+        builder: (_, _) => const LeaderboardScreen(),
+      ),
       GoRoute(path: '/chat/:chatId', builder: (_, _) => const Scaffold()),
       GoRoute(
         path: '/user/:userId',
         builder: (_, state) => PublicProfileScreen(userId: state.pathParameters['userId']!),
       ),
-      GoRoute(path: '/user/:userId/friend', builder: (_, _) => const Scaffold()),
-      GoRoute(path: '/user/search', builder: (_, _) => const Scaffold()),
+      GoRoute(path: '/user/search', builder: (_, _) => const SearchScreen()),
+      GoRoute(path: '/friends/requests', builder: (_, _) => const RequestsScreen()),
+      GoRoute(path: '/friends/list', builder: (_, _) => const FriendsListScreen()),
+      GoRoute(path: '/settings/blocked', builder: (_, _) => const BlockedUsersScreen()),
       GoRoute(path: '/qr/:eventId', builder: (_, _) => const Scaffold()),
       GoRoute(path: '/scanner/:eventId', builder: (_, _) => const Scaffold()),
       GoRoute(path: '/subscriptions', builder: (_, _) => const Scaffold()),

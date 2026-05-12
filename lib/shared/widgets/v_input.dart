@@ -7,6 +7,7 @@ class VInput extends StatelessWidget {
   final TextEditingController? controller;
   final TextInputType keyboardType;
   final bool obscureText;
+  final int maxLines;
 
   const VInput({
     super.key,
@@ -16,6 +17,7 @@ class VInput extends StatelessWidget {
     this.controller,
     this.keyboardType = TextInputType.text,
     this.obscureText = false,
+    this.maxLines = 1,
   });
 
   @override
@@ -25,6 +27,7 @@ class VInput extends StatelessWidget {
       onChanged: onChanged,
       keyboardType: keyboardType,
       obscureText: obscureText,
+      maxLines: maxLines,
       style: const TextStyle(color: Colors.white),
       decoration: InputDecoration(
         labelText: label,
