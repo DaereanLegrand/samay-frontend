@@ -76,7 +76,7 @@ class VButton extends StatelessWidget {
           backgroundColor: outlined ? Colors.transparent : Colors.white,
           foregroundColor: outlined ? Colors.white : Colors.black,
           shape: const RoundedRectangleBorder(),
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
         ),
         child: loading
             ? const SizedBox(
