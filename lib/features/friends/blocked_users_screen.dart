@@ -31,7 +31,6 @@ class _BlockedUsersScreenState extends State<BlockedUsersScreen> {
         } else {
           profiles.add({
             'id': uid,
-            'display_name': 'Usuario eliminado',
             'username': uid.substring(0, uid.length < 8 ? uid.length : 8),
             'avatar_url': null,
           });
@@ -64,10 +63,10 @@ class _BlockedUsersScreenState extends State<BlockedUsersScreen> {
                       leading: CircleAvatar(
                         backgroundColor: Colors.grey[800],
                         child: Text(
-                          (u['display_name'] as String? ?? '?').substring(0, 1).toUpperCase(),
+                          (u['username'] as String? ?? '?').substring(0, 1).toUpperCase(),
                         ),
                       ),
-                      title: Text(u['display_name'] as String? ?? ''),
+                      title: Text('@${u['username']}'),
                       subtitle: Text('@${u['username']}'),
                       trailing: TextButton(
                         onPressed: () async {

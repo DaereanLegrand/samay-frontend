@@ -106,10 +106,9 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
     }
 
     final p = _profile;
-    final displayName = p?['display_name'] as String? ?? 'Usuario';
     final username = p?['username'] as String?;
     final bio = p?['bio'] as String?;
-    final initials = displayName.substring(0, 1).toUpperCase();
+    final initials = (username ?? 'U').substring(0, 1).toUpperCase();
 
     return Scaffold(
       appBar: AppBar(
@@ -139,7 +138,7 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
           ),
           const SizedBox(height: 16),
           Center(
-            child: Text(displayName, style: Theme.of(context).textTheme.headlineMedium),
+            child: Text(username ?? 'Usuario', style: Theme.of(context).textTheme.headlineMedium),
           ),
           if (username != null) ...[
             const SizedBox(height: 4),

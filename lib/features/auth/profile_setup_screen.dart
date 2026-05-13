@@ -15,23 +15,20 @@ class ProfileSetupScreen extends ConsumerStatefulWidget {
 
 class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
   final _usernameController = TextEditingController();
-  final _displayNameController = TextEditingController();
   bool _saving = false;
 
   @override
   void dispose() {
     _usernameController.dispose();
-    _displayNameController.dispose();
     super.dispose();
   }
 
   Future<void> _save() async {
     final username = _usernameController.text.trim();
-    final displayName = _displayNameController.text.trim();
-    if (username.isEmpty || displayName.isEmpty) return;
+    if (username.isEmpty) return;
 
     setState(() => _saving = true);
-    await ref.read(authStateProvider.notifier).createProfile(username, displayName);
+    await ref.read(authStateProvider.notifier).createProfile(username);
     if (!mounted) return;
     setState(() => _saving = false);
     if (ref.read(authStateProvider).error == null) {
@@ -64,12 +61,6 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
               label: 'Nombre de usuario',
               hint: '@usuario',
             ),
-            const SizedBox(height: 16),
-            VInput(
-              controller: _displayNameController,
-              label: 'Nombre visible',
-              hint: 'Tu nombre',
-            ),
             if (auth.error != null)
               Padding(
                 padding: const EdgeInsets.only(top: 16),
@@ -77,12 +68,12 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
               ),
             const SizedBox(height: 8),
             Text(
-              'Puedes completar tu perfil después',
+              'Puedes completar tu perfil despu\u00e9s',
               style: Theme.of(context).textTheme.bodyMedium,
             ),
             const Spacer(),
             VButton.emphasized(
-              label: 'Completar después',
+              label: 'Completar despu\u00e9s',
               onPressed: () => context.go('/main/feed'),
             ),
             const SizedBox(height: 12),

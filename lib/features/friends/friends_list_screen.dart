@@ -48,7 +48,7 @@ class _FriendsListScreenState extends State<FriendsListScreen> {
     final filtered = _friends.where((f) {
       final q = _searchController.text.toLowerCase();
       return q.isEmpty ||
-          (f['display_name'] as String? ?? '').toLowerCase().contains(q) ||
+          (f['username'] as String? ?? '').toLowerCase().contains(q) ||
           (f['username'] as String? ?? '').toLowerCase().contains(q);
     }).toList();
 
@@ -97,10 +97,10 @@ class _FriendsListScreenState extends State<FriendsListScreen> {
                     leading: CircleAvatar(
                       backgroundColor: Colors.grey[800],
                       child: Text(
-                        (u['display_name'] as String? ?? '?').substring(0, 1).toUpperCase(),
+                        (u['username'] as String? ?? '?').substring(0, 1).toUpperCase(),
                       ),
                     ),
-                    title: Text(u['display_name'] as String? ?? ''),
+                    title: Text('@${u['username']}'),
                     subtitle: Text('@${u['username']}'),
                     trailing: const Icon(Icons.circle, size: 8, color: Colors.green),
                     onTap: () => context.push('/user/${u['id']}'),

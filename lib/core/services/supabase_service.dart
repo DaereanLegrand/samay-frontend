@@ -176,7 +176,7 @@ class SupabaseService {
     final user = auth.currentUser;
     final res = await client
         .from('users')
-        .select('id, username, display_name, avatar_url')
+        .select('id, username, avatar_url')
         .ilike('username', '$query%')
         .neq('id', user?.id ?? '')
         .isFilter('deleted_at', null)
@@ -350,9 +350,29 @@ class SupabaseService {
   Future<List<Map<String, dynamic>>> getGroupMembers(String groupId) async {
     final res = await client
         .from('group_members')
-        .select('id, user_id, role, joined_at, users!inner(username, display_name)')
-        .eq('group_id', groupId);
+        .select('id, user_id, role, joined_at, status, users!inner(username)')
+        .eq('group_id', groupId)
+        .eq('status', 'active');
     return res.map((e) => Map<String, dynamic>.from(e)).toList();
+  }
+
+  Future<List<Map<String, dynamic>>> getGroupInvites() async {
+    final user = auth.currentUser;
+    if (user == null) throw Exception('No authenticated user');
+    final res = await client
+        .from('group_members')
+        .select('id, group_id, role, joined_at, groups!inner(name)')
+        .eq('user_id', user.id)
+        .eq('status', 'invited');
+    return res.map((e) => Map<String, dynamic>.from(e)).toList();
+  }
+
+  Future<void> acceptGroupInvite(String membershipId) async {
+    await client.from('group_members').update({'status': 'active'}).eq('id', membershipId);
+  }
+
+  Future<void> declineGroupInvite(String membershipId) async {
+    await client.from('group_members').delete().eq('id', membershipId);
   }
 
   Future<void> updateGroup(String groupId, Map<String, dynamic> patch) async {
@@ -473,7 +493,7 @@ class SupabaseService {
   Future<List<Map<String, dynamic>>> getGroupContributions(String groupId) async {
     final res = await client
         .from('group_shard_contributions')
-        .select('id, user_id, shards_contributed, users!inner(username, display_name)')
+        .select('id, user_id, shards_contributed, users!inner(username)')
         .eq('group_id', groupId)
         .gt('expires_at', DateTime.now().toIso8601String())
         .order('shards_contributed', ascending: false);
@@ -517,7 +537,7 @@ class SupabaseService {
   Future<Map<String, dynamic>?> getUserProfile(String userId) async {
     final res = await client
         .from('users')
-        .select('id, username, display_name, avatar_url, bio, personal_shards')
+        .select('id, username, avatar_url, bio, personal_shards')
         .eq('id', userId)
         .maybeSingle();
     if (res == null) return null;
@@ -544,7 +564,6 @@ class SupabaseService {
 
   Future<void> createUserProfile({
     required String username,
-    required String displayName,
     String? avatarUrl,
   }) async {
     final user = auth.currentUser;
@@ -556,7 +575,6 @@ class SupabaseService {
     await client.from('users').insert({
       'id': user.id,
       'username': username,
-      'display_name': displayName,
       'avatar_url': avatarUrl,
       'date_of_birth': null,
       'bio': null,

@@ -81,12 +81,11 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
-  Future<void> createProfile(String username, String displayName) async {
+  Future<void> createProfile(String username) async {
     state = state.copyWith(loading: true, error: null);
     try {
       await SupabaseService.instance.createUserProfile(
         username: username,
-        displayName: displayName,
       );
       state = state.copyWith(loading: false);
     } catch (e) {

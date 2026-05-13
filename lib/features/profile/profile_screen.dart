@@ -28,7 +28,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       if (user == null) return;
       final res = await SupabaseService.instance.client
           .from('users')
-          .select('display_name, personal_shards, preshards')
+          .select('username, personal_shards, preshards')
           .eq('id', user.id)
           .maybeSingle();
       if (res != null) setState(() => _profile = Map<String, dynamic>.from(res));
@@ -41,9 +41,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     final auth = ref.watch(authStateProvider);
-    final initials = _profile?['display_name']?.toString().substring(0, 2).toUpperCase()
-        ?? auth.user?['email']?.toString().substring(0, 2).toUpperCase()
-        ?? '?';
+    final displayName = _profile?['username']?.toString() ?? auth.user?['email'] ?? 'Usuario';
+    final initials = displayName.substring(0, displayName.length < 2 ? displayName.length : 2).toUpperCase();
 
     return Scaffold(
       appBar: AppBar(
@@ -70,7 +69,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 const SizedBox(height: 16),
                 Center(
                   child: Text(
-                    _profile?['display_name']?.toString() ?? auth.user?['email'] ?? 'Usuario',
+                    _profile?['username']?.toString() ?? auth.user?['email'] ?? 'Usuario',
                     style: Theme.of(context).textTheme.headlineMedium,
                   ),
                 ),

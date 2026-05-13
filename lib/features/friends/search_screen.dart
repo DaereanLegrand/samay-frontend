@@ -92,11 +92,11 @@ class _SearchScreenState extends State<SearchScreen> {
                     leading: CircleAvatar(
                       backgroundColor: Colors.grey[800],
                       child: Text(
-                        (u['display_name'] as String? ?? '?').substring(0, 1).toUpperCase(),
+                        (u['username'] as String? ?? '?').substring(0, 1).toUpperCase(),
                       ),
                     ),
-                    title: Text(u['display_name'] as String? ?? ''),
-                    subtitle: Text('@${u['username']}'),
+                    title: Text('@${u['username']}'),
+                    subtitle: null,
                     trailing: _buildButton(u),
                     onTap: () => context.push('/user/${u['id']}'),
                   );

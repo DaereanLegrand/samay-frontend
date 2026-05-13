@@ -12,7 +12,6 @@ class EditProfileScreen extends StatefulWidget {
 }
 
 class _EditProfileScreenState extends State<EditProfileScreen> {
-  final _displayNameController = TextEditingController();
   final _bioController = TextEditingController();
   bool _loading = true;
   bool _saving = false;
@@ -29,11 +28,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       if (user == null) return;
       final res = await SupabaseService.instance.client
           .from('users')
-          .select('display_name, bio')
+          .select('bio')
           .eq('id', user.id)
           .maybeSingle();
       if (res != null) {
-        _displayNameController.text = res['display_name'] as String? ?? '';
         _bioController.text = res['bio'] as String? ?? '';
       }
     } catch (_) {
@@ -48,7 +46,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       final user = SupabaseService.instance.auth.currentUser;
       if (user == null) return;
       await SupabaseService.instance.client.from('users').update({
-        'display_name': _displayNameController.text.trim(),
         'bio': _bioController.text.trim(),
       }).eq('id', user.id);
       if (context.mounted) {
@@ -70,7 +67,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   @override
   void dispose() {
-    _displayNameController.dispose();
     _bioController.dispose();
     super.dispose();
   }
@@ -110,13 +106,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 ),
                 const SizedBox(height: 32),
                 VInput(
-                  controller: _displayNameController,
-                  label: 'Nombre visible',
-                ),
-                const SizedBox(height: 16),
-                VInput(
                   controller: _bioController,
-                  label: 'Biografía',
+                  label: 'Biograf\u00eda',
                 ),
                 const SizedBox(height: 32),
                 VButton.emphasized(

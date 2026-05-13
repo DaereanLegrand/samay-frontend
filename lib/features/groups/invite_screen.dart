@@ -54,6 +54,7 @@ class _InviteScreenState extends State<InviteScreen> {
           'group_id': widget.groupId,
           'user_id': id,
           'role': 'member',
+          'status': 'invited',
         });
       }
       if (mounted) {
@@ -103,12 +104,10 @@ class _InviteScreenState extends State<InviteScreen> {
                       leading: CircleAvatar(
                         backgroundColor: Colors.grey[800],
                         child: Text(
-                          (u['display_name'] as String? ?? u['username'] as String? ?? '?')
-                              .substring(0, 1)
-                              .toUpperCase(),
+                          (u['username'] as String? ?? '?').substring(0, 1).toUpperCase(),
                         ),
                       ),
-                      title: Text(u['display_name'] as String? ?? ''),
+                      title: Text('@${u['username']}'),
                       subtitle: Text('@${u['username']}'),
                       trailing: Checkbox(
                         value: selected,
