@@ -14,18 +14,40 @@ class SignupContactScreen extends ConsumerStatefulWidget {
 
 class _SignupContactScreenState extends ConsumerState<SignupContactScreen> {
   final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  final _confirmController = TextEditingController();
+  String? _validationError;
 
   @override
   void dispose() {
     _emailController.dispose();
+    _passwordController.dispose();
+    _confirmController.dispose();
     super.dispose();
   }
 
-  Future<void> _sendCode() async {
+  bool _isPasswordValid(String pwd) {
+    if (pwd.length < 6) return false;
+    if (!pwd.contains(RegExp(r'[0-9]'))) return false;
+    return true;
+  }
+
+  Future<void> _signup() async {
     final email = _emailController.text.trim();
-    if (email.isEmpty) return;
+    final password = _passwordController.text;
+    final confirm = _confirmController.text;
+    setState(() => _validationError = null);
+    if (email.isEmpty || password.isEmpty || confirm.isEmpty) return;
+    if (!_isPasswordValid(password)) {
+      setState(() => _validationError = 'La contraseña debe tener al menos 6 caracteres y contener un número.');
+      return;
+    }
+    if (password != confirm) {
+      setState(() => _validationError = 'Las contraseñas no coinciden.');
+      return;
+    }
     try {
-      await ref.read(authStateProvider.notifier).sendOtp(email);
+      await ref.read(authStateProvider.notifier).signUp(email, password);
       final auth = ref.read(authStateProvider);
       if (auth.error != null) {
         if (mounted) {
@@ -40,6 +62,7 @@ class _SignupContactScreenState extends ConsumerState<SignupContactScreen> {
         }
         return;
       }
+      await ref.read(authStateProvider.notifier).sendOtp(email);
       if (mounted) context.push('/auth/verify', extra: email);
     } catch (e) {
       if (mounted) {
@@ -72,7 +95,7 @@ class _SignupContactScreenState extends ConsumerState<SignupContactScreen> {
             ),
             const SizedBox(height: 8),
             Text(
-              'Ingresa tu correo para recibir un código de verificación',
+              'Ingresa tu correo y crea una contraseña',
               style: Theme.of(context).textTheme.bodyMedium,
             ),
             const SizedBox(height: 32),
@@ -81,6 +104,23 @@ class _SignupContactScreenState extends ConsumerState<SignupContactScreen> {
               label: 'Correo electrónico',
               keyboardType: TextInputType.emailAddress,
             ),
+            const SizedBox(height: 16),
+            VInput(
+              controller: _passwordController,
+              label: 'Contraseña (mín. 6 caracteres, 1 número)',
+              obscureText: true,
+            ),
+            const SizedBox(height: 16),
+            VInput(
+              controller: _confirmController,
+              label: 'Confirmar contraseña',
+              obscureText: true,
+            ),
+            if (_validationError != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 16),
+                child: Text(_validationError!, style: const TextStyle(color: Colors.red)),
+              ),
             if (auth.error != null)
               Padding(
                 padding: const EdgeInsets.only(top: 16),
@@ -88,9 +128,9 @@ class _SignupContactScreenState extends ConsumerState<SignupContactScreen> {
               ),
             const Spacer(),
             VButton.emphasized(
-              label: 'Enviar código',
+              label: 'Crear cuenta',
               loading: auth.loading,
-              onPressed: _sendCode,
+              onPressed: _signup,
             ),
             const SizedBox(height: 32),
           ],

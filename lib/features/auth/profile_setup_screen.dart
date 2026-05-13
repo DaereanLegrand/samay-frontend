@@ -74,18 +74,8 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
                 padding: const EdgeInsets.only(top: 16),
                 child: Text(auth.error!, style: const TextStyle(color: Colors.red)),
               ),
-            const SizedBox(height: 8),
-            Text(
-              'Puedes completar tu perfil despu\u00e9s',
-              style: Theme.of(context).textTheme.bodyMedium,
-            ),
             const Spacer(),
             VButton.emphasized(
-              label: 'Completar despu\u00e9s',
-              onPressed: () => context.go('/main/feed'),
-            ),
-            const SizedBox(height: 12),
-            VButton(
               label: 'Guardar',
               loading: _saving || auth.loading,
               onPressed: _save,
