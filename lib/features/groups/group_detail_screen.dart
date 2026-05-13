@@ -73,6 +73,14 @@ class _GroupDetailScreenState extends State<GroupDetailScreen>
     return Scaffold(
       appBar: AppBar(
         title: Text(g['name'] as String? ?? 'Grupo'),
+        bottom: TabBar(
+          controller: _tabController,
+          tabs: const [
+            Tab(text: 'Chat'),
+            Tab(text: 'Miembros'),
+            Tab(text: 'Eventos'),
+          ],
+        ),
         actions: [
           PopupMenuButton<String>(
             onSelected: (v) => _handleAction(v),
@@ -84,81 +92,141 @@ class _GroupDetailScreenState extends State<GroupDetailScreen>
                   child: Text('Grupo congelado'),
                 ),
               const PopupMenuItem(value: 'leave', child: Text('Abandonar grupo')),
-              const PopupMenuItem(value: 'members', child: Text('Ver miembros')),
             ],
           ),
         ],
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(24),
+      body: Column(
         children: [
           if (isFrozen)
             Container(
+              width: double.infinity,
               padding: const EdgeInsets.all(8),
               color: Colors.red[900],
               child: const Text(
-                'Grupo congelado — actualiza tu suscripción o transfiere el rol de promotor',
+                'Grupo congelado — actualiza tu suscripci\u00f3n o transfiere el rol de promotor',
                 style: TextStyle(fontSize: 12),
                 textAlign: TextAlign.center,
               ),
             ),
-          if (g['cover_url'] != null)
-            Image.network(g['cover_url'] as String, height: 160, fit: BoxFit.cover),
-          const SizedBox(height: 16),
-          Text(g['name'] as String? ?? '', style: Theme.of(context).textTheme.headlineMedium),
-          if (g['description'] != null) ...[
-            const SizedBox(height: 8),
-            Text(g['description'] as String, style: Theme.of(context).textTheme.bodyMedium),
-          ],
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              if (g['size_tier'] != null)
-                _Badge(g['size_tier'] as String),
-              const SizedBox(width: 8),
-              if (g['rank_bracket'] != null)
-                RankBadge(bracket: g['rank_bracket'] as String),
-            ],
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (g['cover_url'] != null)
+                  Image.network(g['cover_url'] as String, height: 120, fit: BoxFit.cover),
+                if (g['description'] != null) ...[
+                  const SizedBox(height: 8),
+                  Text(g['description'] as String, style: Theme.of(context).textTheme.bodyMedium),
+                ],
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    if (g['size_tier'] != null)
+                      _Badge(g['size_tier'] as String),
+                    const SizedBox(width: 8),
+                    if (g['rank_bracket'] != null)
+                      RankBadge(bracket: g['rank_bracket'] as String),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    const VShardIcon(),
+                    const SizedBox(width: 8),
+                    Text('${g['group_shards'] ?? 0} shards de grupo',
+                        style: Theme.of(context).textTheme.bodyLarge),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text('${_members.length} / $memberLimit miembros',
+                    style: Theme.of(context).textTheme.bodyMedium),
+                if (_myContribution > 0) ...[
+                  const SizedBox(height: 4),
+                  Text('Mi contribuci\u00f3n: $_myContribution shards activos',
+                      style: Theme.of(context).textTheme.bodyMedium),
+                ],
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(child: VButton(label: 'Donar shards', onPressed: () => context.push('/group/${widget.groupId}/donate'))),
+                    const SizedBox(width: 8),
+                    Expanded(child: VButton(label: 'Crear evento', onPressed: () => context.push('/group/${widget.groupId}/create-event'))),
+                    const SizedBox(width: 8),
+                    Expanded(child: VButton(label: 'Invitar', onPressed: () => context.push('/group/${widget.groupId}/invite'))),
+                  ],
+                ),
+              ],
+            ),
           ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              const VShardIcon(),
-              const SizedBox(width: 8),
-              Text('${g['group_shards'] ?? 0} shards de grupo',
-                  style: Theme.of(context).textTheme.bodyLarge),
-            ],
+          const Divider(height: 1),
+          Expanded(
+            child: TabBarView(
+              controller: _tabController,
+              children: [
+                _buildChatTab(),
+                _buildMembersTab(),
+                _buildEventsTab(),
+              ],
+            ),
           ),
-          const SizedBox(height: 4),
-          Text('${_members.length} / $memberLimit miembros',
-              style: Theme.of(context).textTheme.bodyMedium),
-          if (_myContribution > 0) ...[
-            const SizedBox(height: 4),
-            Text('Mi contribución: $_myContribution shards activos',
-                style: Theme.of(context).textTheme.bodyMedium),
-          ],
-          const SizedBox(height: 24),
-          Row(
-            children: [
-              Expanded(child: VButton(label: 'Donar shards', onPressed: () => context.push('/group/${widget.groupId}/donate'))),
-              const SizedBox(width: 8),
-              Expanded(child: VButton(label: 'Crear evento', onPressed: () => context.push('/group/${widget.groupId}/create-event'))),
-              const SizedBox(width: 8),
-              Expanded(child: VButton(label: 'Invitar', onPressed: () => context.push('/group/${widget.groupId}/invite'))),
-            ],
-          ),
-          const SizedBox(height: 24),
-          Text('Top contribuidores', style: Theme.of(context).textTheme.labelLarge),
-          const SizedBox(height: 8),
-          ...(_contributions.take(5).map((c) {
-            return ListTile(
-              dense: true,
-              title: Text('Usuario ${c['user_id']}'),
-              trailing: Text('${c['shards_contributed']} shards'),
-            );
-          })),
         ],
       ),
+    );
+  }
+
+  Widget _buildChatTab() {
+    return const Center(
+      child: Text('Chat pr\u00f3ximamente', style: TextStyle(color: Colors.grey)),
+    );
+  }
+
+  Widget _buildMembersTab() {
+    if (_members.isEmpty) {
+      return const Center(
+        child: Text('No hay miembros', style: TextStyle(color: Colors.grey)),
+      );
+    }
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        Text('Top contribuidores', style: Theme.of(context).textTheme.labelLarge),
+        const SizedBox(height: 8),
+        ...(_contributions.take(5).map((c) {
+          return ListTile(
+            dense: true,
+            leading: CircleAvatar(
+              radius: 16,
+              backgroundColor: Colors.grey[800],
+              child: const Icon(Icons.person, size: 16),
+            ),
+            title: Text('${c['user_id']}'.substring(0, 8)),
+            trailing: Text('${c['shards_contributed']} shards'),
+          );
+        })),
+        const SizedBox(height: 24),
+        Text('Miembros (${_members.length})', style: Theme.of(context).textTheme.labelLarge),
+        const SizedBox(height: 8),
+        ...(_members.map((m) {
+          return ListTile(
+            dense: true,
+            leading: CircleAvatar(
+              radius: 16,
+              backgroundColor: Colors.grey[800],
+              child: const Icon(Icons.person, size: 16),
+            ),
+            title: Text('${m['user_id']}'.substring(0, 8)),
+            subtitle: Text(m['role'] as String? ?? 'member'),
+          );
+        })),
+      ],
+    );
+  }
+
+  Widget _buildEventsTab() {
+    return const Center(
+      child: Text('Eventos pr\u00f3ximamente', style: TextStyle(color: Colors.grey)),
     );
   }
 
@@ -171,8 +239,6 @@ class _GroupDetailScreenState extends State<GroupDetailScreen>
     switch (value) {
       case 'leave':
         _leaveGroup();
-      case 'members':
-        context.push('/group/${widget.groupId}/members');
     }
   }
 
@@ -181,14 +247,14 @@ class _GroupDetailScreenState extends State<GroupDetailScreen>
       context: context,
       builder: (_) => AlertDialog(
         title: const Text('Abandonar grupo'),
-        content: const Text('¿Estás seguro?'),
+        content: const Text('\u00bfEst\u00e1s seguro?'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancelar')),
           TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Abandonar')),
         ],
       ),
     );
-    if (confirm == true) {
+    if (confirm == true && mounted) {
       await SupabaseService.instance.leaveGroup(widget.groupId);
       if (context.mounted) context.pop();
     }

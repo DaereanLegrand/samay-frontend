@@ -177,13 +177,57 @@ class SupabaseService {
   }
 
   Future<List<Map<String, dynamic>>> searchUsers(String query) async {
+    final user = auth.currentUser;
     final res = await client
         .from('users')
         .select('id, username, display_name, avatar_url')
         .ilike('username', '$query%')
+        .neq('id', user?.id ?? '')
         .isFilter('deleted_at', null)
         .limit(20);
-    return res.map((e) => Map<String, dynamic>.from(e)).toList();
+    final results = res.map((e) => Map<String, dynamic>.from(e)).toList();
+
+    if (results.isEmpty || user == null) return results;
+
+    final ids = results.map((r) => r['id'] as String).toList();
+    final frRows = await client
+        .from('friendships')
+        .select('requester_id, addressee_id, status')
+        .or('and(requester_id.eq.${user.id},addressee_id.in.(${ids.join(',')})),and(requester_id.in.(${ids.join(',')}),addressee_id.eq.${user.id})');
+
+    final blockedByMe = <String>{};
+    final blockedByThem = <String>{};
+    final statusByUser = <String, String>{};
+    for (final row in frRows) {
+      final otherId = row['requester_id'] == user.id
+          ? row['addressee_id'] as String
+          : row['requester_id'] as String;
+      final status = row['status'] as String;
+      statusByUser[otherId] = status;
+      if (status == 'blocked') {
+        if (row['requester_id'] == user.id) {
+          blockedByMe.add(otherId);
+        } else {
+          blockedByThem.add(otherId);
+        }
+      }
+    }
+
+    return results
+        .where((r) => !blockedByMe.contains(r['id']))
+        .map((r) {
+          final uid = r['id'] as String;
+          final frStatus = statusByUser[uid];
+          if (frStatus != null) {
+            r['friendship_status'] = frStatus;
+          }
+          if (blockedByThem.contains(uid)) {
+            r['hidden'] = true;
+          }
+          return r;
+        })
+        .where((r) => r['hidden'] != true)
+        .toList();
   }
 
   Future<List<Map<String, dynamic>>> getFriends() async {

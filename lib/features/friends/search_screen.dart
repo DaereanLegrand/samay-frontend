@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:vive_app/core/services/supabase_service.dart';
@@ -13,6 +14,12 @@ class _SearchScreenState extends State<SearchScreen> {
   final _controller = TextEditingController();
   List<Map<String, dynamic>> _results = [];
   bool _loading = false;
+  Timer? _debounce;
+
+  void _onChanged(String query) {
+    _debounce?.cancel();
+    _debounce = Timer(const Duration(milliseconds: 300), () => _search(query));
+  }
 
   Future<void> _search(String query) async {
     if (query.trim().isEmpty) {
@@ -22,16 +29,17 @@ class _SearchScreenState extends State<SearchScreen> {
     setState(() => _loading = true);
     try {
       final res = await SupabaseService.instance.searchUsers(query.trim());
-      setState(() => _results = res);
+      if (mounted) setState(() => _results = res);
     } catch (_) {
-      setState(() => _results = []);
+      if (mounted) setState(() => _results = []);
     } finally {
-      setState(() => _loading = false);
+      if (mounted) setState(() => _loading = false);
     }
   }
 
   @override
   void dispose() {
+    _debounce?.cancel();
     _controller.dispose();
     super.dispose();
   }
@@ -50,11 +58,11 @@ class _SearchScreenState extends State<SearchScreen> {
                 hintText: 'Buscar por nombre de usuario',
                 prefixIcon: Icon(Icons.search),
               ),
-              onChanged: _search,
+              onChanged: _onChanged,
             ),
           ),
           if (_loading)
-            const Center(child: CircularProgressIndicator())
+            const Expanded(child: Center(child: CircularProgressIndicator()))
           else if (_results.isEmpty && _controller.text.isNotEmpty)
             const Padding(
               padding: EdgeInsets.all(32),
@@ -75,25 +83,7 @@ class _SearchScreenState extends State<SearchScreen> {
                     ),
                     title: Text(u['display_name'] as String? ?? ''),
                     subtitle: Text('@${u['username']}'),
-                    trailing: TextButton(
-                      onPressed: () async {
-                        try {
-                          await SupabaseService.instance.sendFriendRequest(u['id'] as String);
-                          if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Solicitud enviada')),
-                            );
-                          }
-                        } catch (e) {
-                          if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('Error: $e')),
-                            );
-                          }
-                        }
-                      },
-                      child: const Text('Agregar'),
-                    ),
+                    trailing: _buildButton(u),
                     onTap: () => context.push('/user/${u['id']}'),
                   );
                 },
@@ -101,6 +91,50 @@ class _SearchScreenState extends State<SearchScreen> {
             ),
         ],
       ),
+    );
+  }
+
+  Widget _buildButton(Map<String, dynamic> user) {
+    final status = user['friendship_status'] as String?;
+    final userId = user['id'] as String;
+
+    if (status == 'accepted') {
+      return TextButton(
+        onPressed: null,
+        child: const Text('Amigos'),
+      );
+    }
+    if (status == 'pending') {
+      return TextButton(
+        onPressed: null,
+        child: const Text('Solicitado'),
+      );
+    }
+    if (status == 'blocked') {
+      return TextButton(
+        onPressed: null,
+        child: const Text('Bloqueado'),
+      );
+    }
+    return TextButton(
+      onPressed: () async {
+        try {
+          await SupabaseService.instance.sendFriendRequest(userId);
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Solicitud enviada')),
+            );
+          }
+          _search(_controller.text);
+        } catch (e) {
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Error: $e')),
+            );
+          }
+        }
+      },
+      child: const Text('Agregar'),
     );
   }
 }
