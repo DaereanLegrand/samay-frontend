@@ -22,7 +22,7 @@ class AuthGuard {
     }
 
     if (!auth.hasProfile && !location.startsWith('/auth/')) {
-      return '/auth/age-gate';
+      return '/auth/signup';
     }
 
     if (location == '/login' || location == '/') {

@@ -29,6 +29,26 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
           widget.password,
         );
     if (mounted && !ref.read(authStateProvider).authenticated) return;
+    final authState = ref.read(authStateProvider);
+    if (authState.hasProfile) {
+      if (mounted) {
+        showDialog(
+          context: context,
+          builder: (_) => AlertDialog(
+            title: const Text('Correo ya registrado'),
+            content: const Text('Este correo ya tiene una cuenta completa. Inicia sesión en su lugar.'),
+            actions: [TextButton(
+              onPressed: () {
+                ref.read(authStateProvider.notifier).signOut();
+                Navigator.pop(context);
+              },
+              child: const Text('OK'),
+            )],
+          ),
+        );
+      }
+      return;
+    }
     if (mounted) context.push('/auth/age-gate', extra: widget.email);
   }
 

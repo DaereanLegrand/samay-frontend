@@ -87,6 +87,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     state = state.copyWith(loading: true, error: null);
     try {
       await SupabaseService.instance.sendOtp(email);
+      await SupabaseService.instance.upsertSignupTracker(email, false);
       state = state.copyWith(loading: false);
     } catch (e) {
       state = state.copyWith(loading: false, authenticated: false, error: e.toString());

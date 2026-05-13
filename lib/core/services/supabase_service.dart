@@ -9,8 +9,23 @@ class SupabaseService {
   GoTrueClient get auth => client.auth;
 
   Future<String> checkSignupEmail(String email) async {
-    final res = await client.rpc('handle_signup', params: {'p_email': email});
-    return res['action'] as String? ?? 'signup';
+    final res = await client
+        .from('signup_tracker')
+        .select('profile_created')
+        .eq('email', email)
+        .maybeSingle();
+    if (res == null) return 'signup';
+    if (res['profile_created'] == true) return 'exists';
+    await client.from('signup_tracker').delete().eq('email', email);
+    return 'signup';
+  }
+
+  Future<void> upsertSignupTracker(String email, bool profileCreated) async {
+    await client.from('signup_tracker').upsert({
+      'email': email,
+      'profile_created': profileCreated,
+      'updated_at': DateTime.now().toIso8601String(),
+    });
   }
 
   Future<void> signIn(String email, String password) async {
@@ -612,6 +627,11 @@ class SupabaseService {
       'reference_id': null,
       'created_at': now,
     });
+
+    final email = user.email;
+    if (email != null) {
+      await upsertSignupTracker(email, true);
+    }
   }
 
   Future<void> subscribeToMessages(String chatId, void Function(Map<String, dynamic>) onInsert) async {
