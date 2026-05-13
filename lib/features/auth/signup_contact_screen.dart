@@ -47,15 +47,14 @@ class _SignupContactScreenState extends ConsumerState<SignupContactScreen> {
       return;
     }
     try {
-      await ref.read(authStateProvider.notifier).signUp(email, password);
-      final auth = ref.read(authStateProvider);
-      if (auth.error != null) {
+      final action = await ref.read(authStateProvider.notifier).checkEmail(email);
+      if (action == 'exists') {
         if (mounted) {
           showDialog(
             context: context,
             builder: (_) => AlertDialog(
-              title: const Text('Error'),
-              content: Text(auth.error!),
+              title: const Text('Correo ya registrado'),
+              content: const Text('Este correo ya tiene una cuenta completa. Inicia sesión en su lugar.'),
               actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('OK'))],
             ),
           );

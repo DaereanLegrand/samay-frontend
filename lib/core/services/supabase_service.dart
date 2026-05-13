@@ -8,6 +8,11 @@ class SupabaseService {
   SupabaseClient get client => Supabase.instance.client;
   GoTrueClient get auth => client.auth;
 
+  Future<String> checkSignupEmail(String email) async {
+    final res = await client.rpc('handle_signup', params: {'p_email': email});
+    return res['action'] as String? ?? 'signup';
+  }
+
   Future<void> signIn(String email, String password) async {
     await auth.signInWithPassword(email: email, password: password);
   }

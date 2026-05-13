@@ -62,6 +62,15 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
+  /// Returns 'signup' if email is available (new or cleaned up), 'exists' if fully registered.
+  Future<String> checkEmail(String email) async {
+    try {
+      return await SupabaseService.instance.checkSignupEmail(email);
+    } catch (_) {
+      return 'signup';
+    }
+  }
+
   Future<void> signIn(String email, String password) async {
     state = state.copyWith(loading: true, error: null);
     try {
