@@ -15,10 +15,24 @@ class _SearchScreenState extends State<SearchScreen> {
   List<Map<String, dynamic>> _results = [];
   bool _loading = false;
   Timer? _debounce;
+  int _debounceMs = 300;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadConfig();
+  }
+
+  Future<void> _loadConfig() async {
+    try {
+      final config = await SupabaseService.instance.fetchAppConfig();
+      _debounceMs = int.tryParse(config['app.search_debounce_ms'] ?? '') ?? 300;
+    } catch (_) {}
+  }
 
   void _onChanged(String query) {
     _debounce?.cancel();
-    _debounce = Timer(const Duration(milliseconds: 300), () => _search(query));
+    _debounce = Timer(Duration(milliseconds: _debounceMs), () => _search(query));
   }
 
   Future<void> _search(String query) async {

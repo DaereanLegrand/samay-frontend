@@ -201,7 +201,7 @@ class _GroupDetailScreenState extends State<GroupDetailScreen>
               backgroundColor: Colors.grey[800],
               child: const Icon(Icons.person, size: 16),
             ),
-            title: Text('${c['user_id']}'.substring(0, 8)),
+            title: Text(c['users']?['display_name'] ?? c['users']?['username'] ?? '${c['user_id']}'.substring(0, 8)),
             trailing: Text('${c['shards_contributed']} shards'),
           );
         })),
@@ -209,14 +209,17 @@ class _GroupDetailScreenState extends State<GroupDetailScreen>
         Text('Miembros (${_members.length})', style: Theme.of(context).textTheme.labelLarge),
         const SizedBox(height: 8),
         ...(_members.map((m) {
+          final user = m['users'] as Map<String, dynamic>?;
+          final displayName = user?['display_name'] as String? ?? user?['username'] as String? ?? '${m['user_id']}'.substring(0, 8);
+          final initials = displayName.substring(0, 1).toUpperCase();
           return ListTile(
             dense: true,
             leading: CircleAvatar(
               radius: 16,
               backgroundColor: Colors.grey[800],
-              child: const Icon(Icons.person, size: 16),
+              child: Text(initials, style: const TextStyle(fontSize: 12)),
             ),
-            title: Text('${m['user_id']}'.substring(0, 8)),
+            title: Text(displayName),
             subtitle: Text(m['role'] as String? ?? 'member'),
           );
         })),

@@ -20,8 +20,9 @@ import 'package:vive_app/features/friends/requests_screen.dart';
 import 'package:vive_app/features/friends/friends_list_screen.dart';
 import 'package:vive_app/features/friends/blocked_users_screen.dart';
 import 'package:vive_app/features/groups/create_group_screen.dart';
-import 'package:vive_app/features/groups/group_detail_screen.dart';
 import 'package:vive_app/features/groups/donate_shards_screen.dart';
+import 'package:vive_app/features/groups/group_detail_screen.dart';
+import 'package:vive_app/features/groups/invite_screen.dart';
 import 'package:vive_app/features/groups/leaderboard_screen.dart';
 import 'package:vive_app/features/groups/my_groups_screen.dart';
 
@@ -123,6 +124,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/group/:groupId/create-event',
         builder: (_, state) => const Scaffold(),
+      ),
+      GoRoute(
+        path: '/group/:groupId/invite',
+        builder: (_, state) => InviteScreen(groupId: state.pathParameters['groupId']!),
       ),
       GoRoute(
         path: '/groups/leaderboard',

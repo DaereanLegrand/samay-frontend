@@ -146,21 +146,17 @@ class SupabaseService {
     if (user == null) throw Exception('No authenticated user');
     final existing = await client
         .from('friendships')
-        .select('id')
+        .select('id, requester_id')
         .or('and(requester_id.eq.${user.id},addressee_id.eq.$userId),and(requester_id.eq.$userId,addressee_id.eq.${user.id})')
         .maybeSingle();
     if (existing != null) {
-      await client
-          .from('friendships')
-          .update({'status': 'blocked'})
-          .eq('id', existing['id'] as String);
-    } else {
-      await client.from('friendships').insert({
-        'requester_id': user.id,
-        'addressee_id': userId,
-        'status': 'blocked',
-      });
+      await client.from('friendships').delete().eq('id', existing['id'] as String);
     }
+    await client.from('friendships').insert({
+      'requester_id': user.id,
+      'addressee_id': userId,
+      'status': 'blocked',
+    });
   }
 
   Future<void> unblockUser(String userId) async {
@@ -354,7 +350,7 @@ class SupabaseService {
   Future<List<Map<String, dynamic>>> getGroupMembers(String groupId) async {
     final res = await client
         .from('group_members')
-        .select('id, user_id, role, joined_at')
+        .select('id, user_id, role, joined_at, users!inner(username, display_name)')
         .eq('group_id', groupId);
     return res.map((e) => Map<String, dynamic>.from(e)).toList();
   }
@@ -477,7 +473,7 @@ class SupabaseService {
   Future<List<Map<String, dynamic>>> getGroupContributions(String groupId) async {
     final res = await client
         .from('group_shard_contributions')
-        .select('id, user_id, shards_contributed, contributed_at, expires_at')
+        .select('id, user_id, shards_contributed, users!inner(username, display_name)')
         .eq('group_id', groupId)
         .gt('expires_at', DateTime.now().toIso8601String())
         .order('shards_contributed', ascending: false);
