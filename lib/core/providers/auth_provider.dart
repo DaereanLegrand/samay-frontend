@@ -45,7 +45,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       final user = SupabaseService.instance.getCurrentUser();
       state = AuthState(authenticated: true, user: user);
     } catch (e) {
-      state = state.copyWith(loading: false, error: e.toString());
+      state = state.copyWith(loading: false, authenticated: false, error: e.toString());
     }
   }
 
@@ -55,7 +55,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       await SupabaseService.instance.sendOtp(email);
       state = state.copyWith(loading: false);
     } catch (e) {
-      state = state.copyWith(loading: false, error: e.toString());
+      state = state.copyWith(loading: false, authenticated: false, error: e.toString());
     }
   }
 
@@ -66,7 +66,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
       final user = SupabaseService.instance.getCurrentUser();
       state = AuthState(authenticated: true, user: user);
     } catch (e) {
-      state = state.copyWith(loading: false, error: e.toString());
+      await SupabaseService.instance.signOut();
+      state = state.copyWith(loading: false, authenticated: false, error: e.toString());
     }
   }
 
@@ -77,7 +78,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       final user = SupabaseService.instance.getCurrentUser();
       state = AuthState(authenticated: true, user: user);
     } catch (e) {
-      state = state.copyWith(loading: false, error: e.toString());
+      state = state.copyWith(loading: false, authenticated: false, error: e.toString());
     }
   }
 
@@ -89,7 +90,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       );
       state = state.copyWith(loading: false);
     } catch (e) {
-      state = state.copyWith(loading: false, error: e.toString());
+      state = state.copyWith(loading: false, authenticated: false, error: e.toString());
     }
   }
 
