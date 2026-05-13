@@ -21,6 +21,10 @@ class AuthGuard {
       return isPublicRoute ? null : '/login';
     }
 
+    if (!auth.hasProfile && !location.startsWith('/auth/')) {
+      return '/auth/age-gate';
+    }
+
     if (location == '/login' || location == '/') {
       return '/main/feed';
     }

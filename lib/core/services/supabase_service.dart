@@ -575,6 +575,7 @@ class SupabaseService {
   Future<void> createUserProfile({
     required String username,
     String? avatarUrl,
+    String? dateOfBirth,
   }) async {
     final user = auth.currentUser;
     if (user == null) throw Exception('No authenticated user');
@@ -586,7 +587,7 @@ class SupabaseService {
       'id': user.id,
       'username': username,
       'avatar_url': avatarUrl,
-      'date_of_birth': null,
+      'date_of_birth': dateOfBirth,
       'bio': null,
       'banned_at': null,
       'ban_reason': null,

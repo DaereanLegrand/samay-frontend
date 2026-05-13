@@ -4,20 +4,23 @@ import 'package:vive_app/core/services/supabase_service.dart';
 class AuthState {
   final bool authenticated;
   final bool loading;
+  final bool hasProfile;
   final Map<String, dynamic>? user;
   final String? error;
 
   const AuthState({
     this.authenticated = false,
     this.loading = false,
+    this.hasProfile = false,
     this.user,
     this.error,
   });
 
-  AuthState copyWith({bool? authenticated, bool? loading, Map<String, dynamic>? user, String? error}) {
+  AuthState copyWith({bool? authenticated, bool? loading, bool? hasProfile, Map<String, dynamic>? user, String? error}) {
     return AuthState(
       authenticated: authenticated ?? this.authenticated,
       loading: loading ?? this.loading,
+      hasProfile: hasProfile ?? this.hasProfile,
       user: user ?? this.user,
       error: error,
     );
@@ -29,11 +32,25 @@ class AuthNotifier extends StateNotifier<AuthState> {
     _checkSession();
   }
 
-  void _checkSession() {
+  void _checkSession() async {
     try {
       final user = SupabaseService.instance.getCurrentUser();
       if (user != null) {
-        state = AuthState(authenticated: true, user: user);
+        final uid = user['id'] as String?;
+        bool hasProfile = false;
+        if (uid != null) {
+          final res = await SupabaseService.instance.client
+              .from('users')
+              .select('id')
+              .eq('id', uid)
+              .maybeSingle();
+          hasProfile = res != null;
+        }
+        state = AuthState(
+          authenticated: true,
+          hasProfile: hasProfile,
+          user: user,
+        );
       }
     } catch (_) {}
   }
@@ -86,13 +103,14 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
-  Future<void> createProfile(String username) async {
+  Future<void> createProfile(String username, {String? dateOfBirth}) async {
     state = state.copyWith(loading: true, error: null);
     try {
       await SupabaseService.instance.createUserProfile(
         username: username,
+        dateOfBirth: dateOfBirth,
       );
-      state = state.copyWith(loading: false);
+      state = state.copyWith(loading: false, hasProfile: true);
     } catch (e) {
       state = state.copyWith(loading: false, authenticated: false, error: e.toString());
     }

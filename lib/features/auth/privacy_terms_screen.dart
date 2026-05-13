@@ -4,7 +4,8 @@ import 'package:vive_app/shared/widgets/v_button.dart';
 
 class PrivacyTermsScreen extends StatefulWidget {
   final String email;
-  const PrivacyTermsScreen({super.key, required this.email});
+  final String dateOfBirth;
+  const PrivacyTermsScreen({super.key, required this.email, required this.dateOfBirth});
 
   @override
   State<PrivacyTermsScreen> createState() => _PrivacyTermsScreenState();
@@ -49,7 +50,10 @@ class _PrivacyTermsScreenState extends State<PrivacyTermsScreen> {
             VButton.emphasized(
               label: 'Crear cuenta',
               onPressed: _allAccepted
-                  ? () => context.push('/auth/profile-setup', extra: widget.email)
+                  ? () => context.push('/auth/profile-setup', extra: {
+                        'email': widget.email,
+                        'dateOfBirth': widget.dateOfBirth,
+                      })
                   : null,
             ),
             const SizedBox(height: 32),

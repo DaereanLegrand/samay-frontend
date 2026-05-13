@@ -73,7 +73,10 @@ class _AgeGateScreenState extends State<AgeGateScreen> {
             VButton.emphasized(
               label: 'Continuar',
               onPressed: _selectedDate != null && _isAdult
-                  ? () => context.push('/auth/privacy-terms', extra: widget.email)
+                  ? () => context.push('/auth/privacy-terms', extra: {
+                        'email': widget.email,
+                        'dateOfBirth': _selectedDate!.toIso8601String(),
+                      })
                   : null,
             ),
             const SizedBox(height: 32),

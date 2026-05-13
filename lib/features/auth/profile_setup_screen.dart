@@ -7,7 +7,8 @@ import 'package:vive_app/shared/widgets/v_input.dart';
 
 class ProfileSetupScreen extends ConsumerStatefulWidget {
   final String email;
-  const ProfileSetupScreen({super.key, required this.email});
+  final String dateOfBirth;
+  const ProfileSetupScreen({super.key, required this.email, required this.dateOfBirth});
 
   @override
   ConsumerState<ProfileSetupScreen> createState() => _ProfileSetupScreenState();
@@ -28,7 +29,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
     if (username.isEmpty) return;
 
     setState(() => _saving = true);
-    await ref.read(authStateProvider.notifier).createProfile(username);
+    await ref.read(authStateProvider.notifier).createProfile(username, dateOfBirth: widget.dateOfBirth);
     if (!mounted) return;
     setState(() => _saving = false);
     if (ref.read(authStateProvider).error == null) {

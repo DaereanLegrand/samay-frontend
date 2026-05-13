@@ -51,11 +51,23 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/auth/privacy-terms',
-        builder: (_, state) => PrivacyTermsScreen(email: state.extra as String),
+        builder: (_, state) {
+          final extra = state.extra as Map<String, dynamic>;
+          return PrivacyTermsScreen(
+            email: extra['email'] as String,
+            dateOfBirth: extra['dateOfBirth'] as String,
+          );
+        },
       ),
       GoRoute(
         path: '/auth/profile-setup',
-        builder: (_, state) => ProfileSetupScreen(email: state.extra as String),
+        builder: (_, state) {
+          final extra = state.extra as Map<String, dynamic>;
+          return ProfileSetupScreen(
+            email: extra['email'] as String,
+            dateOfBirth: extra['dateOfBirth'] as String,
+          );
+        },
       ),
       ShellRoute(
         builder: (context, state, child) {

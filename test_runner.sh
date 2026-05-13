@@ -6,6 +6,7 @@ RESULTS_FILE="test_results_$(date +%Y%m%d_%H%M%S).md"
 TOTAL=0
 PASSED=0
 FAILED=0
+SKIPPED=0
 
 gum style \
   --border double \
@@ -125,37 +126,62 @@ cat > "$RESULTS_FILE" <<'EOF'
 EOF
 
 # ── Run tests ───────────────────────────────────────────────
-for test in "${tests[@]}"; do
+i=0
+while [ "$i" -lt "${#tests[@]}" ]; do
   TOTAL=$((TOTAL + 1))
-  IFS='|' read -r id desc expected <<< "$test"
+  IFS='|' read -r id desc expected <<< "${tests[$i]}"
 
   clear
   gum style \
     --border normal \
     --padding "1 2" \
     --margin "0 0 1 0" \
-    "Test $id" \
+    "Test $id  ($((i+1))/${#tests[@]})" \
     "" \
     "$desc" \
     "" \
     "Expected: $(gum style --foreground 8 "$expected")"
 
-  result=$(gum choose --header "Result:" "GOOD" "BAD")
+  result=$(gum choose --header "Result:" "GOOD" "BAD" "PASS" "BACK" "QUIT")
   echo ""
 
-  if [ "$result" = "GOOD" ]; then
-    PASSED=$((PASSED + 1))
-    note=""
-  else
-    FAILED=$((FAILED + 1))
-    note=$(gum input \
-      --placeholder "Paste (Ctrl+V) the bug details, error, or what happened..."
-    )
-  fi
-
-  # Escape pipes in note for markdown table
-  note_escaped="${note//|/\\|}"
-  echo "| $id | $desc | $result | $note_escaped |" >> "$RESULTS_FILE"
+  case "$result" in
+    GOOD)
+      PASSED=$((PASSED + 1))
+      echo "| $id | $desc | GOOD | |" >> "$RESULTS_FILE"
+      i=$((i + 1))
+      ;;
+    BAD)
+      FAILED=$((FAILED + 1))
+      note=$(gum input \
+        --placeholder "Paste (Ctrl+V) the bug details, error, or what happened..."
+      )
+      note_escaped="${note//|/\\|}"
+      echo "| $id | $desc | BAD | $note_escaped |" >> "$RESULTS_FILE"
+      i=$((i + 1))
+      ;;
+    PASS)
+      SKIPPED=$((SKIPPED + 1))
+      TOTAL=$((TOTAL - 1))
+      echo "| $id | $desc | PASS | |" >> "$RESULTS_FILE"
+      i=$((i + 1))
+      ;;
+    BACK)
+      TOTAL=$((TOTAL - 1))
+      if [ "$i" -gt 0 ]; then
+        i=$((i - 1))
+        sed -i '$d' "$RESULTS_FILE"
+        # Re-count from results file for accurate counters
+        PASSED=$(grep -c "| GOOD |" "$RESULTS_FILE" 2>/dev/null || echo 0)
+        FAILED=$(grep -c "| BAD |" "$RESULTS_FILE" 2>/dev/null || echo 0)
+        SKIPPED=$(grep -c "| PASS |" "$RESULTS_FILE" 2>/dev/null || echo 0)
+      fi
+      ;;
+    QUIT)
+      TOTAL=$((TOTAL - 1))
+      break
+      ;;
+  esac
 done
 
 clear
@@ -169,7 +195,8 @@ gum style \
   "" \
   "Total:  $TOTAL" \
   "Passed: $(gum style --foreground 10 "$PASSED")" \
-  "Failed: $(gum style --foreground 9 "$FAILED")"
+  "Failed: $(gum style --foreground 9 "$FAILED")" \
+  "Skipped: $(gum style --foreground 11 "$SKIPPED")"
 
 echo ""
 gum style --foreground 12 "Results saved to: $RESULTS_FILE"
