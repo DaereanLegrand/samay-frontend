@@ -33,7 +33,9 @@ class _GroupDetailScreenState extends State<GroupDetailScreen>
     setState(() => _loading = true);
     try {
       final group = await SupabaseService.instance.getGroup(widget.groupId);
+      debugPrint('getGroup result: $group');
       final members = await SupabaseService.instance.getGroupMembers(widget.groupId);
+      debugPrint('getGroupMembers count: ${members.length}');
       final contributions = await SupabaseService.instance.getGroupContributions(widget.groupId);
       final myContrib = await SupabaseService.instance.getUserContributionToGroup(widget.groupId);
       setState(() {
@@ -42,7 +44,8 @@ class _GroupDetailScreenState extends State<GroupDetailScreen>
         _contributions = contributions;
         _myContribution = myContrib;
       });
-    } catch (_) {
+    } catch (e, st) {
+      debugPrint('GroupDetailScreen._load error: $e\n$st');
     } finally {
       setState(() => _loading = false);
     }
@@ -137,11 +140,11 @@ class _GroupDetailScreenState extends State<GroupDetailScreen>
           const SizedBox(height: 24),
           Row(
             children: [
-              VButton(label: 'Donar shards', onPressed: () => context.push('/group/${widget.groupId}/donate')),
+              Expanded(child: VButton(label: 'Donar shards', onPressed: () => context.push('/group/${widget.groupId}/donate'))),
               const SizedBox(width: 8),
-              VButton(label: 'Crear evento', onPressed: () => context.push('/group/${widget.groupId}/create-event')),
+              Expanded(child: VButton(label: 'Crear evento', onPressed: () => context.push('/group/${widget.groupId}/create-event'))),
               const SizedBox(width: 8),
-              VButton(label: 'Invitar', onPressed: () => context.push('/group/${widget.groupId}/invite')),
+              Expanded(child: VButton(label: 'Invitar', onPressed: () => context.push('/group/${widget.groupId}/invite'))),
             ],
           ),
           const SizedBox(height: 24),
