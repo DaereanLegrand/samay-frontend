@@ -36,16 +36,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     try {
       final user = SupabaseService.instance.getCurrentUser();
       if (user != null) {
-        final uid = user['id'] as String?;
-        bool hasProfile = false;
-        if (uid != null) {
-          final res = await SupabaseService.instance.client
-              .from('users')
-              .select('id')
-              .eq('id', uid)
-              .maybeSingle();
-          hasProfile = res != null;
-        }
+        final hasProfile = await _userHasProfile(user);
         state = AuthState(
           authenticated: true,
           hasProfile: hasProfile,
@@ -55,12 +46,28 @@ class AuthNotifier extends StateNotifier<AuthState> {
     } catch (_) {}
   }
 
+  Future<bool> _userHasProfile(Map<String, dynamic> user) async {
+    final uid = user['id'] as String?;
+    if (uid == null) return false;
+    try {
+      final res = await SupabaseService.instance.client
+          .from('users')
+          .select('id')
+          .eq('id', uid)
+          .maybeSingle();
+      return res != null;
+    } catch (_) {
+      return false;
+    }
+  }
+
   Future<void> signIn(String email, String password) async {
     state = state.copyWith(loading: true, error: null);
     try {
       await SupabaseService.instance.signIn(email, password);
       final user = SupabaseService.instance.getCurrentUser();
-      state = AuthState(authenticated: true, user: user);
+      final hasProfile = user != null ? await _userHasProfile(user) : false;
+      state = AuthState(authenticated: true, hasProfile: hasProfile, user: user);
     } catch (e) {
       state = state.copyWith(loading: false, authenticated: false, error: e.toString());
     }
@@ -81,7 +88,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
     try {
       await SupabaseService.instance.verifyOtp(email, token);
       final user = SupabaseService.instance.getCurrentUser();
-      state = AuthState(authenticated: true, user: user);
+      final hasProfile = user != null ? await _userHasProfile(user) : false;
+      state = AuthState(authenticated: true, hasProfile: hasProfile, user: user);
     } catch (e) {
       await SupabaseService.instance.signOut();
       state = state.copyWith(loading: false, authenticated: false, error: e.toString());

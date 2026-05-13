@@ -47,7 +47,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/auth/age-gate',
-        builder: (_, state) => AgeGateScreen(email: state.extra as String),
+        builder: (_, state) => AgeGateScreen(email: state.extra as String?),
       ),
       GoRoute(
         path: '/auth/privacy-terms',

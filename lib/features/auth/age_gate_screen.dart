@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:vive_app/core/services/supabase_service.dart';
 import 'package:vive_app/shared/widgets/v_button.dart';
 
 class AgeGateScreen extends StatefulWidget {
-  final String email;
-  const AgeGateScreen({super.key, required this.email});
+  final String? email;
+  const AgeGateScreen({super.key, this.email});
 
   @override
   State<AgeGateScreen> createState() => _AgeGateScreenState();
@@ -13,6 +14,8 @@ class AgeGateScreen extends StatefulWidget {
 class _AgeGateScreenState extends State<AgeGateScreen> {
   DateTime? _selectedDate;
   bool _underage = false;
+
+  String get _email => widget.email ?? SupabaseService.instance.auth.currentUser?.email ?? '';
 
   bool get _isAdult {
     if (_selectedDate == null) return false;
@@ -74,7 +77,7 @@ class _AgeGateScreenState extends State<AgeGateScreen> {
               label: 'Continuar',
               onPressed: _selectedDate != null && _isAdult
                   ? () => context.push('/auth/privacy-terms', extra: {
-                        'email': widget.email,
+                        'email': _email,
                         'dateOfBirth': _selectedDate!.toIso8601String(),
                       })
                   : null,
