@@ -301,6 +301,7 @@ class SupabaseService {
       'description': data['description'],
       'cover_url': data['cover_url'],
       'created_by_user_id': user.id,
+      'rank_bracket': 'b0_20',
     });
 
     await client.from('group_members').insert({
@@ -339,6 +340,15 @@ class SupabaseService {
         .delete()
         .eq('group_id', groupId)
         .eq('user_id', user.id);
+    final remaining = await client
+        .from('group_members')
+        .select('id')
+        .eq('group_id', groupId)
+        .limit(1);
+    if (remaining.isEmpty) {
+      await client.from('groups').delete().eq('id', groupId);
+      await client.from('chats').delete().eq('reference_id', groupId).eq('type', 'group');
+    }
   }
 
   Future<Map<String, dynamic>?> getGroup(String groupId) async {

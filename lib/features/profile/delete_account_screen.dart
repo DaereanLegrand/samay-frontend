@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:vive_app/core/providers/auth_provider.dart';
+import 'package:vive_app/core/services/supabase_service.dart';
 import 'package:vive_app/shared/widgets/v_button.dart';
 import 'package:vive_app/shared/widgets/v_input.dart';
 
@@ -16,12 +17,35 @@ class _DeleteAccountScreenState extends ConsumerState<DeleteAccountScreen> {
   final _emailController = TextEditingController();
 
   @override
+  void initState() {
+    super.initState();
+    _emailController.addListener(() => setState(() {}));
+  }
+
+  @override
   void dispose() {
     _emailController.dispose();
     super.dispose();
   }
 
+  bool get _emailMatches {
+    try {
+      final currentEmail = SupabaseService.instance.auth.currentUser?.email ?? '';
+      return _emailController.text.trim().toLowerCase() == currentEmail.toLowerCase();
+    } catch (_) {
+      return false;
+    }
+  }
+
   Future<void> _delete() async {
+    if (!_emailMatches) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('El correo no coincide con tu cuenta')),
+        );
+      }
+      return;
+    }
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -48,6 +72,8 @@ class _DeleteAccountScreenState extends ConsumerState<DeleteAccountScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final emailFilled = _emailController.text.trim().isNotEmpty;
+
     return Scaffold(
       appBar: AppBar(title: const Text('Eliminar cuenta')),
       body: Padding(
@@ -76,7 +102,7 @@ class _DeleteAccountScreenState extends ConsumerState<DeleteAccountScreen> {
             const Spacer(),
             VButton.emphasized(
               label: 'Eliminar cuenta',
-              onPressed: _emailController.text.trim().isNotEmpty ? _delete : null,
+              onPressed: emailFilled ? _delete : null,
             ),
             const SizedBox(height: 32),
           ],

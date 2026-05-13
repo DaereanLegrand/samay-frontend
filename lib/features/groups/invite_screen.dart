@@ -11,37 +11,56 @@ class InviteScreen extends StatefulWidget {
 }
 
 class _InviteScreenState extends State<InviteScreen> {
-  List<Map<String, dynamic>> _friends = [];
+  final _searchController = TextEditingController();
+  List<Map<String, dynamic>> _results = [];
+  Set<String> _memberIds = {};
   final Set<String> _selectedIds = {};
   bool _loading = true;
+  bool _searching = false;
   bool _sending = false;
 
   @override
   void initState() {
     super.initState();
     _load();
+    _searchController.addListener(_onSearchChanged);
+  }
+
+  @override
+  void dispose() {
+    _searchController.removeListener(_onSearchChanged);
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  void _onSearchChanged() {
+    final q = _searchController.text.trim();
+    if (q.length < 2) {
+      setState(() => _results = []);
+      return;
+    }
+    _search(q);
   }
 
   Future<void> _load() async {
     setState(() => _loading = true);
     try {
-      final friends = await SupabaseService.instance.getFriends();
       final members = await SupabaseService.instance.getGroupMembers(widget.groupId);
-      final memberIds = members.map((m) => m['user_id'] as String).toSet();
-      final profiles = <Map<String, dynamic>>[];
-      for (final f in friends) {
-        if (!memberIds.contains(f['user_id'] as String)) {
-          final profile = await SupabaseService.instance.getUserProfile(f['user_id'] as String);
-          if (profile != null) {
-            profiles.add(profile);
-          }
-        }
-      }
-      if (mounted) setState(() => _friends = profiles);
-    } catch (e) {
-      debugPrint('InviteScreen._load error: $e');
+      _memberIds = members.map((m) => m['user_id'] as String).toSet();
+    } catch (_) {}
+    setState(() => _loading = false);
+  }
+
+  Future<void> _search(String query) async {
+    setState(() => _searching = true);
+    try {
+      final users = await SupabaseService.instance.searchUsers(query);
+      final filtered = users.where((u) => !_memberIds.contains(u['id'] as String)).toList();
+      setState(() => _results = filtered);
+    } catch (_) {
+      setState(() => _results = []);
     } finally {
-      if (mounted) setState(() => _loading = false);
+      setState(() => _searching = false);
     }
   }
 
@@ -79,7 +98,7 @@ class _InviteScreenState extends State<InviteScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Invitar amigos'),
+        title: const Text('Invitar'),
         actions: [
           if (_selectedIds.isNotEmpty)
             TextButton(
@@ -92,47 +111,66 @@ class _InviteScreenState extends State<InviteScreen> {
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
-          : _friends.isEmpty
-              ? const Center(child: Text('No tienes amigos para invitar'))
-              : ListView.builder(
-                  itemCount: _friends.length,
-                  itemBuilder: (_, i) {
-                    final u = _friends[i];
-                    final uid = u['id'] as String;
-                    final selected = _selectedIds.contains(uid);
-                    return ListTile(
-                      leading: CircleAvatar(
-                        backgroundColor: Colors.grey[800],
-                        child: Text(
-                          (u['username'] as String? ?? '?').substring(0, 1).toUpperCase(),
-                        ),
-                      ),
-                      title: Text('@${u['username']}'),
-                      subtitle: Text('@${u['username']}'),
-                      trailing: Checkbox(
-                        value: selected,
-                        onChanged: (_) {
-                          setState(() {
-                            if (selected) {
-                              _selectedIds.remove(uid);
-                            } else {
-                              _selectedIds.add(uid);
-                            }
-                          });
-                        },
-                      ),
-                      onTap: () {
-                        setState(() {
-                          if (selected) {
-                            _selectedIds.remove(uid);
-                          } else {
-                            _selectedIds.add(uid);
-                          }
-                        });
-                      },
-                    );
-                  },
+          : Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: TextField(
+                    controller: _searchController,
+                    decoration: const InputDecoration(
+                      hintText: 'Buscar usuarios por username...',
+                      prefixIcon: Icon(Icons.search),
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
                 ),
+                if (_searching)
+                  const LinearProgressIndicator(),
+                Expanded(
+                  child: _results.isEmpty
+                      ? Center(
+                          child: Text(
+                            _searchController.text.trim().length < 2
+                                ? 'Escribe al menos 2 caracteres para buscar'
+                                : 'Sin resultados',
+                            style: Theme.of(context).textTheme.bodyMedium,
+                          ),
+                        )
+                      : ListView.builder(
+                          itemCount: _results.length,
+                          itemBuilder: (_, i) {
+                            final u = _results[i];
+                            final uid = u['id'] as String;
+                            final selected = _selectedIds.contains(uid);
+                            return ListTile(
+                              leading: CircleAvatar(
+                                backgroundColor: Colors.grey[800],
+                                child: Text(
+                                  (u['username'] as String? ?? '?').substring(0, 1).toUpperCase(),
+                                ),
+                              ),
+                              title: Text('@${u['username']}'),
+                              trailing: Checkbox(
+                                value: selected,
+                                onChanged: (_) => _toggle(uid),
+                              ),
+                              onTap: () => _toggle(uid),
+                            );
+                          },
+                        ),
+                ),
+              ],
+            ),
     );
+  }
+
+  void _toggle(String uid) {
+    setState(() {
+      if (_selectedIds.contains(uid)) {
+        _selectedIds.remove(uid);
+      } else {
+        _selectedIds.add(uid);
+      }
+    });
   }
 }

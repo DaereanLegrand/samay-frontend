@@ -14,6 +14,7 @@ class ProfileScreen extends ConsumerStatefulWidget {
 
 class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   Map<String, dynamic>? _profile;
+  List<Map<String, dynamic>> _groups = [];
   bool _loading = true;
 
   @override
@@ -28,10 +29,14 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       if (user == null) return;
       final res = await SupabaseService.instance.client
           .from('users')
-          .select('username, personal_shards, preshards')
+          .select('username, bio, personal_shards, preshards')
           .eq('id', user.id)
           .maybeSingle();
-      if (res != null) setState(() => _profile = Map<String, dynamic>.from(res));
+      if (res != null) {
+        setState(() => _profile = Map<String, dynamic>.from(res));
+      }
+      final groups = await SupabaseService.instance.getMyGroups();
+      setState(() => _groups = groups);
     } catch (_) {
     } finally {
       if (mounted) setState(() => _loading = false);
@@ -78,18 +83,37 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   personalShards: _profile?['personal_shards'] as int? ?? 0,
                   preshards: _profile?['preshards'] as int? ?? 0,
                 ),
+                if (_profile?['bio'] != null && (_profile!['bio'] as String).isNotEmpty) ...[
+                  const SizedBox(height: 16),
+                  Text(
+                    _profile!['bio'] as String,
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                ],
                 const SizedBox(height: 32),
                 Text('Grupos', style: Theme.of(context).textTheme.labelLarge),
                 const SizedBox(height: 8),
-                SizedBox(
-                  height: 100,
-                  child: Center(
-                    child: Text(
-                      'No perteneces a ningún grupo aún',
-                      style: Theme.of(context).textTheme.bodyMedium,
-                    ),
-                  ),
-                ),
+                _groups.isEmpty
+                    ? SizedBox(
+                        height: 60,
+                        child: Center(
+                          child: Text(
+                            'No perteneces a ningún grupo aún',
+                            style: Theme.of(context).textTheme.bodyMedium,
+                          ),
+                        ),
+                      )
+                    : SizedBox(
+                        height: 120,
+                        child: ListView(
+                          children: _groups.map((g) => ListTile(
+                            dense: true,
+                            leading: const Icon(Icons.group, size: 20),
+                            title: Text(g['name'] as String? ?? ''),
+                            trailing: Text('${g['group_shards'] ?? 0} shards'),
+                          )).toList(),
+                        ),
+                      ),
               ],
             ),
     );

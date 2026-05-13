@@ -61,6 +61,14 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
               label: 'Nombre de usuario',
               hint: '@usuario',
             ),
+            const SizedBox(height: 4),
+            Text(
+              'No podrás cambiar tu nombre de usuario después del registro.',
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.grey[500],
+              ),
+            ),
             if (auth.error != null)
               Padding(
                 padding: const EdgeInsets.only(top: 16),

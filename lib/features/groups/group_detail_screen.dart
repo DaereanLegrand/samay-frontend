@@ -36,7 +36,19 @@ class _GroupDetailScreenState extends State<GroupDetailScreen>
       debugPrint('getGroup result: $group');
       final members = await SupabaseService.instance.getGroupMembers(widget.groupId);
       debugPrint('getGroupMembers count: ${members.length}');
-      final contributions = await SupabaseService.instance.getGroupContributions(widget.groupId);
+      final rawContributions = await SupabaseService.instance.getGroupContributions(widget.groupId);
+      final Map<String, Map<String, dynamic>> aggregated = {};
+      for (final c in rawContributions) {
+        final uid = c['user_id'] as String;
+        final amount = c['shards_contributed'] as int;
+        if (aggregated.containsKey(uid)) {
+          aggregated[uid]!['shards_contributed'] = (aggregated[uid]!['shards_contributed'] as int) + amount;
+        } else {
+          aggregated[uid] = Map<String, dynamic>.from(c);
+        }
+      }
+      final contributions = aggregated.values.toList()
+        ..sort((a, b) => (b['shards_contributed'] as int).compareTo(a['shards_contributed'] as int));
       final myContrib = await SupabaseService.instance.getUserContributionToGroup(widget.groupId);
       setState(() {
         _group = group;
@@ -150,7 +162,10 @@ class _GroupDetailScreenState extends State<GroupDetailScreen>
                 const SizedBox(height: 16),
                 Row(
                   children: [
-                    Expanded(child: VButton(label: 'Donar shards', onPressed: () => context.push('/group/${widget.groupId}/donate'))),
+                    Expanded(child: VButton(label: 'Donar shards', onPressed: () async {
+                      await context.push('/group/${widget.groupId}/donate');
+                      _load();
+                    })),
                     const SizedBox(width: 8),
                     Expanded(child: VButton(label: 'Crear evento', onPressed: () => context.push('/group/${widget.groupId}/create-event'))),
                     const SizedBox(width: 8),
