@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:vive_app/core/services/supabase_service.dart';
 
 class AuthState {
@@ -83,10 +84,15 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
-  Future<void> verifyOtp(String email, String token) async {
+  Future<void> verifyOtp(String email, String token, [String? password]) async {
     state = state.copyWith(loading: true, error: null);
     try {
       await SupabaseService.instance.verifyOtp(email, token);
+      if (password != null && password.isNotEmpty) {
+        await SupabaseService.instance.auth.updateUser(
+          UserAttributes(password: password),
+        );
+      }
       final user = SupabaseService.instance.getCurrentUser();
       final hasProfile = user != null ? await _userHasProfile(user) : false;
       state = AuthState(authenticated: true, hasProfile: hasProfile, user: user);

@@ -63,7 +63,10 @@ class _SignupContactScreenState extends ConsumerState<SignupContactScreen> {
         return;
       }
       await ref.read(authStateProvider.notifier).sendOtp(email);
-      if (mounted) context.push('/auth/verify', extra: email);
+      if (mounted) context.push('/auth/verify', extra: {
+        'email': email,
+        'password': password,
+      });
     } catch (e) {
       if (mounted) {
         showDialog(

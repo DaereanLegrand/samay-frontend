@@ -6,7 +6,8 @@ import 'package:vive_app/shared/widgets/v_button.dart';
 
 class OtpVerificationScreen extends ConsumerStatefulWidget {
   final String email;
-  const OtpVerificationScreen({super.key, required this.email});
+  final String password;
+  const OtpVerificationScreen({super.key, required this.email, required this.password});
 
   @override
   ConsumerState<OtpVerificationScreen> createState() => _OtpVerificationScreenState();
@@ -25,6 +26,7 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
     await ref.read(authStateProvider.notifier).verifyOtp(
           widget.email,
           _codeController.text.trim(),
+          widget.password,
         );
     if (mounted && !ref.read(authStateProvider).authenticated) return;
     if (mounted) context.push('/auth/age-gate', extra: widget.email);
