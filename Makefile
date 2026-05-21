@@ -54,7 +54,7 @@ install:
 			echo "❌  APPLE_PASSWORD required. Pass it via: make install TARGET=ios APPLE_PASSWORD=..."; \
 			exit 1; \
 		fi; \
-		ssh macvm "zsh -c 'source ~/.zprofile 2>/dev/null; cd $(MACVM_PATH) && git pull && make build TARGET=ios NO_PUB=$(NO_PUB)'" && \
+		ssh macvm "zsh -c 'source ~/.zprofile 2>/dev/null; cd $(MACVM_PATH) && git stash push -m \"build_save\" 2>/dev/null; git pull; git stash pop 2>/dev/null; true && make build TARGET=ios NO_PUB=$(NO_PUB)'" && \
 		mkdir -p build/ios/ipa && \
 		scp macvm:$(MACVM_PATH)/build/ios/ipa/$(APP_NAME).ipa build/ios/ipa/ && \
 		ALTSERVER_ANISETTE_SERVER="http://127.0.0.1:6969" \
