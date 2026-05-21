@@ -195,11 +195,10 @@ class SupabaseService {
   Future<List<Map<String, dynamic>>> searchUsers(String query) async {
     final user = auth.currentUser;
     final res = await client
-        .from('users')
+        .from('user_search_view')
         .select('id, username, avatar_url')
         .ilike('username', '$query%')
         .neq('id', user?.id ?? '')
-        .isFilter('deleted_at', null)
         .limit(20);
     final results = res.map((e) => Map<String, dynamic>.from(e)).toList();
 

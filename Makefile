@@ -1,5 +1,6 @@
 .PHONY: build-cli build-api build-linux test lint clean \
-        flutter-get flutter-test flutter-analyze flutter-build
+        flutter-get flutter-test flutter-analyze flutter-build \
+        migrate-check
 
 build-cli:
 	go build -o vive ./cmd/vive-admin
@@ -27,6 +28,13 @@ flutter-build:
 
 lint: flutter-analyze
 	go vet ./... && golangci-lint run ./... || echo "golangci-lint not installed, using go vet only"
+
+migrate-check:
+	@echo "Checking migrations are committed to git..."
+	@git status --short supabase/migrations/ | grep -q '?' && \
+		echo "UNTRACKED MIGRATIONS FOUND (see above)" || true
+	@echo "Migration files in git:"
+	@git ls-files supabase/migrations/ | sort
 
 clean:
 	rm -f vive vive-linux vive-api-server
