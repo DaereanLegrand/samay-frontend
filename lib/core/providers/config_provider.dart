@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:vive_app/core/services/supabase_service.dart';
 
 final appConfigProvider = FutureProvider<Map<String, String>>((ref) async {
-  throw UnimplementedError('appConfigProvider needs SupabaseService');
+  return SupabaseService.instance.fetchAppConfig();
 });
