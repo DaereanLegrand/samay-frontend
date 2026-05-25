@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:vive_app/core/services/supabase_service.dart';
+import 'package:vive/core/services/supabase_service.dart';
 
 class RequestsScreen extends StatefulWidget {
   const RequestsScreen({super.key});

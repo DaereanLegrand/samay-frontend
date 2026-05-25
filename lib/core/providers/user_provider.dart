@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:vive_app/core/providers/auth_provider.dart';
-import 'package:vive_app/core/services/supabase_service.dart';
+import 'package:vive/core/providers/auth_provider.dart';
+import 'package:vive/core/services/supabase_service.dart';
 
 final currentUserProvider = FutureProvider<Map<String, dynamic>?>((ref) async {
   final auth = ref.watch(authStateProvider);

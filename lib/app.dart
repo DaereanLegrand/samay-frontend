@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:vive_app/core/theme/app_theme.dart';
-import 'package:vive_app/core/router/app_router.dart';
+import 'package:vive/core/theme/app_theme.dart';
+import 'package:vive/core/router/app_router.dart';
 
 class ViveApp extends ConsumerWidget {
   const ViveApp({super.key});

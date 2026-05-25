@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:vive_app/core/services/supabase_service.dart';
+import 'package:vive/core/services/supabase_service.dart';
 
 class AuthState {
   final bool authenticated;

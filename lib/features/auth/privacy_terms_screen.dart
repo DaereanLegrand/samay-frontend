@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:vive_app/shared/widgets/v_button.dart';
+import 'package:vive/shared/widgets/v_button.dart';
 
 class PrivacyTermsScreen extends StatefulWidget {
   final String email;

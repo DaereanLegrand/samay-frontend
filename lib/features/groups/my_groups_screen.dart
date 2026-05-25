@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:vive_app/core/services/supabase_service.dart';
-import 'package:vive_app/shared/widgets/rank_badge.dart';
-import 'package:vive_app/shared/widgets/v_button.dart';
-import 'package:vive_app/shared/widgets/v_shard_icon.dart';
+import 'package:vive/core/services/supabase_service.dart';
+import 'package:vive/shared/widgets/rank_badge.dart';
+import 'package:vive/shared/widgets/v_button.dart';
+import 'package:vive/shared/widgets/v_shard_icon.dart';
 
 class MyGroupsScreen extends StatefulWidget {
   const MyGroupsScreen({super.key});

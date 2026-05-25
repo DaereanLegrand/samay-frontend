@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:vive_app/core/services/supabase_service.dart';
-import 'package:vive_app/shared/widgets/rank_badge.dart';
-import 'package:vive_app/shared/widgets/v_chip.dart';
+import 'package:vive/core/services/supabase_service.dart';
+import 'package:vive/shared/widgets/rank_badge.dart';
+import 'package:vive/shared/widgets/v_chip.dart';
 
 class LeaderboardScreen extends StatefulWidget {
   const LeaderboardScreen({super.key});
