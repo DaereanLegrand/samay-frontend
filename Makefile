@@ -30,7 +30,7 @@ build:
 		flutter build ios --release --no-codesign $(PUB_FLAG) && \
 		cd build/ios && rm -rf Payload && mkdir Payload && \
 		cp -R iphoneos/Runner.app Payload/ && \
-		mkdir -p ipa && zip -r -y ipa/$(APP_NAME).ipa Payload && rm -rf Payload &&
+		mkdir -p ipa && zip -r -y ipa/$(APP_NAME).ipa Payload && rm -rf Payload && \
 		echo "✅  IPA: build/ios/ipa/$(APP_NAME).ipa"; \
 	else \
 		flutter build apk $(PUB_FLAG) && \
