@@ -54,6 +54,15 @@ class SupabaseService {
     return user.toJson();
   }
 
+  Future<Map<String, dynamic>?> refreshSession() async {
+    try {
+      final response = await auth.refreshSession();
+      return response.session?.user.toJson();
+    } catch (_) {
+      return null;
+    }
+  }
+
   Future<void> updateUser(Map<String, dynamic> patch) async {
     await auth.updateUser(
       UserAttributes(

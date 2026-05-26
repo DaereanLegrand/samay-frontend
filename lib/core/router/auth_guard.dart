@@ -17,6 +17,8 @@ class AuthGuard {
         location == '/login' ||
         location.startsWith('/auth/');
 
+    if (auth.loading) return null;
+
     if (!auth.authenticated) {
       return isPublicRoute ? null : '/login';
     }

@@ -1,5 +1,6 @@
+import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' hide AuthState;
 import 'package:vive/core/services/supabase_service.dart';
 
 class AuthState {
@@ -29,22 +30,58 @@ class AuthState {
 }
 
 class AuthNotifier extends StateNotifier<AuthState> {
-  AuthNotifier() : super(const AuthState()) {
-    _checkSession();
+  StreamSubscription<dynamic>? _authSubscription;
+
+  AuthNotifier() : super(const AuthState(loading: true)) {
+    _authSubscription = SupabaseService.instance.auth.onAuthStateChange.listen(
+      _onAuthStateChange,
+    );
+    _checkInitialSession();
   }
 
-  void _checkSession() async {
+  void _checkInitialSession() async {
     try {
       final user = SupabaseService.instance.getCurrentUser();
       if (user != null) {
         final hasProfile = await _userHasProfile(user);
-        state = AuthState(
-          authenticated: true,
-          hasProfile: hasProfile,
-          user: user,
-        );
+        state = AuthState(authenticated: true, hasProfile: hasProfile, user: user);
+        return;
       }
     } catch (_) {}
+    state = const AuthState();
+  }
+
+  void _onAuthStateChange(dynamic event) async {
+    final session = event.session;
+    switch (event.event) {
+      case AuthChangeEvent.initialSession:
+      case AuthChangeEvent.signedIn:
+      case AuthChangeEvent.tokenRefreshed:
+        if (session?.user != null) {
+          final user = session!.user.toJson();
+          final hasProfile = await _userHasProfile(user);
+          state = AuthState(authenticated: true, hasProfile: hasProfile, user: user);
+        } else {
+          state = const AuthState();
+        }
+        break;
+      case AuthChangeEvent.signedOut:
+        state = const AuthState();
+        break;
+      case AuthChangeEvent.userUpdated:
+        if (session?.user != null) {
+          state = state.copyWith(user: session!.user.toJson());
+        }
+        break;
+      case AuthChangeEvent.passwordRecovery:
+        break;
+    }
+  }
+
+  @override
+  void dispose() {
+    _authSubscription?.cancel();
+    super.dispose();
   }
 
   Future<bool> _userHasProfile(Map<String, dynamic> user) async {
