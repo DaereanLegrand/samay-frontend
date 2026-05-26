@@ -42,6 +42,13 @@ dev:
 		IP=$$(waydroid status | awk '/IP address:/ {print $$3}'); \
 		adb connect "$$IP:5555"; \
 		flutter run $(PUB_FLAG) -d "$$IP:5555"; \
+	elif [ "$(TARGET)" = "android" ]; then \
+		DEV=$$(adb devices | grep -o 'emulator-[0-9]*' | head -1); \
+		if [ -n "$$DEV" ]; then \
+			flutter run $(PUB_FLAG) -d "$$DEV"; \
+		else \
+			flutter run $(PUB_FLAG); \
+		fi; \
 	elif [ -n "$(TARGET)" ]; then \
 		flutter run $(PUB_FLAG) -d "$(TARGET)"; \
 	else \
@@ -61,7 +68,14 @@ install:
 		altserver -u $(IOS_UDID) -a $(APPLE_ID) -p $(APPLE_PASSWORD) build/ios/ipa/$(APP_NAME).ipa; \
 	elif [ "$(TARGET)" = "waydroid" ]; then \
 		IP=$$(waydroid status | awk '/IP address:/ {print $$3}'); \
-		adb connect "$$IP:5555" && adb install -r $(APK); \
+		adb connect "$$IP:5555" && adb -s "$$IP:5555" install -r $(APK); \
+	elif [ "$(TARGET)" = "android" ]; then \
+		DEV=$$(adb devices | grep -o 'emulator-[0-9]*' | head -1); \
+		if [ -n "$$DEV" ]; then \
+			adb -s "$$DEV" install -r $(APK); \
+		else \
+			adb -d install -r $(APK); \
+		fi; \
 	else \
 		adb install -r $(APK); \
 	fi
