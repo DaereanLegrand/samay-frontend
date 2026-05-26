@@ -1,4 +1,4 @@
-package com.vive.vive
+package com.qallariy.vive
 
 import io.flutter.embedding.android.FlutterActivity
 

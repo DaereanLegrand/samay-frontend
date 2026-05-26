@@ -8,7 +8,7 @@
 PRODUCT_NAME = vive_app
 
 // The application's bundle identifier
-PRODUCT_BUNDLE_IDENTIFIER = com.vive.vive
+PRODUCT_BUNDLE_IDENTIFIER = com.qallariy.vive
 
 // The copyright displayed in application information
-PRODUCT_COPYRIGHT = Copyright © 2026 com.vive. All rights reserved.
+PRODUCT_COPYRIGHT = Copyright © 2026 com.qallariy. All rights reserved.
