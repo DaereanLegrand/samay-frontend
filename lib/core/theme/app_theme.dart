@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-class ViveTheme {
-  ViveTheme._();
+class SamayTheme {
+  SamayTheme._();
 
   static const _gray3 = Color(0xFF666666);
 

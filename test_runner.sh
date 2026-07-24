@@ -12,7 +12,7 @@ gum style \
   --border double \
   --padding "1 2" \
   --margin "1" \
-  "Vive! — End-User Test Runner (Phase 00-04)"
+  "Samay — End-User Test Runner (Phase 00-04)"
 
 # ── Wipe user data ──────────────────────────────────────────
 if gum confirm "Delete ALL user data from local Supabase DB?"; then
@@ -119,7 +119,7 @@ tests=(
 
 # ── Results file header ─────────────────────────────────────
 cat > "$RESULTS_FILE" <<'EOF'
-# Vive! Test Results
+# Samay Test Results
 
 | # | Test | Result | Notes |
 |---|------|--------|-------|

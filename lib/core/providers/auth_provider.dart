@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' hide AuthState;
-import 'package:vive/core/services/supabase_service.dart';
+import 'package:samay/core/services/supabase_service.dart';
 
 class AuthState {
   final bool authenticated;

@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:vive/app.dart';
-import 'package:vive/core/config/env_config.dart';
+import 'package:samay/app.dart';
+import 'package:samay/core/config/env_config.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -12,5 +12,5 @@ void main() async {
     url: EnvConfig.supabaseUrl,
     anonKey: EnvConfig.supabaseAnonKey,
   );
-  runApp(const ProviderScope(child: ViveApp()));
+  runApp(const ProviderScope(child: SamayApp()));
 }

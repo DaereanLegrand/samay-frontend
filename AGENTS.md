@@ -1,8 +1,8 @@
-# Vive! — Development Methodology (AGENTS.md)
+# Samay — Development Methodology (AGENTS.md)
 
 ## Overview
 
-Vive! is built in **16 phases** (00–15). Each phase follows a strict TDD + documentation workflow. Parallel tracks run when dependencies permit.
+Samay is built in **16 phases** (00–15). Each phase follows a strict TDD + documentation workflow. Parallel tracks run when dependencies permit.
 
 ---
 

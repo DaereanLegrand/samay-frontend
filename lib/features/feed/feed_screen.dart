@@ -6,7 +6,7 @@ class FeedScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Vive!')),
+      appBar: AppBar(title: const Text('Samay')),
       body: Center(
         child: Padding(
           padding: const EdgeInsets.all(24),
@@ -14,7 +14,7 @@ class FeedScreen extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                'Bienvenido a Vive!',
+                'Bienvenido a Samay',
                 style: Theme.of(context).textTheme.headlineMedium,
               ),
               const SizedBox(height: 16),

@@ -3,9 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:vive/core/services/supabase_service.dart';
-import 'package:vive/shared/widgets/v_button.dart';
-import 'package:vive/shared/widgets/v_input.dart';
+import 'package:samay/core/services/supabase_service.dart';
+import 'package:samay/shared/widgets/v_button.dart';
+import 'package:samay/shared/widgets/v_input.dart';
 
 class CreateGroupScreen extends StatefulWidget {
   const CreateGroupScreen({super.key});

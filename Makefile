@@ -1,18 +1,20 @@
 .PHONY: build dev install clean build-cli build-linux lint test \
         flutter-test flutter-analyze \
         supabase-start supabase-stop supabase-status supabase-reset \
+        supabase-docker-start supabase-docker-stop supabase-docker-status supabase-docker-reset \
+        supabase-testing-start supabase-testing-stop supabase-testing-status supabase-testing-reset \
         migrate-check
 
-APP_NAME := vive_app
+APP_NAME := samay_app
 APK := build/app/outputs/flutter-apk/app-release.apk
-GO_BIN := vive
-GO_BIN_LINUX := vive-linux
+GO_BIN := samay
+GO_BIN_LINUX := samay-linux
 
 # iOS install config
 IOS_UDID      ?= 00008110-000254960A79401E
 APPLE_ID      ?= burner.dom@icloud.com
 APPLE_PASSWORD ?=
-MACVM_PATH    ?= /Users/daerean/Codes/Vive
+MACVM_PATH    ?= /Users/daerean/Codes/Samay
 
 NO_PUB ?= true
 TARGET ?=
@@ -88,10 +90,10 @@ clean:
 # ── Go ────────────────────────────────────────────────────────────────────────
 
 build-cli:
-	go build -o $(GO_BIN) ./cmd/vive-admin
+	go build -o $(GO_BIN) ./cmd/samay-admin
 
 build-linux:
-	GOOS=linux GOARCH=amd64 go build -o $(GO_BIN_LINUX) ./cmd/vive-admin
+	GOOS=linux GOARCH=amd64 go build -o $(GO_BIN_LINUX) ./cmd/samay-admin
 
 test: flutter-test
 	go test ./... -v
@@ -125,3 +127,29 @@ supabase-status:
 
 supabase-reset:
 	supabase db reset
+
+# ── Docker / Self-hosted Supabase ──────────────────────────
+
+supabase-docker-start:
+	cd supabase && docker compose up -d --wait
+
+supabase-docker-stop:
+	cd supabase && docker compose down
+
+supabase-docker-status:
+	cd supabase && docker compose ps
+
+supabase-docker-reset:
+	cd supabase && docker compose down && rm -rf volumes/db/data volumes/storage && docker compose up -d --wait
+
+supabase-testing-start:
+	cd supabase-testing && docker compose up -d --wait
+
+supabase-testing-stop:
+	cd supabase-testing && docker compose down
+
+supabase-testing-status:
+	cd supabase-testing && docker compose ps
+
+supabase-testing-reset:
+	cd supabase-testing && docker compose down && rm -rf volumes/db/data volumes/storage && docker compose up -d --wait

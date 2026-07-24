@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-class ViveDurations {
-  ViveDurations._();
+class SamayDurations {
+  SamayDurations._();
 
   static const fast = Duration(milliseconds: 150);
   static const standard = Duration(milliseconds: 250);

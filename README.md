@@ -1,4 +1,4 @@
-# vive_app
+# samay
 
 A new Flutter project.
 
