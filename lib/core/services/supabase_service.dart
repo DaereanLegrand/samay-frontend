@@ -1,3 +1,6 @@
+import 'dart:io';
+import 'dart:typed_data';
+
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
 
@@ -81,19 +84,74 @@ class SupabaseService {
   }
 
   Future<Map<String, dynamic>> createEvent(Map<String, dynamic> data) async {
-    throw UnimplementedError('createEvent');
+    final eventId = const Uuid().v4();
+    final user = auth.currentUser;
+    if (user == null) throw Exception('No authenticated user');
+
+    final inviteToken = const Uuid().v4();
+    final now = DateTime.now().toIso8601String();
+
+    await client.from('events').insert({
+      'id': eventId,
+      'name': data['name'],
+      'description': data['description'],
+      'cover_url': data['cover_url'],
+      'type': data['type'],
+      'created_by_user_id': user.id,
+      'group_id': data['group_id'],
+      'location_name': data['location_name'],
+      'location_lat': data['location_lat'],
+      'location_lng': data['location_lng'],
+      'starts_at': data['starts_at'],
+      'ends_at': data['ends_at'],
+      'join_mode': data['join_mode'],
+      'preshards_pool': data['preshards_pool'] ?? 0,
+      'preshards_cap_per_user': data['preshards_cap_per_user'],
+      'preshards_remainder_action': data['preshards_remainder_action'],
+      'invite_token': inviteToken,
+      'status': data['status'] ?? 'upcoming',
+      'dynamic_qr_enabled': (data['preshards_pool'] ?? 0) > 0,
+      'created_at': now,
+      'updated_at': now,
+    });
+
+    await client.from('event_promotores').insert({
+      'event_id': eventId,
+      'user_id': user.id,
+      'role': 'promotor',
+      'preshards_contributed': data['preshards_pool'] ?? 0,
+      'added_at': now,
+    });
+
+    await client.from('chats').insert({
+      'type': 'event',
+      'reference_id': eventId,
+      'created_at': now,
+    });
+
+    return {'id': eventId, 'invite_token': inviteToken};
   }
 
   Future<List<Map<String, dynamic>>> listEvents([String? status, String? type]) async {
-    throw UnimplementedError('listEvents');
+    var query = client.from('events').select();
+    if (status != null) query = query.eq('status', status);
+    if (type != null) query = query.eq('type', type);
+    final res = await query.order('starts_at', ascending: true);
+    return (res as List).map((e) => Map<String, dynamic>.from(e)).toList();
   }
 
   Future<Map<String, dynamic>> getEvent(String id) async {
-    throw UnimplementedError('getEvent');
+    final res = await client.from('events').select().eq('id', id).single();
+    return Map<String, dynamic>.from(res);
   }
 
   Future<void> updateEvent(String id, Map<String, dynamic> patch) async {
-    throw UnimplementedError('updateEvent');
+    final data = Map<String, dynamic>.from(patch);
+    data['updated_at'] = DateTime.now().toIso8601String();
+    if (patch.containsKey('preshards_pool')) {
+      data['dynamic_qr_enabled'] = (patch['preshards_pool'] as int) > 0;
+    }
+    await client.from('events').update(data).eq('id', id);
   }
 
   Future<String?> getFriendshipStatus(String userId) async {
@@ -474,31 +532,87 @@ class SupabaseService {
   }
 
   Future<List<Map<String, dynamic>>> loadMessages(String chatId, {int limit = 50, int offset = 0}) async {
-    throw UnimplementedError('loadMessages');
+    final user = auth.currentUser;
+    if (user == null) throw Exception('No authenticated user');
+    final res = await client
+        .from('messages')
+        .select('id, sender_id, content, media_url, created_at')
+        .eq('chat_id', chatId)
+        .order('created_at', ascending: false)
+        .range(offset, offset + limit - 1);
+    return (res as List).reversed.map((e) => Map<String, dynamic>.from(e)).toList();
   }
 
   Future<void> sendMessage(String chatId, String content, String? mediaUrl) async {
-    throw UnimplementedError('sendMessage');
+    final user = auth.currentUser;
+    if (user == null) throw Exception('No authenticated user');
+    await client.from('messages').insert({
+      'chat_id': chatId,
+      'sender_id': user.id,
+      'content': content,
+      'media_url': mediaUrl,
+      'created_at': DateTime.now().toIso8601String(),
+    });
   }
 
   Future<void> uploadPhoto(String eventId, String filePath) async {
-    throw UnimplementedError('uploadPhoto');
+    final user = auth.currentUser;
+    if (user == null) throw Exception('No authenticated user');
+
+    final bytes = await _readFileBytes(filePath);
+    final extension = filePath.split('.').last;
+    final storagePath = '$eventId/photos/${const Uuid().v4()}.$extension';
+
+    await client.storage.from('events').uploadBinary(storagePath, bytes);
+    await client.from('event_photos').insert({
+      'event_id': eventId,
+      'uploaded_by_user_id': user.id,
+      'storage_path': storagePath,
+      'likes_count': 0,
+      'reported': false,
+      'created_at': DateTime.now().toIso8601String(),
+    });
   }
 
   Future<String> getSignedPhotoUrl(String storagePath) async {
-    throw UnimplementedError('getSignedPhotoUrl');
+    final res = await client.storage.from('events').createSignedUrl(storagePath, 3600);
+    return res;
   }
 
   Future<void> likePhoto(String photoId) async {
-    throw UnimplementedError('likePhoto');
+    final user = auth.currentUser;
+    if (user == null) throw Exception('No authenticated user');
+
+    final existing = await client
+        .from('event_photo_likes')
+        .select('id')
+        .eq('photo_id', photoId)
+        .eq('user_id', user.id)
+        .maybeSingle();
+    if (existing != null) return;
+
+    await client.from('event_photo_likes').insert({
+      'photo_id': photoId,
+      'user_id': user.id,
+      'created_at': DateTime.now().toIso8601String(),
+    });
+    await client.rpc('increment_photo_likes', params: {'p_photo_id': photoId});
   }
 
   Future<List<Map<String, dynamic>>> getNotifications() async {
-    throw UnimplementedError('getNotifications');
+    final user = auth.currentUser;
+    if (user == null) throw Exception('No authenticated user');
+    final res = await client
+        .from('notifications')
+        .select('id, type, title, body, data, read, created_at')
+        .eq('user_id', user.id)
+        .order('created_at', ascending: false)
+        .limit(50);
+    return (res as List).map((e) => Map<String, dynamic>.from(e)).toList();
   }
 
   Future<void> markNotificationRead(String id) async {
-    throw UnimplementedError('markNotificationRead');
+    await client.from('notifications').update({'read': true}).eq('id', id);
   }
 
   Future<void> donateToGroup(String groupId, int amount) async {
@@ -548,11 +662,43 @@ class SupabaseService {
   }
 
   Future<void> purchaseCosmetic(String cosmeticId) async {
-    throw UnimplementedError('purchaseCosmetic');
+    final user = auth.currentUser;
+    if (user == null) throw Exception('No authenticated user');
+
+    final cosmetic = await client.from('cosmetics').select('shard_cost').eq('id', cosmeticId).single();
+    final cost = cosmetic['shard_cost'] as int;
+
+    final userData = await client.from('users').select('personal_shards').eq('id', user.id).single();
+    final shards = userData['personal_shards'] as int;
+    if (shards < cost) throw Exception('No tienes suficientes shards');
+
+    await client.from('user_cosmetics').insert({
+      'user_id': user.id,
+      'cosmetic_id': cosmeticId,
+      'equipped': false,
+      'purchased_at': DateTime.now().toIso8601String(),
+    });
+
+    await client.from('shard_ledger').insert({
+      'user_id': user.id,
+      'delta': -cost,
+      'reason': 'cosmetic_purchase',
+      'reference_id': cosmeticId,
+      'created_at': DateTime.now().toIso8601String(),
+    });
   }
 
   Future<void> reportContent(String targetType, String targetId, String reason) async {
-    throw UnimplementedError('reportContent');
+    final user = auth.currentUser;
+    if (user == null) throw Exception('No authenticated user');
+    await client.from('reports').insert({
+      'reporter_id': user.id,
+      'target_type': targetType,
+      'target_id': targetId,
+      'reason': reason,
+      'status': 'pending',
+      'created_at': DateTime.now().toIso8601String(),
+    });
   }
 
   Future<List<Map<String, dynamic>>> getLeaderboard(String sizeTier) async {
@@ -635,23 +781,77 @@ class SupabaseService {
     }
   }
 
+  RealtimeChannel _subscribeToChannel(
+    String channelName,
+    PostgresChangeEvent event,
+    String table,
+    void Function(Map<String, dynamic>) callback,
+  ) {
+    final channel = client.channel(channelName);
+    channel.onPostgresChanges(
+      event: event,
+      schema: 'public',
+      table: table,
+      callback: (payload) => callback(payload.newRecord),
+    );
+    channel.subscribe();
+    return channel;
+  }
+
   Future<void> subscribeToMessages(String chatId, void Function(Map<String, dynamic>) onInsert) async {
-    throw UnimplementedError('subscribeToMessages');
+    _subscribeToChannel('messages:$chatId', PostgresChangeEvent.insert, 'messages', onInsert);
   }
 
   Future<void> subscribeToNotifications(void Function(Map<String, dynamic>) onInsert) async {
-    throw UnimplementedError('subscribeToNotifications');
+    final user = auth.currentUser;
+    if (user == null) throw Exception('No authenticated user');
+    _subscribeToChannel('notifications:${user.id}', PostgresChangeEvent.insert, 'notifications', onInsert);
   }
 
   Future<void> subscribeToEventStatus(String eventId, void Function(String) onChange) async {
-    throw UnimplementedError('subscribeToEventStatus');
+    final channel = client.channel('event-status:$eventId');
+    channel.onPostgresChanges(
+      event: PostgresChangeEvent.update,
+      schema: 'public',
+      table: 'events',
+      callback: (payload) {
+        final newStatus = payload.newRecord['status'] as String?;
+        if (newStatus != null) onChange(newStatus);
+      },
+    );
+    channel.subscribe();
   }
 
   Future<void> subscribeToQRToken(String eventId, void Function(String) onUpdate) async {
-    throw UnimplementedError('subscribeToQRToken');
+    final user = auth.currentUser;
+    if (user == null) throw Exception('No authenticated user');
+    final channel = client.channel('qr-token:$eventId:${user.id}');
+    channel.onPostgresChanges(
+      event: PostgresChangeEvent.update,
+      schema: 'public',
+      table: 'event_qr_tokens',
+      callback: (payload) {
+        final token = payload.newRecord['token'] as String?;
+        if (token != null) onUpdate(token);
+      },
+    );
+    channel.subscribe();
   }
 
   Future<Map<String, dynamic>> callEdgeFunction(String name, Map<String, dynamic> body) async {
-    throw UnimplementedError('callEdgeFunction');
+    try {
+      final res = await client.functions.invoke(name, body: body);
+      if (res.data != null) {
+        return Map<String, dynamic>.from(res.data as Map);
+      }
+      throw Exception('Edge Function returned no data');
+    } on FunctionException catch (e) {
+      throw Exception('Edge Function error (${e.status}): ${e.details}');
+    }
+  }
+
+  Future<Uint8List> _readFileBytes(String filePath) async {
+    final file = File(filePath);
+    return await file.readAsBytes();
   }
 }
