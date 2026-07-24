@@ -157,52 +157,91 @@ class SupabaseService {
   Future<String?> getFriendshipStatus(String userId) async {
     final user = auth.currentUser;
     if (user == null) return null;
-    final res = await client
+    final asRequester = await client
         .from('friendships')
         .select('status')
-        .or('and(requester_id.eq.${user.id},addressee_id.eq.$userId),and(requester_id.eq.$userId,addressee_id.eq.${user.id})')
+        .eq('requester_id', user.id)
+        .eq('addressee_id', userId)
         .order('created_at', ascending: false)
         .limit(1)
         .maybeSingle();
-    return res?['status'] as String?;
+    if (asRequester != null) return asRequester['status'] as String?;
+    final asAddressee = await client
+        .from('friendships')
+        .select('status')
+        .eq('requester_id', userId)
+        .eq('addressee_id', user.id)
+        .order('created_at', ascending: false)
+        .limit(1)
+        .maybeSingle();
+    return asAddressee?['status'] as String?;
   }
 
   Future<String?> getFriendshipIdForUser(String userId) async {
     final user = auth.currentUser;
     if (user == null) return null;
-    final res = await client
+    final asRequester = await client
         .from('friendships')
         .select('id')
-        .or('and(requester_id.eq.${user.id},addressee_id.eq.$userId),and(requester_id.eq.$userId,addressee_id.eq.${user.id})')
+        .eq('requester_id', user.id)
+        .eq('addressee_id', userId)
         .order('created_at', ascending: false)
         .limit(1)
         .maybeSingle();
-    return res?['id'] as String?;
+    if (asRequester != null) return asRequester['id'] as String?;
+    final asAddressee = await client
+        .from('friendships')
+        .select('id')
+        .eq('requester_id', userId)
+        .eq('addressee_id', user.id)
+        .order('created_at', ascending: false)
+        .limit(1)
+        .maybeSingle();
+    return asAddressee?['id'] as String?;
   }
 
   Future<Map<String, dynamic>?> getFriendshipDetail(String userId) async {
     final user = auth.currentUser;
     if (user == null) return null;
-    final res = await client
+    final asRequester = await client
         .from('friendships')
         .select('id, status, requester_id')
-        .or('and(requester_id.eq.${user.id},addressee_id.eq.$userId),and(requester_id.eq.$userId,addressee_id.eq.${user.id})')
+        .eq('requester_id', user.id)
+        .eq('addressee_id', userId)
         .order('created_at', ascending: false)
         .limit(1)
         .maybeSingle();
-    return res != null ? Map<String, dynamic>.from(res) : null;
+    if (asRequester != null) return Map<String, dynamic>.from(asRequester);
+    final asAddressee = await client
+        .from('friendships')
+        .select('id, status, requester_id')
+        .eq('requester_id', userId)
+        .eq('addressee_id', user.id)
+        .order('created_at', ascending: false)
+        .limit(1)
+        .maybeSingle();
+    return asAddressee != null ? Map<String, dynamic>.from(asAddressee) : null;
   }
 
   Future<void> sendFriendRequest(String userId) async {
     final user = auth.currentUser;
     if (user == null) throw Exception('No authenticated user');
-    final existing = await client
+
+    final asRequester = await client
         .from('friendships')
         .select('id')
-        .or('and(requester_id.eq.${user.id},addressee_id.eq.$userId),and(requester_id.eq.$userId,addressee_id.eq.${user.id})')
+        .eq('requester_id', user.id)
+        .eq('addressee_id', userId)
         .limit(1)
         .maybeSingle();
-    if (existing != null) throw Exception('Ya existe una solicitud o amistad con este usuario');
+    final asAddressee = asRequester == null ? await client
+        .from('friendships')
+        .select('id')
+        .eq('requester_id', userId)
+        .eq('addressee_id', user.id)
+        .limit(1)
+        .maybeSingle() : null;
+    if (asRequester != null || asAddressee != null) throw Exception('Ya existe una solicitud o amistad con este usuario');
     await client.from('friendships').insert({
       'requester_id': user.id,
       'addressee_id': userId,
@@ -224,10 +263,18 @@ class SupabaseService {
   Future<void> blockUser(String userId) async {
     final user = auth.currentUser;
     if (user == null) throw Exception('No authenticated user');
-    final existing = await client
+
+    var existing = await client
         .from('friendships')
         .select('id, requester_id')
-        .or('and(requester_id.eq.${user.id},addressee_id.eq.$userId),and(requester_id.eq.$userId,addressee_id.eq.${user.id})')
+        .eq('requester_id', user.id)
+        .eq('addressee_id', userId)
+        .maybeSingle();
+    existing ??= await client
+        .from('friendships')
+        .select('id, requester_id')
+        .eq('requester_id', userId)
+        .eq('addressee_id', user.id)
         .maybeSingle();
     if (existing != null) {
       await client.from('friendships').delete().eq('id', existing['id'] as String);
@@ -242,10 +289,18 @@ class SupabaseService {
   Future<void> unblockUser(String userId) async {
     final user = auth.currentUser;
     if (user == null) throw Exception('No authenticated user');
-    final existing = await client
+
+    var existing = await client
         .from('friendships')
         .select('id')
-        .or('and(requester_id.eq.${user.id},addressee_id.eq.$userId),and(requester_id.eq.$userId,addressee_id.eq.${user.id})')
+        .eq('requester_id', user.id)
+        .eq('addressee_id', userId)
+        .maybeSingle();
+    existing ??= await client
+        .from('friendships')
+        .select('id')
+        .eq('requester_id', userId)
+        .eq('addressee_id', user.id)
         .maybeSingle();
     if (existing != null) {
       await client.from('friendships').delete().eq('id', existing['id'] as String);
@@ -265,10 +320,17 @@ class SupabaseService {
     if (results.isEmpty || user == null) return results;
 
     final ids = results.map((r) => r['id'] as String).toList();
-    final frRows = await client
+    final asRequester = await client
         .from('friendships')
         .select('requester_id, addressee_id, status')
-        .or('and(requester_id.eq.${user.id},addressee_id.in.(${ids.join(',')})),and(requester_id.in.(${ids.join(',')}),addressee_id.eq.${user.id})');
+        .eq('requester_id', user.id)
+        .inFilter('addressee_id', ids);
+    final asAddressee = await client
+        .from('friendships')
+        .select('requester_id, addressee_id, status')
+        .eq('addressee_id', user.id)
+        .inFilter('requester_id', ids);
+    final frRows = [...asRequester, ...asAddressee];
 
     final blockedByMe = <String>{};
     final blockedByThem = <String>{};
@@ -308,10 +370,17 @@ class SupabaseService {
   Future<List<Map<String, dynamic>>> getFriends() async {
     final user = auth.currentUser;
     if (user == null) throw Exception('No authenticated user');
-    final res = await client
+    final asRequester = await client
         .from('friendships')
         .select('id, requester_id, addressee_id, status, created_at')
-        .or('and(requester_id.eq.${user.id},status.eq.accepted),and(addressee_id.eq.${user.id},status.eq.accepted)');
+        .eq('requester_id', user.id)
+        .eq('status', 'accepted');
+    final asAddressee = await client
+        .from('friendships')
+        .select('id, requester_id, addressee_id, status, created_at')
+        .eq('addressee_id', user.id)
+        .eq('status', 'accepted');
+    final res = [...asRequester, ...asAddressee];
     final friends = <Map<String, dynamic>>[];
     for (final row in res) {
       final friendId = row['requester_id'] == user.id ? row['addressee_id'] as String : row['requester_id'] as String;
@@ -360,10 +429,20 @@ class SupabaseService {
   Future<bool> getBlockStatus(String userId) async {
     final user = auth.currentUser;
     if (user == null) return false;
-    final res = await client
+
+    var res = await client
         .from('friendships')
         .select('id')
-        .or('and(requester_id.eq.${user.id},addressee_id.eq.$userId,status.eq.blocked),and(requester_id.eq.$userId,addressee_id.eq.${user.id},status.eq.blocked)')
+        .eq('requester_id', user.id)
+        .eq('addressee_id', userId)
+        .eq('status', 'blocked')
+        .maybeSingle();
+    res ??= await client
+        .from('friendships')
+        .select('id')
+        .eq('requester_id', userId)
+        .eq('addressee_id', user.id)
+        .eq('status', 'blocked')
         .maybeSingle();
     return res != null;
   }
