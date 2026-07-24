@@ -2,7 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:samay/core/extensions/error_mapper.dart';
 import 'package:samay/core/services/supabase_service.dart';
 import 'package:samay/shared/widgets/v_button.dart';
 import 'package:samay/shared/widgets/v_input.dart';
@@ -68,18 +68,12 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
     } catch (e, st) {
       setState(() => _loading = false);
       debugPrint('createGroup error: $e\n$st');
-      String msg;
-      if (e is PostgrestException) {
-        msg = e.message;
-      } else {
-        msg = e.toString().replaceFirst('Exception: ', '');
-      }
       if (context.mounted) {
         showDialog(
           context: context,
           builder: (_) => AlertDialog(
             title: const Text('Error'),
-            content: Text(msg.isNotEmpty ? msg : 'Error al crear grupo'),
+            content: Text(e.toAppError().message),
             actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('OK'))],
           ),
         );

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' hide AuthState;
+import 'package:samay/core/extensions/error_mapper.dart';
 import 'package:samay/core/services/supabase_service.dart';
 
 class AuthState {
@@ -116,7 +117,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       final hasProfile = user != null ? await _userHasProfile(user) : false;
       state = AuthState(authenticated: true, hasProfile: hasProfile, user: user);
     } catch (e) {
-      state = state.copyWith(loading: false, authenticated: false, error: e.toString());
+      state = state.copyWith(loading: false, authenticated: false, error: e.toAppError().message);
     }
   }
 
@@ -127,7 +128,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       await SupabaseService.instance.upsertSignupTracker(email, false);
       state = state.copyWith(loading: false);
     } catch (e) {
-      state = state.copyWith(loading: false, authenticated: false, error: e.toString());
+      state = state.copyWith(loading: false, authenticated: false, error: e.toAppError().message);
     }
   }
 
@@ -145,7 +146,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       state = AuthState(authenticated: true, hasProfile: hasProfile, user: user);
     } catch (e) {
       await SupabaseService.instance.signOut();
-      state = state.copyWith(loading: false, authenticated: false, error: e.toString());
+      state = state.copyWith(loading: false, authenticated: false, error: e.toAppError().message);
     }
   }
 
@@ -160,7 +161,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
         state = state.copyWith(loading: false);
       }
     } catch (e) {
-      state = state.copyWith(loading: false, authenticated: false, error: e.toString());
+      state = state.copyWith(loading: false, authenticated: false, error: e.toAppError().message);
     }
   }
 
@@ -173,7 +174,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       );
       state = state.copyWith(loading: false, hasProfile: true);
     } catch (e) {
-      state = state.copyWith(loading: false, authenticated: false, error: e.toString());
+      state = state.copyWith(loading: false, authenticated: false, error: e.toAppError().message);
     }
   }
 

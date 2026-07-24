@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:samay/core/extensions/error_mapper.dart';
 import 'package:samay/core/services/supabase_service.dart';
 import 'package:samay/shared/widgets/v_button.dart';
 
@@ -63,10 +64,9 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
       }
       _load();
     } catch (e) {
-      final msg = e.toString().replaceAll(RegExp(r'(Exception: |PostgrestException\([^)]*\))'), '').trim();
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(msg.isNotEmpty ? msg : 'Error al enviar solicitud')),
+          SnackBar(content: Text(e.toAppError().message)),
         );
       }
     } finally {
