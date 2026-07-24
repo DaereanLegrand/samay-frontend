@@ -9,15 +9,8 @@ class SupabaseService {
   GoTrueClient get auth => client.auth;
 
   Future<String> checkSignupEmail(String email) async {
-    final res = await client
-        .from('signup_tracker')
-        .select('profile_created')
-        .eq('email', email)
-        .maybeSingle();
-    if (res == null) return 'signup';
-    if (res['profile_created'] == true) return 'exists';
-    await client.from('signup_tracker').delete().eq('email', email);
-    return 'signup';
+    final res = await client.rpc('check_signup_email', params: {'p_email': email});
+    return res as String;
   }
 
   Future<void> upsertSignupTracker(String email, bool profileCreated) async {
