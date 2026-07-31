@@ -25,6 +25,8 @@ import 'package:samay/features/groups/group_detail_screen.dart';
 import 'package:samay/features/groups/invite_screen.dart';
 import 'package:samay/features/groups/leaderboard_screen.dart';
 import 'package:samay/features/groups/my_groups_screen.dart';
+import 'package:samay/features/groups/group_members_screen.dart';
+import 'package:samay/shared/widgets/v_coming_soon.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   final authGuard = AuthGuard(ref);
@@ -109,17 +111,17 @@ final routerProvider = Provider<GoRouter>((ref) {
         routes: [
           GoRoute(path: '/main/feed', builder: (_, _) => const FeedScreen()),
           GoRoute(path: '/main/groups', builder: (_, _) => const MyGroupsScreen()),
-          GoRoute(path: '/main/events', builder: (_, _) => const Scaffold()),
-          GoRoute(path: '/main/notifications', builder: (_, _) => const Scaffold()),
+          GoRoute(path: '/main/events', builder: (_, _) => const VComingSoonScreen(title: 'Eventos', description: 'Los eventos de tus grupos aparecer\u00e1n aqu\u00ed pronto.')),
+          GoRoute(path: '/main/notifications', builder: (_, _) => const VComingSoonScreen(title: 'Notificaciones', description: 'Tus notificaciones aparecer\u00e1n aqu\u00ed pronto.')),
           GoRoute(path: '/main/profile', builder: (_, _) => const ProfileScreen()),
         ],
       ),
-      GoRoute(path: '/event/:eventId', builder: (_, _) => const Scaffold()),
-      GoRoute(path: '/event/:eventId/edit', builder: (_, _) => const Scaffold()),
-      GoRoute(path: '/event/:eventId/invite', builder: (_, _) => const Scaffold()),
-      GoRoute(path: '/event/:eventId/photos', builder: (_, _) => const Scaffold()),
-      GoRoute(path: '/event/:eventId/collage', builder: (_, _) => const Scaffold()),
-      GoRoute(path: '/event/:inviteToken', builder: (_, _) => const Scaffold()),
+      GoRoute(path: '/event/:eventId', builder: (_, _) => const VComingSoonScreen(title: 'Evento', description: 'El detalle del evento estar\u00e1 disponible pronto.')),
+      GoRoute(path: '/event/:eventId/edit', builder: (_, _) => const VComingSoonScreen(title: 'Editar evento', description: 'La edici\u00f3n de eventos estar\u00e1 disponible pronto.')),
+      GoRoute(path: '/event/:eventId/invite', builder: (_, _) => const VComingSoonScreen(title: 'Invitar', description: 'La invitaci\u00f3n a eventos estar\u00e1 disponible pronto.')),
+      GoRoute(path: '/event/:eventId/photos', builder: (_, _) => const VComingSoonScreen(title: 'Fotos', description: 'Las fotos del evento estar\u00e1n disponibles pronto.')),
+      GoRoute(path: '/event/:eventId/collage', builder: (_, _) => const VComingSoonScreen(title: 'Collage', description: 'El collage de fotos estar\u00e1 disponible pronto.')),
+      GoRoute(path: '/event/:inviteToken', builder: (_, _) => const VComingSoonScreen(title: 'Invitaci\u00f3n', description: 'Las invitaciones a eventos aparecer\u00e1n aqu\u00ed pronto.')),
       GoRoute(
         path: '/group/create',
         builder: (_, _) => const CreateGroupScreen(),
@@ -130,7 +132,9 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/group/:groupId/members',
-        builder: (_, state) => const Scaffold(),
+        builder: (_, state) => GroupMembersScreen(
+          groupId: state.pathParameters['groupId']!,
+        ),
       ),
       GoRoute(
         path: '/group/:groupId/donate',
@@ -141,7 +145,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/group/:groupId/create-event',
-        builder: (_, state) => const Scaffold(),
+        builder: (_, _) => const VComingSoonScreen(title: 'Crear evento', description: 'La creaci\u00f3n de eventos estar\u00e1 disponible pronto.'),
       ),
       GoRoute(
         path: '/group/:groupId/invite',
@@ -151,7 +155,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/groups/leaderboard',
         builder: (_, _) => const LeaderboardScreen(),
       ),
-      GoRoute(path: '/chat/:chatId', builder: (_, _) => const Scaffold()),
+      GoRoute(path: '/chat/:chatId', builder: (_, _) => const VComingSoonScreen(title: 'Chat', description: 'El chat estar\u00e1 disponible pronto.')),
       GoRoute(path: '/user/search', builder: (_, _) => const SearchScreen()),
       GoRoute(
         path: '/user/:userId',
@@ -160,10 +164,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/friends/requests', builder: (_, _) => const RequestsScreen()),
       GoRoute(path: '/friends/list', builder: (_, _) => const FriendsListScreen()),
       GoRoute(path: '/settings/blocked', builder: (_, _) => const BlockedUsersScreen()),
-      GoRoute(path: '/qr/:eventId', builder: (_, _) => const Scaffold()),
-      GoRoute(path: '/scanner/:eventId', builder: (_, _) => const Scaffold()),
-      GoRoute(path: '/subscriptions', builder: (_, _) => const Scaffold()),
-      GoRoute(path: '/party-finder', builder: (_, _) => const Scaffold()),
+      GoRoute(path: '/qr/:eventId', builder: (_, _) => const VComingSoonScreen(title: 'QR', description: 'El c\u00f3digo QR del evento estar\u00e1 disponible pronto.')),
+      GoRoute(path: '/scanner/:eventId', builder: (_, _) => const VComingSoonScreen(title: 'Esc\u00e1ner', description: 'El esc\u00e1ner de c\u00f3digos QR estar\u00e1 disponible pronto.')),
+      GoRoute(path: '/subscriptions', builder: (_, _) => const VComingSoonScreen(title: 'Suscripciones', description: 'Las suscripciones estar\u00e1n disponibles pronto.')),
+      GoRoute(path: '/party-finder', builder: (_, _) => const VComingSoonScreen(title: 'Party Finder', description: 'El Party Finder estar\u00e1 disponible pronto.')),
       GoRoute(path: '/settings', builder: (_, _) => const SettingsScreen()),
       GoRoute(path: '/settings/delete-account', builder: (_, _) => const DeleteAccountScreen()),
       GoRoute(path: '/profile/edit', builder: (_, _) => const EditProfileScreen()),
