@@ -1675,6 +1675,48 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'Abrir ajustes'**
   String get permissionsOpenSettings;
+
+  /// Chat screen app bar title
+  ///
+  /// In es, this message translates to:
+  /// **'Chat'**
+  String get chatTitle;
+
+  /// Chat composer input hint
+  ///
+  /// In es, this message translates to:
+  /// **'Escribe un mensaje...'**
+  String get chatInputHint;
+
+  /// Chat send button label
+  ///
+  /// In es, this message translates to:
+  /// **'Enviar'**
+  String get chatSend;
+
+  /// Placeholder for a message whose E2EE envelope could not be decrypted
+  ///
+  /// In es, this message translates to:
+  /// **'Mensaje no descifrable'**
+  String get chatUndecryptable;
+
+  /// Empty state when a chat has no messages
+  ///
+  /// In es, this message translates to:
+  /// **'No hay mensajes todavía'**
+  String get chatEmpty;
+
+  /// Error state when the message history fails to load
+  ///
+  /// In es, this message translates to:
+  /// **'No se pudieron cargar los mensajes'**
+  String get chatLoadError;
+
+  /// Snackbar when sending a message fails
+  ///
+  /// In es, this message translates to:
+  /// **'No se pudo enviar el mensaje'**
+  String get chatSendError;
 }
 
 class _AppLocalizationsDelegate

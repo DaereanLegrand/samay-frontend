@@ -29,8 +29,8 @@ class RealtimeService {
     return channel;
   }
 
-  Future<void> subscribeToMessages(String chatId, void Function(Map<String, dynamic>) onInsert) async {
-    _subscribeToChannel('messages:$chatId', PostgresChangeEvent.insert, 'messages', onInsert);
+  RealtimeChannel subscribeToMessages(String chatId, void Function(Map<String, dynamic>) onInsert) {
+    return _subscribeToChannel('messages:$chatId', PostgresChangeEvent.insert, 'messages', onInsert);
   }
 
   Future<void> subscribeToNotifications(void Function(Map<String, dynamic>) onInsert) async {

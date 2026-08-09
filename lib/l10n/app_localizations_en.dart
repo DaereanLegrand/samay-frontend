@@ -861,4 +861,25 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get permissionsOpenSettings => 'Open Settings';
+
+  @override
+  String get chatTitle => 'Chat';
+
+  @override
+  String get chatInputHint => 'Write a message...';
+
+  @override
+  String get chatSend => 'Send';
+
+  @override
+  String get chatUndecryptable => 'Message can\'t be decrypted';
+
+  @override
+  String get chatEmpty => 'No messages yet';
+
+  @override
+  String get chatLoadError => 'Couldn\'t load messages';
+
+  @override
+  String get chatSendError => 'Couldn\'t send the message';
 }

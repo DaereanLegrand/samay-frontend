@@ -1159,5 +1159,34 @@
   "permissionsOpenSettings": "Abrir ajustes",
   "@permissionsOpenSettings": {
     "description": "Dialog action that opens the system app settings"
+  },
+
+  "chatTitle": "Chat",
+  "@chatTitle": {
+    "description": "Chat screen app bar title"
+  },
+  "chatInputHint": "Escribe un mensaje...",
+  "@chatInputHint": {
+    "description": "Chat composer input hint"
+  },
+  "chatSend": "Enviar",
+  "@chatSend": {
+    "description": "Chat send button label"
+  },
+  "chatUndecryptable": "Mensaje no descifrable",
+  "@chatUndecryptable": {
+    "description": "Placeholder for a message whose E2EE envelope could not be decrypted"
+  },
+  "chatEmpty": "No hay mensajes todavía",
+  "@chatEmpty": {
+    "description": "Empty state when a chat has no messages"
+  },
+  "chatLoadError": "No se pudieron cargar los mensajes",
+  "@chatLoadError": {
+    "description": "Error state when the message history fails to load"
+  },
+  "chatSendError": "No se pudo enviar el mensaje",
+  "@chatSendError": {
+    "description": "Snackbar when sending a message fails"
   }
 }

@@ -1,4 +1,4 @@
-.PHONY: build dev install clean build-cli build-linux lint test \
+.PHONY: build dev install clean build-cli build-linux build-api lint test \
         flutter-test flutter-analyze define-env \
         supabase-start supabase-stop supabase-status supabase-reset \
         supabase-docker-start supabase-docker-stop supabase-docker-status supabase-docker-reset \
@@ -121,6 +121,9 @@ build-cli:
 
 build-linux:
 	GOOS=linux GOARCH=amd64 go build -o $(GO_BIN_LINUX) ./cmd/samay-admin
+
+build-api:
+	go build -o samay-api-server ./cmd/samay-api-server
 
 test: flutter-test
 	go test ./... -v

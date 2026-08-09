@@ -22,6 +22,7 @@ import 'package:samay/features/profile/settings_screen.dart';
 import 'package:samay/features/profile/public_profile_screen.dart';
 import 'package:samay/features/profile/delete_account_screen.dart';
 import 'package:samay/features/feed/feed_screen.dart';
+import 'package:samay/features/chat/chat_screen.dart';
 import 'package:samay/features/friends/search_screen.dart';
 import 'package:samay/features/friends/requests_screen.dart';
 import 'package:samay/features/friends/friends_list_screen.dart';
@@ -289,10 +290,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => _screenForId(
           state,
           'chatId',
-          (_) => VComingSoonScreen(
-            title: AppLocalizations.of(context).comingSoonChatTitle,
-            description: AppLocalizations.of(context).comingSoonChatBody,
-          ),
+          (chatId) => ChatScreen(chatId: chatId),
           errorMessage: AppLocalizations.of(context).routerChatNotFound,
         ),
       ),
