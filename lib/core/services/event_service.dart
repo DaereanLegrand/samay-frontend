@@ -97,11 +97,15 @@ class EventService {
         .maybeSingle();
     if (existing != null) return;
 
+    // The `event_photos.likes_count` column is maintained by the
+    // `photo_likes_count_trigger` (AFTER INSERT OR DELETE ON
+    // event_photo_likes — full_schema.sql §5.5): no RPC is needed here.
+    // (A previous build called a nonexistent likes RPC — PGRST202 at runtime;
+    // the insert alone is the contract. See the EF-03 daily log.)
     await client.from('event_photo_likes').insert({
       'photo_id': photoId,
       'user_id': user.id,
       'created_at': DateTime.now().toIso8601String(),
     });
-    await client.rpc('increment_photo_likes', params: {'p_photo_id': photoId});
   }
 }

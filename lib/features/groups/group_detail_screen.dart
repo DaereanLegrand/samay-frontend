@@ -317,7 +317,7 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen>
     );
     if (confirm == true && mounted) {
       await SupabaseService.instance.leaveGroup(widget.groupId);
-      if (context.mounted) context.pop();
+      if (mounted) context.pop();
     }
   }
 }

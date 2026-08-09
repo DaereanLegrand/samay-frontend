@@ -1,17 +1,13 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:samay/core/services/supabase_service.dart';
+import 'package:samay/core/providers/service_providers.dart';
 
 class MyProfileNotifier extends AsyncNotifier<Map<String, dynamic>?> {
   @override
   Future<Map<String, dynamic>?> build() async {
-    final user = SupabaseService.instance.auth.currentUser;
+    final user = ref.read(authServiceProvider).auth.currentUser;
     if (user == null) return null;
-    final res = await SupabaseService.instance.client
-        .from('users')
-        .select('username, bio, personal_shards, preshards')
-        .eq('id', user.id)
-        .maybeSingle();
-    return res != null ? Map<String, dynamic>.from(res) : null;
+    final res = await ref.read(userServiceProvider).getUserProfile(user.id);
+    return res;
   }
 
   /// Re-runs [build] after profile edits (finding SM-09).
@@ -25,7 +21,7 @@ final myProfileProvider = AsyncNotifierProvider<MyProfileNotifier,
 class ProfileGroupsNotifier extends AsyncNotifier<List<Map<String, dynamic>>> {
   @override
   Future<List<Map<String, dynamic>>> build() async {
-    return SupabaseService.instance.getMyGroups();
+    return ref.read(groupServiceProvider).getMyGroups();
   }
 
   /// Re-runs [build] after group membership changes.

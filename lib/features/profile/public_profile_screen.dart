@@ -66,14 +66,14 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
     setState(() => _sending = true);
     try {
       await SupabaseService.instance.sendFriendRequest(widget.userId);
-      if (context.mounted) {
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(l10n.profileFriendRequestSent)),
         );
       }
       _load();
     } catch (e) {
-      if (context.mounted) {
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(e.toAppError().message)),
         );
@@ -89,14 +89,14 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
     setState(() => _sending = true);
     try {
       await SupabaseService.instance.acceptFriendRequest(_friendshipId!);
-      if (context.mounted) {
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(l10n.profileRequestAccepted)),
         );
       }
       _load();
     } catch (e) {
-      if (context.mounted) {
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(l10n.profileAcceptError)),
         );
@@ -244,14 +244,14 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
     final l10n = AppLocalizations.of(context);
     try {
       await SupabaseService.instance.blockUser(widget.userId);
-      if (context.mounted) {
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(l10n.profileUserBlocked)),
         );
       }
       _load();
     } catch (e) {
-      if (context.mounted) {
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(l10n.profileBlockError)),
         );
@@ -263,14 +263,14 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
     final l10n = AppLocalizations.of(context);
     try {
       await SupabaseService.instance.unblockUser(widget.userId);
-      if (context.mounted) {
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(l10n.profileUserUnblocked)),
         );
       }
       _load();
     } catch (e) {
-      if (context.mounted) {
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(l10n.profileUnblockError)),
         );

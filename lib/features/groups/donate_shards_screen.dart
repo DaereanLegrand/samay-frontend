@@ -38,14 +38,14 @@ class _DonateShardsScreenState extends State<DonateShardsScreen> {
     setState(() => _loading = true);
     try {
       await SupabaseService.instance.donateToGroup(widget.groupId, amount);
-      if (context.mounted) {
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(l10n.groupsDonationSuccess)),
         );
         context.pop();
       }
     } catch (e) {
-      if (context.mounted) {
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(e.toAppError().message)),
         );

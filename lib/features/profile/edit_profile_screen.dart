@@ -8,7 +8,6 @@ import 'package:samay/core/logging/app_logger.dart';
 import 'package:samay/core/providers/auth_provider.dart';
 import 'package:samay/core/providers/service_providers.dart';
 import 'package:samay/core/services/permission_service.dart';
-import 'package:samay/core/services/supabase_service.dart';
 import 'package:samay/core/utils/input_sanitizer.dart';
 import 'package:samay/features/profile/profile_providers.dart';
 import 'package:samay/l10n/app_localizations.dart';
@@ -73,15 +72,11 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
       return;
     }
     try {
-      final user = SupabaseService.instance.auth.currentUser;
+      final user = ref.read(authServiceProvider).auth.currentUser;
       if (user == null) return;
-      final res = await SupabaseService.instance.client
-          .from('users')
-          .select('bio, avatar_url')
-          .eq('id', user.id)
-          .maybeSingle();
+      final res = await ref.read(userServiceProvider).getUserProfile(user.id);
       if (res != null) {
-        _applyProfile(Map<String, dynamic>.from(res));
+        _applyProfile(res);
       }
     } catch (e, st) {
       AppLogger.instance.error('loadProfileBio error: $e', '$st');
@@ -140,14 +135,15 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     final l10n = AppLocalizations.of(context);
     setState(() => _saving = true);
     try {
-      final user = SupabaseService.instance.auth.currentUser;
+      final user = ref.read(authServiceProvider).auth.currentUser;
       if (user == null) return;
-      await SupabaseService.instance.client.from('users').update({
-        'bio': InputSanitizer.sanitize(
-          _bioController.text,
-          maxLength: InputSanitizer.bioMaxLength,
-        ),
-      }).eq('id', user.id);
+      await ref.read(userServiceProvider).updateBio(
+            user.id,
+            InputSanitizer.sanitize(
+              _bioController.text,
+              maxLength: InputSanitizer.bioMaxLength,
+            ),
+          );
       ref.invalidate(myProfileProvider);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(

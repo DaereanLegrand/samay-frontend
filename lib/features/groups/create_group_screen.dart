@@ -1,33 +1,45 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:samay/core/logging/app_logger.dart';
+import 'package:samay/core/providers/service_providers.dart';
 import 'package:samay/core/services/permission_service.dart';
-import 'package:samay/core/services/supabase_service.dart';
 import 'package:samay/core/utils/input_sanitizer.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/show_app_error.dart';
 import 'package:samay/shared/widgets/v_button.dart';
 import 'package:samay/shared/widgets/v_input.dart';
 
-class CreateGroupScreen extends StatefulWidget {
-  const CreateGroupScreen({super.key, this.permissions});
+/// Gallery-picking seam for tests: `image_picker` is a platform plugin that
+/// cannot run in widget tests, so the screen accepts an injectable function
+/// (same thin-wrapper pattern as `PermissionService` and
+/// `EditProfileScreen.galleryPicker`).
+typedef GalleryPicker = Future<XFile?> Function(ImageSource source);
+
+class CreateGroupScreen extends ConsumerStatefulWidget {
+  const CreateGroupScreen({super.key, this.permissions, this.galleryPicker});
 
   /// Injectable for tests (SEC-07); defaults to the real service.
   final PermissionService? permissions;
 
+  /// Injectable for tests; defaults to `ImagePicker.pickImage(gallery)`.
+  final GalleryPicker? galleryPicker;
+
   @override
-  State<CreateGroupScreen> createState() => _CreateGroupScreenState();
+  ConsumerState<CreateGroupScreen> createState() => _CreateGroupScreenState();
 }
 
-class _CreateGroupScreenState extends State<CreateGroupScreen> {
+class _CreateGroupScreenState extends ConsumerState<CreateGroupScreen> {
   final _nameController = TextEditingController();
   final _descController = TextEditingController();
   final _picker = ImagePicker();
   late final PermissionService _permissions =
       widget.permissions ?? PermissionService();
+  late final GalleryPicker _galleryPicker =
+      widget.galleryPicker ?? ((source) => _picker.pickImage(source: source));
   XFile? _coverImage;
   bool _loading = false;
 
@@ -43,7 +55,7 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
       cancelAction: l10n.commonCancel,
     );
     if (!granted) return;
-    final file = await _picker.pickImage(source: ImageSource.gallery);
+    final file = await _galleryPicker(ImageSource.gallery);
     if (file != null) setState(() => _coverImage = file);
   }
 
@@ -60,7 +72,7 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
     final l10n = AppLocalizations.of(context);
     setState(() => _loading = true);
     try {
-      final groupCount = await SupabaseService.instance.getUserGroupCount();
+      final groupCount = await ref.read(groupServiceProvider).getUserGroupCount();
       if (groupCount >= 5) {
         setState(() => _loading = false);
         if (mounted) {
@@ -83,12 +95,9 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
       String? coverUrl;
       if (_coverImage != null) {
         final bytes = await _coverImage!.readAsBytes();
-        final ext = _coverImage!.name.split('.').last;
-        final path = 'group_covers/${DateTime.now().millisecondsSinceEpoch}.$ext';
-        await SupabaseService.instance.client.storage.from('groups').uploadBinary(path, bytes);
-        coverUrl = SupabaseService.instance.client.storage.from('groups').getPublicUrl(path);
+        coverUrl = await ref.read(mediaServiceProvider).uploadGroupCover(bytes);
       }
-      await SupabaseService.instance.createGroup({
+      await ref.read(groupServiceProvider).createGroup({
         'name': name,
         'description': description,
         'cover_url': coverUrl,
@@ -103,7 +112,7 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
     } catch (e, st) {
       setState(() => _loading = false);
       AppLogger.instance.error('createGroup error: $e', '$st');
-      if (context.mounted) showAppError(context, e, blocking: true);
+      if (mounted) showAppError(context, e, blocking: true);
     }
   }
 

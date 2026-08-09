@@ -1,4 +1,3 @@
-import 'package:samay/core/logging/app_logger.dart';
 import 'package:samay/core/services/config_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 

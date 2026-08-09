@@ -366,7 +366,14 @@ Fixed header: 4+1+1+32+32+32+32+4+4+32+4+4+4 = **186 bytes**.
 | ct_len | 4 B | u32 |
 | ciphertext | ct_len B | `ct ‖ tag` |
 
-Fixed header: 4+1+1+32+32+32+4+4+4 = **112 bytes**.
+Fixed header: 4+1+1+32+32+32+4+4+4 = **114 bytes**.
+
+> **ERRATA (I-37, 2026-08-09; corrected by EF-05):** the original spec printed
+> "= 112 bytes", but the field table above sums to 114. The implemented codec
+> (`lib/crypto/envelope.dart`, `ratchetHeaderSize = 4+1+1+32+32+32+4+4+4 = 114`)
+> is authoritative: a 112-byte header misaligns `ct_len` by 2 bytes and every
+> ratchet envelope fails AEAD (I-37 verified empirically; see MISTAKE-1 in
+> `docs/development/phase-02-flutter-foundation/2026-08-09_I37-e2ee-core.md`).
 
 ### 6.5 Parse rules
 

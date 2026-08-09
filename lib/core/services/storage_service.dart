@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -88,23 +89,13 @@ class HiveService {
           AppLogger.instance.warn(
             'Hive box "$name" unreadable ($error); re-creating empty.',
           );
-          await _hive.deleteBoxFromDisk(name);
-          return _hive.openBox<String>(
-            name,
-            encryptionCipher: HiveAesCipher(key),
-            crashRecovery: false,
-          );
+          return _recreateBox(name, key);
         } on ArgumentError catch (error) {
           // Wrong key produces an AES padding failure at open time.
           AppLogger.instance.warn(
             'Hive box "$name" key mismatch ($error); re-creating empty.',
           );
-          await _hive.deleteBoxFromDisk(name);
-          return _hive.openBox<String>(
-            name,
-            encryptionCipher: HiveAesCipher(key),
-            crashRecovery: false,
-          );
+          return _recreateBox(name, key);
         }
       },
       (error, stackTrace) {
@@ -122,6 +113,50 @@ class HiveService {
       throw StateError('Hive box "$name" could not be opened.');
     }
     return result;
+  }
+
+  /// Re-creates a box whose on-disk data was written with a different key.
+  ///
+  /// hive 2.2.3's failed-open path is NOT re-creation-safe: its `_openBox`
+  /// catch closes the half-initialized box WITHOUT awaiting the close (the
+  /// lock file's flock is released asynchronously), so deleting the box files
+  /// and immediately re-opening the same name can deadlock on the still-held
+  /// lock — an intermittent 30s+ hang under load (EF-04, reproduced ~50% of
+  /// full-suite runs). Mitigations here:
+  ///
+  /// 1. `deleteBoxFromDisk` is retried — its exists→delete race throws
+  ///    `FileSystemException` when hive's own deferred close deleted the lock
+  ///    file in between; that must never abort the reset.
+  /// 2. The re-open is bounded with a timeout; on contention, the retry's
+  ///    delete unlinks the lock file (unlink of an open+locked file succeeds
+  ///    on macOS), so the next open locks a fresh file and cannot block.
+  ///
+  /// Worst case (pathological contention on every box): ~19 s for the four
+  /// caches — a bounded failure, never an unbounded hang.
+  Future<Box<String>> _recreateBox(String name, Uint8List key) async {
+    for (var attempt = 0; attempt < 2; attempt++) {
+      try {
+        await _hive.deleteBoxFromDisk(name);
+      } on FileSystemException {
+        // The failed open's deferred cleanup may still be deleting the files;
+        // give it one turn and retry the whole reset.
+        await Future<void>.delayed(const Duration(milliseconds: 200));
+        continue;
+      }
+      try {
+        return await _hive.openBox<String>(
+          name,
+          encryptionCipher: HiveAesCipher(key),
+          crashRecovery: false,
+        ).timeout(const Duration(seconds: 2));
+      } on TimeoutException {
+        // The leaked flock from the failed open is still blocking lock()
+        // acquisition. Next attempt unlinks the lock file, creating a fresh
+        // inode the leaked fd cannot contend with.
+        await Future<void>.delayed(const Duration(milliseconds: 200));
+      }
+    }
+    throw StateError('Hive box "$name" could not be re-created after key loss.');
   }
 
   Future<void> init({bool initializeFlutter = true}) async {

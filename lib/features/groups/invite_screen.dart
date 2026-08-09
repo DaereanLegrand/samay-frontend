@@ -4,7 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:samay/core/extensions/error_mapper.dart';
 import 'package:samay/core/logging/app_logger.dart';
 import 'package:samay/core/providers/config_provider.dart';
-import 'package:samay/core/services/supabase_service.dart';
+import 'package:samay/core/providers/service_providers.dart';
 import 'package:samay/core/utils/debouncer.dart';
 import 'package:samay/core/utils/input_sanitizer.dart';
 import 'package:samay/features/friends/friends_providers.dart';
@@ -64,14 +64,10 @@ class _InviteScreenState extends ConsumerState<InviteScreen> {
     final l10n = AppLocalizations.of(context);
     setState(() => _sending = true);
     try {
-      for (final id in _selectedIds) {
-        await SupabaseService.instance.client.from('group_members').insert({
-          'group_id': widget.groupId,
-          'user_id': id,
-          'role': 'member',
-          'status': 'invited',
-        });
-      }
+      await ref.read(groupServiceProvider).inviteMembers(
+        widget.groupId,
+        _selectedIds.toList(),
+      );
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(l10n.groupsInvitedCount(_selectedIds.length))),

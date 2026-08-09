@@ -14,7 +14,7 @@ class UserService {
   Future<Map<String, dynamic>?> getUserProfile(String userId) async {
     final res = await client
         .from('users')
-        .select('id, username, avatar_url, bio, personal_shards')
+        .select('id, username, avatar_url, bio, personal_shards, preshards')
         .eq('id', userId)
         .maybeSingle();
     if (res == null) return null;
@@ -28,6 +28,16 @@ class UserService {
     await client
         .from('users')
         .update({'avatar_url': avatarUrl})
+        .eq('id', userId);
+  }
+
+  /// Persists the bio on the user's profile row (edit-profile save path).
+  /// Own-row only: the `users_update_own` RLS policy restricts the update to
+  /// `id = auth.uid()`.
+  Future<void> updateBio(String userId, String bio) async {
+    await client
+        .from('users')
+        .update({'bio': bio})
         .eq('id', userId);
   }
 

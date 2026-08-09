@@ -8,6 +8,7 @@ import 'package:samay/app.dart';
 import 'package:samay/core/config/env_config.dart';
 import 'package:samay/core/logging/app_logger.dart';
 import 'package:samay/core/services/secure_session_storage.dart';
+import 'package:samay/core/services/storage_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -43,6 +44,20 @@ Future<void> main() async {
     AppLogger.instance.warn('Recovered from a previous crash:\n$recovered');
     // TODO(LOG-03): recovery UI ("Vive recovered from a previous crash"
     // banner/dialog) is future work.
+  }
+
+  // SEC-10 / M-32 (I-26): encrypted Hive caches (config, photo URLs,
+  // messages, notifications). Init before Supabase so the config cache is
+  // ready for first reads. The caches are disposable — any init failure
+  // (e.g. missing platform plugins in exotic environments) must degrade to
+  // "no local caches", never block boot.
+  try {
+    await HiveService().init();
+  } catch (e, st) {
+    AppLogger.instance.warn(
+      'Hive cache init failed; app continues without local caches: $e',
+      '$st',
+    );
   }
 
   await Supabase.initialize(

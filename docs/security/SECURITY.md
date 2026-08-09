@@ -305,21 +305,21 @@ Hard delete (daily 03:00):                    supabase/migrations/20260510000002
 |---|-----|----------|----------------|-----------|
 | G-01 | `FORCE RLS` on 30/31 tables (only signup_tracker) | 🔴 | I-31 | SUP-02, H-19/H-25, SEC-13 |
 | G-02 | `SET search_path = ''` missing on 11 SECURITY DEFINER functions | 🔴 | I-31 | SUP-03, H-20/H-26, SEC-14 |
-| G-03 | `users_update_own` allows mass-assignment of economy/subscription columns (self-elevation) | 🔴 | I-32, S-03 | API3:2023 (R3) |
-| G-04 | Token refresh never invoked; no PKCE on init; tokens not in SecureStorage | 🟠 | I-30 (+I-25) | SEC-04, SEC-11, H-22 |
-| G-05 | OTP rate limiting: no client cooldown, no attempt caps | 🟠 | I-29 (+S-10) | SEC-05, H-23 |
+| G-03 | `users_update_own` allows mass-assignment of economy/subscription columns (self-elevation) | ✅ (I-32, 2026-08-09 — migration `20260809000002`: `REVOKE UPDATE` on the 7 protected columns from authenticated/anon + `assert_safe_user_update()` BEFORE INSERT OR UPDATE trigger (SECURITY INVOKER, one-way `deleted_at` soft-delete preserved); pgTAP §39a/39b) | I-32 | API3:2023 (R3) |
+| G-04 | Token refresh never invoked; no PKCE on init; tokens not in SecureStorage | ✅ (I-30 + I-25, 2026-08-09 — `authFlowType: AuthFlowType.pkce` pinned in `lib/main.dart`; `tokenRefreshed` null-session handling + `AuthNotifier.refreshSession()` wired through `AuthService.refreshSession()`; session + PKCE code verifier persisted in flutter_secure_storage via `SecureSessionStorage`/`SecurePkceStorage` (SEC-04/SEC-11 closed, H-22) | I-30, I-25 | SEC-04, SEC-11, H-22 |
+| G-05 | OTP rate limiting: no client cooldown, no attempt caps | ✅ (I-29, 2026-08-09 — client-side OTP UX guards: 60 s resend cooldown, 5-consecutive-failure block, signup double-tap guard, `RateLimitError` surfaced (SEC-05 client half, H-23). Server-side DB `rate_limits` caps remain S-10/I-31) | I-29 | SEC-05, H-23 |
 | G-06 | `permission_handler` missing (camera/gallery runtime permission) | 🟠 | I-28 | SEC-07, M-29 |
 | G-07 | No input sanitization (NFKC, control chars, length caps) | 🟠 | I-27 ✅ | SEC-06, H-24 |
 | G-08 | `.env` bundled as asset + `flutter_dotenv`; `.env.example` leaks real anon key | 🟠 | I-34, M-13 (+S-08) | SEC-03, SEC-09, H-21, M-31, SUP-05 |
 | G-09 | E2EE chat: no crypto code, plaintext `messages.content`, no key lifecycle | 🔴 (before chat ships) | I-37, I-38 (spec D-07) | SEC-10/M-32 (Hive), E2EE-ARCHITECTURE.md |
-| G-10 | Unencrypted Hive caches (config/photo/message) | 🟠 | I-26 | SEC-10, M-32 |
+| G-10 | Unencrypted Hive caches (config/photo/message) | ✅ (I-26, 2026-08-09 — `HiveService` opens all 4 boxes with `HiveAesCipher` (AES-256); 32-byte key in flutter_secure_storage (`samay.hive.key`), never on disk beside data; `crashRecovery: false` + zone-guarded opens; wrong-key → `HiveError` → delete + re-create (SEC-10/M-32 closed) | I-26 | SEC-10, M-32 |
 | G-11 | Kong has no rate-limit plugin; app-level limits unenforced (FLMT blocked on Edge Functions) | 🟠 | M-09, S-10 (FLMT: EEDG) | SEC-05, FLMT doc |
 | G-12 | Storage bucket policies not created; no signed-URL access check (client calls `createSignedUrl` directly) | 🟠 | S-09, I-59 | SECU-rls-policies.md §storage |
 | G-13 | No crash/error reporting (Sentry placeholder) | 🟡 | I-70, I-05 | SEC-08, M-30 |
 | G-14 | AuthGuard loading flash (`return null`) | 🟡 | I-03 | SEC-12, M-34 |
 | G-15 | PostgREST error strings leak schema details to users | 🟡 | I-08 (done), verify S-13 | SEC-15, M-35 |
 | G-16 | docker-compose port conflicts with Juega (5432, 54321) — violates AGENTS.md map | 🟠 | I-02, M-01..M-05, M-10 | AGENTS.md §port; docker-compose.yml:13,44; run.sh:17 |
-| G-17 | Stale pgTAP assertions on signup_tracker wide-open policies | 🟡 | D-04 (I-77 expansion) | supabase/tests/schema_test.sql:170-177 |
+| G-17 | Stale pgTAP assertions on signup_tracker wide-open policies | ✅ (D-04, 2026-08-09 — `supabase/tests/schema_test.sql` + `supabase-testing/tests/schema_test.sql` Sections 6/15/37 now assert the email-scoped `signup_tracker_*_own` policies + `FORCE ROW LEVEL SECURITY` + `check_signup_email` grants; no "Anyone can …" assertions remain; both files byte-identical) | D-04 | supabase/tests/schema_test.sql:170-177 |
 | G-18 | Realtime channel abuse / presence enumeration | 🟡 | S-11 | §2.9 |
 | G-19 | Deep-link/invite-token validation (samay://event/{token}) | 🟡 | S-12, I-66 | MASTG-BEST-0071 |
 | G-20 | Go HTTP client: no timeouts/context; silent error swallowing in secondary queries | 🟡 | I-39 (+I-42 tests) | M-43, H-31 |
