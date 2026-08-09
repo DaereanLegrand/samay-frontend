@@ -6,6 +6,7 @@ import 'package:samay/core/logging/app_logger.dart';
 import 'package:samay/core/providers/auth_provider.dart';
 import 'package:samay/core/router/route_extras.dart';
 import 'package:samay/core/router/route_paths.dart';
+import 'package:samay/core/utils/otp_format.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/v_button.dart';
 
@@ -79,7 +80,7 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
 
   void _onCodeChanged(String value) {
     if (_attemptBlocked) return;
-    if (value.length == OtpVerificationScreen.otpCodeLength &&
+    if (cleanOtpDigits(value).length == OtpVerificationScreen.otpCodeLength &&
         !ref.read(authStateProvider).isLoading) {
       _verify();
     }
@@ -87,7 +88,7 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
 
   Future<void> _verify() async {
     final auth = ref.read(authStateProvider);
-    final code = _codeController.text.trim();
+    final code = cleanOtpDigits(_codeController.text);
     if (auth.isLoading ||
         code.length != OtpVerificationScreen.otpCodeLength ||
         _attemptBlocked) {

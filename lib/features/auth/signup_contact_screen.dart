@@ -7,6 +7,7 @@ import 'package:samay/core/logging/app_logger.dart';
 import 'package:samay/core/providers/auth_provider.dart';
 import 'package:samay/core/router/route_extras.dart';
 import 'package:samay/core/router/route_paths.dart';
+import 'package:samay/features/auth/password_policy.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/show_app_error.dart';
 import 'package:samay/shared/widgets/v_button.dart';
@@ -34,12 +35,6 @@ class _SignupContactScreenState extends ConsumerState<SignupContactScreen> {
     super.dispose();
   }
 
-  bool _isPasswordValid(String pwd) {
-    if (pwd.length < 6) return false;
-    if (!pwd.contains(RegExp(r'[0-9]'))) return false;
-    return true;
-  }
-
   Future<void> _signup() async {
     if (_submitting) return;
     final email = _emailController.text.trim();
@@ -48,8 +43,9 @@ class _SignupContactScreenState extends ConsumerState<SignupContactScreen> {
     final l10n = AppLocalizations.of(context);
     setState(() => _validationError = null);
     if (email.isEmpty || password.isEmpty || confirm.isEmpty) return;
-    if (!_isPasswordValid(password)) {
-      setState(() => _validationError = l10n.authPasswordTooWeak);
+    final passwordErrorText = passwordError(password);
+    if (passwordErrorText != null) {
+      setState(() => _validationError = passwordErrorText);
       return;
     }
     if (password != confirm) {

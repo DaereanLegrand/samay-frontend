@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:samay/core/services/supabase_service.dart';
+import 'package:samay/core/utils/shard_math.dart';
 
 class MyGroupsNotifier extends AsyncNotifier<List<Map<String, dynamic>>> {
   @override
@@ -62,20 +63,7 @@ class GroupContributionsNotifier
   @override
   Future<GroupContributionsData> build(String arg) async {
     final raw = await SupabaseService.instance.getGroupContributions(arg);
-    final Map<String, Map<String, dynamic>> aggregated = {};
-    for (final c in raw) {
-      final uid = c['user_id'] as String;
-      final amount = c['shards_contributed'] as int;
-      if (aggregated.containsKey(uid)) {
-        aggregated[uid]!['shards_contributed'] =
-            (aggregated[uid]!['shards_contributed'] as int) + amount;
-      } else {
-        aggregated[uid] = Map<String, dynamic>.from(c);
-      }
-    }
-    final contributors = aggregated.values.toList()
-      ..sort((a, b) =>
-          (b['shards_contributed'] as int).compareTo(a['shards_contributed'] as int));
+    final contributors = aggregateContributions(raw);
     final myContribution =
         await SupabaseService.instance.getUserContributionToGroup(arg);
     return GroupContributionsData(

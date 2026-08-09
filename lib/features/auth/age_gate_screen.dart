@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:samay/core/router/route_extras.dart';
 import 'package:samay/core/router/route_paths.dart';
 import 'package:samay/core/services/supabase_service.dart';
+import 'package:samay/features/auth/age_policy.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/v_button.dart';
 
@@ -19,12 +20,6 @@ class _AgeGateScreenState extends State<AgeGateScreen> {
   bool _underage = false;
 
   String get _email => widget.email ?? SupabaseService.instance.auth.currentUser?.email ?? '';
-
-  bool get _isAdult {
-    if (_selectedDate == null) return false;
-    final cutoff = DateTime.now().subtract(const Duration(days: 365 * 18));
-    return _selectedDate!.isBefore(cutoff) || _selectedDate!.isAtSameMomentAs(cutoff);
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -57,18 +52,14 @@ class _AgeGateScreenState extends State<AgeGateScreen> {
                 if (date != null) {
                   setState(() {
                     _selectedDate = date;
-                    _underage = !_isAdult;
+                    _underage = !isAdult(_selectedDate);
                   });
                 }
               },
               icon: const Icon(Icons.calendar_today),
               label: Text(
                 _selectedDate != null
-                    ? l10n.authSelectedDate(
-                        _selectedDate!.day,
-                        _selectedDate!.month,
-                        _selectedDate!.year,
-                      )
+                    ? formatDob(_selectedDate!)
                     : l10n.authSelectDate,
               ),
             ),
@@ -83,7 +74,7 @@ class _AgeGateScreenState extends State<AgeGateScreen> {
             const Spacer(),
             VButton.emphasized(
               label: l10n.commonContinue,
-              onPressed: _selectedDate != null && _isAdult
+              onPressed: isAdult(_selectedDate)
                   ? () => context.push(
                         RoutePaths.privacyTerms,
                         extra: PrivacyTermsExtra(

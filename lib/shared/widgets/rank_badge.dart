@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
-import 'package:samay/l10n/app_localizations.dart';
+import 'package:samay/shared/widgets/rank_bracket.dart';
 
 class RankBadge extends StatelessWidget {
   final String bracket;
@@ -9,16 +9,7 @@ class RankBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    final label = switch (bracket) {
-      'b90_100' => l10n.rankFullVibe,
-      'b80_90' => l10n.rankVibeLegends,
-      'b60_80' => l10n.rankVibeCreators,
-      'b40_60' => l10n.rankVibeFollowers,
-      'b20_40' => l10n.rankVibeSeekers,
-      'b0_20' => l10n.rankInSearch,
-      _ => bracket,
-    };
+    final label = rankBracketLabel(bracket);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(

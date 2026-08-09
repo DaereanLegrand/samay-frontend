@@ -293,7 +293,10 @@ class SupabaseService {
   // Realtime
   // ---------------------------------------------------------------------------
 
-  Future<void> subscribeToMessages(String chatId, void Function(Map<String, dynamic>) onInsert) async =>
+  /// Sync by design (I-38): the underlying [RealtimeService.subscribeToMessages]
+  /// returns the [RealtimeChannel] so callers can unsubscribe on dispose; the
+  /// facade must not swallow it behind a `Future<void>`.
+  RealtimeChannel subscribeToMessages(String chatId, void Function(Map<String, dynamic>) onInsert) =>
       _realtimeService.subscribeToMessages(chatId, onInsert);
 
   Future<void> subscribeToNotifications(void Function(Map<String, dynamic>) onInsert) async =>
