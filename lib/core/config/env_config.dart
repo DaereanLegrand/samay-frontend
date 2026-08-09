@@ -1,16 +1,46 @@
-import 'package:flutter_dotenv/flutter_dotenv.dart';
-
+/// Build-time environment configuration (SEC-03 / SEC-09 / M-31 / SUP-05).
+///
+/// Supabase values are injected at compile time via `--dart-define` (or
+/// `--dart-define-from-file=.env`, see Makefile) and read with
+/// `String.fromEnvironment` — nothing is bundled as a Flutter asset anymore.
+///
+/// Keys are only defined when passed to the compiler: the raw const getters
+/// resolve to `''` otherwise, and the validated getters convert that into a
+/// fail-fast [StateError] so a misconfigured build dies at startup instead of
+/// shipping against an empty URL (same behavior as the previous runtime
+/// .env loader's missing-var path).
 class EnvConfig {
   EnvConfig._();
 
-  static String get supabaseUrl => _get('SUPABASE_URL');
-  static String get supabaseAnonKey => _get('SUPABASE_ANON_KEY');
+  /// Raw compile-time value of `--dart-define=SUPABASE_URL=...` (`''` when
+  /// not provided — the `defaultValue` is baked in at compile time).
+  static const String supabaseUrlRaw = String.fromEnvironment(
+    'SUPABASE_URL',
+    defaultValue: '',
+  );
 
-  static String _get(String key) {
-    final value = dotenv.env[key];
-    if (value == null || value.isEmpty) {
+  /// Raw compile-time value of `--dart-define=SUPABASE_ANON_KEY=...`.
+  static const String supabaseAnonKeyRaw = String.fromEnvironment(
+    'SUPABASE_ANON_KEY',
+    defaultValue: '',
+  );
+
+  /// Supabase REST API base URL (anon JWT).
+  static String get supabaseUrl => validate(supabaseUrlRaw, 'SUPABASE_URL');
+
+  /// Supabase publishable anon key (safe to ship by design — it cannot
+  /// bypass RLS).
+  static String get supabaseAnonKey =>
+      validate(supabaseAnonKeyRaw, 'SUPABASE_ANON_KEY');
+
+  /// Pure validation seam (unit-tested in `test/core/env_config_test.dart`):
+  /// returns [url] when non-blank, otherwise throws a [StateError] naming
+  /// [key]. Public so the missing-var behavior is testable without a
+  /// compile-time define.
+  static String validate(String url, String key) {
+    if (url.trim().isEmpty) {
       throw StateError('Missing required env variable: $key');
     }
-    return value;
+    return url;
   }
 }

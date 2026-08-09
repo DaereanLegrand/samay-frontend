@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:samay/core/logging/app_logger.dart';
 import 'package:samay/core/providers/auth_provider.dart';
 import 'package:samay/core/router/route_paths.dart';
 import 'package:samay/core/services/supabase_service.dart';
+import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/v_button.dart';
 import 'package:samay/shared/widgets/v_input.dart';
 
@@ -33,16 +35,18 @@ class _DeleteAccountScreenState extends ConsumerState<DeleteAccountScreen> {
     try {
       final currentEmail = SupabaseService.instance.auth.currentUser?.email ?? '';
       return _emailController.text.trim().toLowerCase() == currentEmail.toLowerCase();
-    } catch (_) {
+    } catch (e, st) {
+      AppLogger.instance.error('emailMatches error: $e', '$st');
       return false;
     }
   }
 
   Future<void> _delete() async {
+    final l10n = AppLocalizations.of(context);
     if (!_emailMatches) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('El correo no coincide con tu cuenta')),
+          SnackBar(content: Text(l10n.profileEmailMismatch)),
         );
       }
       return;
@@ -50,16 +54,19 @@ class _DeleteAccountScreenState extends ConsumerState<DeleteAccountScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('¿Eliminar cuenta?'),
-        content: const Text(
-          'Esta acción no se puede deshacer. Tus datos serán anonimizados '
-          'y tu cuenta será eliminada permanentemente después de 30 días.',
-        ),
+        title: Text(l10n.profileDeleteQuestion),
+        content: Text(l10n.profileDeleteBody),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(l10n.commonCancel),
+          ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Eliminar', style: TextStyle(color: Colors.red)),
+            child: Text(
+              l10n.commonDelete,
+              style: const TextStyle(color: Colors.red),
+            ),
           ),
         ],
       ),
@@ -74,9 +81,10 @@ class _DeleteAccountScreenState extends ConsumerState<DeleteAccountScreen> {
   @override
   Widget build(BuildContext context) {
     final emailFilled = _emailController.text.trim().isNotEmpty;
+    final l10n = AppLocalizations.of(context);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Eliminar cuenta')),
+      appBar: AppBar(title: Text(l10n.profileDeleteTitle)),
       body: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(
@@ -84,25 +92,23 @@ class _DeleteAccountScreenState extends ConsumerState<DeleteAccountScreen> {
           children: [
             const SizedBox(height: 16),
             Text(
-              'Al eliminar tu cuenta, tus datos serán anonimizados. '
-              'Tus mensajes y contribuciones al ranking de grupos se mantendrán '
-              'pero no serán vinculados a ti. Podrás recuperar tu cuenta dentro de 30 días.',
+              l10n.profileDeleteExplanation,
               style: Theme.of(context).textTheme.bodyLarge,
             ),
             const SizedBox(height: 24),
             Text(
-              'Confirma tu correo electrónico para continuar:',
+              l10n.profileConfirmEmail,
               style: Theme.of(context).textTheme.bodyMedium,
             ),
             const SizedBox(height: 12),
             VInput(
               controller: _emailController,
-              label: 'Correo electrónico',
+              label: l10n.commonEmail,
               keyboardType: TextInputType.emailAddress,
             ),
             const Spacer(),
             VButton.emphasized(
-              label: 'Eliminar cuenta',
+              label: l10n.profileDeleteTitle,
               onPressed: emailFilled ? _delete : null,
             ),
             const SizedBox(height: 32),

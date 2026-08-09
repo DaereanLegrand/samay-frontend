@@ -1,6 +1,7 @@
 abstract final class RoutePaths {
   static const welcome = '/';
   static const login = '/login';
+  static const banned = '/banned';
   static const signup = '/auth/signup';
   static const verify = '/auth/verify';
   static const ageGate = '/auth/age-gate';

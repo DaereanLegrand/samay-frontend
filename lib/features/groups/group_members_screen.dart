@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:samay/core/logging/app_logger.dart';
 import 'package:samay/core/services/supabase_service.dart';
+import 'package:samay/l10n/app_localizations.dart';
 
 class GroupMembersScreen extends StatefulWidget {
   final String groupId;
@@ -27,7 +29,7 @@ class _GroupMembersScreenState extends State<GroupMembersScreen> {
       if (!mounted) return;
       setState(() => _members = members);
     } catch (e, st) {
-      debugPrint('GroupMembersScreen._load error: $e\n$st');
+      AppLogger.instance.error('GroupMembersScreen._load error: $e', st.toString());
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -35,13 +37,17 @@ class _GroupMembersScreenState extends State<GroupMembersScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Miembros')),
+      appBar: AppBar(title: Text(l10n.groupsMembersTitle)),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _members.isEmpty
-              ? const Center(
-                  child: Text('No hay miembros', style: TextStyle(color: Colors.grey)),
+              ? Center(
+                  child: Text(
+                    l10n.groupsNoMembers,
+                    style: const TextStyle(color: Colors.grey),
+                  ),
                 )
               : ListView.builder(
                   padding: const EdgeInsets.all(16),
@@ -53,7 +59,7 @@ class _GroupMembersScreenState extends State<GroupMembersScreen> {
                     final userId = m['user_id']?.toString() ?? '';
                     final username = (rawUsername == null || rawUsername.isEmpty)
                         ? (userId.isEmpty
-                            ? 'Usuario'
+                            ? l10n.commonUser
                             : userId.substring(0, userId.length < 8 ? userId.length : 8))
                         : rawUsername;
                     final initials = username.substring(0, 1).toUpperCase();

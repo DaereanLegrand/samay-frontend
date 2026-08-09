@@ -9,31 +9,51 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  flutter_localizations:
+    sdk: flutter
   flutter_riverpod: ^2.6.1
   riverpod: ^2.6.1
   go_router: ^14.8.1
   flutter_secure_storage: ^9.2.4
+  freezed_annotation: ^3.1.0
   hive: ^2.2.3
   hive_flutter: ^1.1.0
   supabase_flutter: ^2.8.4
-  qr_flutter: ^4.1.0
-  mobile_scanner: ^6.0.2
-  purchases_flutter: ^8.4.1
   image_picker: ^1.1.2
-  share_plus: ^10.1.4
+  permission_handler: ^12.0.3
   intl: ^0.20.2
+  json_annotation: ^4.12.0
+  path_provider: ^2.1.6
   cupertino_icons: ^1.0.8
-  flutter_dotenv: ^5.2.1
+  cached_network_image: ^3.4.1
+  cryptography: ^2.9.0
+  characters: ^1.4.0
+  flutter_cache_manager: ^3.4.1
+  unorm_dart: ^0.3.2
   uuid: ^4.5.3
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
+  integration_test:
+    sdk: flutter
   flutter_lints: ^6.0.0
   yaml: ^3.1.3
   mocktail: ^1.0.4
+  file: ^7.0.1
+  build_runner: ^2.15.1
+  freezed: ^4.0.0-dev.3
+  json_serializable: ^6.14.1
 
 flutter:
   uses-material-design: true
-  assets:
-    - .env
+  generate: true
+  fonts:
+    - family: Inter
+      fonts:
+        - asset: assets/fonts/Inter-Variable.ttf
+    - family: Playfair Display
+      fonts:
+        - asset: assets/fonts/PlayfairDisplay-Variable.ttf
+        - asset: assets/fonts/PlayfairDisplay-Italic-Variable.ttf
+          style: italic

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -46,10 +47,18 @@ extension ObjectX on Object {
       return ValidationError('data', 'Formato inválido');
     }
 
+    if (this is TimeoutException) {
+      return NetworkError(this);
+    }
+
     if (this is SocketException || this is HttpException) {
       return NetworkError(this);
     }
 
-    return ServerError(toString());
+    if (this is String && (this as String).isNotEmpty) {
+      return ServerError(this as String);
+    }
+
+    return ServerError('', this);
   }
 }

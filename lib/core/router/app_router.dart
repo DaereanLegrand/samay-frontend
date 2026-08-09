@@ -1,8 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:samay/core/providers/auth_provider.dart';
 import 'package:samay/core/router/auth_guard.dart';
+import 'package:samay/core/router/auth_refresh_notifier.dart';
+import 'package:samay/core/router/main_shell.dart';
+import 'package:samay/core/router/route_extras.dart';
 import 'package:samay/core/router/route_paths.dart';
+import 'package:samay/l10n/app_localizations.dart';
+import 'package:samay/features/auth/banned_screen.dart';
 import 'package:samay/features/auth/login_screen.dart';
 import 'package:samay/features/auth/welcome_screen.dart';
 import 'package:samay/features/auth/signup_contact_screen.dart';
@@ -27,15 +33,41 @@ import 'package:samay/features/groups/invite_screen.dart';
 import 'package:samay/features/groups/leaderboard_screen.dart';
 import 'package:samay/features/groups/my_groups_screen.dart';
 import 'package:samay/features/groups/group_members_screen.dart';
+import 'package:samay/shared/widgets/route_error_screen.dart';
 import 'package:samay/shared/widgets/v_coming_soon.dart';
+
+/// Resolves a required path parameter, rendering [RouteErrorScreen] when it is
+/// missing (finding NAV-03 / H-03) instead of crashing on a forced unwrap.
+Widget _screenForId(
+  GoRouterState state,
+  String param,
+  Widget Function(String id) builder, {
+  required String errorMessage,
+}) {
+  final id = RouteParams.fromState(state, param);
+  if (id == null) return RouteErrorScreen(message: errorMessage);
+  return builder(id);
+}
 
 final routerProvider = Provider<GoRouter>((ref) {
   final authGuard = AuthGuard(ref);
+  final authRefresh = AuthRefreshNotifier();
+  ref.listen<AsyncValue<AuthState>>(authStateProvider, (_, _) => authRefresh.refresh());
+  ref.onDispose(authRefresh.dispose);
   return GoRouter(
     initialLocation: RoutePaths.login,
     redirect: authGuard.call,
+    refreshListenable: authRefresh,
+    errorBuilder: (context, state) => RouteErrorScreen(
+      title: AppLocalizations.of(context).routerRouteNotFound,
+      message: AppLocalizations.of(context).routerRouteNotFoundBody,
+    ),
     routes: [
       GoRoute(path: RoutePaths.welcome, builder: (_, _) => const WelcomeScreen()),
+      GoRoute(
+        path: RoutePaths.banned,
+        builder: (_, _) => const BannedScreen(),
+      ),
       GoRoute(
         path: RoutePaths.login,
         builder: (_, _) => const LoginScreen(),
@@ -46,129 +78,275 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: RoutePaths.verify,
-        builder: (_, state) {
-          final extra = state.extra as Map<String, dynamic>;
+        builder: (context, state) {
+          final extra = VerifyExtra.fromState(state);
+          if (extra == null) {
+            return RouteErrorScreen(
+              message: AppLocalizations.of(context).routerMissingSignupData,
+            );
+          }
           return OtpVerificationScreen(
-            email: extra['email'] as String,
-            password: extra['password'] as String,
+            email: extra.email,
+            password: extra.password,
           );
         },
       ),
       GoRoute(
         path: RoutePaths.ageGate,
-        builder: (_, state) => AgeGateScreen(email: state.extra as String?),
+        builder: (_, state) =>
+            AgeGateScreen(email: AgeGateExtra.fromState(state)?.email),
       ),
       GoRoute(
         path: RoutePaths.privacyTerms,
-        builder: (_, state) {
-          final extra = state.extra as Map<String, dynamic>;
+        builder: (context, state) {
+          final extra = PrivacyTermsExtra.fromState(state);
+          if (extra == null) {
+            return RouteErrorScreen(
+              message: AppLocalizations.of(context).routerMissingAgeGateData,
+            );
+          }
           return PrivacyTermsScreen(
-            email: extra['email'] as String,
-            dateOfBirth: extra['dateOfBirth'] as String,
+            email: extra.email,
+            dateOfBirth: extra.dateOfBirth,
           );
         },
       ),
       GoRoute(
         path: RoutePaths.profileSetup,
-        builder: (_, state) {
-          final extra = state.extra as Map<String, dynamic>;
+        builder: (context, state) {
+          final extra = ProfileSetupExtra.fromState(state);
+          if (extra == null) {
+            return RouteErrorScreen(
+              message: AppLocalizations.of(context).routerMissingProfileData,
+            );
+          }
           return ProfileSetupScreen(
-            email: extra['email'] as String,
-            dateOfBirth: extra['dateOfBirth'] as String,
+            email: extra.email,
+            dateOfBirth: extra.dateOfBirth,
           );
         },
       ),
       ShellRoute(
-        builder: (context, state, child) {
-          final tab = state.matchedLocation;
-          int currentIndex = 0;
-          if (tab.startsWith('/main/groups')) currentIndex = 1;
-          if (tab.startsWith('/main/events')) currentIndex = 2;
-          if (tab.startsWith('/main/notifications')) currentIndex = 3;
-          if (tab.startsWith('/main/profile')) currentIndex = 4;
-          return Scaffold(
-            body: child,
-            bottomNavigationBar: BottomNavigationBar(
-              currentIndex: currentIndex,
-              onTap: (i) {
-                switch (i) {
-                  case 0: context.go(RoutePaths.mainFeed);
-                  case 1: context.go(RoutePaths.mainGroups);
-                  case 2: context.go(RoutePaths.mainEvents);
-                  case 3: context.go(RoutePaths.mainNotifications);
-                  case 4: context.go(RoutePaths.mainProfile);
-                }
-              },
-              items: const [
-                BottomNavigationBarItem(icon: Icon(Icons.explore_outlined), label: 'Feed'),
-                BottomNavigationBarItem(icon: Icon(Icons.group_outlined), label: 'Grupos'),
-                BottomNavigationBarItem(icon: Icon(Icons.event_outlined), label: 'Eventos'),
-                BottomNavigationBarItem(icon: Icon(Icons.notifications_outlined), label: 'Notis'),
-                BottomNavigationBarItem(icon: Icon(Icons.person_outline), label: 'Perfil'),
-              ],
-            ),
-          );
-        },
+        builder: (context, state, child) => MainShell(
+          currentIndex: shellIndexFor(state.matchedLocation),
+          child: child,
+        ),
         routes: [
           GoRoute(path: RoutePaths.mainFeed, builder: (_, _) => const FeedScreen()),
           GoRoute(path: RoutePaths.mainGroups, builder: (_, _) => const MyGroupsScreen()),
-          GoRoute(path: RoutePaths.mainEvents, builder: (_, _) => const VComingSoonScreen(title: 'Eventos', description: 'Los eventos de tus grupos aparecer\u00e1n aqu\u00ed pronto.')),
-          GoRoute(path: RoutePaths.mainNotifications, builder: (_, _) => const VComingSoonScreen(title: 'Notificaciones', description: 'Tus notificaciones aparecer\u00e1n aqu\u00ed pronto.')),
+          GoRoute(
+            path: RoutePaths.mainEvents,
+            builder: (context, _) => VComingSoonScreen(
+              title: AppLocalizations.of(context).comingSoonEventsTitle,
+              description: AppLocalizations.of(context).comingSoonEventsBody,
+            ),
+          ),
+          GoRoute(
+            path: RoutePaths.mainNotifications,
+            builder: (context, _) => VComingSoonScreen(
+              title: AppLocalizations.of(context).comingSoonNotificationsTitle,
+              description: AppLocalizations.of(context).comingSoonNotificationsBody,
+            ),
+          ),
           GoRoute(path: RoutePaths.mainProfile, builder: (_, _) => const ProfileScreen()),
         ],
       ),
-      GoRoute(path: RoutePaths.eventDetail(':eventId'), builder: (_, _) => const VComingSoonScreen(title: 'Evento', description: 'El detalle del evento estar\u00e1 disponible pronto.')),
-      GoRoute(path: RoutePaths.eventEdit(':eventId'), builder: (_, _) => const VComingSoonScreen(title: 'Editar evento', description: 'La edici\u00f3n de eventos estar\u00e1 disponible pronto.')),
-      GoRoute(path: RoutePaths.eventInvite(':eventId'), builder: (_, _) => const VComingSoonScreen(title: 'Invitar', description: 'La invitaci\u00f3n a eventos estar\u00e1 disponible pronto.')),
-      GoRoute(path: RoutePaths.eventPhotos(':eventId'), builder: (_, _) => const VComingSoonScreen(title: 'Fotos', description: 'Las fotos del evento estar\u00e1n disponibles pronto.')),
-      GoRoute(path: RoutePaths.eventCollage(':eventId'), builder: (_, _) => const VComingSoonScreen(title: 'Collage', description: 'El collage de fotos estar\u00e1 disponible pronto.')),
-      GoRoute(path: RoutePaths.eventInviteToken(':inviteToken'), builder: (_, _) => const VComingSoonScreen(title: 'Invitaci\u00f3n', description: 'Las invitaciones a eventos aparecer\u00e1n aqu\u00ed pronto.')),
+      GoRoute(
+        path: RoutePaths.eventDetail(':eventId'),
+        builder: (context, state) => _screenForId(
+          state,
+          'eventId',
+          (_) => VComingSoonScreen(
+            title: AppLocalizations.of(context).comingSoonEventTitle,
+            description: AppLocalizations.of(context).comingSoonEventBody,
+          ),
+          errorMessage: AppLocalizations.of(context).routerEventNotFound,
+        ),
+      ),
+      GoRoute(
+        path: RoutePaths.eventEdit(':eventId'),
+        builder: (context, state) => _screenForId(
+          state,
+          'eventId',
+          (_) => VComingSoonScreen(
+            title: AppLocalizations.of(context).comingSoonEditEventTitle,
+            description: AppLocalizations.of(context).comingSoonEditEventBody,
+          ),
+          errorMessage: AppLocalizations.of(context).routerEventNotFound,
+        ),
+      ),
+      GoRoute(
+        path: RoutePaths.eventInvite(':eventId'),
+        builder: (context, state) => _screenForId(
+          state,
+          'eventId',
+          (_) => VComingSoonScreen(
+            title: AppLocalizations.of(context).comingSoonEventInviteTitle,
+            description: AppLocalizations.of(context).comingSoonEventInviteBody,
+          ),
+          errorMessage: AppLocalizations.of(context).routerEventNotFound,
+        ),
+      ),
+      GoRoute(
+        path: RoutePaths.eventPhotos(':eventId'),
+        builder: (context, state) => _screenForId(
+          state,
+          'eventId',
+          (_) => VComingSoonScreen(
+            title: AppLocalizations.of(context).comingSoonPhotosTitle,
+            description: AppLocalizations.of(context).comingSoonPhotosBody,
+          ),
+          errorMessage: AppLocalizations.of(context).routerEventNotFound,
+        ),
+      ),
+      GoRoute(
+        path: RoutePaths.eventCollage(':eventId'),
+        builder: (context, state) => _screenForId(
+          state,
+          'eventId',
+          (_) => VComingSoonScreen(
+            title: AppLocalizations.of(context).comingSoonCollageTitle,
+            description: AppLocalizations.of(context).comingSoonCollageBody,
+          ),
+          errorMessage: AppLocalizations.of(context).routerEventNotFound,
+        ),
+      ),
+      GoRoute(
+        path: RoutePaths.eventInviteToken(':inviteToken'),
+        builder: (context, state) => _screenForId(
+          state,
+          'inviteToken',
+          (_) => VComingSoonScreen(
+            title: AppLocalizations.of(context).comingSoonInvitationTitle,
+            description: AppLocalizations.of(context).comingSoonInvitationBody,
+          ),
+          errorMessage: AppLocalizations.of(context).routerInvalidInvite,
+        ),
+      ),
       GoRoute(
         path: RoutePaths.groupCreate,
         builder: (_, _) => const CreateGroupScreen(),
       ),
       GoRoute(
         path: RoutePaths.groupDetail(':groupId'),
-        builder: (_, state) => GroupDetailScreen(groupId: state.pathParameters['groupId']!),
+        builder: (context, state) => _screenForId(
+          state,
+          'groupId',
+          (groupId) => GroupDetailScreen(groupId: groupId),
+          errorMessage: AppLocalizations.of(context).routerGroupNotFound,
+        ),
       ),
       GoRoute(
         path: RoutePaths.groupMembers(':groupId'),
-        builder: (_, state) => GroupMembersScreen(
-          groupId: state.pathParameters['groupId']!,
+        builder: (context, state) => _screenForId(
+          state,
+          'groupId',
+          (groupId) => GroupMembersScreen(groupId: groupId),
+          errorMessage: AppLocalizations.of(context).routerGroupNotFound,
         ),
       ),
       GoRoute(
         path: RoutePaths.donateToGroup(':groupId'),
-        builder: (_, state) => DonateShardsScreen(
-          groupId: state.pathParameters['groupId']!,
-          groupName: state.extra as String? ?? 'Grupo',
+        builder: (context, state) => _screenForId(
+          state,
+          'groupId',
+          (groupId) => DonateShardsScreen(
+            groupId: groupId,
+            groupName: state.extra is String
+                ? state.extra as String
+                : AppLocalizations.of(context).commonGroup,
+          ),
+          errorMessage: AppLocalizations.of(context).routerGroupNotFound,
         ),
       ),
       GoRoute(
         path: RoutePaths.createGroupEvent(':groupId'),
-        builder: (_, _) => const VComingSoonScreen(title: 'Crear evento', description: 'La creaci\u00f3n de eventos estar\u00e1 disponible pronto.'),
+        builder: (context, state) => _screenForId(
+          state,
+          'groupId',
+          (_) => VComingSoonScreen(
+            title: AppLocalizations.of(context).comingSoonCreateEventTitle,
+            description: AppLocalizations.of(context).comingSoonCreateEventBody,
+          ),
+          errorMessage: AppLocalizations.of(context).routerGroupNotFound,
+        ),
       ),
       GoRoute(
         path: RoutePaths.inviteToGroup(':groupId'),
-        builder: (_, state) => InviteScreen(groupId: state.pathParameters['groupId']!),
+        builder: (context, state) => _screenForId(
+          state,
+          'groupId',
+          (groupId) => InviteScreen(groupId: groupId),
+          errorMessage: AppLocalizations.of(context).routerGroupNotFound,
+        ),
       ),
       GoRoute(
         path: RoutePaths.groupsLeaderboard,
         builder: (_, _) => const LeaderboardScreen(),
       ),
-      GoRoute(path: RoutePaths.chat(':chatId'), builder: (_, _) => const VComingSoonScreen(title: 'Chat', description: 'El chat estar\u00e1 disponible pronto.')),
+      GoRoute(
+        path: RoutePaths.chat(':chatId'),
+        builder: (context, state) => _screenForId(
+          state,
+          'chatId',
+          (_) => VComingSoonScreen(
+            title: AppLocalizations.of(context).comingSoonChatTitle,
+            description: AppLocalizations.of(context).comingSoonChatBody,
+          ),
+          errorMessage: AppLocalizations.of(context).routerChatNotFound,
+        ),
+      ),
       GoRoute(path: RoutePaths.userSearch, builder: (_, _) => const SearchScreen()),
       GoRoute(
         path: RoutePaths.userProfile(':userId'),
-        builder: (_, state) => PublicProfileScreen(userId: state.pathParameters['userId']!),
+        builder: (context, state) => _screenForId(
+          state,
+          'userId',
+          (userId) => PublicProfileScreen(userId: userId),
+          errorMessage: AppLocalizations.of(context).routerUserNotFound,
+        ),
       ),
       GoRoute(path: RoutePaths.friendsRequests, builder: (_, _) => const RequestsScreen()),
       GoRoute(path: RoutePaths.friendsList, builder: (_, _) => const FriendsListScreen()),
       GoRoute(path: RoutePaths.blockedUsers, builder: (_, _) => const BlockedUsersScreen()),
-      GoRoute(path: RoutePaths.qr(':eventId'), builder: (_, _) => const VComingSoonScreen(title: 'QR', description: 'El c\u00f3digo QR del evento estar\u00e1 disponible pronto.')),
-      GoRoute(path: RoutePaths.scanner(':eventId'), builder: (_, _) => const VComingSoonScreen(title: 'Esc\u00e1ner', description: 'El esc\u00e1ner de c\u00f3digos QR estar\u00e1 disponible pronto.')),
-      GoRoute(path: RoutePaths.subscriptions, builder: (_, _) => const VComingSoonScreen(title: 'Suscripciones', description: 'Las suscripciones estar\u00e1n disponibles pronto.')),
-      GoRoute(path: RoutePaths.partyFinder, builder: (_, _) => const VComingSoonScreen(title: 'Party Finder', description: 'El Party Finder estar\u00e1 disponible pronto.')),
+      GoRoute(
+        path: RoutePaths.qr(':eventId'),
+        builder: (context, state) => _screenForId(
+          state,
+          'eventId',
+          (_) => VComingSoonScreen(
+            title: AppLocalizations.of(context).comingSoonQrTitle,
+            description: AppLocalizations.of(context).comingSoonQrBody,
+          ),
+          errorMessage: AppLocalizations.of(context).routerEventNotFound,
+        ),
+      ),
+      GoRoute(
+        path: RoutePaths.scanner(':eventId'),
+        builder: (context, state) => _screenForId(
+          state,
+          'eventId',
+          (_) => VComingSoonScreen(
+            title: AppLocalizations.of(context).comingSoonScannerTitle,
+            description: AppLocalizations.of(context).comingSoonScannerBody,
+          ),
+          errorMessage: AppLocalizations.of(context).routerEventNotFound,
+        ),
+      ),
+      GoRoute(
+        path: RoutePaths.subscriptions,
+        builder: (context, _) => VComingSoonScreen(
+          title: AppLocalizations.of(context).comingSoonSubscriptionsTitle,
+          description: AppLocalizations.of(context).comingSoonSubscriptionsBody,
+        ),
+      ),
+      GoRoute(
+        path: RoutePaths.partyFinder,
+        builder: (context, _) => VComingSoonScreen(
+          title: AppLocalizations.of(context).comingSoonPartyFinderTitle,
+          description: AppLocalizations.of(context).comingSoonPartyFinderBody,
+        ),
+      ),
       GoRoute(path: RoutePaths.settings, builder: (_, _) => const SettingsScreen()),
       GoRoute(path: RoutePaths.deleteAccount, builder: (_, _) => const DeleteAccountScreen()),
       GoRoute(path: RoutePaths.profileEdit, builder: (_, _) => const EditProfileScreen()),

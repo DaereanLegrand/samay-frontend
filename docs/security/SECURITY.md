@@ -155,9 +155,9 @@ Postgres executes `SECURITY DEFINER` functions with the *creator's* privileges, 
 
 Plan (S-09/I-59): define per-bucket policies (avatars public-read/own-write, events private + signed URLs, chats private, cosmetics public), enforce path-prefix ownership (`{user_id}/...`), signed URL expiry ≤ 1 h, rate-limit URL generation.
 
-### 2.6 Input sanitization (I-27)
+### 2.6 Input sanitization (I-27 — ✅ DONE 2026-08-09)
 
-Current: **no sanitization layer** — 12 raw `TextEditingController` input sites across auth/friends/groups/profile screens (e.g. `login_screen.dart:19-20`, `signup_contact_screen.dart:18-20`, `create_group_screen.dart:18-19`, `invite_screen.dart:14`, `donate_shards_screen.dart:23`), no NFKC normalization, no control-character stripping, no length caps (SEC-06). Client-side validation exists only for password strength (`signup_contact_screen.dart:31-34`) and donation amount (`donate_shards_screen.dart:31-33`). Plan (I-27): shared `InputSanitizer` (trim, NFKC, strip `\p{Cc}\p{Cf}`, per-field max length) at every entry point + server-side length caps via DB CHECK constraints.
+**Current:** shared `InputSanitizer` at `lib/core/utils/input_sanitizer.dart` applied at every write boundary: trim → strip Unicode `\p{Cc}\p{Cf}` (control + format incl. zero-width/bidi overrides) → optional NFKC (`unorm_dart` ^0.3.2, Unicode 17.0 — Dart has no built-in normalizer) → grapheme-cluster length cap (`characters`, emoji-safe). Helpers: `sanitizeUsername` (case-preserving, NFKC always on, strips whitespace/`@`, cap 20), `sanitizeAmount` (digits-only, cap 9), `sanitizeOptional` (null-if-empty). Wired at: username (profile_setup_screen + auth_service.createUserProfile), bio (edit_profile_screen, 160), group name/desc (create_group_screen + group_service.createGroup, 50/250), search queries (invite/search screens), donate amount, chat `sendMessage` (500). 29 unit tests (`test/utils/input_sanitizer_test.dart`); idempotent — valid input unchanged. **Remaining:** server-side length caps via DB CHECK constraints (I-31 track); `TextField.maxLength` UX (U-05+).
 
 ### 2.7 Rate limiting (Kong + app_config + GoTrue)
 
@@ -309,7 +309,7 @@ Hard delete (daily 03:00):                    supabase/migrations/20260510000002
 | G-04 | Token refresh never invoked; no PKCE on init; tokens not in SecureStorage | 🟠 | I-30 (+I-25) | SEC-04, SEC-11, H-22 |
 | G-05 | OTP rate limiting: no client cooldown, no attempt caps | 🟠 | I-29 (+S-10) | SEC-05, H-23 |
 | G-06 | `permission_handler` missing (camera/gallery runtime permission) | 🟠 | I-28 | SEC-07, M-29 |
-| G-07 | No input sanitization (NFKC, control chars, length caps) | 🟠 | I-27 | SEC-06, H-24 |
+| G-07 | No input sanitization (NFKC, control chars, length caps) | 🟠 | I-27 ✅ | SEC-06, H-24 |
 | G-08 | `.env` bundled as asset + `flutter_dotenv`; `.env.example` leaks real anon key | 🟠 | I-34, M-13 (+S-08) | SEC-03, SEC-09, H-21, M-31, SUP-05 |
 | G-09 | E2EE chat: no crypto code, plaintext `messages.content`, no key lifecycle | 🔴 (before chat ships) | I-37, I-38 (spec D-07) | SEC-10/M-32 (Hive), E2EE-ARCHITECTURE.md |
 | G-10 | Unencrypted Hive caches (config/photo/message) | 🟠 | I-26 | SEC-10, M-32 |

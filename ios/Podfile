@@ -38,5 +38,17 @@ end
 post_install do |installer|
   installer.pods_project.targets.each do |target|
     flutter_additional_ios_build_settings(target)
+
+    # permission_handler (SEC-07 / DEP-11, agent I-28): since v8.0.0 iOS
+    # permission groups are DISABLED by default and must be enabled per app.
+    # Without these macros the plugin returns MissingPluginException at
+    # runtime. Only the two permissions the app uses are enabled.
+    target.build_configurations.each do |config|
+      config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] ||= [
+        '$(inherited)',
+        'PERMISSION_CAMERA=1',
+        'PERMISSION_PHOTOS=1',
+      ]
+    end
   end
 end

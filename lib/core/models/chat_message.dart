@@ -1,0 +1,20 @@
+import 'package:freezed_annotation/freezed_annotation.dart';
+
+part 'chat_message.freezed.dart';
+part 'chat_message.g.dart';
+
+@freezed
+abstract class ChatMessage with _$ChatMessage {
+  @JsonSerializable(fieldRename: FieldRename.snake)
+  const factory ChatMessage({
+    required String id,
+    required String chatId,
+    required String senderId,
+    required String content,
+    String? mediaUrl,
+    required DateTime createdAt,
+  }) = _ChatMessage;
+
+  factory ChatMessage.fromJson(Map<String, dynamic> json) =>
+      _$ChatMessageFromJson(json);
+}

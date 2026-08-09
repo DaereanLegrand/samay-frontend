@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:samay/core/extensions/error_mapper.dart';
+import 'package:samay/core/logging/app_logger.dart';
 import 'package:samay/core/services/supabase_service.dart';
+import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/v_button.dart';
 
 class PublicProfileScreen extends StatefulWidget {
@@ -30,7 +32,9 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
     try {
       final profile = await SupabaseService.instance.getUserProfile(widget.userId);
       if (mounted) setState(() => _profile = profile);
-    } catch (_) {}
+    } catch (e, st) {
+      AppLogger.instance.error('loadPublicProfile error: $e', '$st');
+    }
 
     try {
       final detail = await SupabaseService.instance.getFriendshipDetail(widget.userId);
@@ -42,24 +46,29 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
           _isIncoming = detail != null && detail['requester_id'] != currentUserId;
         });
       }
-    } catch (_) {}
+    } catch (e, st) {
+      AppLogger.instance.error('loadFriendshipDetail error: $e', '$st');
+    }
 
     try {
       final blocked = await SupabaseService.instance.getBlockStatus(widget.userId);
       if (mounted) setState(() => _isBlocked = blocked);
-    } catch (_) {}
+    } catch (e, st) {
+      AppLogger.instance.error('loadBlockStatus error: $e', '$st');
+    }
 
     if (mounted) setState(() => _loading = false);
   }
 
   Future<void> _sendRequest() async {
     if (_sending) return;
+    final l10n = AppLocalizations.of(context);
     setState(() => _sending = true);
     try {
       await SupabaseService.instance.sendFriendRequest(widget.userId);
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Solicitud de amistad enviada')),
+          SnackBar(content: Text(l10n.profileFriendRequestSent)),
         );
       }
       _load();
@@ -76,19 +85,20 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
 
   Future<void> _acceptRequest() async {
     if (_friendshipId == null || _sending) return;
+    final l10n = AppLocalizations.of(context);
     setState(() => _sending = true);
     try {
       await SupabaseService.instance.acceptFriendRequest(_friendshipId!);
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Solicitud aceptada')),
+          SnackBar(content: Text(l10n.profileRequestAccepted)),
         );
       }
       _load();
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Error al aceptar solicitud')),
+          SnackBar(content: Text(l10n.profileAcceptError)),
         );
       }
     } finally {
@@ -98,9 +108,10 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     if (_loading) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Perfil')),
+        appBar: AppBar(title: Text(l10n.profileTitle)),
         body: const Center(child: CircularProgressIndicator()),
       );
     }
@@ -112,16 +123,16 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(username != null ? '@$username' : 'Perfil'),
+        title: Text(username != null ? '@$username' : l10n.profileTitle),
         actions: [
           PopupMenuButton<String>(
             onSelected: _handleMenuAction,
             itemBuilder: (_) => [
               if (_isBlocked)
-                const PopupMenuItem(value: 'unblock', child: Text('Desbloquear'))
+                PopupMenuItem(value: 'unblock', child: Text(l10n.friendsUnblock))
               else
-                const PopupMenuItem(value: 'block', child: Text('Bloquear')),
-              const PopupMenuItem(value: 'report', child: Text('Reportar')),
+                PopupMenuItem(value: 'block', child: Text(l10n.profileBlock)),
+              PopupMenuItem(value: 'report', child: Text(l10n.profileReport)),
             ],
           ),
         ],
@@ -138,7 +149,10 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
           ),
           const SizedBox(height: 16),
           Center(
-            child: Text(username ?? 'Usuario', style: Theme.of(context).textTheme.headlineMedium),
+            child: Text(
+              username ?? l10n.commonUser,
+              style: Theme.of(context).textTheme.headlineMedium,
+            ),
           ),
           if (username != null) ...[
             const SizedBox(height: 4),
@@ -149,7 +163,7 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
           const SizedBox(height: 8),
           Center(
             child: Text(
-              bio != null && bio.isNotEmpty ? bio : 'Sin biografía',
+              bio != null && bio.isNotEmpty ? bio : l10n.profileNoBio,
               style: Theme.of(context).textTheme.bodyMedium,
             ),
           ),
@@ -162,7 +176,7 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
               if (_friendshipStatus == 'pending' && _friendshipId != null)
                 Expanded(
                   child: VButton(
-                    label: _isIncoming ? 'Rechazar' : 'Cancelar solicitud',
+                    label: _isIncoming ? l10n.commonReject : l10n.profileCancelRequest,
                     onPressed: () async {
                       await SupabaseService.instance.declineFriendRequest(_friendshipId!);
                       _load();
@@ -172,11 +186,11 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
             ],
           ),
           const SizedBox(height: 16),
-          Text('Grupos compartidos', style: Theme.of(context).textTheme.labelLarge),
+          Text(l10n.profileSharedGroups, style: Theme.of(context).textTheme.labelLarge),
           const SizedBox(height: 8),
           Center(
             child: Text(
-              'Sin grupos en común',
+              l10n.profileNoSharedGroups,
               style: Theme.of(context).textTheme.bodyMedium,
             ),
           ),
@@ -186,32 +200,34 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
   }
 
   Widget _buildActionButton() {
+    final l10n = AppLocalizations.of(context);
     if (_isBlocked) {
-      return VButton.emphasized(label: 'Bloqueado', onPressed: () {});
+      return VButton.emphasized(label: l10n.friendsStatusBlocked, onPressed: () {});
     }
     if (_friendshipStatus == 'accepted') {
-      return VButton.emphasized(label: 'Amigos', onPressed: () {});
+      return VButton.emphasized(label: l10n.friendsStatusAccepted, onPressed: () {});
     }
     if (_friendshipStatus == 'pending' && _friendshipId != null) {
       if (_isIncoming) {
         return VButton.emphasized(
-          label: _sending ? 'Aceptando...' : 'Aceptar solicitud',
+          label: _sending ? l10n.profileAccepting : l10n.profileAcceptRequest,
           onPressed: _acceptRequest,
         );
       } else {
         return VButton.emphasized(
-          label: 'Solicitado',
+          label: l10n.friendsStatusPending,
           onPressed: () {},
         );
       }
     }
     return VButton.emphasized(
-      label: _sending ? 'Enviando...' : 'Agregar amigo',
+      label: _sending ? l10n.profileSending : l10n.profileAddFriend,
       onPressed: _sendRequest,
     );
   }
 
   void _handleMenuAction(String action) {
+    final l10n = AppLocalizations.of(context);
     switch (action) {
       case 'block':
         _blockUser();
@@ -219,42 +235,44 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
         _unblockUser();
       case 'report':
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Reportar será implementado próximamente')),
+          SnackBar(content: Text(l10n.profileReportComingSoon)),
         );
     }
   }
 
   Future<void> _blockUser() async {
+    final l10n = AppLocalizations.of(context);
     try {
       await SupabaseService.instance.blockUser(widget.userId);
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Usuario bloqueado')),
+          SnackBar(content: Text(l10n.profileUserBlocked)),
         );
       }
       _load();
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Error al bloquear')),
+          SnackBar(content: Text(l10n.profileBlockError)),
         );
       }
     }
   }
 
   Future<void> _unblockUser() async {
+    final l10n = AppLocalizations.of(context);
     try {
       await SupabaseService.instance.unblockUser(widget.userId);
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Usuario desbloqueado')),
+          SnackBar(content: Text(l10n.profileUserUnblocked)),
         );
       }
       _load();
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Error al desbloquear')),
+          SnackBar(content: Text(l10n.profileUnblockError)),
         );
       }
     }

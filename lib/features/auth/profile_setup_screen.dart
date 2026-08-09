@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:samay/core/providers/auth_provider.dart';
 import 'package:samay/core/router/route_paths.dart';
+import 'package:samay/core/utils/input_sanitizer.dart';
+import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/v_button.dart';
 import 'package:samay/shared/widgets/v_input.dart';
 
@@ -26,14 +28,14 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
   }
 
   Future<void> _save() async {
-    final username = _usernameController.text.trim();
+    final username = InputSanitizer.sanitizeUsername(_usernameController.text);
     if (username.isEmpty) return;
 
     setState(() => _saving = true);
     await ref.read(authStateProvider.notifier).createProfile(username, dateOfBirth: widget.dateOfBirth);
     if (!mounted) return;
     setState(() => _saving = false);
-    if (ref.read(authStateProvider).error == null) {
+    if (!ref.read(authStateProvider).hasError) {
       context.go(RoutePaths.mainFeed);
     }
   }
@@ -41,9 +43,10 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
   @override
   Widget build(BuildContext context) {
     final auth = ref.watch(authStateProvider);
+    final l10n = AppLocalizations.of(context);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Completa tu perfil')),
+      appBar: AppBar(title: Text(l10n.authCompleteProfile)),
       body: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(
@@ -60,26 +63,29 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
             const SizedBox(height: 32),
             VInput(
               controller: _usernameController,
-              label: 'Nombre de usuario',
-              hint: '@usuario',
+              label: l10n.commonUsername,
+              hint: l10n.authUsernameHint,
             ),
             const SizedBox(height: 4),
             Text(
-              'No podrás cambiar tu nombre de usuario después del registro.',
+              l10n.authUsernameImmutable,
               style: TextStyle(
                 fontSize: 12,
                 color: Colors.grey[500],
               ),
             ),
-            if (auth.error != null)
+            if (auth.hasError)
               Padding(
                 padding: const EdgeInsets.only(top: 16),
-                child: Text(auth.error!, style: const TextStyle(color: Colors.red)),
+                child: Text(
+                  auth.errorMessage!,
+                  style: const TextStyle(color: Colors.red),
+                ),
               ),
             const Spacer(),
             VButton.emphasized(
-              label: 'Guardar',
-              loading: _saving || auth.loading,
+              label: l10n.commonSave,
+              loading: _saving || auth.isLoading,
               onPressed: _save,
             ),
             const SizedBox(height: 32),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:samay/core/design_tokens/app_colors.dart';
 
 class VButton extends StatelessWidget {
   final Widget? child;
@@ -72,10 +73,11 @@ class VButton extends StatelessWidget {
       child: TextButton(
         onPressed: loading ? null : onPressed,
         style: TextButton.styleFrom(
-          side: outlined ? const BorderSide(color: Colors.white) : null,
-          backgroundColor: outlined ? Colors.transparent : Colors.white,
-          foregroundColor: outlined ? Colors.white : Colors.black,
+          side: outlined ? const BorderSide(color: AppColors.white) : null,
+          backgroundColor: outlined ? Colors.transparent : AppColors.white,
+          foregroundColor: outlined ? AppColors.white : AppColors.discoBlack,
           shape: const RoundedRectangleBorder(),
+          // Design doc §5.1: 14px vertical padding (not on the 8-step scale).
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
         ),
         child: loading

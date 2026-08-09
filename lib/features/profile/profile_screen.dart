@@ -1,58 +1,58 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:samay/core/feature_flags.dart';
+import 'package:samay/core/extensions/error_mapper.dart';
 import 'package:samay/core/providers/auth_provider.dart';
 import 'package:samay/core/router/route_paths.dart';
-import 'package:samay/core/services/supabase_service.dart';
+import 'package:samay/features/profile/profile_providers.dart';
+import 'package:samay/l10n/app_localizations.dart';
+import 'package:samay/shared/widgets/error_view.dart';
 import 'package:samay/shared/widgets/v_shard_icon.dart';
 
-class ProfileScreen extends ConsumerStatefulWidget {
+class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
 
-  @override
-  ConsumerState<ProfileScreen> createState() => _ProfileScreenState();
-}
-
-class _ProfileScreenState extends ConsumerState<ProfileScreen> {
-  Map<String, dynamic>? _profile;
-  List<Map<String, dynamic>> _groups = [];
-  bool _loading = true;
-
-  @override
-  void initState() {
-    super.initState();
-    _load();
-  }
-
-  Future<void> _load() async {
+  Future<void> _refresh(WidgetRef ref) async {
+    final profileFuture = ref.read(myProfileProvider.notifier).refresh();
+    final groupsFuture = ref.read(myGroupsProvider.notifier).refresh();
     try {
-      final user = SupabaseService.instance.auth.currentUser;
-      if (user == null) return;
-      final res = await SupabaseService.instance.client
-          .from('users')
-          .select('username, bio, personal_shards, preshards')
-          .eq('id', user.id)
-          .maybeSingle();
-      if (res != null) {
-        setState(() => _profile = Map<String, dynamic>.from(res));
-      }
-      final groups = await SupabaseService.instance.getMyGroups();
-      setState(() => _groups = groups);
+      await Future.wait([profileFuture, groupsFuture]);
     } catch (_) {
-    } finally {
-      if (mounted) setState(() => _loading = false);
+      // Failures surface through each provider's AsyncError state; the
+      // RefreshIndicator must still settle.
     }
   }
 
   @override
-  Widget build(BuildContext context) {
-    final auth = ref.watch(authStateProvider);
-    final displayName = _profile?['username']?.toString() ?? auth.user?['email'] ?? 'Usuario';
-    final initials = displayName.substring(0, displayName.length < 2 ? displayName.length : 2).toUpperCase();
+  Widget build(BuildContext context, WidgetRef ref) {
+    final authState = ref.watch(authStateProvider);
+    final profileAsync = ref.watch(myProfileProvider);
+    final groupsAsync = ref.watch(myGroupsProvider);
+    final l10n = AppLocalizations.of(context);
+
+    final showLoading = (profileAsync.isLoading && !profileAsync.hasValue) ||
+        (groupsAsync.isLoading && !groupsAsync.hasValue);
+
+    final error = !profileAsync.hasValue && profileAsync.hasError
+        ? profileAsync.error!
+        : !groupsAsync.hasValue && groupsAsync.hasError
+            ? groupsAsync.error!
+            : null;
+
+    final profile = profileAsync.valueOrNull;
+    final groups = groupsAsync.valueOrNull ?? const <Map<String, dynamic>>[];
+
+    final displayName = profile?['username']?.toString() ??
+        authState.valueOrNull?.user?['email'] ??
+        l10n.commonUser;
+    final initials =
+        displayName.substring(0, displayName.length < 2 ? displayName.length : 2)
+            .toUpperCase();
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Perfil'),
+        title: Text(l10n.profileTitle),
         actions: [
           IconButton(
             icon: const Icon(Icons.settings),
@@ -60,63 +60,107 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           ),
         ],
       ),
-      body: _loading
+      body: showLoading
           ? const Center(child: CircularProgressIndicator())
-          : ListView(
-              padding: const EdgeInsets.all(24),
-              children: [
-                Center(
-                  child: CircleAvatar(
-                    radius: 48,
-                    backgroundColor: Colors.grey[800],
-                    child: Text(initials, style: const TextStyle(fontSize: 24)),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Center(
-                  child: Text(
-                    _profile?['username']?.toString() ?? auth.user?['email'] ?? 'Usuario',
-                    style: Theme.of(context).textTheme.headlineMedium,
-                  ),
-                ),
-                const SizedBox(height: 32),
-                _BalanceCard(
-                  personalShards: _profile?['personal_shards'] as int? ?? 0,
-                  preshards: _profile?['preshards'] as int? ?? 0,
-                ),
-                if (_profile?['bio'] != null && (_profile!['bio'] as String).isNotEmpty) ...[
-                  const SizedBox(height: 16),
-                  Text(
-                    _profile!['bio'] as String,
-                    style: Theme.of(context).textTheme.bodyMedium,
-                  ),
-                ],
-                const SizedBox(height: 32),
-                Text('Grupos', style: Theme.of(context).textTheme.labelLarge),
-                const SizedBox(height: 8),
-                _groups.isEmpty
-                    ? SizedBox(
-                        height: 60,
-                        child: Center(
+          : error != null
+              ? ErrorView(
+                  message: error.toAppError().message,
+                  onRetry: () => _refresh(ref),
+                )
+              : RefreshIndicator(
+                  onRefresh: () => _refresh(ref),
+                  child: ListView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: const EdgeInsets.all(24),
+                    children: [
+                      Center(
+                        child: CircleAvatar(
+                          radius: 48,
+                          backgroundColor: Colors.grey[800],
                           child: Text(
-                            'No perteneces a ningún grupo aún',
-                            style: Theme.of(context).textTheme.bodyMedium,
+                            initials,
+                            style: const TextStyle(fontSize: 24),
                           ),
                         ),
-                      )
-                    : SizedBox(
-                        height: 120,
-                        child: ListView(
-                          children: _groups.map((g) => ListTile(
-                            dense: true,
-                            leading: const Icon(Icons.group, size: 20),
-                            title: Text(g['name'] as String? ?? ''),
-                            trailing: Text('${g['group_shards'] ?? 0} shards'),
-                          )).toList(),
+                      ),
+                      const SizedBox(height: 16),
+                      Center(
+                        child: Text(
+                          profile?['username']?.toString() ??
+                              authState.valueOrNull?.user?['email'] ??
+                              l10n.commonUser,
+                          style: Theme.of(context).textTheme.headlineMedium,
                         ),
                       ),
-              ],
-            ),
+                      const SizedBox(height: 32),
+                      _BalanceCard(
+                        personalShards:
+                            profile?['personal_shards'] as int? ?? 0,
+                        preshards: profile?['preshards'] as int? ?? 0,
+                      ),
+                      if (profile?['bio'] != null &&
+                          (profile!['bio'] as String).isNotEmpty) ...[
+                        const SizedBox(height: 16),
+                        Text(
+                          profile['bio'] as String,
+                          style: Theme.of(context).textTheme.bodyMedium,
+                        ),
+                      ],
+                      const SizedBox(height: 32),
+                      Text(l10n.profileMyGroups, style: Theme.of(context).textTheme.labelLarge),
+                      const SizedBox(height: 8),
+                      groups.isEmpty
+                          ? SizedBox(
+                              height: 60,
+                              child: Center(
+                                child: Text(
+                                  l10n.profileNoGroupsYet,
+                                  style: Theme.of(context).textTheme.bodyMedium,
+                                ),
+                              ),
+                            )
+                          : SizedBox(
+                              height: 120,
+                              child: ListView.builder(
+                                itemCount: groups.length,
+                                itemBuilder: (context, index) {
+                                  final g = groups[index];
+                                  return ListTile(
+                                    dense: true,
+                                    leading: const Icon(
+                                      Icons.group,
+                                      size: 20,
+                                    ),
+                                    title: Text(
+                                      g['name'] as String? ?? '',
+                                    ),
+                                    trailing: Text(
+                                      l10n.groupsShardsCountShort(
+                                        (g['group_shards'] as num?)?.toInt() ?? 0,
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
+                      // PRFL cosmetics-display placeholder (I-36 foundation).
+                      // Gated behind a compile-time flag: renders nothing until
+                      // the cosmetics equipping stack ships (COSM spec / I-62).
+                      if (AppFeatureFlags.showCosmeticsSection) ...[
+                        const SizedBox(height: 32),
+                        Text(
+                          l10n.profileCosmetics,
+                          style: Theme.of(context).textTheme.labelLarge,
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          l10n.profileNoCosmeticsYet,
+                          style: Theme.of(context).textTheme.bodyMedium,
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
     );
   }
 }
@@ -129,6 +173,7 @@ class _BalanceCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -142,11 +187,11 @@ class _BalanceCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                '$personalShards shards',
+                l10n.profileShardsCount(personalShards),
                 style: Theme.of(context).textTheme.bodyLarge,
               ),
               Text(
-                '$preshards preshards',
+                l10n.profilePreshardsCount(preshards),
                 style: Theme.of(context).textTheme.bodyMedium,
               ),
             ],

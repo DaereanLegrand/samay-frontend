@@ -2,13 +2,21 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:samay/core/extensions/error_mapper.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:samay/core/logging/app_logger.dart';
+import 'package:samay/core/services/permission_service.dart';
 import 'package:samay/core/services/supabase_service.dart';
+import 'package:samay/core/utils/input_sanitizer.dart';
+import 'package:samay/l10n/app_localizations.dart';
+import 'package:samay/shared/widgets/show_app_error.dart';
 import 'package:samay/shared/widgets/v_button.dart';
 import 'package:samay/shared/widgets/v_input.dart';
 
 class CreateGroupScreen extends StatefulWidget {
-  const CreateGroupScreen({super.key});
+  const CreateGroupScreen({super.key, this.permissions});
+
+  /// Injectable for tests (SEC-07); defaults to the real service.
+  final PermissionService? permissions;
 
   @override
   State<CreateGroupScreen> createState() => _CreateGroupScreenState();
@@ -18,16 +26,38 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
   final _nameController = TextEditingController();
   final _descController = TextEditingController();
   final _picker = ImagePicker();
+  late final PermissionService _permissions =
+      widget.permissions ?? PermissionService();
   XFile? _coverImage;
   bool _loading = false;
 
   Future<void> _pickImage() async {
+    final l10n = AppLocalizations.of(context);
+    final granted = await _permissions.ensureWithPrompt(
+      context,
+      permission: Permission.photos,
+      rationale: l10n.permissionsPhotoRationale,
+      settingsTitle: l10n.permissionsSettingsTitle,
+      settingsBody: l10n.permissionsSettingsBody,
+      settingsAction: l10n.permissionsOpenSettings,
+      cancelAction: l10n.commonCancel,
+    );
+    if (!granted) return;
     final file = await _picker.pickImage(source: ImageSource.gallery);
     if (file != null) setState(() => _coverImage = file);
   }
 
   Future<void> _create() async {
-    if (_nameController.text.trim().isEmpty) return;
+    final name = InputSanitizer.sanitize(
+      _nameController.text,
+      maxLength: InputSanitizer.groupNameMaxLength,
+    );
+    if (name.isEmpty) return;
+    final description = InputSanitizer.sanitizeOptional(
+      _descController.text,
+      maxLength: InputSanitizer.groupDescriptionMaxLength,
+    );
+    final l10n = AppLocalizations.of(context);
     setState(() => _loading = true);
     try {
       final groupCount = await SupabaseService.instance.getUserGroupCount();
@@ -37,9 +67,14 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
           showDialog(
             context: context,
             builder: (_) => AlertDialog(
-              title: const Text('Límite alcanzado'),
-              content: const Text('Has alcanzado el límite de 5 grupos como promotor. Actualiza tu suscripción para crear más.'),
-              actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('OK'))],
+              title: Text(l10n.groupsLimitReached),
+              content: Text(l10n.groupsLimitReachedBody),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: Text(l10n.commonOk),
+                ),
+              ],
             ),
           );
         }
@@ -54,30 +89,21 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
         coverUrl = SupabaseService.instance.client.storage.from('groups').getPublicUrl(path);
       }
       await SupabaseService.instance.createGroup({
-        'name': _nameController.text.trim(),
-        'description': _descController.text.trim().isEmpty ? null : _descController.text.trim(),
+        'name': name,
+        'description': description,
         'cover_url': coverUrl,
       });
       setState(() => _loading = false);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Grupo creado')),
+          SnackBar(content: Text(l10n.groupsCreatedSnack)),
         );
         context.pop();
       }
     } catch (e, st) {
       setState(() => _loading = false);
-      debugPrint('createGroup error: $e\n$st');
-      if (context.mounted) {
-        showDialog(
-          context: context,
-          builder: (_) => AlertDialog(
-            title: const Text('Error'),
-            content: Text(e.toAppError().message),
-            actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('OK'))],
-          ),
-        );
-      }
+      AppLogger.instance.error('createGroup error: $e', '$st');
+      if (context.mounted) showAppError(context, e, blocking: true);
     }
   }
 
@@ -90,8 +116,9 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Crear grupo')),
+      appBar: AppBar(title: Text(l10n.groupsCreateGroup)),
       body: ListView(
         padding: const EdgeInsets.all(24),
         children: [
@@ -112,13 +139,16 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
                         height: 160,
                       ),
                     )
-                  : const Center(
+                  : Center(
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.camera_alt, size: 40, color: Colors.grey),
-                          SizedBox(height: 8),
-                          Text('Agregar foto de portada', style: TextStyle(color: Colors.grey)),
+                          const Icon(Icons.camera_alt, size: 40, color: Colors.grey),
+                          const SizedBox(height: 8),
+                          Text(
+                            l10n.groupsAddCover,
+                            style: const TextStyle(color: Colors.grey),
+                          ),
                         ],
                       ),
                     ),
@@ -127,17 +157,17 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
           const SizedBox(height: 24),
           VInput(
             controller: _nameController,
-            label: 'Nombre del grupo',
+            label: l10n.groupsNameLabel,
           ),
           const SizedBox(height: 16),
           VInput(
             controller: _descController,
-            label: 'Descripción (opcional)',
+            label: l10n.groupsDescriptionOptional,
             maxLines: 3,
           ),
           const SizedBox(height: 32),
           VButton.emphasized(
-            label: 'Crear',
+            label: l10n.commonCreate,
             loading: _loading,
             onPressed: _create,
           ),

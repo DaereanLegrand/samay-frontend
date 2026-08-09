@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:samay/core/design_tokens/app_colors.dart';
 
 class VChip extends StatelessWidget {
   final String label;
@@ -19,11 +20,11 @@ class VChip extends StatelessWidget {
       selected: selected,
       onSelected: (value) => onSelected?.call(),
       labelStyle: TextStyle(
-        color: selected ? Colors.black : Colors.white,
+        color: selected ? AppColors.discoBlack : AppColors.white,
       ),
-      selectedColor: Colors.white,
+      selectedColor: AppColors.white,
       backgroundColor: Colors.transparent,
-      side: const BorderSide(color: Colors.white),
+      side: const BorderSide(color: AppColors.white),
       shape: const RoundedRectangleBorder(),
       showCheckmark: false,
     );

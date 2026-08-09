@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:samay/core/extensions/error_mapper.dart';
 import 'package:samay/core/services/supabase_service.dart';
+import 'package:samay/core/utils/input_sanitizer.dart';
+import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/v_button.dart';
 import 'package:samay/shared/widgets/v_input.dart';
 
@@ -24,10 +26,11 @@ class _DonateShardsScreenState extends State<DonateShardsScreen> {
   bool _loading = false;
 
   Future<void> _donate() async {
-    final amount = int.tryParse(_amountController.text.trim());
+    final l10n = AppLocalizations.of(context);
+    final amount = int.tryParse(InputSanitizer.sanitizeAmount(_amountController.text));
     if (amount == null || amount < 1) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Ingresa un monto válido')),
+        SnackBar(content: Text(l10n.groupsInvalidAmount)),
       );
       return;
     }
@@ -37,7 +40,7 @@ class _DonateShardsScreenState extends State<DonateShardsScreen> {
       await SupabaseService.instance.donateToGroup(widget.groupId, amount);
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Donación exitosa')),
+          SnackBar(content: Text(l10n.groupsDonationSuccess)),
         );
         context.pop();
       }
@@ -60,27 +63,28 @@ class _DonateShardsScreenState extends State<DonateShardsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Donar shards')),
+      appBar: AppBar(title: Text(l10n.groupsDonateTitle)),
       body: ListView(
         padding: const EdgeInsets.all(24),
         children: [
-          Text('Donar a ${widget.groupName}',
+          Text(l10n.groupsDonateTo(widget.groupName),
               style: Theme.of(context).textTheme.headlineMedium),
           const SizedBox(height: 8),
           Text(
-            'Estos shards impulsarán el ranking del grupo durante 14 días',
+            l10n.groupsDonateBlurb,
             style: Theme.of(context).textTheme.bodyMedium,
           ),
           const SizedBox(height: 24),
           VInput(
             controller: _amountController,
-            label: 'Cantidad de shards',
+            label: l10n.groupsShardsAmount,
             keyboardType: TextInputType.number,
           ),
           const SizedBox(height: 32),
           VButton.emphasized(
-            label: 'Donar',
+            label: l10n.groupsDonate,
             loading: _loading,
             onPressed: _donate,
           ),

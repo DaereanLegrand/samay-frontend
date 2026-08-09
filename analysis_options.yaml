@@ -9,6 +9,14 @@
 # packages, and plugins designed to encourage good coding practices.
 include: package:flutter_lints/flutter.yaml
 
+# Standard freezed + json_serializable setup: @JsonSerializable is placed on
+# freezed factory constructors (freezed forwards it to the generated class),
+# which triggers invalid_annotation_target on the source annotation.
+# See https://pub.dev/packages/freezed (Install section).
+analyzer:
+  errors:
+    invalid_annotation_target: ignore
+
 linter:
   # The lint rules applied to this project can be customized in the
   # section below to disable rules from the `package:flutter_lints/flutter.yaml`

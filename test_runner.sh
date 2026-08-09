@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -uo pipefail
 
-DB_URL="postgresql://postgres:postgres@127.0.0.1:5432/postgres"
+DB_URL="postgresql://postgres:postgres@127.0.0.1:54382/postgres"
 RESULTS_FILE="test_results_$(date +%Y%m%d_%H%M%S).md"
 TOTAL=0
 PASSED=0

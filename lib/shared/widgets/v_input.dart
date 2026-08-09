@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:samay/core/design_tokens/app_colors.dart';
 
 class VInput extends StatelessWidget {
   final String label;
@@ -28,17 +29,20 @@ class VInput extends StatelessWidget {
       keyboardType: keyboardType,
       obscureText: obscureText,
       maxLines: maxLines,
-      style: const TextStyle(color: Colors.white),
+      style: const TextStyle(color: AppColors.white),
       decoration: InputDecoration(
         labelText: label,
         hintText: hint,
-        labelStyle: const TextStyle(color: Color(0xFF666666)),
+        // Label keeps the legacy muted #666666 for visual parity; the design
+        // doc §5.2 wants mutedStrong #999999 (fails 1.4.3 at normal size) —
+        // that restyle belongs to U-05.
+        labelStyle: const TextStyle(color: AppColors.muted),
         hintStyle: const TextStyle(color: Color(0xFF444444)),
         enabledBorder: const UnderlineInputBorder(
-          borderSide: BorderSide(color: Colors.white),
+          borderSide: BorderSide(color: AppColors.white),
         ),
         focusedBorder: const UnderlineInputBorder(
-          borderSide: BorderSide(color: Colors.white, width: 2),
+          borderSide: BorderSide(color: AppColors.white, width: 2),
         ),
       ),
     );

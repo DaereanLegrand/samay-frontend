@@ -1,9 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:samay/core/errors/app_error.dart';
 import 'package:samay/core/extensions/error_mapper.dart';
+import 'package:samay/core/logging/app_logger.dart';
 import 'package:samay/core/providers/auth_provider.dart';
+import 'package:samay/core/router/route_extras.dart';
 import 'package:samay/core/router/route_paths.dart';
+import 'package:samay/l10n/app_localizations.dart';
+import 'package:samay/shared/widgets/show_app_error.dart';
 import 'package:samay/shared/widgets/v_button.dart';
 import 'package:samay/shared/widgets/v_input.dart';
 
@@ -19,6 +24,7 @@ class _SignupContactScreenState extends ConsumerState<SignupContactScreen> {
   final _passwordController = TextEditingController();
   final _confirmController = TextEditingController();
   String? _validationError;
+  bool _submitting = false;
 
   @override
   void dispose() {
@@ -35,19 +41,22 @@ class _SignupContactScreenState extends ConsumerState<SignupContactScreen> {
   }
 
   Future<void> _signup() async {
+    if (_submitting) return;
     final email = _emailController.text.trim();
     final password = _passwordController.text;
     final confirm = _confirmController.text;
+    final l10n = AppLocalizations.of(context);
     setState(() => _validationError = null);
     if (email.isEmpty || password.isEmpty || confirm.isEmpty) return;
     if (!_isPasswordValid(password)) {
-      setState(() => _validationError = 'La contraseña debe tener al menos 6 caracteres y contener un número.');
+      setState(() => _validationError = l10n.authPasswordTooWeak);
       return;
     }
     if (password != confirm) {
-      setState(() => _validationError = 'Las contraseñas no coinciden.');
+      setState(() => _validationError = l10n.authPasswordsDontMatch);
       return;
     }
+    setState(() => _submitting = true);
     try {
       final action = await ref.read(authStateProvider.notifier).checkEmail(email);
       if (action == 'exists') {
@@ -55,69 +64,75 @@ class _SignupContactScreenState extends ConsumerState<SignupContactScreen> {
           showDialog(
             context: context,
             builder: (_) => AlertDialog(
-              title: const Text('Correo ya registrado'),
-              content: const Text('Este correo ya tiene una cuenta completa. Inicia sesión en su lugar.'),
-              actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('OK'))],
+              title: Text(l10n.authEmailAlreadyRegistered),
+              content: Text(l10n.authEmailAlreadyRegisteredBody),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: Text(l10n.commonOk),
+                ),
+              ],
             ),
           );
         }
         return;
       }
       await ref.read(authStateProvider.notifier).sendOtp(email);
-      if (mounted) context.push(RoutePaths.verify, extra: {
-        'email': email,
-        'password': password,
-      });
-    } catch (e) {
       if (mounted) {
-        showDialog(
-          context: context,
-          builder: (_) => AlertDialog(
-            title: const Text('Error'),
-            content: Text(e.toAppError().message),
-            actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('OK'))],
-          ),
+        context.push(
+          RoutePaths.verify,
+          extra: VerifyExtra(email: email, password: password),
         );
       }
+    } catch (e, st) {
+      final appError = e.toAppError();
+      if (appError is RateLimitError) {
+        AppLogger.instance.warn('signup OTP rate-limited for $email');
+      }
+      AppLogger.instance.error('signup error: $e', '$st');
+      if (mounted) showAppError(context, e, blocking: true);
+    } finally {
+      if (mounted) setState(() => _submitting = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final auth = ref.watch(authStateProvider);
+    final l10n = AppLocalizations.of(context);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Crear cuenta')),
+      appBar: AppBar(title: Text(l10n.commonCreateAccount)),
       body: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(
           children: [
             const SizedBox(height: 32),
             Text(
-              'Crea tu cuenta',
+              l10n.authCreateYourAccount,
               style: Theme.of(context).textTheme.headlineMedium,
             ),
             const SizedBox(height: 8),
             Text(
-              'Ingresa tu correo y crea una contraseña',
+              l10n.authSignupSubtitle,
               style: Theme.of(context).textTheme.bodyMedium,
             ),
             const SizedBox(height: 32),
             VInput(
               controller: _emailController,
-              label: 'Correo electrónico',
+              label: l10n.commonEmail,
               keyboardType: TextInputType.emailAddress,
             ),
             const SizedBox(height: 16),
             VInput(
               controller: _passwordController,
-              label: 'Contraseña (mín. 6 caracteres, 1 número)',
+              label: l10n.authPasswordWithRequirements,
               obscureText: true,
             ),
             const SizedBox(height: 16),
             VInput(
               controller: _confirmController,
-              label: 'Confirmar contraseña',
+              label: l10n.commonConfirmPassword,
               obscureText: true,
             ),
             if (_validationError != null)
@@ -125,15 +140,18 @@ class _SignupContactScreenState extends ConsumerState<SignupContactScreen> {
                 padding: const EdgeInsets.only(top: 16),
                 child: Text(_validationError!, style: const TextStyle(color: Colors.red)),
               ),
-            if (auth.error != null)
+            if (auth.hasError)
               Padding(
                 padding: const EdgeInsets.only(top: 16),
-                child: Text(auth.error!, style: const TextStyle(color: Colors.red)),
+                child: Text(
+                  auth.errorMessage!,
+                  style: const TextStyle(color: Colors.red),
+                ),
               ),
             const Spacer(),
             VButton.emphasized(
-              label: 'Crear cuenta',
-              loading: auth.loading,
+              label: l10n.commonCreateAccount,
+              loading: auth.isLoading || _submitting,
               onPressed: _signup,
             ),
             const SizedBox(height: 32),

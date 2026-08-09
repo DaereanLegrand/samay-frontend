@@ -1,73 +1,27 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:samay/core/extensions/error_mapper.dart';
 import 'package:samay/core/services/supabase_service.dart';
+import 'package:samay/features/friends/friends_providers.dart';
+import 'package:samay/features/groups/groups_providers.dart';
+import 'package:samay/l10n/app_localizations.dart';
+import 'package:samay/shared/widgets/error_view.dart';
 
-class RequestsScreen extends StatefulWidget {
+class RequestsScreen extends ConsumerStatefulWidget {
   const RequestsScreen({super.key});
 
   @override
-  State<RequestsScreen> createState() => _RequestsScreenState();
+  ConsumerState<RequestsScreen> createState() => _RequestsScreenState();
 }
 
-class _RequestsScreenState extends State<RequestsScreen>
+class _RequestsScreenState extends ConsumerState<RequestsScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  List<Map<String, dynamic>> _requests = [];
-  List<Map<String, dynamic>> _invites = [];
-  Map<String, String> _names = {};
-  bool _loading = true;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
-    _load();
-  }
-
-  Future<void> _load() async {
-    setState(() => _loading = true);
-    try {
-      final requests = await SupabaseService.instance.getFriendRequests();
-      final invites = await SupabaseService.instance.getGroupInvites();
-      final names = <String, String>{};
-      for (final r in requests) {
-        if (!names.containsKey(r['user_id'] as String)) {
-          final profile = await SupabaseService.instance.getUserProfile(r['user_id'] as String);
-          names[r['user_id'] as String] = profile?['username'] as String? ?? 'Usuario';
-        }
-      }
-      setState(() {
-        _requests = requests;
-        _invites = invites;
-        _names = names;
-      });
-    } catch (_) {
-      setState(() {
-        _requests = [];
-        _invites = [];
-      });
-    } finally {
-      setState(() => _loading = false);
-    }
-  }
-
-  Future<void> _acceptFriend(String id) async {
-    await SupabaseService.instance.acceptFriendRequest(id);
-    _load();
-  }
-
-  Future<void> _declineFriend(String id) async {
-    await SupabaseService.instance.declineFriendRequest(id);
-    _load();
-  }
-
-  Future<void> _acceptInvite(String membershipId) async {
-    await SupabaseService.instance.acceptGroupInvite(membershipId);
-    _load();
-  }
-
-  Future<void> _declineInvite(String membershipId) async {
-    await SupabaseService.instance.declineGroupInvite(membershipId);
-    _load();
   }
 
   @override
@@ -76,100 +30,150 @@ class _RequestsScreenState extends State<RequestsScreen>
     super.dispose();
   }
 
+  Future<void> _acceptFriend(String id) async {
+    await SupabaseService.instance.acceptFriendRequest(id);
+    ref.invalidate(friendRequestsProvider);
+  }
+
+  Future<void> _declineFriend(String id) async {
+    await SupabaseService.instance.declineFriendRequest(id);
+    ref.invalidate(friendRequestsProvider);
+  }
+
+  Future<void> _acceptInvite(String membershipId) async {
+    await SupabaseService.instance.acceptGroupInvite(membershipId);
+    ref.invalidate(groupInvitesProvider);
+  }
+
+  Future<void> _declineInvite(String membershipId) async {
+    await SupabaseService.instance.declineGroupInvite(membershipId);
+    ref.invalidate(groupInvitesProvider);
+  }
+
   @override
   Widget build(BuildContext context) {
-    final received = _requests.where((r) => r['type'] == 'received').toList();
-    final sent = _requests.where((r) => r['type'] == 'sent').toList();
-
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Solicitudes'),
+        title: Text(l10n.friendsRequestsTitle),
         bottom: TabBar(
           controller: _tabController,
-          tabs: const [
-            Tab(text: 'Recibidas'),
-            Tab(text: 'Enviadas'),
-            Tab(text: 'Invitaciones'),
+          tabs: [
+            Tab(text: l10n.friendsTabReceived),
+            Tab(text: l10n.friendsTabSent),
+            Tab(text: l10n.friendsTabInvites),
           ],
         ),
       ),
-      body: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : TabBarView(
+      body: ref.watch(friendRequestsProvider).when(
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (e, _) => ErrorView(
+          message: e.toAppError().message,
+          onRetry: () => ref.invalidate(friendRequestsProvider),
+        ),
+        data: (data) => ref.watch(groupInvitesProvider).when(
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (e, _) => ErrorView(
+            message: e.toAppError().message,
+            onRetry: () => ref.invalidate(groupInvitesProvider),
+          ),
+          data: (invites) {
+            final received =
+                data.requests.where((r) => r['type'] == 'received').toList();
+            final sent = data.requests.where((r) => r['type'] == 'sent').toList();
+            return TabBarView(
               controller: _tabController,
               children: [
-                _buildRequests(received, isReceived: true),
-                _buildRequests(sent, isReceived: false),
-                _buildInvites(),
+                _buildRequests(received, data.names, isReceived: true),
+                _buildRequests(sent, data.names, isReceived: false),
+                _buildInvites(invites),
               ],
-            ),
+            );
+          },
+        ),
+      ),
     );
   }
 
-  Widget _buildRequests(List<Map<String, dynamic>> items, {required bool isReceived}) {
+  Widget _buildRequests(
+    List<Map<String, dynamic>> items,
+    Map<String, String> names, {
+    required bool isReceived,
+  }) {
+    final l10n = AppLocalizations.of(context);
     if (items.isEmpty) {
       return Center(
-        child: Text(isReceived ? 'Sin solicitudes recibidas' : 'Sin solicitudes enviadas'),
+        child: Text(
+          isReceived ? l10n.friendsNoReceived : l10n.friendsNoSent,
+        ),
       );
     }
     return ListView.builder(
       itemCount: items.length,
       itemBuilder: (_, i) {
         final r = items[i];
-        final name = _names[r['user_id'] as String] ?? 'Usuario';
+        final name = names[r['user_id'] as String] ?? l10n.commonUser;
         return ListTile(
           title: Text(name),
-          subtitle: Text(isReceived ? 'Te envi\u00f3 una solicitud' : 'Solicitud enviada'),
+          subtitle: Text(
+            isReceived ? l10n.friendsSentYouRequest : l10n.friendsRequestSent,
+          ),
           trailing: isReceived
-              ? Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    TextButton(
-                      onPressed: () => _acceptFriend(r['friendship_id'] as String),
-                      child: const Text('Aceptar'),
-                    ),
-                    TextButton(
-                      onPressed: () => _declineFriend(r['friendship_id'] as String),
-                      child: const Text('Rechazar'),
-                    ),
-                  ],
+              ? _ActionPair(
+                  onAccept: () => _acceptFriend(r['friendship_id'] as String),
+                  onDecline: () => _declineFriend(r['friendship_id'] as String),
                 )
               : TextButton(
                   onPressed: () => _declineFriend(r['friendship_id'] as String),
-                  child: const Text('Cancelar'),
+                  child: Text(l10n.commonCancel),
                 ),
         );
       },
     );
   }
 
-  Widget _buildInvites() {
-    if (_invites.isEmpty) {
-      return const Center(child: Text('Sin invitaciones'));
+  Widget _buildInvites(List<Map<String, dynamic>> invites) {
+    final l10n = AppLocalizations.of(context);
+    if (invites.isEmpty) {
+      return Center(child: Text(l10n.friendsNoInvites));
     }
     return ListView.builder(
-      itemCount: _invites.length,
+      itemCount: invites.length,
       itemBuilder: (_, i) {
-        final invite = _invites[i];
-        final groupName = (invite['groups'] as Map<String, dynamic>?)?['name'] as String? ?? 'Grupo';
+        final invite = invites[i];
+        final groupName = (invite['groups'] as Map<String, dynamic>?)?['name']
+                as String? ??
+            l10n.commonGroup;
         return ListTile(
           title: Text(groupName),
           subtitle: Text(invite['role'] as String? ?? 'member'),
-          trailing: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextButton(
-                onPressed: () => _acceptInvite(invite['id'] as String),
-                child: const Text('Aceptar'),
-              ),
-              TextButton(
-                onPressed: () => _declineInvite(invite['id'] as String),
-                child: const Text('Rechazar'),
-              ),
-            ],
+          trailing: _ActionPair(
+            onAccept: () => _acceptInvite(invite['id'] as String),
+            onDecline: () => _declineInvite(invite['id'] as String),
           ),
         );
       },
+    );
+  }
+}
+
+/// Accept/decline TextButton pair (PERF-08: the repeated trailing action row
+/// of the requests and invites lists is one const sub-widget).
+class _ActionPair extends StatelessWidget {
+  final VoidCallback onAccept;
+  final VoidCallback onDecline;
+
+  const _ActionPair({required this.onAccept, required this.onDecline});
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        TextButton(onPressed: onAccept, child: Text(l10n.commonAccept)),
+        TextButton(onPressed: onDecline, child: Text(l10n.commonReject)),
+      ],
     );
   }
 }

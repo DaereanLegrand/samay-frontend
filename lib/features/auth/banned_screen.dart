@@ -1,0 +1,67 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:samay/core/design_tokens/app_colors.dart';
+import 'package:samay/core/design_tokens/app_icon_sizes.dart';
+import 'package:samay/core/design_tokens/app_spacing.dart';
+import 'package:samay/core/providers/auth_provider.dart';
+import 'package:samay/l10n/app_localizations.dart';
+import 'package:samay/shared/widgets/v_button.dart';
+
+/// Terminal screen for suspended accounts (AUTH spec: ban enforcement, I-35).
+///
+/// Minimalist per DISCO-DESIGN-SYSTEM.md §1 (black always, white core, one
+/// idea per screen): an icon, the suspension title, the stored ban reason
+/// (when the administrator provided one) and a single logout action. Every
+/// route redirects here while [AuthState.banned] is set ([AuthGuard]); after
+/// sign-out the guard routes to login normally.
+class BannedScreen extends ConsumerWidget {
+  const BannedScreen({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+    final reason = ref.watch(authStateProvider).valueOrNull?.banReason;
+
+    return Scaffold(
+      body: SafeArea(
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(AppSpacing.xl),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.block, size: AppIconSizes.xxl, color: AppColors.white),
+                const SizedBox(height: AppSpacing.xl),
+                Text(
+                  l10n.bannedTitle,
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.displayMedium,
+                ),
+                const SizedBox(height: AppSpacing.lg),
+                Text(
+                  reason != null && reason.isNotEmpty
+                      ? l10n.bannedReasonLabel(reason)
+                      : l10n.bannedDefaultBody,
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context)
+                      .textTheme
+                      .bodyMedium
+                      ?.copyWith(color: AppColors.mutedStrong),
+                ),
+                const SizedBox(height: AppSpacing.xxl),
+                SizedBox(
+                  width: 200,
+                  child: VButton.outlined(
+                    label: l10n.profileSignOut,
+                    onPressed: () =>
+                        ref.read(authStateProvider.notifier).signOut(),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}

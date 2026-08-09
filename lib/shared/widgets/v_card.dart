@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:samay/core/design_tokens/app_colors.dart';
+import 'package:samay/core/design_tokens/app_spacing.dart';
 
 class VCard extends StatelessWidget {
   final Widget child;
@@ -9,12 +11,12 @@ class VCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: const BoxDecoration(
-        color: Colors.black,
+        color: AppColors.discoBlack,
         border: Border.symmetric(
-          horizontal: BorderSide(color: Color(0xFF333333)),
+          horizontal: BorderSide(color: AppColors.border),
         ),
       ),
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(AppSpacing.cardPadding),
       child: child,
     );
   }

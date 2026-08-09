@@ -17,7 +17,8 @@ class UnauthorizedError extends AppError {
 
 class ServerError extends AppError {
   final String detail;
-  ServerError([this.detail = '']);
+  final Object? original;
+  ServerError([this.detail = '', this.original]);
 
   @override
   String get message {

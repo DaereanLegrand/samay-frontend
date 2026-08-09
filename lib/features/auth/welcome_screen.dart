@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:samay/core/router/route_paths.dart';
+import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/v_button.dart';
 
 class WelcomeScreen extends StatelessWidget {
@@ -8,6 +9,7 @@ class WelcomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       body: SafeArea(
         child: Padding(
@@ -15,20 +17,20 @@ class WelcomeScreen extends StatelessWidget {
           child: Column(
             children: [
               const Spacer(),
-              Text('VIVE', style: Theme.of(context).textTheme.displayLarge),
+              Text(l10n.welcomeVive, style: Theme.of(context).textTheme.displayLarge),
               const SizedBox(height: 8),
               Text(
-                'Tu vida social, en un solo lugar',
+                l10n.welcomeTagline,
                 style: Theme.of(context).textTheme.bodyLarge,
               ),
               const Spacer(),
               VButton.emphasized(
-                label: 'Crear cuenta',
+                label: l10n.commonCreateAccount,
                 onPressed: () => context.push(RoutePaths.signup),
               ),
               const SizedBox(height: 12),
               VButton(
-                label: 'Iniciar sesión',
+                label: l10n.commonSignIn,
                 onPressed: () => context.push(RoutePaths.login),
               ),
               const SizedBox(height: 32),

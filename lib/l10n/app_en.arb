@@ -1,0 +1,1163 @@
+{
+  "@@locale": "en",
+
+  "appTitle": "Samay",
+  "@appTitle": {
+    "description": "App brand name shown in the feed app bar"
+  },
+
+  "commonOk": "OK",
+  "@commonOk": {
+    "description": "Generic confirmation button label"
+  },
+  "commonCancel": "Cancel",
+  "@commonCancel": {
+    "description": "Generic cancel button label"
+  },
+  "commonAccept": "Accept",
+  "@commonAccept": {
+    "description": "Generic accept button label"
+  },
+  "commonReject": "Reject",
+  "@commonReject": {
+    "description": "Generic reject button label"
+  },
+  "commonRetry": "Retry",
+  "@commonRetry": {
+    "description": "Generic retry button label"
+  },
+  "commonClose": "Close",
+  "@commonClose": {
+    "description": "Generic close button label"
+  },
+  "commonCreate": "Create",
+  "@commonCreate": {
+    "description": "Generic create button label"
+  },
+  "commonSave": "Save",
+  "@commonSave": {
+    "description": "Generic save button label"
+  },
+  "commonDelete": "Delete",
+  "@commonDelete": {
+    "description": "Generic delete button label"
+  },
+  "commonContinue": "Continue",
+  "@commonContinue": {
+    "description": "Generic continue button label"
+  },
+  "commonBack": "Back",
+  "@commonBack": {
+    "description": "Generic back button label"
+  },
+  "commonEmail": "Email",
+  "@commonEmail": {
+    "description": "Email input field label"
+  },
+  "commonPassword": "Password",
+  "@commonPassword": {
+    "description": "Password input field label"
+  },
+  "commonConfirmPassword": "Confirm password",
+  "@commonConfirmPassword": {
+    "description": "Confirm-password input field label"
+  },
+  "commonUsername": "Username",
+  "@commonUsername": {
+    "description": "Username input field label"
+  },
+  "commonUser": "User",
+  "@commonUser": {
+    "description": "Generic fallback user display name"
+  },
+  "commonGroup": "Group",
+  "@commonGroup": {
+    "description": "Generic fallback group display name"
+  },
+  "commonFriends": "Friends",
+  "@commonFriends": {
+    "description": "Generic friends label"
+  },
+  "commonCreateAccount": "Create account",
+  "@commonCreateAccount": {
+    "description": "Create-account button label"
+  },
+  "commonSignIn": "Sign in",
+  "@commonSignIn": {
+    "description": "Sign-in button label"
+  },
+  "commonError": "Error",
+  "@commonError": {
+    "description": "Generic error dialog title"
+  },
+  "commonInvite": "Invite",
+  "@commonInvite": {
+    "description": "Generic invite button label"
+  },
+
+  "welcomeVive": "VIVE",
+  "@welcomeVive": {
+    "description": "Welcome screen brand wordmark"
+  },
+  "welcomeTagline": "Your social life, all in one place",
+  "@welcomeTagline": {
+    "description": "Welcome screen tagline"
+  },
+
+  "authVerifyAge": "Verify age",
+  "@authVerifyAge": {
+    "description": "Age-gate screen app bar title"
+  },
+  "authBirthDateQuestion": "What is your date of birth?",
+  "@authBirthDateQuestion": {
+    "description": "Age-gate screen birth-date question"
+  },
+  "authMinAgeMessage": "You must be at least 18 years old to use Samay",
+  "@authMinAgeMessage": {
+    "description": "Age-gate minimum-age explanation"
+  },
+  "authSelectDate": "Select date",
+  "@authSelectDate": {
+    "description": "Age-gate date picker button label before a date is picked"
+  },
+  "authUnderageMessage": "You must be 18 years old to use Samay",
+  "@authUnderageMessage": {
+    "description": "Error shown when the picked birth date is under 18"
+  },
+  "authSelectedDate": "{day}/{month}/{year}",
+  "@authSelectedDate": {
+    "description": "Selected birth date rendered on the age-gate button",
+    "placeholders": {
+      "day": {
+        "type": "int"
+      },
+      "month": {
+        "type": "int"
+      },
+      "year": {
+        "type": "int"
+      }
+    }
+  },
+  "authForgotPassword": "Forgot my password",
+  "@authForgotPassword": {
+    "description": "Password-recovery link label"
+  },
+  "authUnknownLoginError": "Unknown error signing in",
+  "@authUnknownLoginError": {
+    "description": "Fallback message when login fails with no mapped error"
+  },
+  "authVerifyCode": "Verify code",
+  "@authVerifyCode": {
+    "description": "OTP verification screen app bar title"
+  },
+  "authEnterVerificationCode": "Enter the verification code",
+  "@authEnterVerificationCode": {
+    "description": "OTP verification screen heading"
+  },
+  "authOtpSentTo": "We sent a 6-digit code to {email}",
+  "@authOtpSentTo": {
+    "description": "Confirmation that the OTP was sent to the given email",
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "authVerify": "Verify",
+  "@authVerify": {
+    "description": "Verify button label"
+  },
+  "authResendCode": "Resend code",
+  "@authResendCode": {
+    "description": "Resend-OTP button label once the cooldown has elapsed"
+  },
+  "authResendCodeIn": "Resend code ({seconds}s)",
+  "@authResendCodeIn": {
+    "description": "Resend-OTP button label counting down the cooldown",
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "authOtpTooManyAttempts": "Too many failed attempts. Request a new code.",
+  "@authOtpTooManyAttempts": {
+    "description": "Blocking message after 5 consecutive wrong OTP attempts"
+  },
+  "authEmailAlreadyRegistered": "Email already registered",
+  "@authEmailAlreadyRegistered": {
+    "description": "Dialog title when the email already has an account"
+  },
+  "authEmailAlreadyRegisteredBody": "This email already has a complete account. Sign in instead.",
+  "@authEmailAlreadyRegisteredBody": {
+    "description": "Dialog body when the email already has an account"
+  },
+  "authTermsTitle": "Terms and conditions",
+  "@authTermsTitle": {
+    "description": "Privacy/terms screen app bar title"
+  },
+  "authAcceptTermsToContinue": "Accept the terms to continue",
+  "@authAcceptTermsToContinue": {
+    "description": "Privacy/terms screen heading"
+  },
+  "authPrivacyPolicy": "I accept the Privacy Policy",
+  "@authPrivacyPolicy": {
+    "description": "Privacy policy checkbox label"
+  },
+  "authPrivacyPolicySubtitle": "Learn how we handle your personal data",
+  "@authPrivacyPolicySubtitle": {
+    "description": "Privacy policy checkbox subtitle"
+  },
+  "authServiceTerms": "I accept the Terms of Service",
+  "@authServiceTerms": {
+    "description": "Terms of service checkbox label"
+  },
+  "authServiceTermsSubtitle": "Terms of use of the application",
+  "@authServiceTermsSubtitle": {
+    "description": "Terms of service checkbox subtitle"
+  },
+  "authCompleteProfile": "Complete your profile",
+  "@authCompleteProfile": {
+    "description": "Profile-setup screen app bar title"
+  },
+  "authUsernameHint": "@username",
+  "@authUsernameHint": {
+    "description": "Username input placeholder"
+  },
+  "authUsernameImmutable": "You won't be able to change your username after registration.",
+  "@authUsernameImmutable": {
+    "description": "Warning that the username cannot be changed after signup"
+  },
+  "authCreateYourAccount": "Create your account",
+  "@authCreateYourAccount": {
+    "description": "Signup screen heading"
+  },
+  "authSignupSubtitle": "Enter your email and create a password",
+  "@authSignupSubtitle": {
+    "description": "Signup screen subtitle"
+  },
+  "authPasswordWithRequirements": "Password (min. 6 characters, 1 number)",
+  "@authPasswordWithRequirements": {
+    "description": "Password field label including the password requirements"
+  },
+  "authPasswordTooWeak": "The password must be at least 6 characters and contain a number.",
+  "@authPasswordTooWeak": {
+    "description": "Validation error for a weak password"
+  },
+  "authPasswordsDontMatch": "The passwords don't match.",
+  "@authPasswordsDontMatch": {
+    "description": "Validation error when the password confirmation differs"
+  },
+  "bannedTitle": "Account suspended",
+  "@bannedTitle": {
+    "description": "Ban screen title shown to suspended users"
+  },
+  "bannedDefaultBody": "Your account has been suspended.",
+  "@bannedDefaultBody": {
+    "description": "Ban screen body shown when no ban reason was stored"
+  },
+  "bannedReasonLabel": "Reason: {reason}",
+  "@bannedReasonLabel": {
+    "description": "Ban screen body including the stored ban reason",
+    "placeholders": {
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
+
+  "feedBrand": "Samay",
+  "@feedBrand": {
+    "description": "Feed screen app bar title"
+  },
+  "feedWelcome": "Welcome to Samay",
+  "@feedWelcome": {
+    "description": "Feed screen welcome heading"
+  },
+  "feedEmpty": "Your feed will appear here.\nSoon you'll see nearby events and activity from your groups.",
+  "@feedEmpty": {
+    "description": "Feed placeholder text"
+  },
+
+  "shellFeed": "Feed",
+  "@shellFeed": {
+    "description": "Bottom navigation tab label"
+  },
+  "shellGroups": "Groups",
+  "@shellGroups": {
+    "description": "Bottom navigation tab label"
+  },
+  "shellEvents": "Events",
+  "@shellEvents": {
+    "description": "Bottom navigation tab label"
+  },
+  "shellNotifications": "Notis",
+  "@shellNotifications": {
+    "description": "Bottom navigation tab label"
+  },
+  "shellProfile": "Profile",
+  "@shellProfile": {
+    "description": "Bottom navigation tab label"
+  },
+
+  "friendsTitle": "Friends",
+  "@friendsTitle": {
+    "description": "Friends list screen app bar title"
+  },
+  "friendsBlockedTitle": "Blocked users",
+  "@friendsBlockedTitle": {
+    "description": "Blocked users screen app bar title"
+  },
+  "friendsNoneBlocked": "You haven't blocked anyone",
+  "@friendsNoneBlocked": {
+    "description": "Empty state when the user has not blocked anyone"
+  },
+  "friendsUnblock": "Unblock",
+  "@friendsUnblock": {
+    "description": "Unblock button label"
+  },
+  "friendsSearchHint": "Search among friends",
+  "@friendsSearchHint": {
+    "description": "Search field hint on the friends list"
+  },
+  "friendsNoneYet": "No friends yet",
+  "@friendsNoneYet": {
+    "description": "Empty state heading when the user has no friends"
+  },
+  "friendsSearchPrompt": "Search for users to add friends",
+  "@friendsSearchPrompt": {
+    "description": "Empty state helper text prompting a user search"
+  },
+  "friendsNoResults": "No results",
+  "@friendsNoResults": {
+    "description": "Empty state when the friends filter matches nothing"
+  },
+  "friendsRequestsTitle": "Requests",
+  "@friendsRequestsTitle": {
+    "description": "Requests screen app bar title"
+  },
+  "friendsTabReceived": "Received",
+  "@friendsTabReceived": {
+    "description": "Requests screen tab label"
+  },
+  "friendsTabSent": "Sent",
+  "@friendsTabSent": {
+    "description": "Requests screen tab label"
+  },
+  "friendsTabInvites": "Invitations",
+  "@friendsTabInvites": {
+    "description": "Requests screen tab label"
+  },
+  "friendsNoReceived": "No received requests",
+  "@friendsNoReceived": {
+    "description": "Empty state for the received-requests tab"
+  },
+  "friendsNoSent": "No sent requests",
+  "@friendsNoSent": {
+    "description": "Empty state for the sent-requests tab"
+  },
+  "friendsSentYouRequest": "Sent you a request",
+  "@friendsSentYouRequest": {
+    "description": "Subtitle for a received friend request"
+  },
+  "friendsRequestSent": "Request sent",
+  "@friendsRequestSent": {
+    "description": "Subtitle for a sent friend request and snackbar after sending one"
+  },
+  "friendsNoInvites": "No invitations",
+  "@friendsNoInvites": {
+    "description": "Empty state for the group-invites tab"
+  },
+  "friendsSearchUsers": "Search users",
+  "@friendsSearchUsers": {
+    "description": "User search screen app bar title"
+  },
+  "friendsSearchPlaceholder": "Search by username",
+  "@friendsSearchPlaceholder": {
+    "description": "Search field hint on the user search screen"
+  },
+  "friendsNoUsersFound": "No users found",
+  "@friendsNoUsersFound": {
+    "description": "Empty state when the user search matches nothing"
+  },
+  "friendsStatusAccepted": "Friends",
+  "@friendsStatusAccepted": {
+    "description": "Friendship status label for accepted friends"
+  },
+  "friendsStatusPending": "Requested",
+  "@friendsStatusPending": {
+    "description": "Friendship status label for pending requests"
+  },
+  "friendsStatusBlocked": "Blocked",
+  "@friendsStatusBlocked": {
+    "description": "Friendship status label for blocked users"
+  },
+  "friendsAddFriendButton": "Add",
+  "@friendsAddFriendButton": {
+    "description": "Send-friend-request button label"
+  },
+
+  "groupsTitle": "Groups",
+  "@groupsTitle": {
+    "description": "My-groups screen app bar title"
+  },
+  "groupsTooltipFindFriends": "Find friends",
+  "@groupsTooltipFindFriends": {
+    "description": "Tooltip for the find-friends icon button"
+  },
+  "groupsCreateGroup": "Create group",
+  "@groupsCreateGroup": {
+    "description": "Create-group button label"
+  },
+  "groupsRanking": "Ranking",
+  "@groupsRanking": {
+    "description": "Leaderboard button label"
+  },
+  "groupsRequests": "Requests",
+  "@groupsRequests": {
+    "description": "Friend-requests shortcut button label"
+  },
+  "groupsNoneYet": "You don't belong to any group",
+  "@groupsNoneYet": {
+    "description": "Empty state heading when the user belongs to no group"
+  },
+  "groupsNoneYetSubtitle": "Create a group or join an existing one",
+  "@groupsNoneYetSubtitle": {
+    "description": "Empty state helper text on the my-groups screen"
+  },
+  "groupsLimitReached": "Limit reached",
+  "@groupsLimitReached": {
+    "description": "Dialog title when the promotor group limit is reached"
+  },
+  "groupsLimitReachedBody": "You've reached the limit of 5 groups as a promotor. Upgrade your subscription to create more.",
+  "@groupsLimitReachedBody": {
+    "description": "Dialog body explaining the 5-group promotor limit"
+  },
+  "groupsCreatedSnack": "Group created",
+  "@groupsCreatedSnack": {
+    "description": "Snackbar after creating a group"
+  },
+  "groupsAddCover": "Add cover photo",
+  "@groupsAddCover": {
+    "description": "Cover photo placeholder label"
+  },
+  "groupsNameLabel": "Group name",
+  "@groupsNameLabel": {
+    "description": "Group-name input label"
+  },
+  "groupsDescriptionOptional": "Description (optional)",
+  "@groupsDescriptionOptional": {
+    "description": "Optional group-description input label"
+  },
+  "groupsInvalidAmount": "Enter a valid amount",
+  "@groupsInvalidAmount": {
+    "description": "Snackbar for an invalid donation amount"
+  },
+  "groupsDonationSuccess": "Donation successful",
+  "@groupsDonationSuccess": {
+    "description": "Snackbar after a successful donation"
+  },
+  "groupsDonateTitle": "Donate shards",
+  "@groupsDonateTitle": {
+    "description": "Donate-shards screen app bar title and button label"
+  },
+  "groupsDonateTo": "Donate to {groupName}",
+  "@groupsDonateTo": {
+    "description": "Donate screen heading naming the target group",
+    "placeholders": {
+      "groupName": {
+        "type": "String"
+      }
+    }
+  },
+  "groupsDonateBlurb": "These shards will boost the group's ranking for 14 days",
+  "@groupsDonateBlurb": {
+    "description": "Explanation of the donation boost window"
+  },
+  "groupsShardsAmount": "Amount of shards",
+  "@groupsShardsAmount": {
+    "description": "Donation amount input label"
+  },
+  "groupsDonate": "Donate",
+  "@groupsDonate": {
+    "description": "Donate button label"
+  },
+  "groupsTabChat": "Chat",
+  "@groupsTabChat": {
+    "description": "Group detail tab label"
+  },
+  "groupsTabMembers": "Members",
+  "@groupsTabMembers": {
+    "description": "Group detail tab label"
+  },
+  "groupsTabEvents": "Events",
+  "@groupsTabEvents": {
+    "description": "Group detail tab label"
+  },
+  "groupsFrozenBadge": "Frozen group",
+  "@groupsFrozenBadge": {
+    "description": "Menu item marking a frozen group"
+  },
+  "groupsLeave": "Leave group",
+  "@groupsLeave": {
+    "description": "Leave-group menu item and dialog title"
+  },
+  "groupsFrozenBanner": "Frozen group — upgrade your subscription or transfer the promotor role",
+  "@groupsFrozenBanner": {
+    "description": "Banner shown on a frozen group"
+  },
+  "groupsShardsCount": "{shards} group shards",
+  "@groupsShardsCount": {
+    "description": "Group shard balance",
+    "placeholders": {
+      "shards": {
+        "type": "int"
+      }
+    }
+  },
+  "groupsMemberCount": "{members} / {limit} members",
+  "@groupsMemberCount": {
+    "description": "Group member occupancy",
+    "placeholders": {
+      "members": {
+        "type": "int"
+      },
+      "limit": {
+        "type": "int"
+      }
+    }
+  },
+  "groupsMyContribution": "My contribution: {shards} active shards",
+  "@groupsMyContribution": {
+    "description": "Current user's active contribution to the group",
+    "placeholders": {
+      "shards": {
+        "type": "int"
+      }
+    }
+  },
+  "groupsCreateEvent": "Create event",
+  "@groupsCreateEvent": {
+    "description": "Create-event button label"
+  },
+  "groupsChatComingSoon": "Chat coming soon",
+  "@groupsChatComingSoon": {
+    "description": "Placeholder for the group chat tab"
+  },
+  "groupsNoMembers": "No members",
+  "@groupsNoMembers": {
+    "description": "Empty state when a group has no members"
+  },
+  "groupsTopContributors": "Top contributors",
+  "@groupsTopContributors": {
+    "description": "Section heading for the top contributors"
+  },
+  "groupsShardsCountShort": "{shards} shards",
+  "@groupsShardsCountShort": {
+    "description": "Short shard count (contributor rows, group list)",
+    "placeholders": {
+      "shards": {
+        "type": "int"
+      }
+    }
+  },
+  "groupsMembersCount": "Members ({count})",
+  "@groupsMembersCount": {
+    "description": "Members section heading with the member count",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "groupsEventsComingSoon": "Events coming soon",
+  "@groupsEventsComingSoon": {
+    "description": "Placeholder for the group events tab"
+  },
+  "groupsConfirmLeave": "Are you sure?",
+  "@groupsConfirmLeave": {
+    "description": "Leave-group confirmation dialog body"
+  },
+  "groupsAbandon": "Leave",
+  "@groupsAbandon": {
+    "description": "Confirm button on the leave-group dialog"
+  },
+  "groupsNotFound": "The group was not found",
+  "@groupsNotFound": {
+    "description": "Error view message when the group detail fails to load"
+  },
+  "groupsMembersTitle": "Members",
+  "@groupsMembersTitle": {
+    "description": "Group members screen app bar title"
+  },
+  "groupsInviteTitle": "Invite",
+  "@groupsInviteTitle": {
+    "description": "Invite screen app bar title"
+  },
+  "groupsInviteCount": "Invite ({count})",
+  "@groupsInviteCount": {
+    "description": "Invite action button label with the number of selected users",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "groupsInvitedCount": "{count} invited",
+  "@groupsInvitedCount": {
+    "description": "Snackbar confirming how many users were invited",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "groupsSearchUsersHint": "Search users by username...",
+  "@groupsSearchUsersHint": {
+    "description": "Search field hint on the invite screen"
+  },
+  "groupsMinCharsHint": "Type at least 2 characters to search",
+  "@groupsMinCharsHint": {
+    "description": "Helper text before the search query is long enough"
+  },
+  "groupsNoResults": "No results",
+  "@groupsNoResults": {
+    "description": "Empty state when the invite search matches nothing"
+  },
+  "groupsLeaderboardTitle": "Group rankings",
+  "@groupsLeaderboardTitle": {
+    "description": "Leaderboard screen app bar title"
+  },
+  "groupsNoRankingData": "No ranking data",
+  "@groupsNoRankingData": {
+    "description": "Empty state when there is no ranking data"
+  },
+  "groupsLeaderboardSubtitle": "{count} members · {score} shards",
+  "@groupsLeaderboardSubtitle": {
+    "description": "Leaderboard row subtitle with member count and score",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "score": {
+        "type": "int"
+      }
+    }
+  },
+
+  "profileTitle": "Profile",
+  "@profileTitle": {
+    "description": "Profile screen app bar title"
+  },
+  "profileEditTitle": "Edit profile",
+  "@profileEditTitle": {
+    "description": "Edit-profile screen app bar title"
+  },
+  "profileSettingsTitle": "Settings",
+  "@profileSettingsTitle": {
+    "description": "Settings screen app bar title"
+  },
+  "profileSubscription": "Subscription",
+  "@profileSubscription": {
+    "description": "Settings list item"
+  },
+  "profileNotifications": "Notifications",
+  "@profileNotifications": {
+    "description": "Settings list item"
+  },
+  "profilePrivacy": "Privacy",
+  "@profilePrivacy": {
+    "description": "Settings list item"
+  },
+  "profileBlockedUsers": "Blocked users",
+  "@profileBlockedUsers": {
+    "description": "Settings list item"
+  },
+  "profileDeleteMyAccount": "Delete my account",
+  "@profileDeleteMyAccount": {
+    "description": "Settings list item"
+  },
+  "profileSignOut": "Sign out",
+  "@profileSignOut": {
+    "description": "Settings list item"
+  },
+  "profileVersion": "Samay v1.0.0",
+  "@profileVersion": {
+    "description": "Version footer on the settings screen"
+  },
+  "profileBio": "Bio",
+  "@profileBio": {
+    "description": "Bio input label"
+  },
+  "profileSaveChanges": "Save changes",
+  "@profileSaveChanges": {
+    "description": "Save-changes button label"
+  },
+  "profileChangePassword": "Change password",
+  "@profileChangePassword": {
+    "description": "Change-password button label"
+  },
+  "profileUpdatedSnack": "Profile updated",
+  "@profileUpdatedSnack": {
+    "description": "Snackbar after saving the profile"
+  },
+  "profileMyGroups": "Groups",
+  "@profileMyGroups": {
+    "description": "Profile section heading"
+  },
+  "profileNoGroupsYet": "You don't belong to any group yet",
+  "@profileNoGroupsYet": {
+    "description": "Empty state on the profile screen groups section"
+  },
+  "profileShardsCount": "{shards} shards",
+  "@profileShardsCount": {
+    "description": "Personal shard balance",
+    "placeholders": {
+      "shards": {
+        "type": "int"
+      }
+    }
+  },
+  "profilePreshardsCount": "{preshards} preshards",
+  "@profilePreshardsCount": {
+    "description": "Preshard balance",
+    "placeholders": {
+      "preshards": {
+        "type": "int"
+      }
+    }
+  },
+  "profileNoBio": "No bio",
+  "@profileNoBio": {
+    "description": "Placeholder when a public profile has no bio"
+  },
+  "profileSharedGroups": "Shared groups",
+  "@profileSharedGroups": {
+    "description": "Public profile section heading"
+  },
+  "profileNoSharedGroups": "No shared groups",
+  "@profileNoSharedGroups": {
+    "description": "Empty state when there are no shared groups"
+  },
+  "profileFriendRequestSent": "Friend request sent",
+  "@profileFriendRequestSent": {
+    "description": "Snackbar after sending a friend request"
+  },
+  "profileRequestAccepted": "Request accepted",
+  "@profileRequestAccepted": {
+    "description": "Snackbar after accepting a friend request"
+  },
+  "profileAcceptError": "Error accepting request",
+  "@profileAcceptError": {
+    "description": "Snackbar when accepting a friend request fails"
+  },
+  "profileReport": "Report",
+  "@profileReport": {
+    "description": "Report menu item"
+  },
+  "profileBlock": "Block",
+  "@profileBlock": {
+    "description": "Block menu item on the public profile screen"
+  },
+  "profileCancelRequest": "Cancel request",
+  "@profileCancelRequest": {
+    "description": "Button to cancel an outgoing friend request"
+  },
+  "profileAccepting": "Accepting...",
+  "@profileAccepting": {
+    "description": "Accept button label while the request is being accepted"
+  },
+  "profileAcceptRequest": "Accept request",
+  "@profileAcceptRequest": {
+    "description": "Button to accept an incoming friend request"
+  },
+  "profileSending": "Sending...",
+  "@profileSending": {
+    "description": "Send button label while the request is being sent"
+  },
+  "profileAddFriend": "Add friend",
+  "@profileAddFriend": {
+    "description": "Button to send a friend request"
+  },
+  "profileReportComingSoon": "Reporting will be implemented soon",
+  "@profileReportComingSoon": {
+    "description": "Snackbar stating that reporting is not implemented yet"
+  },
+  "profileUserBlocked": "User blocked",
+  "@profileUserBlocked": {
+    "description": "Snackbar after blocking a user"
+  },
+  "profileBlockError": "Error blocking",
+  "@profileBlockError": {
+    "description": "Snackbar when blocking a user fails"
+  },
+  "profileUserUnblocked": "User unblocked",
+  "@profileUserUnblocked": {
+    "description": "Snackbar after unblocking a user"
+  },
+  "profileUnblockError": "Error unblocking",
+  "@profileUnblockError": {
+    "description": "Snackbar when unblocking a user fails"
+  },
+  "profileDeleteTitle": "Delete account",
+  "@profileDeleteTitle": {
+    "description": "Delete-account screen app bar title"
+  },
+  "profileDeleteQuestion": "Delete account?",
+  "@profileDeleteQuestion": {
+    "description": "Delete-account confirmation dialog title"
+  },
+  "profileDeleteBody": "This action cannot be undone. Your data will be anonymized and your account will be permanently deleted after 30 days.",
+  "@profileDeleteBody": {
+    "description": "Delete-account confirmation dialog body"
+  },
+  "profileDeleteExplanation": "When you delete your account, your data will be anonymized. Your messages and group ranking contributions will remain but will not be linked to you. You can recover your account within 30 days.",
+  "@profileDeleteExplanation": {
+    "description": "Explanation of what happens when the account is deleted"
+  },
+  "profileConfirmEmail": "Confirm your email to continue:",
+  "@profileConfirmEmail": {
+    "description": "Prompt asking the user to confirm their email"
+  },
+  "profileEmailMismatch": "The email doesn't match your account",
+  "@profileEmailMismatch": {
+    "description": "Snackbar when the confirmed email does not match"
+  },
+
+  "profileCosmetics": "Cosmetics",
+  "@profileCosmetics": {
+    "description": "Profile screen section heading for cosmetics"
+  },
+  "profileNoCosmeticsYet": "Your cosmetics collection will appear here.",
+  "@profileNoCosmeticsYet": {
+    "description": "Empty state on the profile cosmetics section"
+  },
+  "profileAvatarUpdatedSnack": "Profile photo updated",
+  "@profileAvatarUpdatedSnack": {
+    "description": "Snackbar after updating the profile photo"
+  },
+  "profileAvatarChange": "Change profile photo",
+  "@profileAvatarChange": {
+    "description": "Tooltip for the change-profile-photo button"
+  },
+  "interestMusica": "Music",
+  "@interestMusica": {
+    "description": "Interest tag: music"
+  },
+  "interestFiestas": "Parties",
+  "@interestFiestas": {
+    "description": "Interest tag: parties"
+  },
+  "interestDeportes": "Sports",
+  "@interestDeportes": {
+    "description": "Interest tag: sports"
+  },
+  "interestGaming": "Gaming",
+  "@interestGaming": {
+    "description": "Interest tag: gaming"
+  },
+  "interestCine": "Movies",
+  "@interestCine": {
+    "description": "Interest tag: movies"
+  },
+  "interestArte": "Art",
+  "@interestArte": {
+    "description": "Interest tag: art"
+  },
+  "interestViajes": "Travel",
+  "@interestViajes": {
+    "description": "Interest tag: travel"
+  },
+  "interestComida": "Food",
+  "@interestComida": {
+    "description": "Interest tag: food"
+  },
+
+  "comingSoonSoon": "Coming soon",
+  "@comingSoonSoon": {
+    "description": "Coming-soon placeholder headline"
+  },
+  "comingSoonBack": "Back",
+  "@comingSoonBack": {
+    "description": "Back button on the coming-soon screen"
+  },
+
+  "comingSoonEventsTitle": "Events",
+  "@comingSoonEventsTitle": {
+    "description": "Coming-soon screen title for the events tab"
+  },
+  "comingSoonEventsBody": "Your groups' events will appear here soon.",
+  "@comingSoonEventsBody": {
+    "description": "Coming-soon screen body for the events tab"
+  },
+  "comingSoonNotificationsTitle": "Notifications",
+  "@comingSoonNotificationsTitle": {
+    "description": "Coming-soon screen title for the notifications tab"
+  },
+  "comingSoonNotificationsBody": "Your notifications will appear here soon.",
+  "@comingSoonNotificationsBody": {
+    "description": "Coming-soon screen body for the notifications tab"
+  },
+  "comingSoonEventTitle": "Event",
+  "@comingSoonEventTitle": {
+    "description": "Coming-soon screen title for the event detail"
+  },
+  "comingSoonEventBody": "Event details will be available soon.",
+  "@comingSoonEventBody": {
+    "description": "Coming-soon screen body for the event detail"
+  },
+  "comingSoonEditEventTitle": "Edit event",
+  "@comingSoonEditEventTitle": {
+    "description": "Coming-soon screen title for the event editor"
+  },
+  "comingSoonEditEventBody": "Event editing will be available soon.",
+  "@comingSoonEditEventBody": {
+    "description": "Coming-soon screen body for the event editor"
+  },
+  "comingSoonEventInviteTitle": "Invite",
+  "@comingSoonEventInviteTitle": {
+    "description": "Coming-soon screen title for event invitations"
+  },
+  "comingSoonEventInviteBody": "Event invitations will be available soon.",
+  "@comingSoonEventInviteBody": {
+    "description": "Coming-soon screen body for event invitations"
+  },
+  "comingSoonPhotosTitle": "Photos",
+  "@comingSoonPhotosTitle": {
+    "description": "Coming-soon screen title for event photos"
+  },
+  "comingSoonPhotosBody": "Event photos will be available soon.",
+  "@comingSoonPhotosBody": {
+    "description": "Coming-soon screen body for event photos"
+  },
+  "comingSoonCollageTitle": "Collage",
+  "@comingSoonCollageTitle": {
+    "description": "Coming-soon screen title for the photo collage"
+  },
+  "comingSoonCollageBody": "The photo collage will be available soon.",
+  "@comingSoonCollageBody": {
+    "description": "Coming-soon screen body for the photo collage"
+  },
+  "comingSoonInvitationTitle": "Invitation",
+  "@comingSoonInvitationTitle": {
+    "description": "Coming-soon screen title for the invite-token landing"
+  },
+  "comingSoonInvitationBody": "Event invitations will appear here soon.",
+  "@comingSoonInvitationBody": {
+    "description": "Coming-soon screen body for the invite-token landing"
+  },
+  "comingSoonCreateEventTitle": "Create event",
+  "@comingSoonCreateEventTitle": {
+    "description": "Coming-soon screen title for event creation"
+  },
+  "comingSoonCreateEventBody": "Event creation will be available soon.",
+  "@comingSoonCreateEventBody": {
+    "description": "Coming-soon screen body for event creation"
+  },
+  "comingSoonChatTitle": "Chat",
+  "@comingSoonChatTitle": {
+    "description": "Coming-soon screen title for the chat"
+  },
+  "comingSoonChatBody": "The chat will be available soon.",
+  "@comingSoonChatBody": {
+    "description": "Coming-soon screen body for the chat"
+  },
+  "comingSoonQrTitle": "QR",
+  "@comingSoonQrTitle": {
+    "description": "Coming-soon screen title for the QR code"
+  },
+  "comingSoonQrBody": "The event QR code will be available soon.",
+  "@comingSoonQrBody": {
+    "description": "Coming-soon screen body for the QR code"
+  },
+  "comingSoonScannerTitle": "Scanner",
+  "@comingSoonScannerTitle": {
+    "description": "Coming-soon screen title for the QR scanner"
+  },
+  "comingSoonScannerBody": "The QR code scanner will be available soon.",
+  "@comingSoonScannerBody": {
+    "description": "Coming-soon screen body for the QR scanner"
+  },
+  "comingSoonSubscriptionsTitle": "Subscriptions",
+  "@comingSoonSubscriptionsTitle": {
+    "description": "Coming-soon screen title for subscriptions"
+  },
+  "comingSoonSubscriptionsBody": "Subscriptions will be available soon.",
+  "@comingSoonSubscriptionsBody": {
+    "description": "Coming-soon screen body for subscriptions"
+  },
+  "comingSoonPartyFinderTitle": "Party Finder",
+  "@comingSoonPartyFinderTitle": {
+    "description": "Coming-soon screen title for the party finder"
+  },
+  "comingSoonPartyFinderBody": "The Party Finder will be available soon.",
+  "@comingSoonPartyFinderBody": {
+    "description": "Coming-soon screen body for the party finder"
+  },
+
+  "routerRouteNotFound": "Route not found",
+  "@routerRouteNotFound": {
+    "description": "Router error screen title for unknown routes"
+  },
+  "routerRouteNotFoundBody": "The requested route doesn't exist or isn't available. Go back and try again.",
+  "@routerRouteNotFoundBody": {
+    "description": "Router error screen body for unknown routes"
+  },
+  "routerMissingSignupData": "Signup data is missing. Go back and start the signup again.",
+  "@routerMissingSignupData": {
+    "description": "Router error when signup data is missing"
+  },
+  "routerMissingAgeGateData": "Age verification data is missing. Go back and try again.",
+  "@routerMissingAgeGateData": {
+    "description": "Router error when age-verification data is missing"
+  },
+  "routerMissingProfileData": "Signup data is missing. Go back and try again.",
+  "@routerMissingProfileData": {
+    "description": "Router error when profile-setup data is missing"
+  },
+  "routerEventNotFound": "The requested event was not found.",
+  "@routerEventNotFound": {
+    "description": "Router error when the requested event does not exist"
+  },
+  "routerGroupNotFound": "The requested group was not found.",
+  "@routerGroupNotFound": {
+    "description": "Router error when the requested group does not exist"
+  },
+  "routerChatNotFound": "The requested chat was not found.",
+  "@routerChatNotFound": {
+    "description": "Router error when the requested chat does not exist"
+  },
+  "routerUserNotFound": "The requested user was not found.",
+  "@routerUserNotFound": {
+    "description": "Router error when the requested user does not exist"
+  },
+  "routerInvalidInvite": "The requested invitation is not valid.",
+  "@routerInvalidInvite": {
+    "description": "Router error when the requested invitation is invalid"
+  },
+  "routerErrorTitle": "Something went wrong",
+  "@routerErrorTitle": {
+    "description": "Generic route error screen title"
+  },
+  "routerErrorBody": "This screen could not be shown. Go back and try again.",
+  "@routerErrorBody": {
+    "description": "Generic route error screen body"
+  },
+
+  "errorsNetwork": "Connection error. Check your internet.",
+  "@errorsNetwork": {
+    "description": "User-facing network error message"
+  },
+  "errorsUnauthorized": "Session expired. Sign in again.",
+  "@errorsUnauthorized": {
+    "description": "User-facing session-expired error message"
+  },
+  "errorsServer": "Server error. Try again.",
+  "@errorsServer": {
+    "description": "User-facing generic server error message"
+  },
+  "errorsInvalidData": "Invalid data. Check the fields.",
+  "@errorsInvalidData": {
+    "description": "User-facing invalid-data error message"
+  },
+  "errorsPermission": "You don't have permission to perform this action.",
+  "@errorsPermission": {
+    "description": "User-facing permission error message"
+  },
+  "errorsRateLimit": "Too many requests. Wait a moment.",
+  "@errorsRateLimit": {
+    "description": "User-facing rate-limit error message"
+  },
+  "errorsNotFound": "{resource} not found.",
+  "@errorsNotFound": {
+    "description": "User-facing not-found message naming the missing resource",
+    "placeholders": {
+      "resource": {
+        "type": "String"
+      }
+    }
+  },
+  "errorsNotFoundGeneric": "Not found.",
+  "@errorsNotFoundGeneric": {
+    "description": "User-facing generic not-found message"
+  },
+  "errorsInvalidCredentials": "Invalid email or password",
+  "@errorsInvalidCredentials": {
+    "description": "User-facing invalid-credentials message"
+  },
+  "errorsOtpExpired": "The code has expired. Request a new one.",
+  "@errorsOtpExpired": {
+    "description": "User-facing expired-OTP message"
+  },
+  "errorsInvalidReference": "Invalid reference",
+  "@errorsInvalidReference": {
+    "description": "User-facing invalid-reference message"
+  },
+  "errorsAlreadyExists": "Already exists",
+  "@errorsAlreadyExists": {
+    "description": "User-facing duplicate-record message"
+  },
+  "errorsInvalidFormat": "Invalid format",
+  "@errorsInvalidFormat": {
+    "description": "User-facing invalid-format message"
+  },
+  "errorsInsufficientShards": "You don't have enough shards",
+  "@errorsInsufficientShards": {
+    "description": "User-facing insufficient-shards message"
+  },
+  "errorsFriendshipExists": "A request or friendship with this user already exists",
+  "@errorsFriendshipExists": {
+    "description": "User-facing duplicate-friendship message"
+  },
+  "errorsGeneric": "An error occurred",
+  "@errorsGeneric": {
+    "description": "Generic error-presentation fallback message"
+  },
+
+  "rankFullVibe": "Full Vibe",
+  "@rankFullVibe": {
+    "description": "Rank bracket label (90-100)"
+  },
+  "rankVibeLegends": "Vibe Legends",
+  "@rankVibeLegends": {
+    "description": "Rank bracket label (80-90)"
+  },
+  "rankVibeCreators": "Vibe Creators",
+  "@rankVibeCreators": {
+    "description": "Rank bracket label (60-80)"
+  },
+  "rankVibeFollowers": "Vibe Followers",
+  "@rankVibeFollowers": {
+    "description": "Rank bracket label (40-60)"
+  },
+  "rankVibeSeekers": "Vibe Seekers",
+  "@rankVibeSeekers": {
+    "description": "Rank bracket label (20-40)"
+  },
+  "rankInSearch": "In the Search",
+  "@rankInSearch": {
+    "description": "Rank bracket label (0-20)"
+  },
+
+  "permissionsPhotoRationale": "To pick a cover photo, Samay needs access to your photos.",
+  "@permissionsPhotoRationale": {
+    "description": "Snackbar rationale when the photo-library permission is denied"
+  },
+  "permissionsCameraRationale": "To scan QR codes and take photos, Samay needs access to your camera.",
+  "@permissionsCameraRationale": {
+    "description": "Snackbar rationale when the camera permission is denied"
+  },
+  "permissionsSettingsTitle": "Permission required",
+  "@permissionsSettingsTitle": {
+    "description": "Dialog title when a permission is permanently denied"
+  },
+  "permissionsSettingsBody": "This permission was blocked by the system. To use this feature, enable it in your device settings.",
+  "@permissionsSettingsBody": {
+    "description": "Dialog body explaining that the permission must be enabled in system settings"
+  },
+  "permissionsOpenSettings": "Open Settings",
+  "@permissionsOpenSettings": {
+    "description": "Dialog action that opens the system app settings"
+  }
+}

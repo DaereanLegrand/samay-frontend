@@ -4,6 +4,10 @@
 <dict>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>Samay usa la cámara para escanear códigos QR de asistencia a eventos.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Samay necesita acceso a tus fotos para que puedas elegir la portada de tus grupos.</string>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
