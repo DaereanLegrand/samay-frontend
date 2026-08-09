@@ -1676,6 +1676,60 @@ abstract class AppLocalizations {
   /// **'Abrir ajustes'**
   String get permissionsOpenSettings;
 
+  /// Notification center app bar title
+  ///
+  /// In es, this message translates to:
+  /// **'Notificaciones'**
+  String get notificationsTitle;
+
+  /// Empty state when the user has no notifications
+  ///
+  /// In es, this message translates to:
+  /// **'Sin notificaciones'**
+  String get notificationsEmpty;
+
+  /// Empty-state body explaining where new notifications appear
+  ///
+  /// In es, this message translates to:
+  /// **'Cuando recibas novedades, aparecerán aquí.'**
+  String get notificationsEmptyBody;
+
+  /// App-bar action that marks every notification as read
+  ///
+  /// In es, this message translates to:
+  /// **'Marcar todo como leído'**
+  String get notificationsMarkAllRead;
+
+  /// Error state when the notification history fails to load
+  ///
+  /// In es, this message translates to:
+  /// **'No se pudieron cargar las notificaciones'**
+  String get notificationsLoadError;
+
+  /// Relative timestamp for a notification created under a minute ago
+  ///
+  /// In es, this message translates to:
+  /// **'Ahora'**
+  String get notificationsTimeNow;
+
+  /// Relative timestamp in minutes
+  ///
+  /// In es, this message translates to:
+  /// **'hace {minutes} min'**
+  String notificationsTimeMinutes(int minutes);
+
+  /// Relative timestamp in hours
+  ///
+  /// In es, this message translates to:
+  /// **'hace {hours} h'**
+  String notificationsTimeHours(int hours);
+
+  /// Relative timestamp in days
+  ///
+  /// In es, this message translates to:
+  /// **'hace {days} d'**
+  String notificationsTimeDays(int days);
+
   /// Chat screen app bar title
   ///
   /// In es, this message translates to:
@@ -1717,6 +1771,450 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'No se pudo enviar el mensaje'**
   String get chatSendError;
+
+  /// Event creation: type selector section label
+  ///
+  /// In es, this message translates to:
+  /// **'Tipo de evento'**
+  String get eventsTypeLabel;
+
+  /// Event type chip: casual (movies, dinner, informal)
+  ///
+  /// In es, this message translates to:
+  /// **'Casual'**
+  String get eventsTypeCasual;
+
+  /// Event type chip helper text for casual events
+  ///
+  /// In es, this message translates to:
+  /// **'Películas, cenas, informales — sin preshards'**
+  String get eventsTypeCasualDescription;
+
+  /// Event type chip: juerga (private venue)
+  ///
+  /// In es, this message translates to:
+  /// **'Juerga'**
+  String get eventsTypeJuerga;
+
+  /// Event type chip helper text for juerga events
+  ///
+  /// In es, this message translates to:
+  /// **'Local privado — los invitados verán la dirección'**
+  String get eventsTypeJuergaDescription;
+
+  /// Event type chip: tono (public venue, bar or club)
+  ///
+  /// In es, this message translates to:
+  /// **'Tono'**
+  String get eventsTypeTono;
+
+  /// Event type chip helper text for tono events
+  ///
+  /// In es, this message translates to:
+  /// **'Bar, club o local público'**
+  String get eventsTypeTonoDescription;
+
+  /// Event creation: event-name input label
+  ///
+  /// In es, this message translates to:
+  /// **'Nombre del evento'**
+  String get eventsNameLabel;
+
+  /// Event creation: optional description input label
+  ///
+  /// In es, this message translates to:
+  /// **'Descripción (opcional)'**
+  String get eventsDescriptionOptional;
+
+  /// Event creation: start date/time picker label
+  ///
+  /// In es, this message translates to:
+  /// **'Inicio'**
+  String get eventsStartsLabel;
+
+  /// Event creation: end date/time picker label
+  ///
+  /// In es, this message translates to:
+  /// **'Fin'**
+  String get eventsEndsLabel;
+
+  /// Event creation: location address input label
+  ///
+  /// In es, this message translates to:
+  /// **'Dirección / lugar'**
+  String get eventsLocationLabel;
+
+  /// Event creation: visibility section label
+  ///
+  /// In es, this message translates to:
+  /// **'Visibilidad'**
+  String get eventsVisibilityLabel;
+
+  /// Event creation: public visibility chip
+  ///
+  /// In es, this message translates to:
+  /// **'Público'**
+  String get eventsVisibilityPublic;
+
+  /// Event creation: group-scoped visibility chip
+  ///
+  /// In es, this message translates to:
+  /// **'Grupo'**
+  String get eventsVisibilityGroup;
+
+  /// Event creation: group dropdown label
+  ///
+  /// In es, this message translates to:
+  /// **'Grupo del evento'**
+  String get eventsGroupSelectorLabel;
+
+  /// Event creation: group dropdown placeholder
+  ///
+  /// In es, this message translates to:
+  /// **'Selecciona un grupo'**
+  String get eventsGroupSelectorHint;
+
+  /// Event creation: error when the user's groups fail to load
+  ///
+  /// In es, this message translates to:
+  /// **'No se pudieron cargar tus grupos'**
+  String get eventsGroupsLoadError;
+
+  /// Event creation: join mode section label (public events)
+  ///
+  /// In es, this message translates to:
+  /// **'Modo de acceso'**
+  String get eventsJoinModeLabel;
+
+  /// Event creation: open join mode chip
+  ///
+  /// In es, this message translates to:
+  /// **'Abierto'**
+  String get eventsJoinModeOpen;
+
+  /// Event creation: open join mode helper text
+  ///
+  /// In es, this message translates to:
+  /// **'Cualquiera con el enlace de invitación puede unirse'**
+  String get eventsJoinModeOpenDescription;
+
+  /// Event creation: approval join mode chip
+  ///
+  /// In es, this message translates to:
+  /// **'Aprobación'**
+  String get eventsJoinModeApproval;
+
+  /// Event creation: approval join mode helper text
+  ///
+  /// In es, this message translates to:
+  /// **'El promotor aprueba cada solicitud'**
+  String get eventsJoinModeApprovalDescription;
+
+  /// Juerga location warning dialog title
+  ///
+  /// In es, this message translates to:
+  /// **'Aviso de ubicación'**
+  String get eventsJuergaWarningTitle;
+
+  /// Juerga location warning dialog body (ECRT step 4)
+  ///
+  /// In es, this message translates to:
+  /// **'Los invitados verán esta dirección. Solo invita a personas en quienes confíes.'**
+  String get eventsJuergaWarningBody;
+
+  /// Juerga location warning confirm button
+  ///
+  /// In es, this message translates to:
+  /// **'Confirmar'**
+  String get eventsJuergaWarningConfirm;
+
+  /// Event creation: preshards section label
+  ///
+  /// In es, this message translates to:
+  /// **'Preshards'**
+  String get eventsPreshardsLabel;
+
+  /// Event creation: preshards pool input label
+  ///
+  /// In es, this message translates to:
+  /// **'Pool de preshards'**
+  String get eventsPreshardsPoolLabel;
+
+  /// Event creation: per-attendee preshards cap input label
+  ///
+  /// In es, this message translates to:
+  /// **'Tope por asistente (opcional)'**
+  String get eventsPreshardsCapLabel;
+
+  /// Event creation: remainder action section label
+  ///
+  /// In es, this message translates to:
+  /// **'Resto del pool'**
+  String get eventsRemainderLabel;
+
+  /// Event creation: return remainder proportionally option
+  ///
+  /// In es, this message translates to:
+  /// **'Devolver proporcionalmente'**
+  String get eventsRemainderReturn;
+
+  /// Event creation: redistribute remainder option
+  ///
+  /// In es, this message translates to:
+  /// **'Redistribuir entre asistentes'**
+  String get eventsRemainderRedistribute;
+
+  /// Event creation: dynamic QR auto-enable hint
+  ///
+  /// In es, this message translates to:
+  /// **'Con pool mayor a 0, el QR dinámico se activa automáticamente'**
+  String get eventsDynamicQrHint;
+
+  /// Validation error: event name is required
+  ///
+  /// In es, this message translates to:
+  /// **'El nombre del evento es obligatorio'**
+  String get eventsErrorNameRequired;
+
+  /// Validation error: end date must be after start date
+  ///
+  /// In es, this message translates to:
+  /// **'La fecha de fin debe ser posterior a la de inicio'**
+  String get eventsErrorTimeRange;
+
+  /// Validation error: casual events cannot have a preshards pool
+  ///
+  /// In es, this message translates to:
+  /// **'Los eventos casuales no pueden tener pool'**
+  String get eventsErrorCasualPool;
+
+  /// Validation error: juerga location warning must be confirmed
+  ///
+  /// In es, this message translates to:
+  /// **'Confirma el aviso de ubicación para continuar'**
+  String get eventsErrorJuergaConfirm;
+
+  /// Validation error: a group is required for group-scoped events
+  ///
+  /// In es, this message translates to:
+  /// **'Selecciona un grupo'**
+  String get eventsErrorGroup;
+
+  /// Validation error: a join mode is required for public events
+  ///
+  /// In es, this message translates to:
+  /// **'Selecciona el modo de acceso'**
+  String get eventsErrorJoinMode;
+
+  /// Event detail screen app bar title
+  ///
+  /// In es, this message translates to:
+  /// **'Evento'**
+  String get eventDetailTitle;
+
+  /// Badge for events scoped to a group
+  ///
+  /// In es, this message translates to:
+  /// **'Evento de grupo'**
+  String get eventGroupScoped;
+
+  /// Button to open the scoping group from an event
+  ///
+  /// In es, this message translates to:
+  /// **'Ver grupo'**
+  String get eventViewGroup;
+
+  /// Placeholder when an event has no location
+  ///
+  /// In es, this message translates to:
+  /// **'Sin ubicación'**
+  String get eventNoLocation;
+
+  /// Preshard pool amount
+  ///
+  /// In es, this message translates to:
+  /// **'{pool} preshards'**
+  String eventPoolAmount(int pool);
+
+  /// Pool already distributed to attendees
+  ///
+  /// In es, this message translates to:
+  /// **'Distribuido'**
+  String get eventPoolDistributed;
+
+  /// Pool not yet distributed
+  ///
+  /// In es, this message translates to:
+  /// **'Pendiente de distribuir'**
+  String get eventPoolNotDistributed;
+
+  /// Per-user distribution cap
+  ///
+  /// In es, this message translates to:
+  /// **'Tope por asistente: {cap} preshards'**
+  String eventCapPerUser(int cap);
+
+  /// Placeholder when an event has no preshard pool
+  ///
+  /// In es, this message translates to:
+  /// **'Sin pool de preshards'**
+  String get eventNoPool;
+
+  /// Remainder-action line on the pool card
+  ///
+  /// In es, this message translates to:
+  /// **'Sobrante: {action}'**
+  String eventRemainderAction(String action);
+
+  /// Promotores section heading
+  ///
+  /// In es, this message translates to:
+  /// **'Promotores'**
+  String get eventPromotores;
+
+  /// Promotor role badge
+  ///
+  /// In es, this message translates to:
+  /// **'Promotor'**
+  String get eventRolePromotor;
+
+  /// Co-promotor role badge
+  ///
+  /// In es, this message translates to:
+  /// **'Co-promotor'**
+  String get eventRoleCoPromotor;
+
+  /// Promotores section error fallback
+  ///
+  /// In es, this message translates to:
+  /// **'No se pudieron cargar los promotores'**
+  String get eventPromotoresError;
+
+  /// Empty promotores state
+  ///
+  /// In es, this message translates to:
+  /// **'Sin promotores'**
+  String get eventNoPromotores;
+
+  /// Own invite status line
+  ///
+  /// In es, this message translates to:
+  /// **'Tu invitación: {status}'**
+  String eventInviteStatus(String status);
+
+  /// Pending invite status
+  ///
+  /// In es, this message translates to:
+  /// **'pendiente'**
+  String get eventInvitePending;
+
+  /// Accepted invite status
+  ///
+  /// In es, this message translates to:
+  /// **'aceptada'**
+  String get eventInviteAccepted;
+
+  /// Declined invite status
+  ///
+  /// In es, this message translates to:
+  /// **'declinada'**
+  String get eventInviteDeclined;
+
+  /// Attended invite status
+  ///
+  /// In es, this message translates to:
+  /// **'asistida'**
+  String get eventInviteAttended;
+
+  /// Edit-event button
+  ///
+  /// In es, this message translates to:
+  /// **'Editar'**
+  String get eventEditButton;
+
+  /// Cancel-event button
+  ///
+  /// In es, this message translates to:
+  /// **'Cancelar evento'**
+  String get eventCancelButton;
+
+  /// Cancel-event confirmation dialog title
+  ///
+  /// In es, this message translates to:
+  /// **'¿Cancelar evento?'**
+  String get eventCancelDialogTitle;
+
+  /// Cancel-event confirmation dialog body
+  ///
+  /// In es, this message translates to:
+  /// **'Se devolverán los preshards a los promotores. Los invitados serán notificados.'**
+  String get eventCancelDialogBody;
+
+  /// Cancel-event confirmation button
+  ///
+  /// In es, this message translates to:
+  /// **'Sí, cancelar'**
+  String get eventCancelConfirm;
+
+  /// Snackbar after cancelling an event
+  ///
+  /// In es, this message translates to:
+  /// **'Evento cancelado'**
+  String get eventCancelledSnack;
+
+  /// Event editor app bar title
+  ///
+  /// In es, this message translates to:
+  /// **'Editar evento'**
+  String get eventEditTitle;
+
+  /// Notice that the pool fields lock at starts_at
+  ///
+  /// In es, this message translates to:
+  /// **'El pool, tope y sobrante pueden editarse hasta que comience el evento.'**
+  String get eventPoolLockedNotice;
+
+  /// Snackbar after saving the event
+  ///
+  /// In es, this message translates to:
+  /// **'Evento actualizado'**
+  String get eventEditUpdatedSnack;
+
+  /// Validation error for an invalid pool amount
+  ///
+  /// In es, this message translates to:
+  /// **'Ingresa un monto de pool válido'**
+  String get eventInvalidPoolAmount;
+
+  /// Draft status badge
+  ///
+  /// In es, this message translates to:
+  /// **'Borrador'**
+  String get eventStatusDraft;
+
+  /// Upcoming status badge
+  ///
+  /// In es, this message translates to:
+  /// **'Próximamente'**
+  String get eventStatusUpcoming;
+
+  /// Live status badge
+  ///
+  /// In es, this message translates to:
+  /// **'En vivo'**
+  String get eventStatusLive;
+
+  /// Ended status badge
+  ///
+  /// In es, this message translates to:
+  /// **'Finalizado'**
+  String get eventStatusEnded;
+
+  /// Cancelled status badge
+  ///
+  /// In es, this message translates to:
+  /// **'Cancelado'**
+  String get eventStatusCancelled;
 }
 
 class _AppLocalizationsDelegate

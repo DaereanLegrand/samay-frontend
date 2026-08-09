@@ -1,11 +1,12 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:samay/core/services/supabase_service.dart';
+import 'package:samay/core/repositories/repository_providers.dart';
 import 'package:samay/core/utils/shard_math.dart';
 
 class MyGroupsNotifier extends AsyncNotifier<List<Map<String, dynamic>>> {
   @override
   Future<List<Map<String, dynamic>>> build() async {
-    return SupabaseService.instance.getMyGroups();
+    final groups = await ref.read(groupsRepositoryProvider).getMyGroups();
+    return groups.map((g) => g.toJson()).toList();
   }
 
   /// Re-runs [build] after creating/joining/leaving a group (finding SM-09).
@@ -20,7 +21,8 @@ class GroupDetailNotifier
     extends FamilyAsyncNotifier<Map<String, dynamic>?, String> {
   @override
   Future<Map<String, dynamic>?> build(String arg) async {
-    return SupabaseService.instance.getGroup(arg);
+    final group = await ref.read(groupsRepositoryProvider).getGroup(arg);
+    return group?.toJson();
   }
 
   /// Re-runs [build] after group mutations (donations, transfers…).
@@ -35,7 +37,9 @@ class GroupMembersNotifier
     extends FamilyAsyncNotifier<List<Map<String, dynamic>>, String> {
   @override
   Future<List<Map<String, dynamic>>> build(String arg) async {
-    return SupabaseService.instance.getGroupMembers(arg);
+    final members =
+        await ref.read(groupsRepositoryProvider).getGroupMembers(arg);
+    return members.map((m) => m.toJson()).toList();
   }
 
   /// Re-runs [build] after membership changes.
@@ -62,10 +66,10 @@ class GroupContributionsNotifier
     extends FamilyAsyncNotifier<GroupContributionsData, String> {
   @override
   Future<GroupContributionsData> build(String arg) async {
-    final raw = await SupabaseService.instance.getGroupContributions(arg);
+    final repo = ref.read(groupsRepositoryProvider);
+    final raw = await repo.getGroupContributions(arg);
     final contributors = aggregateContributions(raw);
-    final myContribution =
-        await SupabaseService.instance.getUserContributionToGroup(arg);
+    final myContribution = await repo.getUserContributionToGroup(arg);
     return GroupContributionsData(
       contributors: contributors,
       myContribution: myContribution,
@@ -86,7 +90,7 @@ final contributionsProvider = AsyncNotifierProvider.family<
 class GroupInvitesNotifier extends AsyncNotifier<List<Map<String, dynamic>>> {
   @override
   Future<List<Map<String, dynamic>>> build() async {
-    return SupabaseService.instance.getGroupInvites();
+    return ref.read(groupsRepositoryProvider).getGroupInvites();
   }
 
   /// Re-runs [build] after accepting/declining an invite.
@@ -101,15 +105,17 @@ class LeaderboardNotifier
     extends FamilyAsyncNotifier<List<Map<String, dynamic>>, String> {
   @override
   Future<List<Map<String, dynamic>>> build(String sizeTier) async {
-    final res = await SupabaseService.instance.getLeaderboard(sizeTier);
+    final repo = ref.read(groupsRepositoryProvider);
+    final res = await repo.getLeaderboard(sizeTier);
     final groups = <Map<String, dynamic>>[];
     for (final r in res) {
-      final g = await SupabaseService.instance.getGroup(r['group_id'] as String);
+      final g = await repo.getGroup(r['group_id'] as String);
       if (g != null) {
-        g['rank_position'] = r['rank_position'];
-        g['score'] = r['score'];
-        g['member_count'] = r['member_count'];
-        groups.add(g);
+        final row = g.toJson();
+        row['rank_position'] = r['rank_position'];
+        row['score'] = r['score'];
+        row['member_count'] = r['member_count'];
+        groups.add(row);
       }
     }
     return groups;

@@ -1,19 +1,22 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:samay/core/extensions/error_mapper.dart';
 import 'package:samay/core/logging/app_logger.dart';
-import 'package:samay/core/services/supabase_service.dart';
+import 'package:samay/core/providers/service_providers.dart';
+import 'package:samay/core/repositories/repository_providers.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/v_button.dart';
 
-class PublicProfileScreen extends StatefulWidget {
+class PublicProfileScreen extends ConsumerStatefulWidget {
   final String userId;
   const PublicProfileScreen({super.key, required this.userId});
 
   @override
-  State<PublicProfileScreen> createState() => _PublicProfileScreenState();
+  ConsumerState<PublicProfileScreen> createState() =>
+      _PublicProfileScreenState();
 }
 
-class _PublicProfileScreenState extends State<PublicProfileScreen> {
+class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
   Map<String, dynamic>? _profile;
   String? _friendshipStatus;
   String? _friendshipId;
@@ -30,16 +33,20 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
 
   Future<void> _load() async {
     try {
-      final profile = await SupabaseService.instance.getUserProfile(widget.userId);
-      if (mounted) setState(() => _profile = profile);
+      final profile =
+          await ref.read(friendsRepositoryProvider).getUserProfile(widget.userId);
+      if (mounted) setState(() => _profile = profile?.toJson());
     } catch (e, st) {
       AppLogger.instance.error('loadPublicProfile error: $e', '$st');
     }
 
     try {
-      final detail = await SupabaseService.instance.getFriendshipDetail(widget.userId);
+      final detail = await ref
+          .read(friendsRepositoryProvider)
+          .getFriendshipDetail(widget.userId);
       if (mounted) {
-        final currentUserId = SupabaseService.instance.auth.currentUser?.id;
+        final currentUserId =
+            ref.read(authServiceProvider).auth.currentUser?.id;
         setState(() {
           _friendshipStatus = detail?['status'] as String?;
           _friendshipId = detail?['id'] as String?;
@@ -51,7 +58,9 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
     }
 
     try {
-      final blocked = await SupabaseService.instance.getBlockStatus(widget.userId);
+      final blocked = await ref
+          .read(friendsRepositoryProvider)
+          .getBlockStatus(widget.userId);
       if (mounted) setState(() => _isBlocked = blocked);
     } catch (e, st) {
       AppLogger.instance.error('loadBlockStatus error: $e', '$st');
@@ -65,7 +74,7 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
     final l10n = AppLocalizations.of(context);
     setState(() => _sending = true);
     try {
-      await SupabaseService.instance.sendFriendRequest(widget.userId);
+      await ref.read(friendsRepositoryProvider).sendFriendRequest(widget.userId);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(l10n.profileFriendRequestSent)),
@@ -88,7 +97,9 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
     final l10n = AppLocalizations.of(context);
     setState(() => _sending = true);
     try {
-      await SupabaseService.instance.acceptFriendRequest(_friendshipId!);
+      await ref
+          .read(friendsRepositoryProvider)
+          .acceptFriendRequest(_friendshipId!);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(l10n.profileRequestAccepted)),
@@ -178,7 +189,9 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
                   child: VButton(
                     label: _isIncoming ? l10n.commonReject : l10n.profileCancelRequest,
                     onPressed: () async {
-                      await SupabaseService.instance.declineFriendRequest(_friendshipId!);
+                      await ref
+                          .read(friendsRepositoryProvider)
+                          .declineFriendRequest(_friendshipId!);
                       _load();
                     },
                   ),
@@ -243,7 +256,7 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
   Future<void> _blockUser() async {
     final l10n = AppLocalizations.of(context);
     try {
-      await SupabaseService.instance.blockUser(widget.userId);
+      await ref.read(friendsRepositoryProvider).blockUser(widget.userId);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(l10n.profileUserBlocked)),
@@ -262,7 +275,7 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
   Future<void> _unblockUser() async {
     final l10n = AppLocalizations.of(context);
     try {
-      await SupabaseService.instance.unblockUser(widget.userId);
+      await ref.read(friendsRepositoryProvider).unblockUser(widget.userId);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(l10n.profileUserUnblocked)),

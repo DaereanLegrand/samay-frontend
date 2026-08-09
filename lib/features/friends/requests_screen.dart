@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:samay/core/extensions/error_mapper.dart';
-import 'package:samay/core/services/supabase_service.dart';
+import 'package:samay/core/repositories/repository_providers.dart';
 import 'package:samay/features/friends/friends_providers.dart';
 import 'package:samay/features/groups/groups_providers.dart';
 import 'package:samay/l10n/app_localizations.dart';
@@ -31,22 +31,22 @@ class _RequestsScreenState extends ConsumerState<RequestsScreen>
   }
 
   Future<void> _acceptFriend(String id) async {
-    await SupabaseService.instance.acceptFriendRequest(id);
+    await ref.read(friendsRepositoryProvider).acceptFriendRequest(id);
     ref.invalidate(friendRequestsProvider);
   }
 
   Future<void> _declineFriend(String id) async {
-    await SupabaseService.instance.declineFriendRequest(id);
+    await ref.read(friendsRepositoryProvider).declineFriendRequest(id);
     ref.invalidate(friendRequestsProvider);
   }
 
   Future<void> _acceptInvite(String membershipId) async {
-    await SupabaseService.instance.acceptGroupInvite(membershipId);
+    await ref.read(groupsRepositoryProvider).acceptInvite(membershipId);
     ref.invalidate(groupInvitesProvider);
   }
 
   Future<void> _declineInvite(String membershipId) async {
-    await SupabaseService.instance.declineGroupInvite(membershipId);
+    await ref.read(groupsRepositoryProvider).declineInvite(membershipId);
     ref.invalidate(groupInvitesProvider);
   }
 

@@ -76,6 +76,31 @@ class EventService {
     return Map<String, dynamic>.from(res);
   }
 
+  /// Promotores of an event, enriched with `users.username` for display.
+  Future<List<Map<String, dynamic>>> getEventPromotores(String eventId) async {
+    final res = await client
+        .from('event_promotores')
+        .select(
+          'id, event_id, user_id, role, preshards_contributed, added_at, '
+          'users!inner(username)',
+        )
+        .eq('event_id', eventId);
+    return res.map((e) => Map<String, dynamic>.from(e)).toList();
+  }
+
+  /// The current user's invite row for [eventId] (null when not invited).
+  Future<Map<String, dynamic>?> getMyEventInvite(String eventId) async {
+    final user = auth.currentUser;
+    if (user == null) return null;
+    final res = await client
+        .from('event_invites')
+        .select()
+        .eq('event_id', eventId)
+        .eq('user_id', user.id)
+        .maybeSingle();
+    return res == null ? null : Map<String, dynamic>.from(res);
+  }
+
   Future<void> updateEvent(String id, Map<String, dynamic> patch) async {
     final data = Map<String, dynamic>.from(patch);
     data['updated_at'] = DateTime.now().toIso8601String();

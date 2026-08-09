@@ -1,13 +1,11 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:samay/core/providers/service_providers.dart';
+import 'package:samay/core/repositories/repository_providers.dart';
 
 class MyProfileNotifier extends AsyncNotifier<Map<String, dynamic>?> {
   @override
   Future<Map<String, dynamic>?> build() async {
-    final user = ref.read(authServiceProvider).auth.currentUser;
-    if (user == null) return null;
-    final res = await ref.read(userServiceProvider).getUserProfile(user.id);
-    return res;
+    final profile = await ref.read(profileRepositoryProvider).getMyProfile();
+    return profile?.toJson();
   }
 
   /// Re-runs [build] after profile edits (finding SM-09).
@@ -21,7 +19,8 @@ final myProfileProvider = AsyncNotifierProvider<MyProfileNotifier,
 class ProfileGroupsNotifier extends AsyncNotifier<List<Map<String, dynamic>>> {
   @override
   Future<List<Map<String, dynamic>>> build() async {
-    return ref.read(groupServiceProvider).getMyGroups();
+    final groups = await ref.read(groupsRepositoryProvider).getMyGroups();
+    return groups.map((g) => g.toJson()).toList();
   }
 
   /// Re-runs [build] after group membership changes.

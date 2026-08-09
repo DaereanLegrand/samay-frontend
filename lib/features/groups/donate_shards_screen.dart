@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:samay/core/extensions/error_mapper.dart';
-import 'package:samay/core/services/supabase_service.dart';
+import 'package:samay/core/repositories/repository_providers.dart';
 import 'package:samay/core/utils/input_sanitizer.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/v_button.dart';
 import 'package:samay/shared/widgets/v_input.dart';
 
-class DonateShardsScreen extends StatefulWidget {
+class DonateShardsScreen extends ConsumerStatefulWidget {
   final String groupId;
   final String groupName;
 
@@ -18,10 +19,10 @@ class DonateShardsScreen extends StatefulWidget {
   });
 
   @override
-  State<DonateShardsScreen> createState() => _DonateShardsScreenState();
+  ConsumerState<DonateShardsScreen> createState() => _DonateShardsScreenState();
 }
 
-class _DonateShardsScreenState extends State<DonateShardsScreen> {
+class _DonateShardsScreenState extends ConsumerState<DonateShardsScreen> {
   final _amountController = TextEditingController();
   bool _loading = false;
 
@@ -37,7 +38,9 @@ class _DonateShardsScreenState extends State<DonateShardsScreen> {
 
     setState(() => _loading = true);
     try {
-      await SupabaseService.instance.donateToGroup(widget.groupId, amount);
+      await ref
+          .read(groupsRepositoryProvider)
+          .donateToGroup(widget.groupId, amount);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(l10n.groupsDonationSuccess)),

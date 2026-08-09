@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:samay/core/extensions/error_mapper.dart';
-import 'package:samay/core/services/supabase_service.dart';
+import 'package:samay/core/repositories/repository_providers.dart';
 import 'package:samay/features/friends/friends_providers.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/error_view.dart';
@@ -42,7 +42,9 @@ class BlockedUsersScreen extends ConsumerWidget {
                 subtitle: Text('@${u['username']}'),
                 trailing: TextButton(
                   onPressed: () async {
-                    await SupabaseService.instance.unblockUser(u['id'] as String);
+                    await ref
+                        .read(friendsRepositoryProvider)
+                        .unblockUser(u['id'] as String);
                     ref.invalidate(blockedUsersProvider);
                   },
                   child: Text(l10n.friendsUnblock),

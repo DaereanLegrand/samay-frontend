@@ -1,5 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:samay/core/services/supabase_service.dart';
+import 'package:samay/core/repositories/repository_providers.dart';
 
 /// Combined view of a user's friend requests: received + sent rows and the
 /// display names of the users involved.
@@ -16,12 +16,12 @@ class FriendRequestsData {
 class FriendsListNotifier extends AsyncNotifier<List<Map<String, dynamic>>> {
   @override
   Future<List<Map<String, dynamic>>> build() async {
-    final res = await SupabaseService.instance.getFriends();
+    final repo = ref.read(friendsRepositoryProvider);
+    final res = await repo.getFriends();
     final profiles = <Map<String, dynamic>>[];
     for (final f in res) {
-      final profile = await SupabaseService.instance
-          .getUserProfile(f['user_id'] as String);
-      if (profile != null) profiles.add(profile);
+      final profile = await repo.getUserProfile(f.userId);
+      if (profile != null) profiles.add(profile.toJson());
     }
     return profiles;
   }
@@ -37,13 +37,14 @@ final friendsListProvider = AsyncNotifierProvider<FriendsListNotifier,
 class FriendRequestsNotifier extends AsyncNotifier<FriendRequestsData> {
   @override
   Future<FriendRequestsData> build() async {
-    final requests = await SupabaseService.instance.getFriendRequests();
+    final repo = ref.read(friendsRepositoryProvider);
+    final requests = await repo.getFriendRequests();
     final names = <String, String>{};
     for (final r in requests) {
       final userId = r['user_id'] as String;
       if (names.containsKey(userId)) continue;
-      final profile = await SupabaseService.instance.getUserProfile(userId);
-      names[userId] = profile?['username'] as String? ?? 'Usuario';
+      final profile = await repo.getUserProfile(userId);
+      names[userId] = profile?.username ?? 'Usuario';
     }
     return FriendRequestsData(requests: requests, names: names);
   }
@@ -59,13 +60,14 @@ final friendRequestsProvider = AsyncNotifierProvider<FriendRequestsNotifier,
 class BlockedUsersNotifier extends AsyncNotifier<List<Map<String, dynamic>>> {
   @override
   Future<List<Map<String, dynamic>>> build() async {
-    final res = await SupabaseService.instance.getBlockedUsers();
+    final repo = ref.read(friendsRepositoryProvider);
+    final res = await repo.getBlockedUsers();
     final profiles = <Map<String, dynamic>>[];
     for (final b in res) {
       final uid = b['blocked_user_id'] as String;
-      final profile = await SupabaseService.instance.getUserProfile(uid);
+      final profile = await repo.getUserProfile(uid);
       if (profile != null) {
-        profiles.add(profile);
+        profiles.add(profile.toJson());
       } else {
         profiles.add({
           'id': uid,
@@ -89,7 +91,7 @@ class SearchResultsNotifier
     extends FamilyAsyncNotifier<List<Map<String, dynamic>>, String> {
   @override
   Future<List<Map<String, dynamic>>> build(String arg) async {
-    return SupabaseService.instance.searchUsers(arg);
+    return ref.read(friendsRepositoryProvider).searchUsers(arg);
   }
 
   /// Re-runs [build] after a friend request changes a result's status.

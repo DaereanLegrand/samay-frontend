@@ -1,25 +1,29 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:samay/core/providers/service_providers.dart';
 import 'package:samay/core/router/route_extras.dart';
 import 'package:samay/core/router/route_paths.dart';
-import 'package:samay/core/services/supabase_service.dart';
 import 'package:samay/features/auth/age_policy.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/v_button.dart';
 
-class AgeGateScreen extends StatefulWidget {
+class AgeGateScreen extends ConsumerStatefulWidget {
   final String? email;
   const AgeGateScreen({super.key, this.email});
 
   @override
-  State<AgeGateScreen> createState() => _AgeGateScreenState();
+  ConsumerState<AgeGateScreen> createState() => _AgeGateScreenState();
 }
 
-class _AgeGateScreenState extends State<AgeGateScreen> {
+class _AgeGateScreenState extends ConsumerState<AgeGateScreen> {
   DateTime? _selectedDate;
   bool _underage = false;
 
-  String get _email => widget.email ?? SupabaseService.instance.auth.currentUser?.email ?? '';
+  String get _email =>
+      widget.email ??
+      ref.read(authServiceProvider).auth.currentUser?.email ??
+      '';
 
   @override
   Widget build(BuildContext context) {

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:samay/core/feature_flags.dart';
 import 'package:samay/core/providers/auth_provider.dart';
 import 'package:samay/core/router/auth_guard.dart';
 import 'package:samay/core/router/auth_refresh_notifier.dart';
@@ -21,6 +22,9 @@ import 'package:samay/features/profile/edit_profile_screen.dart';
 import 'package:samay/features/profile/settings_screen.dart';
 import 'package:samay/features/profile/public_profile_screen.dart';
 import 'package:samay/features/profile/delete_account_screen.dart';
+import 'package:samay/features/events/event_detail_screen.dart';
+import 'package:samay/features/events/event_edit_screen.dart';
+import 'package:samay/features/events/create_event_screen.dart';
 import 'package:samay/features/feed/feed_screen.dart';
 import 'package:samay/features/chat/chat_screen.dart';
 import 'package:samay/features/friends/search_screen.dart';
@@ -34,6 +38,7 @@ import 'package:samay/features/groups/invite_screen.dart';
 import 'package:samay/features/groups/leaderboard_screen.dart';
 import 'package:samay/features/groups/my_groups_screen.dart';
 import 'package:samay/features/groups/group_members_screen.dart';
+import 'package:samay/features/notifications/notification_center_screen.dart';
 import 'package:samay/shared/widgets/route_error_screen.dart';
 import 'package:samay/shared/widgets/v_coming_soon.dart';
 
@@ -137,30 +142,33 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(path: RoutePaths.mainGroups, builder: (_, _) => const MyGroupsScreen()),
           GoRoute(
             path: RoutePaths.mainEvents,
-            builder: (context, _) => VComingSoonScreen(
-              title: AppLocalizations.of(context).comingSoonEventsTitle,
-              description: AppLocalizations.of(context).comingSoonEventsBody,
+            builder: (context, _) => FlagGate(
+              flag: AppFeatureFlag.events,
+              child: VComingSoonScreen(
+                title: AppLocalizations.of(context).comingSoonEventsTitle,
+                description: AppLocalizations.of(context).comingSoonEventsBody,
+              ),
             ),
           ),
           GoRoute(
             path: RoutePaths.mainNotifications,
-            builder: (context, _) => VComingSoonScreen(
-              title: AppLocalizations.of(context).comingSoonNotificationsTitle,
-              description: AppLocalizations.of(context).comingSoonNotificationsBody,
+            builder: (_, _) => FlagGate(
+              flag: AppFeatureFlag.notifications,
+              child: const NotificationCenterScreen(),
             ),
           ),
           GoRoute(path: RoutePaths.mainProfile, builder: (_, _) => const ProfileScreen()),
         ],
       ),
       GoRoute(
+        // NOTE (I-55): `/event/create` (ECRT, I-54) must be declared BEFORE
+        // this route when it lands — go_router matches in order and
+        // `/event/:eventId` would shadow it otherwise.
         path: RoutePaths.eventDetail(':eventId'),
         builder: (context, state) => _screenForId(
           state,
           'eventId',
-          (_) => VComingSoonScreen(
-            title: AppLocalizations.of(context).comingSoonEventTitle,
-            description: AppLocalizations.of(context).comingSoonEventBody,
-          ),
+          (eventId) => EventDetailScreen(eventId: eventId),
           errorMessage: AppLocalizations.of(context).routerEventNotFound,
         ),
       ),
@@ -169,10 +177,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => _screenForId(
           state,
           'eventId',
-          (_) => VComingSoonScreen(
-            title: AppLocalizations.of(context).comingSoonEditEventTitle,
-            description: AppLocalizations.of(context).comingSoonEditEventBody,
-          ),
+          (eventId) => EventEditScreen(eventId: eventId),
           errorMessage: AppLocalizations.of(context).routerEventNotFound,
         ),
       ),
@@ -261,13 +266,23 @@ final routerProvider = Provider<GoRouter>((ref) {
         ),
       ),
       GoRoute(
+        // NOTE (I-54): no standalone `/event/create` path — it would be
+        // shadowed by `/event/:eventId` (registered above) unless declared
+        // BEFORE it; ECRT creates from group detail and public events are
+        // reachable here via the visibility toggle. Gated on the events flag
+        // (dark-first): disabled keeps the previous coming-soon copy.
         path: RoutePaths.createGroupEvent(':groupId'),
         builder: (context, state) => _screenForId(
           state,
           'groupId',
-          (_) => VComingSoonScreen(
-            title: AppLocalizations.of(context).comingSoonCreateEventTitle,
-            description: AppLocalizations.of(context).comingSoonCreateEventBody,
+          (groupId) => FlagGate(
+            flag: AppFeatureFlag.events,
+            fallback: VComingSoonScreen(
+              title: AppLocalizations.of(context).comingSoonCreateEventTitle,
+              description:
+                  AppLocalizations.of(context).comingSoonCreateEventBody,
+            ),
+            child: CreateEventScreen(groupId: groupId),
           ),
           errorMessage: AppLocalizations.of(context).routerGroupNotFound,
         ),
@@ -333,16 +348,24 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: RoutePaths.subscriptions,
-        builder: (context, _) => VComingSoonScreen(
-          title: AppLocalizations.of(context).comingSoonSubscriptionsTitle,
-          description: AppLocalizations.of(context).comingSoonSubscriptionsBody,
+        builder: (context, _) => FlagGate(
+          flag: AppFeatureFlag.subscriptions,
+          child: VComingSoonScreen(
+            title: AppLocalizations.of(context).comingSoonSubscriptionsTitle,
+            description:
+                AppLocalizations.of(context).comingSoonSubscriptionsBody,
+          ),
         ),
       ),
       GoRoute(
         path: RoutePaths.partyFinder,
-        builder: (context, _) => VComingSoonScreen(
-          title: AppLocalizations.of(context).comingSoonPartyFinderTitle,
-          description: AppLocalizations.of(context).comingSoonPartyFinderBody,
+        builder: (context, _) => FlagGate(
+          flag: AppFeatureFlag.partyFinder,
+          child: VComingSoonScreen(
+            title: AppLocalizations.of(context).comingSoonPartyFinderTitle,
+            description:
+                AppLocalizations.of(context).comingSoonPartyFinderBody,
+          ),
         ),
       ),
       GoRoute(path: RoutePaths.settings, builder: (_, _) => const SettingsScreen()),

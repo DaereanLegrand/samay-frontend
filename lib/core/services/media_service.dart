@@ -33,6 +33,23 @@ class MediaService {
     return client.storage.from('groups').getPublicUrl(path);
   }
 
+  /// Uploads an event cover into the `events` bucket and returns its public
+  /// URL (ECRT step 2 — I-54).
+  ///
+  /// Mirrors [uploadGroupCover]: the payload is downscaled client-side first
+  /// ([ImageProcessor.compressBytes]) and the stored object is always a PNG.
+  /// The ECRT spec's `events/{event_id}/cover` layout cannot be used from the
+  /// creation form because `event_id` only exists after `createEvent` returns
+  /// — the timestamped `event_covers/` layout is uploaded *before* the event
+  /// row and its public URL is passed in as `events.cover_url`.
+  Future<String> uploadEventCover(Uint8List bytes) async {
+    final processed = await ImageProcessor.compressBytes(bytes);
+    final path =
+        'event_covers/${DateTime.now().millisecondsSinceEpoch}.png';
+    await client.storage.from('events').uploadBinary(path, processed);
+    return client.storage.from('events').getPublicUrl(path);
+  }
+
   /// Uploads the current user's avatar into the `avatars` bucket and returns
   /// its public URL (PRFL avatar-upload gap — I-36).
   ///

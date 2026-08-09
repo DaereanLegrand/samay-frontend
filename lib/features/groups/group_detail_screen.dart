@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:samay/core/extensions/error_mapper.dart';
+import 'package:samay/core/repositories/repository_providers.dart';
 import 'package:samay/core/router/route_paths.dart';
-import 'package:samay/core/services/supabase_service.dart';
 import 'package:samay/features/groups/groups_providers.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/error_view.dart';
@@ -316,7 +316,7 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen>
       ),
     );
     if (confirm == true && mounted) {
-      await SupabaseService.instance.leaveGroup(widget.groupId);
+      await ref.read(groupsRepositoryProvider).leaveGroup(widget.groupId);
       if (mounted) context.pop();
     }
   }

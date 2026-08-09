@@ -144,9 +144,10 @@ class ProfileScreen extends ConsumerWidget {
                               ),
                             ),
                       // PRFL cosmetics-display placeholder (I-36 foundation).
-                      // Gated behind a compile-time flag: renders nothing until
-                      // the cosmetics equipping stack ships (COSM spec / I-62).
-                      if (AppFeatureFlags.showCosmeticsSection) ...[
+                      // Gated behind the cosmeticsSection feature flag (I-49
+                      // release gating): renders nothing until the cosmetics
+                      // equipping stack ships (COSM spec / I-62).
+                      if (ref.watch(featureFlagsProvider).cosmeticsSection) ...[
                         const SizedBox(height: 32),
                         Text(
                           l10n.profileCosmetics,

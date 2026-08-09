@@ -12,12 +12,23 @@ class RealtimeService {
 
   GoTrueClient get auth => client.auth;
 
-  RealtimeChannel _subscribeToChannel(
+  /// Subscribes to Postgres changes on [table] (schema `public`) over the
+  /// channel [channelName], forwarding each `newRecord` to [callback].
+  ///
+  /// [onStatus] receives the channel subscription lifecycle: `subscribed`
+  /// when the join is acknowledged, `channelError`/`timedOut` when the
+  /// subscription fails (RLS denial, server decline, join timeout), `closed`
+  /// when the socket closed. This is the seam the realtime provider (I-52)
+  /// uses to drive connection state + reconnect backoff.
+  ///
+  /// Returns the channel — the caller owns the unsubscribe handle.
+  RealtimeChannel subscribeToChannel(
     String channelName,
     PostgresChangeEvent event,
     String table,
-    void Function(Map<String, dynamic>) callback,
-  ) {
+    void Function(Map<String, dynamic>) callback, {
+    void Function(RealtimeSubscribeStatus status, Object? error)? onStatus,
+  }) {
     final channel = client.channel(channelName);
     channel.onPostgresChanges(
       event: event,
@@ -25,18 +36,32 @@ class RealtimeService {
       table: table,
       callback: (payload) => callback(payload.newRecord),
     );
-    channel.subscribe();
+    if (onStatus != null) {
+      channel.subscribe(onStatus);
+    } else {
+      channel.subscribe();
+    }
     return channel;
   }
 
   RealtimeChannel subscribeToMessages(String chatId, void Function(Map<String, dynamic>) onInsert) {
-    return _subscribeToChannel('messages:$chatId', PostgresChangeEvent.insert, 'messages', onInsert);
+    return subscribeToChannel('messages:$chatId', PostgresChangeEvent.insert, 'messages', onInsert);
   }
 
-  Future<void> subscribeToNotifications(void Function(Map<String, dynamic>) onInsert) async {
+  /// Returns the live channel so callers can unsubscribe on dispose
+  /// (same contract as [subscribeToMessages] — the notification center keeps
+  /// its screen-level subscription dispose-safe).
+  Future<RealtimeChannel> subscribeToNotifications(
+    void Function(Map<String, dynamic>) onInsert,
+  ) async {
     final user = auth.currentUser;
     if (user == null) throw Exception('No authenticated user');
-    _subscribeToChannel('notifications:${user.id}', PostgresChangeEvent.insert, 'notifications', onInsert);
+    return subscribeToChannel(
+      'notifications:${user.id}',
+      PostgresChangeEvent.insert,
+      'notifications',
+      onInsert,
+    );
   }
 
   Future<void> subscribeToEventStatus(String eventId, void Function(String) onChange) async {

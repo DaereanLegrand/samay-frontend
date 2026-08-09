@@ -1161,6 +1161,58 @@
     "description": "Dialog action that opens the system app settings"
   },
 
+  "notificationsTitle": "Notificaciones",
+  "@notificationsTitle": {
+    "description": "Notification center app bar title"
+  },
+  "notificationsEmpty": "Sin notificaciones",
+  "@notificationsEmpty": {
+    "description": "Empty state when the user has no notifications"
+  },
+  "notificationsEmptyBody": "Cuando recibas novedades, aparecerán aquí.",
+  "@notificationsEmptyBody": {
+    "description": "Empty-state body explaining where new notifications appear"
+  },
+  "notificationsMarkAllRead": "Marcar todo como leído",
+  "@notificationsMarkAllRead": {
+    "description": "App-bar action that marks every notification as read"
+  },
+  "notificationsLoadError": "No se pudieron cargar las notificaciones",
+  "@notificationsLoadError": {
+    "description": "Error state when the notification history fails to load"
+  },
+  "notificationsTimeNow": "Ahora",
+  "@notificationsTimeNow": {
+    "description": "Relative timestamp for a notification created under a minute ago"
+  },
+  "notificationsTimeMinutes": "hace {minutes} min",
+  "@notificationsTimeMinutes": {
+    "description": "Relative timestamp in minutes",
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "notificationsTimeHours": "hace {hours} h",
+  "@notificationsTimeHours": {
+    "description": "Relative timestamp in hours",
+    "placeholders": {
+      "hours": {
+        "type": "int"
+      }
+    }
+  },
+  "notificationsTimeDays": "hace {days} d",
+  "@notificationsTimeDays": {
+    "description": "Relative timestamp in days",
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+
   "chatTitle": "Chat",
   "@chatTitle": {
     "description": "Chat screen app bar title"
@@ -1188,5 +1240,323 @@
   "chatSendError": "No se pudo enviar el mensaje",
   "@chatSendError": {
     "description": "Snackbar when sending a message fails"
+  },
+
+  "eventsTypeLabel": "Tipo de evento",
+  "@eventsTypeLabel": {
+    "description": "Event creation: type selector section label"
+  },
+  "eventsTypeCasual": "Casual",
+  "@eventsTypeCasual": {
+    "description": "Event type chip: casual (movies, dinner, informal)"
+  },
+  "eventsTypeCasualDescription": "Películas, cenas, informales — sin preshards",
+  "@eventsTypeCasualDescription": {
+    "description": "Event type chip helper text for casual events"
+  },
+  "eventsTypeJuerga": "Juerga",
+  "@eventsTypeJuerga": {
+    "description": "Event type chip: juerga (private venue)"
+  },
+  "eventsTypeJuergaDescription": "Local privado — los invitados verán la dirección",
+  "@eventsTypeJuergaDescription": {
+    "description": "Event type chip helper text for juerga events"
+  },
+  "eventsTypeTono": "Tono",
+  "@eventsTypeTono": {
+    "description": "Event type chip: tono (public venue, bar or club)"
+  },
+  "eventsTypeTonoDescription": "Bar, club o local público",
+  "@eventsTypeTonoDescription": {
+    "description": "Event type chip helper text for tono events"
+  },
+  "eventsNameLabel": "Nombre del evento",
+  "@eventsNameLabel": {
+    "description": "Event creation: event-name input label"
+  },
+  "eventsDescriptionOptional": "Descripción (opcional)",
+  "@eventsDescriptionOptional": {
+    "description": "Event creation: optional description input label"
+  },
+  "eventsStartsLabel": "Inicio",
+  "@eventsStartsLabel": {
+    "description": "Event creation: start date/time picker label"
+  },
+  "eventsEndsLabel": "Fin",
+  "@eventsEndsLabel": {
+    "description": "Event creation: end date/time picker label"
+  },
+  "eventsLocationLabel": "Dirección / lugar",
+  "@eventsLocationLabel": {
+    "description": "Event creation: location address input label"
+  },
+  "eventsVisibilityLabel": "Visibilidad",
+  "@eventsVisibilityLabel": {
+    "description": "Event creation: visibility section label"
+  },
+  "eventsVisibilityPublic": "Público",
+  "@eventsVisibilityPublic": {
+    "description": "Event creation: public visibility chip"
+  },
+  "eventsVisibilityGroup": "Grupo",
+  "@eventsVisibilityGroup": {
+    "description": "Event creation: group-scoped visibility chip"
+  },
+  "eventsGroupSelectorLabel": "Grupo del evento",
+  "@eventsGroupSelectorLabel": {
+    "description": "Event creation: group dropdown label"
+  },
+  "eventsGroupSelectorHint": "Selecciona un grupo",
+  "@eventsGroupSelectorHint": {
+    "description": "Event creation: group dropdown placeholder"
+  },
+  "eventsGroupsLoadError": "No se pudieron cargar tus grupos",
+  "@eventsGroupsLoadError": {
+    "description": "Event creation: error when the user's groups fail to load"
+  },
+  "eventsJoinModeLabel": "Modo de acceso",
+  "@eventsJoinModeLabel": {
+    "description": "Event creation: join mode section label (public events)"
+  },
+  "eventsJoinModeOpen": "Abierto",
+  "@eventsJoinModeOpen": {
+    "description": "Event creation: open join mode chip"
+  },
+  "eventsJoinModeOpenDescription": "Cualquiera con el enlace de invitación puede unirse",
+  "@eventsJoinModeOpenDescription": {
+    "description": "Event creation: open join mode helper text"
+  },
+  "eventsJoinModeApproval": "Aprobación",
+  "@eventsJoinModeApproval": {
+    "description": "Event creation: approval join mode chip"
+  },
+  "eventsJoinModeApprovalDescription": "El promotor aprueba cada solicitud",
+  "@eventsJoinModeApprovalDescription": {
+    "description": "Event creation: approval join mode helper text"
+  },
+  "eventsJuergaWarningTitle": "Aviso de ubicación",
+  "@eventsJuergaWarningTitle": {
+    "description": "Juerga location warning dialog title"
+  },
+  "eventsJuergaWarningBody": "Los invitados verán esta dirección. Solo invita a personas en quienes confíes.",
+  "@eventsJuergaWarningBody": {
+    "description": "Juerga location warning dialog body (ECRT step 4)"
+  },
+  "eventsJuergaWarningConfirm": "Confirmar",
+  "@eventsJuergaWarningConfirm": {
+    "description": "Juerga location warning confirm button"
+  },
+  "eventsPreshardsLabel": "Preshards",
+  "@eventsPreshardsLabel": {
+    "description": "Event creation: preshards section label"
+  },
+  "eventsPreshardsPoolLabel": "Pool de preshards",
+  "@eventsPreshardsPoolLabel": {
+    "description": "Event creation: preshards pool input label"
+  },
+  "eventsPreshardsCapLabel": "Tope por asistente (opcional)",
+  "@eventsPreshardsCapLabel": {
+    "description": "Event creation: per-attendee preshards cap input label"
+  },
+  "eventsRemainderLabel": "Resto del pool",
+  "@eventsRemainderLabel": {
+    "description": "Event creation: remainder action section label"
+  },
+  "eventsRemainderReturn": "Devolver proporcionalmente",
+  "@eventsRemainderReturn": {
+    "description": "Event creation: return remainder proportionally option"
+  },
+  "eventsRemainderRedistribute": "Redistribuir entre asistentes",
+  "@eventsRemainderRedistribute": {
+    "description": "Event creation: redistribute remainder option"
+  },
+  "eventsDynamicQrHint": "Con pool mayor a 0, el QR dinámico se activa automáticamente",
+  "@eventsDynamicQrHint": {
+    "description": "Event creation: dynamic QR auto-enable hint"
+  },
+  "eventsErrorNameRequired": "El nombre del evento es obligatorio",
+  "@eventsErrorNameRequired": {
+    "description": "Validation error: event name is required"
+  },
+  "eventsErrorTimeRange": "La fecha de fin debe ser posterior a la de inicio",
+  "@eventsErrorTimeRange": {
+    "description": "Validation error: end date must be after start date"
+  },
+  "eventsErrorCasualPool": "Los eventos casuales no pueden tener pool",
+  "@eventsErrorCasualPool": {
+    "description": "Validation error: casual events cannot have a preshards pool"
+  },
+  "eventsErrorJuergaConfirm": "Confirma el aviso de ubicación para continuar",
+  "@eventsErrorJuergaConfirm": {
+    "description": "Validation error: juerga location warning must be confirmed"
+  },
+  "eventsErrorGroup": "Selecciona un grupo",
+  "@eventsErrorGroup": {
+    "description": "Validation error: a group is required for group-scoped events"
+  },
+  "eventsErrorJoinMode": "Selecciona el modo de acceso",
+  "@eventsErrorJoinMode": {
+    "description": "Validation error: a join mode is required for public events"
+  },
+
+  "eventDetailTitle": "Evento",
+  "@eventDetailTitle": {
+    "description": "Event detail screen app bar title"
+  },
+  "eventGroupScoped": "Evento de grupo",
+  "@eventGroupScoped": {
+    "description": "Badge for events scoped to a group"
+  },
+  "eventViewGroup": "Ver grupo",
+  "@eventViewGroup": {
+    "description": "Button to open the scoping group from an event"
+  },
+  "eventNoLocation": "Sin ubicación",
+  "@eventNoLocation": {
+    "description": "Placeholder when an event has no location"
+  },
+  "eventPoolAmount": "{pool} preshards",
+  "@eventPoolAmount": {
+    "description": "Preshard pool amount",
+    "placeholders": {
+      "pool": {
+        "type": "int"
+      }
+    }
+  },
+  "eventPoolDistributed": "Distribuido",
+  "@eventPoolDistributed": {
+    "description": "Pool already distributed to attendees"
+  },
+  "eventPoolNotDistributed": "Pendiente de distribuir",
+  "@eventPoolNotDistributed": {
+    "description": "Pool not yet distributed"
+  },
+  "eventCapPerUser": "Tope por asistente: {cap} preshards",
+  "@eventCapPerUser": {
+    "description": "Per-user distribution cap",
+    "placeholders": {
+      "cap": {
+        "type": "int"
+      }
+    }
+  },
+  "eventNoPool": "Sin pool de preshards",
+  "@eventNoPool": {
+    "description": "Placeholder when an event has no preshard pool"
+  },
+  "eventRemainderAction": "Sobrante: {action}",
+  "@eventRemainderAction": {
+    "description": "Remainder-action line on the pool card",
+    "placeholders": {
+      "action": {
+        "type": "String"
+      }
+    }
+  },
+  "eventPromotores": "Promotores",
+  "@eventPromotores": {
+    "description": "Promotores section heading"
+  },
+  "eventRolePromotor": "Promotor",
+  "@eventRolePromotor": {
+    "description": "Promotor role badge"
+  },
+  "eventRoleCoPromotor": "Co-promotor",
+  "@eventRoleCoPromotor": {
+    "description": "Co-promotor role badge"
+  },
+  "eventPromotoresError": "No se pudieron cargar los promotores",
+  "@eventPromotoresError": {
+    "description": "Promotores section error fallback"
+  },
+  "eventNoPromotores": "Sin promotores",
+  "@eventNoPromotores": {
+    "description": "Empty promotores state"
+  },
+  "eventInviteStatus": "Tu invitación: {status}",
+  "@eventInviteStatus": {
+    "description": "Own invite status line",
+    "placeholders": {
+      "status": {
+        "type": "String"
+      }
+    }
+  },
+  "eventInvitePending": "pendiente",
+  "@eventInvitePending": {
+    "description": "Pending invite status"
+  },
+  "eventInviteAccepted": "aceptada",
+  "@eventInviteAccepted": {
+    "description": "Accepted invite status"
+  },
+  "eventInviteDeclined": "declinada",
+  "@eventInviteDeclined": {
+    "description": "Declined invite status"
+  },
+  "eventInviteAttended": "asistida",
+  "@eventInviteAttended": {
+    "description": "Attended invite status"
+  },
+  "eventEditButton": "Editar",
+  "@eventEditButton": {
+    "description": "Edit-event button"
+  },
+  "eventCancelButton": "Cancelar evento",
+  "@eventCancelButton": {
+    "description": "Cancel-event button"
+  },
+  "eventCancelDialogTitle": "¿Cancelar evento?",
+  "@eventCancelDialogTitle": {
+    "description": "Cancel-event confirmation dialog title"
+  },
+  "eventCancelDialogBody": "Se devolverán los preshards a los promotores. Los invitados serán notificados.",
+  "@eventCancelDialogBody": {
+    "description": "Cancel-event confirmation dialog body"
+  },
+  "eventCancelConfirm": "Sí, cancelar",
+  "@eventCancelConfirm": {
+    "description": "Cancel-event confirmation button"
+  },
+  "eventCancelledSnack": "Evento cancelado",
+  "@eventCancelledSnack": {
+    "description": "Snackbar after cancelling an event"
+  },
+  "eventEditTitle": "Editar evento",
+  "@eventEditTitle": {
+    "description": "Event editor app bar title"
+  },
+  "eventPoolLockedNotice": "El pool, tope y sobrante pueden editarse hasta que comience el evento.",
+  "@eventPoolLockedNotice": {
+    "description": "Notice that the pool fields lock at starts_at"
+  },
+  "eventEditUpdatedSnack": "Evento actualizado",
+  "@eventEditUpdatedSnack": {
+    "description": "Snackbar after saving the event"
+  },
+  "eventInvalidPoolAmount": "Ingresa un monto de pool válido",
+  "@eventInvalidPoolAmount": {
+    "description": "Validation error for an invalid pool amount"
+  },
+  "eventStatusDraft": "Borrador",
+  "@eventStatusDraft": {
+    "description": "Draft status badge"
+  },
+  "eventStatusUpcoming": "Próximamente",
+  "@eventStatusUpcoming": {
+    "description": "Upcoming status badge"
+  },
+  "eventStatusLive": "En vivo",
+  "@eventStatusLive": {
+    "description": "Live status badge"
+  },
+  "eventStatusEnded": "Finalizado",
+  "@eventStatusEnded": {
+    "description": "Ended status badge"
+  },
+  "eventStatusCancelled": "Cancelado",
+  "@eventStatusCancelled": {
+    "description": "Cancelled status badge"
   }
 }

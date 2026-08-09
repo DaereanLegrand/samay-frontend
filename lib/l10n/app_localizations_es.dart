@@ -868,6 +868,41 @@ class AppLocalizationsEs extends AppLocalizations {
   String get permissionsOpenSettings => 'Abrir ajustes';
 
   @override
+  String get notificationsTitle => 'Notificaciones';
+
+  @override
+  String get notificationsEmpty => 'Sin notificaciones';
+
+  @override
+  String get notificationsEmptyBody =>
+      'Cuando recibas novedades, aparecerán aquí.';
+
+  @override
+  String get notificationsMarkAllRead => 'Marcar todo como leído';
+
+  @override
+  String get notificationsLoadError =>
+      'No se pudieron cargar las notificaciones';
+
+  @override
+  String get notificationsTimeNow => 'Ahora';
+
+  @override
+  String notificationsTimeMinutes(int minutes) {
+    return 'hace $minutes min';
+  }
+
+  @override
+  String notificationsTimeHours(int hours) {
+    return 'hace $hours h';
+  }
+
+  @override
+  String notificationsTimeDays(int days) {
+    return 'hace $days d';
+  }
+
+  @override
   String get chatTitle => 'Chat';
 
   @override
@@ -887,4 +922,245 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get chatSendError => 'No se pudo enviar el mensaje';
+
+  @override
+  String get eventsTypeLabel => 'Tipo de evento';
+
+  @override
+  String get eventsTypeCasual => 'Casual';
+
+  @override
+  String get eventsTypeCasualDescription =>
+      'Películas, cenas, informales — sin preshards';
+
+  @override
+  String get eventsTypeJuerga => 'Juerga';
+
+  @override
+  String get eventsTypeJuergaDescription =>
+      'Local privado — los invitados verán la dirección';
+
+  @override
+  String get eventsTypeTono => 'Tono';
+
+  @override
+  String get eventsTypeTonoDescription => 'Bar, club o local público';
+
+  @override
+  String get eventsNameLabel => 'Nombre del evento';
+
+  @override
+  String get eventsDescriptionOptional => 'Descripción (opcional)';
+
+  @override
+  String get eventsStartsLabel => 'Inicio';
+
+  @override
+  String get eventsEndsLabel => 'Fin';
+
+  @override
+  String get eventsLocationLabel => 'Dirección / lugar';
+
+  @override
+  String get eventsVisibilityLabel => 'Visibilidad';
+
+  @override
+  String get eventsVisibilityPublic => 'Público';
+
+  @override
+  String get eventsVisibilityGroup => 'Grupo';
+
+  @override
+  String get eventsGroupSelectorLabel => 'Grupo del evento';
+
+  @override
+  String get eventsGroupSelectorHint => 'Selecciona un grupo';
+
+  @override
+  String get eventsGroupsLoadError => 'No se pudieron cargar tus grupos';
+
+  @override
+  String get eventsJoinModeLabel => 'Modo de acceso';
+
+  @override
+  String get eventsJoinModeOpen => 'Abierto';
+
+  @override
+  String get eventsJoinModeOpenDescription =>
+      'Cualquiera con el enlace de invitación puede unirse';
+
+  @override
+  String get eventsJoinModeApproval => 'Aprobación';
+
+  @override
+  String get eventsJoinModeApprovalDescription =>
+      'El promotor aprueba cada solicitud';
+
+  @override
+  String get eventsJuergaWarningTitle => 'Aviso de ubicación';
+
+  @override
+  String get eventsJuergaWarningBody =>
+      'Los invitados verán esta dirección. Solo invita a personas en quienes confíes.';
+
+  @override
+  String get eventsJuergaWarningConfirm => 'Confirmar';
+
+  @override
+  String get eventsPreshardsLabel => 'Preshards';
+
+  @override
+  String get eventsPreshardsPoolLabel => 'Pool de preshards';
+
+  @override
+  String get eventsPreshardsCapLabel => 'Tope por asistente (opcional)';
+
+  @override
+  String get eventsRemainderLabel => 'Resto del pool';
+
+  @override
+  String get eventsRemainderReturn => 'Devolver proporcionalmente';
+
+  @override
+  String get eventsRemainderRedistribute => 'Redistribuir entre asistentes';
+
+  @override
+  String get eventsDynamicQrHint =>
+      'Con pool mayor a 0, el QR dinámico se activa automáticamente';
+
+  @override
+  String get eventsErrorNameRequired => 'El nombre del evento es obligatorio';
+
+  @override
+  String get eventsErrorTimeRange =>
+      'La fecha de fin debe ser posterior a la de inicio';
+
+  @override
+  String get eventsErrorCasualPool =>
+      'Los eventos casuales no pueden tener pool';
+
+  @override
+  String get eventsErrorJuergaConfirm =>
+      'Confirma el aviso de ubicación para continuar';
+
+  @override
+  String get eventsErrorGroup => 'Selecciona un grupo';
+
+  @override
+  String get eventsErrorJoinMode => 'Selecciona el modo de acceso';
+
+  @override
+  String get eventDetailTitle => 'Evento';
+
+  @override
+  String get eventGroupScoped => 'Evento de grupo';
+
+  @override
+  String get eventViewGroup => 'Ver grupo';
+
+  @override
+  String get eventNoLocation => 'Sin ubicación';
+
+  @override
+  String eventPoolAmount(int pool) {
+    return '$pool preshards';
+  }
+
+  @override
+  String get eventPoolDistributed => 'Distribuido';
+
+  @override
+  String get eventPoolNotDistributed => 'Pendiente de distribuir';
+
+  @override
+  String eventCapPerUser(int cap) {
+    return 'Tope por asistente: $cap preshards';
+  }
+
+  @override
+  String get eventNoPool => 'Sin pool de preshards';
+
+  @override
+  String eventRemainderAction(String action) {
+    return 'Sobrante: $action';
+  }
+
+  @override
+  String get eventPromotores => 'Promotores';
+
+  @override
+  String get eventRolePromotor => 'Promotor';
+
+  @override
+  String get eventRoleCoPromotor => 'Co-promotor';
+
+  @override
+  String get eventPromotoresError => 'No se pudieron cargar los promotores';
+
+  @override
+  String get eventNoPromotores => 'Sin promotores';
+
+  @override
+  String eventInviteStatus(String status) {
+    return 'Tu invitación: $status';
+  }
+
+  @override
+  String get eventInvitePending => 'pendiente';
+
+  @override
+  String get eventInviteAccepted => 'aceptada';
+
+  @override
+  String get eventInviteDeclined => 'declinada';
+
+  @override
+  String get eventInviteAttended => 'asistida';
+
+  @override
+  String get eventEditButton => 'Editar';
+
+  @override
+  String get eventCancelButton => 'Cancelar evento';
+
+  @override
+  String get eventCancelDialogTitle => '¿Cancelar evento?';
+
+  @override
+  String get eventCancelDialogBody =>
+      'Se devolverán los preshards a los promotores. Los invitados serán notificados.';
+
+  @override
+  String get eventCancelConfirm => 'Sí, cancelar';
+
+  @override
+  String get eventCancelledSnack => 'Evento cancelado';
+
+  @override
+  String get eventEditTitle => 'Editar evento';
+
+  @override
+  String get eventPoolLockedNotice =>
+      'El pool, tope y sobrante pueden editarse hasta que comience el evento.';
+
+  @override
+  String get eventEditUpdatedSnack => 'Evento actualizado';
+
+  @override
+  String get eventInvalidPoolAmount => 'Ingresa un monto de pool válido';
+
+  @override
+  String get eventStatusDraft => 'Borrador';
+
+  @override
+  String get eventStatusUpcoming => 'Próximamente';
+
+  @override
+  String get eventStatusLive => 'En vivo';
+
+  @override
+  String get eventStatusEnded => 'Finalizado';
+
+  @override
+  String get eventStatusCancelled => 'Cancelado';
 }

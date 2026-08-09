@@ -1,4 +1,5 @@
 import 'package:samay/core/logging/app_logger.dart';
+import 'package:samay/core/services/rest_client.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 /// Reads app-level configuration from the `app_config` table.
@@ -6,16 +7,25 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 /// Part of the ARC-05/CQ-01 decomposition of the former monolithic
 /// `SupabaseService` (I-11). Injectable: constructed with an explicit client
 /// so tests can substitute a mock.
+///
+/// Migrated to [RestClient] (I-51): all table access goes through the typed
+/// envelope; the `client` field remains for the auth accessor and legacy
+/// call sites until the facade deletion (STOP-100).
 class ConfigService {
   final SupabaseClient client;
+  final RestClient rest;
 
-  ConfigService({required this.client});
+  ConfigService({required this.client}) : rest = RestClient(client: client);
 
   /// Loads every `app_config` row as a flat `key -> value` map.
   Future<Map<String, String>> fetchAppConfig() async {
-    final res = await client.from('app_config').select('key, value');
+    final rows = await rest.list<Map<String, dynamic>>(
+      'app_config',
+      fromJson: (row) => row,
+      select: 'key, value',
+    );
     final map = <String, String>{};
-    for (final row in res) {
+    for (final row in rows) {
       map[row['key'] as String] = row['value'] as String;
     }
     return map;

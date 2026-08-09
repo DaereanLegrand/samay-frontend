@@ -4,8 +4,8 @@ import 'package:go_router/go_router.dart';
 import 'package:samay/core/extensions/error_mapper.dart';
 import 'package:samay/core/logging/app_logger.dart';
 import 'package:samay/core/providers/config_provider.dart';
+import 'package:samay/core/repositories/repository_providers.dart';
 import 'package:samay/core/router/route_paths.dart';
-import 'package:samay/core/services/supabase_service.dart';
 import 'package:samay/core/utils/debouncer.dart';
 import 'package:samay/core/utils/input_sanitizer.dart';
 import 'package:samay/features/friends/friends_providers.dart';
@@ -52,7 +52,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     final userId = user['id'] as String;
     final l10n = AppLocalizations.of(context);
     try {
-      await SupabaseService.instance.sendFriendRequest(userId);
+      await ref.read(friendsRepositoryProvider).sendFriendRequest(userId);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(l10n.friendsRequestSent)),

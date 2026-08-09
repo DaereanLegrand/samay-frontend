@@ -40,12 +40,12 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
   /// Live inserts append to the thread (dispose-safe: the channel is
   /// unsubscribed on dispose). Rows arrive as raw envelopes and are
-  /// decrypted by [ChatService.subscribeToMessages] before they reach the
-  /// provider.
+  /// decrypted by [ChatService.subscribeToMessages] (via the repository)
+  /// before they reach the provider.
   void _subscribeRealtime() {
     _channel = ref
-        .read(chatE2eeServiceProvider)
-        .subscribeToMessages(widget.chatId, (row) {
+        .read(chatE2eeRepositoryProvider)
+        .subscribe(widget.chatId, (row) {
       ref
           .read(chatMessagesProvider(widget.chatId).notifier)
           .addMessage(row);

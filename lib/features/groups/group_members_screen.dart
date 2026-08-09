@@ -1,18 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:samay/core/logging/app_logger.dart';
-import 'package:samay/core/services/supabase_service.dart';
+import 'package:samay/core/repositories/repository_providers.dart';
 import 'package:samay/l10n/app_localizations.dart';
 
-class GroupMembersScreen extends StatefulWidget {
+class GroupMembersScreen extends ConsumerStatefulWidget {
   final String groupId;
 
   const GroupMembersScreen({super.key, required this.groupId});
 
   @override
-  State<GroupMembersScreen> createState() => _GroupMembersScreenState();
+  ConsumerState<GroupMembersScreen> createState() => _GroupMembersScreenState();
 }
 
-class _GroupMembersScreenState extends State<GroupMembersScreen> {
+class _GroupMembersScreenState extends ConsumerState<GroupMembersScreen> {
   List<Map<String, dynamic>> _members = [];
   bool _loading = true;
 
@@ -25,9 +26,11 @@ class _GroupMembersScreenState extends State<GroupMembersScreen> {
   Future<void> _load() async {
     setState(() => _loading = true);
     try {
-      final members = await SupabaseService.instance.getGroupMembers(widget.groupId);
+      final members = await ref
+          .read(groupsRepositoryProvider)
+          .getGroupMembers(widget.groupId);
       if (!mounted) return;
-      setState(() => _members = members);
+      setState(() => _members = members.map((m) => m.toJson()).toList());
     } catch (e, st) {
       AppLogger.instance.error('GroupMembersScreen._load error: $e', st.toString());
     } finally {

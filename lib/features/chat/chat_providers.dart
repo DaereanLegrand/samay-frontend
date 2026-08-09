@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:samay/core/providers/service_providers.dart';
+import 'package:samay/core/repositories/chat_repository.dart';
 import 'package:samay/core/services/chat_service.dart';
 import 'package:samay/crypto/e2ee_key_store.dart';
 import 'package:samay/crypto/e2ee_prekey_service.dart';
@@ -46,21 +47,36 @@ final chatE2eeServiceProvider = Provider<ChatService>((ref) {
   );
 });
 
+/// The chat feature's [ChatRepository], built on the E2EE-wired
+/// [ChatService] so every message path (load/send/subscribe) stays encrypted
+/// at the service layer (E2EE §12.2 step 3 — the repository must never
+/// bypass it; see `ChatRepository` docs).
+///
+/// Feature-scoped by design: `repository_providers.dart` deliberately has no
+/// chat repository — the chat feature is the only message consumer and
+/// always goes E2EE, so the E2EE wiring lives here.
+final chatE2eeRepositoryProvider = Provider<ChatRepository>((ref) {
+  return ChatRepository(
+    chat: ref.watch(chatE2eeServiceProvider),
+    realtime: ref.watch(realtimeServiceProvider),
+  );
+});
+
 class ChatMessagesNotifier
     extends FamilyAsyncNotifier<List<Map<String, dynamic>>, String> {
   @override
   Future<List<Map<String, dynamic>>> build(String chatId) async {
-    return ref.read(chatE2eeServiceProvider).loadMessages(chatId);
+    return ref.read(chatE2eeRepositoryProvider).loadMessages(chatId);
   }
 
   /// Re-runs [build] (after sending, pull-to-refresh).
   Future<void> refresh() async => ref.invalidateSelf();
 
-  /// Sends a message and reloads the thread. [chatE2eeServiceProvider]
-  /// encrypts before insert; the reload path decrypts.
+  /// Sends a message and reloads the thread. [chatE2eeRepositoryProvider]
+  /// encrypts via [ChatService] before insert; the reload path decrypts.
   Future<void> send(String chatId, String text) async {
     if (text.trim().isEmpty) return;
-    await ref.read(chatE2eeServiceProvider).sendMessage(chatId, text, null);
+    await ref.read(chatE2eeRepositoryProvider).sendMessage(chatId, text, null);
     await refresh();
   }
 

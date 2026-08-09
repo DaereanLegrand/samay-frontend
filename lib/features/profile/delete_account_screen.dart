@@ -3,8 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:samay/core/logging/app_logger.dart';
 import 'package:samay/core/providers/auth_provider.dart';
+import 'package:samay/core/providers/service_providers.dart';
 import 'package:samay/core/router/route_paths.dart';
-import 'package:samay/core/services/supabase_service.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/v_button.dart';
 import 'package:samay/shared/widgets/v_input.dart';
@@ -33,7 +33,8 @@ class _DeleteAccountScreenState extends ConsumerState<DeleteAccountScreen> {
 
   bool get _emailMatches {
     try {
-      final currentEmail = SupabaseService.instance.auth.currentUser?.email ?? '';
+      final currentEmail =
+          ref.read(authServiceProvider).auth.currentUser?.email ?? '';
       return _emailController.text.trim().toLowerCase() == currentEmail.toLowerCase();
     } catch (e, st) {
       AppLogger.instance.error('emailMatches error: $e', '$st');
