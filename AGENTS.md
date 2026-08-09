@@ -66,14 +66,29 @@ Each track has its own daily log. Sync points occur when a track's output is nee
 
 ## Port Convention
 
-| Service | Port | Default | Note |
-|---------|------|---------|------|
-| PostgreSQL | 5432 | 54322 | direct DB access |
-| Studio | 54381 | 54321 | blocked |
-| Mailpit (Email) | 54384 | 54324 | blocked |
-| Kong (API Gateway) | 54386 | 54321 | all API routes go through here |
-| Analytics | 54388 | 54327 | blocked |
-| (pooler disabled) | — | 54329 | blocked — not needed for dev |
+> **2026-08-09**: DB port moved `5432 → 54382` so the Samay self-hosted stack can run
+> alongside the running Juega Supabase (Juega owns 5432/54321/54323/8443). Kong HTTPS
+> uses 54443. NEVER map Samay services onto Juega's ports.
+
+| Service | Port | Note |
+|---------|------|------|
+| PostgreSQL | 54382 | direct DB access (was 5432 — conflicts with Juega pooler) |
+| Studio | 54381 | |
+| Mailpit (Email) | 54384 | |
+| Kong (API Gateway) | 54386 | all API routes go through here |
+| Analytics | 54388 | |
+| Kong HTTPS | 54443 | self-hosted compose stack |
+
+## Agent Orchestration Protocol (150-agent campaigns)
+
+When a large multi-agent campaign runs (see `docs/agents/ORCHESTRATION.md`):
+
+- **Every agent reads the entire repo first** (no shortcuts) and follows `docs/agents/AGENT-RULES.md`.
+- **File semaphore:** before modifying any file, `tools/agent_lock.sh acquire <path> --owner <AGENT_ID>`; if another agent holds it, WAIT; release after (`release`). Locks live in `repo-locks/` (gitignored). `tools/agent_lock.sh list` shows held locks.
+- **File ownership:** `docs/agents/FILE-OWNERSHIP.md` maps every path to its owning agent.
+- **Tests:** each worked-on thing ships tests + updates the modular integration suite (`integration_test/`, `test/opt-*.sh`, pgTAP).
+- **Checkpoints:** orchestrator validates (`dart analyze`, `flutter test`, `go test ./...`), then commits AND pushes at every 50-agent stop.
+- **Refactorability:** features will keep being added after this campaign; keep code modular, typed, and easily extensible (tokens, feature services, models).
 
 ## Documentation Standards
 
