@@ -79,7 +79,7 @@ Each track has its own daily log. Sync points occur when a track's output is nee
 | Analytics | 54388 | |
 | Kong HTTPS | 54443 | self-hosted compose stack |
 
-## Agent Orchestration Protocol (150-agent campaigns)
+## Agent Orchestration Protocol (180-agent campaigns)
 
 When a large multi-agent campaign runs (see `docs/agents/ORCHESTRATION.md`):
 

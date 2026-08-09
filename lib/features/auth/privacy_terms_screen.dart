@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:samay/core/router/route_paths.dart';
 import 'package:samay/shared/widgets/v_button.dart';
 
 class PrivacyTermsScreen extends StatefulWidget {
@@ -50,7 +51,7 @@ class _PrivacyTermsScreenState extends State<PrivacyTermsScreen> {
             VButton.emphasized(
               label: 'Crear cuenta',
               onPressed: _allAccepted
-                  ? () => context.push('/auth/profile-setup', extra: {
+                  ? () => context.push(RoutePaths.profileSetup, extra: {
                         'email': widget.email,
                         'dateOfBirth': widget.dateOfBirth,
                       })

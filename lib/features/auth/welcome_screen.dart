@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:samay/core/router/route_paths.dart';
 import 'package:samay/shared/widgets/v_button.dart';
 
 class WelcomeScreen extends StatelessWidget {
@@ -23,12 +24,12 @@ class WelcomeScreen extends StatelessWidget {
               const Spacer(),
               VButton.emphasized(
                 label: 'Crear cuenta',
-                onPressed: () => context.push('/auth/signup'),
+                onPressed: () => context.push(RoutePaths.signup),
               ),
               const SizedBox(height: 12),
               VButton(
                 label: 'Iniciar sesión',
-                onPressed: () => context.push('/login'),
+                onPressed: () => context.push(RoutePaths.login),
               ),
               const SizedBox(height: 32),
             ],

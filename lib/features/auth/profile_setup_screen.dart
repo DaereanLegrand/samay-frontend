@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:samay/core/providers/auth_provider.dart';
+import 'package:samay/core/router/route_paths.dart';
 import 'package:samay/shared/widgets/v_button.dart';
 import 'package:samay/shared/widgets/v_input.dart';
 
@@ -33,7 +34,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
     if (!mounted) return;
     setState(() => _saving = false);
     if (ref.read(authStateProvider).error == null) {
-      context.go('/main/feed');
+      context.go(RoutePaths.mainFeed);
     }
   }
 

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:samay/core/providers/auth_provider.dart';
+import 'package:samay/core/router/route_paths.dart';
 import 'package:samay/core/services/supabase_service.dart';
 import 'package:samay/shared/widgets/v_shard_icon.dart';
 
@@ -55,7 +56,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.settings),
-            onPressed: () => context.push('/settings'),
+            onPressed: () => context.push(RoutePaths.settings),
           ),
         ],
       ),

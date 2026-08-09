@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:samay/core/extensions/error_mapper.dart';
 import 'package:samay/core/services/supabase_service.dart';
 import 'package:samay/shared/widgets/v_button.dart';
 import 'package:samay/shared/widgets/v_input.dart';
@@ -43,7 +44,7 @@ class _DonateShardsScreenState extends State<DonateShardsScreen> {
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
+          SnackBar(content: Text(e.toAppError().message)),
         );
       }
     } finally {

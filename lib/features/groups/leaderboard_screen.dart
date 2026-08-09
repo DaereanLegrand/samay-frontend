@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:samay/core/router/route_paths.dart';
 import 'package:samay/core/services/supabase_service.dart';
 import 'package:samay/shared/widgets/rank_badge.dart';
 import 'package:samay/shared/widgets/v_chip.dart';
@@ -96,7 +97,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                       trailing: g['rank_bracket'] != null
                           ? RankBadge(bracket: g['rank_bracket'] as String)
                           : null,
-                      onTap: () => context.push('/group/${g['id']}'),
+                      onTap: () => context.push(RoutePaths.groupDetail(g['id'] as String)),
                     );
                   },
                 ),

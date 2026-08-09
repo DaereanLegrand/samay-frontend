@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:samay/core/router/route_paths.dart';
 import 'package:samay/core/services/supabase_service.dart';
 
 class FriendsListScreen extends StatefulWidget {
@@ -103,7 +104,7 @@ class _FriendsListScreenState extends State<FriendsListScreen> {
                     title: Text('@${u['username']}'),
                     subtitle: Text('@${u['username']}'),
                     trailing: const Icon(Icons.circle, size: 8, color: Colors.green),
-                    onTap: () => context.push('/user/${u['id']}'),
+                    onTap: () => context.push(RoutePaths.userProfile(u['id'] as String)),
                   );
                 },
               ),

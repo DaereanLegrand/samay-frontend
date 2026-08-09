@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:samay/core/router/route_paths.dart';
 import 'package:samay/core/services/supabase_service.dart';
 import 'package:samay/shared/widgets/rank_badge.dart';
 import 'package:samay/shared/widgets/v_button.dart';
@@ -163,13 +164,13 @@ class _GroupDetailScreenState extends State<GroupDetailScreen>
                 Row(
                   children: [
                     Expanded(child: VButton(label: 'Donar shards', onPressed: () async {
-                      await context.push('/group/${widget.groupId}/donate');
+                      await context.push(RoutePaths.donateToGroup(widget.groupId));
                       _load();
                     })),
                     const SizedBox(width: 8),
-                    Expanded(child: VButton(label: 'Crear evento', onPressed: () => context.push('/group/${widget.groupId}/create-event'))),
+                    Expanded(child: VButton(label: 'Crear evento', onPressed: () => context.push(RoutePaths.createGroupEvent(widget.groupId)))),
                     const SizedBox(width: 8),
-                    Expanded(child: VButton(label: 'Invitar', onPressed: () => context.push('/group/${widget.groupId}/invite'))),
+                    Expanded(child: VButton(label: 'Invitar', onPressed: () => context.push(RoutePaths.inviteToGroup(widget.groupId)))),
                   ],
                 ),
               ],

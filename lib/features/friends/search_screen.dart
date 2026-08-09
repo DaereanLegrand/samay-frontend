@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:samay/core/extensions/error_mapper.dart';
+import 'package:samay/core/router/route_paths.dart';
 import 'package:samay/core/services/supabase_service.dart';
 
 class SearchScreen extends StatefulWidget {
@@ -98,7 +100,7 @@ class _SearchScreenState extends State<SearchScreen> {
                     title: Text('@${u['username']}'),
                     subtitle: null,
                     trailing: _buildButton(u),
-                    onTap: () => context.push('/user/${u['id']}'),
+                    onTap: () => context.push(RoutePaths.userProfile(u['id'] as String)),
                   );
                 },
               ),
@@ -143,7 +145,7 @@ class _SearchScreenState extends State<SearchScreen> {
         } catch (e) {
           if (context.mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Error: $e')),
+              SnackBar(content: Text(e.toAppError().message)),
             );
           }
         }

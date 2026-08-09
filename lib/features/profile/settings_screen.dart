@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:samay/core/providers/auth_provider.dart';
+import 'package:samay/core/router/route_paths.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -16,7 +17,7 @@ class SettingsScreen extends ConsumerWidget {
             leading: const Icon(Icons.subscriptions),
             title: const Text('Suscripción'),
             trailing: const Icon(Icons.chevron_right),
-            onTap: () => context.push('/subscriptions'),
+            onTap: () => context.push(RoutePaths.subscriptions),
           ),
           const Divider(),
           ListTile(
@@ -30,7 +31,7 @@ class SettingsScreen extends ConsumerWidget {
             leading: const Icon(Icons.person),
             title: const Text('Editar perfil'),
             trailing: const Icon(Icons.chevron_right),
-            onTap: () => context.push('/profile/edit'),
+            onTap: () => context.push(RoutePaths.profileEdit),
           ),
           const Divider(),
           ListTile(
@@ -44,13 +45,13 @@ class SettingsScreen extends ConsumerWidget {
             leading: const Icon(Icons.block),
             title: const Text('Usuarios bloqueados'),
             trailing: const Icon(Icons.chevron_right),
-            onTap: () => context.push('/settings/blocked'),
+            onTap: () => context.push(RoutePaths.blockedUsers),
           ),
           const Divider(),
           ListTile(
             leading: const Icon(Icons.delete_forever, color: Colors.red),
             title: const Text('Eliminar mi cuenta', style: TextStyle(color: Colors.red)),
-            onTap: () => context.push('/settings/delete-account'),
+            onTap: () => context.push(RoutePaths.deleteAccount),
           ),
           const Divider(),
           ListTile(
@@ -58,7 +59,7 @@ class SettingsScreen extends ConsumerWidget {
             title: const Text('Cerrar sesión'),
             onTap: () async {
               await ref.read(authStateProvider.notifier).signOut();
-              if (context.mounted) context.go('/login');
+              if (context.mounted) context.go(RoutePaths.login);
             },
           ),
           const Divider(),

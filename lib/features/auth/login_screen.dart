@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:samay/core/extensions/error_mapper.dart';
 import 'package:samay/core/providers/auth_provider.dart';
+import 'package:samay/core/router/route_paths.dart';
 import 'package:samay/shared/widgets/v_button.dart';
 import 'package:samay/shared/widgets/v_input.dart';
 
@@ -32,7 +33,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     try {
       await ref.read(authStateProvider.notifier).signIn(email, password);
       if (mounted && ref.read(authStateProvider).authenticated) {
-        context.go('/main/feed');
+        context.go(RoutePaths.mainFeed);
         return;
       }
       final msg = ref.read(authStateProvider).error ?? 'Error desconocido al iniciar sesión';
@@ -108,7 +109,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             const SizedBox(height: 12),
             VButton(
               label: 'Crear cuenta',
-              onPressed: () => context.push('/auth/signup'),
+              onPressed: () => context.push(RoutePaths.signup),
             ),
           ],
         ),

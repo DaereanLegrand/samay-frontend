@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:samay/core/router/route_paths.dart';
 import 'package:samay/core/services/supabase_service.dart';
 import 'package:samay/shared/widgets/rank_badge.dart';
 import 'package:samay/shared/widgets/v_button.dart';
@@ -43,7 +44,7 @@ class _MyGroupsScreenState extends State<MyGroupsScreen> {
           IconButton(
             icon: const Icon(Icons.people_outline),
             tooltip: 'Buscar amigos',
-            onPressed: () => context.push('/user/search'),
+            onPressed: () => context.push(RoutePaths.userSearch),
           ),
         ],
       ),
@@ -59,7 +60,7 @@ class _MyGroupsScreenState extends State<MyGroupsScreen> {
                         child: VButton(
                           label: 'Crear grupo',
                           onPressed: () async {
-                            await context.push('/group/create');
+                            await context.push(RoutePaths.groupCreate);
                             _load();
                           },
                         ),
@@ -68,7 +69,7 @@ class _MyGroupsScreenState extends State<MyGroupsScreen> {
                       Expanded(
                         child: VButton(
                           label: 'Ranking',
-                          onPressed: () => context.push('/groups/leaderboard'),
+                          onPressed: () => context.push(RoutePaths.groupsLeaderboard),
                         ),
                       ),
                     ],
@@ -79,13 +80,13 @@ class _MyGroupsScreenState extends State<MyGroupsScreen> {
                   child: Row(
                     children: [
                       TextButton.icon(
-                        onPressed: () => context.push('/friends/list'),
+                        onPressed: () => context.push(RoutePaths.friendsList),
                         icon: const Icon(Icons.people, size: 16),
                         label: const Text('Amigos'),
                       ),
                       const SizedBox(width: 8),
                       TextButton.icon(
-                        onPressed: () => context.push('/friends/requests'),
+                        onPressed: () => context.push(RoutePaths.friendsRequests),
                         icon: const Icon(Icons.person_add_outlined, size: 16),
                         label: const Text('Solicitudes'),
                       ),
@@ -142,7 +143,7 @@ class _MyGroupsScreenState extends State<MyGroupsScreen> {
                             ],
                           ),
                           trailing: const Icon(Icons.chevron_right),
-                          onTap: () => context.push('/group/${g['id']}'),
+                          onTap: () => context.push(RoutePaths.groupDetail(g['id'] as String)),
                         );
                       },
                     ),

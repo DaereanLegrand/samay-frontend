@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:samay/core/extensions/error_mapper.dart';
 import 'package:samay/core/providers/auth_provider.dart';
+import 'package:samay/core/router/route_paths.dart';
 import 'package:samay/shared/widgets/v_button.dart';
 import 'package:samay/shared/widgets/v_input.dart';
 
@@ -63,7 +64,7 @@ class _SignupContactScreenState extends ConsumerState<SignupContactScreen> {
         return;
       }
       await ref.read(authStateProvider.notifier).sendOtp(email);
-      if (mounted) context.push('/auth/verify', extra: {
+      if (mounted) context.push(RoutePaths.verify, extra: {
         'email': email,
         'password': password,
       });
