@@ -1,0 +1,7 @@
+# Samay — fastlane Appfile (agent M-17, phase 4.3).
+# Placeholders per <private-ops-repo>/DEPLOYMENT-PLACEHOLDER.md §3.3 — every value is
+# read from the environment, and the Fastfile's fail-fast guard aborts until
+# the placeholders are replaced by real values OUTSIDE the repo.
+app_identifier("com.qallariy.samay")                                   # verified in ios/Runner.xcodeproj/project.pbxproj
+team_id(ENV.fetch("TEAM_ID", "XXXXXXXXXX"))                            # §3.3 placeholder — matches DEVELOPMENT_TEAM in the pbxproj
+apple_id(ENV.fetch("APPLE_ID", "CHANGE_ME"))                           # §3.3 placeholder — App Store Connect Apple ID

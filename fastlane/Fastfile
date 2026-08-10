@@ -1,0 +1,229 @@
+# =============================================================================
+# Samay — fastlane iOS + Android lanes (agents M-17 + M-18, phase 4.3).
+#
+# CONTRACT: <private-ops-repo>/DEPLOYMENT-PLACEHOLDER.md §3.3. The Makefile is the ONLY
+# fastlane entrypoint, and the lane names below are pinned by
+# test/opt-008-makefile-static.sh §2 + the Makefile stub greps — do not rename:
+#
+#   make ios-beta        → bundle exec fastlane ios beta_testflight
+#   make ios-release     → bundle exec fastlane ios release_appstore
+#   make android-alpha   → bundle exec fastlane android alpha_firebase
+#   make android-release → bundle exec fastlane android release_play
+#
+# CREDENTIALS: placeholders only, never real values (AGENT-RULES §4). Every
+# credential is read from the environment; the §3.3 placeholder values below
+# are the "not configured" markers. assert_credentials_configured! FAILS FAST
+# ("credentials not configured (placeholders)") until each one is replaced by a
+# real value OUTSIDE the repo (CI secrets / developer env). Match is referenced
+# (git_url + password from the env, per §3.3) but can never execute while the
+# placeholder MATCH_* values are in place.
+#
+# SIGNING (iOS): ios/Runner.xcodeproj/project.pbxproj uses CODE_SIGN_STYLE =
+# Manual, DEVELOPMENT_TEAM = XXXXXXXXXX (placeholder), empty
+# PROVISIONING_PROFILE_SPECIFIER, PRODUCT_BUNDLE_IDENTIFIER = com.qallariy.samay.
+# Once $TEAM_ID/$MATCH_* are real, Match provisions certificates + profiles for
+# the real team and the pbxproj DEVELOPMENT_TEAM placeholder is replaced
+# (store-prep step, M-28/mvp release).
+#
+# SIGNING (Android): android/app/build.gradle.kts release buildType currently
+# signs with the DEBUG key (build.gradle.kts:37) — the §3.3 keystore env vars
+# below are the contract that M-27 (gradle owner) wires into `signingConfigs`
+# once real. android/app/keystores/ must stay ABSENT and NO .jks may ever be
+# created or committed; the lane guard FAILS FAST while any keystore env is
+# unset/CHANGE_ME, so a "release" build can never run with placeholder
+# signing. See fastlane/README.md "Signing (Android)".
+# =============================================================================
+
+default_platform(:ios)
+
+# §3.3 placeholder values — the "not configured" markers. Do NOT change.
+REQUIRED_CREDENTIAL_ENV = {
+  "APP_STORE_CONNECT_API_KEY_ID" => "AAAAAAAAAA",
+  "APP_STORE_CONNECT_API_ISSUER_ID" => "00000000-0000-0000-0000-000000000000",
+  "APP_STORE_CONNECT_API_KEY" => "fastlane/keys/AppStoreConnect_AAAAAAAAAA.p8",
+  "MATCH_GIT_URL" => "git@github.com:samay-app/samay-match.git",
+  "MATCH_PASSWORD" => "CHANGE_ME",
+  "TEAM_ID" => "XXXXXXXXXX",
+  "APPLE_ID" => "CHANGE_ME",
+  "FASTLANE_USER" => "CHANGE_ME"
+}.freeze
+
+# Android §3.3 placeholder values — the "not configured" markers. Do NOT change.
+# $ANDROID_KEYSTORE_PATH is a PATH-ONLY contract: android/app/keystores/ must
+# not exist in the repo (M-27 wires the gradle signingConfigs to read it once
+# the keystore is generated and kept in a secret store at release time).
+REQUIRED_ANDROID_CREDENTIAL_ENV = {
+  "ANDROID_KEYSTORE_PATH" => "android/app/keystores/release-keystore.jks",
+  "ANDROID_KEYSTORE_ALIAS" => "samay-release",
+  "ANDROID_KEYSTORE_PASSWORD" => "CHANGE_ME",
+  "ANDROID_KEY_ALIAS_PASSWORD" => "CHANGE_ME",
+  "FIREBASE_API_TOKEN" => "CHANGE_ME",
+  "PLAY_SERVICE_ACCOUNT_JSON" => "fastlane/keys/google-play-service-account.json"
+}.freeze
+
+VALID_EXPORT_METHODS = %w[app-store ad-hoc development enterprise].freeze
+
+# Abort the lane unless every credential is set AND not equal to its §3.3
+# placeholder. Parametrized by the platform credential hash (iOS
+# REQUIRED_CREDENTIAL_ENV / Android REQUIRED_ANDROID_CREDENTIAL_ENV); the
+# path-only credential FILES (.p8 for ASC, JSON key for Google Play) must
+# exist once their env value is real (never created while still a
+# placeholder — the §3.3 paths stay path-only). ANDROID_KEYSTORE_PATH is
+# deliberately NOT file-checked: the keystore is generated at release time
+# and kept in a secret store, never in the repo.
+def assert_credentials_configured!(creds = REQUIRED_CREDENTIAL_ENV)
+  missing = creds.select do |name, placeholder|
+    ENV[name].to_s.empty? || ENV[name].to_s == placeholder
+  end.keys
+
+  credential_files = {
+    "APP_STORE_CONNECT_API_KEY" => "download the .p8 from App Store Connect → Users and Access → Keys (never commit it; fastlane/keys/ is gitignored)",
+    "PLAY_SERVICE_ACCOUNT_JSON" => "download the key JSON from Google Cloud Console → IAM & Admin → Service Accounts → Keys (never commit it; fastlane/keys/ is gitignored)"
+  }
+  credential_files.each do |env_name, hint|
+    next unless creds.key?(env_name)
+    next if missing.include?(env_name)
+    path = ENV[env_name].to_s
+    next if path.empty? || File.exist?(path)
+    UI.user_error!("#{env_name} file not found at '#{path}' — #{hint}")
+  end
+
+  unless missing.empty?
+    UI.user_error!("credentials not configured (placeholders): #{missing.join(', ')} — replace the §3.3 placeholder values in your environment (CI secrets / developer env, never the repo) before running this lane. See fastlane/README.md + <private-ops-repo>/DEPLOYMENT-PLACEHOLDER.md §3.3.")
+  end
+end
+
+# Export method: lane default unless $IOS_EXPORT_METHOD is set; must be one of
+# the §3.3 enum (app-store / ad-hoc / development / enterprise).
+def export_method_for(default)
+  method = ENV["IOS_EXPORT_METHOD"].to_s
+  method = default if method.empty?
+  unless VALID_EXPORT_METHODS.include?(method)
+    UI.user_error!("IOS_EXPORT_METHOD='#{method}' is not valid — must be one of #{VALID_EXPORT_METHODS.join(', ')} (§3.3).")
+  end
+  method
+end
+
+# Map the export method to fastlane match's `type` vocabulary.
+def match_type_for(export_method)
+  {
+    "app-store" => "appstore",
+    "ad-hoc" => "adhoc",
+    "development" => "development",
+    "enterprise" => "enterprise"
+  }.fetch(export_method)
+end
+
+def app_store_connect_key
+  app_store_connect_api_key(
+    key_id: ENV["APP_STORE_CONNECT_API_KEY_ID"],
+    issuer_id: ENV["APP_STORE_CONNECT_API_ISSUER_ID"],
+    key_filepath: ENV["APP_STORE_CONNECT_API_KEY"]
+  )
+end
+
+# Compile-time dart-defines passed to every flutter release build (I-34/M-13
+# contract: SUPABASE_URL + SUPABASE_ANON_KEY via String.fromEnvironment; unset
+# vars are simply not passed — same convention as the define-free dev runs).
+def dart_defines
+  %w[SUPABASE_URL SUPABASE_ANON_KEY].filter_map do |key|
+    "--dart-define=#{key}=#{ENV[key]}" unless ENV[key].to_s.empty?
+  end
+end
+
+# Build the release IPA with the export method; return the produced IPA path.
+def build_ios_ipa(export_method)
+  defines = dart_defines
+  sh("flutter build ipa --release --export-method #{export_method} #{defines.join(' ')}")
+  ipa = Dir.glob(File.join(Dir.pwd, "build", "ios", "ipa", "*.ipa")).first
+  UI.user_error!("No IPA found under build/ios/ipa — did 'flutter build ipa' succeed?") if ipa.nil?
+  ipa
+end
+
+# Build a release Android artifact ("apk" or "appbundle"); return its path.
+# NOTE: flutter build apk/appbundle IS gradle assembleRelease/bundleRelease
+# (the §3.3 "gradle bundleRelease" shape) with the flutter toolchain wired in.
+def build_android_artifact(artifact)
+  defines = dart_defines
+  sh("flutter build #{artifact} --release #{defines.join(' ')}")
+  path = case artifact
+         when "apk" then File.join(Dir.pwd, "build", "app", "outputs", "flutter-apk", "app-release.apk")
+         when "appbundle" then File.join(Dir.pwd, "build", "app", "outputs", "bundle", "release", "app-release.aab")
+         else UI.user_error!("build_android_artifact: unknown artifact '#{artifact}' (must be apk or appbundle)")
+         end
+  UI.user_error!("No #{artifact == 'apk' ? 'APK' : 'AAB'} at #{path} — did 'flutter build #{artifact} --release' succeed?") unless File.exist?(path)
+  path
+end
+
+# Documented-not-executed while placeholders are in place (the guard above
+# fails first). Once $MATCH_GIT_URL / $MATCH_PASSWORD / $TEAM_ID are real, Match
+# provisions the certificates + profiles for the Manual-style Runner target.
+def ensure_matching_signing(export_method, api_key)
+  match(
+    git_url: ENV["MATCH_GIT_URL"],
+    type: match_type_for(export_method),
+    app_store_connect_api_key: api_key,
+    readonly: false
+  )
+end
+
+platform :ios do
+  desc "Build the IPA (export method ad-hoc per §3.3) and upload to TestFlight via App Store Connect"
+  lane :beta_testflight do
+    export_method = export_method_for("ad-hoc")
+    assert_credentials_configured!
+    api_key = app_store_connect_key
+    ensure_matching_signing(export_method, api_key)
+    ipa = build_ios_ipa(export_method)
+    upload_to_testflight(api_key: api_key, ipa: ipa)
+  end
+
+  desc "Build the IPA (export method app-store per §3.3) and submit to App Store Connect (deliver)"
+  lane :release_appstore do
+    export_method = export_method_for("app-store")
+    assert_credentials_configured!
+    api_key = app_store_connect_key
+    ensure_matching_signing(export_method, api_key)
+    ipa = build_ios_ipa(export_method)
+    deliver(
+      api_key: api_key,
+      ipa: ipa,
+      skip_metadata: true,
+      skip_screenshots: true,
+      force: true
+    )
+  end
+end
+
+platform :android do
+  # Both lanes guard on the FULL Android credential set (keystore path/alias/
+  # passwords + Firebase token + Play service account): a release-shaped build
+  # must never run while any §3.3 placeholder is still set — signing lands
+  # with the real credentials only (M-27 wires gradle signingConfigs).
+
+  desc "Build the release APK and distribute it to Firebase App Distribution testers (§3.3, MVP §10)"
+  lane :alpha_firebase do
+    assert_credentials_configured!(REQUIRED_ANDROID_CREDENTIAL_ENV)
+    apk = build_android_artifact("apk")
+    firebase_app_distribution(
+      apk_path: apk,
+      firebase_cli_token: ENV["FIREBASE_API_TOKEN"],
+      groups: "alpha-testers"
+    )
+  end
+
+  desc "Build the release app bundle and upload it to Google Play via supply (§3.3)"
+  lane :release_play do
+    assert_credentials_configured!(REQUIRED_ANDROID_CREDENTIAL_ENV)
+    aab = build_android_artifact("appbundle")
+    supply(
+      track: "internal",
+      aab: aab,
+      json_key: ENV["PLAY_SERVICE_ACCOUNT_JSON"],
+      skip_upload_metadata: true,
+      skip_upload_screenshots: true,
+      skip_upload_images: true,
+      skip_upload_apk: true
+    )
+  end
+end

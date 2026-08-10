@@ -147,13 +147,15 @@ Postgres executes `SECURITY DEFINER` functions with the *creator's* privileges, 
 
 | Claim | Evidence |
 |-------|----------|
-| Event photos: private bucket, 1 h signed URLs | `lib/core/services/supabase_service.dart:656-659` (`createSignedUrl(storagePath, 3600)`); bucket design: SECU-rls-policies.md:51-55 |
-| Group covers: public bucket + public URL | `lib/features/groups/create_group_screen.dart:77-80` (`uploadBinary` + `getPublicUrl`) |
+| Event photos: private bucket, 1 h signed URLs | `lib/core/services/media_service.dart:116-119` (`createSignedUrl(storagePath, 3600)`); bucket design: SECU-rls-policies.md:51-55; bucket public=false via `20260810000007_storage_buckets.sql` (M-08) |
+| Group covers: public bucket + public URL | `lib/features/groups/create_group_screen.dart:77-80` (`uploadBinary` + `getPublicUrl`); `groups` bucket public=true via `20260810000007_storage_buckets.sql` (M-08) |
+| Avatars: public bucket + public URL | `lib/core/services/media_service.dart:62-68` (`uploadUserAvatar` → `getPublicUrl`); `avatars` bucket public=true via `20260810000007_storage_buckets.sql` (M-08) |
 | No image size/resizing on upload (full-res files) | `lib/core/services/supabase_service.dart:641-645` (raw bytes) — I-22 image_processor |
 | Storage file-size cap 50 MiB | `supabase/config.toml:42` |
-| **Bucket policies not yet created** (deferred) | SECU-rls-policies.md:43-67; no storage migration exists |
+| **Bucket rows + storage.objects RLS policies** ✅ (M-08, 2026-08-10 — closes the I-36/I-59 bucket-creation gap) | `supabase/migrations/20260810000007_storage_buckets.sql` (×2): `avatars`/`groups` public=true, `events` public=false; 5 objects policies: public SELECT avatars/groups, events SELECT gated on `event_photos` visibility (eph_read_access), own-row INSERT/UPDATE/DELETE on `owner_id` = `auth.jwt()->>'sub'` (avatars INSERT also requires the `{user_id}/` path prefix). Column verified against storage-api v1.60.4 tenant migrations: `storage.objects.owner_id` (text, since 0018) — NOT `owner` |
+| **Signed-URL/RLS interplay — verified + handoff stays S-09** | v1.60.4 source check (M-08): signing (`signObjectUrl`) runs `findObject` through the caller's RLS session → a SELECT policy matching event access is REQUIRED (this is why `storage_objects_events_select_access` exists); signed-URL retrieval (`getSignedObject`) runs `asSuperUser()` → RLS-independent. ⚠️ `MediaService.uploadEventCover` returns `getPublicUrl` for the PRIVATE events bucket (non-servable) — ECRT/S-09 follow-up |
 
-Plan (S-09/I-59): define per-bucket policies (avatars public-read/own-write, events private + signed URLs, chats private, cosmetics public), enforce path-prefix ownership (`{user_id}/...`), signed URL expiry ≤ 1 h, rate-limit URL generation.
+Plan (S-09/I-59): enforce path-prefix ownership (`{user_id}/...`) — done for avatars INSERT, groups/events paths do not embed a user id (own-row `owner_id` check instead); signed URL expiry ≤ 1 h — app uses 1 h (media_service.dart:117); rate-limit URL generation — open (S-09/S-10); event-cover serving — open (see above).
 
 ### 2.6 Input sanitization (I-27 — ✅ DONE 2026-08-09)
 
@@ -314,7 +316,7 @@ Hard delete (daily 03:00):                    supabase/migrations/20260510000002
 | G-09 | E2EE chat: no crypto code, plaintext `messages.content`, no key lifecycle | 🔴 (before chat ships) | I-37, I-38 (spec D-07) | SEC-10/M-32 (Hive), E2EE-ARCHITECTURE.md |
 | G-10 | Unencrypted Hive caches (config/photo/message) | ✅ (I-26, 2026-08-09 — `HiveService` opens all 4 boxes with `HiveAesCipher` (AES-256); 32-byte key in flutter_secure_storage (`samay.hive.key`), never on disk beside data; `crashRecovery: false` + zone-guarded opens; wrong-key → `HiveError` → delete + re-create (SEC-10/M-32 closed) | I-26 | SEC-10, M-32 |
 | G-11 | Kong has no rate-limit plugin; app-level limits unenforced (FLMT blocked on Edge Functions) | 🟠 | M-09, S-10 (FLMT: EEDG) | SEC-05, FLMT doc |
-| G-12 | Storage bucket policies not created; no signed-URL access check (client calls `createSignedUrl` directly) | 🟠 | S-09, I-59 | SECU-rls-policies.md §storage |
+| G-12 | Storage bucket policies not created; no signed-URL access check (client calls `createSignedUrl` directly) | ✅ (M-08, 2026-08-10 — buckets + storage.objects RLS shipped in `20260810000007_storage_buckets.sql`: avatars/groups public SELECT, events SELECT gated on event access via `event_photos` visibility, own-row INSERT/UPDATE/DELETE on `owner_id`; pgTAP Section 47. **Remaining:** client-side signed-URL issuance stays (no server-side signing RPC — edge functions blocked), event-cover serving on the private events bucket, signed-URL generation rate limiting — S-09/S-10) | S-09, I-59 | SECU-rls-policies.md §storage |
 | G-13 | No crash/error reporting (Sentry placeholder) | 🟡 | I-70, I-05 | SEC-08, M-30 |
 | G-14 | AuthGuard loading flash (`return null`) | 🟡 | I-03 | SEC-12, M-34 |
 | G-15 | PostgREST error strings leak schema details to users | 🟡 | I-08 (done), verify S-13 | SEC-15, M-35 |

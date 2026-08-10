@@ -1,4 +1,4 @@
-import 'package:samay/features/profile/interests.dart';
+import 'package:samay/features/profile/widgets/interests.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 /// User profiles, friendship lifecycle and search.
