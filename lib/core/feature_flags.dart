@@ -35,7 +35,8 @@ enum AppFeatureFlag {
   /// QR attendance + scanner (I-57).
   qr,
 
-  /// Social feed (FEED — I-58).
+  /// Social feed (FEED — I-58; LIVE: it's the landing tab, so the flag is
+  /// the kill-switch/remote-config knob — the real feed ships by default).
   feed,
 
   /// In-app notification center (NOTI — LIVE, landed by I-53; the flag is
@@ -72,7 +73,9 @@ class AppFeatureFlags {
     this.events = false,
     this.chat = true,
     this.qr = false,
-    this.feed = false,
+    // NOTE (I-58): the feed IS the landing tab — the real feed ships by
+    // default (true); flipping to false returns it to the dark state.
+    this.feed = true,
     this.notifications = true,
     this.subscriptions = false,
     this.partyFinder = false,

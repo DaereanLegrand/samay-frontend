@@ -26,7 +26,9 @@ import 'package:samay/features/events/event_detail_screen.dart';
 import 'package:samay/features/events/event_edit_screen.dart';
 import 'package:samay/features/events/create_event_screen.dart';
 import 'package:samay/features/feed/feed_screen.dart';
+import 'package:samay/features/photos/photo_gallery_screen.dart';
 import 'package:samay/features/chat/chat_screen.dart';
+import 'package:samay/features/cosmetics/cosmetics_shop_screen.dart';
 import 'package:samay/features/friends/search_screen.dart';
 import 'package:samay/features/friends/requests_screen.dart';
 import 'package:samay/features/friends/friends_list_screen.dart';
@@ -39,6 +41,10 @@ import 'package:samay/features/groups/leaderboard_screen.dart';
 import 'package:samay/features/groups/my_groups_screen.dart';
 import 'package:samay/features/groups/group_members_screen.dart';
 import 'package:samay/features/notifications/notification_center_screen.dart';
+import 'package:samay/features/party_finder/party_finder_screen.dart';
+import 'package:samay/features/qr/attendance_qr_screen.dart';
+import 'package:samay/features/qr/qr_scanner_screen.dart';
+import 'package:samay/features/subscriptions/paywall_screen.dart';
 import 'package:samay/shared/widgets/route_error_screen.dart';
 import 'package:samay/shared/widgets/v_coming_soon.dart';
 
@@ -194,13 +200,19 @@ final routerProvider = Provider<GoRouter>((ref) {
         ),
       ),
       GoRoute(
+        // PHUP (I-59): gated on the photoUpload flag (dark-first) — the
+        // disabled state keeps the previous localized coming-soon copy.
         path: RoutePaths.eventPhotos(':eventId'),
         builder: (context, state) => _screenForId(
           state,
           'eventId',
-          (_) => VComingSoonScreen(
-            title: AppLocalizations.of(context).comingSoonPhotosTitle,
-            description: AppLocalizations.of(context).comingSoonPhotosBody,
+          (eventId) => FlagGate(
+            flag: AppFeatureFlag.photoUpload,
+            fallback: VComingSoonScreen(
+              title: AppLocalizations.of(context).comingSoonPhotosTitle,
+              description: AppLocalizations.of(context).comingSoonPhotosBody,
+            ),
+            child: PhotoGalleryScreen(eventId: eventId),
           ),
           errorMessage: AppLocalizations.of(context).routerEventNotFound,
         ),
@@ -323,13 +335,19 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: RoutePaths.friendsList, builder: (_, _) => const FriendsListScreen()),
       GoRoute(path: RoutePaths.blockedUsers, builder: (_, _) => const BlockedUsersScreen()),
       GoRoute(
+        // QRAT/QRSC (I-57): gated on the qr flag (dark-first) — the disabled
+        // state keeps the previous localized coming-soon copy.
         path: RoutePaths.qr(':eventId'),
         builder: (context, state) => _screenForId(
           state,
           'eventId',
-          (_) => VComingSoonScreen(
-            title: AppLocalizations.of(context).comingSoonQrTitle,
-            description: AppLocalizations.of(context).comingSoonQrBody,
+          (eventId) => FlagGate(
+            flag: AppFeatureFlag.qr,
+            fallback: VComingSoonScreen(
+              title: AppLocalizations.of(context).comingSoonQrTitle,
+              description: AppLocalizations.of(context).comingSoonQrBody,
+            ),
+            child: AttendanceQrScreen(eventId: eventId),
           ),
           errorMessage: AppLocalizations.of(context).routerEventNotFound,
         ),
@@ -339,33 +357,46 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => _screenForId(
           state,
           'eventId',
-          (_) => VComingSoonScreen(
-            title: AppLocalizations.of(context).comingSoonScannerTitle,
-            description: AppLocalizations.of(context).comingSoonScannerBody,
+          (eventId) => FlagGate(
+            flag: AppFeatureFlag.qr,
+            fallback: VComingSoonScreen(
+              title: AppLocalizations.of(context).comingSoonScannerTitle,
+              description: AppLocalizations.of(context).comingSoonScannerBody,
+            ),
+            child: QrScannerScreen(eventId: eventId),
           ),
           errorMessage: AppLocalizations.of(context).routerEventNotFound,
         ),
       ),
       GoRoute(
+        // PLAN (I-61): gated on the subscriptions flag (dark-first) — the
+        // disabled state keeps the previous localized coming-soon copy.
         path: RoutePaths.subscriptions,
         builder: (context, _) => FlagGate(
           flag: AppFeatureFlag.subscriptions,
-          child: VComingSoonScreen(
-            title: AppLocalizations.of(context).comingSoonSubscriptionsTitle,
-            description:
-                AppLocalizations.of(context).comingSoonSubscriptionsBody,
-          ),
+          child: const PaywallScreen(),
         ),
       ),
       GoRoute(
+        // PFND (I-60): gated on the partyFinder flag (dark-first) — the
+        // disabled state keeps the previous localized coming-soon copy.
         path: RoutePaths.partyFinder,
         builder: (context, _) => FlagGate(
           flag: AppFeatureFlag.partyFinder,
-          child: VComingSoonScreen(
-            title: AppLocalizations.of(context).comingSoonPartyFinderTitle,
-            description:
-                AppLocalizations.of(context).comingSoonPartyFinderBody,
+          child: const PartyFinderScreen(),
+        ),
+      ),
+      GoRoute(
+        // COSM (I-62): gated on the cosmeticsSection flag (dark-first) — the
+        // disabled state keeps the previous localized coming-soon copy.
+        path: RoutePaths.cosmetics,
+        builder: (context, _) => FlagGate(
+          flag: AppFeatureFlag.cosmeticsSection,
+          fallback: VComingSoonScreen(
+            title: AppLocalizations.of(context).comingSoonCosmeticsTitle,
+            description: AppLocalizations.of(context).comingSoonCosmeticsBody,
           ),
+          child: const CosmeticsShopScreen(),
         ),
       ),
       GoRoute(path: RoutePaths.settings, builder: (_, _) => const SettingsScreen()),

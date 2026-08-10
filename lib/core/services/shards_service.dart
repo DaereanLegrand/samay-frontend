@@ -1,6 +1,33 @@
 import 'package:samay/core/services/config_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+/// Thrown when [ShardsService.purchaseCosmetic] finds the user's
+/// `personal_shards` below the item's `shard_cost`. Typed so the cosmetics
+/// feature maps it to a friendly localized message (I-62).
+class InsufficientShardsException implements Exception {
+  const InsufficientShardsException({
+    required this.required,
+    required this.balance,
+  });
+
+  final int required;
+  final int balance;
+}
+
+/// Thrown when [ShardsService.purchaseCosmetic] finds the user's
+/// `subscription_tier` below the item's `tier_requirement` (COSM spec step 2).
+class TierRequirementException implements Exception {
+  const TierRequirementException();
+}
+
+/// Rank for `subscription_tier` / `tier_requirement` comparisons:
+/// `free < pro < vip`. Shared by the service guard and the shop's lock UI.
+int tierRank(String tier) => switch (tier) {
+  'vip' => 2,
+  'pro' => 1,
+  _ => 0,
+};
+
 /// Shard economy: group donations, contributions, cosmetics and leaderboards.
 ///
 /// Part of the ARC-05/CQ-01 decomposition of the former monolithic
@@ -17,23 +44,34 @@ class ShardsService {
     final user = auth.currentUser;
     if (user == null) throw Exception('No authenticated user');
 
-    final userRes = await client.from('users').select('personal_shards').eq('id', user.id).single();
+    final userRes = await client
+        .from('users')
+        .select('personal_shards')
+        .eq('id', user.id)
+        .single();
     final currentShards = userRes['personal_shards'] as int;
     if (currentShards < amount) throw Exception('No tienes suficientes shards');
 
     final appConfig = await config.fetchAppConfig();
-    final boostDays = int.parse(appConfig['economy.group_shard_boost_days'] ?? '14');
+    final boostDays = int.parse(
+      appConfig['economy.group_shard_boost_days'] ?? '14',
+    );
     final now = DateTime.now();
 
-    await client.rpc('donate_shards_to_group', params: {
-      'p_group_id': groupId,
-      'p_user_id': user.id,
-      'p_amount': amount,
-      'p_expires_at': now.add(Duration(days: boostDays)).toIso8601String(),
-    });
+    await client.rpc(
+      'donate_shards_to_group',
+      params: {
+        'p_group_id': groupId,
+        'p_user_id': user.id,
+        'p_amount': amount,
+        'p_expires_at': now.add(Duration(days: boostDays)).toIso8601String(),
+      },
+    );
   }
 
-  Future<List<Map<String, dynamic>>> getGroupContributions(String groupId) async {
+  Future<List<Map<String, dynamic>>> getGroupContributions(
+    String groupId,
+  ) async {
     final res = await client
         .from('group_shard_contributions')
         .select('id, user_id, shards_contributed, users!inner(username)')
@@ -63,12 +101,27 @@ class ShardsService {
     final user = auth.currentUser;
     if (user == null) throw Exception('No authenticated user');
 
-    final cosmetic = await client.from('cosmetics').select('shard_cost').eq('id', cosmeticId).single();
+    final cosmetic = await client
+        .from('cosmetics')
+        .select('shard_cost, tier_requirement')
+        .eq('id', cosmeticId)
+        .single();
     final cost = cosmetic['shard_cost'] as int;
+    final requiredTier = cosmetic['tier_requirement'] as String? ?? 'free';
 
-    final userData = await client.from('users').select('personal_shards').eq('id', user.id).single();
+    final userData = await client
+        .from('users')
+        .select('personal_shards, subscription_tier')
+        .eq('id', user.id)
+        .single();
     final shards = userData['personal_shards'] as int;
-    if (shards < cost) throw Exception('No tienes suficientes shards');
+    if (shards < cost) {
+      throw InsufficientShardsException(required: cost, balance: shards);
+    }
+    final userTier = userData['subscription_tier'] as String? ?? 'free';
+    if (tierRank(requiredTier) > tierRank(userTier)) {
+      throw const TierRequirementException();
+    }
 
     await client.from('user_cosmetics').insert({
       'user_id': user.id,
@@ -84,6 +137,72 @@ class ShardsService {
       'reference_id': cosmeticId,
       'created_at': DateTime.now().toIso8601String(),
     });
+  }
+
+  /// The public cosmetics catalog (COSM spec; `cosmetics_read_all` RLS).
+  Future<List<Map<String, dynamic>>> listCosmetics() async {
+    final res = await client
+        .from('cosmetics')
+        .select('id, name, type, asset_url, shard_cost, tier_requirement')
+        .order('shard_cost', ascending: true);
+    return res.map((e) => Map<String, dynamic>.from(e)).toList();
+  }
+
+  /// The current user's ownership rows (`user_cosmetics_read_own` RLS),
+  /// each joined with its cosmetic (type/name/cost — the shop needs them to
+  /// render owned/equipped state without a second lookup).
+  Future<List<Map<String, dynamic>>> getMyCosmetics() async {
+    final user = auth.currentUser;
+    if (user == null) throw Exception('No authenticated user');
+
+    final res = await client
+        .from('user_cosmetics')
+        .select(
+          'id, cosmetic_id, equipped, purchased_at, '
+          'cosmetics!inner(id, name, type, asset_url, shard_cost, '
+          'tier_requirement)',
+        )
+        .eq('user_id', user.id)
+        .order('purchased_at', ascending: true);
+    return res.map((e) => Map<String, dynamic>.from(e)).toList();
+  }
+
+  /// Equips/unequips one owned cosmetic (`user_cosmetics_update_own` RLS —
+  /// own rows only). Equipping auto-unequips the other owned items of the
+  /// same type (COSM spec "one equipped per type").
+  Future<void> setCosmeticEquipped(String userCosmeticId, bool equipped) async {
+    final user = auth.currentUser;
+    if (user == null) throw Exception('No authenticated user');
+
+    if (equipped) {
+      final target = await client
+          .from('user_cosmetics')
+          .select('cosmetic_id, cosmetics!inner(type)')
+          .eq('id', userCosmeticId)
+          .eq('user_id', user.id)
+          .single();
+      final type = (target['cosmetics'] as Map)['type'] as String;
+
+      final mine = await client
+          .from('user_cosmetics')
+          .select('id, cosmetics!inner(type)')
+          .eq('user_id', user.id);
+      for (final row in mine) {
+        final otherType = (row['cosmetics'] as Map)['type'] as String;
+        if (row['id'] != userCosmeticId && otherType == type) {
+          await client
+              .from('user_cosmetics')
+              .update({'equipped': false})
+              .eq('id', row['id'] as String);
+        }
+      }
+    }
+
+    await client
+        .from('user_cosmetics')
+        .update({'equipped': equipped})
+        .eq('id', userCosmeticId)
+        .eq('user_id', user.id);
   }
 
   Future<List<Map<String, dynamic>>> getLeaderboard(String sizeTier) async {

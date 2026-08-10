@@ -59,3 +59,13 @@ class NotFoundError extends AppError {
     return 'No encontrado.';
   }
 }
+
+/// Raised by purchase flows when RevenueCat is not configured (stub mode —
+/// no `REVENUECAT_PUBLIC_SDK_KEY` dart-define, I-61 foundation). Subclassed
+/// here because [AppError] is sealed: all error types live in this library.
+class NotConfiguredError extends AppError {
+  NotConfiguredError();
+
+  @override
+  String get message => 'Los pagos aún no están disponibles.';
+}

@@ -62,11 +62,78 @@ final chatE2eeRepositoryProvider = Provider<ChatRepository>((ref) {
   );
 });
 
+/// History page size (CHAT spec: "load last 50 messages on open, scroll up →
+/// paginate older messages").
+const int chatPageSize = 50;
+
+/// Mirror of the `chat.message_cap` app_config key (default 1000) enforced
+/// server-side by the `enforce_message_cap` trigger (TRIG spec / migration
+/// 20260809000001). The DB rolling window never stores more than this many
+/// messages per chat, so the client must not paginate past it — [loadOlder]
+/// flips `hasMore` false at the cap (see [ChatMessagesNotifier]).
+const int chatMessageCap = 1000;
+
+/// The chat thread state: decrypted messages (oldest first) plus the
+/// pagination flags the screen renders (I-56, CHAT spec).
+class ChatMessagesState {
+  const ChatMessagesState({
+    required this.messages,
+    required this.hasMore,
+    this.loadingOlder = false,
+  });
+
+  /// Decrypted rows, oldest first.
+  final List<Map<String, dynamic>> messages;
+
+  /// Whether an older page is still available (server returned a full page
+  /// on the last fetch and the message cap has not been reached).
+  final bool hasMore;
+
+  /// True while an older page is being fetched (loader row in the UI).
+  final bool loadingOlder;
+
+  ChatMessagesState copyWith({
+    List<Map<String, dynamic>>? messages,
+    bool? hasMore,
+    bool? loadingOlder,
+  }) {
+    return ChatMessagesState(
+      messages: messages ?? this.messages,
+      hasMore: hasMore ?? this.hasMore,
+      loadingOlder: loadingOlder ?? this.loadingOlder,
+    );
+  }
+}
+
 class ChatMessagesNotifier
-    extends FamilyAsyncNotifier<List<Map<String, dynamic>>, String> {
+    extends FamilyAsyncNotifier<ChatMessagesState, String> {
+  /// Next server offset for [loadOlder] (rows already consumed).
+  int _offset = 0;
+
+  /// Whether the server may hold an older page (recomputed per fetch).
+  bool _hasMore = true;
+
+  /// In-flight guard for [loadOlder] (L-07 concurrency guard — a second tap
+  /// while fetching must not double-fetch).
+  bool _loadingOlder = false;
+
+  /// The E2EE seam (I-50): every message path goes through the injected
+  /// [ChatService] — encrypt-on-send, decrypt-on-load. The provider must
+  /// never touch the raw Supabase client (pinned by a `verifyNever` test in
+  /// `test/features/chat/chat_pagination_test.dart`).
+  ChatRepository get _repo => ref.read(chatE2eeRepositoryProvider);
+
   @override
-  Future<List<Map<String, dynamic>>> build(String chatId) async {
-    return ref.read(chatE2eeRepositoryProvider).loadMessages(chatId);
+  Future<ChatMessagesState> build(String chatId) async {
+    // Family instances are long-lived (keep-alive provider); reset the
+    // paging state on every (re)load so refresh() re-reads the first page.
+    _offset = 0;
+    _hasMore = true;
+    _loadingOlder = false;
+    final first = await _loadPage(chatId, 0);
+    _offset = first.length;
+    _hasMore = _fullPage(first.length) && _offset < chatMessageCap;
+    return ChatMessagesState(messages: first, hasMore: _hasMore);
   }
 
   /// Re-runs [build] (after sending, pull-to-refresh).
@@ -76,7 +143,7 @@ class ChatMessagesNotifier
   /// encrypts via [ChatService] before insert; the reload path decrypts.
   Future<void> send(String chatId, String text) async {
     if (text.trim().isEmpty) return;
-    await ref.read(chatE2eeRepositoryProvider).sendMessage(chatId, text, null);
+    await _repo.sendMessage(chatId, text, null);
     await refresh();
   }
 
@@ -87,14 +154,72 @@ class ChatMessagesNotifier
     if (id is! String) return;
     final current = state.valueOrNull;
     if (current == null) {
-      state = AsyncData([row]);
+      state = AsyncData(ChatMessagesState(messages: [row], hasMore: _hasMore));
       return;
     }
-    if (current.any((m) => m['id'] == id)) return;
-    state = AsyncData([...current, row]);
+    if (current.messages.any((m) => m['id'] == id)) return;
+    state = AsyncData(current.copyWith(messages: [...current.messages, row]));
   }
+
+  /// Fetches the next older page ([chatPageSize] rows before the current
+  /// window), prepends it (deduplicated by id — realtime rows may overlap
+  /// page boundaries) and recomputes [ChatMessagesState.hasMore].
+  ///
+  /// ## Message cap (CHMC/TRIG)
+  ///
+  /// The DB trigger caps the rolling window at `chat.message_cap` (1000):
+  /// pagination must never exceed it, so `hasMore` flips false once the
+  /// accumulated thread reaches [chatMessageCap] or the next page comes back
+  /// short. Failures leave the previous state intact and are rethrown (the
+  /// screen surfaces them via a snackbar).
+  Future<void> loadOlder() async {
+    final current = state.valueOrNull;
+    if (current == null || _loadingOlder) return;
+    if (!_hasMore || _offset >= chatMessageCap) {
+      if (_hasMore) {
+        _hasMore = false;
+        state = AsyncData(current.copyWith(hasMore: false));
+      }
+      return;
+    }
+    _loadingOlder = true;
+    state = AsyncData(current.copyWith(loadingOlder: true));
+    try {
+      final older = await _loadPage(arg, _offset);
+      final existing = {
+        for (final m in current.messages)
+          if (m['id'] is String) m['id'] as String,
+      };
+      final deduped = [
+        for (final m in older)
+          if (m['id'] is String && !existing.contains(m['id'])) m,
+      ];
+      final merged = [...deduped, ...current.messages];
+      _offset += older.length;
+      _hasMore = _fullPage(older.length) && _offset < chatMessageCap;
+      if (merged.length >= chatMessageCap) _hasMore = false;
+      state = AsyncData(
+        ChatMessagesState(messages: merged, hasMore: _hasMore),
+      );
+    } catch (_) {
+      state = AsyncData(current.copyWith(loadingOlder: false));
+      rethrow;
+    } finally {
+      _loadingOlder = false;
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> _loadPage(
+    String chatId,
+    int offset,
+  ) {
+    return _repo.loadMessages(chatId, limit: chatPageSize, offset: offset);
+  }
+
+  bool _fullPage(int fetched) => fetched == chatPageSize;
 }
 
-/// Messages of a chat (oldest first), decrypted; send + refresh.
+/// Messages of a chat (oldest first), decrypted; pagination (last 50 on
+/// open, older pages via [ChatMessagesNotifier.loadOlder]) + send + refresh.
 final chatMessagesProvider = AsyncNotifierProvider.family<ChatMessagesNotifier,
-    List<Map<String, dynamic>>, String>(ChatMessagesNotifier.new);
+    ChatMessagesState, String>(ChatMessagesNotifier.new);

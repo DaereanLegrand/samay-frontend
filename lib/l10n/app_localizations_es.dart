@@ -211,6 +211,34 @@ class AppLocalizationsEs extends AppLocalizations {
       'Tu feed aparecerá aquí.\nPronto podrás ver eventos cercanos y actividades de tus grupos.';
 
   @override
+  String get feedFeatured => 'Destacados';
+
+  @override
+  String get feedFeaturedBadge => 'Destacado';
+
+  @override
+  String feedRadiusKm(int radius) {
+    return '$radius km';
+  }
+
+  @override
+  String get feedRadiusAnywhere => 'En cualquier lugar';
+
+  @override
+  String get feedNoLocationNotice =>
+      'Sin ubicación disponible — mostrando todos los eventos';
+
+  @override
+  String get feedNoEvents => 'No hay eventos próximos';
+
+  @override
+  String get feedNoEventsBody =>
+      'Vuelve pronto para descubrir nuevos eventos cerca de ti.';
+
+  @override
+  String get feedLoadError => 'No se pudo cargar el feed';
+
+  @override
   String get shellFeed => 'Feed';
 
   @override
@@ -740,6 +768,87 @@ class AppLocalizationsEs extends AppLocalizations {
       'El Party Finder estará disponible pronto.';
 
   @override
+  String get paywallHeader => 'Suscripción';
+
+  @override
+  String get paywallAllTiersVisible =>
+      'Todos los planes son visibles sin precios ocultos. Elige el que mejor se adapte a ti.';
+
+  @override
+  String get paywallTierFree => 'Free';
+
+  @override
+  String get paywallTierPro => 'PRO';
+
+  @override
+  String get paywallTierVip => 'VIP';
+
+  @override
+  String get paywallPerMonth => '/mes';
+
+  @override
+  String paywallAnnualEquivalent(String monthly) {
+    return '$monthly ahorrando 17%';
+  }
+
+  @override
+  String get paywallCurrentBadge => 'Actual';
+
+  @override
+  String get paywallRestore => 'Restaurar compras';
+
+  @override
+  String get paywallUpgradePro => 'Actualizar a PRO';
+
+  @override
+  String get paywallUpgradeVip => 'Actualizar a VIP';
+
+  @override
+  String get paywallRowEvents => 'Eventos por día';
+
+  @override
+  String get paywallRowGroups => 'Grupos máximos';
+
+  @override
+  String get paywallRowMembers => 'Miembros por grupo';
+
+  @override
+  String get paywallRowPreshards => 'Preshards mensuales';
+
+  @override
+  String get paywallRowFeed => 'Publicar en feed';
+
+  @override
+  String get paywallRowVideo => 'Video souvenir';
+
+  @override
+  String get paywallRowCosmetics => 'Cosméticos de grupo';
+
+  @override
+  String get paywallRowRank => 'Rango de grupo';
+
+  @override
+  String get paywallUnlimited => 'Ilimitado';
+
+  @override
+  String get paywallLimited => 'Limitado';
+
+  @override
+  String get paywallCosmeticsFull => 'Completo';
+
+  @override
+  String get paywallCosmeticsFullExclusive => 'Completo + exclusivos';
+
+  @override
+  String get paywallRankMicro => 'micro';
+
+  @override
+  String get paywallRankUpToMedium => 'hasta medium';
+
+  @override
+  String get paywallRankAll => 'todos';
+
+  @override
   String get routerRouteNotFound => 'Ruta no encontrada';
 
   @override
@@ -850,6 +959,53 @@ class AppLocalizationsEs extends AppLocalizations {
   String get rankInSearch => 'En la Búsqueda';
 
   @override
+  String get photosTitle => 'Fotos';
+
+  @override
+  String get photosEmpty => 'No hay fotos todavía';
+
+  @override
+  String get photosEmptyBody => '¡Sé el primero en subir una!';
+
+  @override
+  String get photosUpload => 'Subir foto';
+
+  @override
+  String get photosPermissionRationale =>
+      'Para subir fotos del evento, Samay necesita acceso a tus fotos.';
+
+  @override
+  String get photosUploadedSnack => 'Foto subida';
+
+  @override
+  String get photosUploadWindowClosed =>
+      'La ventana de subida de fotos ya cerró';
+
+  @override
+  String photosLikesCount(int count) {
+    return '$count likes';
+  }
+
+  @override
+  String get photosLikeTooltip => 'Me gusta';
+
+  @override
+  String get photosReportTitle => 'Reportar foto';
+
+  @override
+  String get photosReportBody =>
+      'Describe por qué quieres reportar esta foto. El equipo de moderación la revisará.';
+
+  @override
+  String get photosReportHint => 'Escribe el motivo (opcional)';
+
+  @override
+  String get photosReportSubmit => 'Enviar reporte';
+
+  @override
+  String get photosReportSent => 'Reporte enviado';
+
+  @override
   String get permissionsPhotoRationale =>
       'Para elegir una foto de portada, Samay necesita acceso a tus fotos.';
 
@@ -922,6 +1078,9 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get chatSendError => 'No se pudo enviar el mensaje';
+
+  @override
+  String get chatLoadOlder => 'Cargar anteriores';
 
   @override
   String get eventsTypeLabel => 'Tipo de evento';
@@ -1163,4 +1322,230 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get eventStatusCancelled => 'Cancelado';
+
+  @override
+  String get qrAttendanceTitle => 'Código de asistencia';
+
+  @override
+  String get qrEventLoadError => 'No se pudo cargar el evento.';
+
+  @override
+  String get qrTokenLoadError => 'No se pudo cargar el código QR.';
+
+  @override
+  String qrActivatesIn(int minutes) {
+    return 'El código QR se activará $minutes minutos antes del evento';
+  }
+
+  @override
+  String qrActivationCountdown(String time) {
+    return 'Se activa en $time';
+  }
+
+  @override
+  String qrNewCodeIn(int seconds) {
+    return 'Nuevo código en: $seconds';
+  }
+
+  @override
+  String get qrEventEnded =>
+      'El evento ha finalizado. Ya no es necesario el código QR.';
+
+  @override
+  String get qrServerPending =>
+      'No se pudo generar el código QR todavía. El servidor aún no está rotando tokens.';
+
+  @override
+  String get qrServerPendingBody =>
+      'Si el problema continúa, presiona Reintentar.';
+
+  @override
+  String get qrUpdating => 'Actualizando código…';
+
+  @override
+  String get qrAttendeeExpired => 'El código QR expiró. Generando uno nuevo…';
+
+  @override
+  String get qrAttendeeExpiredBody =>
+      'Si el problema continúa, presiona Reintentar.';
+
+  @override
+  String get qrScannerTitle => 'Escáner de asistencia';
+
+  @override
+  String get qrScanPrompt => 'Escanea el código QR del asistente';
+
+  @override
+  String qrScanEventName(String name) {
+    return 'Evento: $name';
+  }
+
+  @override
+  String get qrScanEventFallback => 'Evento';
+
+  @override
+  String get qrTorchOn => 'Encender linterna';
+
+  @override
+  String get qrTorchOff => 'Apagar linterna';
+
+  @override
+  String get qrScanProcessing => 'Verificando…';
+
+  @override
+  String get qrScanConfirmed => '¡Asistencia confirmada!';
+
+  @override
+  String qrScanAttendee(String name) {
+    return 'Asistente: $name';
+  }
+
+  @override
+  String get qrScanReady => 'Listo';
+
+  @override
+  String get qrScanExpired =>
+      'Código QR expirado. Pide al asistente que actualice su QR.';
+
+  @override
+  String get qrScanAlreadyScanned => 'Este código QR ya fue escaneado.';
+
+  @override
+  String get qrScanNotInvited => 'El usuario no está invitado a este evento.';
+
+  @override
+  String get qrScanNotInWindow =>
+      'El evento no está activo para confirmación de asistencia.';
+
+  @override
+  String get qrScanNotPromotor =>
+      'No tienes permisos para escanear en este evento.';
+
+  @override
+  String get qrScanInvalidToken => 'Código QR inválido.';
+
+  @override
+  String get qrScanNetworkError => 'Error de conexión. Reintentar...';
+
+  @override
+  String get qrCameraUnavailable => 'No se pudo acceder a la cámara.';
+
+  @override
+  String get qrCameraUnavailableBody =>
+      'Cierra y vuelve a abrir el escáner, o revisa los permisos de la cámara.';
+
+  @override
+  String get qrCameraDenied => 'Se necesita acceso a la cámara para escanear.';
+
+  @override
+  String get qrCameraSettingsTitle => 'Acceso a la cámara';
+
+  @override
+  String get qrCameraSettingsBody =>
+      'Samay necesita acceso a la cámara para escanear los códigos QR de asistencia.';
+
+  @override
+  String get qrCameraSettingsAction => 'Abrir ajustes';
+
+  @override
+  String get partyFinderTitle => 'Party Finder';
+
+  @override
+  String get partyFinderOptInLabel => 'Aparecer en Party Finder';
+
+  @override
+  String get partyFinderOptInOff => 'Descubrimiento está apagado';
+
+  @override
+  String get partyFinderOptInOffBody =>
+      'Activa el interruptor para aparecer en las coincidencias de otras personas. Nadie puede verte mientras esté apagado.';
+
+  @override
+  String get partyFinderEmpty => 'Aún no hay coincidencias';
+
+  @override
+  String get partyFinderEmptyBody =>
+      'Agrega más intereses a tu perfil para encontrar personas afines.';
+
+  @override
+  String get partyFinderError => 'No se pudo cargar el Party Finder';
+
+  @override
+  String partyFinderSharedInterests(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count intereses en común',
+      one: '1 interés en común',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get cosmeticsShopTitle => 'Tienda de cosméticos';
+
+  @override
+  String get cosmeticsTabFrames => 'Marcos';
+
+  @override
+  String get cosmeticsTabBackgrounds => 'Fondos';
+
+  @override
+  String get cosmeticsTabBadges => 'Insignias';
+
+  @override
+  String get cosmeticsTierVip => 'VIP';
+
+  @override
+  String get cosmeticsTierPro => 'PRO';
+
+  @override
+  String get cosmeticsTierFree => 'Gratis';
+
+  @override
+  String get cosmeticsPurchaseTitle => 'Confirmar compra';
+
+  @override
+  String cosmeticsPurchaseConfirm(String name, int cost) {
+    return '¿Comprar $name por $cost shards?';
+  }
+
+  @override
+  String get cosmeticsBuy => 'Comprar';
+
+  @override
+  String cosmeticsBuyWithCost(int cost) {
+    return 'Comprar — $cost';
+  }
+
+  @override
+  String get cosmeticsPurchaseSuccess => '¡Cosmético adquirido!';
+
+  @override
+  String get cosmeticsTierRequired =>
+      'Requiere una suscripción de nivel superior.';
+
+  @override
+  String get cosmeticsOwned => 'Adquirido';
+
+  @override
+  String get cosmeticsEquipped => 'Equipado';
+
+  @override
+  String get cosmeticsEquip => 'Equipar';
+
+  @override
+  String cosmeticsRequiresTier(String tier) {
+    return 'Requiere $tier';
+  }
+
+  @override
+  String get cosmeticsEmptyCatalog => 'No hay cosméticos disponibles aún';
+
+  @override
+  String get comingSoonCosmeticsTitle => 'Cosméticos';
+
+  @override
+  String get comingSoonCosmeticsBody =>
+      'Tu armario de cosméticos aparecerá aquí.';
 }

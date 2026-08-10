@@ -31,24 +31,26 @@ class ProfileScreen extends ConsumerWidget {
     final groupsAsync = ref.watch(myGroupsProvider);
     final l10n = AppLocalizations.of(context);
 
-    final showLoading = (profileAsync.isLoading && !profileAsync.hasValue) ||
+    final showLoading =
+        (profileAsync.isLoading && !profileAsync.hasValue) ||
         (groupsAsync.isLoading && !groupsAsync.hasValue);
 
     final error = !profileAsync.hasValue && profileAsync.hasError
         ? profileAsync.error!
         : !groupsAsync.hasValue && groupsAsync.hasError
-            ? groupsAsync.error!
-            : null;
+        ? groupsAsync.error!
+        : null;
 
     final profile = profileAsync.valueOrNull;
     final groups = groupsAsync.valueOrNull ?? const <Map<String, dynamic>>[];
 
-    final displayName = profile?['username']?.toString() ??
+    final displayName =
+        profile?['username']?.toString() ??
         authState.valueOrNull?.user?['email'] ??
         l10n.commonUser;
-    final initials =
-        displayName.substring(0, displayName.length < 2 ? displayName.length : 2)
-            .toUpperCase();
+    final initials = displayName
+        .substring(0, displayName.length < 2 ? displayName.length : 2)
+        .toUpperCase();
 
     return Scaffold(
       appBar: AppBar(
@@ -63,105 +65,102 @@ class ProfileScreen extends ConsumerWidget {
       body: showLoading
           ? const Center(child: CircularProgressIndicator())
           : error != null
-              ? ErrorView(
-                  message: error.toAppError().message,
-                  onRetry: () => _refresh(ref),
-                )
-              : RefreshIndicator(
-                  onRefresh: () => _refresh(ref),
-                  child: ListView(
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    padding: const EdgeInsets.all(24),
-                    children: [
-                      Center(
-                        child: CircleAvatar(
-                          radius: 48,
-                          backgroundColor: Colors.grey[800],
-                          child: Text(
-                            initials,
-                            style: const TextStyle(fontSize: 24),
+          ? ErrorView(
+              message: error.toAppError().message,
+              onRetry: () => _refresh(ref),
+            )
+          : RefreshIndicator(
+              onRefresh: () => _refresh(ref),
+              child: ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.all(24),
+                children: [
+                  Center(
+                    child: CircleAvatar(
+                      radius: 48,
+                      backgroundColor: Colors.grey[800],
+                      child: Text(
+                        initials,
+                        style: const TextStyle(fontSize: 24),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Center(
+                    child: Text(
+                      profile?['username']?.toString() ??
+                          authState.valueOrNull?.user?['email'] ??
+                          l10n.commonUser,
+                      style: Theme.of(context).textTheme.headlineMedium,
+                    ),
+                  ),
+                  const SizedBox(height: 32),
+                  _BalanceCard(
+                    personalShards: profile?['personal_shards'] as int? ?? 0,
+                    preshards: profile?['preshards'] as int? ?? 0,
+                  ),
+                  if (profile?['bio'] != null &&
+                      (profile!['bio'] as String).isNotEmpty) ...[
+                    const SizedBox(height: 16),
+                    Text(
+                      profile['bio'] as String,
+                      style: Theme.of(context).textTheme.bodyMedium,
+                    ),
+                  ],
+                  const SizedBox(height: 32),
+                  Text(
+                    l10n.profileMyGroups,
+                    style: Theme.of(context).textTheme.labelLarge,
+                  ),
+                  const SizedBox(height: 8),
+                  groups.isEmpty
+                      ? SizedBox(
+                          height: 60,
+                          child: Center(
+                            child: Text(
+                              l10n.profileNoGroupsYet,
+                              style: Theme.of(context).textTheme.bodyMedium,
+                            ),
+                          ),
+                        )
+                      : SizedBox(
+                          height: 120,
+                          child: ListView.builder(
+                            itemCount: groups.length,
+                            itemBuilder: (context, index) {
+                              final g = groups[index];
+                              return ListTile(
+                                dense: true,
+                                leading: const Icon(Icons.group, size: 20),
+                                title: Text(g['name'] as String? ?? ''),
+                                trailing: Text(
+                                  l10n.groupsShardsCountShort(
+                                    (g['group_shards'] as num?)?.toInt() ?? 0,
+                                  ),
+                                ),
+                              );
+                            },
                           ),
                         ),
+                  // PRFL cosmetics entry point (I-36 foundation → I-62):
+                  // flag-gated (I-49 release gating); the row navigates
+                  // to the cosmetics shop at `/cosmetics` (COSM spec).
+                  if (ref.watch(featureFlagsProvider).cosmeticsSection) ...[
+                    const SizedBox(height: 32),
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: const Icon(Icons.style, size: 20),
+                      title: Text(
+                        l10n.profileCosmetics,
+                        style: Theme.of(context).textTheme.labelLarge,
                       ),
-                      const SizedBox(height: 16),
-                      Center(
-                        child: Text(
-                          profile?['username']?.toString() ??
-                              authState.valueOrNull?.user?['email'] ??
-                              l10n.commonUser,
-                          style: Theme.of(context).textTheme.headlineMedium,
-                        ),
-                      ),
-                      const SizedBox(height: 32),
-                      _BalanceCard(
-                        personalShards:
-                            profile?['personal_shards'] as int? ?? 0,
-                        preshards: profile?['preshards'] as int? ?? 0,
-                      ),
-                      if (profile?['bio'] != null &&
-                          (profile!['bio'] as String).isNotEmpty) ...[
-                        const SizedBox(height: 16),
-                        Text(
-                          profile['bio'] as String,
-                          style: Theme.of(context).textTheme.bodyMedium,
-                        ),
-                      ],
-                      const SizedBox(height: 32),
-                      Text(l10n.profileMyGroups, style: Theme.of(context).textTheme.labelLarge),
-                      const SizedBox(height: 8),
-                      groups.isEmpty
-                          ? SizedBox(
-                              height: 60,
-                              child: Center(
-                                child: Text(
-                                  l10n.profileNoGroupsYet,
-                                  style: Theme.of(context).textTheme.bodyMedium,
-                                ),
-                              ),
-                            )
-                          : SizedBox(
-                              height: 120,
-                              child: ListView.builder(
-                                itemCount: groups.length,
-                                itemBuilder: (context, index) {
-                                  final g = groups[index];
-                                  return ListTile(
-                                    dense: true,
-                                    leading: const Icon(
-                                      Icons.group,
-                                      size: 20,
-                                    ),
-                                    title: Text(
-                                      g['name'] as String? ?? '',
-                                    ),
-                                    trailing: Text(
-                                      l10n.groupsShardsCountShort(
-                                        (g['group_shards'] as num?)?.toInt() ?? 0,
-                                      ),
-                                    ),
-                                  );
-                                },
-                              ),
-                            ),
-                      // PRFL cosmetics-display placeholder (I-36 foundation).
-                      // Gated behind the cosmeticsSection feature flag (I-49
-                      // release gating): renders nothing until the cosmetics
-                      // equipping stack ships (COSM spec / I-62).
-                      if (ref.watch(featureFlagsProvider).cosmeticsSection) ...[
-                        const SizedBox(height: 32),
-                        Text(
-                          l10n.profileCosmetics,
-                          style: Theme.of(context).textTheme.labelLarge,
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          l10n.profileNoCosmeticsYet,
-                          style: Theme.of(context).textTheme.bodyMedium,
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
+                      trailing: const Icon(Icons.chevron_right, size: 20),
+                      onTap: () => context.push(RoutePaths.cosmetics),
+                    ),
+                  ],
+                ],
+              ),
+            ),
     );
   }
 }
@@ -177,9 +176,7 @@ class _BalanceCard extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     return Container(
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        border: Border.all(color: Colors.grey[800]!),
-      ),
+      decoration: BoxDecoration(border: Border.all(color: Colors.grey[800]!)),
       child: Row(
         children: [
           const VShardIcon(),

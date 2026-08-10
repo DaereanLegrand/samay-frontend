@@ -71,6 +71,21 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     }
   }
 
+  /// Fetches the next older page (CHAT spec "scroll up → paginate older").
+  /// Rendered as a button rather than a scroll listener for testability
+  /// (I-56 decision); failures keep the loaded thread and show a snackbar.
+  Future<void> _loadOlder() async {
+    try {
+      await ref.read(chatMessagesProvider(widget.chatId).notifier).loadOlder();
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(AppLocalizations.of(context).chatLoadError)),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
@@ -90,27 +105,62 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                   style: const TextStyle(color: AppColors.muted),
                 ),
               ),
-              data: (rows) => rows.isEmpty
-                  ? Center(
-                      child: Text(
-                        l10n.chatEmpty,
-                        style: const TextStyle(color: AppColors.muted),
-                      ),
-                    )
-                  : ListView.builder(
-                      padding: const EdgeInsets.all(16),
-                      itemCount: rows.length,
-                      itemBuilder: (context, index) => _MessageBubble(
-                        row: rows[index],
-                        isOwn:
-                            currentUserId != null &&
-                            rows[index]['sender_id'] == currentUserId,
-                      ),
+              data: (state) {
+                if (state.messages.isEmpty) {
+                  return Center(
+                    child: Text(
+                      l10n.chatEmpty,
+                      style: const TextStyle(color: AppColors.muted),
                     ),
+                  );
+                }
+                final showHeader = state.hasMore || state.loadingOlder;
+                return ListView.builder(
+                  padding: const EdgeInsets.all(16),
+                  itemCount: state.messages.length + (showHeader ? 1 : 0),
+                  itemBuilder: (context, index) {
+                    if (showHeader && index == 0) {
+                      return _olderHeader(l10n, state);
+                    }
+                    final rowIndex = index - (showHeader ? 1 : 0);
+                    final row = state.messages[rowIndex];
+                    return _MessageBubble(
+                      row: row,
+                      isOwn:
+                          currentUserId != null &&
+                          row['sender_id'] == currentUserId,
+                    );
+                  },
+                );
+              },
             ),
           ),
           _composer(l10n),
         ],
+      ),
+    );
+  }
+
+  /// Top-of-list pagination row: a small loader while an older page is
+  /// in flight, otherwise the "Cargar anteriores" button (hidden when the
+  /// server has no more history).
+  Widget _olderHeader(AppLocalizations l10n, ChatMessagesState state) {
+    if (state.loadingOlder) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 8),
+        child: Center(
+          child: SizedBox(
+            width: 20,
+            height: 20,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          ),
+        ),
+      );
+    }
+    return Center(
+      child: TextButton(
+        onPressed: _loadOlder,
+        child: Text(l10n.chatLoadOlder),
       ),
     );
   }

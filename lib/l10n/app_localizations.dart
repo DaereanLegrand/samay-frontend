@@ -470,6 +470,54 @@ abstract class AppLocalizations {
   /// **'Tu feed aparecerá aquí.\nPronto podrás ver eventos cercanos y actividades de tus grupos.'**
   String get feedEmpty;
 
+  /// Feed section heading for featured (promoted) events
+  ///
+  /// In es, this message translates to:
+  /// **'Destacados'**
+  String get feedFeatured;
+
+  /// Badge on a featured event card
+  ///
+  /// In es, this message translates to:
+  /// **'Destacado'**
+  String get feedFeaturedBadge;
+
+  /// Radius filter chip label in kilometers
+  ///
+  /// In es, this message translates to:
+  /// **'{radius} km'**
+  String feedRadiusKm(int radius);
+
+  /// Radius filter chip label for the anywhere option (999 km)
+  ///
+  /// In es, this message translates to:
+  /// **'En cualquier lugar'**
+  String get feedRadiusAnywhere;
+
+  /// Notice shown while no device location is available, so the radius filter cannot apply
+  ///
+  /// In es, this message translates to:
+  /// **'Sin ubicación disponible — mostrando todos los eventos'**
+  String get feedNoLocationNotice;
+
+  /// Empty feed state heading
+  ///
+  /// In es, this message translates to:
+  /// **'No hay eventos próximos'**
+  String get feedNoEvents;
+
+  /// Empty feed state body
+  ///
+  /// In es, this message translates to:
+  /// **'Vuelve pronto para descubrir nuevos eventos cerca de ti.'**
+  String get feedNoEventsBody;
+
+  /// Error state when the feed fails to load
+  ///
+  /// In es, this message translates to:
+  /// **'No se pudo cargar el feed'**
+  String get feedLoadError;
+
   /// Bottom navigation tab label
   ///
   /// In es, this message translates to:
@@ -1442,6 +1490,162 @@ abstract class AppLocalizations {
   /// **'El Party Finder estará disponible pronto.'**
   String get comingSoonPartyFinderBody;
 
+  /// Paywall screen heading
+  ///
+  /// In es, this message translates to:
+  /// **'Suscripción'**
+  String get paywallHeader;
+
+  /// Paywall compliance note: all tiers visible (App Store)
+  ///
+  /// In es, this message translates to:
+  /// **'Todos los planes son visibles sin precios ocultos. Elige el que mejor se adapte a ti.'**
+  String get paywallAllTiersVisible;
+
+  /// Free tier name
+  ///
+  /// In es, this message translates to:
+  /// **'Free'**
+  String get paywallTierFree;
+
+  /// PRO tier name
+  ///
+  /// In es, this message translates to:
+  /// **'PRO'**
+  String get paywallTierPro;
+
+  /// VIP tier name
+  ///
+  /// In es, this message translates to:
+  /// **'VIP'**
+  String get paywallTierVip;
+
+  /// Monthly price suffix
+  ///
+  /// In es, this message translates to:
+  /// **'/mes'**
+  String get paywallPerMonth;
+
+  /// Annual option shown as the monthly equivalent with the savings note
+  ///
+  /// In es, this message translates to:
+  /// **'{monthly} ahorrando 17%'**
+  String paywallAnnualEquivalent(String monthly);
+
+  /// Badge marking the user's current tier
+  ///
+  /// In es, this message translates to:
+  /// **'Actual'**
+  String get paywallCurrentBadge;
+
+  /// Restore-purchases button label
+  ///
+  /// In es, this message translates to:
+  /// **'Restaurar compras'**
+  String get paywallRestore;
+
+  /// Upgrade-to-PRO button label
+  ///
+  /// In es, this message translates to:
+  /// **'Actualizar a PRO'**
+  String get paywallUpgradePro;
+
+  /// Upgrade-to-VIP button label
+  ///
+  /// In es, this message translates to:
+  /// **'Actualizar a VIP'**
+  String get paywallUpgradeVip;
+
+  /// Tier comparison feature row: events per day
+  ///
+  /// In es, this message translates to:
+  /// **'Eventos por día'**
+  String get paywallRowEvents;
+
+  /// Tier comparison feature row: maximum groups
+  ///
+  /// In es, this message translates to:
+  /// **'Grupos máximos'**
+  String get paywallRowGroups;
+
+  /// Tier comparison feature row: members per group
+  ///
+  /// In es, this message translates to:
+  /// **'Miembros por grupo'**
+  String get paywallRowMembers;
+
+  /// Tier comparison feature row: monthly preshards
+  ///
+  /// In es, this message translates to:
+  /// **'Preshards mensuales'**
+  String get paywallRowPreshards;
+
+  /// Tier comparison feature row: posting to the feed
+  ///
+  /// In es, this message translates to:
+  /// **'Publicar en feed'**
+  String get paywallRowFeed;
+
+  /// Tier comparison feature row: video souvenir
+  ///
+  /// In es, this message translates to:
+  /// **'Video souvenir'**
+  String get paywallRowVideo;
+
+  /// Tier comparison feature row: group cosmetics
+  ///
+  /// In es, this message translates to:
+  /// **'Cosméticos de grupo'**
+  String get paywallRowCosmetics;
+
+  /// Tier comparison feature row: group rank
+  ///
+  /// In es, this message translates to:
+  /// **'Rango de grupo'**
+  String get paywallRowRank;
+
+  /// Tier comparison cell value: unlimited
+  ///
+  /// In es, this message translates to:
+  /// **'Ilimitado'**
+  String get paywallUnlimited;
+
+  /// Tier comparison cell value: limited
+  ///
+  /// In es, this message translates to:
+  /// **'Limitado'**
+  String get paywallLimited;
+
+  /// Tier comparison cell value: full cosmetics
+  ///
+  /// In es, this message translates to:
+  /// **'Completo'**
+  String get paywallCosmeticsFull;
+
+  /// Tier comparison cell value: full + exclusive cosmetics
+  ///
+  /// In es, this message translates to:
+  /// **'Completo + exclusivos'**
+  String get paywallCosmeticsFullExclusive;
+
+  /// Tier comparison cell value: micro rank bracket
+  ///
+  /// In es, this message translates to:
+  /// **'micro'**
+  String get paywallRankMicro;
+
+  /// Tier comparison cell value: up to the medium rank bracket
+  ///
+  /// In es, this message translates to:
+  /// **'hasta medium'**
+  String get paywallRankUpToMedium;
+
+  /// Tier comparison cell value: all rank brackets
+  ///
+  /// In es, this message translates to:
+  /// **'todos'**
+  String get paywallRankAll;
+
   /// Router error screen title for unknown routes
   ///
   /// In es, this message translates to:
@@ -1646,6 +1850,90 @@ abstract class AppLocalizations {
   /// **'En la Búsqueda'**
   String get rankInSearch;
 
+  /// Event photo gallery app bar title
+  ///
+  /// In es, this message translates to:
+  /// **'Fotos'**
+  String get photosTitle;
+
+  /// Empty state heading when the event has no photos
+  ///
+  /// In es, this message translates to:
+  /// **'No hay fotos todavía'**
+  String get photosEmpty;
+
+  /// Empty state helper text prompting the first photo upload
+  ///
+  /// In es, this message translates to:
+  /// **'¡Sé el primero en subir una!'**
+  String get photosEmptyBody;
+
+  /// Photo upload button label
+  ///
+  /// In es, this message translates to:
+  /// **'Subir foto'**
+  String get photosUpload;
+
+  /// Snackbar rationale when the photo-library permission is denied
+  ///
+  /// In es, this message translates to:
+  /// **'Para subir fotos del evento, Samay necesita acceso a tus fotos.'**
+  String get photosPermissionRationale;
+
+  /// Snackbar after a successful photo upload
+  ///
+  /// In es, this message translates to:
+  /// **'Foto subida'**
+  String get photosUploadedSnack;
+
+  /// Notice shown when the post-event photo upload window has closed
+  ///
+  /// In es, this message translates to:
+  /// **'La ventana de subida de fotos ya cerró'**
+  String get photosUploadWindowClosed;
+
+  /// Like count on a photo tile
+  ///
+  /// In es, this message translates to:
+  /// **'{count} likes'**
+  String photosLikesCount(int count);
+
+  /// Tooltip for the like button on a photo tile
+  ///
+  /// In es, this message translates to:
+  /// **'Me gusta'**
+  String get photosLikeTooltip;
+
+  /// Long-press report dialog title
+  ///
+  /// In es, this message translates to:
+  /// **'Reportar foto'**
+  String get photosReportTitle;
+
+  /// Long-press report dialog body
+  ///
+  /// In es, this message translates to:
+  /// **'Describe por qué quieres reportar esta foto. El equipo de moderación la revisará.'**
+  String get photosReportBody;
+
+  /// Long-press report dialog reason input hint
+  ///
+  /// In es, this message translates to:
+  /// **'Escribe el motivo (opcional)'**
+  String get photosReportHint;
+
+  /// Long-press report dialog submit button
+  ///
+  /// In es, this message translates to:
+  /// **'Enviar reporte'**
+  String get photosReportSubmit;
+
+  /// Snackbar after submitting a photo report
+  ///
+  /// In es, this message translates to:
+  /// **'Reporte enviado'**
+  String get photosReportSent;
+
   /// Snackbar rationale when the photo-library permission is denied
   ///
   /// In es, this message translates to:
@@ -1771,6 +2059,12 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'No se pudo enviar el mensaje'**
   String get chatSendError;
+
+  /// Button that loads the previous page of older messages
+  ///
+  /// In es, this message translates to:
+  /// **'Cargar anteriores'**
+  String get chatLoadOlder;
 
   /// Event creation: type selector section label
   ///
@@ -2215,6 +2509,384 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'Cancelado'**
   String get eventStatusCancelled;
+
+  /// Attendance QR screen title
+  ///
+  /// In es, this message translates to:
+  /// **'Código de asistencia'**
+  String get qrAttendanceTitle;
+
+  /// Attendance QR: event load error message
+  ///
+  /// In es, this message translates to:
+  /// **'No se pudo cargar el evento.'**
+  String get qrEventLoadError;
+
+  /// Attendance QR: token load error message
+  ///
+  /// In es, this message translates to:
+  /// **'No se pudo cargar el código QR.'**
+  String get qrTokenLoadError;
+
+  /// Attendance QR: pre-activation countdown message
+  ///
+  /// In es, this message translates to:
+  /// **'El código QR se activará {minutes} minutos antes del evento'**
+  String qrActivatesIn(int minutes);
+
+  /// Attendance QR: countdown to activation time
+  ///
+  /// In es, this message translates to:
+  /// **'Se activa en {time}'**
+  String qrActivationCountdown(String time);
+
+  /// Attendance QR: countdown to next token rotation
+  ///
+  /// In es, this message translates to:
+  /// **'Nuevo código en: {seconds}'**
+  String qrNewCodeIn(int seconds);
+
+  /// Attendance QR: post-event message
+  ///
+  /// In es, this message translates to:
+  /// **'El evento ha finalizado. Ya no es necesario el código QR.'**
+  String get qrEventEnded;
+
+  /// Attendance QR: server has no token yet (EEDG not deployed)
+  ///
+  /// In es, this message translates to:
+  /// **'No se pudo generar el código QR todavía. El servidor aún no está rotando tokens.'**
+  String get qrServerPending;
+
+  /// Attendance QR: server-pending retry hint
+  ///
+  /// In es, this message translates to:
+  /// **'Si el problema continúa, presiona Reintentar.'**
+  String get qrServerPendingBody;
+
+  /// Attendance QR: rotating the token
+  ///
+  /// In es, this message translates to:
+  /// **'Actualizando código…'**
+  String get qrUpdating;
+
+  /// Attendance QR: token expired, regenerating
+  ///
+  /// In es, this message translates to:
+  /// **'El código QR expiró. Generando uno nuevo…'**
+  String get qrAttendeeExpired;
+
+  /// Attendance QR: expired retry hint
+  ///
+  /// In es, this message translates to:
+  /// **'Si el problema continúa, presiona Reintentar.'**
+  String get qrAttendeeExpiredBody;
+
+  /// QR scanner screen title
+  ///
+  /// In es, this message translates to:
+  /// **'Escáner de asistencia'**
+  String get qrScannerTitle;
+
+  /// QR scanner: scan instruction
+  ///
+  /// In es, this message translates to:
+  /// **'Escanea el código QR del asistente'**
+  String get qrScanPrompt;
+
+  /// QR scanner: event name label
+  ///
+  /// In es, this message translates to:
+  /// **'Evento: {name}'**
+  String qrScanEventName(String name);
+
+  /// QR scanner: event name fallback
+  ///
+  /// In es, this message translates to:
+  /// **'Evento'**
+  String get qrScanEventFallback;
+
+  /// QR scanner: torch-on tooltip
+  ///
+  /// In es, this message translates to:
+  /// **'Encender linterna'**
+  String get qrTorchOn;
+
+  /// QR scanner: torch-off tooltip
+  ///
+  /// In es, this message translates to:
+  /// **'Apagar linterna'**
+  String get qrTorchOff;
+
+  /// QR scanner: validating a scanned token
+  ///
+  /// In es, this message translates to:
+  /// **'Verificando…'**
+  String get qrScanProcessing;
+
+  /// QR scanner: attendance confirmed banner
+  ///
+  /// In es, this message translates to:
+  /// **'¡Asistencia confirmada!'**
+  String get qrScanConfirmed;
+
+  /// QR scanner: confirmed attendee name
+  ///
+  /// In es, this message translates to:
+  /// **'Asistente: {name}'**
+  String qrScanAttendee(String name);
+
+  /// QR scanner: ready-state label after confirmation
+  ///
+  /// In es, this message translates to:
+  /// **'Listo'**
+  String get qrScanReady;
+
+  /// QR scanner: expired token error
+  ///
+  /// In es, this message translates to:
+  /// **'Código QR expirado. Pide al asistente que actualice su QR.'**
+  String get qrScanExpired;
+
+  /// QR scanner: double-scan error
+  ///
+  /// In es, this message translates to:
+  /// **'Este código QR ya fue escaneado.'**
+  String get qrScanAlreadyScanned;
+
+  /// QR scanner: attendee not invited error
+  ///
+  /// In es, this message translates to:
+  /// **'El usuario no está invitado a este evento.'**
+  String get qrScanNotInvited;
+
+  /// QR scanner: event outside attendance window
+  ///
+  /// In es, this message translates to:
+  /// **'El evento no está activo para confirmación de asistencia.'**
+  String get qrScanNotInWindow;
+
+  /// QR scanner: caller lacks promotor role
+  ///
+  /// In es, this message translates to:
+  /// **'No tienes permisos para escanear en este evento.'**
+  String get qrScanNotPromotor;
+
+  /// QR scanner: unrecognized token
+  ///
+  /// In es, this message translates to:
+  /// **'Código QR inválido.'**
+  String get qrScanInvalidToken;
+
+  /// QR scanner: connection/RPC error with retry
+  ///
+  /// In es, this message translates to:
+  /// **'Error de conexión. Reintentar...'**
+  String get qrScanNetworkError;
+
+  /// QR scanner: camera unavailable
+  ///
+  /// In es, this message translates to:
+  /// **'No se pudo acceder a la cámara.'**
+  String get qrCameraUnavailable;
+
+  /// QR scanner: camera unavailable hint
+  ///
+  /// In es, this message translates to:
+  /// **'Cierra y vuelve a abrir el escáner, o revisa los permisos de la cámara.'**
+  String get qrCameraUnavailableBody;
+
+  /// QR scanner: camera permission needed
+  ///
+  /// In es, this message translates to:
+  /// **'Se necesita acceso a la cámara para escanear.'**
+  String get qrCameraDenied;
+
+  /// QR scanner: settings dialog title
+  ///
+  /// In es, this message translates to:
+  /// **'Acceso a la cámara'**
+  String get qrCameraSettingsTitle;
+
+  /// QR scanner: settings dialog body
+  ///
+  /// In es, this message translates to:
+  /// **'Samay necesita acceso a la cámara para escanear los códigos QR de asistencia.'**
+  String get qrCameraSettingsBody;
+
+  /// QR scanner: settings dialog action
+  ///
+  /// In es, this message translates to:
+  /// **'Abrir ajustes'**
+  String get qrCameraSettingsAction;
+
+  /// Party Finder screen app bar title (PFND — I-60)
+  ///
+  /// In es, this message translates to:
+  /// **'Party Finder'**
+  String get partyFinderTitle;
+
+  /// Party Finder: opt-in switch label (privacy default OFF)
+  ///
+  /// In es, this message translates to:
+  /// **'Aparecer en Party Finder'**
+  String get partyFinderOptInLabel;
+
+  /// Party Finder: first-run explainer title while discovery is off
+  ///
+  /// In es, this message translates to:
+  /// **'Descubrimiento está apagado'**
+  String get partyFinderOptInOff;
+
+  /// Party Finder: first-run explainer body while discovery is off
+  ///
+  /// In es, this message translates to:
+  /// **'Activa el interruptor para aparecer en las coincidencias de otras personas. Nadie puede verte mientras esté apagado.'**
+  String get partyFinderOptInOffBody;
+
+  /// Party Finder: empty state when no matches exist
+  ///
+  /// In es, this message translates to:
+  /// **'Aún no hay coincidencias'**
+  String get partyFinderEmpty;
+
+  /// Party Finder: empty-state hint to add more interest tags
+  ///
+  /// In es, this message translates to:
+  /// **'Agrega más intereses a tu perfil para encontrar personas afines.'**
+  String get partyFinderEmptyBody;
+
+  /// Party Finder: error state message with retry
+  ///
+  /// In es, this message translates to:
+  /// **'No se pudo cargar el Party Finder'**
+  String get partyFinderError;
+
+  /// Party Finder: shared-interest count on a match card
+  ///
+  /// In es, this message translates to:
+  /// **'{count, plural, =1{1 interés en común} other{{count} intereses en común}}'**
+  String partyFinderSharedInterests(int count);
+
+  /// Cosmetics shop screen app-bar title
+  ///
+  /// In es, this message translates to:
+  /// **'Tienda de cosméticos'**
+  String get cosmeticsShopTitle;
+
+  /// Cosmetics shop category tab: avatar frames
+  ///
+  /// In es, this message translates to:
+  /// **'Marcos'**
+  String get cosmeticsTabFrames;
+
+  /// Cosmetics shop category tab: profile backgrounds
+  ///
+  /// In es, this message translates to:
+  /// **'Fondos'**
+  String get cosmeticsTabBackgrounds;
+
+  /// Cosmetics shop category tab: badges
+  ///
+  /// In es, this message translates to:
+  /// **'Insignias'**
+  String get cosmeticsTabBadges;
+
+  /// VIP subscription tier label
+  ///
+  /// In es, this message translates to:
+  /// **'VIP'**
+  String get cosmeticsTierVip;
+
+  /// PRO subscription tier label
+  ///
+  /// In es, this message translates to:
+  /// **'PRO'**
+  String get cosmeticsTierPro;
+
+  /// Free subscription tier label
+  ///
+  /// In es, this message translates to:
+  /// **'Gratis'**
+  String get cosmeticsTierFree;
+
+  /// Cosmetics purchase confirmation dialog title
+  ///
+  /// In es, this message translates to:
+  /// **'Confirmar compra'**
+  String get cosmeticsPurchaseTitle;
+
+  /// Cosmetics purchase confirmation dialog body
+  ///
+  /// In es, this message translates to:
+  /// **'¿Comprar {name} por {cost} shards?'**
+  String cosmeticsPurchaseConfirm(String name, int cost);
+
+  /// Confirm button on the cosmetics purchase dialog
+  ///
+  /// In es, this message translates to:
+  /// **'Comprar'**
+  String get cosmeticsBuy;
+
+  /// Cosmetics shop buy button showing the shard cost
+  ///
+  /// In es, this message translates to:
+  /// **'Comprar — {cost}'**
+  String cosmeticsBuyWithCost(int cost);
+
+  /// Snackbar after a successful cosmetics purchase
+  ///
+  /// In es, this message translates to:
+  /// **'¡Cosmético adquirido!'**
+  String get cosmeticsPurchaseSuccess;
+
+  /// Snackbar when the user's subscription tier is below the item requirement
+  ///
+  /// In es, this message translates to:
+  /// **'Requiere una suscripción de nivel superior.'**
+  String get cosmeticsTierRequired;
+
+  /// Badge on an already-owned cosmetic card
+  ///
+  /// In es, this message translates to:
+  /// **'Adquirido'**
+  String get cosmeticsOwned;
+
+  /// Button label when the cosmetic is currently equipped
+  ///
+  /// In es, this message translates to:
+  /// **'Equipado'**
+  String get cosmeticsEquipped;
+
+  /// Button label to equip an owned cosmetic
+  ///
+  /// In es, this message translates to:
+  /// **'Equipar'**
+  String get cosmeticsEquip;
+
+  /// Tier-locked cosmetic card hint
+  ///
+  /// In es, this message translates to:
+  /// **'Requiere {tier}'**
+  String cosmeticsRequiresTier(String tier);
+
+  /// Empty state on the cosmetics shop
+  ///
+  /// In es, this message translates to:
+  /// **'No hay cosméticos disponibles aún'**
+  String get cosmeticsEmptyCatalog;
+
+  /// Coming-soon screen title for the cosmetics shop
+  ///
+  /// In es, this message translates to:
+  /// **'Cosméticos'**
+  String get comingSoonCosmeticsTitle;
+
+  /// Coming-soon screen body for the cosmetics shop
+  ///
+  /// In es, this message translates to:
+  /// **'Tu armario de cosméticos aparecerá aquí.'**
+  String get comingSoonCosmeticsBody;
 }
 
 class _AppLocalizationsDelegate

@@ -67,17 +67,23 @@ class MediaService {
     return client.storage.from('avatars').getPublicUrl(path);
   }
 
-  /// Uploads an event photo from a local [filePath] into the `events` bucket
-  /// and records the `event_photos` row.
-  Future<void> uploadEventPhoto(String eventId, String filePath) async {
+  /// Uploads an event photo payload into the `events` bucket at
+  /// `{eventId}/photos/{uuid}.png` and records the `event_photos` row (PHUP —
+  /// I-59).
+  ///
+  /// This is the bytes variant the image_picker + [ImageProcessor] pipeline
+  /// feeds (I-22): the payload is downscaled client-side first, so the stored
+  /// object is always a PNG like every other MediaService upload. Requires
+  /// the `events` storage bucket + the `event_photos` INSERT policy
+  /// (`eph_insert_own`) to exist.
+  Future<void> uploadEventPhotoBytes(String eventId, Uint8List bytes) async {
     final user = auth.currentUser;
     if (user == null) throw Exception('No authenticated user');
 
-    final bytes = await _readFileBytes(filePath);
-    final extension = filePath.split('.').last;
-    final storagePath = '$eventId/photos/${const Uuid().v4()}.$extension';
+    final processed = await ImageProcessor.compressBytes(bytes);
+    final storagePath = '$eventId/photos/${const Uuid().v4()}.png';
 
-    await client.storage.from('events').uploadBinary(storagePath, bytes);
+    await client.storage.from('events').uploadBinary(storagePath, processed);
     await client.from('event_photos').insert({
       'event_id': eventId,
       'uploaded_by_user_id': user.id,
@@ -86,6 +92,25 @@ class MediaService {
       'reported': false,
       'created_at': DateTime.now().toIso8601String(),
     });
+  }
+
+  /// File-path variant of [uploadEventPhotoBytes] for callers that hold a
+  /// local file instead of bytes (kept from the pre-PHUP build; the bytes
+  /// variant is the primary seam — I-59).
+  Future<void> uploadEventPhoto(String eventId, String filePath) async {
+    final bytes = await _readFileBytes(filePath);
+    await uploadEventPhotoBytes(eventId, bytes);
+  }
+
+  /// Every photo of [eventId], newest first (`event_photos` rows; the gallery
+  /// resolves signed URLs through [getSignedPhotoUrl] afterwards).
+  Future<List<Map<String, dynamic>>> listEventPhotos(String eventId) async {
+    final res = await client
+        .from('event_photos')
+        .select()
+        .eq('event_id', eventId)
+        .order('created_at', ascending: false);
+    return res.map((e) => Map<String, dynamic>.from(e)).toList();
   }
 
   Future<String> getSignedPhotoUrl(String storagePath) async {

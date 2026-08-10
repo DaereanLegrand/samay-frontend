@@ -3,6 +3,9 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 part 'event.freezed.dart';
 part 'event.g.dart';
 
+/// Event lifecycle model (I-10). [featured] pins promoted events to the top
+/// of the feed (FEED/FEET, admin `samay events feature`); [coverUrl] is the
+/// event cover used by the feed cards and detail header.
 @freezed
 abstract class Event with _$Event {
   @JsonSerializable(fieldRename: FieldRename.snake)
@@ -15,6 +18,8 @@ abstract class Event with _$Event {
     required DateTime endsAt,
     String? groupId,
     String? locationName,
+    String? coverUrl,
+    @Default(false) bool featured,
     @Default(0) int preshardsPool,
   }) = _Event;
 

@@ -133,4 +133,76 @@ class EventService {
       'created_at': DateTime.now().toIso8601String(),
     });
   }
+
+  /// Removes the current user's like on [photoId] (PHUP like toggle — I-59).
+  /// The `likes_count` decrement is the same trigger as [likePhoto]. Deleting
+  /// a nonexistent row is a no-op, so unlike-after-expiry is safe.
+  Future<void> unlikePhoto(String photoId) async {
+    final user = auth.currentUser;
+    if (user == null) throw Exception('No authenticated user');
+
+    await client
+        .from('event_photo_likes')
+        .delete()
+        .eq('photo_id', photoId)
+        .eq('user_id', user.id);
+  }
+
+  /// The photo ids the current user has liked within [eventId] — the
+  /// gallery's `likedByMe` source (PHUP — I-59). Filtering happens through
+  /// the embedded `event_photos` resource (PostgREST `!inner` join), which
+  /// the `epl_read_access` policy also gates by event access.
+  Future<List<String>> getMyPhotoLikes(String eventId) async {
+    final user = auth.currentUser;
+    if (user == null) return const [];
+
+    final res = await client
+        .from('event_photo_likes')
+        .select('photo_id, event_photos!inner(event_id)')
+        .eq('user_id', user.id)
+        .eq('event_photos.event_id', eventId);
+    return res.map((e) => e['photo_id'] as String).toList();
+  }
+
+  /// The current user's attendance-QR token row for [eventId], or `null` when
+  /// the server has not issued one yet (pre-activation window, or the
+  /// EEDG/QEDG `qr-token-manager` Edge Function is not deployed — QRAT).
+  ///
+  /// Rotation accumulates rows over time, so the query returns the **latest**
+  /// row per user+event (`created_at DESC`); the server always intends the
+  /// newest row to be the valid token, and client-side `expires_at` judges
+  /// whether a rotation happened (I-57 foundation decision).
+  Future<Map<String, dynamic>?> getMyQrToken(String eventId) async {
+    final user = auth.currentUser;
+    if (user == null) throw Exception('No authenticated user');
+
+    final res = await client
+        .from('event_qr_tokens')
+        .select()
+        .eq('event_id', eventId)
+        .eq('user_id', user.id)
+        .order('created_at', ascending: false)
+        .limit(1)
+        .maybeSingle();
+    return res == null ? null : Map<String, dynamic>.from(res);
+  }
+
+  /// Validates an attendee QR token as a promotor/co_promotor — QRSC.
+  ///
+  /// Invokes the `validate_qr_token` RPC (migration 20260809000005, the SQL
+  /// stand-in for the blocked `validate-attendance` Edge Function). Business
+  /// outcomes are returned as jsonb `status` payloads (never exceptions);
+  /// infra failures (missing RPC PGRST202, network) throw and surface as the
+  /// scanner's retryable banner. Swapping to the Edge Function later is a
+  /// one-line change here.
+  Future<Map<String, dynamic>> validateQrToken(
+    String eventId,
+    String token,
+  ) async {
+    final res = await client.rpc('validate_qr_token', params: {
+      'p_event_id': eventId,
+      'p_token': token,
+    });
+    return Map<String, dynamic>.from(res as Map);
+  }
 }

@@ -279,6 +279,43 @@
   "@feedEmpty": {
     "description": "Feed placeholder text"
   },
+  "feedFeatured": "Featured",
+  "@feedFeatured": {
+    "description": "Feed section heading for featured (promoted) events"
+  },
+  "feedFeaturedBadge": "Featured",
+  "@feedFeaturedBadge": {
+    "description": "Badge on a featured event card"
+  },
+  "feedRadiusKm": "{radius} km",
+  "@feedRadiusKm": {
+    "description": "Radius filter chip label in kilometers",
+    "placeholders": {
+      "radius": {
+        "type": "int"
+      }
+    }
+  },
+  "feedRadiusAnywhere": "Anywhere",
+  "@feedRadiusAnywhere": {
+    "description": "Radius filter chip label for the anywhere option (999 km)"
+  },
+  "feedNoLocationNotice": "No location available — showing all events",
+  "@feedNoLocationNotice": {
+    "description": "Notice shown while no device location is available, so the radius filter cannot apply"
+  },
+  "feedNoEvents": "No upcoming events",
+  "@feedNoEvents": {
+    "description": "Empty feed state heading"
+  },
+  "feedNoEventsBody": "Check back soon for new events near you.",
+  "@feedNoEventsBody": {
+    "description": "Empty feed state body"
+  },
+  "feedLoadError": "Couldn't load the feed",
+  "@feedLoadError": {
+    "description": "Error state when the feed fails to load"
+  },
 
   "shellFeed": "Feed",
   "@shellFeed": {
@@ -996,6 +1033,116 @@
     "description": "Coming-soon screen body for the party finder"
   },
 
+  "paywallHeader": "Subscription",
+  "@paywallHeader": {
+    "description": "Paywall screen heading"
+  },
+  "paywallAllTiersVisible": "All plans are visible with no hidden pricing. Choose the one that fits you best.",
+  "@paywallAllTiersVisible": {
+    "description": "Paywall compliance note: all tiers visible (App Store)"
+  },
+  "paywallTierFree": "Free",
+  "@paywallTierFree": {
+    "description": "Free tier name"
+  },
+  "paywallTierPro": "PRO",
+  "@paywallTierPro": {
+    "description": "PRO tier name"
+  },
+  "paywallTierVip": "VIP",
+  "@paywallTierVip": {
+    "description": "VIP tier name"
+  },
+  "paywallPerMonth": "/mo",
+  "@paywallPerMonth": {
+    "description": "Monthly price suffix"
+  },
+  "paywallAnnualEquivalent": "{monthly} saving 17%",
+  "@paywallAnnualEquivalent": {
+    "description": "Annual option shown as the monthly equivalent with the savings note",
+    "placeholders": {
+      "monthly": {
+        "type": "String"
+      }
+    }
+  },
+  "paywallCurrentBadge": "Current",
+  "@paywallCurrentBadge": {
+    "description": "Badge marking the user's current tier"
+  },
+  "paywallRestore": "Restore purchases",
+  "@paywallRestore": {
+    "description": "Restore-purchases button label"
+  },
+  "paywallUpgradePro": "Upgrade to PRO",
+  "@paywallUpgradePro": {
+    "description": "Upgrade-to-PRO button label"
+  },
+  "paywallUpgradeVip": "Upgrade to VIP",
+  "@paywallUpgradeVip": {
+    "description": "Upgrade-to-VIP button label"
+  },
+  "paywallRowEvents": "Events per day",
+  "@paywallRowEvents": {
+    "description": "Tier comparison feature row: events per day"
+  },
+  "paywallRowGroups": "Max groups",
+  "@paywallRowGroups": {
+    "description": "Tier comparison feature row: maximum groups"
+  },
+  "paywallRowMembers": "Members per group",
+  "@paywallRowMembers": {
+    "description": "Tier comparison feature row: members per group"
+  },
+  "paywallRowPreshards": "Monthly preshards",
+  "@paywallRowPreshards": {
+    "description": "Tier comparison feature row: monthly preshards"
+  },
+  "paywallRowFeed": "Post to feed",
+  "@paywallRowFeed": {
+    "description": "Tier comparison feature row: posting to the feed"
+  },
+  "paywallRowVideo": "Video souvenir",
+  "@paywallRowVideo": {
+    "description": "Tier comparison feature row: video souvenir"
+  },
+  "paywallRowCosmetics": "Group cosmetics",
+  "@paywallRowCosmetics": {
+    "description": "Tier comparison feature row: group cosmetics"
+  },
+  "paywallRowRank": "Group rank",
+  "@paywallRowRank": {
+    "description": "Tier comparison feature row: group rank"
+  },
+  "paywallUnlimited": "Unlimited",
+  "@paywallUnlimited": {
+    "description": "Tier comparison cell value: unlimited"
+  },
+  "paywallLimited": "Limited",
+  "@paywallLimited": {
+    "description": "Tier comparison cell value: limited"
+  },
+  "paywallCosmeticsFull": "Full",
+  "@paywallCosmeticsFull": {
+    "description": "Tier comparison cell value: full cosmetics"
+  },
+  "paywallCosmeticsFullExclusive": "Full + exclusive",
+  "@paywallCosmeticsFullExclusive": {
+    "description": "Tier comparison cell value: full + exclusive cosmetics"
+  },
+  "paywallRankMicro": "micro",
+  "@paywallRankMicro": {
+    "description": "Tier comparison cell value: micro rank bracket"
+  },
+  "paywallRankUpToMedium": "up to medium",
+  "@paywallRankUpToMedium": {
+    "description": "Tier comparison cell value: up to the medium rank bracket"
+  },
+  "paywallRankAll": "all",
+  "@paywallRankAll": {
+    "description": "Tier comparison cell value: all rank brackets"
+  },
+
   "routerRouteNotFound": "Route not found",
   "@routerRouteNotFound": {
     "description": "Router error screen title for unknown routes"
@@ -1140,6 +1287,68 @@
     "description": "Rank bracket label (0-20)"
   },
 
+  "photosTitle": "Photos",
+  "@photosTitle": {
+    "description": "Event photo gallery app bar title"
+  },
+  "photosEmpty": "No photos yet",
+  "@photosEmpty": {
+    "description": "Empty state heading when the event has no photos"
+  },
+  "photosEmptyBody": "Be the first to upload one!",
+  "@photosEmptyBody": {
+    "description": "Empty state helper text prompting the first photo upload"
+  },
+  "photosUpload": "Upload photo",
+  "@photosUpload": {
+    "description": "Photo upload button label"
+  },
+  "photosPermissionRationale": "To upload event photos, Samay needs access to your photos.",
+  "@photosPermissionRationale": {
+    "description": "Snackbar rationale when the photo-library permission is denied"
+  },
+  "photosUploadedSnack": "Photo uploaded",
+  "@photosUploadedSnack": {
+    "description": "Snackbar after a successful photo upload"
+  },
+  "photosUploadWindowClosed": "The photo upload window has closed",
+  "@photosUploadWindowClosed": {
+    "description": "Notice shown when the post-event photo upload window has closed"
+  },
+  "photosLikesCount": "{count} likes",
+  "@photosLikesCount": {
+    "description": "Like count on a photo tile",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "photosLikeTooltip": "Like",
+  "@photosLikeTooltip": {
+    "description": "Tooltip for the like button on a photo tile"
+  },
+  "photosReportTitle": "Report photo",
+  "@photosReportTitle": {
+    "description": "Long-press report dialog title"
+  },
+  "photosReportBody": "Describe why you want to report this photo. Our moderation team will review it.",
+  "@photosReportBody": {
+    "description": "Long-press report dialog body"
+  },
+  "photosReportHint": "Reason for the report (optional)",
+  "@photosReportHint": {
+    "description": "Long-press report dialog reason input hint"
+  },
+  "photosReportSubmit": "Submit report",
+  "@photosReportSubmit": {
+    "description": "Long-press report dialog submit button"
+  },
+  "photosReportSent": "Report sent",
+  "@photosReportSent": {
+    "description": "Snackbar after submitting a photo report"
+  },
+
   "permissionsPhotoRationale": "To pick a cover photo, Samay needs access to your photos.",
   "@permissionsPhotoRationale": {
     "description": "Snackbar rationale when the photo-library permission is denied"
@@ -1240,6 +1449,10 @@
   "chatSendError": "Couldn't send the message",
   "@chatSendError": {
     "description": "Snackbar when sending a message fails"
+  },
+  "chatLoadOlder": "Load older messages",
+  "@chatLoadOlder": {
+    "description": "Button that loads the previous page of older messages"
   },
 
   "eventsTypeLabel": "Event type",
@@ -1558,5 +1771,296 @@
   "eventStatusCancelled": "Cancelled",
   "@eventStatusCancelled": {
     "description": "Cancelled status badge"
+  },
+  "qrAttendanceTitle": "Attendance QR",
+  "@qrAttendanceTitle": {
+    "description": "Attendance QR screen title"
+  },
+  "qrEventLoadError": "Could not load the event.",
+  "@qrEventLoadError": {
+    "description": "Attendance QR: event load error message"
+  },
+  "qrTokenLoadError": "Could not load the QR code.",
+  "@qrTokenLoadError": {
+    "description": "Attendance QR: token load error message"
+  },
+  "qrActivatesIn": "The QR code will activate {minutes} minutes before the event",
+  "@qrActivatesIn": {
+    "description": "Attendance QR: pre-activation countdown message",
+    "placeholders": {
+      "minutes": { "type": "int" }
+    }
+  },
+  "qrActivationCountdown": "Activates in {time}",
+  "@qrActivationCountdown": {
+    "description": "Attendance QR: countdown to activation time",
+    "placeholders": {
+      "time": { "type": "String" }
+    }
+  },
+  "qrNewCodeIn": "New code in: {seconds}",
+  "@qrNewCodeIn": {
+    "description": "Attendance QR: countdown to next token rotation",
+    "placeholders": {
+      "seconds": { "type": "int" }
+    }
+  },
+  "qrEventEnded": "The event has ended. The QR code is no longer needed.",
+  "@qrEventEnded": {
+    "description": "Attendance QR: post-event message"
+  },
+  "qrServerPending": "The QR code could not be generated yet. The server is not rotating tokens yet.",
+  "@qrServerPending": {
+    "description": "Attendance QR: server has no token yet (EEDG not deployed)"
+  },
+  "qrServerPendingBody": "If the problem persists, press Retry.",
+  "@qrServerPendingBody": {
+    "description": "Attendance QR: server-pending retry hint"
+  },
+  "qrUpdating": "Updating code…",
+  "@qrUpdating": {
+    "description": "Attendance QR: rotating the token"
+  },
+  "qrAttendeeExpired": "The QR code expired. Generating a new one…",
+  "@qrAttendeeExpired": {
+    "description": "Attendance QR: token expired, regenerating"
+  },
+  "qrAttendeeExpiredBody": "If the problem persists, press Retry.",
+  "@qrAttendeeExpiredBody": {
+    "description": "Attendance QR: expired retry hint"
+  },
+  "qrScannerTitle": "Attendance scanner",
+  "@qrScannerTitle": {
+    "description": "QR scanner screen title"
+  },
+  "qrScanPrompt": "Scan the attendee's QR code",
+  "@qrScanPrompt": {
+    "description": "QR scanner: scan instruction"
+  },
+  "qrScanEventName": "Event: {name}",
+  "@qrScanEventName": {
+    "description": "QR scanner: event name label",
+    "placeholders": {
+      "name": { "type": "String" }
+    }
+  },
+  "qrScanEventFallback": "Event",
+  "@qrScanEventFallback": {
+    "description": "QR scanner: event name fallback"
+  },
+  "qrTorchOn": "Turn on flashlight",
+  "@qrTorchOn": {
+    "description": "QR scanner: torch-on tooltip"
+  },
+  "qrTorchOff": "Turn off flashlight",
+  "@qrTorchOff": {
+    "description": "QR scanner: torch-off tooltip"
+  },
+  "qrScanProcessing": "Verifying…",
+  "@qrScanProcessing": {
+    "description": "QR scanner: validating a scanned token"
+  },
+  "qrScanConfirmed": "Attendance confirmed!",
+  "@qrScanConfirmed": {
+    "description": "QR scanner: attendance confirmed banner"
+  },
+  "qrScanAttendee": "Attendee: {name}",
+  "@qrScanAttendee": {
+    "description": "QR scanner: confirmed attendee name",
+    "placeholders": {
+      "name": { "type": "String" }
+    }
+  },
+  "qrScanReady": "Done",
+  "@qrScanReady": {
+    "description": "QR scanner: ready-state label after confirmation"
+  },
+  "qrScanExpired": "QR code expired. Ask the attendee to refresh their QR.",
+  "@qrScanExpired": {
+    "description": "QR scanner: expired token error"
+  },
+  "qrScanAlreadyScanned": "This QR code was already scanned.",
+  "@qrScanAlreadyScanned": {
+    "description": "QR scanner: double-scan error"
+  },
+  "qrScanNotInvited": "This user is not invited to this event.",
+  "@qrScanNotInvited": {
+    "description": "QR scanner: attendee not invited error"
+  },
+  "qrScanNotInWindow": "The event is not active for attendance confirmation.",
+  "@qrScanNotInWindow": {
+    "description": "QR scanner: event outside attendance window"
+  },
+  "qrScanNotPromotor": "You don't have permission to scan at this event.",
+  "@qrScanNotPromotor": {
+    "description": "QR scanner: caller lacks promotor role"
+  },
+  "qrScanInvalidToken": "Invalid QR code.",
+  "@qrScanInvalidToken": {
+    "description": "QR scanner: unrecognized token"
+  },
+  "qrScanNetworkError": "Connection error. Retrying...",
+  "@qrScanNetworkError": {
+    "description": "QR scanner: connection/RPC error with retry"
+  },
+  "qrCameraUnavailable": "Could not access the camera.",
+  "@qrCameraUnavailable": {
+    "description": "QR scanner: camera unavailable"
+  },
+  "qrCameraUnavailableBody": "Close and reopen the scanner, or check camera permissions.",
+  "@qrCameraUnavailableBody": {
+    "description": "QR scanner: camera unavailable hint"
+  },
+  "qrCameraDenied": "Camera access is needed to scan.",
+  "@qrCameraDenied": {
+    "description": "QR scanner: camera permission needed"
+  },
+  "qrCameraSettingsTitle": "Camera access",
+  "@qrCameraSettingsTitle": {
+    "description": "QR scanner: settings dialog title"
+  },
+  "qrCameraSettingsBody": "Samay needs camera access to scan attendance QR codes.",
+  "@qrCameraSettingsBody": {
+    "description": "QR scanner: settings dialog body"
+  },
+  "qrCameraSettingsAction": "Open settings",
+  "@qrCameraSettingsAction": {
+    "description": "QR scanner: settings dialog action"
+  },
+
+  "partyFinderTitle": "Party Finder",
+  "@partyFinderTitle": {
+    "description": "Party Finder screen app bar title (PFND — I-60)"
+  },
+  "partyFinderOptInLabel": "Appear in Party Finder",
+  "@partyFinderOptInLabel": {
+    "description": "Party Finder: opt-in switch label (privacy default OFF)"
+  },
+  "partyFinderOptInOff": "Discovery is off",
+  "@partyFinderOptInOff": {
+    "description": "Party Finder: first-run explainer title while discovery is off"
+  },
+  "partyFinderOptInOffBody": "Turn on the switch to appear in other people's matches. Nobody can see you while it's off.",
+  "@partyFinderOptInOffBody": {
+    "description": "Party Finder: first-run explainer body while discovery is off"
+  },
+  "partyFinderEmpty": "No matches yet",
+  "@partyFinderEmpty": {
+    "description": "Party Finder: empty state when no matches exist"
+  },
+  "partyFinderEmptyBody": "Add more interests to your profile to find like-minded people.",
+  "@partyFinderEmptyBody": {
+    "description": "Party Finder: empty-state hint to add more interest tags"
+  },
+  "partyFinderError": "Couldn't load the Party Finder",
+  "@partyFinderError": {
+    "description": "Party Finder: error state message with retry"
+  },
+  "partyFinderSharedInterests": "{count, plural, =1{1 shared interest} other{{count} shared interests}}",
+  "@partyFinderSharedInterests": {
+    "description": "Party Finder: shared-interest count on a match card",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "cosmeticsShopTitle": "Cosmetics shop",
+  "@cosmeticsShopTitle": {
+    "description": "Cosmetics shop screen app-bar title"
+  },
+  "cosmeticsTabFrames": "Frames",
+  "@cosmeticsTabFrames": {
+    "description": "Cosmetics shop category tab: avatar frames"
+  },
+  "cosmeticsTabBackgrounds": "Backgrounds",
+  "@cosmeticsTabBackgrounds": {
+    "description": "Cosmetics shop category tab: profile backgrounds"
+  },
+  "cosmeticsTabBadges": "Badges",
+  "@cosmeticsTabBadges": {
+    "description": "Cosmetics shop category tab: badges"
+  },
+  "cosmeticsTierVip": "VIP",
+  "@cosmeticsTierVip": {
+    "description": "VIP subscription tier label"
+  },
+  "cosmeticsTierPro": "PRO",
+  "@cosmeticsTierPro": {
+    "description": "PRO subscription tier label"
+  },
+  "cosmeticsTierFree": "Free",
+  "@cosmeticsTierFree": {
+    "description": "Free subscription tier label"
+  },
+  "cosmeticsPurchaseTitle": "Confirm purchase",
+  "@cosmeticsPurchaseTitle": {
+    "description": "Cosmetics purchase confirmation dialog title"
+  },
+  "cosmeticsPurchaseConfirm": "Buy {name} for {cost} shards?",
+  "@cosmeticsPurchaseConfirm": {
+    "description": "Cosmetics purchase confirmation dialog body",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "cost": {
+        "type": "int"
+      }
+    }
+  },
+  "cosmeticsBuy": "Buy",
+  "@cosmeticsBuy": {
+    "description": "Confirm button on the cosmetics purchase dialog"
+  },
+  "cosmeticsBuyWithCost": "Buy — {cost}",
+  "@cosmeticsBuyWithCost": {
+    "description": "Cosmetics shop buy button showing the shard cost",
+    "placeholders": {
+      "cost": {
+        "type": "int"
+      }
+    }
+  },
+  "cosmeticsPurchaseSuccess": "Cosmetic acquired!",
+  "@cosmeticsPurchaseSuccess": {
+    "description": "Snackbar after a successful cosmetics purchase"
+  },
+  "cosmeticsTierRequired": "Requires a higher subscription tier.",
+  "@cosmeticsTierRequired": {
+    "description": "Snackbar when the user's subscription tier is below the item requirement"
+  },
+  "cosmeticsOwned": "Owned",
+  "@cosmeticsOwned": {
+    "description": "Badge on an already-owned cosmetic card"
+  },
+  "cosmeticsEquipped": "Equipped",
+  "@cosmeticsEquipped": {
+    "description": "Button label when the cosmetic is currently equipped"
+  },
+  "cosmeticsEquip": "Equip",
+  "@cosmeticsEquip": {
+    "description": "Button label to equip an owned cosmetic"
+  },
+  "cosmeticsRequiresTier": "Requires {tier}",
+  "@cosmeticsRequiresTier": {
+    "description": "Tier-locked cosmetic card hint",
+    "placeholders": {
+      "tier": {
+        "type": "String"
+      }
+    }
+  },
+  "cosmeticsEmptyCatalog": "No cosmetics available yet",
+  "@cosmeticsEmptyCatalog": {
+    "description": "Empty state on the cosmetics shop"
+  },
+  "comingSoonCosmeticsTitle": "Cosmetics",
+  "@comingSoonCosmeticsTitle": {
+    "description": "Coming-soon screen title for the cosmetics shop"
+  },
+  "comingSoonCosmeticsBody": "Your cosmetics collection will appear here.",
+  "@comingSoonCosmeticsBody": {
+    "description": "Coming-soon screen body for the cosmetics shop"
   }
 }
