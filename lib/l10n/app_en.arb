@@ -266,14 +266,6 @@
   "@feedBrand": {
     "description": "Feed screen app bar title"
   },
-  "feedWelcome": "Welcome to Samay",
-  "@feedWelcome": {
-    "description": "Feed screen welcome heading"
-  },
-  "feedEmpty": "Your feed will appear here.\nSoon you'll see nearby events and activity from your groups.",
-  "@feedEmpty": {
-    "description": "Feed placeholder text"
-  },
   "feedFeatured": "Featured",
   "@feedFeatured": {
     "description": "Feed section heading for featured (promoted) events"

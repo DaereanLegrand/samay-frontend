@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:samay/core/logging/app_logger.dart';
 import 'package:samay/core/providers/auth_provider.dart';
 import 'package:samay/core/router/route_paths.dart';
+import 'package:samay/core/utils/form_validators.dart' as form_validators;
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/show_app_error.dart';
 import 'package:samay/shared/widgets/v_button.dart';
@@ -31,7 +32,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   Future<void> _login() async {
     final email = _emailController.text.trim();
     final password = _passwordController.text;
-    if (email.isEmpty || password.isEmpty) return;
+    final formState = form_validators.FormState()
+      ..validate({
+        'email': form_validators.requiredValidator,
+        'password': form_validators.requiredValidator,
+      }, {
+        'email': email,
+        'password': password,
+      });
+    if (!formState.isValid) return;
     final l10n = AppLocalizations.of(context);
     try {
       await ref.read(authStateProvider.notifier).signIn(email, password);

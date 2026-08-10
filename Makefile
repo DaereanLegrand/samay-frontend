@@ -3,6 +3,7 @@
         supabase-start supabase-stop supabase-status supabase-reset \
         supabase-docker-start supabase-docker-stop supabase-docker-status supabase-docker-reset \
         supabase-testing-start supabase-testing-stop supabase-testing-status supabase-testing-reset \
+        supabase-seed-dev \
         migrate-check
 
 APP_NAME := samay_app
@@ -171,6 +172,12 @@ supabase-docker-status:
 
 supabase-docker-reset:
 	cd supabase && docker compose down && rm -rf volumes/db/data volumes/storage && docker compose up -d --wait
+
+# Apply DEMO/dev seed data (supabase/seed-dev.sql, agent I-75) to a running
+# stack. Demo-only — NOT applied by default (production seed stays clean).
+# psql invocation mirrors supabase/reset.sh (host port 54382, approved map).
+supabase-seed-dev:
+	cd supabase && PGPASSWORD=postgres psql -h localhost -p 54382 -U postgres -d postgres -f seed-dev.sql
 
 supabase-testing-start:
 	cd supabase-testing && docker compose up -d --wait

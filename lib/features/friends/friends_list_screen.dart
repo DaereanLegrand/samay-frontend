@@ -6,6 +6,7 @@ import 'package:samay/core/router/route_paths.dart';
 import 'package:samay/features/friends/friends_providers.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/error_view.dart';
+import 'package:samay/shared/widgets/state_views.dart';
 
 class FriendsListScreen extends ConsumerStatefulWidget {
   const FriendsListScreen({super.key});
@@ -43,7 +44,7 @@ class _FriendsListScreenState extends ConsumerState<FriendsListScreen> {
           ),
           Expanded(
             child: ref.watch(friendsListProvider).when(
-              loading: () => const Center(child: CircularProgressIndicator()),
+              loading: () => const VLoadingView(),
               error: (e, _) => ErrorView(
                 message: e.toAppError().message,
                 onRetry: () => ref.invalidate(friendsListProvider),
@@ -56,17 +57,10 @@ class _FriendsListScreenState extends ConsumerState<FriendsListScreen> {
                         (f['username'] as String? ?? '').toLowerCase().contains(q))
                     .toList();
                 if (filtered.isEmpty && friends.isEmpty) {
-                  return Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(l10n.friendsNoneYet,
-                            style: Theme.of(context).textTheme.headlineMedium),
-                        const SizedBox(height: 8),
-                        Text(l10n.friendsSearchPrompt,
-                            style: Theme.of(context).textTheme.bodyMedium),
-                      ],
-                    ),
+                  return VEmptyView(
+                    icon: Icons.person_search,
+                    title: l10n.friendsNoneYet,
+                    description: l10n.friendsSearchPrompt,
                   );
                 }
                 if (filtered.isEmpty) {

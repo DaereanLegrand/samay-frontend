@@ -8,16 +8,8 @@ import 'package:samay/core/providers/service_providers.dart';
 import 'package:samay/core/services/auth_service.dart';
 import 'package:samay/core/services/ban_service.dart';
 import 'package:samay/core/services/crash_reporter.dart';
-import 'package:samay/core/services/supabase_service.dart';
 import 'package:samay/core/services/telemetry_service.dart';
 import 'package:samay/core/utils/async_ops.dart';
-
-/// Legacy facade provider (I-09 seam, kept for feature agents migrating off
-/// `SupabaseService.instance`; new code should use the decomposed service
-/// providers in `lib/core/providers/service_providers.dart`).
-final supabaseServiceProvider = Provider<SupabaseService>(
-  (ref) => SupabaseService.instance,
-);
 
 class AuthState {
   final bool authenticated;

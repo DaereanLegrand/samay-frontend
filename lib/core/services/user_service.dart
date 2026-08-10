@@ -172,8 +172,9 @@ class UserService {
               .limit(1)
               .maybeSingle()
         : null;
-    if (asRequester != null || asAddressee != null)
+    if (asRequester != null || asAddressee != null) {
       throw Exception('Ya existe una solicitud o amistad con este usuario');
+    }
     await client.from('friendships').insert({
       'requester_id': user.id,
       'addressee_id': userId,

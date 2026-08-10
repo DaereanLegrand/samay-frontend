@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:samay/core/providers/service_providers.dart';
 import 'package:samay/core/repositories/chat_repository.dart';
 import 'package:samay/core/services/chat_service.dart';
+import 'package:samay/core/utils/pagination.dart';
 import 'package:samay/crypto/e2ee_key_store.dart';
 import 'package:samay/crypto/e2ee_prekey_service.dart';
 import 'package:samay/crypto/interfaces.dart';
@@ -69,53 +70,96 @@ const int chatPageSize = 50;
 /// Mirror of the `chat.message_cap` app_config key (default 1000) enforced
 /// server-side by the `enforce_message_cap` trigger (TRIG spec / migration
 /// 20260809000001). The DB rolling window never stores more than this many
-/// messages per chat, so the client must not paginate past it — [loadOlder]
+/// messages per chat, so the client must not paginate past it — [PageLoader]
 /// flips `hasMore` false at the cap (see [ChatMessagesNotifier]).
 const int chatMessageCap = 1000;
 
-/// The chat thread state: decrypted messages (oldest first) plus the
-/// pagination flags the screen renders (I-56, CHAT spec).
+/// The chat thread state (I-56 public API preserved): decrypted messages
+/// (oldest first) plus the pagination flags the screen renders.
+///
+/// Driven by (and a thin view over) the generic [PagedState] — the offset/
+/// hasMore/cap/dedupe machinery lives in `lib/core/utils/pagination.dart`
+/// (I-72), so every other paginated feature gets the same engine. Rows keep
+/// `Map<String, dynamic>` shape: the E2EE service does not select `chat_id`
+/// and adds the `decryptFailed` flag (see [ChatRepository]).
 class ChatMessagesState {
-  const ChatMessagesState({
-    required this.messages,
-    required this.hasMore,
-    this.loadingOlder = false,
-  });
+  ChatMessagesState({
+    required List<Map<String, dynamic>> messages,
+    required bool hasMore,
+    bool loadingOlder = false,
+    int pageSize = chatPageSize,
+    int nextOffset = 0,
+  }) : _paged = PagedState<Map<String, dynamic>>(
+          items: messages,
+          hasMore: hasMore,
+          loadingMore: loadingOlder,
+          pageSize: pageSize,
+          nextOffset: nextOffset,
+          idOf: _messageIdOf,
+        );
+
+  /// The paged core this state is a view over (I-72): all paging flags and
+  /// the dedupe-by-id transformations live there.
+  final PagedState<Map<String, dynamic>> _paged;
 
   /// Decrypted rows, oldest first.
-  final List<Map<String, dynamic>> messages;
+  List<Map<String, dynamic>> get messages => _paged.items;
 
   /// Whether an older page is still available (server returned a full page
   /// on the last fetch and the message cap has not been reached).
-  final bool hasMore;
+  bool get hasMore => _paged.hasMore;
 
   /// True while an older page is being fetched (loader row in the UI).
-  final bool loadingOlder;
+  bool get loadingOlder => _paged.loadingMore;
+
+  /// Rows requested per fetch.
+  int get pageSize => _paged.pageSize;
+
+  /// Next server offset for the next older page.
+  int get nextOffset => _paged.nextOffset;
+
+  /// Dedupe key: the message `id` (realtime rows can overlap page
+  /// boundaries). Rows without a string id are never deduped.
+  static String? _messageIdOf(Map<String, dynamic> message) =>
+      message['id'] is String ? message['id'] as String : null;
+
+  /// Wraps a [PageLoader]-produced [PagedState] back into the chat state
+  /// shape ([ChatMessagesNotifier] never does paging arithmetic itself).
+  factory ChatMessagesState.fromPaged(
+    PagedState<Map<String, dynamic>> paged,
+  ) {
+    return ChatMessagesState(
+      messages: paged.items,
+      hasMore: paged.hasMore,
+      loadingOlder: paged.loadingMore,
+      pageSize: paged.pageSize,
+      nextOffset: paged.nextOffset,
+    );
+  }
 
   ChatMessagesState copyWith({
     List<Map<String, dynamic>>? messages,
     bool? hasMore,
     bool? loadingOlder,
+    int? pageSize,
+    int? nextOffset,
   }) {
     return ChatMessagesState(
       messages: messages ?? this.messages,
       hasMore: hasMore ?? this.hasMore,
       loadingOlder: loadingOlder ?? this.loadingOlder,
+      pageSize: pageSize ?? this.pageSize,
+      nextOffset: nextOffset ?? this.nextOffset,
     );
   }
 }
 
 class ChatMessagesNotifier
     extends FamilyAsyncNotifier<ChatMessagesState, String> {
-  /// Next server offset for [loadOlder] (rows already consumed).
-  int _offset = 0;
-
-  /// Whether the server may hold an older page (recomputed per fetch).
-  bool _hasMore = true;
-
-  /// In-flight guard for [loadOlder] (L-07 concurrency guard — a second tap
-  /// while fetching must not double-fetch).
-  bool _loadingOlder = false;
+  /// The paging engine for this chat (I-72): fetch seam, dedupe key, page
+  /// size and cap. Created fresh in every [build] so a (re)load always
+  /// restarts from the first page.
+  late PageLoader<Map<String, dynamic>> _loader;
 
   /// The E2EE seam (I-50): every message path goes through the injected
   /// [ChatService] — encrypt-on-send, decrypt-on-load. The provider must
@@ -125,15 +169,17 @@ class ChatMessagesNotifier
 
   @override
   Future<ChatMessagesState> build(String chatId) async {
-    // Family instances are long-lived (keep-alive provider); reset the
-    // paging state on every (re)load so refresh() re-reads the first page.
-    _offset = 0;
-    _hasMore = true;
-    _loadingOlder = false;
-    final first = await _loadPage(chatId, 0);
-    _offset = first.length;
-    _hasMore = _fullPage(first.length) && _offset < chatMessageCap;
-    return ChatMessagesState(messages: first, hasMore: _hasMore);
+    // Family instances are long-lived (keep-alive provider); a fresh loader
+    // resets the paging state on every (re)load so refresh() re-reads the
+    // first page.
+    _loader = PageLoader<Map<String, dynamic>>(
+      fetch: (offset, limit) =>
+          _repo.loadMessages(chatId, limit: limit, offset: offset),
+      idOf: ChatMessagesState._messageIdOf,
+      pageSize: chatPageSize,
+      maxItems: chatMessageCap,
+    );
+    return ChatMessagesState.fromPaged(await _loader.loadFirst());
   }
 
   /// Re-runs [build] (after sending, pull-to-refresh).
@@ -154,7 +200,7 @@ class ChatMessagesNotifier
     if (id is! String) return;
     final current = state.valueOrNull;
     if (current == null) {
-      state = AsyncData(ChatMessagesState(messages: [row], hasMore: _hasMore));
+      state = AsyncData(ChatMessagesState(messages: [row], hasMore: true));
       return;
     }
     if (current.messages.any((m) => m['id'] == id)) return;
@@ -162,8 +208,9 @@ class ChatMessagesNotifier
   }
 
   /// Fetches the next older page ([chatPageSize] rows before the current
-  /// window), prepends it (deduplicated by id — realtime rows may overlap
-  /// page boundaries) and recomputes [ChatMessagesState.hasMore].
+  /// window) via [PageLoader.loadMore] — it prepends the page (deduplicated
+  /// by id — realtime rows may overlap page boundaries) and recomputes
+  /// [ChatMessagesState.hasMore].
   ///
   /// ## Message cap (CHMC/TRIG)
   ///
@@ -174,49 +221,17 @@ class ChatMessagesNotifier
   /// screen surfaces them via a snackbar).
   Future<void> loadOlder() async {
     final current = state.valueOrNull;
-    if (current == null || _loadingOlder) return;
-    if (!_hasMore || _offset >= chatMessageCap) {
-      if (_hasMore) {
-        _hasMore = false;
-        state = AsyncData(current.copyWith(hasMore: false));
-      }
-      return;
-    }
-    _loadingOlder = true;
+    if (current == null || current.loadingOlder || !current.hasMore) return;
     state = AsyncData(current.copyWith(loadingOlder: true));
     try {
-      final older = await _loadPage(arg, _offset);
-      final existing = {
-        for (final m in current.messages)
-          if (m['id'] is String) m['id'] as String,
-      };
-      final deduped = [
-        for (final m in older)
-          if (m['id'] is String && !existing.contains(m['id'])) m,
-      ];
-      final merged = [...deduped, ...current.messages];
-      _offset += older.length;
-      _hasMore = _fullPage(older.length) && _offset < chatMessageCap;
-      if (merged.length >= chatMessageCap) _hasMore = false;
       state = AsyncData(
-        ChatMessagesState(messages: merged, hasMore: _hasMore),
+        ChatMessagesState.fromPaged(await _loader.loadMore(current._paged)),
       );
     } catch (_) {
       state = AsyncData(current.copyWith(loadingOlder: false));
       rethrow;
-    } finally {
-      _loadingOlder = false;
     }
   }
-
-  Future<List<Map<String, dynamic>>> _loadPage(
-    String chatId,
-    int offset,
-  ) {
-    return _repo.loadMessages(chatId, limit: chatPageSize, offset: offset);
-  }
-
-  bool _fullPage(int fetched) => fetched == chatPageSize;
 }
 
 /// Messages of a chat (oldest first), decrypted; pagination (last 50 on

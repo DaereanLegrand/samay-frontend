@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:samay/core/extensions/error_mapper.dart';
 import 'package:samay/core/repositories/repository_providers.dart';
+import 'package:samay/core/utils/form_validators.dart';
 import 'package:samay/core/utils/input_sanitizer.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/v_button.dart';
@@ -28,13 +29,19 @@ class _DonateShardsScreenState extends ConsumerState<DonateShardsScreen> {
 
   Future<void> _donate() async {
     final l10n = AppLocalizations.of(context);
-    final amount = int.tryParse(InputSanitizer.sanitizeAmount(_amountController.text));
-    if (amount == null || amount < 1) {
+    final sanitized = InputSanitizer.sanitizeAmount(_amountController.text);
+    final amountError = numericValidator(
+      sanitized,
+      min: 1,
+      message: l10n.groupsInvalidAmount,
+    );
+    if (amountError != null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.groupsInvalidAmount)),
+        SnackBar(content: Text(amountError)),
       );
       return;
     }
+    final amount = int.parse(sanitized);
 
     setState(() => _loading = true);
     try {

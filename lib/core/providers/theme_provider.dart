@@ -1,16 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:samay/core/logging/app_logger.dart';
+import 'package:samay/core/providers/service_providers.dart';
 import 'package:samay/core/services/storage_service.dart';
-
-/// Injectable seam for the encrypted Hive config cache ([HiveService]).
-///
-/// Production uses the real service (initialized in `main()` by I-26);
-/// tests override this provider with an in-memory fake to exercise the
-/// theme provider without Hive or platform channels.
-final hiveServiceProvider = Provider<HiveService>((ref) {
-  return HiveService();
-});
 
 /// UI-05 / L-16 (I-65): persisted theme-mode choice.
 ///

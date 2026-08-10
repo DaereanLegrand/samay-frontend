@@ -6,6 +6,7 @@ import 'package:samay/features/friends/friends_providers.dart';
 import 'package:samay/features/groups/groups_providers.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/error_view.dart';
+import 'package:samay/shared/widgets/state_views.dart';
 
 class RequestsScreen extends ConsumerStatefulWidget {
   const RequestsScreen({super.key});
@@ -66,13 +67,13 @@ class _RequestsScreenState extends ConsumerState<RequestsScreen>
         ),
       ),
       body: ref.watch(friendRequestsProvider).when(
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => const VLoadingView(),
         error: (e, _) => ErrorView(
           message: e.toAppError().message,
           onRetry: () => ref.invalidate(friendRequestsProvider),
         ),
         data: (data) => ref.watch(groupInvitesProvider).when(
-          loading: () => const Center(child: CircularProgressIndicator()),
+          loading: () => const VLoadingView(),
           error: (e, _) => ErrorView(
             message: e.toAppError().message,
             onRetry: () => ref.invalidate(groupInvitesProvider),

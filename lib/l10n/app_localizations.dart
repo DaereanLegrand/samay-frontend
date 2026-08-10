@@ -458,18 +458,6 @@ abstract class AppLocalizations {
   /// **'Samay'**
   String get feedBrand;
 
-  /// Feed screen welcome heading
-  ///
-  /// In es, this message translates to:
-  /// **'Bienvenido a Samay'**
-  String get feedWelcome;
-
-  /// Feed placeholder text
-  ///
-  /// In es, this message translates to:
-  /// **'Tu feed aparecerá aquí.\nPronto podrás ver eventos cercanos y actividades de tus grupos.'**
-  String get feedEmpty;
-
   /// Feed section heading for featured (promoted) events
   ///
   /// In es, this message translates to:

@@ -7,6 +7,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:samay/core/logging/app_logger.dart';
 import 'package:samay/core/providers/service_providers.dart';
 import 'package:samay/core/services/permission_service.dart';
+import 'package:samay/core/utils/form_validators.dart';
 import 'package:samay/core/utils/input_sanitizer.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/show_app_error.dart';
@@ -64,7 +65,7 @@ class _CreateGroupScreenState extends ConsumerState<CreateGroupScreen> {
       _nameController.text,
       maxLength: InputSanitizer.groupNameMaxLength,
     );
-    if (name.isEmpty) return;
+    if (requiredValidator(name) != null) return;
     final description = InputSanitizer.sanitizeOptional(
       _descController.text,
       maxLength: InputSanitizer.groupDescriptionMaxLength,

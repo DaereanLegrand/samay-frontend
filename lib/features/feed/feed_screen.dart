@@ -10,6 +10,7 @@ import 'package:samay/features/events/event_formatters.dart';
 import 'package:samay/features/feed/feed_providers.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/error_view.dart';
+import 'package:samay/shared/widgets/state_views.dart';
 import 'package:samay/shared/widgets/v_card.dart';
 import 'package:samay/shared/widgets/v_chip.dart';
 import 'package:samay/shared/widgets/v_network_image.dart';
@@ -33,7 +34,7 @@ class FeedScreen extends ConsumerWidget {
     return Scaffold(
       body: SafeArea(
         child: feed.when(
-          loading: () => const Center(child: CircularProgressIndicator()),
+          loading: () => const VLoadingView(),
           error: (_, _) => ErrorView(
             message: l10n.feedLoadError,
             onRetry: () => ref.read(feedProvider.notifier).refresh(),
@@ -68,9 +69,13 @@ class FeedScreen extends ConsumerWidget {
                           _EventCard(event: upcoming[index]),
                     )
                   else
-                    const SliverFillRemaining(
+                    SliverFillRemaining(
                       hasScrollBody: false,
-                      child: _EmptyState(),
+                      child: VEmptyView(
+                        icon: Icons.explore_outlined,
+                        title: l10n.feedNoEvents,
+                        description: l10n.feedNoEventsBody,
+                      ),
                     ),
                 ],
               ),
@@ -448,42 +453,6 @@ class _Badge extends StatelessWidget {
           color: color,
           fontSize: 12,
           fontWeight: FontWeight.bold,
-        ),
-      ),
-    );
-  }
-}
-
-/// FEED empty state (DISCO-DESIGN-SYSTEM §5.9): centered icon + muted copy.
-class _EmptyState extends StatelessWidget {
-  const _EmptyState();
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.xl),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(
-              Icons.explore_outlined,
-              size: AppIconSizes.xxl,
-              color: AppColors.border,
-            ),
-            const SizedBox(height: AppSpacing.lg),
-            Text(
-              l10n.feedNoEvents,
-              style: Theme.of(context).textTheme.headlineSmall,
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            Text(
-              l10n.feedNoEventsBody,
-              textAlign: TextAlign.center,
-              style: const TextStyle(color: AppColors.mutedStrong),
-            ),
-          ],
         ),
       ),
     );

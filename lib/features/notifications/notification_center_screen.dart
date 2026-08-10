@@ -11,6 +11,7 @@ import 'package:samay/core/providers/service_providers.dart';
 import 'package:samay/features/notifications/notifications_providers.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/error_view.dart';
+import 'package:samay/shared/widgets/state_views.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' show RealtimeChannel;
 
 /// Icon per notification type (NOTI spec table, 16 rows). The title/body
@@ -118,14 +119,18 @@ class _NotificationCenterScreenState
         ],
       ),
       body: notifications.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => const VLoadingView(),
         error: (error, _) => ErrorView(
           message: l10n.notificationsLoadError,
           onRetry: () =>
               ref.read(notificationsProvider.notifier).refresh(),
         ),
         data: (items) => items.isEmpty
-            ? _EmptyState(l10n: l10n)
+            ? VEmptyView(
+                icon: Icons.notifications_none,
+                title: l10n.notificationsEmpty,
+                description: l10n.notificationsEmptyBody,
+              )
             : RefreshIndicator(
                 onRefresh: () =>
                     ref.read(notificationsProvider.notifier).refresh(),
@@ -143,42 +148,6 @@ class _NotificationCenterScreenState
                   },
                 ),
               ),
-      ),
-    );
-  }
-}
-
-class _EmptyState extends StatelessWidget {
-  final AppLocalizations l10n;
-
-  const _EmptyState({required this.l10n});
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.xl),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(
-              Icons.notifications_none,
-              size: AppIconSizes.xxl,
-              color: AppColors.border,
-            ),
-            const SizedBox(height: AppSpacing.lg),
-            Text(
-              l10n.notificationsEmpty,
-              style: Theme.of(context).textTheme.headlineSmall,
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            Text(
-              l10n.notificationsEmptyBody,
-              textAlign: TextAlign.center,
-              style: const TextStyle(color: AppColors.mutedStrong),
-            ),
-          ],
-        ),
       ),
     );
   }

@@ -11,6 +11,7 @@ import 'package:samay/core/services/moderation_service.dart';
 import 'package:samay/core/services/notification_service.dart';
 import 'package:samay/core/services/realtime_service.dart';
 import 'package:samay/core/services/shards_service.dart';
+import 'package:samay/core/services/storage_service.dart';
 import 'package:samay/core/services/user_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -30,6 +31,17 @@ final supabaseClientProvider = Provider<SupabaseClient>((ref) {
 
 final configServiceProvider = Provider<ConfigService>((ref) {
   return ConfigService(client: ref.watch(supabaseClientProvider));
+});
+
+/// Injectable seam for the encrypted Hive config cache ([HiveService], I-26).
+///
+/// Production uses the real service (initialized in `main()` by I-26); tests
+/// override this provider with an in-memory fake. Promoted here from
+/// `theme_provider.dart` (I-71) so every cache consumer — theme persistence
+/// (I-65) and the app-config offline fallback (I-71) — shares one wiring
+/// point.
+final hiveServiceProvider = Provider<HiveService>((ref) {
+  return HiveService();
 });
 
 final authServiceProvider = Provider<AuthService>((ref) {

@@ -5,8 +5,8 @@ import 'package:samay/core/extensions/error_mapper.dart';
 import 'package:samay/core/router/route_paths.dart';
 import 'package:samay/features/groups/groups_providers.dart';
 import 'package:samay/l10n/app_localizations.dart';
-import 'package:samay/shared/widgets/error_view.dart';
 import 'package:samay/shared/widgets/rank_badge.dart';
+import 'package:samay/shared/widgets/state_views.dart';
 import 'package:samay/shared/widgets/v_chip.dart';
 
 class LeaderboardScreen extends ConsumerStatefulWidget {
@@ -25,6 +25,7 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final rankingsAsync = ref.watch(leaderboardProvider(_selectedTier));
+    final rankings = rankingsAsync.valueOrNull;
     return Scaffold(
       appBar: AppBar(title: Text(l10n.groupsLeaderboardTitle)),
       body: Column(
@@ -46,48 +47,50 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
             ),
           ),
           Expanded(
-            child: rankingsAsync.when(
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (e, _) => ErrorView(
-                message: e.toAppError().message,
-                onRetry: () => ref.invalidate(leaderboardProvider(_selectedTier)),
+            child: VStateView(
+              loading: rankingsAsync.isLoading,
+              error: rankingsAsync.error,
+              errorMessage: rankingsAsync.hasError
+                  ? rankingsAsync.error!.toAppError().message
+                  : null,
+              onRetry: () => ref.invalidate(leaderboardProvider(_selectedTier)),
+              empty: VEmptyView(
+                icon: Icons.leaderboard_outlined,
+                title: l10n.groupsNoRankingData,
               ),
-              data: (rankings) {
-                if (rankings.isEmpty) {
-                  return Center(child: Text(l10n.groupsNoRankingData));
-                }
-                return RefreshIndicator(
-                  onRefresh: () => ref
-                      .read(leaderboardProvider(_selectedTier).notifier)
-                      .refresh(),
-                  child: ListView.builder(
-                    itemCount: rankings.length,
-                    itemBuilder: (_, i) {
-                      final g = rankings[i];
-                      return ListTile(
-                        leading: SizedBox(
-                          width: 32,
-                          child: Text(
-                            '#${g['rank_position']}',
-                            style: Theme.of(context).textTheme.bodyLarge,
-                          ),
-                        ),
-                        title: Text(g['name'] as String? ?? l10n.commonGroup),
-                        subtitle: Text(
-                          l10n.groupsLeaderboardSubtitle(
-                            (g['member_count'] as num?)?.toInt() ?? 0,
-                            (g['score'] as num?)?.toInt() ?? 0,
-                          ),
-                        ),
-                        trailing: g['rank_bracket'] != null
-                            ? RankBadge(bracket: g['rank_bracket'] as String)
-                            : null,
-                        onTap: () => context.push(RoutePaths.groupDetail(g['id'] as String)),
-                      );
-                    },
-                  ),
-                );
-              },
+              child: rankings == null || rankings.isEmpty
+                  ? null
+                  : RefreshIndicator(
+                      onRefresh: () => ref
+                          .read(leaderboardProvider(_selectedTier).notifier)
+                          .refresh(),
+                      child: ListView.builder(
+                        itemCount: rankings.length,
+                        itemBuilder: (_, i) {
+                          final g = rankings[i];
+                          return ListTile(
+                            leading: SizedBox(
+                              width: 32,
+                              child: Text(
+                                '#${g['rank_position']}',
+                                style: Theme.of(context).textTheme.bodyLarge,
+                              ),
+                            ),
+                            title: Text(g['name'] as String? ?? l10n.commonGroup),
+                            subtitle: Text(
+                              l10n.groupsLeaderboardSubtitle(
+                                (g['member_count'] as num?)?.toInt() ?? 0,
+                                (g['score'] as num?)?.toInt() ?? 0,
+                              ),
+                            ),
+                            trailing: g['rank_bracket'] != null
+                                ? RankBadge(bracket: g['rank_bracket'] as String)
+                                : null,
+                            onTap: () => context.push(RoutePaths.groupDetail(g['id'] as String)),
+                          );
+                        },
+                      ),
+                    ),
             ),
           ),
         ],

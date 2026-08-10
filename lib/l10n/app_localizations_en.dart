@@ -204,13 +204,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get feedBrand => 'Samay';
 
   @override
-  String get feedWelcome => 'Welcome to Samay';
-
-  @override
-  String get feedEmpty =>
-      'Your feed will appear here.\nSoon you\'ll see nearby events and activity from your groups.';
-
-  @override
   String get feedFeatured => 'Featured';
 
   @override
