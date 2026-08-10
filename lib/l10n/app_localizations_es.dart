@@ -524,6 +524,15 @@ class AppLocalizationsEs extends AppLocalizations {
   String get profileVersion => 'Samay v1.0.0';
 
   @override
+  String get settingsTheme => 'Tema';
+
+  @override
+  String get settingsThemeDark => 'Oscuro';
+
+  @override
+  String get settingsThemeSystem => 'Sistema';
+
+  @override
   String get profileBio => 'Biografía';
 
   @override
@@ -1548,4 +1557,194 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get comingSoonCosmeticsBody =>
       'Tu armario de cosméticos aparecerá aquí.';
+
+  @override
+  String get minigamesTitle => 'Juegos';
+
+  @override
+  String get minigamesPickGame => 'Elige un juego';
+
+  @override
+  String get minigamesGamePokeChain => 'Cadena de Pokes';
+
+  @override
+  String get minigamesGamePokeChainTagline =>
+      'Pasa el poke antes de que se acabe el tiempo';
+
+  @override
+  String get minigamesGameQuestions => 'Preguntas';
+
+  @override
+  String get minigamesGameQuestionsTagline =>
+      'Responde desde el asiento caliente';
+
+  @override
+  String get minigamesGameTruthDare => 'Verdad o Reto';
+
+  @override
+  String get minigamesGameTruthDareTagline => 'Por turnos, sin escapatoria';
+
+  @override
+  String get minigamesGameDrunkBottle => 'Botella';
+
+  @override
+  String get minigamesGameDrunkBottleTagline =>
+      'Gira la botella y veamos a quién apunta';
+
+  @override
+  String get minigamesGameChallenge => 'Retos';
+
+  @override
+  String get minigamesGameChallengeTagline =>
+      'Completa el reto antes del límite';
+
+  @override
+  String get minigamesWagerLabel => 'Apuesta (shards)';
+
+  @override
+  String get minigamesWagerHint => '0 = sin apuesta';
+
+  @override
+  String get minigamesCreate => 'Crear partida';
+
+  @override
+  String get minigamesCreated => 'Partida creada';
+
+  @override
+  String get minigamesErrorInsufficientShards =>
+      'No tienes suficientes shards para esta apuesta.';
+
+  @override
+  String get minigamesErrorNotMember => 'No eres miembro de este grupo.';
+
+  @override
+  String get minigamesErrorInvalidGameType => 'No se pudo crear la partida.';
+
+  @override
+  String get minigamesErrorCreate => 'No se pudo crear la partida.';
+
+  @override
+  String get minigamesErrorLoad => 'No se pudieron cargar las partidas';
+
+  @override
+  String get minigamesEmpty => 'Aún no hay partidas en este grupo';
+
+  @override
+  String get minigamesEmptyBody =>
+      'Crea la primera partida con uno de los juegos de arriba.';
+
+  @override
+  String get minigamesStatusActive => 'Activa';
+
+  @override
+  String get minigamesStatusFinished => 'Terminada';
+
+  @override
+  String minigamesParticipants(int count) {
+    return 'Participantes: $count';
+  }
+
+  @override
+  String minigamesWagerPerPerson(int amount) {
+    return 'Apuesta: $amount shards';
+  }
+
+  @override
+  String get minigamesDetailComingSoon => 'La partida se jugará aquí pronto.';
+
+  @override
+  String get comingSoonMinigamesTitle => 'Juegos';
+
+  @override
+  String get comingSoonMinigamesBody =>
+      'Los mini-juegos de grupo estarán disponibles pronto.';
+
+  @override
+  String get shardsLedgerTitle => 'Historial de shards';
+
+  @override
+  String get shardsLedgerTabShards => 'Shards';
+
+  @override
+  String get shardsLedgerTabPreshards => 'Preshards';
+
+  @override
+  String get shardsLedgerNet => 'Neto';
+
+  @override
+  String get shardsLedgerEmpty => 'Sin movimientos todavía';
+
+  @override
+  String get shardsLedgerEmptyBody =>
+      'Cuando ganes o gastes shards, aparecerán aquí.';
+
+  @override
+  String get shardsLedgerLoadError => 'No se pudieron cargar los movimientos';
+
+  @override
+  String get shardsLedgerEarned => 'Ganados';
+
+  @override
+  String get shardsLedgerBought => 'Comprados/Bonos';
+
+  @override
+  String get shardsLedgerEarnedNote => 'Los shards ganados nunca expiran.';
+
+  @override
+  String get shardsLedgerPreshardsNote =>
+      'Los preshards solo se usan para eventos.';
+
+  @override
+  String shardsLedgerReference(String reference) {
+    return 'Ref: $reference';
+  }
+
+  @override
+  String get shardsReasonEventAttendance => 'Asistencia a evento';
+
+  @override
+  String get shardsReasonCosmeticPurchase => 'Compra de cosmético';
+
+  @override
+  String get shardsReasonGroupDonation => 'Donación a grupo';
+
+  @override
+  String get shardsReasonMinigameWager => 'Apuesta en minigame';
+
+  @override
+  String get shardsReasonMinigameWin => '¡Ganaste el minigame!';
+
+  @override
+  String get shardsReasonMinigameRefund => 'Reembolso de minigame';
+
+  @override
+  String get shardsReasonSubscriptionGrant => 'Bono de suscripción';
+
+  @override
+  String get shardsReasonAdminGrant => 'Otorgado por Samay';
+
+  @override
+  String get shardsReasonFeedPost => 'Publicación en feed';
+
+  @override
+  String get preshardsReasonPurchased => 'Compra de preshards';
+
+  @override
+  String get preshardsReasonSubscriptionGrant => 'Bono mensual';
+
+  @override
+  String get preshardsReasonEventPoolSet => 'Asignado a evento';
+
+  @override
+  String get preshardsReasonEventPoolConsumed => 'Distribuido en evento';
+
+  @override
+  String get preshardsReasonEventPoolReturned => 'Devuelto de evento';
+
+  @override
+  String get preshardsReasonAdminGrant => 'Otorgado por Samay';
+
+  @override
+  String get connectivityOfflineBanner =>
+      'Sin conexión — los datos podrían no estar actualizados';
 }

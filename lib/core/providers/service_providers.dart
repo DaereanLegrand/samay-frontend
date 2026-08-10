@@ -6,6 +6,7 @@ import 'package:samay/core/services/config_service.dart';
 import 'package:samay/core/services/event_service.dart';
 import 'package:samay/core/services/group_service.dart';
 import 'package:samay/core/services/media_service.dart';
+import 'package:samay/core/services/minigame_service.dart';
 import 'package:samay/core/services/moderation_service.dart';
 import 'package:samay/core/services/notification_service.dart';
 import 'package:samay/core/services/realtime_service.dart';
@@ -85,4 +86,11 @@ final moderationServiceProvider = Provider<ModerationService>((ref) {
 
 final mediaServiceProvider = Provider<MediaService>((ref) {
   return MediaService(client: ref.watch(supabaseClientProvider));
+});
+
+final minigameServiceProvider = Provider<MinigameService>((ref) {
+  return MinigameService(
+    client: ref.watch(supabaseClientProvider),
+    realtime: ref.watch(realtimeServiceProvider),
+  );
 });

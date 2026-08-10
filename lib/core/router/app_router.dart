@@ -8,6 +8,8 @@ import 'package:samay/core/router/auth_refresh_notifier.dart';
 import 'package:samay/core/router/main_shell.dart';
 import 'package:samay/core/router/route_extras.dart';
 import 'package:samay/core/router/route_paths.dart';
+import 'package:samay/core/services/telemetry_service.dart';
+import 'package:samay/core/telemetry/route_observer.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/features/auth/banned_screen.dart';
 import 'package:samay/features/auth/login_screen.dart';
@@ -24,6 +26,7 @@ import 'package:samay/features/profile/public_profile_screen.dart';
 import 'package:samay/features/profile/delete_account_screen.dart';
 import 'package:samay/features/events/event_detail_screen.dart';
 import 'package:samay/features/events/event_edit_screen.dart';
+import 'package:samay/features/events/event_invite_route.dart';
 import 'package:samay/features/events/create_event_screen.dart';
 import 'package:samay/features/feed/feed_screen.dart';
 import 'package:samay/features/photos/photo_gallery_screen.dart';
@@ -40,13 +43,16 @@ import 'package:samay/features/groups/invite_screen.dart';
 import 'package:samay/features/groups/leaderboard_screen.dart';
 import 'package:samay/features/groups/my_groups_screen.dart';
 import 'package:samay/features/groups/group_members_screen.dart';
+import 'package:samay/features/minigames/minigames_screen.dart';
 import 'package:samay/features/notifications/notification_center_screen.dart';
 import 'package:samay/features/party_finder/party_finder_screen.dart';
 import 'package:samay/features/qr/attendance_qr_screen.dart';
 import 'package:samay/features/qr/qr_scanner_screen.dart';
+import 'package:samay/features/shards/shard_ledger_screen.dart';
 import 'package:samay/features/subscriptions/paywall_screen.dart';
 import 'package:samay/shared/widgets/route_error_screen.dart';
 import 'package:samay/shared/widgets/v_coming_soon.dart';
+import 'package:uuid/uuid.dart';
 
 /// Resolves a required path parameter, rendering [RouteErrorScreen] when it is
 /// missing (finding NAV-03 / H-03) instead of crashing on a forced unwrap.
@@ -61,6 +67,31 @@ Widget _screenForId(
   return builder(id);
 }
 
+/// EINV (I-66): one `/event/:param` route serves both the event detail (UUID
+/// event ids) and the invite-token deep links (`samay://event/{token}`,
+/// MVP §6.3). The former `/event/:inviteToken` route was SHADOWED by this
+/// route (I-55's documented ordering issue) and has been removed — instead
+/// the handler (`DeepLinkHandler`) resolves the token to an event id and the
+/// route branches here: UUID params go straight to [EventDetailScreen],
+/// token-shaped params resolve through [EventInviteRoute] (loading →
+/// detail/not-found). `nonStrict` UUID validation is format-only, matching
+/// the repo's test fixtures; the DB stores ids and tokens as text.
+Widget _eventDetailRoute(BuildContext context, GoRouterState state) {
+  final param = RouteParams.fromState(state, 'eventId');
+  if (param == null || param.isEmpty) {
+    return RouteErrorScreen(
+      message: AppLocalizations.of(context).routerEventNotFound,
+    );
+  }
+  if (Uuid.isValidUUID(
+    fromString: param,
+    validationMode: ValidationMode.nonStrict,
+  )) {
+    return EventDetailScreen(eventId: param);
+  }
+  return EventInviteRoute(token: param);
+}
+
 final routerProvider = Provider<GoRouter>((ref) {
   final authGuard = AuthGuard(ref);
   final authRefresh = AuthRefreshNotifier();
@@ -70,6 +101,13 @@ final routerProvider = Provider<GoRouter>((ref) {
     initialLocation: RoutePaths.login,
     redirect: authGuard.call,
     refreshListenable: authRefresh,
+    // I-68: telemetry — every route change reports a `screen_view` event via
+    // the TelemetryService (stub mode = no-op with an info log). One observer
+    // per navigator (a NavigatorObserver can attach to only one navigator):
+    // the root one covers the plain routes; the ShellRoute's own observer
+    // covers the tab screens (the root push of the shell page itself carries
+    // no name and is ignored by the observer).
+    observers: [RouterObserver(ref.read(telemetryServiceProvider))],
     errorBuilder: (context, state) => RouteErrorScreen(
       title: AppLocalizations.of(context).routerRouteNotFound,
       message: AppLocalizations.of(context).routerRouteNotFoundBody,
@@ -143,8 +181,20 @@ final routerProvider = Provider<GoRouter>((ref) {
           currentIndex: shellIndexFor(state.matchedLocation),
           child: child,
         ),
+        // I-68: the shell's nested Navigator needs its own observer (see the
+        // routerProvider note above) so tab switches report screen_view too.
+        observers: [RouterObserver(ref.read(telemetryServiceProvider))],
         routes: [
-          GoRoute(path: RoutePaths.mainFeed, builder: (_, _) => const FeedScreen()),
+          // I-69: the feed is LIVE but the flag stays wired as the
+          // kill-switch/remote-config knob (I-58 flipped it on; the gate is
+          // what makes the knob functional).
+          GoRoute(
+            path: RoutePaths.mainFeed,
+            builder: (_, _) => FlagGate(
+              flag: AppFeatureFlag.feed,
+              child: const FeedScreen(),
+            ),
+          ),
           GoRoute(path: RoutePaths.mainGroups, builder: (_, _) => const MyGroupsScreen()),
           GoRoute(
             path: RoutePaths.mainEvents,
@@ -167,16 +217,12 @@ final routerProvider = Provider<GoRouter>((ref) {
         ],
       ),
       GoRoute(
-        // NOTE (I-55): `/event/create` (ECRT, I-54) must be declared BEFORE
+        // EINV (I-66): `/event/create` (ECRT, I-54) must be declared BEFORE
         // this route when it lands — go_router matches in order and
-        // `/event/:eventId` would shadow it otherwise.
+        // `/event/:eventId` would shadow it otherwise. The param is either a
+        // UUID event id or an invite token (see [_eventDetailRoute]).
         path: RoutePaths.eventDetail(':eventId'),
-        builder: (context, state) => _screenForId(
-          state,
-          'eventId',
-          (eventId) => EventDetailScreen(eventId: eventId),
-          errorMessage: AppLocalizations.of(context).routerEventNotFound,
-        ),
+        builder: (context, state) => _eventDetailRoute(context, state),
       ),
       GoRoute(
         path: RoutePaths.eventEdit(':eventId'),
@@ -188,13 +234,24 @@ final routerProvider = Provider<GoRouter>((ref) {
         ),
       ),
       GoRoute(
+        // EINV (I-66): the invite sub-screen placeholder, gated on the events
+        // flag (I-69) — dark-first, the disabled state keeps the localized
+        // coming-soon copy; the child is swapped for the real invite screen
+        // when EINV's share/management stack lands.
         path: RoutePaths.eventInvite(':eventId'),
         builder: (context, state) => _screenForId(
           state,
           'eventId',
-          (_) => VComingSoonScreen(
-            title: AppLocalizations.of(context).comingSoonEventInviteTitle,
-            description: AppLocalizations.of(context).comingSoonEventInviteBody,
+          (eventId) => FlagGate(
+            flag: AppFeatureFlag.events,
+            fallback: VComingSoonScreen(
+              title: AppLocalizations.of(context).comingSoonEventInviteTitle,
+              description: AppLocalizations.of(context).comingSoonEventInviteBody,
+            ),
+            child: VComingSoonScreen(
+              title: AppLocalizations.of(context).comingSoonEventInviteTitle,
+              description: AppLocalizations.of(context).comingSoonEventInviteBody,
+            ),
           ),
           errorMessage: AppLocalizations.of(context).routerEventNotFound,
         ),
@@ -218,27 +275,25 @@ final routerProvider = Provider<GoRouter>((ref) {
         ),
       ),
       GoRoute(
+        // COLL (phase-08): the auto-collage placeholder, gated on the
+        // photoUpload flag (I-69) — the collage is a photos feature; the
+        // disabled state keeps the localized coming-soon copy.
         path: RoutePaths.eventCollage(':eventId'),
         builder: (context, state) => _screenForId(
           state,
           'eventId',
-          (_) => VComingSoonScreen(
-            title: AppLocalizations.of(context).comingSoonCollageTitle,
-            description: AppLocalizations.of(context).comingSoonCollageBody,
+          (eventId) => FlagGate(
+            flag: AppFeatureFlag.photoUpload,
+            fallback: VComingSoonScreen(
+              title: AppLocalizations.of(context).comingSoonCollageTitle,
+              description: AppLocalizations.of(context).comingSoonCollageBody,
+            ),
+            child: VComingSoonScreen(
+              title: AppLocalizations.of(context).comingSoonCollageTitle,
+              description: AppLocalizations.of(context).comingSoonCollageBody,
+            ),
           ),
           errorMessage: AppLocalizations.of(context).routerEventNotFound,
-        ),
-      ),
-      GoRoute(
-        path: RoutePaths.eventInviteToken(':inviteToken'),
-        builder: (context, state) => _screenForId(
-          state,
-          'inviteToken',
-          (_) => VComingSoonScreen(
-            title: AppLocalizations.of(context).comingSoonInvitationTitle,
-            description: AppLocalizations.of(context).comingSoonInvitationBody,
-          ),
-          errorMessage: AppLocalizations.of(context).routerInvalidInvite,
         ),
       ),
       GoRoute(
@@ -309,15 +364,45 @@ final routerProvider = Provider<GoRouter>((ref) {
         ),
       ),
       GoRoute(
+        // GMCR (I-63): the group minigames hub, gated on the minigames flag
+        // (dark-first) — the disabled state keeps the localized coming-soon
+        // copy. No static /minigames routes exist, so :groupId cannot be
+        // shadowed (registered after the group routes on purpose).
+        path: RoutePaths.minigames(':groupId'),
+        builder: (context, state) => _screenForId(
+          state,
+          'groupId',
+          (groupId) => FlagGate(
+            flag: AppFeatureFlag.minigames,
+            fallback: VComingSoonScreen(
+              title: AppLocalizations.of(context).comingSoonMinigamesTitle,
+              description: AppLocalizations.of(context).comingSoonMinigamesBody,
+            ),
+            child: MinigamesScreen(groupId: groupId),
+          ),
+          errorMessage: AppLocalizations.of(context).routerGroupNotFound,
+        ),
+      ),
+      GoRoute(
         path: RoutePaths.groupsLeaderboard,
         builder: (_, _) => const LeaderboardScreen(),
       ),
       GoRoute(
+        // I-69: chat is LIVE (I-38 E2EE) but the flag stays wired as the
+        // kill-switch/remote-config knob — the disabled state restores the
+        // localized coming-soon copy.
         path: RoutePaths.chat(':chatId'),
         builder: (context, state) => _screenForId(
           state,
           'chatId',
-          (chatId) => ChatScreen(chatId: chatId),
+          (chatId) => FlagGate(
+            flag: AppFeatureFlag.chat,
+            fallback: VComingSoonScreen(
+              title: AppLocalizations.of(context).comingSoonChatTitle,
+              description: AppLocalizations.of(context).comingSoonChatBody,
+            ),
+            child: ChatScreen(chatId: chatId),
+          ),
           errorMessage: AppLocalizations.of(context).routerChatNotFound,
         ),
       ),
@@ -398,6 +483,13 @@ final routerProvider = Provider<GoRouter>((ref) {
           ),
           child: const CosmeticsShopScreen(),
         ),
+      ),
+      GoRoute(
+        // SLED (I-64): the shard/preshard ledger history. NOT flag-gated —
+        // the shards economy is LIVE (donations exist and are recorded), so
+        // the ledger ships open like the profile balance it links from.
+        path: RoutePaths.shardsLedger,
+        builder: (_, _) => const ShardLedgerScreen(),
       ),
       GoRoute(path: RoutePaths.settings, builder: (_, _) => const SettingsScreen()),
       GoRoute(path: RoutePaths.deleteAccount, builder: (_, _) => const DeleteAccountScreen()),

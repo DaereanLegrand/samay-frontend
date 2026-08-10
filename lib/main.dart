@@ -1,43 +1,84 @@
 import 'dart:async';
 import 'dart:ui';
 
+import 'package:app_links/app_links.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:samay/app.dart';
 import 'package:samay/core/config/env_config.dart';
+import 'package:samay/core/deep_links/deep_link_handler.dart';
 import 'package:samay/core/logging/app_logger.dart';
+import 'package:samay/core/services/crash_reporter.dart';
 import 'package:samay/core/services/secure_session_storage.dart';
 import 'package:samay/core/services/storage_service.dart';
+
+/// Global Flutter error handler (LOG-01, extended by I-05 + I-70).
+///
+/// Order is deliberate (I-05's exact flow preserved): benign errors are
+/// downgraded via [AppLogger.knownBenignError] and return early (never reach
+/// the reporter); real errors are logged via [AppLogger.error], recorded with
+/// [AppLogger.markCrash], then reported fire-and-forget to [reporter]
+/// (I-70 — a no-op in stub mode), and finally presented via
+/// [FlutterError.presentError]. Extracted as a top-level function so the
+/// wiring is directly testable with an injected reporter.
+void handleFlutterError(FlutterErrorDetails details, CrashReporter reporter) {
+  final level = AppLogger.instance.knownBenignError(details.exception);
+  if (level != null) {
+    AppLogger.instance.log(level, 'Flutter error: ${details.exception}');
+    return;
+  }
+  final message = 'Flutter error: ${details.exception}';
+  final stack = details.stack?.toString() ?? '';
+  AppLogger.instance.error(message, stack);
+  unawaited(AppLogger.instance.markCrash(message, stack));
+  unawaited(reporter.reportError(
+    details.exception,
+    details.stack ?? StackTrace.current,
+    context: const {'handler': 'flutterError'},
+  ));
+  FlutterError.presentError(details);
+}
+
+/// Global platform/async error handler (LOG-01, extended by I-05 + I-70).
+///
+/// Same deliberate order as [handleFlutterError]: benign errors downgrade
+/// and return `true` early; real errors log, crash-mark, then report
+/// fire-and-forget to [reporter], and `return true` keeps the app running.
+/// Extracted as a top-level function so the wiring is directly testable
+/// with an injected reporter.
+bool handlePlatformError(
+  Object error,
+  StackTrace stack,
+  CrashReporter reporter,
+) {
+  final level = AppLogger.instance.knownBenignError(error);
+  if (level != null) {
+    AppLogger.instance.log(level, 'Unhandled error: $error');
+    return true;
+  }
+  final message = 'Unhandled error: $error';
+  AppLogger.instance.error(message, stack.toString());
+  unawaited(AppLogger.instance.markCrash(message, stack.toString()));
+  unawaited(reporter.reportError(
+    error,
+    stack,
+    context: const {'handler': 'platform'},
+  ));
+  return true;
+}
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await AppLogger.instance.init();
 
-  FlutterError.onError = (details) {
-    final level = AppLogger.instance.knownBenignError(details.exception);
-    if (level != null) {
-      AppLogger.instance.log(level, 'Flutter error: ${details.exception}');
-      return;
-    }
-    final message = 'Flutter error: ${details.exception}';
-    final stack = details.stack?.toString() ?? '';
-    AppLogger.instance.error(message, stack);
-    unawaited(AppLogger.instance.markCrash(message, stack));
-    FlutterError.presentError(details);
-  };
+  // I-70: one reporter instance for the app's lifetime; stub mode (no
+  // SENTRY_DSN dart-define) keeps reportError a logged no-op.
+  final crashReporter = CrashReporter();
+  FlutterError.onError = (details) => handleFlutterError(details, crashReporter);
 
-  PlatformDispatcher.instance.onError = (error, stack) {
-    final level = AppLogger.instance.knownBenignError(error);
-    if (level != null) {
-      AppLogger.instance.log(level, 'Unhandled error: $error');
-      return true;
-    }
-    final message = 'Unhandled error: $error';
-    AppLogger.instance.error(message, stack.toString());
-    unawaited(AppLogger.instance.markCrash(message, stack.toString()));
-    return true;
-  };
+  PlatformDispatcher.instance.onError =
+      (error, stack) => handlePlatformError(error, stack, crashReporter);
 
   final recovered = await AppLogger.instance.recoverCrashMarker();
   if (recovered != null) {
@@ -78,5 +119,24 @@ Future<void> main() async {
       authFlowType: AuthFlowType.pkce,
     ),
   );
-  runApp(const ProviderScope(child: SamayApp()));
+  // EINV (I-66): wire the app_links platform stream into the deep-link seam.
+  // `AppLinks()` is touched here (before runApp) so the cold-start link is
+  // captured: `uriLinkStream` delivers the initial link exactly once
+  // (Android's native `initialLinkSent` guard) plus every later link, and
+  // `DeepLinkListener` (mounted in SamayApp) forwards each to the handler.
+  // Platform config (Android intent-filter / iOS Associated Domains) is
+  // M-27/M-28 work — see DEPLOYMENT-PLACEHOLDER.md R01 (`app.samay.example.com`).
+  final container = ProviderContainer(
+    overrides: [
+      deepLinkStreamProvider.overrideWithValue(
+        AppLinks().uriLinkStream.map((uri) => uri.toString()),
+      ),
+    ],
+  );
+  runApp(
+    UncontrolledProviderScope(
+      container: container,
+      child: const SamayApp(),
+    ),
+  );
 }

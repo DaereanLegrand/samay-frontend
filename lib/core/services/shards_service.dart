@@ -1,3 +1,4 @@
+import 'package:samay/core/models/ledger_entry.dart';
 import 'package:samay/core/services/config_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -79,6 +80,38 @@ class ShardsService {
         .gt('expires_at', DateTime.now().toIso8601String())
         .order('shards_contributed', ascending: false);
     return res.map((e) => Map<String, dynamic>.from(e)).toList();
+  }
+
+  /// The current user's shard movement history (SLED spec — `sl_read_own`
+  /// RLS), newest first. Immutable rows: [LedgerEntry] is a read-only
+  /// display projection, never written back.
+  Future<List<LedgerEntry>> getShardLedger({int limit = 100}) async {
+    final user = auth.currentUser;
+    if (user == null) throw Exception('No authenticated user');
+
+    final res = await client
+        .from('shard_ledger')
+        .select('id, delta, reason, reference_id, created_at')
+        .eq('user_id', user.id)
+        .order('created_at', ascending: false)
+        .limit(limit);
+    return [for (final row in res) LedgerEntry.fromJson(row)];
+  }
+
+  /// The current user's preshard movement history (SLED spec — `pl_read_own`
+  /// RLS), newest first. Same immutable shape as [getShardLedger] — preshards
+  /// never convert to `personal_shards` (economy firewall).
+  Future<List<LedgerEntry>> getPreshardLedger({int limit = 100}) async {
+    final user = auth.currentUser;
+    if (user == null) throw Exception('No authenticated user');
+
+    final res = await client
+        .from('preshard_ledger')
+        .select('id, delta, reason, reference_id, created_at')
+        .eq('user_id', user.id)
+        .order('created_at', ascending: false)
+        .limit(limit);
+    return [for (final row in res) LedgerEntry.fromJson(row)];
   }
 
   Future<int> getUserContributionToGroup(String groupId) async {

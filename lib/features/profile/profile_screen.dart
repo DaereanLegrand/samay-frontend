@@ -98,6 +98,9 @@ class ProfileScreen extends ConsumerWidget {
                   _BalanceCard(
                     personalShards: profile?['personal_shards'] as int? ?? 0,
                     preshards: profile?['preshards'] as int? ?? 0,
+                    // SLED (I-64): the balance card opens the shard/preshard
+                    // ledger history at `/shards/ledger`.
+                    onTap: () => context.push(RoutePaths.shardsLedger),
                   ),
                   if (profile?['bio'] != null &&
                       (profile!['bio'] as String).isNotEmpty) ...[
@@ -168,33 +171,43 @@ class ProfileScreen extends ConsumerWidget {
 class _BalanceCard extends StatelessWidget {
   final int personalShards;
   final int preshards;
+  final VoidCallback onTap;
 
-  const _BalanceCard({required this.personalShards, required this.preshards});
+  const _BalanceCard({
+    required this.personalShards,
+    required this.preshards,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(border: Border.all(color: Colors.grey[800]!)),
-      child: Row(
-        children: [
-          const VShardIcon(),
-          const SizedBox(width: 12),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                l10n.profileShardsCount(personalShards),
-                style: Theme.of(context).textTheme.bodyLarge,
-              ),
-              Text(
-                l10n.profilePreshardsCount(preshards),
-                style: Theme.of(context).textTheme.bodyMedium,
-              ),
-            ],
-          ),
-        ],
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(border: Border.all(color: Colors.grey[800]!)),
+        child: Row(
+          children: [
+            const VShardIcon(),
+            const SizedBox(width: 12),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  l10n.profileShardsCount(personalShards),
+                  style: Theme.of(context).textTheme.bodyLarge,
+                ),
+                Text(
+                  l10n.profilePreshardsCount(preshards),
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+              ],
+            ),
+            const Spacer(),
+            const Icon(Icons.chevron_right, size: 20),
+          ],
+        ),
       ),
     );
   }

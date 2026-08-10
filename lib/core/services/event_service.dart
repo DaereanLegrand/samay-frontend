@@ -1,3 +1,4 @@
+import 'package:samay/core/models/event.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
 
@@ -74,6 +75,20 @@ class EventService {
   Future<Map<String, dynamic>> getEvent(String id) async {
     final res = await client.from('events').select().eq('id', id).single();
     return Map<String, dynamic>.from(res);
+  }
+
+  /// Resolves an invite token to its event (EINV deep links —
+  /// `samay://event/{invite_token}`). `invite_token` is UNIQUE + indexed
+  /// (full_schema.sql §5), so the lookup is exact; null when the token
+  /// matches no event. Typed [Event] — the router only consumes `id`; the
+  /// detail screen re-fetches the full row via [getEvent].
+  Future<Event?> getEventByInviteToken(String token) async {
+    final res = await client
+        .from('events')
+        .select()
+        .eq('invite_token', token)
+        .maybeSingle();
+    return res == null ? null : Event.fromJson(Map<String, dynamic>.from(res));
   }
 
   /// Promotores of an event, enriched with `users.username` for display.

@@ -7,7 +7,9 @@ import 'package:samay/core/logging/app_logger.dart';
 import 'package:samay/core/providers/service_providers.dart';
 import 'package:samay/core/services/auth_service.dart';
 import 'package:samay/core/services/ban_service.dart';
+import 'package:samay/core/services/crash_reporter.dart';
 import 'package:samay/core/services/supabase_service.dart';
+import 'package:samay/core/services/telemetry_service.dart';
 import 'package:samay/core/utils/async_ops.dart';
 
 /// Legacy facade provider (I-09 seam, kept for feature agents migrating off
@@ -196,6 +198,10 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
       }
       return AuthState(banned: true, banReason: status.reason);
     }
+    // I-70: crash-reporter user context — scrubbed (SHA-256) by the reporter,
+    // never PII. One line covering every authenticated transition: initial
+    // restore, signIn, verifyOtp, signUp-via-auth-event, tokenRefreshed.
+    unawaited(ref.read(crashReporterProvider).setUser(user['id'] as String?));
     final hasProfile = await _userHasProfile(user);
     return AuthState(
       authenticated: true,
@@ -237,6 +243,9 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
         return;
       }
       state = AsyncData(await _authStateForUser(user, forceBanCheck: true));
+      // I-68: telemetry — a completed sign-in with a user. No PII is ever
+      // attached (SECURITY.md §2.8); the stub mode logs the event name only.
+      ref.read(telemetryServiceProvider).track('auth_sign_in');
     } catch (e, st) {
       state = AsyncError(e.toAppError(), st);
     }

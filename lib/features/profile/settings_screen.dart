@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:samay/core/providers/auth_provider.dart';
+import 'package:samay/core/providers/theme_provider.dart';
 import 'package:samay/core/router/route_paths.dart';
 import 'package:samay/l10n/app_localizations.dart';
 
@@ -11,6 +12,9 @@ class SettingsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
+    // UI-05 / L-16 (I-65): persisted theme-mode choice (default dark).
+    final themeMode =
+        ref.watch(themeModeProvider).valueOrNull ?? ThemeMode.dark;
     return Scaffold(
       appBar: AppBar(title: Text(l10n.profileSettingsTitle)),
       body: ListView(
@@ -25,6 +29,12 @@ class SettingsScreen extends ConsumerWidget {
             icon: Icons.notifications,
             label: l10n.profileNotifications,
             onTap: () {},
+          ),
+          const Divider(),
+          _ThemeSection(
+            themeMode: themeMode,
+            onChanged: (mode) =>
+                ref.read(themeModeProvider.notifier).setThemeMode(mode),
           ),
           const Divider(),
           _SettingsTile(
@@ -100,6 +110,51 @@ class _SettingsTile extends StatelessWidget {
       ),
       trailing: const Icon(Icons.chevron_right),
       onTap: onTap,
+    );
+  }
+}
+
+/// UI-05 / L-16 (I-65): theme-mode picker. Dark is the brand default;
+/// 'system' is the future seam (it resolves to the disco dark theme on most
+/// devices — both app themes are dark by design).
+class _ThemeSection extends StatelessWidget {
+  const _ThemeSection({required this.themeMode, required this.onChanged});
+
+  final ThemeMode themeMode;
+  final ValueChanged<ThemeMode> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            l10n.settingsTheme,
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: SegmentedButton<ThemeMode>(
+              segments: [
+                ButtonSegment(
+                  value: ThemeMode.dark,
+                  label: Text(l10n.settingsThemeDark),
+                ),
+                ButtonSegment(
+                  value: ThemeMode.system,
+                  label: Text(l10n.settingsThemeSystem),
+                ),
+              ],
+              selected: {themeMode},
+              onSelectionChanged: (selection) => onChanged(selection.first),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

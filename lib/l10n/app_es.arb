@@ -1,11 +1,9 @@
 {
   "@@locale": "es",
-
   "appTitle": "Samay",
   "@appTitle": {
     "description": "App brand name shown in the feed app bar"
   },
-
   "commonOk": "OK",
   "@commonOk": {
     "description": "Generic confirmation button label"
@@ -94,7 +92,6 @@
   "@commonInvite": {
     "description": "Generic invite button label"
   },
-
   "welcomeVive": "VIVE",
   "@welcomeVive": {
     "description": "Welcome screen brand wordmark"
@@ -103,7 +100,6 @@
   "@welcomeTagline": {
     "description": "Welcome screen tagline"
   },
-
   "authVerifyAge": "Verificar edad",
   "@authVerifyAge": {
     "description": "Age-gate screen app bar title"
@@ -266,7 +262,6 @@
       }
     }
   },
-
   "feedBrand": "Samay",
   "@feedBrand": {
     "description": "Feed screen app bar title"
@@ -316,7 +311,6 @@
   "@feedLoadError": {
     "description": "Error state when the feed fails to load"
   },
-
   "shellFeed": "Feed",
   "@shellFeed": {
     "description": "Bottom navigation tab label"
@@ -337,7 +331,6 @@
   "@shellProfile": {
     "description": "Bottom navigation tab label"
   },
-
   "friendsTitle": "Amigos",
   "@friendsTitle": {
     "description": "Friends list screen app bar title"
@@ -434,7 +427,6 @@
   "@friendsAddFriendButton": {
     "description": "Send-friend-request button label"
   },
-
   "groupsTitle": "Grupos",
   "@groupsTitle": {
     "description": "My-groups screen app bar title"
@@ -682,7 +674,6 @@
       }
     }
   },
-
   "profileTitle": "Perfil",
   "@profileTitle": {
     "description": "Profile screen app bar title"
@@ -722,6 +713,18 @@
   "profileVersion": "Samay v1.0.0",
   "@profileVersion": {
     "description": "Version footer on the settings screen"
+  },
+  "settingsTheme": "Tema",
+  "@settingsTheme": {
+    "description": "Settings section label for the theme-mode picker"
+  },
+  "settingsThemeDark": "Oscuro",
+  "@settingsThemeDark": {
+    "description": "Theme picker option: always dark (the brand default)"
+  },
+  "settingsThemeSystem": "Sistema",
+  "@settingsThemeSystem": {
+    "description": "Theme picker option: follow the system appearance"
   },
   "profileBio": "Biografía",
   "@profileBio": {
@@ -861,7 +864,6 @@
   "@profileEmailMismatch": {
     "description": "Snackbar when the confirmed email does not match"
   },
-
   "profileCosmetics": "Cosméticos",
   "@profileCosmetics": {
     "description": "Profile screen section heading for cosmetics"
@@ -910,7 +912,6 @@
   "@interestComida": {
     "description": "Interest tag: food"
   },
-
   "comingSoonSoon": "Próximamente",
   "@comingSoonSoon": {
     "description": "Coming-soon placeholder headline"
@@ -919,7 +920,6 @@
   "@comingSoonBack": {
     "description": "Back button on the coming-soon screen"
   },
-
   "comingSoonEventsTitle": "Eventos",
   "@comingSoonEventsTitle": {
     "description": "Coming-soon screen title for the events tab"
@@ -1032,7 +1032,6 @@
   "@comingSoonPartyFinderBody": {
     "description": "Coming-soon screen body for the party finder"
   },
-
   "paywallHeader": "Suscripción",
   "@paywallHeader": {
     "description": "Paywall screen heading"
@@ -1142,7 +1141,6 @@
   "@paywallRankAll": {
     "description": "Tier comparison cell value: all rank brackets"
   },
-
   "routerRouteNotFound": "Ruta no encontrada",
   "@routerRouteNotFound": {
     "description": "Router error screen title for unknown routes"
@@ -1191,7 +1189,6 @@
   "@routerErrorBody": {
     "description": "Generic route error screen body"
   },
-
   "errorsNetwork": "Error de conexión. Verifica tu internet.",
   "@errorsNetwork": {
     "description": "User-facing network error message"
@@ -1261,7 +1258,6 @@
   "@errorsGeneric": {
     "description": "Generic error-presentation fallback message"
   },
-
   "rankFullVibe": "Full Vibe",
   "@rankFullVibe": {
     "description": "Rank bracket label (90-100)"
@@ -1286,7 +1282,6 @@
   "@rankInSearch": {
     "description": "Rank bracket label (0-20)"
   },
-
   "photosTitle": "Fotos",
   "@photosTitle": {
     "description": "Event photo gallery app bar title"
@@ -1348,7 +1343,6 @@
   "@photosReportSent": {
     "description": "Snackbar after submitting a photo report"
   },
-
   "permissionsPhotoRationale": "Para elegir una foto de portada, Samay necesita acceso a tus fotos.",
   "@permissionsPhotoRationale": {
     "description": "Snackbar rationale when the photo-library permission is denied"
@@ -1369,7 +1363,6 @@
   "@permissionsOpenSettings": {
     "description": "Dialog action that opens the system app settings"
   },
-
   "notificationsTitle": "Notificaciones",
   "@notificationsTitle": {
     "description": "Notification center app bar title"
@@ -1421,7 +1414,6 @@
       }
     }
   },
-
   "chatTitle": "Chat",
   "@chatTitle": {
     "description": "Chat screen app bar title"
@@ -1454,7 +1446,6 @@
   "@chatLoadOlder": {
     "description": "Button that loads the previous page of older messages"
   },
-
   "eventsTypeLabel": "Tipo de evento",
   "@eventsTypeLabel": {
     "description": "Event creation: type selector section label"
@@ -1611,7 +1602,6 @@
   "@eventsErrorJoinMode": {
     "description": "Validation error: a join mode is required for public events"
   },
-
   "eventDetailTitle": "Evento",
   "@eventDetailTitle": {
     "description": "Event detail screen app bar title"
@@ -1771,7 +1761,8 @@
   "eventStatusCancelled": "Cancelado",
   "@eventStatusCancelled": {
     "description": "Cancelled status badge"
-  },  "qrAttendanceTitle": "Código de asistencia",
+  },
+  "qrAttendanceTitle": "Código de asistencia",
   "@qrAttendanceTitle": {
     "description": "Attendance QR screen title"
   },
@@ -1787,21 +1778,27 @@
   "@qrActivatesIn": {
     "description": "Attendance QR: pre-activation countdown message",
     "placeholders": {
-      "minutes": { "type": "int" }
+      "minutes": {
+        "type": "int"
+      }
     }
   },
   "qrActivationCountdown": "Se activa en {time}",
   "@qrActivationCountdown": {
     "description": "Attendance QR: countdown to activation time",
     "placeholders": {
-      "time": { "type": "String" }
+      "time": {
+        "type": "String"
+      }
     }
   },
   "qrNewCodeIn": "Nuevo código en: {seconds}",
   "@qrNewCodeIn": {
     "description": "Attendance QR: countdown to next token rotation",
     "placeholders": {
-      "seconds": { "type": "int" }
+      "seconds": {
+        "type": "int"
+      }
     }
   },
   "qrEventEnded": "El evento ha finalizado. Ya no es necesario el código QR.",
@@ -1840,7 +1837,9 @@
   "@qrScanEventName": {
     "description": "QR scanner: event name label",
     "placeholders": {
-      "name": { "type": "String" }
+      "name": {
+        "type": "String"
+      }
     }
   },
   "qrScanEventFallback": "Evento",
@@ -1867,7 +1866,9 @@
   "@qrScanAttendee": {
     "description": "QR scanner: confirmed attendee name",
     "placeholders": {
-      "name": { "type": "String" }
+      "name": {
+        "type": "String"
+      }
     }
   },
   "qrScanReady": "Listo",
@@ -1926,7 +1927,6 @@
   "@qrCameraSettingsAction": {
     "description": "QR scanner: settings dialog action"
   },
-
   "partyFinderTitle": "Party Finder",
   "@partyFinderTitle": {
     "description": "Party Finder screen app bar title (PFND — I-60)"
@@ -2061,5 +2061,252 @@
   "comingSoonCosmeticsBody": "Tu armario de cosméticos aparecerá aquí.",
   "@comingSoonCosmeticsBody": {
     "description": "Coming-soon screen body for the cosmetics shop"
+  },
+  "minigamesTitle": "Juegos",
+  "@minigamesTitle": {
+    "description": "App bar title of the group minigames hub"
+  },
+  "minigamesPickGame": "Elige un juego",
+  "@minigamesPickGame": {
+    "description": "Section heading above the five game-type cards"
+  },
+  "minigamesGamePokeChain": "Cadena de Pokes",
+  "@minigamesGamePokeChain": {
+    "description": "Game #1 name (Poke Chain)"
+  },
+  "minigamesGamePokeChainTagline": "Pasa el poke antes de que se acabe el tiempo",
+  "@minigamesGamePokeChainTagline": {
+    "description": "Game #1 one-line tagline"
+  },
+  "minigamesGameQuestions": "Preguntas",
+  "@minigamesGameQuestions": {
+    "description": "Game #2 name (Questions)"
+  },
+  "minigamesGameQuestionsTagline": "Responde desde el asiento caliente",
+  "@minigamesGameQuestionsTagline": {
+    "description": "Game #2 one-line tagline"
+  },
+  "minigamesGameTruthDare": "Verdad o Reto",
+  "@minigamesGameTruthDare": {
+    "description": "Game #3 name (Truth or Dare)"
+  },
+  "minigamesGameTruthDareTagline": "Por turnos, sin escapatoria",
+  "@minigamesGameTruthDareTagline": {
+    "description": "Game #3 one-line tagline"
+  },
+  "minigamesGameDrunkBottle": "Botella",
+  "@minigamesGameDrunkBottle": {
+    "description": "Game #4 name (Drunk Bottle)"
+  },
+  "minigamesGameDrunkBottleTagline": "Gira la botella y veamos a quién apunta",
+  "@minigamesGameDrunkBottleTagline": {
+    "description": "Game #4 one-line tagline"
+  },
+  "minigamesGameChallenge": "Retos",
+  "@minigamesGameChallenge": {
+    "description": "Game #5 name (Challenges)"
+  },
+  "minigamesGameChallengeTagline": "Completa el reto antes del límite",
+  "@minigamesGameChallengeTagline": {
+    "description": "Game #5 one-line tagline"
+  },
+  "minigamesWagerLabel": "Apuesta (shards)",
+  "@minigamesWagerLabel": {
+    "description": "Wager input label (in shards)"
+  },
+  "minigamesWagerHint": "0 = sin apuesta",
+  "@minigamesWagerHint": {
+    "description": "Wager input hint: 0 means no wager"
+  },
+  "minigamesCreate": "Crear partida",
+  "@minigamesCreate": {
+    "description": "Button that creates the minigame session"
+  },
+  "minigamesCreated": "Partida creada",
+  "@minigamesCreated": {
+    "description": "Snackbar after a successful session creation"
+  },
+  "minigamesErrorInsufficientShards": "No tienes suficientes shards para esta apuesta.",
+  "@minigamesErrorInsufficientShards": {
+    "description": "Error snackbar: balance below the requested wager"
+  },
+  "minigamesErrorNotMember": "No eres miembro de este grupo.",
+  "@minigamesErrorNotMember": {
+    "description": "Error snackbar: caller is not a group member"
+  },
+  "minigamesErrorInvalidGameType": "No se pudo crear la partida.",
+  "@minigamesErrorInvalidGameType": {
+    "description": "Error snackbar: invalid game type"
+  },
+  "minigamesErrorCreate": "No se pudo crear la partida.",
+  "@minigamesErrorCreate": {
+    "description": "Generic error snackbar when the session could not be created"
+  },
+  "minigamesErrorLoad": "No se pudieron cargar las partidas",
+  "@minigamesErrorLoad": {
+    "description": "Error view message when the session list fails to load"
+  },
+  "minigamesEmpty": "Aún no hay partidas en este grupo",
+  "@minigamesEmpty": {
+    "description": "Empty state title on the minigames hub"
+  },
+  "minigamesEmptyBody": "Crea la primera partida con uno de los juegos de arriba.",
+  "@minigamesEmptyBody": {
+    "description": "Empty state body on the minigames hub"
+  },
+  "minigamesStatusActive": "Activa",
+  "@minigamesStatusActive": {
+    "description": "Lifecycle chip label for active sessions"
+  },
+  "minigamesStatusFinished": "Terminada",
+  "@minigamesStatusFinished": {
+    "description": "Lifecycle chip label for finished sessions"
+  },
+  "minigamesParticipants": "Participantes: {count}",
+  "@minigamesParticipants": {
+    "description": "Session card subtitle with the participant count",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "minigamesWagerPerPerson": "Apuesta: {amount} shards",
+  "@minigamesWagerPerPerson": {
+    "description": "Session card subtitle with the per-person wager",
+    "placeholders": {
+      "amount": {
+        "type": "int"
+      }
+    }
+  },
+  "minigamesDetailComingSoon": "La partida se jugará aquí pronto.",
+  "@minigamesDetailComingSoon": {
+    "description": "Placeholder snackbar when tapping a session (per-game UIs are future work)"
+  },
+  "comingSoonMinigamesTitle": "Juegos",
+  "@comingSoonMinigamesTitle": {
+    "description": "Coming-soon screen title for the minigames hub"
+  },
+  "comingSoonMinigamesBody": "Los mini-juegos de grupo estarán disponibles pronto.",
+  "@comingSoonMinigamesBody": {
+    "description": "Coming-soon screen body for the minigames hub"
+  },
+  "shardsLedgerTitle": "Historial de shards",
+  "@shardsLedgerTitle": {
+    "description": "Shard & preshard ledger screen app bar title"
+  },
+  "shardsLedgerTabShards": "Shards",
+  "@shardsLedgerTabShards": {
+    "description": "Ledger tab label for the earned shard movements"
+  },
+  "shardsLedgerTabPreshards": "Preshards",
+  "@shardsLedgerTabPreshards": {
+    "description": "Ledger tab label for the preshard movements"
+  },
+  "shardsLedgerNet": "Neto",
+  "@shardsLedgerNet": {
+    "description": "Label above the derived sum of the visible ledger entries"
+  },
+  "shardsLedgerEmpty": "Sin movimientos todavía",
+  "@shardsLedgerEmpty": {
+    "description": "Empty state heading when a ledger side has no movements"
+  },
+  "shardsLedgerEmptyBody": "Cuando ganes o gastes shards, aparecerán aquí.",
+  "@shardsLedgerEmptyBody": {
+    "description": "Empty state body explaining where new movements appear"
+  },
+  "shardsLedgerLoadError": "No se pudieron cargar los movimientos",
+  "@shardsLedgerLoadError": {
+    "description": "Error state when the ledger history fails to load"
+  },
+  "shardsLedgerEarned": "Ganados",
+  "@shardsLedgerEarned": {
+    "description": "Balance header label for personal (earned) shards"
+  },
+  "shardsLedgerBought": "Comprados/Bonos",
+  "@shardsLedgerBought": {
+    "description": "Balance header label for preshards (bought or granted)"
+  },
+  "shardsLedgerEarnedNote": "Los shards ganados nunca expiran.",
+  "@shardsLedgerEarnedNote": {
+    "description": "Economy note: earned shards never expire"
+  },
+  "shardsLedgerPreshardsNote": "Los preshards solo se usan para eventos.",
+  "@shardsLedgerPreshardsNote": {
+    "description": "Economy note: preshards are event-only"
+  },
+  "shardsLedgerReference": "Ref: {reference}",
+  "@shardsLedgerReference": {
+    "description": "Short reference id of the entity that caused a movement",
+    "placeholders": {
+      "reference": {
+        "type": "String"
+      }
+    }
+  },
+  "shardsReasonEventAttendance": "Asistencia a evento",
+  "@shardsReasonEventAttendance": {
+    "description": "Ledger reason: shards earned by attending an event"
+  },
+  "shardsReasonCosmeticPurchase": "Compra de cosmético",
+  "@shardsReasonCosmeticPurchase": {
+    "description": "Ledger reason: shards spent on a cosmetic"
+  },
+  "shardsReasonGroupDonation": "Donación a grupo",
+  "@shardsReasonGroupDonation": {
+    "description": "Ledger reason: shards donated to a group"
+  },
+  "shardsReasonMinigameWager": "Apuesta en minigame",
+  "@shardsReasonMinigameWager": {
+    "description": "Ledger reason: shards wagered on a minigame"
+  },
+  "shardsReasonMinigameWin": "¡Ganaste el minigame!",
+  "@shardsReasonMinigameWin": {
+    "description": "Ledger reason: shards won on a minigame"
+  },
+  "shardsReasonMinigameRefund": "Reembolso de minigame",
+  "@shardsReasonMinigameRefund": {
+    "description": "Ledger reason: shards refunded from a minigame"
+  },
+  "shardsReasonSubscriptionGrant": "Bono de suscripción",
+  "@shardsReasonSubscriptionGrant": {
+    "description": "Ledger reason: shards granted by a subscription bonus"
+  },
+  "shardsReasonAdminGrant": "Otorgado por Samay",
+  "@shardsReasonAdminGrant": {
+    "description": "Ledger reason: shards granted by the Samay team"
+  },
+  "shardsReasonFeedPost": "Publicación en feed",
+  "@shardsReasonFeedPost": {
+    "description": "Ledger reason: shards earned by posting to the feed"
+  },
+  "preshardsReasonPurchased": "Compra de preshards",
+  "@preshardsReasonPurchased": {
+    "description": "Preshard ledger reason: preshards bought"
+  },
+  "preshardsReasonSubscriptionGrant": "Bono mensual",
+  "@preshardsReasonSubscriptionGrant": {
+    "description": "Preshard ledger reason: monthly subscription preshard bonus"
+  },
+  "preshardsReasonEventPoolSet": "Asignado a evento",
+  "@preshardsReasonEventPoolSet": {
+    "description": "Preshard ledger reason: preshards assigned to an event pool"
+  },
+  "preshardsReasonEventPoolConsumed": "Distribuido en evento",
+  "@preshardsReasonEventPoolConsumed": {
+    "description": "Preshard ledger reason: event pool consumed by distribution"
+  },
+  "preshardsReasonEventPoolReturned": "Devuelto de evento",
+  "@preshardsReasonEventPoolReturned": {
+    "description": "Preshard ledger reason: event pool returned to the promotor"
+  },
+  "preshardsReasonAdminGrant": "Otorgado por Samay",
+  "@preshardsReasonAdminGrant": {
+    "description": "Preshard ledger reason: preshards granted by the Samay team"
+  },
+  "connectivityOfflineBanner": "Sin conexión — los datos podrían no estar actualizados",
+  "@connectivityOfflineBanner": {
+    "description": "Global banner shown while the device has no network connection (I-67)"
   }
 }

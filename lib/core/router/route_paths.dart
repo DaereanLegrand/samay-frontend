@@ -22,6 +22,7 @@ abstract final class RoutePaths {
   static const subscriptions = '/subscriptions';
   static const partyFinder = '/party-finder';
   static const cosmetics = '/cosmetics';
+  static const shardsLedger = '/shards/ledger';
   static const settings = '/settings';
   static const deleteAccount = '/settings/delete-account';
   static const profileEdit = '/profile/edit';
@@ -38,6 +39,7 @@ abstract final class RoutePaths {
   static String createGroupEvent(String groupId) =>
       '/group/$groupId/create-event';
   static String inviteToGroup(String groupId) => '/group/$groupId/invite';
+  static String minigames(String groupId) => '/minigames/$groupId';
   static String chat(String chatId) => '/chat/$chatId';
   static String userProfile(String userId) => '/user/$userId';
   static String qr(String eventId) => '/qr/$eventId';

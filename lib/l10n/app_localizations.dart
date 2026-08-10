@@ -1046,6 +1046,24 @@ abstract class AppLocalizations {
   /// **'Samay v1.0.0'**
   String get profileVersion;
 
+  /// Settings section label for the theme-mode picker
+  ///
+  /// In es, this message translates to:
+  /// **'Tema'**
+  String get settingsTheme;
+
+  /// Theme picker option: always dark (the brand default)
+  ///
+  /// In es, this message translates to:
+  /// **'Oscuro'**
+  String get settingsThemeDark;
+
+  /// Theme picker option: follow the system appearance
+  ///
+  /// In es, this message translates to:
+  /// **'Sistema'**
+  String get settingsThemeSystem;
+
   /// Bio input label
   ///
   /// In es, this message translates to:
@@ -2887,6 +2905,354 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'Tu armario de cosméticos aparecerá aquí.'**
   String get comingSoonCosmeticsBody;
+
+  /// App bar title of the group minigames hub
+  ///
+  /// In es, this message translates to:
+  /// **'Juegos'**
+  String get minigamesTitle;
+
+  /// Section heading above the five game-type cards
+  ///
+  /// In es, this message translates to:
+  /// **'Elige un juego'**
+  String get minigamesPickGame;
+
+  /// Game #1 name (Poke Chain)
+  ///
+  /// In es, this message translates to:
+  /// **'Cadena de Pokes'**
+  String get minigamesGamePokeChain;
+
+  /// Game #1 one-line tagline
+  ///
+  /// In es, this message translates to:
+  /// **'Pasa el poke antes de que se acabe el tiempo'**
+  String get minigamesGamePokeChainTagline;
+
+  /// Game #2 name (Questions)
+  ///
+  /// In es, this message translates to:
+  /// **'Preguntas'**
+  String get minigamesGameQuestions;
+
+  /// Game #2 one-line tagline
+  ///
+  /// In es, this message translates to:
+  /// **'Responde desde el asiento caliente'**
+  String get minigamesGameQuestionsTagline;
+
+  /// Game #3 name (Truth or Dare)
+  ///
+  /// In es, this message translates to:
+  /// **'Verdad o Reto'**
+  String get minigamesGameTruthDare;
+
+  /// Game #3 one-line tagline
+  ///
+  /// In es, this message translates to:
+  /// **'Por turnos, sin escapatoria'**
+  String get minigamesGameTruthDareTagline;
+
+  /// Game #4 name (Drunk Bottle)
+  ///
+  /// In es, this message translates to:
+  /// **'Botella'**
+  String get minigamesGameDrunkBottle;
+
+  /// Game #4 one-line tagline
+  ///
+  /// In es, this message translates to:
+  /// **'Gira la botella y veamos a quién apunta'**
+  String get minigamesGameDrunkBottleTagline;
+
+  /// Game #5 name (Challenges)
+  ///
+  /// In es, this message translates to:
+  /// **'Retos'**
+  String get minigamesGameChallenge;
+
+  /// Game #5 one-line tagline
+  ///
+  /// In es, this message translates to:
+  /// **'Completa el reto antes del límite'**
+  String get minigamesGameChallengeTagline;
+
+  /// Wager input label (in shards)
+  ///
+  /// In es, this message translates to:
+  /// **'Apuesta (shards)'**
+  String get minigamesWagerLabel;
+
+  /// Wager input hint: 0 means no wager
+  ///
+  /// In es, this message translates to:
+  /// **'0 = sin apuesta'**
+  String get minigamesWagerHint;
+
+  /// Button that creates the minigame session
+  ///
+  /// In es, this message translates to:
+  /// **'Crear partida'**
+  String get minigamesCreate;
+
+  /// Snackbar after a successful session creation
+  ///
+  /// In es, this message translates to:
+  /// **'Partida creada'**
+  String get minigamesCreated;
+
+  /// Error snackbar: balance below the requested wager
+  ///
+  /// In es, this message translates to:
+  /// **'No tienes suficientes shards para esta apuesta.'**
+  String get minigamesErrorInsufficientShards;
+
+  /// Error snackbar: caller is not a group member
+  ///
+  /// In es, this message translates to:
+  /// **'No eres miembro de este grupo.'**
+  String get minigamesErrorNotMember;
+
+  /// Error snackbar: invalid game type
+  ///
+  /// In es, this message translates to:
+  /// **'No se pudo crear la partida.'**
+  String get minigamesErrorInvalidGameType;
+
+  /// Generic error snackbar when the session could not be created
+  ///
+  /// In es, this message translates to:
+  /// **'No se pudo crear la partida.'**
+  String get minigamesErrorCreate;
+
+  /// Error view message when the session list fails to load
+  ///
+  /// In es, this message translates to:
+  /// **'No se pudieron cargar las partidas'**
+  String get minigamesErrorLoad;
+
+  /// Empty state title on the minigames hub
+  ///
+  /// In es, this message translates to:
+  /// **'Aún no hay partidas en este grupo'**
+  String get minigamesEmpty;
+
+  /// Empty state body on the minigames hub
+  ///
+  /// In es, this message translates to:
+  /// **'Crea la primera partida con uno de los juegos de arriba.'**
+  String get minigamesEmptyBody;
+
+  /// Lifecycle chip label for active sessions
+  ///
+  /// In es, this message translates to:
+  /// **'Activa'**
+  String get minigamesStatusActive;
+
+  /// Lifecycle chip label for finished sessions
+  ///
+  /// In es, this message translates to:
+  /// **'Terminada'**
+  String get minigamesStatusFinished;
+
+  /// Session card subtitle with the participant count
+  ///
+  /// In es, this message translates to:
+  /// **'Participantes: {count}'**
+  String minigamesParticipants(int count);
+
+  /// Session card subtitle with the per-person wager
+  ///
+  /// In es, this message translates to:
+  /// **'Apuesta: {amount} shards'**
+  String minigamesWagerPerPerson(int amount);
+
+  /// Placeholder snackbar when tapping a session (per-game UIs are future work)
+  ///
+  /// In es, this message translates to:
+  /// **'La partida se jugará aquí pronto.'**
+  String get minigamesDetailComingSoon;
+
+  /// Coming-soon screen title for the minigames hub
+  ///
+  /// In es, this message translates to:
+  /// **'Juegos'**
+  String get comingSoonMinigamesTitle;
+
+  /// Coming-soon screen body for the minigames hub
+  ///
+  /// In es, this message translates to:
+  /// **'Los mini-juegos de grupo estarán disponibles pronto.'**
+  String get comingSoonMinigamesBody;
+
+  /// Shard & preshard ledger screen app bar title
+  ///
+  /// In es, this message translates to:
+  /// **'Historial de shards'**
+  String get shardsLedgerTitle;
+
+  /// Ledger tab label for the earned shard movements
+  ///
+  /// In es, this message translates to:
+  /// **'Shards'**
+  String get shardsLedgerTabShards;
+
+  /// Ledger tab label for the preshard movements
+  ///
+  /// In es, this message translates to:
+  /// **'Preshards'**
+  String get shardsLedgerTabPreshards;
+
+  /// Label above the derived sum of the visible ledger entries
+  ///
+  /// In es, this message translates to:
+  /// **'Neto'**
+  String get shardsLedgerNet;
+
+  /// Empty state heading when a ledger side has no movements
+  ///
+  /// In es, this message translates to:
+  /// **'Sin movimientos todavía'**
+  String get shardsLedgerEmpty;
+
+  /// Empty state body explaining where new movements appear
+  ///
+  /// In es, this message translates to:
+  /// **'Cuando ganes o gastes shards, aparecerán aquí.'**
+  String get shardsLedgerEmptyBody;
+
+  /// Error state when the ledger history fails to load
+  ///
+  /// In es, this message translates to:
+  /// **'No se pudieron cargar los movimientos'**
+  String get shardsLedgerLoadError;
+
+  /// Balance header label for personal (earned) shards
+  ///
+  /// In es, this message translates to:
+  /// **'Ganados'**
+  String get shardsLedgerEarned;
+
+  /// Balance header label for preshards (bought or granted)
+  ///
+  /// In es, this message translates to:
+  /// **'Comprados/Bonos'**
+  String get shardsLedgerBought;
+
+  /// Economy note: earned shards never expire
+  ///
+  /// In es, this message translates to:
+  /// **'Los shards ganados nunca expiran.'**
+  String get shardsLedgerEarnedNote;
+
+  /// Economy note: preshards are event-only
+  ///
+  /// In es, this message translates to:
+  /// **'Los preshards solo se usan para eventos.'**
+  String get shardsLedgerPreshardsNote;
+
+  /// Short reference id of the entity that caused a movement
+  ///
+  /// In es, this message translates to:
+  /// **'Ref: {reference}'**
+  String shardsLedgerReference(String reference);
+
+  /// Ledger reason: shards earned by attending an event
+  ///
+  /// In es, this message translates to:
+  /// **'Asistencia a evento'**
+  String get shardsReasonEventAttendance;
+
+  /// Ledger reason: shards spent on a cosmetic
+  ///
+  /// In es, this message translates to:
+  /// **'Compra de cosmético'**
+  String get shardsReasonCosmeticPurchase;
+
+  /// Ledger reason: shards donated to a group
+  ///
+  /// In es, this message translates to:
+  /// **'Donación a grupo'**
+  String get shardsReasonGroupDonation;
+
+  /// Ledger reason: shards wagered on a minigame
+  ///
+  /// In es, this message translates to:
+  /// **'Apuesta en minigame'**
+  String get shardsReasonMinigameWager;
+
+  /// Ledger reason: shards won on a minigame
+  ///
+  /// In es, this message translates to:
+  /// **'¡Ganaste el minigame!'**
+  String get shardsReasonMinigameWin;
+
+  /// Ledger reason: shards refunded from a minigame
+  ///
+  /// In es, this message translates to:
+  /// **'Reembolso de minigame'**
+  String get shardsReasonMinigameRefund;
+
+  /// Ledger reason: shards granted by a subscription bonus
+  ///
+  /// In es, this message translates to:
+  /// **'Bono de suscripción'**
+  String get shardsReasonSubscriptionGrant;
+
+  /// Ledger reason: shards granted by the Samay team
+  ///
+  /// In es, this message translates to:
+  /// **'Otorgado por Samay'**
+  String get shardsReasonAdminGrant;
+
+  /// Ledger reason: shards earned by posting to the feed
+  ///
+  /// In es, this message translates to:
+  /// **'Publicación en feed'**
+  String get shardsReasonFeedPost;
+
+  /// Preshard ledger reason: preshards bought
+  ///
+  /// In es, this message translates to:
+  /// **'Compra de preshards'**
+  String get preshardsReasonPurchased;
+
+  /// Preshard ledger reason: monthly subscription preshard bonus
+  ///
+  /// In es, this message translates to:
+  /// **'Bono mensual'**
+  String get preshardsReasonSubscriptionGrant;
+
+  /// Preshard ledger reason: preshards assigned to an event pool
+  ///
+  /// In es, this message translates to:
+  /// **'Asignado a evento'**
+  String get preshardsReasonEventPoolSet;
+
+  /// Preshard ledger reason: event pool consumed by distribution
+  ///
+  /// In es, this message translates to:
+  /// **'Distribuido en evento'**
+  String get preshardsReasonEventPoolConsumed;
+
+  /// Preshard ledger reason: event pool returned to the promotor
+  ///
+  /// In es, this message translates to:
+  /// **'Devuelto de evento'**
+  String get preshardsReasonEventPoolReturned;
+
+  /// Preshard ledger reason: preshards granted by the Samay team
+  ///
+  /// In es, this message translates to:
+  /// **'Otorgado por Samay'**
+  String get preshardsReasonAdminGrant;
+
+  /// Global banner shown while the device has no network connection (I-67)
+  ///
+  /// In es, this message translates to:
+  /// **'Sin conexión — los datos podrían no estar actualizados'**
+  String get connectivityOfflineBanner;
 }
 
 class _AppLocalizationsDelegate

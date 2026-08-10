@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:samay/core/models/event.dart';
 import 'package:samay/core/providers/service_providers.dart';
 import 'package:samay/core/services/event_service.dart';
 
@@ -24,6 +25,23 @@ class EventDetailNotifier
 /// A single event row by id.
 final eventDetailProvider = AsyncNotifierProvider.family<EventDetailNotifier,
     Map<String, dynamic>, String>(EventDetailNotifier.new);
+
+class EventByInviteTokenNotifier
+    extends FamilyAsyncNotifier<Event?, String> {
+  EventService get _service => ref.read(eventServiceProvider);
+
+  @override
+  Future<Event?> build(String token) async {
+    return _service.getEventByInviteToken(token);
+  }
+}
+
+/// Resolves an invite token to its event (null when the token matches no
+/// event) — the EINV deep-link lookup (`invite_token` is UNIQUE + indexed).
+final eventByInviteTokenProvider = AsyncNotifierProvider.family<
+    EventByInviteTokenNotifier, Event?, String>(
+  EventByInviteTokenNotifier.new,
+);
 
 class EventPromotoresNotifier
     extends FamilyAsyncNotifier<List<Map<String, dynamic>>, String> {
