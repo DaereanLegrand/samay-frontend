@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/core/errors/app_error.dart';
 import 'package:samay/core/extensions/error_mapper.dart';
 import 'package:samay/core/logging/app_logger.dart';
@@ -17,14 +18,16 @@ class SignupContactScreen extends ConsumerStatefulWidget {
   const SignupContactScreen({super.key});
 
   @override
-  ConsumerState<SignupContactScreen> createState() => _SignupContactScreenState();
+  ConsumerState<SignupContactScreen> createState() =>
+      _SignupContactScreenState();
 }
 
 class _SignupContactScreenState extends ConsumerState<SignupContactScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmController = TextEditingController();
-  String? _validationError;
+  String? _passwordError;
+  String? _confirmError;
   bool _submitting = false;
 
   @override
@@ -41,20 +44,25 @@ class _SignupContactScreenState extends ConsumerState<SignupContactScreen> {
     final password = _passwordController.text;
     final confirm = _confirmController.text;
     final l10n = AppLocalizations.of(context);
-    setState(() => _validationError = null);
+    setState(() {
+      _passwordError = null;
+      _confirmError = null;
+    });
     if (email.isEmpty || password.isEmpty || confirm.isEmpty) return;
     final passwordErrorText = passwordError(password);
     if (passwordErrorText != null) {
-      setState(() => _validationError = passwordErrorText);
+      setState(() => _passwordError = passwordErrorText);
       return;
     }
     if (password != confirm) {
-      setState(() => _validationError = l10n.authPasswordsDontMatch);
+      setState(() => _confirmError = l10n.authPasswordsDontMatch);
       return;
     }
     setState(() => _submitting = true);
     try {
-      final action = await ref.read(authStateProvider.notifier).checkEmail(email);
+      final action = await ref
+          .read(authStateProvider.notifier)
+          .checkEmail(email);
       if (action == 'exists') {
         if (mounted) {
           showDialog(
@@ -104,9 +112,11 @@ class _SignupContactScreenState extends ConsumerState<SignupContactScreen> {
         child: Column(
           children: [
             const SizedBox(height: 32),
+            // §3.2 auth big header — Playfair Display italic 40 with the glow
+            // (baked into the theme's displayMedium role).
             Text(
               l10n.authCreateYourAccount,
-              style: Theme.of(context).textTheme.headlineMedium,
+              style: Theme.of(context).textTheme.displayMedium,
             ),
             const SizedBox(height: 8),
             Text(
@@ -124,24 +134,23 @@ class _SignupContactScreenState extends ConsumerState<SignupContactScreen> {
               controller: _passwordController,
               label: l10n.authPasswordWithRequirements,
               obscureText: true,
+              // §5.2: validation errors ride the fields as `errorText`
+              // (glowPink — never raw red on black).
+              errorText: _passwordError,
             ),
             const SizedBox(height: 16),
             VInput(
               controller: _confirmController,
               label: l10n.commonConfirmPassword,
               obscureText: true,
+              errorText: _confirmError,
             ),
-            if (_validationError != null)
-              Padding(
-                padding: const EdgeInsets.only(top: 16),
-                child: Text(_validationError!, style: const TextStyle(color: Colors.red)),
-              ),
             if (auth.hasError)
               Padding(
                 padding: const EdgeInsets.only(top: 16),
                 child: Text(
                   auth.errorMessage!,
-                  style: const TextStyle(color: Colors.red),
+                  style: const TextStyle(color: AppColors.error),
                 ),
               ),
             const Spacer(),

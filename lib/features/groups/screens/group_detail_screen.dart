@@ -1,13 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:samay/core/design_tokens/app_colors.dart';
+import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/extensions/error_mapper.dart';
+import 'package:samay/core/providers/service_providers.dart';
 import 'package:samay/core/repositories/repository_providers.dart';
 import 'package:samay/core/router/route_paths.dart';
 import 'package:samay/features/groups/providers/groups_providers.dart';
+import 'package:samay/features/groups/widgets/member_actions_sheet.dart';
+import 'package:samay/features/profile/widgets/profile_avatar.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/error_view.dart';
 import 'package:samay/shared/widgets/rank_badge.dart';
+import 'package:samay/shared/widgets/v_badge.dart';
 import 'package:samay/shared/widgets/v_button.dart';
 import 'package:samay/shared/widgets/v_network_image.dart';
 import 'package:samay/shared/widgets/v_shard_icon.dart';
@@ -100,7 +106,12 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen>
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(g['name'] as String? ?? l10n.commonGroup),
+        // §3.2: the group name is the detail-hero fancy title (Playfair
+        // Display italic 28 + glow-soft baked into the theme role, U-02).
+        title: Text(
+          g['name'] as String? ?? l10n.commonGroup,
+          style: Theme.of(context).textTheme.headlineLarge,
+        ),
         bottom: TabBar(
           controller: _tabController,
           tabs: [
@@ -110,18 +121,20 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen>
           ],
         ),
         actions: [
-          PopupMenuButton<String>(
-            onSelected: (v) => _handleAction(v),
-            itemBuilder: (_) => [
-              if (isFrozen)
+          // R16: the overflow menu now only exists for the frozen marker —
+          // the leave action moved to the inline danger row below (Juega's
+          // inline leave with a confirm dialog, Samay-shaped).
+          if (isFrozen)
+            PopupMenuButton<String>(
+              onSelected: (v) => _handleAction(v),
+              itemBuilder: (_) => [
                 PopupMenuItem(
                   value: 'frozen',
                   enabled: false,
                   child: Text(l10n.groupsFrozenBadge),
                 ),
-              PopupMenuItem(value: 'leave', child: Text(l10n.groupsLeave)),
-            ],
-          ),
+              ],
+            ),
         ],
       ),
       body: Column(
@@ -130,10 +143,12 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen>
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(8),
-              color: Colors.red[900],
+              // §5.2: never raw red on black — the frozen banner is an
+              // error *fill* (glowPinkDeep); white text on it is 5.87:1 (AA).
+              color: AppColors.errorFill,
               child: Text(
                 l10n.groupsFrozenBanner,
-                style: const TextStyle(fontSize: 12),
+                style: const TextStyle(fontSize: 12, color: AppColors.white),
                 textAlign: TextAlign.center,
               ),
             ),
@@ -156,7 +171,7 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen>
                 Row(
                   children: [
                     if (g['size_tier'] != null)
-                      _Badge(g['size_tier'] as String),
+                      VBadge(label: g['size_tier'] as String),
                     const SizedBox(width: 8),
                     if (g['rank_bracket'] != null)
                       RankBadge(bracket: g['rank_bracket'] as String),
@@ -180,6 +195,18 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen>
                   l10n.groupsMemberCount(members.length, memberLimit),
                   style: Theme.of(context).textTheme.bodyMedium,
                 ),
+                // R16 (F8 ADAPTED): the leave trigger is an inline danger
+                // row beside the member count (Juega's inline leave; the
+                // confirm dialog stays Samay-shaped). Error semantic per
+                // §5.2 — glowPink 6.00:1 AA, never raw red.
+                TextButton.icon(
+                  onPressed: _leaveGroup,
+                  icon: const Icon(Icons.logout, size: 18),
+                  label: Text(l10n.groupsLeave),
+                  style: TextButton.styleFrom(
+                    foregroundColor: AppColors.error,
+                  ),
+                ),
                 if (contributions.myContribution > 0) ...[
                   const SizedBox(height: 4),
                   Text(
@@ -190,10 +217,17 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen>
                 const SizedBox(height: 16),
                 Row(
                   children: [
-                    Expanded(child: VButton(label: l10n.groupsDonateTitle, onPressed: () async {
-                      await context.push(RoutePaths.donateToGroup(widget.groupId));
-                      _invalidateData();
-                    })),
+                    // §5.1: the donate CTA is the detail screen's one brand
+                    // moment (glowAccent filled — pink fill, black text
+                    // 6.00:1); the secondary actions stay outlined white.
+                    Expanded(child: VButton.glowAccent(
+                      filled: true,
+                      label: l10n.groupsDonateTitle,
+                      onPressed: () async {
+                        await context.push(RoutePaths.donateToGroup(widget.groupId));
+                        _invalidateData();
+                      },
+                    )),
                     const SizedBox(width: 8),
                     Expanded(child: VButton(label: l10n.groupsCreateEvent, onPressed: () => context.push(RoutePaths.createGroupEvent(widget.groupId)))),
                     const SizedBox(width: 8),
@@ -236,6 +270,16 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen>
         child: Text(l10n.groupsNoMembers, style: const TextStyle(color: Colors.grey)),
       );
     }
+    // R17 (F9 ADAPTED): the members tab rows are admin-gated like the
+    // standalone members screen — the current user's role comes from their
+    // own membership row.
+    final myId = ref.read(authServiceProvider).auth.currentUser?.id;
+    final myRole = myId == null
+        ? 'member'
+        : members.where((m) => m['user_id'] == myId).firstOrNull?['role']
+                as String? ??
+            'member';
+    final isAdmin = myRole == 'promotor' || myRole == 'co_promotor';
     // Descriptor rows: only row *data* is materialized here; widgets are
     // created lazily per visible row by the builder (PERF-01).
     final rows = <_MembersRow>[
@@ -255,9 +299,12 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen>
       ...members.map(
         (m) {
           final user = m['users'] as Map<String, dynamic>?;
+          final role = m['role'] as String? ?? 'member';
           return _RowMember(
+            userId: m['user_id'] as String,
             username: user?['username'] as String? ?? '${m['user_id']}'.substring(0, 8),
-            role: m['role'] as String? ?? 'member',
+            role: role,
+            canAct: isAdmin && m['user_id'] != myId && role != 'promotor',
           );
         },
       ),
@@ -271,8 +318,24 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen>
         _RowSpacer(:final height) => SizedBox(height: height),
         _RowContributor(:final username, :final shards) =>
           _ContributorTile(username: username, shards: shards),
-        _RowMember(:final username, :final role) =>
-          _MemberTile(username: username, role: role),
+        _RowMember(:final userId, :final username, :final role, :final canAct) =>
+          _MemberTile(
+            username: username,
+            role: role,
+            onTap: canAct
+                ? () => showMemberActionsSheet(
+                      context,
+                      ref: ref,
+                      groupId: widget.groupId,
+                      member: {
+                        'user_id': userId,
+                        'role': role,
+                        'users': {'username': username},
+                      },
+                      onChanged: _invalidateData,
+                    )
+                : null,
+          ),
       },
     );
   }
@@ -290,9 +353,11 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen>
   }
 
   void _handleAction(String value) {
+    // R16: the menu only carries the (disabled) frozen marker; the leave
+    // action lives in the inline row — nothing else is dispatched.
     switch (value) {
-      case 'leave':
-        _leaveGroup();
+      case 'frozen':
+        break;
     }
   }
 
@@ -322,26 +387,6 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen>
   }
 }
 
-class _Badge extends StatelessWidget {
-  final String label;
-  const _Badge(this.label);
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(
-        color: Colors.grey[900],
-        border: Border.all(color: Colors.grey[700]!),
-      ),
-      child: Text(
-        label.toUpperCase(),
-        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 0.5),
-      ),
-    );
-  }
-}
-
 /// Descriptor for one row of the members tab. Only data is stored here; the
 /// [ListView.builder] creates the widget lazily per visible row (PERF-01).
 sealed class _MembersRow {
@@ -365,13 +410,24 @@ final class _RowContributor extends _MembersRow {
 }
 
 final class _RowMember extends _MembersRow {
-  const _RowMember({required this.username, required this.role});
+  const _RowMember({
+    required this.userId,
+    required this.username,
+    required this.role,
+    required this.canAct,
+  });
+
+  final String userId;
   final String username;
   final String role;
+
+  /// R17: the current user is an admin and this row is an actionable target.
+  final bool canAct;
 }
 
-/// Dense contributor row (PERF-08: the repeated ListTile+CircleAvatar shape is
-/// a const sub-widget so unchanged rows skip rebuilds).
+/// Dense contributor row (PERF-08: the repeated ListTile+avatar shape is a
+/// const sub-widget so unchanged rows skip rebuilds; U-11 restyle: shared
+/// `ProfileAvatar` + hairline close).
 class _ContributorTile extends StatelessWidget {
   final String username;
   final String shards;
@@ -380,41 +436,58 @@ class _ContributorTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListTile(
-      dense: true,
-      leading: CircleAvatar(
-        radius: 16,
-        backgroundColor: Colors.grey[800],
-        child: const Icon(Icons.person, size: 16),
-      ),
-      title: Text(username),
-      trailing: Text(shards),
+    return Column(
+      children: [
+        ListTile(
+          dense: true,
+          leading: ProfileAvatar(
+            size: AppSpacing.avatar,
+            initials: username.substring(0, 1),
+          ),
+          title: Text(username),
+          trailing: Text(shards),
+        ),
+        const Divider(height: 1),
+      ],
     );
   }
 }
 
-/// Dense member row (PERF-08: same shape as [_ContributorTile] but with an
-/// initials avatar and a role subtitle).
+/// Dense member row (PERF-08: same shape as [_ContributorTile] but with the
+/// role rendered as a §5.5 `VBadge` beside the name; R17: admin rows gain
+/// the actions affordance).
 class _MemberTile extends StatelessWidget {
   final String username;
   final String role;
+  final VoidCallback? onTap;
 
-  const _MemberTile({required this.username, required this.role});
+  const _MemberTile({required this.username, required this.role, this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    return ListTile(
-      dense: true,
-      leading: CircleAvatar(
-        radius: 16,
-        backgroundColor: Colors.grey[800],
-        child: Text(
-          username.substring(0, 1).toUpperCase(),
-          style: const TextStyle(fontSize: 12),
+    return Column(
+      children: [
+        ListTile(
+          dense: true,
+          leading: ProfileAvatar(
+            size: AppSpacing.avatar,
+            initials: username.substring(0, 1),
+          ),
+          title: Row(
+            children: [
+              Expanded(
+                child: Text(username, maxLines: 1, overflow: TextOverflow.ellipsis),
+              ),
+              VBadge(label: role),
+            ],
+          ),
+          trailing: onTap != null
+              ? const Icon(Icons.more_horiz, size: 20)
+              : null,
+          onTap: onTap,
         ),
-      ),
-      title: Text(username),
-      subtitle: Text(role),
+        const Divider(height: 1),
+      ],
     );
   }
 }

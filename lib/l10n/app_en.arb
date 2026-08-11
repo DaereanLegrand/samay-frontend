@@ -189,6 +189,52 @@
   "@authEmailAlreadyRegisteredBody": {
     "description": "Dialog body when the email already has an account"
   },
+  "authBackToLogin": "Back to sign in",
+  "@authBackToLogin": {
+    "description": "Pre-auth funnel escape hatch: back to the login screen (OTP + forgot password)"
+  },
+  "authOtpAttemptsRemaining": "You have {attempts, plural, =1{1 attempt left} other{{attempts} attempts left}}",
+  "@authOtpAttemptsRemaining": {
+    "description": "OTP wrong-attempt budget counter (I-29's guard, surfaced)",
+    "placeholders": {
+      "attempts": {
+        "type": "int"
+      }
+    }
+  },
+  "authForgotPasswordTitle": "Recover password",
+  "@authForgotPasswordTitle": {
+    "description": "Forgot-password screen app bar title"
+  },
+  "authForgotPasswordHeading": "Forgot your password?",
+  "@authForgotPasswordHeading": {
+    "description": "Forgot-password screen heading"
+  },
+  "authForgotPasswordHint": "Enter your email and we'll send you a link to reset your password.",
+  "@authForgotPasswordHint": {
+    "description": "Forgot-password screen explainer"
+  },
+  "authForgotPasswordSend": "Send link",
+  "@authForgotPasswordSend": {
+    "description": "Forgot-password submit button label"
+  },
+  "authForgotPasswordSuccessTitle": "Check your email",
+  "@authForgotPasswordSuccessTitle": {
+    "description": "Forgot-password success state heading"
+  },
+  "authForgotPasswordSuccessBody": "If an account exists for {email}, you'll receive a link to reset your password.",
+  "@authForgotPasswordSuccessBody": {
+    "description": "Forgot-password success state body",
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "authForgotPasswordSnack": "We sent you a link to reset your password",
+  "@authForgotPasswordSnack": {
+    "description": "Snackbar after the recovery email is sent"
+  },
   "authTermsTitle": "Terms and conditions",
   "@authTermsTitle": {
     "description": "Privacy/terms screen app bar title"
@@ -419,6 +465,18 @@
   "@friendsAddFriendButton": {
     "description": "Send-friend-request button label"
   },
+  "friendsMinCharsHint": "Type at least 2 characters to search",
+  "@friendsMinCharsHint": {
+    "description": "Search hint shown while the query is shorter than 2 characters (R14)"
+  },
+  "friendsMutualAcceptedTitle": "Request accepted!",
+  "@friendsMutualAcceptedTitle": {
+    "description": "Mutual-friend dialog title when a friend request is accepted instantly (R15)"
+  },
+  "friendsMutualAcceptedBody": "You both sent a request: you are friends now.",
+  "@friendsMutualAcceptedBody": {
+    "description": "Mutual-friend dialog body when a friend request is accepted instantly (R15)"
+  },
   "groupsTitle": "Groups",
   "@groupsTitle": {
     "description": "My-groups screen app bar title"
@@ -604,6 +662,35 @@
   "@groupsAbandon": {
     "description": "Confirm button on the leave-group dialog"
   },
+  "groupsPromoteCoPromotor": "Make co-promoter",
+  "@groupsPromoteCoPromotor": {
+    "description": "Member-actions sheet option that promotes a member to co-promotor (R17)"
+  },
+  "groupsDemoteMember": "Make member",
+  "@groupsDemoteMember": {
+    "description": "Member-actions sheet option that demotes a co-promotor to member (R17)"
+  },
+  "groupsKickMember": "Remove from group",
+  "@groupsKickMember": {
+    "description": "Member-actions sheet option that kicks a member (R17)"
+  },
+  "groupsKickConfirmTitle": "Remove {name}?",
+  "@groupsKickConfirmTitle": {
+    "description": "Kick-confirmation dialog title (R17)",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "groupsKickConfirmBody": "This action cannot be undone.",
+  "@groupsKickConfirmBody": {
+    "description": "Kick-confirmation dialog body (R17)"
+  },
+  "groupsKick": "Remove",
+  "@groupsKick": {
+    "description": "Confirm button of the kick-confirmation dialog (R17)"
+  },
   "groupsNotFound": "The group was not found",
   "@groupsNotFound": {
     "description": "Error view message when the group detail fails to load"
@@ -702,6 +789,14 @@
   "@profileSignOut": {
     "description": "Settings list item"
   },
+  "profileSignOutQuestion": "Sign out?",
+  "@profileSignOutQuestion": {
+    "description": "Sign-out confirmation dialog title (R7)"
+  },
+  "profileSignOutBody": "Your session will be closed on this device.",
+  "@profileSignOutBody": {
+    "description": "Sign-out confirmation dialog body (R7)"
+  },
   "profileVersion": "Samay v1.0.0",
   "@profileVersion": {
     "description": "Version footer on the settings screen"
@@ -717,6 +812,14 @@
   "settingsThemeSystem": "System",
   "@settingsThemeSystem": {
     "description": "Theme picker option: follow the system appearance"
+  },
+  "settingsSectionAppearance": "Appearance",
+  "@settingsSectionAppearance": {
+    "description": "Settings section header for the visual preferences group (R6)"
+  },
+  "settingsSectionAccount": "Account",
+  "@settingsSectionAccount": {
+    "description": "Settings section header for the account rows group (R6)"
   },
   "profileBio": "Bio",
   "@profileBio": {
@@ -741,6 +844,10 @@
   "profileNoGroupsYet": "You don't belong to any group yet",
   "@profileNoGroupsYet": {
     "description": "Empty state on the profile screen groups section"
+  },
+  "profileNoGroupsHint": "Create or join a group to see it here.",
+  "@profileNoGroupsHint": {
+    "description": "Empty-state hint on the profile screen groups section (R9)"
   },
   "profileShardsCount": "{shards} shards",
   "@profileShardsCount": {

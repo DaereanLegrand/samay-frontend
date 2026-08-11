@@ -4,6 +4,9 @@ abstract final class RoutePaths {
   static const banned = '/banned';
   static const signup = '/auth/signup';
   static const verify = '/auth/verify';
+  // U-14 R3: the dedicated password-recovery screen (replaces login's inline
+  // resetPasswordForEmail call — Juega's `/forgot-password`, `app_router.dart:37`).
+  static const forgotPassword = '/forgot-password';
   static const ageGate = '/auth/age-gate';
   static const privacyTerms = '/auth/privacy-terms';
   static const profileSetup = '/auth/profile-setup';

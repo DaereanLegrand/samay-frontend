@@ -152,7 +152,17 @@ class UserService {
     return asAddressee != null ? Map<String, dynamic>.from(asAddressee) : null;
   }
 
-  Future<void> sendFriendRequest(String userId) async {
+  /// Sends a friend request to [userId], returning the outcome:
+  ///
+  /// * `pending` — a fresh `pending` friendship row was inserted.
+  /// * `accepted` — the addressee had already sent the current user a
+  ///   `pending` request, so the friendship is accepted instantly (the
+  ///   atomic mutual-accept flow, R15 — Juega's `send_friend_request`
+  ///   returns 'accepted' the same way).
+  ///
+  /// Throws when the current user already has a friendship/request in the
+  /// forward direction (or is blocked).
+  Future<String> sendFriendRequest(String userId) async {
     final user = auth.currentUser;
     if (user == null) throw Exception('No authenticated user');
 
@@ -172,14 +182,22 @@ class UserService {
               .limit(1)
               .maybeSingle()
         : null;
-    if (asRequester != null || asAddressee != null) {
+    if (asRequester != null) {
       throw Exception('Ya existe una solicitud o amistad con este usuario');
+    }
+    if (asAddressee != null) {
+      await client
+          .from('friendships')
+          .update({'status': 'accepted'})
+          .eq('id', asAddressee['id'] as String);
+      return 'accepted';
     }
     await client.from('friendships').insert({
       'requester_id': user.id,
       'addressee_id': userId,
       'status': 'pending',
     });
+    return 'pending';
   }
 
   Future<void> acceptFriendRequest(String friendshipId) async {

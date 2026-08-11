@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
+import 'package:samay/core/design_tokens/app_icon_sizes.dart';
+import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/l10n/app_localizations.dart';
 
 /// Inline error banner: pink icon + message + optional retry / close.
@@ -28,7 +30,10 @@ class ErrorBanner extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.md,
+        vertical: 10,
+      ),
       decoration: const BoxDecoration(
         color: AppColors.surface,
         border: Border.symmetric(
@@ -38,29 +43,38 @@ class ErrorBanner extends StatelessWidget {
       child: Row(
         children: [
           Icon(icon, size: 18, color: _accent),
-          const SizedBox(width: 12),
+          const SizedBox(width: AppSpacing.md),
           Expanded(
             child: Text(
               message,
-              style: const TextStyle(color: _muted, fontSize: 14),
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(color: _muted),
             ),
           ),
           if (onRetry != null) ...[
-            const SizedBox(width: 8),
+            const SizedBox(width: AppSpacing.sm),
             TextButton(
               onPressed: onRetry,
               style: TextButton.styleFrom(
                 foregroundColor: AppColors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: AppSpacing.xs,
+                ),
               ),
               child: Text(l10n.commonRetry),
             ),
           ],
           if (onClose != null) ...[
-            const SizedBox(width: 4),
+            const SizedBox(width: AppSpacing.xs),
             IconButton(
               onPressed: onClose,
-              icon: const Icon(Icons.close, size: 16, color: _muted),
+              icon: const Icon(
+                Icons.close,
+                size: AppIconSizes.sm,
+                color: _muted,
+              ),
               padding: EdgeInsets.zero,
               visualDensity: VisualDensity.compact,
               tooltip: l10n.commonClose,

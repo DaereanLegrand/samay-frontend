@@ -13,6 +13,7 @@ import 'package:samay/core/telemetry/route_observer.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/features/auth/screens/banned_screen.dart';
 import 'package:samay/features/auth/screens/login_screen.dart';
+import 'package:samay/features/auth/screens/forgot_password_screen.dart';
 import 'package:samay/features/auth/screens/welcome_screen.dart';
 import 'package:samay/features/auth/screens/signup_contact_screen.dart';
 import 'package:samay/features/auth/screens/otp_verification_screen.dart';
@@ -123,6 +124,13 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (_, _) => const LoginScreen(),
       ),
       GoRoute(
+        // U-14 R3: the dedicated password-recovery screen. Registered with
+        // the other pre-auth routes (before the ShellRoute) so no parameter
+        // pattern can shadow its static path; the guard treats it as public.
+        path: RoutePaths.forgotPassword,
+        builder: (_, _) => const ForgotPasswordScreen(),
+      ),
+      GoRoute(
         path: RoutePaths.signup,
         builder: (_, _) => const SignupContactScreen(),
       ),
@@ -203,6 +211,7 @@ final routerProvider = Provider<GoRouter>((ref) {
               child: VComingSoonScreen(
                 title: AppLocalizations.of(context).comingSoonEventsTitle,
                 description: AppLocalizations.of(context).comingSoonEventsBody,
+                icon: Icons.event,
               ),
             ),
           ),
@@ -247,10 +256,12 @@ final routerProvider = Provider<GoRouter>((ref) {
             fallback: VComingSoonScreen(
               title: AppLocalizations.of(context).comingSoonEventInviteTitle,
               description: AppLocalizations.of(context).comingSoonEventInviteBody,
+              icon: Icons.mail,
             ),
             child: VComingSoonScreen(
               title: AppLocalizations.of(context).comingSoonEventInviteTitle,
               description: AppLocalizations.of(context).comingSoonEventInviteBody,
+              icon: Icons.mail,
             ),
           ),
           errorMessage: AppLocalizations.of(context).routerEventNotFound,
@@ -268,6 +279,7 @@ final routerProvider = Provider<GoRouter>((ref) {
             fallback: VComingSoonScreen(
               title: AppLocalizations.of(context).comingSoonPhotosTitle,
               description: AppLocalizations.of(context).comingSoonPhotosBody,
+              icon: Icons.photo,
             ),
             child: PhotoGalleryScreen(eventId: eventId),
           ),
@@ -287,10 +299,12 @@ final routerProvider = Provider<GoRouter>((ref) {
             fallback: VComingSoonScreen(
               title: AppLocalizations.of(context).comingSoonCollageTitle,
               description: AppLocalizations.of(context).comingSoonCollageBody,
+              icon: Icons.grid_view,
             ),
             child: VComingSoonScreen(
               title: AppLocalizations.of(context).comingSoonCollageTitle,
               description: AppLocalizations.of(context).comingSoonCollageBody,
+              icon: Icons.grid_view,
             ),
           ),
           errorMessage: AppLocalizations.of(context).routerEventNotFound,
@@ -348,6 +362,7 @@ final routerProvider = Provider<GoRouter>((ref) {
               title: AppLocalizations.of(context).comingSoonCreateEventTitle,
               description:
                   AppLocalizations.of(context).comingSoonCreateEventBody,
+              icon: Icons.event_note,
             ),
             child: CreateEventScreen(groupId: groupId),
           ),
@@ -377,6 +392,7 @@ final routerProvider = Provider<GoRouter>((ref) {
             fallback: VComingSoonScreen(
               title: AppLocalizations.of(context).comingSoonMinigamesTitle,
               description: AppLocalizations.of(context).comingSoonMinigamesBody,
+              icon: Icons.sports_esports,
             ),
             child: MinigamesScreen(groupId: groupId),
           ),
@@ -400,6 +416,7 @@ final routerProvider = Provider<GoRouter>((ref) {
             fallback: VComingSoonScreen(
               title: AppLocalizations.of(context).comingSoonChatTitle,
               description: AppLocalizations.of(context).comingSoonChatBody,
+              icon: Icons.chat,
             ),
             child: ChatScreen(chatId: chatId),
           ),
@@ -431,6 +448,7 @@ final routerProvider = Provider<GoRouter>((ref) {
             fallback: VComingSoonScreen(
               title: AppLocalizations.of(context).comingSoonQrTitle,
               description: AppLocalizations.of(context).comingSoonQrBody,
+              icon: Icons.qr_code,
             ),
             child: AttendanceQrScreen(eventId: eventId),
           ),
@@ -447,6 +465,7 @@ final routerProvider = Provider<GoRouter>((ref) {
             fallback: VComingSoonScreen(
               title: AppLocalizations.of(context).comingSoonScannerTitle,
               description: AppLocalizations.of(context).comingSoonScannerBody,
+              icon: Icons.qr_code_scanner,
             ),
             child: QrScannerScreen(eventId: eventId),
           ),
@@ -480,6 +499,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           fallback: VComingSoonScreen(
             title: AppLocalizations.of(context).comingSoonCosmeticsTitle,
             description: AppLocalizations.of(context).comingSoonCosmeticsBody,
+            icon: Icons.checkroom,
           ),
           child: const CosmeticsShopScreen(),
         ),

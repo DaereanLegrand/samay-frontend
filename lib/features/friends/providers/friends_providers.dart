@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:samay/core/repositories/repository_providers.dart';
+import 'package:samay/core/utils/throttled_refresh.dart';
 
 /// Combined view of a user's friend requests: received + sent rows and the
 /// display names of the users involved.
@@ -13,7 +14,8 @@ class FriendRequestsData {
   const FriendRequestsData({required this.requests, required this.names});
 }
 
-class FriendsListNotifier extends AsyncNotifier<List<Map<String, dynamic>>> {
+class FriendsListNotifier extends AsyncNotifier<List<Map<String, dynamic>>>
+    with ThrottledRefresh {
   @override
   Future<List<Map<String, dynamic>>> build() async {
     final repo = ref.read(friendsRepositoryProvider);
@@ -23,18 +25,24 @@ class FriendsListNotifier extends AsyncNotifier<List<Map<String, dynamic>>> {
       final profile = await repo.getUserProfile(f.userId);
       if (profile != null) profiles.add(profile.toJson());
     }
+    markFetched();
     return profiles;
   }
 
-  /// Re-runs [build] to reload the friend list (finding SM-09).
-  Future<void> refresh() async => ref.invalidateSelf();
+  /// Re-runs [build] to reload the friend list (finding SM-09). R20: skipped
+  /// while the last fetch is younger than [refreshThrottle].
+  Future<void> refresh() async {
+    if (!shouldRefetch()) return;
+    ref.invalidateSelf();
+  }
 }
 
 /// Friends of the current user, as full user profiles.
 final friendsListProvider = AsyncNotifierProvider<FriendsListNotifier,
     List<Map<String, dynamic>>>(FriendsListNotifier.new);
 
-class FriendRequestsNotifier extends AsyncNotifier<FriendRequestsData> {
+class FriendRequestsNotifier extends AsyncNotifier<FriendRequestsData>
+    with ThrottledRefresh {
   @override
   Future<FriendRequestsData> build() async {
     final repo = ref.read(friendsRepositoryProvider);
@@ -46,18 +54,24 @@ class FriendRequestsNotifier extends AsyncNotifier<FriendRequestsData> {
       final profile = await repo.getUserProfile(userId);
       names[userId] = profile?.username ?? 'Usuario';
     }
+    markFetched();
     return FriendRequestsData(requests: requests, names: names);
   }
 
   /// Re-runs [build] after accepting/declining a request (finding SM-09).
-  Future<void> refresh() async => ref.invalidateSelf();
+  /// R20: skipped while the last fetch is younger than [refreshThrottle].
+  Future<void> refresh() async {
+    if (!shouldRefetch()) return;
+    ref.invalidateSelf();
+  }
 }
 
 /// Received + sent friend requests with resolved display names.
 final friendRequestsProvider = AsyncNotifierProvider<FriendRequestsNotifier,
     FriendRequestsData>(FriendRequestsNotifier.new);
 
-class BlockedUsersNotifier extends AsyncNotifier<List<Map<String, dynamic>>> {
+class BlockedUsersNotifier extends AsyncNotifier<List<Map<String, dynamic>>>
+    with ThrottledRefresh {
   @override
   Future<List<Map<String, dynamic>>> build() async {
     final repo = ref.read(friendsRepositoryProvider);
@@ -76,11 +90,16 @@ class BlockedUsersNotifier extends AsyncNotifier<List<Map<String, dynamic>>> {
         });
       }
     }
+    markFetched();
     return profiles;
   }
 
-  /// Re-runs [build] after unblocking a user (finding SM-09).
-  Future<void> refresh() async => ref.invalidateSelf();
+  /// Re-runs [build] after unblocking a user (finding SM-09). R20: skipped
+  /// while the last fetch is younger than [refreshThrottle].
+  Future<void> refresh() async {
+    if (!shouldRefetch()) return;
+    ref.invalidateSelf();
+  }
 }
 
 /// Users blocked by the current user (profiles with username fallback).
@@ -88,14 +107,21 @@ final blockedUsersProvider = AsyncNotifierProvider<BlockedUsersNotifier,
     List<Map<String, dynamic>>>(BlockedUsersNotifier.new);
 
 class SearchResultsNotifier
-    extends FamilyAsyncNotifier<List<Map<String, dynamic>>, String> {
+    extends FamilyAsyncNotifier<List<Map<String, dynamic>>, String>
+    with ThrottledRefresh {
   @override
   Future<List<Map<String, dynamic>>> build(String arg) async {
-    return ref.read(friendsRepositoryProvider).searchUsers(arg);
+    final results = await ref.read(friendsRepositoryProvider).searchUsers(arg);
+    markFetched();
+    return results;
   }
 
-  /// Re-runs [build] after a friend request changes a result's status.
-  Future<void> refresh() async => ref.invalidateSelf();
+  /// Re-runs [build] after a friend request changes a result's status. R20:
+  /// skipped while the last fetch is younger than [refreshThrottle].
+  Future<void> refresh() async {
+    if (!shouldRefetch()) return;
+    ref.invalidateSelf();
+  }
 }
 
 /// User search results for a query (family keyed by the trimmed query).

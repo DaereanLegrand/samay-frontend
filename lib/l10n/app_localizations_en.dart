@@ -144,6 +144,45 @@ class AppLocalizationsEn extends AppLocalizations {
       'This email already has a complete account. Sign in instead.';
 
   @override
+  String get authBackToLogin => 'Back to sign in';
+
+  @override
+  String authOtpAttemptsRemaining(int attempts) {
+    String _temp0 = intl.Intl.pluralLogic(
+      attempts,
+      locale: localeName,
+      other: '$attempts attempts left',
+      one: '1 attempt left',
+    );
+    return 'You have $_temp0';
+  }
+
+  @override
+  String get authForgotPasswordTitle => 'Recover password';
+
+  @override
+  String get authForgotPasswordHeading => 'Forgot your password?';
+
+  @override
+  String get authForgotPasswordHint =>
+      'Enter your email and we\'ll send you a link to reset your password.';
+
+  @override
+  String get authForgotPasswordSend => 'Send link';
+
+  @override
+  String get authForgotPasswordSuccessTitle => 'Check your email';
+
+  @override
+  String authForgotPasswordSuccessBody(String email) {
+    return 'If an account exists for $email, you\'ll receive a link to reset your password.';
+  }
+
+  @override
+  String get authForgotPasswordSnack =>
+      'We sent you a link to reset your password';
+
+  @override
   String get authTermsTitle => 'Terms and conditions';
 
   @override
@@ -318,6 +357,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get friendsAddFriendButton => 'Add';
 
   @override
+  String get friendsMinCharsHint => 'Type at least 2 characters to search';
+
+  @override
+  String get friendsMutualAcceptedTitle => 'Request accepted!';
+
+  @override
+  String get friendsMutualAcceptedBody =>
+      'You both sent a request: you are friends now.';
+
+  @override
   String get groupsTitle => 'Groups';
 
   @override
@@ -447,6 +496,26 @@ class AppLocalizationsEn extends AppLocalizations {
   String get groupsAbandon => 'Leave';
 
   @override
+  String get groupsPromoteCoPromotor => 'Make co-promoter';
+
+  @override
+  String get groupsDemoteMember => 'Make member';
+
+  @override
+  String get groupsKickMember => 'Remove from group';
+
+  @override
+  String groupsKickConfirmTitle(String name) {
+    return 'Remove $name?';
+  }
+
+  @override
+  String get groupsKickConfirmBody => 'This action cannot be undone.';
+
+  @override
+  String get groupsKick => 'Remove';
+
+  @override
   String get groupsNotFound => 'The group was not found';
 
   @override
@@ -513,6 +582,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get profileSignOut => 'Sign out';
 
   @override
+  String get profileSignOutQuestion => 'Sign out?';
+
+  @override
+  String get profileSignOutBody =>
+      'Your session will be closed on this device.';
+
+  @override
   String get profileVersion => 'Samay v1.0.0';
 
   @override
@@ -523,6 +599,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsThemeSystem => 'System';
+
+  @override
+  String get settingsSectionAppearance => 'Appearance';
+
+  @override
+  String get settingsSectionAccount => 'Account';
 
   @override
   String get profileBio => 'Bio';
@@ -541,6 +623,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get profileNoGroupsYet => 'You don\'t belong to any group yet';
+
+  @override
+  String get profileNoGroupsHint => 'Create or join a group to see it here.';
 
   @override
   String profileShardsCount(int shards) {

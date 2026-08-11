@@ -35,10 +35,9 @@ class VLoadingView extends StatelessWidget {
             const SizedBox(height: AppSpacing.lg),
             Text(
               label!,
-              style: const TextStyle(
-                color: AppColors.mutedStrong,
-                fontSize: 14,
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(color: AppColors.mutedStrong),
             ),
           ],
         ],
@@ -48,8 +47,9 @@ class VLoadingView extends StatelessWidget {
 }
 
 /// Full-area empty state: `xxl` icon in `#333333` (AppColors.border),
-/// `headlineSmall` title, optional `mutedStrong` description and optional
-/// outlined CTA (DISCO-DESIGN-SYSTEM §5.9). Centered, `sectionGap` spacing.
+/// `headlineSmall` title, optional `bodyMedium` description in `mutedStrong`
+/// and optional outlined CTA (DISCO-DESIGN-SYSTEM §5.9). Centered,
+/// `sectionGap` spacing between the blocks.
 class VEmptyView extends StatelessWidget {
   final IconData icon;
   final String title;
@@ -76,7 +76,7 @@ class VEmptyView extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(icon, size: AppIconSizes.xxl, color: AppColors.border),
-            const SizedBox(height: AppSpacing.lg),
+            const SizedBox(height: AppSpacing.sectionGap),
             Text(
               title,
               textAlign: TextAlign.center,
@@ -87,7 +87,9 @@ class VEmptyView extends StatelessWidget {
               Text(
                 description!,
                 textAlign: TextAlign.center,
-                style: const TextStyle(color: AppColors.mutedStrong),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyMedium?.copyWith(color: AppColors.mutedStrong),
               ),
             ],
             if (onAction != null) ...[

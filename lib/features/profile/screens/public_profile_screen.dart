@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/core/extensions/error_mapper.dart';
 import 'package:samay/core/logging/app_logger.dart';
 import 'package:samay/core/providers/service_providers.dart';
 import 'package:samay/core/repositories/repository_providers.dart';
+import 'package:samay/features/profile/widgets/profile_avatar.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/v_button.dart';
 
@@ -74,8 +76,26 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
     final l10n = AppLocalizations.of(context);
     setState(() => _sending = true);
     try {
-      await ref.read(friendsRepositoryProvider).sendFriendRequest(widget.userId);
-      if (mounted) {
+      final status =
+          await ref.read(friendsRepositoryProvider).sendFriendRequest(widget.userId);
+      if (!mounted) return;
+      if (status == 'accepted') {
+        // R15 (F5): mutual-accept — the friendship is instant; the dialog
+        // says so instead of the pending snackbar.
+        await showDialog<void>(
+          context: context,
+          builder: (_) => AlertDialog(
+            title: Text(l10n.friendsMutualAcceptedTitle),
+            content: Text(l10n.friendsMutualAcceptedBody),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: Text(l10n.commonOk),
+              ),
+            ],
+          ),
+        );
+      } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(l10n.profileFriendRequestSent)),
         );
@@ -152,30 +172,37 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
         padding: const EdgeInsets.all(24),
         children: [
           Center(
-            child: CircleAvatar(
-              radius: 48,
-              backgroundColor: Colors.grey[800],
-              child: Text(initials, style: const TextStyle(fontSize: 24)),
-            ),
+            child: ProfileAvatar(initials: initials),
           ),
           const SizedBox(height: 16),
           Center(
             child: Text(
               username ?? l10n.commonUser,
-              style: Theme.of(context).textTheme.headlineMedium,
+              // §3.2 fancy moment (U-09): mirrors the own-profile header —
+              // Playfair italic 28 with the glow-soft stack.
+              style: Theme.of(context).textTheme.headlineLarge,
             ),
           ),
           if (username != null) ...[
             const SizedBox(height: 4),
             Center(
-              child: Text('@$username', style: Theme.of(context).textTheme.bodyMedium),
+              child: Text(
+                '@$username',
+                style: Theme.of(context)
+                    .textTheme
+                    .bodyMedium
+                    ?.copyWith(color: AppColors.mutedStrong),
+              ),
             ),
           ],
           const SizedBox(height: 8),
           Center(
             child: Text(
               bio != null && bio.isNotEmpty ? bio : l10n.profileNoBio,
-              style: Theme.of(context).textTheme.bodyMedium,
+              style: Theme.of(context)
+                  .textTheme
+                  .bodyMedium
+                  ?.copyWith(color: AppColors.mutedStrong),
             ),
           ),
           const SizedBox(height: 32),
@@ -199,12 +226,19 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
             ],
           ),
           const SizedBox(height: 16),
-          Text(l10n.profileSharedGroups, style: Theme.of(context).textTheme.labelLarge),
+          Text(
+            l10n.profileSharedGroups,
+            style: Theme.of(context).textTheme.labelLarge,
+          ),
           const SizedBox(height: 8),
           Center(
             child: Text(
               l10n.profileNoSharedGroups,
-              style: Theme.of(context).textTheme.bodyMedium,
+              // §5.9 empty state: mutedStrong bodyMedium (U-09).
+              style: Theme.of(context)
+                  .textTheme
+                  .bodyMedium
+                  ?.copyWith(color: AppColors.mutedStrong),
             ),
           ),
         ],
@@ -233,7 +267,8 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
         );
       }
     }
-    return VButton.emphasized(
+    return VButton.glowAccent(
+      filled: true,
       label: _sending ? l10n.profileSending : l10n.profileAddFriend,
       onPressed: _sendRequest,
     );

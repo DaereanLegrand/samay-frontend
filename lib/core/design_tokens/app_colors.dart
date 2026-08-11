@@ -94,6 +94,55 @@ abstract final class AppColors {
   /// Leaderboard tier 3, bronze ranks. 6.68:1 — AA.
   static const Color discoBronze = Color(0xFFCD7F32);
 
+  // ── Semantic aliases — §2 usage roles → canonical tokens ───────────────────
+  //
+  // Role names for the doc's *usage* column (§2.1–§2.3, §5.x). Every alias
+  // resolves to a canonical §2 token — no invented hexes (design doc §8.1:
+  // new colors require a doc row + verified ratio; these are not new colors).
+
+  /// VIP/subscription tier, premium badges, "pro" features (§2.3).
+  static const Color statusVip = discoViolet;
+
+  /// Live/online indicators (§2.3).
+  static const Color statusOnline = discoCyan;
+
+  /// Realtime presence dots / live badges (§2.3).
+  static const Color statusLive = discoCyan;
+
+  /// **Shards currency** — replaces the white diamond in `VShardIcon`
+  /// (§2.3/§5.6).
+  static const Color currencyShards = discoGold;
+
+  /// Positive/success signal. The doc defines no literal "success" row —
+  /// this resolves the role to its bright-positive token, discoCyan
+  /// (13.65:1 — AAA).
+  static const Color success = discoCyan;
+
+  /// Error *text* — legal at normal size on black (glowPink 6.00:1 — AA).
+  /// §5.2: never raw `Colors.red` on black alone.
+  static const Color error = glowPink;
+
+  /// Error/destructive *fill* — white text on `glowPinkDeep` is 5.87:1
+  /// (§5.2 error chip; §5.1 pressed state of glow buttons).
+  static const Color errorFill = glowPinkDeep;
+
+  /// Destructive-action accent (delete/ban/danger). §5.1 pressed /
+  /// §5.2 error family — never raw red on black (§5.2).
+  static const Color danger = glowPinkDeep;
+
+  /// Role → canonical-token map (tests/tooling). Values only ever alias
+  /// entries of [all] — the §2 hex table stays the single color source.
+  static const Map<String, Color> semantic = {
+    'statusVip': statusVip,
+    'statusOnline': statusOnline,
+    'statusLive': statusLive,
+    'currencyShards': currencyShards,
+    'success': success,
+    'error': error,
+    'errorFill': errorFill,
+    'danger': danger,
+  };
+
   // ── Contrast helper — §7.1 ─────────────────────────────────────────────────
 
   /// WCAG 2.2 contrast ratio between [foreground] and [background]:

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/extensions/error_mapper.dart';
 import 'package:samay/core/logging/app_logger.dart';
 import 'package:samay/core/providers/config_provider.dart';
@@ -9,9 +10,12 @@ import 'package:samay/core/router/route_paths.dart';
 import 'package:samay/core/utils/debouncer.dart';
 import 'package:samay/core/utils/input_sanitizer.dart';
 import 'package:samay/features/friends/providers/friends_providers.dart';
+import 'package:samay/features/profile/widgets/profile_avatar.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/error_view.dart';
 import 'package:samay/shared/widgets/show_app_error.dart';
+import 'package:samay/shared/widgets/state_views.dart';
+import 'package:samay/shared/widgets/v_button.dart';
 
 class SearchScreen extends ConsumerStatefulWidget {
   const SearchScreen({super.key});
@@ -48,12 +52,33 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     });
   }
 
+  String _initials(Map<String, dynamic> user) =>
+      (user['username'] as String? ?? '?').substring(0, 1).toUpperCase();
+
   Future<void> _sendFriendRequest(Map<String, dynamic> user) async {
     final userId = user['id'] as String;
     final l10n = AppLocalizations.of(context);
     try {
-      await ref.read(friendsRepositoryProvider).sendFriendRequest(userId);
-      if (mounted) {
+      final status =
+          await ref.read(friendsRepositoryProvider).sendFriendRequest(userId);
+      if (!mounted) return;
+      if (status == 'accepted') {
+        // R15 (F5): mutual-accept — the addressee had already sent us a
+        // request, so the friendship is instant; the dialog says so.
+        await showDialog<void>(
+          context: context,
+          builder: (_) => AlertDialog(
+            title: Text(l10n.friendsMutualAcceptedTitle),
+            content: Text(l10n.friendsMutualAcceptedBody),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: Text(l10n.commonOk),
+              ),
+            ],
+          ),
+        );
+      } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(l10n.friendsRequestSent)),
         );
@@ -77,6 +102,9 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
             padding: const EdgeInsets.all(16),
             child: TextField(
               controller: _controller,
+              // R14 (F6): Juega autofocuses the search field — the keyboard
+              // is up the moment the screen opens.
+              autofocus: true,
               decoration: InputDecoration(
                 hintText: l10n.friendsSearchPlaceholder,
                 prefixIcon: const Icon(Icons.search),
@@ -84,36 +112,47 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
               onChanged: _onChanged,
             ),
           ),
-          if (query.isEmpty)
-            const Expanded(child: SizedBox.shrink())
+          if (query.length < 2)
+            // R14 (F6): mirror the invite screen's min-chars hint — a
+            // sub-2-char query has no results to show, so the field says
+            // why instead of rendering an empty surface.
+            Expanded(
+              child: Center(
+                child: Text(
+                  l10n.friendsMinCharsHint,
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+              ),
+            )
           else
             Expanded(
               child: ref.watch(searchResultsProvider(query)).when(
-                loading: () => const Center(child: CircularProgressIndicator()),
+                loading: () => const VLoadingView(),
                 error: (e, _) => ErrorView(
                   message: e.toAppError().message,
                   onRetry: () => ref.invalidate(searchResultsProvider(query)),
                 ),
                 data: (results) {
                   if (results.isEmpty) {
-                    return Padding(
-                      padding: const EdgeInsets.all(32),
-                      child: Text(l10n.friendsNoUsersFound),
+                    return VEmptyView(
+                      icon: Icons.person_search,
+                      title: l10n.friendsNoUsersFound,
                     );
                   }
-                  return ListView.builder(
+                  return ListView.separated(
                     itemCount: results.length,
+                    separatorBuilder: (_, _) => const Divider(height: 1),
                     itemBuilder: (_, i) {
                       final u = results[i];
                       return ListTile(
-                        leading: CircleAvatar(
-                          backgroundColor: Colors.grey[800],
-                          child: Text(
-                            (u['username'] as String? ?? '?').substring(0, 1).toUpperCase(),
-                          ),
+                        leading: ProfileAvatar(
+                          size: AppSpacing.avatar,
+                          initials: _initials(u),
+                          imageUrl: u['avatar_url'] as String?,
                         ),
                         title: Text('@${u['username']}'),
-                        onTap: () => context.push(RoutePaths.userProfile(u['id'] as String)),
+                        onTap: () =>
+                            context.push(RoutePaths.userProfile(u['id'] as String)),
                         trailing: _buildButton(u),
                       );
                     },
@@ -138,9 +177,12 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     if (status == 'blocked') {
       return TextButton(onPressed: null, child: Text(l10n.friendsStatusBlocked));
     }
-    return TextButton(
-      onPressed: () => _sendFriendRequest(user),
-      child: Text(l10n.friendsAddFriendButton),
+    return SizedBox(
+      width: 104,
+      child: VButton.outlined(
+        label: l10n.friendsAddFriendButton,
+        onPressed: () => _sendFriendRequest(user),
+      ),
     );
   }
 }

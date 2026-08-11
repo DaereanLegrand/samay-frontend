@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/core/logging/app_logger.dart';
 import 'package:samay/core/providers/service_providers.dart';
 import 'package:samay/core/services/permission_service.dart';
@@ -137,8 +138,10 @@ class _CreateGroupScreenState extends ConsumerState<CreateGroupScreen> {
             child: Container(
               height: 160,
               decoration: BoxDecoration(
-                color: Colors.grey[900],
-                border: Border.all(color: Colors.grey[700]!),
+                // §5.8 skeleton-base surface for the empty cover slot +
+                // the §2.1 interactive-outline token (never raw greys).
+                color: AppColors.surfaceAlt,
+                border: Border.all(color: AppColors.border),
               ),
               child: _coverImage != null
                   ? ClipRect(
@@ -153,11 +156,15 @@ class _CreateGroupScreenState extends ConsumerState<CreateGroupScreen> {
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Icon(Icons.camera_alt, size: 40, color: Colors.grey),
+                          const Icon(
+                            Icons.camera_alt,
+                            size: 40,
+                            color: AppColors.muted,
+                          ),
                           const SizedBox(height: 8),
                           Text(
                             l10n.groupsAddCover,
-                            style: const TextStyle(color: Colors.grey),
+                            style: const TextStyle(color: AppColors.mutedStrong),
                           ),
                         ],
                       ),
@@ -176,7 +183,10 @@ class _CreateGroupScreenState extends ConsumerState<CreateGroupScreen> {
             maxLines: 3,
           ),
           const SizedBox(height: 32),
-          VButton.emphasized(
+          // §5.1: creating the group is the screen's one brand moment
+          // (glowAccent filled — pink fill, black text 6.00:1).
+          VButton.glowAccent(
+            filled: true,
             label: l10n.commonCreate,
             loading: _loading,
             onPressed: _create,

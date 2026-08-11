@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:samay/core/design_tokens/app_colors.dart';
+import 'package:samay/core/design_tokens/app_icon_sizes.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/v_button.dart';
@@ -11,11 +13,7 @@ class RouteErrorScreen extends StatelessWidget {
   final String? title;
   final String? message;
 
-  const RouteErrorScreen({
-    super.key,
-    this.title,
-    this.message,
-  });
+  const RouteErrorScreen({super.key, this.title, this.message});
 
   @override
   Widget build(BuildContext context) {
@@ -29,7 +27,11 @@ class RouteErrorScreen extends StatelessWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.error_outline, size: 56, color: Colors.grey),
+                const Icon(
+                  Icons.error_outline,
+                  size: AppIconSizes.xxl,
+                  color: AppColors.border,
+                ),
                 const SizedBox(height: AppSpacing.lg),
                 Text(
                   message ?? l10n.routerErrorBody,

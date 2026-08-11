@@ -1,6 +1,8 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
+import 'package:samay/core/design_tokens/app_colors.dart';
+import 'package:samay/core/design_tokens/app_icon_sizes.dart';
 import 'package:samay/core/theme/samay_durations.dart';
 
 /// Branded network image with disk caching, a loading placeholder, a safe
@@ -8,6 +10,10 @@ import 'package:samay/core/theme/samay_durations.dart';
 /// H-28). Future features should use this wrapper instead of the raw Flutter
 /// network-image widget so every remote image gets caching, placeholders and
 /// error states for free.
+///
+/// Loading placeholder uses the `surfaceAlt #111111` skeleton base and the
+/// error surface uses `border #333333` (DISCO-DESIGN-SYSTEM §5.8) — no raw
+/// greys.
 class VNetworkImage extends StatelessWidget {
   final String imageUrl;
   final double? width;
@@ -37,12 +43,12 @@ class VNetworkImage extends StatelessWidget {
       fit: fit,
       cacheManager: cacheManager,
       fadeInDuration: fadeInDuration,
-      placeholder: (_, _) => _Surface(
-        color: Colors.grey[900]!,
+      placeholder: (_, _) => const _Surface(
+        color: AppColors.surfaceAlt,
         icon: Icons.photo_outlined,
       ),
-      errorWidget: (_, _, _) => _Surface(
-        color: Colors.grey[800]!,
+      errorWidget: (_, _, _) => const _Surface(
+        color: AppColors.border,
         icon: Icons.broken_image_outlined,
       ),
     );
@@ -66,7 +72,7 @@ class _Surface extends StatelessWidget {
     return ColoredBox(
       color: color,
       child: Center(
-        child: Icon(icon, color: Colors.white24, size: 20),
+        child: Icon(icon, color: AppColors.muted, size: AppIconSizes.md),
       ),
     );
   }

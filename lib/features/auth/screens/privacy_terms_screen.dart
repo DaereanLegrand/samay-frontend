@@ -8,7 +8,11 @@ import 'package:samay/shared/widgets/v_button.dart';
 class PrivacyTermsScreen extends StatefulWidget {
   final String email;
   final String dateOfBirth;
-  const PrivacyTermsScreen({super.key, required this.email, required this.dateOfBirth});
+  const PrivacyTermsScreen({
+    super.key,
+    required this.email,
+    required this.dateOfBirth,
+  });
 
   @override
   State<PrivacyTermsScreen> createState() => _PrivacyTermsScreenState();
@@ -31,9 +35,10 @@ class _PrivacyTermsScreenState extends State<PrivacyTermsScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const SizedBox(height: 32),
+            // §3.2 auth big header — Playfair Display italic 40 with the glow.
             Text(
               l10n.authAcceptTermsToContinue,
-              style: Theme.of(context).textTheme.headlineMedium,
+              style: Theme.of(context).textTheme.displayMedium,
             ),
             const SizedBox(height: 16),
             CheckboxListTile(
@@ -55,12 +60,12 @@ class _PrivacyTermsScreenState extends State<PrivacyTermsScreen> {
               label: l10n.commonCreateAccount,
               onPressed: _allAccepted
                   ? () => context.push(
-                        RoutePaths.profileSetup,
-                        extra: ProfileSetupExtra(
-                          email: widget.email,
-                          dateOfBirth: widget.dateOfBirth,
-                        ),
-                      )
+                      RoutePaths.profileSetup,
+                      extra: ProfileSetupExtra(
+                        email: widget.email,
+                        dateOfBirth: widget.dateOfBirth,
+                      ),
+                    )
                   : null,
             ),
             const SizedBox(height: 32),

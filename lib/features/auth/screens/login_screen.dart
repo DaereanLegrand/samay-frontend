@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:samay/core/logging/app_logger.dart';
 import 'package:samay/core/providers/auth_provider.dart';
 import 'package:samay/core/router/route_paths.dart';
@@ -33,22 +32,25 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     final email = _emailController.text.trim();
     final password = _passwordController.text;
     final formState = form_validators.FormState()
-      ..validate({
-        'email': form_validators.requiredValidator,
-        'password': form_validators.requiredValidator,
-      }, {
-        'email': email,
-        'password': password,
-      });
+      ..validate(
+        {
+          'email': form_validators.requiredValidator,
+          'password': form_validators.requiredValidator,
+        },
+        {'email': email, 'password': password},
+      );
     if (!formState.isValid) return;
     final l10n = AppLocalizations.of(context);
     try {
       await ref.read(authStateProvider.notifier).signIn(email, password);
-      if (mounted && ref.read(authStateProvider).valueOrNull?.authenticated == true) {
+      if (mounted &&
+          ref.read(authStateProvider).valueOrNull?.authenticated == true) {
         context.go(RoutePaths.mainFeed);
         return;
       }
-      final msg = ref.read(authStateProvider).errorMessage ?? l10n.authUnknownLoginError;
+      final msg =
+          ref.read(authStateProvider).errorMessage ??
+          l10n.authUnknownLoginError;
       if (mounted) showAppError(context, msg, blocking: true);
     } catch (e, st) {
       AppLogger.instance.error('login error: $e', '$st');
@@ -78,31 +80,27 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               controller: _passwordController,
               label: l10n.commonPassword,
               obscureText: true,
+              // §5.2: the auth error rides the password field as `errorText`
+              // (glowPink — never raw red on black) instead of a standalone
+              // inline Text (U-07 ledger, handoff 4).
+              errorText: auth.hasError ? auth.errorMessage : null,
             ),
             const SizedBox(height: 8),
             Align(
               alignment: Alignment.centerRight,
+              // U-14 R3: the inline resetPasswordForEmail call is replaced by
+              // the dedicated /forgot-password screen (email → confirmation).
               child: TextButton(
-                onPressed: () async {
-                  await Supabase.instance.client.auth.resetPasswordForEmail(
-                    _emailController.text.trim(),
-                  );
-                },
+                onPressed: () => context.push(RoutePaths.forgotPassword),
                 child: Text(l10n.authForgotPassword),
               ),
             ),
             const SizedBox(height: 24),
-            if (auth.hasError)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 16),
-                child: Text(
-                  auth.errorMessage!,
-                  style: const TextStyle(color: Colors.red),
-                ),
-              ),
-            VButton.emphasized(
+            // §5.1 brand moment: the primary CTA is the filled glowAccent.
+            VButton.glowAccent(
               label: l10n.commonSignIn,
               loading: auth.isLoading,
+              filled: true,
               onPressed: _login,
             ),
             const SizedBox(height: 12),

@@ -144,6 +144,45 @@ class AppLocalizationsEs extends AppLocalizations {
       'Este correo ya tiene una cuenta completa. Inicia sesión en su lugar.';
 
   @override
+  String get authBackToLogin => 'Volver a iniciar sesión';
+
+  @override
+  String authOtpAttemptsRemaining(int attempts) {
+    String _temp0 = intl.Intl.pluralLogic(
+      attempts,
+      locale: localeName,
+      other: 'Te quedan $attempts intentos',
+      one: 'Te queda 1 intento',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get authForgotPasswordTitle => 'Recuperar contraseña';
+
+  @override
+  String get authForgotPasswordHeading => '¿Olvidaste tu contraseña?';
+
+  @override
+  String get authForgotPasswordHint =>
+      'Ingresa tu correo y te enviaremos un enlace para restablecer tu contraseña.';
+
+  @override
+  String get authForgotPasswordSend => 'Enviar enlace';
+
+  @override
+  String get authForgotPasswordSuccessTitle => 'Revisa tu correo';
+
+  @override
+  String authForgotPasswordSuccessBody(String email) {
+    return 'Si existe una cuenta con $email, recibirás un enlace para restablecer tu contraseña.';
+  }
+
+  @override
+  String get authForgotPasswordSnack =>
+      'Te enviamos un enlace para restablecer tu contraseña';
+
+  @override
   String get authTermsTitle => 'Términos y condiciones';
 
   @override
@@ -319,6 +358,16 @@ class AppLocalizationsEs extends AppLocalizations {
   String get friendsAddFriendButton => 'Agregar';
 
   @override
+  String get friendsMinCharsHint => 'Escribe al menos 2 caracteres para buscar';
+
+  @override
+  String get friendsMutualAcceptedTitle => '¡Solicitud aceptada!';
+
+  @override
+  String get friendsMutualAcceptedBody =>
+      'Ambos se enviaron solicitud: ya son amigos.';
+
+  @override
   String get groupsTitle => 'Grupos';
 
   @override
@@ -448,6 +497,26 @@ class AppLocalizationsEs extends AppLocalizations {
   String get groupsAbandon => 'Abandonar';
 
   @override
+  String get groupsPromoteCoPromotor => 'Hacer co-promotor';
+
+  @override
+  String get groupsDemoteMember => 'Hacer miembro';
+
+  @override
+  String get groupsKickMember => 'Expulsar del grupo';
+
+  @override
+  String groupsKickConfirmTitle(String name) {
+    return '¿Expulsar a $name?';
+  }
+
+  @override
+  String get groupsKickConfirmBody => 'Esta acción no se puede deshacer.';
+
+  @override
+  String get groupsKick => 'Expulsar';
+
+  @override
   String get groupsNotFound => 'No se encontró el grupo';
 
   @override
@@ -514,6 +583,12 @@ class AppLocalizationsEs extends AppLocalizations {
   String get profileSignOut => 'Cerrar sesión';
 
   @override
+  String get profileSignOutQuestion => '¿Cerrar sesión?';
+
+  @override
+  String get profileSignOutBody => 'Tu sesión se cerrará en este dispositivo.';
+
+  @override
   String get profileVersion => 'Samay v1.0.0';
 
   @override
@@ -524,6 +599,12 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get settingsThemeSystem => 'Sistema';
+
+  @override
+  String get settingsSectionAppearance => 'Apariencia';
+
+  @override
+  String get settingsSectionAccount => 'Cuenta';
 
   @override
   String get profileBio => 'Biografía';
@@ -542,6 +623,9 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get profileNoGroupsYet => 'No perteneces a ningún grupo aún';
+
+  @override
+  String get profileNoGroupsHint => 'Crea o únete a un grupo para verlo aquí.';
 
   @override
   String profileShardsCount(int shards) {

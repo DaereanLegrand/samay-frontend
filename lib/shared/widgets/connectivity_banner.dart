@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
+import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/providers/connectivity_provider.dart';
 import 'package:samay/l10n/app_localizations.dart';
 
@@ -26,19 +27,17 @@ class ConnectivityBanner extends ConsumerWidget {
     return Container(
       width: double.infinity,
       color: AppColors.discoBlack,
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.md,
+        vertical: 6,
+      ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          // The theme's semantic error color (M3 dark red) — no ad-hoc
-          // palette value; new colors must land in AppColors first
-          // (DISCO-DESIGN-SYSTEM §8), which is U-01's track.
-          Icon(
-            Icons.wifi_off,
-            size: 14,
-            color: Theme.of(context).colorScheme.error,
-          ),
-          const SizedBox(width: 8),
+          // §5.2: never raw red on black — the offline/error signal uses the
+          // semantic `AppColors.error` (glowPink, 6.00:1 — AA).
+          const Icon(Icons.wifi_off, size: 14, color: AppColors.error),
+          const SizedBox(width: AppSpacing.sm),
           Flexible(
             child: Text(
               l10n.connectivityOfflineBanner,

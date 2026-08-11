@@ -1,16 +1,23 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:samay/core/repositories/repository_providers.dart';
 import 'package:samay/core/utils/shard_math.dart';
+import 'package:samay/core/utils/throttled_refresh.dart';
 
-class MyGroupsNotifier extends AsyncNotifier<List<Map<String, dynamic>>> {
+class MyGroupsNotifier extends AsyncNotifier<List<Map<String, dynamic>>>
+    with ThrottledRefresh {
   @override
   Future<List<Map<String, dynamic>>> build() async {
     final groups = await ref.read(groupsRepositoryProvider).getMyGroups();
+    markFetched();
     return groups.map((g) => g.toJson()).toList();
   }
 
   /// Re-runs [build] after creating/joining/leaving a group (finding SM-09).
-  Future<void> refresh() async => ref.invalidateSelf();
+  /// R20: skipped while the last fetch is younger than [refreshThrottle].
+  Future<void> refresh() async {
+    if (!shouldRefetch()) return;
+    ref.invalidateSelf();
+  }
 }
 
 /// Groups the current user belongs to (each row carries `my_role`).
@@ -18,15 +25,21 @@ final myGroupsProvider = AsyncNotifierProvider<MyGroupsNotifier,
     List<Map<String, dynamic>>>(MyGroupsNotifier.new);
 
 class GroupDetailNotifier
-    extends FamilyAsyncNotifier<Map<String, dynamic>?, String> {
+    extends FamilyAsyncNotifier<Map<String, dynamic>?, String>
+    with ThrottledRefresh {
   @override
   Future<Map<String, dynamic>?> build(String arg) async {
     final group = await ref.read(groupsRepositoryProvider).getGroup(arg);
+    markFetched();
     return group?.toJson();
   }
 
-  /// Re-runs [build] after group mutations (donations, transfers…).
-  Future<void> refresh() async => ref.invalidateSelf();
+  /// Re-runs [build] after group mutations (donations, transfers…). R20:
+  /// skipped while the last fetch is younger than [refreshThrottle].
+  Future<void> refresh() async {
+    if (!shouldRefetch()) return;
+    ref.invalidateSelf();
+  }
 }
 
 /// A single group row by id (null when the group does not exist).
@@ -34,16 +47,22 @@ final groupDetailProvider = AsyncNotifierProvider.family<GroupDetailNotifier,
     Map<String, dynamic>?, String>(GroupDetailNotifier.new);
 
 class GroupMembersNotifier
-    extends FamilyAsyncNotifier<List<Map<String, dynamic>>, String> {
+    extends FamilyAsyncNotifier<List<Map<String, dynamic>>, String>
+    with ThrottledRefresh {
   @override
   Future<List<Map<String, dynamic>>> build(String arg) async {
     final members =
         await ref.read(groupsRepositoryProvider).getGroupMembers(arg);
+    markFetched();
     return members.map((m) => m.toJson()).toList();
   }
 
-  /// Re-runs [build] after membership changes.
-  Future<void> refresh() async => ref.invalidateSelf();
+  /// Re-runs [build] after membership changes. R20: skipped while the last
+  /// fetch is younger than [refreshThrottle].
+  Future<void> refresh() async {
+    if (!shouldRefetch()) return;
+    ref.invalidateSelf();
+  }
 }
 
 /// Active members of a group (rows join `users` → `users.username`).
@@ -63,21 +82,27 @@ class GroupContributionsData {
 }
 
 class GroupContributionsNotifier
-    extends FamilyAsyncNotifier<GroupContributionsData, String> {
+    extends FamilyAsyncNotifier<GroupContributionsData, String>
+    with ThrottledRefresh {
   @override
   Future<GroupContributionsData> build(String arg) async {
     final repo = ref.read(groupsRepositoryProvider);
     final raw = await repo.getGroupContributions(arg);
     final contributors = aggregateContributions(raw);
     final myContribution = await repo.getUserContributionToGroup(arg);
+    markFetched();
     return GroupContributionsData(
       contributors: contributors,
       myContribution: myContribution,
     );
   }
 
-  /// Re-runs [build] after a donation.
-  Future<void> refresh() async => ref.invalidateSelf();
+  /// Re-runs [build] after a donation. R20: skipped while the last fetch is
+  /// younger than [refreshThrottle].
+  Future<void> refresh() async {
+    if (!shouldRefetch()) return;
+    ref.invalidateSelf();
+  }
 }
 
 /// Top contributors (per user, aggregated, sorted desc) + the current user's
@@ -87,14 +112,22 @@ final contributionsProvider = AsyncNotifierProvider.family<
   GroupContributionsNotifier.new,
 );
 
-class GroupInvitesNotifier extends AsyncNotifier<List<Map<String, dynamic>>> {
+class GroupInvitesNotifier extends AsyncNotifier<List<Map<String, dynamic>>>
+    with ThrottledRefresh {
   @override
   Future<List<Map<String, dynamic>>> build() async {
-    return ref.read(groupsRepositoryProvider).getGroupInvites();
+    final invites =
+        await ref.read(groupsRepositoryProvider).getGroupInvites();
+    markFetched();
+    return invites;
   }
 
-  /// Re-runs [build] after accepting/declining an invite.
-  Future<void> refresh() async => ref.invalidateSelf();
+  /// Re-runs [build] after accepting/declining an invite. R20: skipped while
+  /// the last fetch is younger than [refreshThrottle].
+  Future<void> refresh() async {
+    if (!shouldRefetch()) return;
+    ref.invalidateSelf();
+  }
 }
 
 /// Group invitations awaiting the current user's response.
@@ -102,7 +135,8 @@ final groupInvitesProvider = AsyncNotifierProvider<GroupInvitesNotifier,
     List<Map<String, dynamic>>>(GroupInvitesNotifier.new);
 
 class LeaderboardNotifier
-    extends FamilyAsyncNotifier<List<Map<String, dynamic>>, String> {
+    extends FamilyAsyncNotifier<List<Map<String, dynamic>>, String>
+    with ThrottledRefresh {
   @override
   Future<List<Map<String, dynamic>>> build(String sizeTier) async {
     final repo = ref.read(groupsRepositoryProvider);
@@ -118,11 +152,16 @@ class LeaderboardNotifier
         groups.add(row);
       }
     }
+    markFetched();
     return groups;
   }
 
-  /// Re-runs [build] (pull-to-refresh, finding SM-09).
-  Future<void> refresh() async => ref.invalidateSelf();
+  /// Re-runs [build] (pull-to-refresh, finding SM-09). R20: skipped while the
+  /// last fetch is younger than [refreshThrottle].
+  Future<void> refresh() async {
+    if (!shouldRefetch()) return;
+    ref.invalidateSelf();
+  }
 }
 
 /// Group rankings for a size tier (`micro`/`small`/`medium`/`large`),

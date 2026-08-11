@@ -16,6 +16,14 @@ abstract final class AppElevation {
 
   /// Brand glow — pink stack (design doc §4.3): two layered halos at
   /// `glowPink` α0.45 (blur 24) + α0.2 (blur 48). Brand moments only.
+  ///
+  /// The alphas are composited into const hexes (`0x73` = 115/255 ≈ 0.45,
+  /// `0x33` = 51/255 = 0.2 exactly) rather than
+  /// `AppColors.glowPink.withValues(alpha: …)`: `Color.withValues` is a
+  /// non-const instance method, so it would drop these lists from
+  /// `static const` (U-01's handoff evaluated 2026-08-11 — rendered output
+  /// is identical within 8-bit alpha quantization, but const-ness is a
+  /// token-contract property; see the U-03 daily log).
   static const List<BoxShadow> glowPink = [
     BoxShadow(
       color: Color(0x73FF2E88), // AppColors.glowPink α0.45
@@ -28,7 +36,8 @@ abstract final class AppElevation {
   ];
 
   /// Brand glow — cyan stack (§4.3): same layering with `discoCyan`.
-  /// Live indicators, QR scanner ring.
+  /// Live indicators, QR scanner ring. Const composited hexes for the same
+  /// reason as [glowPink] (see above).
   static const List<BoxShadow> glowCyan = [
     BoxShadow(
       color: Color(0x7300E5FF), // AppColors.discoCyan α0.45

@@ -51,6 +51,13 @@ class AuthService {
     await auth.signInWithOtp(email: email);
   }
 
+  /// Sends the password-recovery email (U-14 R3). GoTrue always answers
+  /// success for a valid request shape — even when no account exists — so the
+  /// screen never reveals which emails are registered.
+  Future<void> resetPasswordForEmail(String email) async {
+    await auth.resetPasswordForEmail(email);
+  }
+
   Future<void> verifyOtp(String email, String token) async {
     await auth.verifyOTP(email: email, token: token, type: OtpType.email);
   }

@@ -68,15 +68,25 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
                         itemCount: rankings.length,
                         itemBuilder: (_, i) {
                           final g = rankings[i];
+                          final rank = (g['rank_position'] as num?)?.toInt() ?? 0;
+                          // §3.2/§5.5: the podium (top-3) rows get the
+                          // Playfair `headlineLarge` name + the gold/silver/
+                          // bronze RankBadge accent (U-05 handoff).
+                          final podium = rank >= 1 && rank <= 3;
                           return ListTile(
                             leading: SizedBox(
                               width: 32,
                               child: Text(
-                                '#${g['rank_position']}',
+                                '#$rank',
                                 style: Theme.of(context).textTheme.bodyLarge,
                               ),
                             ),
-                            title: Text(g['name'] as String? ?? l10n.commonGroup),
+                            title: Text(
+                              g['name'] as String? ?? l10n.commonGroup,
+                              style: podium
+                                  ? Theme.of(context).textTheme.headlineLarge
+                                  : null,
+                            ),
                             subtitle: Text(
                               l10n.groupsLeaderboardSubtitle(
                                 (g['member_count'] as num?)?.toInt() ?? 0,
@@ -84,7 +94,10 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
                               ),
                             ),
                             trailing: g['rank_bracket'] != null
-                                ? RankBadge(bracket: g['rank_bracket'] as String)
+                                ? RankBadge(
+                                    bracket: g['rank_bracket'] as String,
+                                    rank: podium ? rank : null,
+                                  )
                                 : null,
                             onTap: () => context.push(RoutePaths.groupDetail(g['id'] as String)),
                           );

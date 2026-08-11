@@ -1,60 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
+import 'package:samay/core/design_tokens/app_radius.dart';
+import 'package:samay/core/design_tokens/app_typography.dart';
 
-/// Samay disco theme — phase 1 (I-17) rebuilt on the I-16 design tokens.
+/// Samay disco theme — phase 1 (I-17) rebuilt on the I-16 design tokens,
+/// finalized by U-04 with the full component-theme set (DISCO-DESIGN-SYSTEM
+/// §5/§6).
 ///
 /// Contract: `docs/design/DISCO-DESIGN-SYSTEM.md` (D-11, §1–§4). Palette and
 /// ThemeExtension live in `lib/core/design_tokens/app_colors.dart`
 /// ([AppColors] + [SamayThemeExtension]) — the single source for
-/// U-01..U-05. This file only composes them into a `ThemeData`.
+/// U-01..U-05. Typography (roles + glow) lives in
+/// `lib/core/design_tokens/app_typography.dart` ([AppTypography]) — U-02.
+/// This file only composes them into a `ThemeData`.
 class SamayTheme {
   SamayTheme._();
 
-  /// Signature glow stacks (design doc §3.4): blur radii are `em`-relative —
-  /// computed from the style's fontSize like the CSS source
-  /// (`text-shadow: 0 0 0.35em/0.7em/1em var(--pink)`).
-  ///
-  /// [soft] selects the 2-layer glow-soft stack (headlines ≥28px) instead of
-  /// the 3-layer glow-strong stack (display titles ≥32px). The glyph fill is
-  /// left untouched (full opacity) — the halo is strictly behind the text
-  /// (§7.4 legibility contract).
-  static TextStyle glowTitleStyle(TextStyle style, {bool soft = false}) {
-    final size = style.fontSize ?? 32;
-    final glowPink = AppColors.glowPink;
-    if (soft) {
-      return style.copyWith(
-        shadows: [
-          Shadow(
-            color: glowPink.withValues(alpha: 0.6),
-            blurRadius: size * 0.3,
-          ),
-          Shadow(
-            color: glowPink.withValues(alpha: 0.25),
-            blurRadius: size * 0.6,
-          ),
-        ],
-      );
-    }
-    return style.copyWith(
-      shadows: [
-        Shadow(
-          color: glowPink.withValues(alpha: 0.9),
-          blurRadius: size * 0.35,
-        ),
-        Shadow(
-          color: glowPink.withValues(alpha: 0.5),
-          blurRadius: size * 0.7,
-        ),
-        Shadow(
-          color: glowPink.withValues(alpha: 0.25),
-          blurRadius: size * 1.0,
-        ),
-      ],
-    );
-  }
-
   static ThemeData get dark {
-    final base = ThemeData(
+    return ThemeData(
       brightness: Brightness.dark,
       scaffoldBackgroundColor: AppColors.discoBlack,
       primaryColor: AppColors.white,
@@ -66,7 +29,13 @@ class SamayTheme {
         surface: AppColors.discoBlack,
         onSurface: AppColors.white,
       ),
-      fontFamily: 'Inter',
+      fontFamily: AppTypography.inter,
+      // Design doc §3.3 type scale + §3.4 glow stacks — fully owned by
+      // [AppTypography.textTheme] (U-02). Display roles are Playfair Display
+      // italic with the glow baked in; body/UI voices stay light Inter per
+      // the MVP spec. Roles outside the §3.3 table (titleSmall, caption,
+      // overline) keep the Material defaults merged by `ThemeData`.
+      textTheme: AppTypography.textTheme,
       appBarTheme: const AppBarTheme(
         elevation: 0,
         scrolledUnderElevation: 0,
@@ -83,128 +52,133 @@ class SamayTheme {
         showUnselectedLabels: false,
         showSelectedLabels: false,
       ),
+      // ── Component themes (U-04) — §2 surfaces + §4.2 sharp + §5 specs ────
+      //
+      // Values are token-only (black/white/grey/pink); corners are sharp
+      // (`AppRadius.sharp`); borders are hairline `#1A1A1A` or `border
+      // #333333`; M3 surface tints are stripped (flat black per §1 P2).
+      // Widgets that style themselves explicitly (VButton/VChip/VInput/
+      // VCard, showAppError) keep their own values — these themes govern
+      // raw Material components and future screens.
+      snackBarTheme: const SnackBarThemeData(
+        // §2.1 `surface` is the overlay fill; snackbars are overlays.
+        backgroundColor: AppColors.surface,
+        contentTextStyle: TextStyle(color: AppColors.white),
+        shape: RoundedRectangleBorder(borderRadius: AppRadius.sharp),
+      ),
+      dialogTheme: const DialogThemeData(
+        // §1 P1 "black always … every sheet, every dialog".
+        backgroundColor: AppColors.discoBlack,
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(borderRadius: AppRadius.sharp),
+      ),
+      // §5.2 underline inputs: 1px white rule, 2px focused; labels
+      // `mutedStrong` (the doc's fix — §2.4: `muted` fails 1.4.3 at normal
+      // size); hints `muted` (allowed — placeholder re-declared by the
+      // label); error text `glowPink` (never raw red on black).
+      inputDecorationTheme: const InputDecorationThemeData(
+        labelStyle: TextStyle(color: AppColors.mutedStrong),
+        hintStyle: TextStyle(color: AppColors.muted),
+        enabledBorder: UnderlineInputBorder(
+          borderSide: BorderSide(color: AppColors.white),
+        ),
+        focusedBorder: UnderlineInputBorder(
+          borderSide: BorderSide(color: AppColors.white, width: 2),
+        ),
+        errorStyle: TextStyle(color: AppColors.error),
+      ),
+      // §5.3 cards: `surface` fill over black, hairline 1px border, sharp.
+      cardTheme: const CardThemeData(
+        color: AppColors.surface,
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(
+          borderRadius: AppRadius.sharp,
+          side: BorderSide(color: AppColors.hairline),
+        ),
+      ),
+      // §5.4 chips: transparent, 1px white border, white label; selected =
+      // white fill + black label; sharp; no checkmark.
+      chipTheme: const ChipThemeData(
+        backgroundColor: Colors.transparent,
+        selectedColor: AppColors.white,
+        labelStyle: TextStyle(color: AppColors.white),
+        secondaryLabelStyle: TextStyle(color: AppColors.discoBlack),
+        side: BorderSide(color: AppColors.white),
+        shape: RoundedRectangleBorder(borderRadius: AppRadius.sharp),
+        showCheckmark: false,
+      ),
+      // §2.1 `hairline` is the divider color ("Card borders, dividers
+      // (decorative)").
+      dividerTheme: const DividerThemeData(color: AppColors.hairline),
+      // §5.1 buttons: white label, `muted` disabled (inactive = exempt from
+      // contrast), sharp. Press feedback = α0.1 white overlay — passed as
+      // the base color so `TextButton.styleFrom` derives the per-state
+      // alphas (pressed α0.1 / hover α0.08 / focused α0.1).
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(
+          foregroundColor: AppColors.white,
+          disabledForegroundColor: AppColors.muted,
+          overlayColor: AppColors.white,
+          shape: const RoundedRectangleBorder(borderRadius: AppRadius.sharp),
+          textStyle: AppTypography.labelLarge,
+        ),
+      ),
+      // Checkboxes: selected = white fill + black check (matches the
+      // colorScheme roles the M3 defaults already resolve to); unselected
+      // stays border-only; sharp per §4.2. Deliberate simplification: a
+      // disabled+selected box keeps the white fill (palette has no gray
+      // tinted fill — the palette is §2-exact).
+      // NOTE: built via `WidgetStateProperty.fromMap`, NOT `resolveWith` —
+      // closures hash by identity and would break `SamayTheme.dark ==
+      // SamayTheme.dark` (ThemeData value equality; pinned by the theme
+      // persistence tests).
+      checkboxTheme: const CheckboxThemeData(
+        fillColor: WidgetStateProperty.fromMap({
+          WidgetState.selected: AppColors.white,
+        }),
+        checkColor: WidgetStatePropertyAll(AppColors.discoBlack),
+        shape: RoundedRectangleBorder(borderRadius: AppRadius.sharp),
+      ),
+      // TabBar: white indicator + white label. `unselectedLabelColor` and
+      // `labelStyle` are deliberately left to the M3 defaults — §2.4 bans
+      // `muted` for small informational text (3.66:1 < 4.5:1), and the
+      // default onSurfaceVariant label keeps AA.
+      tabBarTheme: const TabBarThemeData(
+        indicatorColor: AppColors.white,
+        labelColor: AppColors.white,
+      ),
+      // Popup menus: black surface, white text/icons, sharp.
+      popupMenuTheme: const PopupMenuThemeData(
+        color: AppColors.discoBlack,
+        surfaceTintColor: Colors.transparent,
+        textStyle: TextStyle(color: AppColors.white),
+        iconColor: AppColors.white,
+        shape: RoundedRectangleBorder(borderRadius: AppRadius.sharp),
+      ),
+      // Date picker: black surface + header, white header text, sharp.
+      datePickerTheme: const DatePickerThemeData(
+        backgroundColor: AppColors.discoBlack,
+        surfaceTintColor: Colors.transparent,
+        headerBackgroundColor: AppColors.discoBlack,
+        headerForegroundColor: AppColors.white,
+        shape: RoundedRectangleBorder(borderRadius: AppRadius.sharp),
+      ),
+      // §5.8: full-screen loading is WHITE (pink is brand-moment only —
+      // welcome/checkout), and the theme default matches the current
+      // colorScheme.primary rendering for raw spinners.
+      progressIndicatorTheme: const ProgressIndicatorThemeData(
+        color: AppColors.white,
+      ),
+      // Tooltips: dark raised surface (`surfaceAlt` — §2.1 "sheets, menus"),
+      // white text, sharp.
+      tooltipTheme: const TooltipThemeData(
+        decoration: BoxDecoration(
+          color: AppColors.surfaceAlt,
+          borderRadius: AppRadius.sharp,
+        ),
+        textStyle: TextStyle(color: AppColors.white),
+      ),
       extensions: const [SamayThemeExtension.dark],
-    );
-
-    return base.copyWith(
-      textTheme: _textTheme(base.textTheme),
-    );
-  }
-
-  /// Design doc §3.3 type scale. Playfair Display italic 700 for display
-  /// roles (glow baked in); Inter for everything else. Body/UI voices stay
-  /// light per the MVP spec.
-  static TextTheme _textTheme(TextTheme base) {
-    const playfair = 'Playfair Display';
-    const inter = 'Inter';
-
-    return base.copyWith(
-      displayLarge: glowTitleStyle(
-        const TextStyle(
-          fontFamily: playfair,
-          fontSize: 64,
-          fontWeight: FontWeight.w700,
-          fontStyle: FontStyle.italic,
-          letterSpacing: -1.9,
-          height: 1.0,
-        ),
-      ),
-      displayMedium: glowTitleStyle(
-        const TextStyle(
-          fontFamily: playfair,
-          fontSize: 40,
-          fontWeight: FontWeight.w700,
-          fontStyle: FontStyle.italic,
-          letterSpacing: -1.2,
-          height: 1.0,
-        ),
-      ),
-      displaySmall: glowTitleStyle(
-        const TextStyle(
-          fontFamily: playfair,
-          fontSize: 32,
-          fontWeight: FontWeight.w700,
-          fontStyle: FontStyle.italic,
-          letterSpacing: -1.0,
-          height: 1.05,
-        ),
-      ),
-      headlineLarge: glowTitleStyle(
-        const TextStyle(
-          fontFamily: playfair,
-          fontSize: 28,
-          fontWeight: FontWeight.w600,
-          fontStyle: FontStyle.italic,
-          letterSpacing: -0.8,
-          height: 1.1,
-        ),
-        soft: true,
-      ),
-      headlineMedium: const TextStyle(
-        fontFamily: inter,
-        fontSize: 24,
-        fontWeight: FontWeight.w700,
-        letterSpacing: -0.3,
-        height: 1.2,
-      ),
-      headlineSmall: const TextStyle(
-        fontFamily: inter,
-        fontSize: 20,
-        fontWeight: FontWeight.w600,
-        letterSpacing: -0.2,
-        height: 1.3,
-      ),
-      titleLarge: const TextStyle(
-        fontFamily: inter,
-        fontSize: 18,
-        fontWeight: FontWeight.w600,
-        height: 1.4,
-      ),
-      titleMedium: const TextStyle(
-        fontFamily: inter,
-        fontSize: 16,
-        fontWeight: FontWeight.w500,
-        height: 1.4,
-      ),
-      bodyLarge: const TextStyle(
-        fontFamily: inter,
-        fontSize: 16,
-        fontWeight: FontWeight.w300,
-        height: 1.5,
-      ),
-      bodyMedium: const TextStyle(
-        fontFamily: inter,
-        fontSize: 14,
-        fontWeight: FontWeight.w300,
-        height: 1.5,
-      ),
-      bodySmall: const TextStyle(
-        fontFamily: inter,
-        fontSize: 12,
-        fontWeight: FontWeight.w400,
-        height: 1.5,
-      ),
-      labelLarge: const TextStyle(
-        fontFamily: inter,
-        fontSize: 14,
-        fontWeight: FontWeight.w700,
-        letterSpacing: 1.2,
-        height: 1.2,
-      ),
-      labelMedium: const TextStyle(
-        fontFamily: inter,
-        fontSize: 12,
-        fontWeight: FontWeight.w600,
-        letterSpacing: 0.8,
-        height: 1.3,
-      ),
-      labelSmall: const TextStyle(
-        fontFamily: inter,
-        fontSize: 10,
-        fontWeight: FontWeight.w500,
-        letterSpacing: 1.2,
-        height: 1.3,
-      ),
     );
   }
 }

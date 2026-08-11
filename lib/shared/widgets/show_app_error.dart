@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
+import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/extensions/error_mapper.dart';
 import 'package:samay/l10n/app_localizations.dart';
 
@@ -23,15 +24,23 @@ Future<void> showAppError(
       context: context,
       builder: (dialogContext) => AlertDialog(
         backgroundColor: AppColors.discoBlack,
-        title: Text(l10n.commonError, style: const TextStyle(color: AppColors.white)),
+        title: Text(
+          l10n.commonError,
+          style: const TextStyle(color: AppColors.white),
+        ),
         content: Text(
           message,
-          style: const TextStyle(color: AppColors.mutedStrong),
+          style: Theme.of(
+            dialogContext,
+          ).textTheme.bodyMedium?.copyWith(color: AppColors.mutedStrong),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(),
-            child: Text(l10n.commonOk, style: const TextStyle(color: AppColors.white)),
+            child: Text(
+              l10n.commonOk,
+              style: const TextStyle(color: AppColors.white),
+            ),
           ),
         ],
       ),
@@ -43,12 +52,18 @@ Future<void> showAppError(
         behavior: SnackBarBehavior.floating,
         content: Row(
           children: [
-            const Icon(Icons.error_outline, size: 18, color: AppColors.glowPink),
-            const SizedBox(width: 12),
+            const Icon(
+              Icons.error_outline,
+              size: 18,
+              color: AppColors.glowPink,
+            ),
+            const SizedBox(width: AppSpacing.md),
             Expanded(
               child: Text(
                 message,
-                style: const TextStyle(color: AppColors.white, fontSize: 14),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyMedium?.copyWith(color: AppColors.white),
               ),
             ),
           ],

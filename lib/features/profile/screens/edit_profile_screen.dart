@@ -10,10 +10,10 @@ import 'package:samay/core/providers/service_providers.dart';
 import 'package:samay/core/services/permission_service.dart';
 import 'package:samay/core/utils/input_sanitizer.dart';
 import 'package:samay/features/profile/providers/profile_providers.dart';
+import 'package:samay/features/profile/widgets/profile_avatar.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/v_button.dart';
 import 'package:samay/shared/widgets/v_input.dart';
-import 'package:samay/shared/widgets/v_network_image.dart';
 
 /// Gallery-picking seam for tests: `image_picker` is a platform plugin that
 /// cannot run in widget tests, so the screen accepts an injectable function
@@ -45,6 +45,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   bool _uploadingAvatar = false;
   bool _bioLoaded = false;
   String? _avatarUrl;
+  String _initials = '';
 
   @override
   void initState() {
@@ -62,6 +63,11 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     _bioLoaded = true;
     _bioController.text = profile['bio'] as String? ?? '';
     _avatarUrl = profile['avatar_url'] as String?;
+    final username = profile['username']?.toString() ?? '';
+    _initials = username.isEmpty
+        ? ''
+        : username.substring(0, username.length < 2 ? username.length : 2)
+            .toUpperCase();
     if (mounted) setState(() => _loading = false);
   }
 
@@ -179,24 +185,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                 Center(
                   child: Stack(
                     children: [
-                      ClipOval(
-                        child: SizedBox(
-                          width: 96,
-                          height: 96,
-                          child: _avatarUrl == null
-                              ? ColoredBox(
-                                  color: Colors.grey[800]!,
-                                  child: const Icon(
-                                    Icons.person,
-                                    size: 48,
-                                  ),
-                                )
-                              : VNetworkImage(
-                                  imageUrl: _avatarUrl!,
-                                  fit: BoxFit.cover,
-                                ),
-                        ),
-                      ),
+                      ProfileAvatar(initials: _initials, imageUrl: _avatarUrl),
                       Positioned(
                         bottom: 0,
                         right: 0,

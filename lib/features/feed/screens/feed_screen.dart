@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/core/design_tokens/app_icon_sizes.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
+import 'package:samay/core/design_tokens/app_typography.dart';
 import 'package:samay/core/models/event.dart';
 import 'package:samay/core/router/route_paths.dart';
 import 'package:samay/features/events/logic/event_formatters.dart';
@@ -11,8 +12,11 @@ import 'package:samay/features/feed/providers/feed_providers.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/error_view.dart';
 import 'package:samay/shared/widgets/state_views.dart';
+import 'package:samay/shared/widgets/v_badge.dart';
 import 'package:samay/shared/widgets/v_card.dart';
 import 'package:samay/shared/widgets/v_chip.dart';
+import 'package:samay/shared/widgets/v_disco_divider.dart';
+import 'package:samay/shared/widgets/v_glow_text.dart';
 import 'package:samay/shared/widgets/v_network_image.dart';
 
 /// The social feed — the app's landing tab (FEED spec §feed-screen).
@@ -53,6 +57,21 @@ class FeedScreen extends ConsumerWidget {
                       showRadiusFilter: events.isNotEmpty,
                     ),
                   ),
+                  // U-08: the hairline+glowPink section separator (U-06)
+                  // between the header and the content — and again between
+                  // the featured carousel and the upcoming list.
+                  if (events.isNotEmpty)
+                    const SliverToBoxAdapter(
+                      child: Padding(
+                        padding: EdgeInsets.only(
+                          top: AppSpacing.xl,
+                          bottom: AppSpacing.xl,
+                          left: AppSpacing.screenHorizontal,
+                          right: AppSpacing.screenHorizontal,
+                        ),
+                        child: VDiscoDivider(),
+                      ),
+                    ),
                   if (featured.isNotEmpty) ...[
                     SliverToBoxAdapter(
                       child: _FeaturedSection(
@@ -61,6 +80,15 @@ class FeedScreen extends ConsumerWidget {
                         badgeLabel: l10n.feedFeaturedBadge,
                       ),
                     ),
+                    if (upcoming.isNotEmpty)
+                      const SliverToBoxAdapter(
+                        child: Padding(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: AppSpacing.screenHorizontal,
+                          ),
+                          child: VDiscoDivider(),
+                        ),
+                      ),
                   ],
                   if (upcoming.isNotEmpty)
                     SliverList.builder(
@@ -88,8 +116,10 @@ class FeedScreen extends ConsumerWidget {
 }
 
 /// Brand wordmark (Playfair Display italic + glow, DISCO-DESIGN-SYSTEM §3.2
-/// "feed hero header" — the glow is baked into `displaySmall`) above the
-/// radius filter.
+/// "feed hero header") above the radius filter. U-08: the header renders
+/// through [VGlowText] — the canonical glow-strong stack applied to
+/// `displaySmall` (the §3.4 fancy moment; byte-identical to the theme role's
+/// baked-in glow, per the U-06 parity contract).
 class _FeedHeader extends StatelessWidget {
   final String title;
   final bool showRadiusFilter;
@@ -110,7 +140,7 @@ class _FeedHeader extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: Theme.of(context).textTheme.displaySmall),
+          VGlowText(text: title, style: AppTypography.displaySmall),
           if (showRadiusFilter) ...[
             const SizedBox(height: AppSpacing.lg),
             radius,
@@ -177,7 +207,8 @@ class _NoLocationNotice extends StatelessWidget {
 }
 
 /// Featured events carousel (FEET spec): pinned at the top, glow-pink border
-/// (DISCO-DESIGN-SYSTEM §5.3 featured card), 'Destacado' badge.
+/// (DISCO-DESIGN-SYSTEM §5.3 featured card — the event of the night),
+/// 'DESTACADO' badge in the §5.5 glowPink accent variant.
 class _FeaturedSection extends StatelessWidget {
   final List<Event> events;
   final String sectionLabel;
@@ -269,9 +300,10 @@ class _FeaturedCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _Badge(
+                    // §5.5 accent badge: glowPink border + label, black fill.
+                    VBadge.accent(
                       label: badgeLabel,
-                      foreground: AppColors.glowPink,
+                      color: AppColors.glowPink,
                     ),
                     const SizedBox(height: AppSpacing.sm),
                     Text(
@@ -359,8 +391,11 @@ class _EventCard extends StatelessWidget {
                 spacing: AppSpacing.sm,
                 runSpacing: AppSpacing.sm,
                 children: [
-                  _Badge(label: _typeLabel(l10n, event.type)),
-                  if (event.groupId != null) _Badge(label: l10n.eventGroupScoped),
+                  // §5.5 default badge: border #333333 fill + white
+                  // uppercase labelSmall (§3.3) — the type + scope markers.
+                  VBadge(label: _typeLabel(l10n, event.type)),
+                  if (event.groupId != null)
+                    VBadge(label: l10n.eventGroupScoped),
                 ],
               ),
               const SizedBox(height: AppSpacing.sm),
@@ -424,37 +459,5 @@ class _EventCard extends StatelessWidget {
       'tono' => l10n.eventsTypeTono,
       _ => l10n.eventsTypeJuerga,
     };
-  }
-}
-
-/// Sharp-edged outlined badge (design doc §5.5 accent variant): transparent
-/// fill, accent or white border + same-color label.
-class _Badge extends StatelessWidget {
-  final String label;
-  final Color? foreground;
-
-  const _Badge({required this.label, this.foreground});
-
-  @override
-  Widget build(BuildContext context) {
-    final color = foreground ?? AppColors.white;
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.sm,
-        vertical: 2,
-      ),
-      decoration: BoxDecoration(
-        color: Colors.transparent,
-        border: Border.all(color: color),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          color: color,
-          fontSize: 12,
-          fontWeight: FontWeight.bold,
-        ),
-      ),
-    );
   }
 }

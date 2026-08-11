@@ -264,6 +264,24 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
     }
   }
 
+  /// U-14 R3: requests the password-recovery email for [email] (GoTrue's
+  /// anti-enumeration contract: the response never reveals whether the email
+  /// has an account — the screen always lands on its success state).
+  Future<void> resetPasswordForEmail(String email) async {
+    state = state.copyWithPrevious(const AsyncLoading());
+    try {
+      await resilient(
+        () => _service.resetPasswordForEmail(email),
+        timeout: const Duration(seconds: 5),
+        maxRetries: 2,
+        initialDelay: const Duration(seconds: 1),
+      );
+      state = AsyncData(state.valueOrNull ?? const AuthState());
+    } catch (e, st) {
+      state = AsyncError(e.toAppError(), st);
+    }
+  }
+
   Future<void> verifyOtp(String email, String token, [String? password]) async {
     state = state.copyWithPrevious(const AsyncLoading());
     try {

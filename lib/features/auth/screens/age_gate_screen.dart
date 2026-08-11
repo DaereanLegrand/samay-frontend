@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/core/providers/service_providers.dart';
 import 'package:samay/core/router/route_extras.dart';
 import 'package:samay/core/router/route_paths.dart';
@@ -35,9 +36,10 @@ class _AgeGateScreenState extends ConsumerState<AgeGateScreen> {
         child: Column(
           children: [
             const SizedBox(height: 32),
+            // §3.2 auth big header — Playfair Display italic 40 with the glow.
             Text(
               l10n.authBirthDateQuestion,
-              style: Theme.of(context).textTheme.headlineMedium,
+              style: Theme.of(context).textTheme.displayMedium,
             ),
             const SizedBox(height: 8),
             Text(
@@ -49,7 +51,9 @@ class _AgeGateScreenState extends ConsumerState<AgeGateScreen> {
               onPressed: () async {
                 final date = await showDatePicker(
                   context: context,
-                  initialDate: DateTime.now().subtract(const Duration(days: 365 * 18)),
+                  initialDate: DateTime.now().subtract(
+                    const Duration(days: 365 * 18),
+                  ),
                   firstDate: DateTime(1940),
                   lastDate: DateTime.now(),
                 );
@@ -72,7 +76,8 @@ class _AgeGateScreenState extends ConsumerState<AgeGateScreen> {
                 padding: const EdgeInsets.only(top: 16),
                 child: Text(
                   l10n.authUnderageMessage,
-                  style: const TextStyle(color: Colors.red),
+                  // §5.2: glowPink — never raw red on black.
+                  style: const TextStyle(color: AppColors.error),
                 ),
               ),
             const Spacer(),
@@ -80,12 +85,12 @@ class _AgeGateScreenState extends ConsumerState<AgeGateScreen> {
               label: l10n.commonContinue,
               onPressed: isAdult(_selectedDate)
                   ? () => context.push(
-                        RoutePaths.privacyTerms,
-                        extra: PrivacyTermsExtra(
-                          email: _email,
-                          dateOfBirth: _selectedDate!.toIso8601String(),
-                        ),
-                      )
+                      RoutePaths.privacyTerms,
+                      extra: PrivacyTermsExtra(
+                        email: _email,
+                        dateOfBirth: _selectedDate!.toIso8601String(),
+                      ),
+                    )
                   : null,
             ),
             const SizedBox(height: 32),

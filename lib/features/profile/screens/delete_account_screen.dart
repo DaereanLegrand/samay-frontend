@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/core/logging/app_logger.dart';
 import 'package:samay/core/providers/auth_provider.dart';
 import 'package:samay/core/providers/service_providers.dart';
@@ -66,7 +67,9 @@ class _DeleteAccountScreenState extends ConsumerState<DeleteAccountScreen> {
             onPressed: () => Navigator.pop(ctx, true),
             child: Text(
               l10n.commonDelete,
-              style: const TextStyle(color: Colors.red),
+              // §5.2 (U-09): never raw red on black — the danger confirm
+              // uses the error semantic (glowPink, 6.00:1 AA).
+              style: const TextStyle(color: AppColors.error),
             ),
           ),
         ],
@@ -108,7 +111,11 @@ class _DeleteAccountScreenState extends ConsumerState<DeleteAccountScreen> {
               keyboardType: TextInputType.emailAddress,
             ),
             const Spacer(),
-            VButton.emphasized(
+            // §5.1 danger CTA (U-09): the glowAccent *outline* — pink 1px
+            // border + pink label; the danger is a function, not a brand
+            // moment, so no pink fill. Disabled (empty email) drops to
+            // `muted` per the VButton disabled state.
+            VButton.glowAccent(
               label: l10n.profileDeleteTitle,
               onPressed: emailFilled ? _delete : null,
             ),

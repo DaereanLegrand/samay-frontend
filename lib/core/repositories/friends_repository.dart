@@ -63,7 +63,10 @@ class FriendsRepository {
   Future<Map<String, dynamic>?> getFriendshipDetail(String userId) =>
       _users.getFriendshipDetail(userId);
 
-  Future<void> sendFriendRequest(String userId) =>
+  /// Sends a friend request to [userId], returning `pending` (new request)
+  /// or `accepted` (the addressee already had a pending request against the
+  /// current user — instant mutual accept, R15).
+  Future<String> sendFriendRequest(String userId) =>
       _users.sendFriendRequest(userId);
 
   Future<void> acceptFriendRequest(String friendshipId) =>

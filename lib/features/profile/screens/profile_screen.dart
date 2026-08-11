@@ -2,12 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:samay/core/config/feature_flags.dart';
+import 'package:samay/core/design_tokens/app_colors.dart';
+import 'package:samay/core/design_tokens/app_icon_sizes.dart';
 import 'package:samay/core/extensions/error_mapper.dart';
 import 'package:samay/core/providers/auth_provider.dart';
 import 'package:samay/core/router/route_paths.dart';
 import 'package:samay/features/profile/providers/profile_providers.dart';
+import 'package:samay/features/profile/widgets/profile_avatar.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/error_view.dart';
+import 'package:samay/shared/widgets/state_views.dart';
+import 'package:samay/shared/widgets/v_card.dart';
 import 'package:samay/shared/widgets/v_shard_icon.dart';
 
 class ProfileScreen extends ConsumerWidget {
@@ -75,23 +80,34 @@ class ProfileScreen extends ConsumerWidget {
                 physics: const AlwaysScrollableScrollPhysics(),
                 padding: const EdgeInsets.all(24),
                 children: [
+                  // U-15 R8 (F18 ADAPTED): the header is the edit
+                  // affordance — tapping the avatar OR the username pushes
+                  // the edit screen (Juega edits inline from the profile;
+                  // the pushed screen is the Samay-shaped editor, and the
+                  // avatar gains the affordance it only had inside edit).
                   Center(
-                    child: CircleAvatar(
-                      radius: 48,
-                      backgroundColor: Colors.grey[800],
-                      child: Text(
-                        initials,
-                        style: const TextStyle(fontSize: 24),
+                    child: Tooltip(
+                      message: l10n.profileEditTitle,
+                      child: InkWell(
+                        customBorder: const CircleBorder(),
+                        onTap: () => context.push(RoutePaths.profileEdit),
+                        child: ProfileAvatar(initials: initials),
                       ),
                     ),
                   ),
                   const SizedBox(height: 16),
                   Center(
-                    child: Text(
-                      profile?['username']?.toString() ??
-                          authState.valueOrNull?.user?['email'] ??
-                          l10n.commonUser,
-                      style: Theme.of(context).textTheme.headlineMedium,
+                    child: InkWell(
+                      onTap: () => context.push(RoutePaths.profileEdit),
+                      child: Text(
+                        profile?['username']?.toString() ??
+                            authState.valueOrNull?.user?['email'] ??
+                            l10n.commonUser,
+                        // §3.2 fancy moment (U-09): the username is the brand-
+                        // ish element of the header — Playfair italic 28 with
+                        // the glow-soft stack baked into the theme role.
+                        style: Theme.of(context).textTheme.headlineLarge,
+                      ),
                     ),
                   ),
                   const SizedBox(height: 32),
@@ -107,7 +123,12 @@ class ProfileScreen extends ConsumerWidget {
                     const SizedBox(height: 16),
                     Text(
                       profile['bio'] as String,
-                      style: Theme.of(context).textTheme.bodyMedium,
+                      // §2.4: secondary text at body size must be
+                      // mutedStrong (7.37:1 AA) — never muted.
+                      style: Theme.of(context)
+                          .textTheme
+                          .bodyMedium
+                          ?.copyWith(color: AppColors.mutedStrong),
                     ),
                   ],
                   const SizedBox(height: 32),
@@ -117,19 +138,23 @@ class ProfileScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: 8),
                   groups.isEmpty
-                      ? SizedBox(
-                          height: 60,
-                          child: Center(
-                            child: Text(
-                              l10n.profileNoGroupsYet,
-                              style: Theme.of(context).textTheme.bodyMedium,
-                            ),
-                          ),
+                      // U-15 R9 (F2 DIRECT): the 60px bare Text becomes the
+                      // icon+title+hint voice — still inside the ListView, so
+                      // the empty state stays pull-to-refreshable.
+                      ? VEmptyView(
+                          icon: Icons.group_outlined,
+                          title: l10n.profileNoGroupsYet,
+                          description: l10n.profileNoGroupsHint,
                         )
                       : SizedBox(
                           height: 120,
-                          child: ListView.builder(
+                          child: ListView.separated(
                             itemCount: groups.length,
+                            // §5 ListTiles hairline (U-09): tiles are
+                            // separated by 1px `hairline #1A1A1A` rules
+                            // (the U-04 dividerTheme).
+                            separatorBuilder: (_, _) =>
+                                const Divider(height: 1),
                             itemBuilder: (context, index) {
                               final g = groups[index];
                               return ListTile(
@@ -182,14 +207,13 @@ class _BalanceCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    return InkWell(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(border: Border.all(color: Colors.grey[800]!)),
+    return VCard(
+      child: InkWell(
+        onTap: onTap,
         child: Row(
           children: [
-            const VShardIcon(),
+            // §5.6: the balance card uses the lg 24 gold diamond.
+            const VShardIcon(size: AppIconSizes.lg),
             const SizedBox(width: 12),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/extensions/error_mapper.dart';
 import 'package:samay/core/logging/app_logger.dart';
 import 'package:samay/core/providers/config_provider.dart';
@@ -9,6 +10,7 @@ import 'package:samay/core/utils/debouncer.dart';
 import 'package:samay/core/utils/input_sanitizer.dart';
 import 'package:samay/features/friends/providers/friends_providers.dart';
 import 'package:samay/features/groups/providers/groups_providers.dart';
+import 'package:samay/features/profile/widgets/profile_avatar.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/error_view.dart';
 import 'package:samay/shared/widgets/show_app_error.dart';
@@ -114,12 +116,13 @@ class _InviteScreenState extends ConsumerState<InviteScreen> {
           children: [
             Padding(
               padding: const EdgeInsets.all(16),
+              // §5.2: no raw OutlineInputBorder — the U-04
+              // inputDecorationTheme owns the underline.
               child: TextField(
                 controller: _searchController,
                 decoration: InputDecoration(
                   hintText: l10n.groupsSearchUsersHint,
                   prefixIcon: const Icon(Icons.search),
-                  border: const OutlineInputBorder(),
                 ),
               ),
             ),
@@ -151,18 +154,19 @@ class _InviteScreenState extends ConsumerState<InviteScreen> {
                         ),
                       );
                     }
-                    return ListView.builder(
+                    return ListView.separated(
                       itemCount: results.length,
+                      separatorBuilder: (_, _) => const Divider(height: 1),
                       itemBuilder: (_, i) {
                         final u = results[i];
                         final uid = u['id'] as String;
                         final selected = _selectedIds.contains(uid);
+                        final username = u['username'] as String? ?? '?';
                         return ListTile(
-                          leading: CircleAvatar(
-                            backgroundColor: Colors.grey[800],
-                            child: Text(
-                              (u['username'] as String? ?? '?').substring(0, 1).toUpperCase(),
-                            ),
+                          leading: ProfileAvatar(
+                            size: AppSpacing.avatar,
+                            initials: username.substring(0, 1),
+                            imageUrl: u['avatar_url'] as String?,
                           ),
                           title: Text('@${u['username']}'),
                           trailing: Checkbox(

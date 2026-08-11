@@ -189,6 +189,52 @@
   "@authEmailAlreadyRegisteredBody": {
     "description": "Dialog body when the email already has an account"
   },
+  "authBackToLogin": "Volver a iniciar sesión",
+  "@authBackToLogin": {
+    "description": "Pre-auth funnel escape hatch: back to the login screen (OTP + forgot password)"
+  },
+  "authOtpAttemptsRemaining": "{attempts, plural, =1{Te queda 1 intento} other{Te quedan {attempts} intentos}}",
+  "@authOtpAttemptsRemaining": {
+    "description": "OTP wrong-attempt budget counter (I-29's guard, surfaced)",
+    "placeholders": {
+      "attempts": {
+        "type": "int"
+      }
+    }
+  },
+  "authForgotPasswordTitle": "Recuperar contraseña",
+  "@authForgotPasswordTitle": {
+    "description": "Forgot-password screen app bar title"
+  },
+  "authForgotPasswordHeading": "¿Olvidaste tu contraseña?",
+  "@authForgotPasswordHeading": {
+    "description": "Forgot-password screen heading"
+  },
+  "authForgotPasswordHint": "Ingresa tu correo y te enviaremos un enlace para restablecer tu contraseña.",
+  "@authForgotPasswordHint": {
+    "description": "Forgot-password screen explainer"
+  },
+  "authForgotPasswordSend": "Enviar enlace",
+  "@authForgotPasswordSend": {
+    "description": "Forgot-password submit button label"
+  },
+  "authForgotPasswordSuccessTitle": "Revisa tu correo",
+  "@authForgotPasswordSuccessTitle": {
+    "description": "Forgot-password success state heading"
+  },
+  "authForgotPasswordSuccessBody": "Si existe una cuenta con {email}, recibirás un enlace para restablecer tu contraseña.",
+  "@authForgotPasswordSuccessBody": {
+    "description": "Forgot-password success state body",
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "authForgotPasswordSnack": "Te enviamos un enlace para restablecer tu contraseña",
+  "@authForgotPasswordSnack": {
+    "description": "Snackbar after the recovery email is sent"
+  },
   "authTermsTitle": "Términos y condiciones",
   "@authTermsTitle": {
     "description": "Privacy/terms screen app bar title"
@@ -419,6 +465,18 @@
   "@friendsAddFriendButton": {
     "description": "Send-friend-request button label"
   },
+  "friendsMinCharsHint": "Escribe al menos 2 caracteres para buscar",
+  "@friendsMinCharsHint": {
+    "description": "Search hint shown while the query is shorter than 2 characters (R14)"
+  },
+  "friendsMutualAcceptedTitle": "¡Solicitud aceptada!",
+  "@friendsMutualAcceptedTitle": {
+    "description": "Mutual-friend dialog title when a friend request is accepted instantly (R15)"
+  },
+  "friendsMutualAcceptedBody": "Ambos se enviaron solicitud: ya son amigos.",
+  "@friendsMutualAcceptedBody": {
+    "description": "Mutual-friend dialog body when a friend request is accepted instantly (R15)"
+  },
   "groupsTitle": "Grupos",
   "@groupsTitle": {
     "description": "My-groups screen app bar title"
@@ -602,7 +660,36 @@
   },
   "groupsAbandon": "Abandonar",
   "@groupsAbandon": {
-    "description": "Confirm button on the leave-group dialog"
+    "description": "Confirm button of the leave-group dialog"
+  },
+  "groupsPromoteCoPromotor": "Hacer co-promotor",
+  "@groupsPromoteCoPromotor": {
+    "description": "Member-actions sheet option that promotes a member to co-promotor (R17)"
+  },
+  "groupsDemoteMember": "Hacer miembro",
+  "@groupsDemoteMember": {
+    "description": "Member-actions sheet option that demotes a co-promotor to member (R17)"
+  },
+  "groupsKickMember": "Expulsar del grupo",
+  "@groupsKickMember": {
+    "description": "Member-actions sheet option that kicks a member (R17)"
+  },
+  "groupsKickConfirmTitle": "¿Expulsar a {name}?",
+  "@groupsKickConfirmTitle": {
+    "description": "Kick-confirmation dialog title (R17)",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "groupsKickConfirmBody": "Esta acción no se puede deshacer.",
+  "@groupsKickConfirmBody": {
+    "description": "Kick-confirmation dialog body (R17)"
+  },
+  "groupsKick": "Expulsar",
+  "@groupsKick": {
+    "description": "Confirm button of the kick-confirmation dialog (R17)"
   },
   "groupsNotFound": "No se encontró el grupo",
   "@groupsNotFound": {
@@ -702,6 +789,14 @@
   "@profileSignOut": {
     "description": "Settings list item"
   },
+  "profileSignOutQuestion": "¿Cerrar sesión?",
+  "@profileSignOutQuestion": {
+    "description": "Sign-out confirmation dialog title (R7)"
+  },
+  "profileSignOutBody": "Tu sesión se cerrará en este dispositivo.",
+  "@profileSignOutBody": {
+    "description": "Sign-out confirmation dialog body (R7)"
+  },
   "profileVersion": "Samay v1.0.0",
   "@profileVersion": {
     "description": "Version footer on the settings screen"
@@ -717,6 +812,14 @@
   "settingsThemeSystem": "Sistema",
   "@settingsThemeSystem": {
     "description": "Theme picker option: follow the system appearance"
+  },
+  "settingsSectionAppearance": "Apariencia",
+  "@settingsSectionAppearance": {
+    "description": "Settings section header for the visual preferences group (R6)"
+  },
+  "settingsSectionAccount": "Cuenta",
+  "@settingsSectionAccount": {
+    "description": "Settings section header for the account rows group (R6)"
   },
   "profileBio": "Biografía",
   "@profileBio": {
@@ -741,6 +844,10 @@
   "profileNoGroupsYet": "No perteneces a ningún grupo aún",
   "@profileNoGroupsYet": {
     "description": "Empty state on the profile screen groups section"
+  },
+  "profileNoGroupsHint": "Crea o únete a un grupo para verlo aquí.",
+  "@profileNoGroupsHint": {
+    "description": "Empty-state hint on the profile screen groups section (R9)"
   },
   "profileShardsCount": "{shards} shards",
   "@profileShardsCount": {

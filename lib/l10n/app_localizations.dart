@@ -350,6 +350,60 @@ abstract class AppLocalizations {
   /// **'Este correo ya tiene una cuenta completa. Inicia sesión en su lugar.'**
   String get authEmailAlreadyRegisteredBody;
 
+  /// Pre-auth funnel escape hatch: back to the login screen (OTP + forgot password)
+  ///
+  /// In es, this message translates to:
+  /// **'Volver a iniciar sesión'**
+  String get authBackToLogin;
+
+  /// OTP wrong-attempt budget counter (I-29's guard, surfaced)
+  ///
+  /// In es, this message translates to:
+  /// **'{attempts, plural, =1{Te queda 1 intento} other{Te quedan {attempts} intentos}}'**
+  String authOtpAttemptsRemaining(int attempts);
+
+  /// Forgot-password screen app bar title
+  ///
+  /// In es, this message translates to:
+  /// **'Recuperar contraseña'**
+  String get authForgotPasswordTitle;
+
+  /// Forgot-password screen heading
+  ///
+  /// In es, this message translates to:
+  /// **'¿Olvidaste tu contraseña?'**
+  String get authForgotPasswordHeading;
+
+  /// Forgot-password screen explainer
+  ///
+  /// In es, this message translates to:
+  /// **'Ingresa tu correo y te enviaremos un enlace para restablecer tu contraseña.'**
+  String get authForgotPasswordHint;
+
+  /// Forgot-password submit button label
+  ///
+  /// In es, this message translates to:
+  /// **'Enviar enlace'**
+  String get authForgotPasswordSend;
+
+  /// Forgot-password success state heading
+  ///
+  /// In es, this message translates to:
+  /// **'Revisa tu correo'**
+  String get authForgotPasswordSuccessTitle;
+
+  /// Forgot-password success state body
+  ///
+  /// In es, this message translates to:
+  /// **'Si existe una cuenta con {email}, recibirás un enlace para restablecer tu contraseña.'**
+  String authForgotPasswordSuccessBody(String email);
+
+  /// Snackbar after the recovery email is sent
+  ///
+  /// In es, this message translates to:
+  /// **'Te enviamos un enlace para restablecer tu contraseña'**
+  String get authForgotPasswordSnack;
+
   /// Privacy/terms screen app bar title
   ///
   /// In es, this message translates to:
@@ -680,6 +734,24 @@ abstract class AppLocalizations {
   /// **'Agregar'**
   String get friendsAddFriendButton;
 
+  /// Search hint shown while the query is shorter than 2 characters (R14)
+  ///
+  /// In es, this message translates to:
+  /// **'Escribe al menos 2 caracteres para buscar'**
+  String get friendsMinCharsHint;
+
+  /// Mutual-friend dialog title when a friend request is accepted instantly (R15)
+  ///
+  /// In es, this message translates to:
+  /// **'¡Solicitud aceptada!'**
+  String get friendsMutualAcceptedTitle;
+
+  /// Mutual-friend dialog body when a friend request is accepted instantly (R15)
+  ///
+  /// In es, this message translates to:
+  /// **'Ambos se enviaron solicitud: ya son amigos.'**
+  String get friendsMutualAcceptedBody;
+
   /// My-groups screen app bar title
   ///
   /// In es, this message translates to:
@@ -902,11 +974,47 @@ abstract class AppLocalizations {
   /// **'¿Estás seguro?'**
   String get groupsConfirmLeave;
 
-  /// Confirm button on the leave-group dialog
+  /// Confirm button of the leave-group dialog
   ///
   /// In es, this message translates to:
   /// **'Abandonar'**
   String get groupsAbandon;
+
+  /// Member-actions sheet option that promotes a member to co-promotor (R17)
+  ///
+  /// In es, this message translates to:
+  /// **'Hacer co-promotor'**
+  String get groupsPromoteCoPromotor;
+
+  /// Member-actions sheet option that demotes a co-promotor to member (R17)
+  ///
+  /// In es, this message translates to:
+  /// **'Hacer miembro'**
+  String get groupsDemoteMember;
+
+  /// Member-actions sheet option that kicks a member (R17)
+  ///
+  /// In es, this message translates to:
+  /// **'Expulsar del grupo'**
+  String get groupsKickMember;
+
+  /// Kick-confirmation dialog title (R17)
+  ///
+  /// In es, this message translates to:
+  /// **'¿Expulsar a {name}?'**
+  String groupsKickConfirmTitle(String name);
+
+  /// Kick-confirmation dialog body (R17)
+  ///
+  /// In es, this message translates to:
+  /// **'Esta acción no se puede deshacer.'**
+  String get groupsKickConfirmBody;
+
+  /// Confirm button of the kick-confirmation dialog (R17)
+  ///
+  /// In es, this message translates to:
+  /// **'Expulsar'**
+  String get groupsKick;
 
   /// Error view message when the group detail fails to load
   ///
@@ -1028,6 +1136,18 @@ abstract class AppLocalizations {
   /// **'Cerrar sesión'**
   String get profileSignOut;
 
+  /// Sign-out confirmation dialog title (R7)
+  ///
+  /// In es, this message translates to:
+  /// **'¿Cerrar sesión?'**
+  String get profileSignOutQuestion;
+
+  /// Sign-out confirmation dialog body (R7)
+  ///
+  /// In es, this message translates to:
+  /// **'Tu sesión se cerrará en este dispositivo.'**
+  String get profileSignOutBody;
+
   /// Version footer on the settings screen
   ///
   /// In es, this message translates to:
@@ -1051,6 +1171,18 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'Sistema'**
   String get settingsThemeSystem;
+
+  /// Settings section header for the visual preferences group (R6)
+  ///
+  /// In es, this message translates to:
+  /// **'Apariencia'**
+  String get settingsSectionAppearance;
+
+  /// Settings section header for the account rows group (R6)
+  ///
+  /// In es, this message translates to:
+  /// **'Cuenta'**
+  String get settingsSectionAccount;
 
   /// Bio input label
   ///
@@ -1087,6 +1219,12 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'No perteneces a ningún grupo aún'**
   String get profileNoGroupsYet;
+
+  /// Empty-state hint on the profile screen groups section (R9)
+  ///
+  /// In es, this message translates to:
+  /// **'Crea o únete a un grupo para verlo aquí.'**
+  String get profileNoGroupsHint;
 
   /// Personal shard balance
   ///

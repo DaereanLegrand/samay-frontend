@@ -93,7 +93,11 @@ class _DonateShardsScreenState extends ConsumerState<DonateShardsScreen> {
             keyboardType: TextInputType.number,
           ),
           const SizedBox(height: 32),
-          VButton.emphasized(
+          // §5.1: donating is the screen's one brand moment (glowAccent
+          // filled — pink fill, black text 6.00:1; the amount VInput already
+          // carries the U-05 token treatment + errorText seam).
+          VButton.glowAccent(
+            filled: true,
             label: l10n.groupsDonate,
             loading: _loading,
             onPressed: _donate,

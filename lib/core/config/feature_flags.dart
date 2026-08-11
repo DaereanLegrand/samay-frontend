@@ -1,5 +1,6 @@
-import 'package:flutter/widgets.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/v_coming_soon.dart';
 
@@ -203,31 +204,39 @@ class FlagGate extends ConsumerWidget {
   }
 
   /// The default disabled state: a [VComingSoonScreen] with the localized
-  /// title/description for flags that have one. Flags without a dedicated
-  /// copy render the generic coming-soon shell — feature agents may pass a
-  /// custom [fallback] for a tailored message.
+  /// title/description for flags that have one — each with its §5.7 per-feature
+  /// icon (U-12 icon map; the icon is `border #333333` at `xxl 48`, except
+  /// Party Finder's faint `glowPink` α0.5 hero-topic treatment). Flags
+  /// without a dedicated copy render the generic coming-soon shell — feature
+  /// agents may pass a custom [fallback] for a tailored message.
   Widget _defaultFallback(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     return switch (flag) {
       AppFeatureFlag.events => VComingSoonScreen(
           title: l10n.comingSoonEventsTitle,
           description: l10n.comingSoonEventsBody,
+          icon: Icons.event,
         ),
       AppFeatureFlag.notifications => VComingSoonScreen(
           title: l10n.comingSoonNotificationsTitle,
           description: l10n.comingSoonNotificationsBody,
+          icon: Icons.notifications,
         ),
       AppFeatureFlag.subscriptions => VComingSoonScreen(
           title: l10n.comingSoonSubscriptionsTitle,
           description: l10n.comingSoonSubscriptionsBody,
+          icon: Icons.subscriptions,
         ),
       AppFeatureFlag.partyFinder => VComingSoonScreen(
           title: l10n.comingSoonPartyFinderTitle,
           description: l10n.comingSoonPartyFinderBody,
+          icon: Icons.celebration,
+          iconColor: AppColors.glowPink.withValues(alpha: 0.5),
         ),
       AppFeatureFlag.qr => VComingSoonScreen(
           title: l10n.comingSoonQrTitle,
           description: l10n.comingSoonQrBody,
+          icon: Icons.qr_code,
         ),
       _ => const VComingSoonScreen(title: '', description: ''),
     };

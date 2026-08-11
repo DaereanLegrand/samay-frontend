@@ -26,6 +26,7 @@ class AuthGuard {
 
     final isPublicRoute = location == RoutePaths.welcome ||
         location == RoutePaths.login ||
+        location == RoutePaths.forgotPassword ||
         location.startsWith(RoutePaths.authPrefix);
 
     if (data == null || !data.authenticated) {
