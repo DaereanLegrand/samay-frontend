@@ -38,7 +38,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
 
   void _onChanged(String query) {
     final config = ref.read(appConfigProvider).valueOrNull;
-    final debounceMs = int.tryParse(config?['app.search_debounce_ms'] ?? '') ?? 300;
+    final debounceMs =
+        int.tryParse(config?['app.search_debounce_ms'] ?? '') ?? 300;
     _debouncer.delay = Duration(milliseconds: debounceMs);
     _debouncer.run(() {
       if (mounted) {
@@ -52,15 +53,20 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     });
   }
 
-  String _initials(Map<String, dynamic> user) =>
-      (user['username'] as String? ?? '?').substring(0, 1).toUpperCase();
+  // U-26 (U-24 F3): an empty (non-null) username would RangeError on
+  // substring — the '?' initial fallback.
+  String _initials(Map<String, dynamic> user) {
+    final username = user['username'] as String? ?? '';
+    return username.isEmpty ? '?' : username.substring(0, 1).toUpperCase();
+  }
 
   Future<void> _sendFriendRequest(Map<String, dynamic> user) async {
     final userId = user['id'] as String;
     final l10n = AppLocalizations.of(context);
     try {
-      final status =
-          await ref.read(friendsRepositoryProvider).sendFriendRequest(userId);
+      final status = await ref
+          .read(friendsRepositoryProvider)
+          .sendFriendRequest(userId);
       if (!mounted) return;
       if (status == 'accepted') {
         // R15 (F5): mutual-accept — the addressee had already sent us a
@@ -79,9 +85,9 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           ),
         );
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(l10n.friendsRequestSent)),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(l10n.friendsRequestSent)));
       }
       ref.invalidate(searchResultsProvider(_query));
     } catch (e, st) {
@@ -126,39 +132,43 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
             )
           else
             Expanded(
-              child: ref.watch(searchResultsProvider(query)).when(
-                loading: () => const VLoadingView(),
-                error: (e, _) => ErrorView(
-                  message: e.toAppError().message,
-                  onRetry: () => ref.invalidate(searchResultsProvider(query)),
-                ),
-                data: (results) {
-                  if (results.isEmpty) {
-                    return VEmptyView(
-                      icon: Icons.person_search,
-                      title: l10n.friendsNoUsersFound,
-                    );
-                  }
-                  return ListView.separated(
-                    itemCount: results.length,
-                    separatorBuilder: (_, _) => const Divider(height: 1),
-                    itemBuilder: (_, i) {
-                      final u = results[i];
-                      return ListTile(
-                        leading: ProfileAvatar(
-                          size: AppSpacing.avatar,
-                          initials: _initials(u),
-                          imageUrl: u['avatar_url'] as String?,
-                        ),
-                        title: Text('@${u['username']}'),
-                        onTap: () =>
-                            context.push(RoutePaths.userProfile(u['id'] as String)),
-                        trailing: _buildButton(u),
+              child: ref
+                  .watch(searchResultsProvider(query))
+                  .when(
+                    loading: () => const VLoadingView(),
+                    error: (e, _) => ErrorView(
+                      message: e.toAppError().message,
+                      onRetry: () =>
+                          ref.invalidate(searchResultsProvider(query)),
+                    ),
+                    data: (results) {
+                      if (results.isEmpty) {
+                        return VEmptyView(
+                          icon: Icons.person_search,
+                          title: l10n.friendsNoUsersFound,
+                        );
+                      }
+                      return ListView.separated(
+                        itemCount: results.length,
+                        separatorBuilder: (_, _) => const Divider(height: 1),
+                        itemBuilder: (_, i) {
+                          final u = results[i];
+                          return ListTile(
+                            leading: ProfileAvatar(
+                              size: AppSpacing.avatar,
+                              initials: _initials(u),
+                              imageUrl: u['avatar_url'] as String?,
+                            ),
+                            title: Text('@${u['username']}'),
+                            onTap: () => context.push(
+                              RoutePaths.userProfile(u['id'] as String),
+                            ),
+                            trailing: _buildButton(u),
+                          );
+                        },
                       );
                     },
-                  );
-                },
-              ),
+                  ),
             ),
         ],
       ),
@@ -169,13 +179,22 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     final l10n = AppLocalizations.of(context);
     final status = user['friendship_status'] as String?;
     if (status == 'accepted') {
-      return TextButton(onPressed: null, child: Text(l10n.friendsStatusAccepted));
+      return TextButton(
+        onPressed: null,
+        child: Text(l10n.friendsStatusAccepted),
+      );
     }
     if (status == 'pending') {
-      return TextButton(onPressed: null, child: Text(l10n.friendsStatusPending));
+      return TextButton(
+        onPressed: null,
+        child: Text(l10n.friendsStatusPending),
+      );
     }
     if (status == 'blocked') {
-      return TextButton(onPressed: null, child: Text(l10n.friendsStatusBlocked));
+      return TextButton(
+        onPressed: null,
+        child: Text(l10n.friendsStatusBlocked),
+      );
     }
     return SizedBox(
       width: 104,

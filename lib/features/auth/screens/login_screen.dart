@@ -65,50 +65,66 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
     return Scaffold(
       appBar: AppBar(title: Text(l10n.commonSignIn)),
-      body: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          children: [
-            const SizedBox(height: 32),
-            VInput(
-              controller: _emailController,
-              label: l10n.commonEmail,
-              keyboardType: TextInputType.emailAddress,
-            ),
-            const SizedBox(height: 16),
-            VInput(
-              controller: _passwordController,
-              label: l10n.commonPassword,
-              obscureText: true,
-              // §5.2: the auth error rides the password field as `errorText`
-              // (glowPink — never raw red on black) instead of a standalone
-              // inline Text (U-07 ledger, handoff 4).
-              errorText: auth.hasError ? auth.errorMessage : null,
-            ),
-            const SizedBox(height: 8),
-            Align(
-              alignment: Alignment.centerRight,
-              // U-14 R3: the inline resetPasswordForEmail call is replaced by
-              // the dedicated /forgot-password screen (email → confirmation).
-              child: TextButton(
-                onPressed: () => context.push(RoutePaths.forgotPassword),
-                child: Text(l10n.authForgotPassword),
+      // §7.3: scroll-safe body (the OTP pattern, U-07) — the fixed Column
+      // overflows at ≥1.5× text scale on small phones; pins the CTAs when
+      // the content fits and scrolls when it doesn't. Never clip.
+      body: LayoutBuilder(
+        builder: (context, constraints) => SingleChildScrollView(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minHeight: constraints.maxHeight),
+            child: IntrinsicHeight(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  children: [
+                    const SizedBox(height: 32),
+                    VInput(
+                      controller: _emailController,
+                      label: l10n.commonEmail,
+                      keyboardType: TextInputType.emailAddress,
+                    ),
+                    const SizedBox(height: 16),
+                    VInput(
+                      controller: _passwordController,
+                      label: l10n.commonPassword,
+                      obscureText: true,
+                      // §5.2: the auth error rides the password field as
+                      // `errorText` (glowPink — never raw red on black)
+                      // instead of a standalone inline Text (U-07 ledger,
+                      // handoff 4).
+                      errorText: auth.hasError ? auth.errorMessage : null,
+                    ),
+                    const SizedBox(height: 8),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      // U-14 R3: the inline resetPasswordForEmail call is
+                      // replaced by the dedicated /forgot-password screen
+                      // (email → confirmation).
+                      child: TextButton(
+                        onPressed: () => context.push(RoutePaths.forgotPassword),
+                        child: Text(l10n.authForgotPassword),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    // §5.1 brand moment: the primary CTA is the filled
+                    // glowAccent.
+                    VButton.glowAccent(
+                      label: l10n.commonSignIn,
+                      loading: auth.isLoading,
+                      filled: true,
+                      onPressed: _login,
+                    ),
+                    const SizedBox(height: 12),
+                    VButton(
+                      label: l10n.commonCreateAccount,
+                      onPressed: () => context.push(RoutePaths.signup),
+                    ),
+                    const SizedBox(height: 24),
+                  ],
+                ),
               ),
             ),
-            const SizedBox(height: 24),
-            // §5.1 brand moment: the primary CTA is the filled glowAccent.
-            VButton.glowAccent(
-              label: l10n.commonSignIn,
-              loading: auth.isLoading,
-              filled: true,
-              onPressed: _login,
-            ),
-            const SizedBox(height: 12),
-            VButton(
-              label: l10n.commonCreateAccount,
-              onPressed: () => context.push(RoutePaths.signup),
-            ),
-          ],
+          ),
         ),
       ),
     );

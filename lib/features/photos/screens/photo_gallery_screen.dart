@@ -13,7 +13,7 @@ import 'package:samay/features/photos/providers/photos_providers.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/error_view.dart';
 import 'package:samay/shared/widgets/show_app_error.dart';
-import 'package:samay/shared/widgets/v_button.dart';
+import 'package:samay/shared/widgets/state_views.dart';
 import 'package:samay/shared/widgets/v_network_image.dart';
 
 /// Gallery-picking seam for tests: `image_picker` is a platform plugin that
@@ -172,17 +172,19 @@ class _PhotoGalleryScreenState extends ConsumerState<PhotoGalleryScreen> {
             ),
           Expanded(
             child: photosAsync.when(
-              loading: () =>
-                  const Center(child: CircularProgressIndicator()),
+              loading: () => const VLoadingView(),
               error: (e, _) => ErrorView(
                 message: e.toAppError().message,
                 onRetry: () =>
                     ref.invalidate(eventPhotosProvider(widget.eventId)),
               ),
               data: (photos) => photos.isEmpty
-                  ? _EmptyGallery(
-                      windowOpen: windowOpen,
-                      onUpload: _pickAndUpload,
+                  ? VEmptyView(
+                      icon: Icons.photo_library_outlined,
+                      title: l10n.photosEmpty,
+                      description: l10n.photosEmptyBody,
+                      actionLabel: windowOpen ? l10n.photosUpload : null,
+                      onAction: windowOpen ? _pickAndUpload : null,
                     )
                   : _PhotoGrid(
                       photos: photos,
@@ -388,50 +390,3 @@ class _PhotoTile extends StatelessWidget {
   }
 }
 
-class _EmptyGallery extends StatelessWidget {
-  const _EmptyGallery({
-    required this.windowOpen,
-    required this.onUpload,
-  });
-
-  final bool windowOpen;
-  final VoidCallback onUpload;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.xl),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.photo_library_outlined,
-                size: 56, color: AppColors.mutedStrong),
-            const SizedBox(height: AppSpacing.lg),
-            Text(
-              l10n.photosEmpty,
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            Text(
-              l10n.photosEmptyBody,
-              textAlign: TextAlign.center,
-              style: const TextStyle(color: AppColors.mutedStrong),
-            ),
-            if (windowOpen) ...[
-              const SizedBox(height: AppSpacing.xl),
-              SizedBox(
-                width: 200,
-                child: VButton.outlined(
-                  label: l10n.photosUpload,
-                  onPressed: onUpload,
-                ),
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-}

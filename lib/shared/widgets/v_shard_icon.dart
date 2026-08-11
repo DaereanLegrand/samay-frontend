@@ -21,6 +21,11 @@ class VShardIcon extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Icon(Icons.diamond, color: color, size: size);
+    // U-26 (1.4.1): the gold diamond is decorative in every usage — the
+    // adjacent count text ("42 shards") carries the meaning. `ExcludeSemantics`
+    // makes the intent explicit: never announce a redundant "shards" node.
+    return ExcludeSemantics(
+      child: Icon(Icons.diamond, color: color, size: size),
+    );
   }
 }

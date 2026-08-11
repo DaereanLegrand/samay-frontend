@@ -335,8 +335,11 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
             child: Container(
               height: 160,
               decoration: BoxDecoration(
-                color: Colors.grey[900],
-                border: Border.all(color: Colors.grey[700]!),
+                // §5.8 skeleton-base surface for the empty cover slot + the
+                // §2.1 interactive-outline token (never raw greys — U-21
+                // flagged the Colors.grey[900] mix; create_group precedent).
+                color: AppColors.surfaceAlt,
+                border: Border.all(color: AppColors.border),
               ),
               child: _coverImage != null
                   ? ClipRect(
@@ -351,12 +354,17 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Icon(Icons.camera_alt,
-                              size: 40, color: Colors.grey),
+                          const Icon(
+                            Icons.camera_alt,
+                            size: 40,
+                            color: AppColors.muted,
+                          ),
                           const SizedBox(height: 8),
                           Text(
                             l10n.groupsAddCover,
-                            style: const TextStyle(color: Colors.grey),
+                            style: const TextStyle(
+                              color: AppColors.mutedStrong,
+                            ),
                           ),
                         ],
                       ),
@@ -527,7 +535,9 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
       child: InputDecorator(
         decoration: InputDecoration(
           labelText: starts ? l10n.eventsStartsLabel : l10n.eventsEndsLabel,
-          labelStyle: const TextStyle(color: AppColors.muted),
+          // §5.2/§2.4: field labels are mutedStrong (#999999 AA); `muted`
+          // #666666 fails 1.4.3 at normal size (hints keep `muted`).
+          labelStyle: const TextStyle(color: AppColors.mutedStrong),
           enabledBorder: const UnderlineInputBorder(
             borderSide: BorderSide(color: AppColors.white),
           ),
@@ -567,7 +577,8 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
         InputDecorator(
           decoration: InputDecoration(
             labelText: l10n.eventsGroupSelectorLabel,
-            labelStyle: const TextStyle(color: AppColors.muted),
+            // §5.2/§2.4: label mutedStrong (see the date-row comment).
+            labelStyle: const TextStyle(color: AppColors.mutedStrong),
             enabledBorder: const UnderlineInputBorder(
               borderSide: BorderSide(color: AppColors.white),
             ),

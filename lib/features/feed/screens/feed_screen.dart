@@ -11,12 +11,13 @@ import 'package:samay/features/events/logic/event_formatters.dart';
 import 'package:samay/features/feed/providers/feed_providers.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/error_view.dart';
+import 'package:samay/shared/widgets/skeletons.dart';
 import 'package:samay/shared/widgets/state_views.dart';
 import 'package:samay/shared/widgets/v_badge.dart';
 import 'package:samay/shared/widgets/v_card.dart';
+import 'package:samay/shared/widgets/v_breathing_glow.dart';
 import 'package:samay/shared/widgets/v_chip.dart';
 import 'package:samay/shared/widgets/v_disco_divider.dart';
-import 'package:samay/shared/widgets/v_glow_text.dart';
 import 'package:samay/shared/widgets/v_network_image.dart';
 
 /// The social feed — the app's landing tab (FEED spec §feed-screen).
@@ -38,7 +39,12 @@ class FeedScreen extends ConsumerWidget {
     return Scaffold(
       body: SafeArea(
         child: feed.when(
-          loading: () => const VLoadingView(),
+          // U-22 (§5.8): the first load shows the event-card skeleton
+          // instead of the bare spinner; pull-to-refresh keeps the list
+          // visible (skipLoadingOnRefresh — the skeleton only ever stands
+          // in when there is nothing on screen).
+          skipLoadingOnRefresh: true,
+          loading: () => const VSkeletonDetail(),
           error: (_, _) => ErrorView(
             message: l10n.feedLoadError,
             onRetry: () => ref.read(feedProvider.notifier).refresh(),
@@ -116,10 +122,10 @@ class FeedScreen extends ConsumerWidget {
 }
 
 /// Brand wordmark (Playfair Display italic + glow, DISCO-DESIGN-SYSTEM §3.2
-/// "feed hero header") above the radius filter. U-08: the header renders
-/// through [VGlowText] — the canonical glow-strong stack applied to
-/// `displaySmall` (the §3.4 fancy moment; byte-identical to the theme role's
-/// baked-in glow, per the U-06 parity contract).
+/// "feed hero header") above the radius filter. U-08: the header renders the
+/// glow-strong `displaySmall` fancy moment; U-18: it breathes through
+/// [VBreathingGlow] — the §6.2 disco-glow animation (α0.75→α1.0 on a 3s
+/// alternate, reduced-motion-gated), one breathing element per screen.
 class _FeedHeader extends StatelessWidget {
   final String title;
   final bool showRadiusFilter;
@@ -140,7 +146,7 @@ class _FeedHeader extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          VGlowText(text: title, style: AppTypography.displaySmall),
+          VBreathingGlow(text: title, style: AppTypography.displaySmall),
           if (showRadiusFilter) ...[
             const SizedBox(height: AppSpacing.lg),
             radius,
@@ -167,7 +173,10 @@ class RadiusFilterBar extends ConsumerWidget {
     final options = ref.watch(feedRadiusOptionsProvider);
     final selected = ref.watch(radiusFilterProvider);
     return SizedBox(
-      height: 36,
+      // U-19 (§7.3): the chip row must grow with the text scale — a hard
+      // 36px height clips the chips at ≥1.5× (the `AppSpacing.scale` helper,
+      // finding UI-09 / §4.1).
+      height: AppSpacing.scale(context, 36),
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         padding: EdgeInsets.zero,
@@ -237,8 +246,11 @@ class _FeaturedSection extends StatelessWidget {
             ),
           ),
           const SizedBox(height: AppSpacing.md),
+          // U-19 (§7.3): the carousel height grows with the text scale —
+          // the fixed 264px box overflowed the featured card's text block
+          // at 1.5× (the `AppSpacing.scale` helper, finding UI-09 / §4.1).
           SizedBox(
-            height: 264,
+            height: AppSpacing.scale(context, 264),
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(
@@ -246,10 +258,8 @@ class _FeaturedSection extends StatelessWidget {
               ),
               itemCount: events.length,
               separatorBuilder: (_, _) => const SizedBox(width: AppSpacing.md),
-              itemBuilder: (context, index) => _FeaturedCard(
-                event: events[index],
-                badgeLabel: badgeLabel,
-              ),
+              itemBuilder: (context, index) =>
+                  _FeaturedCard(event: events[index], badgeLabel: badgeLabel),
             ),
           ),
         ],
@@ -301,10 +311,7 @@ class _FeaturedCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // §5.5 accent badge: glowPink border + label, black fill.
-                    VBadge.accent(
-                      label: badgeLabel,
-                      color: AppColors.glowPink,
-                    ),
+                    VBadge.accent(label: badgeLabel, color: AppColors.glowPink),
                     const SizedBox(height: AppSpacing.sm),
                     Text(
                       event.name,

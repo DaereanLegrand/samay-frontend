@@ -78,6 +78,9 @@ class AppLocalizationsEs extends AppLocalizations {
   String get commonInvite => 'Invitar';
 
   @override
+  String get commonMoreOptions => 'Más opciones';
+
+  @override
   String get welcomeVive => 'VIVE';
 
   @override

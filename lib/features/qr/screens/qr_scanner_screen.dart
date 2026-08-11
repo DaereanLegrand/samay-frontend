@@ -12,6 +12,7 @@ import 'package:samay/core/services/permission_service.dart';
 import 'package:samay/features/events/providers/events_providers.dart';
 import 'package:samay/features/qr/providers/qr_providers.dart';
 import 'package:samay/l10n/app_localizations.dart';
+import 'package:samay/shared/widgets/state_views.dart';
 import 'package:samay/shared/widgets/v_button.dart';
 
 /// Camera-widget seam for tests: `mobile_scanner` is a platform plugin that
@@ -81,6 +82,25 @@ class QrScannerScreen extends ConsumerStatefulWidget {
 
   /// Injectable for tests; defaults to the real `mobile_scanner` widget.
   final QrScannerViewBuilder? scannerBuilder;
+
+  /// The mobile_scanner `errorBuilder` panel (runtime camera failure — the
+  /// camera widget itself replaces its view with this). U-25: the hand-rolled
+  /// title+button column (which predated U-21's permission panels) now renders
+  /// the same §5.9 [VEmptyView] the `unavailable`/`denied` states use — icon,
+  /// title, body and the outlined retry — so the three camera-failure faces
+  /// are one canonical widget. Static + [visibleForTesting] because the
+  /// mobile_scanner plugin's errorBuilder only fires on a device; the widget
+  /// test mounts the panel directly.
+  @visibleForTesting
+  static Widget cameraErrorPanel(AppLocalizations l10n, VoidCallback onRetry) {
+    return VEmptyView(
+      icon: Icons.no_photography_outlined,
+      title: l10n.qrCameraUnavailable,
+      description: l10n.qrCameraUnavailableBody,
+      actionLabel: l10n.commonRetry,
+      onAction: onRetry,
+    );
+  }
 
   @override
   ConsumerState<QrScannerScreen> createState() => _QrScannerScreenState();
@@ -263,58 +283,21 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen> {
   Widget _body(AppLocalizations l10n, String eventName) {
     switch (_cameraStatus) {
       case _CameraStatus.checking:
-        return const Center(child: CircularProgressIndicator());
+        return const VLoadingView();
       case _CameraStatus.unavailable:
-        return Center(
-          child: Padding(
-            padding: const EdgeInsets.all(AppSpacing.xl),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.no_photography_outlined,
-                    size: 48, color: AppColors.border),
-                const SizedBox(height: AppSpacing.lg),
-                Text(l10n.qrCameraUnavailable,
-                    style: Theme.of(context).textTheme.headlineSmall),
-                const SizedBox(height: AppSpacing.sm),
-                Text(l10n.qrCameraUnavailableBody,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(color: AppColors.mutedStrong)),
-                const SizedBox(height: AppSpacing.xl),
-                SizedBox(
-                  width: 200,
-                  child: VButton(
-                    label: l10n.commonRetry,
-                    onPressed: _requestCamera,
-                  ),
-                ),
-              ],
-            ),
-          ),
+        return VEmptyView(
+          icon: Icons.no_photography_outlined,
+          title: l10n.qrCameraUnavailable,
+          description: l10n.qrCameraUnavailableBody,
+          actionLabel: l10n.commonRetry,
+          onAction: _requestCamera,
         );
       case _CameraStatus.denied:
-        return Center(
-          child: Padding(
-            padding: const EdgeInsets.all(AppSpacing.xl),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.photo_camera_outlined,
-                    size: 48, color: AppColors.border),
-                const SizedBox(height: AppSpacing.lg),
-                Text(l10n.qrCameraDenied,
-                    style: Theme.of(context).textTheme.headlineSmall),
-                const SizedBox(height: AppSpacing.xl),
-                SizedBox(
-                  width: 200,
-                  child: VButton(
-                    label: l10n.commonRetry,
-                    onPressed: _requestCamera,
-                  ),
-                ),
-              ],
-            ),
-          ),
+        return VEmptyView(
+          icon: Icons.photo_camera_outlined,
+          title: l10n.qrCameraDenied,
+          actionLabel: l10n.commonRetry,
+          onAction: _requestCamera,
         );
       case _CameraStatus.granted:
         return Stack(
@@ -375,20 +358,7 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen> {
   }
 
   Widget _cameraError(AppLocalizations l10n) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.xl),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(l10n.qrCameraUnavailable,
-                style: Theme.of(context).textTheme.headlineSmall),
-            const SizedBox(height: AppSpacing.lg),
-            VButton(label: l10n.commonRetry, onPressed: _requestCamera),
-          ],
-        ),
-      ),
-    );
+    return QrScannerScreen.cameraErrorPanel(l10n, _requestCamera);
   }
 
   Widget _resultBanner(AppLocalizations l10n, _ScanResult result) {

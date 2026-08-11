@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:samay/core/router/route_paths.dart';
-import 'package:samay/core/theme/samay_durations.dart';
 import 'package:samay/features/friends/providers/friends_providers.dart';
 import 'package:samay/features/groups/providers/groups_providers.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/v_count_badge.dart';
+import 'package:samay/shared/widgets/v_tab_fade.dart';
 
 class TabItem {
   final String label;
@@ -94,12 +94,9 @@ class MainShell extends ConsumerWidget {
     // R19 (F13 DIRECT): 150ms opacity fade-in on tab switch, keyed on the
     // tab index so every switch restarts it. No spatial motion (tabs have no
     // directional relationship — Juega's fadeIn, without flutter_animate).
-    // Reduced motion (`disableAnimations`) → static, no animation (U-18's
-    // contract; duration/curve from the U-18 token).
-    final animate = !MediaQuery.disableAnimationsOf(context);
-    final body = animate
-        ? _ShellTabFade(key: ValueKey(currentIndex), child: child)
-        : child;
+    // The shared `VTabFade` owns the reduced-motion contract
+    // (`disableAnimations` → static, U-18) + the duration/curve tokens.
+    final body = VTabFade(key: ValueKey(currentIndex), child: child);
     return Scaffold(
       body: body,
       bottomNavigationBar: BottomNavigationBar(
@@ -152,52 +149,5 @@ class MainShell extends ConsumerWidget {
       4 => l10n.shellProfile,
       _ => mainShellTabs[index].label,
     };
-  }
-}
-
-/// R19: one-shot 150ms easeOutCubic fade-in keyed on the shell tab index —
-/// a new `State` per key restarts the animation. Deliberately NOT an
-/// `AnimatedSwitcher`: the switcher keeps the outgoing tab in the tree
-/// during the transition, and the go_router nested Navigator carries
-/// GlobalKey'd route entries — two live Navigators collide (duplicate
-/// GlobalKeys). A fade-in disposes the old tab immediately (Juega's
-/// `fadeIn(...)` semantics).
-class _ShellTabFade extends StatefulWidget {
-  final Widget child;
-
-  const _ShellTabFade({super.key, required this.child});
-
-  @override
-  State<_ShellTabFade> createState() => _ShellTabFadeState();
-}
-
-class _ShellTabFadeState extends State<_ShellTabFade>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _controller = AnimationController(
-    vsync: this,
-    duration: SamayDurations.fast,
-  );
-
-  @override
-  void initState() {
-    super.initState();
-    _controller.forward();
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return FadeTransition(
-      opacity: CurvedAnimation(
-        parent: _controller,
-        curve: SamayDurations.defaultCurve,
-      ),
-      child: widget.child,
-    );
   }
 }

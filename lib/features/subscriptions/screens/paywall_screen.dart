@@ -9,6 +9,7 @@ import 'package:samay/core/providers/config_provider.dart';
 import 'package:samay/core/services/revenuecat_service.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/error_view.dart';
+import 'package:samay/shared/widgets/state_views.dart';
 import 'package:samay/shared/widgets/v_badge.dart';
 import 'package:samay/shared/widgets/v_button.dart';
 
@@ -203,7 +204,7 @@ class PaywallScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(title: Text(l10n.comingSoonSubscriptionsTitle)),
       body: config.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => const VLoadingView(),
         error: (error, _) => ErrorView(
           message: error.toAppError().message,
           onRetry: () => ref.invalidate(appConfigProvider),

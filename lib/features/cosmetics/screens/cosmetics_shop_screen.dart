@@ -6,6 +6,8 @@ import 'package:samay/features/cosmetics/providers/cosmetics_providers.dart';
 import 'package:samay/features/profile/providers/profile_providers.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/error_view.dart';
+import 'package:samay/shared/widgets/skeletons.dart';
+import 'package:samay/shared/widgets/state_views.dart';
 import 'package:samay/shared/widgets/v_badge.dart';
 import 'package:samay/shared/widgets/v_button.dart';
 import 'package:samay/shared/widgets/v_shard_icon.dart';
@@ -166,7 +168,10 @@ class _CosmeticsShopScreenState extends ConsumerState<CosmeticsShopScreen>
               TabBar(
                 controller: _tabController,
                 labelColor: AppColors.white,
-                unselectedLabelColor: AppColors.muted,
+                // §2.4: unselected tab labels are informational text at
+                // normal size — muted #666666 fails 1.4.3 (3.66:1);
+                // mutedStrong is AA.
+                unselectedLabelColor: AppColors.mutedStrong,
                 indicatorColor: AppColors.white,
                 tabs: [
                   for (var i = 0; i < _tabTypes.length; i++)
@@ -178,7 +183,11 @@ class _CosmeticsShopScreenState extends ConsumerState<CosmeticsShopScreen>
           ),
           Expanded(
             child: catalogAsync.when(
-              loading: () => const Center(child: CircularProgressIndicator()),
+              // U-25 (§5.8): the shop is a grid first load with nothing on
+              // screen — the §5.3 card-grid skeleton stands in (U-22's
+              // handoff suggested VSkeletonList, but the shop renders a
+              // 2-column card grid, so VSkeletonGrid is the closer shape).
+              loading: () => const VSkeletonGrid(rows: 2, columns: 2),
               error: (e, _) => ErrorView(
                 message: e.toAppError().message,
                 onRetry: () =>
@@ -195,7 +204,10 @@ class _CosmeticsShopScreenState extends ConsumerState<CosmeticsShopScreen>
                     owned['cosmetic_id'] as String: owned,
                 };
                 if (visible.isEmpty) {
-                  return const _EmptyCatalog();
+                  return VEmptyView(
+                    icon: Icons.style_outlined,
+                    title: l10n.cosmeticsEmptyCatalog,
+                  );
                 }
                 return GridView.builder(
                   padding: const EdgeInsets.fromLTRB(24, 4, 24, 24),
@@ -263,32 +275,6 @@ class _BalanceBar extends StatelessWidget {
             style: Theme.of(context).textTheme.bodyLarge,
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _EmptyCatalog extends StatelessWidget {
-  const _EmptyCatalog();
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.style_outlined, size: 48, color: AppColors.muted),
-            const SizedBox(height: 16),
-            Text(
-              l10n.cosmeticsEmptyCatalog,
-              textAlign: TextAlign.center,
-              style: const TextStyle(color: AppColors.mutedStrong),
-            ),
-          ],
-        ),
       ),
     );
   }

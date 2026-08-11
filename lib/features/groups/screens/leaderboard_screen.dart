@@ -6,6 +6,7 @@ import 'package:samay/core/router/route_paths.dart';
 import 'package:samay/features/groups/providers/groups_providers.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/rank_badge.dart';
+import 'package:samay/shared/widgets/skeletons.dart';
 import 'package:samay/shared/widgets/state_views.dart';
 import 'package:samay/shared/widgets/v_chip.dart';
 
@@ -35,76 +36,97 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
             child: SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: Row(
-                children: _tiers.map((t) => Padding(
-                  padding: const EdgeInsets.only(right: 8),
-                  child: VChip(
-                    label: t,
-                    selected: _selectedTier == t,
-                    onSelected: () => setState(() => _selectedTier = t),
-                  ),
-                )).toList(),
+                children: _tiers
+                    .map(
+                      (t) => Padding(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: VChip(
+                          label: t,
+                          selected: _selectedTier == t,
+                          onSelected: () => setState(() => _selectedTier = t),
+                        ),
+                      ),
+                    )
+                    .toList(),
               ),
             ),
           ),
           Expanded(
-            child: VStateView(
-              loading: rankingsAsync.isLoading,
-              error: rankingsAsync.error,
-              errorMessage: rankingsAsync.hasError
-                  ? rankingsAsync.error!.toAppError().message
-                  : null,
-              onRetry: () => ref.invalidate(leaderboardProvider(_selectedTier)),
-              empty: VEmptyView(
-                icon: Icons.leaderboard_outlined,
-                title: l10n.groupsNoRankingData,
-              ),
-              child: rankings == null || rankings.isEmpty
-                  ? null
-                  : RefreshIndicator(
-                      onRefresh: () => ref
-                          .read(leaderboardProvider(_selectedTier).notifier)
-                          .refresh(),
-                      child: ListView.builder(
-                        itemCount: rankings.length,
-                        itemBuilder: (_, i) {
-                          final g = rankings[i];
-                          final rank = (g['rank_position'] as num?)?.toInt() ?? 0;
-                          // §3.2/§5.5: the podium (top-3) rows get the
-                          // Playfair `headlineLarge` name + the gold/silver/
-                          // bronze RankBadge accent (U-05 handoff).
-                          final podium = rank >= 1 && rank <= 3;
-                          return ListTile(
-                            leading: SizedBox(
-                              width: 32,
-                              child: Text(
-                                '#$rank',
-                                style: Theme.of(context).textTheme.bodyLarge,
-                              ),
-                            ),
-                            title: Text(
-                              g['name'] as String? ?? l10n.commonGroup,
-                              style: podium
-                                  ? Theme.of(context).textTheme.headlineLarge
-                                  : null,
-                            ),
-                            subtitle: Text(
-                              l10n.groupsLeaderboardSubtitle(
-                                (g['member_count'] as num?)?.toInt() ?? 0,
-                                (g['score'] as num?)?.toInt() ?? 0,
-                              ),
-                            ),
-                            trailing: g['rank_bracket'] != null
-                                ? RankBadge(
-                                    bracket: g['rank_bracket'] as String,
-                                    rank: podium ? rank : null,
-                                  )
-                                : null,
-                            onTap: () => context.push(RoutePaths.groupDetail(g['id'] as String)),
-                          );
-                        },
-                      ),
+            // U-22 (§5.8): the first load shows the avatar+lines skeleton
+            // instead of the bare spinner. `valueOrNull == null` keeps the
+            // ranking list visible during pull-to-refresh and tier switches
+            // that rebuild an already-loaded provider — the skeleton only
+            // stands in when there is nothing on screen.
+            child: rankings == null && rankingsAsync.isLoading
+                ? const VSkeletonList(rows: 8)
+                : VStateView(
+                    error: rankingsAsync.error,
+                    errorMessage: rankingsAsync.hasError
+                        ? rankingsAsync.error!.toAppError().message
+                        : null,
+                    onRetry: () =>
+                        ref.invalidate(leaderboardProvider(_selectedTier)),
+                    empty: VEmptyView(
+                      icon: Icons.leaderboard_outlined,
+                      title: l10n.groupsNoRankingData,
                     ),
-            ),
+                    child: rankings == null || rankings.isEmpty
+                        ? null
+                        : RefreshIndicator(
+                            onRefresh: () => ref
+                                .read(
+                                  leaderboardProvider(_selectedTier).notifier,
+                                )
+                                .refresh(),
+                            child: ListView.builder(
+                              itemCount: rankings.length,
+                              itemBuilder: (_, i) {
+                                final g = rankings[i];
+                                final rank =
+                                    (g['rank_position'] as num?)?.toInt() ?? 0;
+                                // §3.2/§5.5: the podium (top-3) rows get the
+                                // Playfair `headlineLarge` name + the gold/
+                                // silver/bronze RankBadge accent (U-05
+                                // handoff).
+                                final podium = rank >= 1 && rank <= 3;
+                                return ListTile(
+                                  leading: SizedBox(
+                                    width: 32,
+                                    child: Text(
+                                      '#$rank',
+                                      style: Theme.of(
+                                        context,
+                                      ).textTheme.bodyLarge,
+                                    ),
+                                  ),
+                                  title: Text(
+                                    g['name'] as String? ?? l10n.commonGroup,
+                                    style: podium
+                                        ? Theme.of(
+                                            context,
+                                          ).textTheme.headlineLarge
+                                        : null,
+                                  ),
+                                  subtitle: Text(
+                                    l10n.groupsLeaderboardSubtitle(
+                                      (g['member_count'] as num?)?.toInt() ?? 0,
+                                      (g['score'] as num?)?.toInt() ?? 0,
+                                    ),
+                                  ),
+                                  trailing: g['rank_bracket'] != null
+                                      ? RankBadge(
+                                          bracket: g['rank_bracket'] as String,
+                                          rank: podium ? rank : null,
+                                        )
+                                      : null,
+                                  onTap: () => context.push(
+                                    RoutePaths.groupDetail(g['id'] as String),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                  ),
           ),
         ],
       ),

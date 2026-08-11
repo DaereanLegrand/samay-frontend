@@ -8,6 +8,7 @@ import 'package:samay/features/events/providers/events_providers.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/error_view.dart';
 import 'package:samay/shared/widgets/show_app_error.dart';
+import 'package:samay/shared/widgets/state_views.dart';
 import 'package:samay/shared/widgets/v_button.dart';
 import 'package:samay/shared/widgets/v_card.dart';
 import 'package:samay/shared/widgets/v_input.dart';
@@ -150,7 +151,7 @@ class _EventEditScreenState extends ConsumerState<EventEditScreen> {
     return Scaffold(
       appBar: AppBar(title: Text(l10n.eventEditTitle)),
       body: detailAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => const VLoadingView(),
         error: (e, _) => ErrorView(
           message: e.toAppError().message,
           onRetry: () => ref.invalidate(eventDetailProvider(widget.eventId)),

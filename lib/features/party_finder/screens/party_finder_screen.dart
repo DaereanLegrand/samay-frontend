@@ -11,6 +11,8 @@ import 'package:samay/features/party_finder/providers/party_finder_providers.dar
 import 'package:samay/features/profile/widgets/interests.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/error_view.dart';
+import 'package:samay/shared/widgets/skeletons.dart';
+import 'package:samay/shared/widgets/state_views.dart';
 import 'package:samay/shared/widgets/v_chip.dart';
 import 'package:samay/shared/widgets/v_network_image.dart';
 
@@ -33,23 +35,26 @@ class PartyFinderScreen extends ConsumerWidget {
     await ref.read(discoveryOptInProvider.notifier).setOptIn(value);
   }
 
-  Future<void> _blockUser(BuildContext context, WidgetRef ref,
-      Map<String, dynamic> match) async {
+  Future<void> _blockUser(
+    BuildContext context,
+    WidgetRef ref,
+    Map<String, dynamic> match,
+  ) async {
     final l10n = AppLocalizations.of(context);
     try {
       await ref
           .read(friendsRepositoryProvider)
           .blockUser(match['id'] as String);
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.profileUserBlocked)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.profileUserBlocked)));
       ref.invalidate(partyMatchesProvider);
     } catch (e) {
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toAppError().message)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e.toAppError().message)));
     }
   }
 
@@ -82,17 +87,34 @@ class PartyFinderScreen extends ConsumerWidget {
   ) {
     final enabled = optIn.valueOrNull ?? false;
     if (optIn.isLoading && !optIn.hasValue) {
-      return const Center(child: CircularProgressIndicator());
+      return const VLoadingView();
     }
-    if (!enabled) return _DiscoveryOffState(l10n: l10n);
-    return ref.watch(partyMatchesProvider).when(
-          loading: () => const Center(child: CircularProgressIndicator()),
+    if (!enabled) {
+      return VEmptyView(
+        icon: Icons.travel_explore,
+        title: l10n.partyFinderOptInOff,
+        description: l10n.partyFinderOptInOffBody,
+      );
+    }
+    return ref
+        .watch(partyMatchesProvider)
+        .when(
+          // U-25 (§5.8): the match rows are the list-y first load with
+          // nothing on screen — the avatar+lines skeleton stands in (U-22's
+          // handoff named party_finder). The opt-in gate above keeps the
+          // standard spinner: it is a quick local pre-check, not a heavy
+          // nothing-on-screen frame.
+          loading: () => const VSkeletonList(),
           error: (error, _) => ErrorView(
             message: l10n.partyFinderError,
             onRetry: () => ref.read(partyMatchesProvider.notifier).refresh(),
           ),
           data: (matches) => matches.isEmpty
-              ? _EmptyState(l10n: l10n)
+              ? VEmptyView(
+                  icon: Icons.people_outline,
+                  title: l10n.partyFinderEmpty,
+                  description: l10n.partyFinderEmptyBody,
+                )
               : RefreshIndicator(
                   onRefresh: () =>
                       ref.read(partyMatchesProvider.notifier).refresh(),
@@ -117,79 +139,6 @@ class PartyFinderScreen extends ConsumerWidget {
 
 /// First-run explainer while discovery is OFF (PFND spec: OFF users are
 /// invisible but can still browse).
-class _DiscoveryOffState extends StatelessWidget {
-  final AppLocalizations l10n;
-
-  const _DiscoveryOffState({required this.l10n});
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.xl),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(
-              Icons.travel_explore,
-              size: AppIconSizes.xxl,
-              color: AppColors.border,
-            ),
-            const SizedBox(height: AppSpacing.lg),
-            Text(
-              l10n.partyFinderOptInOff,
-              style: Theme.of(context).textTheme.headlineSmall,
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            Text(
-              l10n.partyFinderOptInOffBody,
-              textAlign: TextAlign.center,
-              style: const TextStyle(color: AppColors.mutedStrong),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _EmptyState extends StatelessWidget {
-  final AppLocalizations l10n;
-
-  const _EmptyState({required this.l10n});
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.xl),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(
-              Icons.people_outline,
-              size: AppIconSizes.xxl,
-              color: AppColors.border,
-            ),
-            const SizedBox(height: AppSpacing.lg),
-            Text(
-              l10n.partyFinderEmpty,
-              style: Theme.of(context).textTheme.headlineSmall,
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            Text(
-              l10n.partyFinderEmptyBody,
-              textAlign: TextAlign.center,
-              style: const TextStyle(color: AppColors.mutedStrong),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
 
 /// One match row: avatar, @username, shared-interests count, tag chips and
 /// the block action (PFND spec row contract).
@@ -226,9 +175,7 @@ class _MatchCard extends StatelessWidget {
           vertical: AppSpacing.md,
         ),
         decoration: const BoxDecoration(
-          border: Border(
-            bottom: BorderSide(color: AppColors.hairline),
-          ),
+          border: Border(bottom: BorderSide(color: AppColors.hairline)),
         ),
         child: Row(
           children: [
@@ -285,7 +232,11 @@ class _MatchAvatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final initials = username.substring(0, 1).toUpperCase();
+    // U-26 (U-25 F5): an empty (non-null) username would RangeError on
+    // substring — the '?' initial fallback.
+    final initials = username.isEmpty
+        ? '?'
+        : username.substring(0, 1).toUpperCase();
     if (avatarUrl == null) {
       return CircleAvatar(
         radius: 20,

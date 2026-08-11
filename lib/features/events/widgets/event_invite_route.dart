@@ -6,6 +6,7 @@ import 'package:samay/features/events/providers/events_providers.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/error_view.dart';
 import 'package:samay/shared/widgets/route_error_screen.dart';
+import 'package:samay/shared/widgets/state_views.dart';
 
 /// EINV (I-66): resolves a `/event/<invite_token>` deep link into the event
 /// detail screen.
@@ -29,7 +30,7 @@ class EventInviteRoute extends ConsumerWidget {
     return async.when(
       loading: () => Scaffold(
         appBar: AppBar(title: Text(l10n.eventDetailTitle)),
-        body: const Center(child: CircularProgressIndicator()),
+        body: const VLoadingView(),
       ),
       error: (e, _) => Scaffold(
         appBar: AppBar(title: Text(l10n.eventDetailTitle)),

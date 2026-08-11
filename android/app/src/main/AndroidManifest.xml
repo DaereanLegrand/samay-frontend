@@ -15,7 +15,7 @@
          enableOnBackInvokedCallback=true — predictive back on targetSdk 33+
          (targetSdk = 36), Flutter docs recommendation. -->
     <application
-        android:label="samay"
+        android:label="Samay"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
         android:allowBackup="false"

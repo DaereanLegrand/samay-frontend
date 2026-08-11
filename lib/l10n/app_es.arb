@@ -92,6 +92,10 @@
   "@commonInvite": {
     "description": "Generic invite button label"
   },
+  "commonMoreOptions": "Más opciones",
+  "@commonMoreOptions": {
+    "description": "Accessibility tooltip for icon-only overflow menus"
+  },
   "welcomeVive": "VIVE",
   "@welcomeVive": {
     "description": "Welcome screen brand wordmark"

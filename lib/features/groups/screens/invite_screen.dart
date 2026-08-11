@@ -13,6 +13,7 @@ import 'package:samay/features/groups/providers/groups_providers.dart';
 import 'package:samay/features/profile/widgets/profile_avatar.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/error_view.dart';
+import 'package:samay/shared/widgets/state_views.dart';
 import 'package:samay/shared/widgets/show_app_error.dart';
 
 class InviteScreen extends ConsumerStatefulWidget {
@@ -47,7 +48,8 @@ class _InviteScreenState extends ConsumerState<InviteScreen> {
 
   void _onSearchChanged() {
     final config = ref.read(appConfigProvider).valueOrNull;
-    final debounceMs = int.tryParse(config?['app.search_debounce_ms'] ?? '') ?? 300;
+    final debounceMs =
+        int.tryParse(config?['app.search_debounce_ms'] ?? '') ?? 300;
     _debouncer.delay = Duration(milliseconds: debounceMs);
     _debouncer.run(() {
       if (mounted) {
@@ -66,10 +68,9 @@ class _InviteScreenState extends ConsumerState<InviteScreen> {
     final l10n = AppLocalizations.of(context);
     setState(() => _sending = true);
     try {
-      await ref.read(groupServiceProvider).inviteMembers(
-        widget.groupId,
-        _selectedIds.toList(),
-      );
+      await ref
+          .read(groupServiceProvider)
+          .inviteMembers(widget.groupId, _selectedIds.toList());
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(l10n.groupsInvitedCount(_selectedIds.length))),
@@ -91,7 +92,7 @@ class _InviteScreenState extends ConsumerState<InviteScreen> {
     final membersAsync = ref.watch(groupMembersProvider(widget.groupId));
     final memberIds =
         membersAsync.valueOrNull?.map((m) => m['user_id'] as String).toSet() ??
-            const <String>{};
+        const <String>{};
 
     return Scaffold(
       appBar: AppBar(
@@ -101,13 +102,17 @@ class _InviteScreenState extends ConsumerState<InviteScreen> {
             TextButton(
               onPressed: _sending ? null : _invite,
               child: _sending
-                  ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
                   : Text(l10n.groupsInviteCount(_selectedIds.length)),
             ),
         ],
       ),
       body: membersAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => const VLoadingView(),
         error: (e, _) => ErrorView(
           message: e.toAppError().message,
           onRetry: () => ref.invalidate(groupMembersProvider(widget.groupId)),
@@ -137,48 +142,59 @@ class _InviteScreenState extends ConsumerState<InviteScreen> {
               )
             else
               Expanded(
-                child: ref.watch(searchResultsProvider(query)).when(
-                  loading: () => const Center(child: LinearProgressIndicator()),
-                  error: (e, _) => ErrorView(
-                    message: e.toAppError().message,
-                    onRetry: () => ref.invalidate(searchResultsProvider(query)),
-                  ),
-                  data: (users) {
-                    final results =
-                        users.where((u) => !memberIds.contains(u['id'] as String)).toList();
-                    if (results.isEmpty) {
-                      return Center(
-                        child: Text(
-                          l10n.groupsNoResults,
-                          style: Theme.of(context).textTheme.bodyMedium,
-                        ),
-                      );
-                    }
-                    return ListView.separated(
-                      itemCount: results.length,
-                      separatorBuilder: (_, _) => const Divider(height: 1),
-                      itemBuilder: (_, i) {
-                        final u = results[i];
-                        final uid = u['id'] as String;
-                        final selected = _selectedIds.contains(uid);
-                        final username = u['username'] as String? ?? '?';
-                        return ListTile(
-                          leading: ProfileAvatar(
-                            size: AppSpacing.avatar,
-                            initials: username.substring(0, 1),
-                            imageUrl: u['avatar_url'] as String?,
-                          ),
-                          title: Text('@${u['username']}'),
-                          trailing: Checkbox(
-                            value: selected,
-                            onChanged: (_) => _toggle(uid),
-                          ),
-                          onTap: () => _toggle(uid),
+                child: ref
+                    .watch(searchResultsProvider(query))
+                    .when(
+                      loading: () => const VLoadingView(),
+                      error: (e, _) => ErrorView(
+                        message: e.toAppError().message,
+                        onRetry: () =>
+                            ref.invalidate(searchResultsProvider(query)),
+                      ),
+                      data: (users) {
+                        final results = users
+                            .where(
+                              (u) => !memberIds.contains(u['id'] as String),
+                            )
+                            .toList();
+                        if (results.isEmpty) {
+                          return Center(
+                            child: Text(
+                              l10n.groupsNoResults,
+                              style: Theme.of(context).textTheme.bodyMedium,
+                            ),
+                          );
+                        }
+                        return ListView.separated(
+                          itemCount: results.length,
+                          separatorBuilder: (_, _) => const Divider(height: 1),
+                          itemBuilder: (_, i) {
+                            final u = results[i];
+                            final uid = u['id'] as String;
+                            final selected = _selectedIds.contains(uid);
+                            final username = u['username'] as String? ?? '';
+                            // U-26 (U-24 F3): an empty (non-null) username
+                            // would RangeError on substring — '?' fallback.
+                            final initial = username.isEmpty
+                                ? '?'
+                                : username.substring(0, 1);
+                            return ListTile(
+                              leading: ProfileAvatar(
+                                size: AppSpacing.avatar,
+                                initials: initial,
+                                imageUrl: u['avatar_url'] as String?,
+                              ),
+                              title: Text('@${u['username']}'),
+                              trailing: Checkbox(
+                                value: selected,
+                                onChanged: (_) => _toggle(uid),
+                              ),
+                              onTap: () => _toggle(uid),
+                            );
+                          },
                         );
                       },
-                    );
-                  },
-                ),
+                    ),
               ),
           ],
         ),

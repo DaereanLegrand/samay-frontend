@@ -11,6 +11,7 @@ import 'package:samay/features/events/providers/events_providers.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/error_view.dart';
 import 'package:samay/shared/widgets/show_app_error.dart';
+import 'package:samay/shared/widgets/skeletons.dart';
 import 'package:samay/shared/widgets/v_button.dart';
 import 'package:samay/shared/widgets/v_card.dart';
 import 'package:samay/shared/widgets/v_network_image.dart';
@@ -66,13 +67,13 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
       // the promotores (preshard_ledger `event_pool_returned` + pool=0) is
       // server-side logic (Go admin CancelEvent / EEDG) — see the I-55 daily
       // log for the S-07/EEDG gap flag.
-      await ref
-          .read(eventDetailProvider(widget.eventId).notifier)
-          .patch({'status': 'cancelled'});
+      await ref.read(eventDetailProvider(widget.eventId).notifier).patch({
+        'status': 'cancelled',
+      });
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.eventCancelledSnack)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.eventCancelledSnack)));
     } catch (e, _) {
       if (mounted) showAppError(context, e);
     } finally {
@@ -82,7 +83,9 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
 
   Widget _scaffold(Widget body) {
     return Scaffold(
-      appBar: AppBar(title: Text(AppLocalizations.of(context).eventDetailTitle)),
+      appBar: AppBar(
+        title: Text(AppLocalizations.of(context).eventDetailTitle),
+      ),
       body: body,
     );
   }
@@ -92,13 +95,23 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
     final detailAsync = ref.watch(eventDetailProvider(widget.eventId));
 
     return detailAsync.when(
-      loading: () => _scaffold(const Center(child: CircularProgressIndicator())),
-      error: (e, _) => _scaffold(ErrorView(
-        message: e.toAppError().message,
-        onRetry: () => ref.invalidate(eventDetailProvider(widget.eventId)),
-      )),
+      // U-25 (§5.8): the detail is the heaviest events screen (detail +
+      // promotores + invite stacked fetches), so the nothing-on-screen frame
+      // shows the cover+lines skeleton (U-22's handoff named event_detail →
+      // VSkeletonDetail) instead of the bare spinner. `VSkeletonDetail(rows:
+      // 1)` is the closest existing skeleton to the hero geometry — the same
+      // call U-24 made on group_detail.
+      loading: () => _scaffold(const VSkeletonDetail(rows: 1)),
+      error: (e, _) => _scaffold(
+        ErrorView(
+          message: e.toAppError().message,
+          onRetry: () => ref.invalidate(eventDetailProvider(widget.eventId)),
+        ),
+      ),
       data: (event) {
-        final promotoresAsync = ref.watch(eventPromotoresProvider(widget.eventId));
+        final promotoresAsync = ref.watch(
+          eventPromotoresProvider(widget.eventId),
+        );
         final inviteAsync = ref.watch(myEventInviteProvider(widget.eventId));
         return _buildDetail(event, promotoresAsync, inviteAsync);
       },
@@ -111,10 +124,8 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
     AsyncValue<Map<String, dynamic>?> inviteAsync,
   ) {
     final l10n = AppLocalizations.of(context);
-    final uid = ref
-        .watch(authStateProvider)
-        .valueOrNull
-        ?.user?['id'] as String?;
+    final uid =
+        ref.watch(authStateProvider).valueOrNull?.user?['id'] as String?;
     final status = event['status'] as String? ?? 'draft';
     final type = event['type'] as String? ?? 'casual';
 
@@ -174,8 +185,9 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
             Align(
               alignment: Alignment.centerLeft,
               child: TextButton.icon(
-                onPressed: () =>
-                    context.push(RoutePaths.groupDetail(event['group_id'] as String)),
+                onPressed: () => context.push(
+                  RoutePaths.groupDetail(event['group_id'] as String),
+                ),
                 icon: const Icon(Icons.group_outlined, size: 18),
                 label: Text(l10n.eventViewGroup),
               ),
@@ -185,7 +197,8 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
           _buildPoolSection(event),
           const SizedBox(height: AppSpacing.xl),
           _buildPromotoresSection(promotoresAsync),
-          if (inviteAsync.valueOrNull case final invite? when invite.isNotEmpty) ...[
+          if (inviteAsync.valueOrNull case final invite?
+              when invite.isNotEmpty) ...[
             const SizedBox(height: AppSpacing.lg),
             _InfoRow(
               icon: Icons.mail_outline,
@@ -201,7 +214,8 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
             const SizedBox(height: AppSpacing.xxl),
             VButton(
               label: l10n.eventEditButton,
-              onPressed: () => context.push(RoutePaths.eventEdit(widget.eventId)),
+              onPressed: () =>
+                  context.push(RoutePaths.eventEdit(widget.eventId)),
             ),
           ],
           if (_canCancel(uid, status, promotoresAsync.valueOrNull)) ...[
@@ -230,7 +244,11 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
     );
   }
 
-  bool _canCancel(String? uid, String status, List<Map<String, dynamic>>? promotores) {
+  bool _canCancel(
+    String? uid,
+    String status,
+    List<Map<String, dynamic>>? promotores,
+  ) {
     return _canEdit(uid, status, promotores);
   }
 
@@ -251,8 +269,10 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
           ),
           const SizedBox(height: AppSpacing.sm),
           if (pool <= 0)
-            Text(l10n.eventNoPool,
-                style: Theme.of(context).textTheme.bodyMedium)
+            Text(
+              l10n.eventNoPool,
+              style: Theme.of(context).textTheme.bodyMedium,
+            )
           else ...[
             Row(
               children: [
@@ -323,7 +343,8 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
               children: [
                 for (final p in promotores)
                   _PromotorAvatar(
-                    username: p['users']?['username'] as String? ??
+                    username:
+                        p['users']?['username'] as String? ??
                         '${p['user_id']}'.substring(0, 8),
                     role: p['role'] as String? ?? 'promotor',
                   ),
@@ -463,8 +484,9 @@ class _PromotorAvatar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final roleLabel =
-        role == 'promotor' ? l10n.eventRolePromotor : l10n.eventRoleCoPromotor;
+    final roleLabel = role == 'promotor'
+        ? l10n.eventRolePromotor
+        : l10n.eventRoleCoPromotor;
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -472,16 +494,15 @@ class _PromotorAvatar extends StatelessWidget {
           radius: 20,
           backgroundColor: AppColors.surfaceAlt,
           child: Text(
-            username.substring(0, 1).toUpperCase(),
+            // U-26 (U-25 F5): an empty (non-null) username would RangeError
+            // on substring — the '?' initial fallback.
+            username.isEmpty ? '?' : username.substring(0, 1).toUpperCase(),
             style: const TextStyle(fontSize: 16, color: AppColors.white),
           ),
         ),
         const SizedBox(height: AppSpacing.xs),
         Text(username, style: Theme.of(context).textTheme.bodySmall),
-        Text(
-          roleLabel,
-          style: Theme.of(context).textTheme.labelSmall,
-        ),
+        Text(roleLabel, style: Theme.of(context).textTheme.labelSmall),
       ],
     );
   }

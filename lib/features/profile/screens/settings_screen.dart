@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
-import 'package:samay/core/design_tokens/app_radius.dart';
 import 'package:samay/core/providers/auth_provider.dart';
 import 'package:samay/core/providers/theme_provider.dart';
 import 'package:samay/core/router/route_paths.dart';
@@ -94,7 +93,10 @@ class SettingsScreen extends ConsumerWidget {
                   _SettingsTile(
                     icon: Icons.notifications,
                     label: l10n.profileNotifications,
-                    onTap: () {},
+                    // U-26 (U-23 F4): placeholder rows render disabled —
+                    // an enabled no-op row looks tappable (2.1.1/4.1.2);
+                    // disabled = `muted` treatment (§5.1).
+                    enabled: false,
                   ),
                   const Divider(),
                   _SettingsTile(
@@ -106,7 +108,7 @@ class SettingsScreen extends ConsumerWidget {
                   _SettingsTile(
                     icon: Icons.shield,
                     label: l10n.profilePrivacy,
-                    onTap: () {},
+                    enabled: false,
                   ),
                   const Divider(),
                   _SettingsTile(
@@ -181,12 +183,17 @@ class _SettingsTile extends StatelessWidget {
     required this.label,
     this.onTap,
     this.destructive = false,
+    this.enabled = true,
   });
 
   final IconData icon;
   final String label;
   final VoidCallback? onTap;
   final bool destructive;
+
+  /// U-26: placeholder rows render disabled (semantics + muted treatment) —
+  /// an enabled row with no action fails 2.1.1/4.1.2.
+  final bool enabled;
 
   @override
   Widget build(BuildContext context) {
@@ -195,6 +202,7 @@ class _SettingsTile extends StatelessWidget {
       // 16px card padding — zero content padding keeps the row metrics
       // identical to the pre-grouping flat list.
       contentPadding: EdgeInsets.zero,
+      enabled: enabled,
       leading: Icon(
         icon,
         // §5.2 (U-09): danger rows use the error semantic — glowPink
@@ -206,7 +214,9 @@ class _SettingsTile extends StatelessWidget {
         label,
         style: destructive ? const TextStyle(color: AppColors.error) : null,
       ),
-      trailing: const Icon(Icons.chevron_right),
+      // The chevron is the "navigates elsewhere" affordance — a disabled
+      // row must not show it (U-26).
+      trailing: enabled ? const Icon(Icons.chevron_right) : null,
       onTap: onTap,
     );
   }
@@ -251,19 +261,11 @@ class _ThemeSection extends StatelessWidget {
               ],
               selected: {themeMode},
               onSelectionChanged: (selection) => onChanged(selection.first),
-              // §5.4 chip treatment (U-09): transparent + white unselected,
-              // white fill + black text selected, white side, sharp. Labels
-              // resolve the theme's labelLarge (Inter w700) — token-clean.
-              style: SegmentedButton.styleFrom(
-                backgroundColor: Colors.transparent,
-                foregroundColor: AppColors.white,
-                selectedBackgroundColor: AppColors.white,
-                selectedForegroundColor: AppColors.discoBlack,
-                side: const BorderSide(color: AppColors.white),
-                shape: const RoundedRectangleBorder(
-                  borderRadius: AppRadius.sharp,
-                ),
-              ),
+              // §5.4 chip treatment is theme-owned since U-27 (the
+              // `segmentedButtonTheme` in app_theme.dart): transparent +
+              // white unselected, white fill + black text selected, white
+              // side, sharp. Labels resolve the theme's labelLarge (Inter
+              // w700) — token-clean.
             ),
           ),
         ],

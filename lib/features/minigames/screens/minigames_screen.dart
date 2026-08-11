@@ -8,6 +8,7 @@ import 'package:samay/core/services/minigame_service.dart';
 import 'package:samay/features/minigames/providers/minigames_providers.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/error_view.dart';
+import 'package:samay/shared/widgets/state_views.dart';
 import 'package:samay/shared/widgets/v_button.dart';
 import 'package:samay/shared/widgets/v_chip.dart';
 import 'package:samay/shared/widgets/v_input.dart';
@@ -187,14 +188,18 @@ class _MinigamesScreenState extends ConsumerState<MinigamesScreen> {
     AsyncValue<List<Map<String, dynamic>>> sessions,
   ) {
     return sessions.when(
-      loading: () => const Center(child: CircularProgressIndicator()),
+      loading: () => const VLoadingView(),
       error: (error, _) => ErrorView(
         message: l10n.minigamesErrorLoad,
         onRetry: () =>
             ref.read(minigameSessionsProvider(widget.groupId).notifier).refresh(),
       ),
       data: (rows) => rows.isEmpty
-          ? _EmptyState(l10n: l10n)
+          ? VEmptyView(
+              icon: Icons.sports_esports,
+              title: l10n.minigamesEmpty,
+              description: l10n.minigamesEmptyBody,
+            )
           : ListView.separated(
               itemCount: rows.length,
               separatorBuilder: (_, _) =>
@@ -351,39 +356,3 @@ class _SessionCard extends StatelessWidget {
   }
 }
 
-class _EmptyState extends StatelessWidget {
-  final AppLocalizations l10n;
-
-  const _EmptyState({required this.l10n});
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.xl),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(
-              Icons.sports_esports,
-              size: AppIconSizes.xxl,
-              color: AppColors.border,
-            ),
-            const SizedBox(height: AppSpacing.lg),
-            Text(
-              l10n.minigamesEmpty,
-              style: Theme.of(context).textTheme.headlineSmall,
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            Text(
-              l10n.minigamesEmptyBody,
-              textAlign: TextAlign.center,
-              style: const TextStyle(color: AppColors.mutedStrong),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}

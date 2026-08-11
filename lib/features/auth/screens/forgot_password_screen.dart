@@ -5,6 +5,7 @@ import 'package:samay/core/providers/auth_provider.dart';
 import 'package:samay/core/router/route_paths.dart';
 import 'package:samay/core/utils/form_validators.dart' as form_validators;
 import 'package:samay/l10n/app_localizations.dart';
+import 'package:samay/shared/widgets/v_breathing_glow.dart';
 import 'package:samay/shared/widgets/v_button.dart';
 import 'package:samay/shared/widgets/v_input.dart';
 
@@ -88,9 +89,11 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
   List<Widget> _formContent(AsyncValue<AuthState> auth, AppLocalizations l10n) {
     return [
       const SizedBox(height: 32),
-      // §3.2 auth big header — Playfair Display italic 40 with the glow.
-      Text(
-        l10n.authForgotPasswordHeading,
+      // §3.2 auth big header — Playfair Display italic 40 with the glow,
+      // breathed by U-18's §6.2 disco-glow animation (auth headers are in
+      // §6.2's breathing scope; reduced-motion → static full-α glow).
+      VBreathingGlow(
+        text: l10n.authForgotPasswordHeading,
         style: Theme.of(context).textTheme.displayMedium,
       ),
       const SizedBox(height: 8),
@@ -128,8 +131,10 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
   List<Widget> _successContent(AppLocalizations l10n, String email) {
     return [
       const SizedBox(height: 32),
-      Text(
-        l10n.authForgotPasswordSuccessTitle,
+      // The success state keeps the same breathing auth header (one
+      // breathing element per screen, §6.2).
+      VBreathingGlow(
+        text: l10n.authForgotPasswordSuccessTitle,
         style: Theme.of(context).textTheme.displayMedium,
       ),
       const SizedBox(height: 8),

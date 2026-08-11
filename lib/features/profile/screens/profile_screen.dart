@@ -11,6 +11,7 @@ import 'package:samay/features/profile/providers/profile_providers.dart';
 import 'package:samay/features/profile/widgets/profile_avatar.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/error_view.dart';
+import 'package:samay/shared/widgets/skeletons.dart';
 import 'package:samay/shared/widgets/state_views.dart';
 import 'package:samay/shared/widgets/v_card.dart';
 import 'package:samay/shared/widgets/v_shard_icon.dart';
@@ -61,14 +62,22 @@ class ProfileScreen extends ConsumerWidget {
       appBar: AppBar(
         title: Text(l10n.profileTitle),
         actions: [
+          // U-26 (4.1.2): the gear is icon-only — the tooltip is its
+          // accessibility name for screen readers.
           IconButton(
             icon: const Icon(Icons.settings),
+            tooltip: l10n.profileSettingsTitle,
             onPressed: () => context.push(RoutePaths.settings),
           ),
         ],
       ),
       body: showLoading
-          ? const Center(child: CircularProgressIndicator())
+          // U-22 handoff (U-23): the profile hero loads with the
+          // `VSkeletonProfile` skeleton (avatar circle + name/handle/body
+          // lines, §5.8/§6.3) instead of the bare spinner — the screen has
+          // real geometry to mirror (the U-21 `VLoadingView` was the only
+          // remaining default here).
+          ? const VSkeletonProfile()
           : error != null
           ? ErrorView(
               message: error.toAppError().message,
@@ -125,10 +134,9 @@ class ProfileScreen extends ConsumerWidget {
                       profile['bio'] as String,
                       // §2.4: secondary text at body size must be
                       // mutedStrong (7.37:1 AA) — never muted.
-                      style: Theme.of(context)
-                          .textTheme
-                          .bodyMedium
-                          ?.copyWith(color: AppColors.mutedStrong),
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: AppColors.mutedStrong,
+                      ),
                     ),
                   ],
                   const SizedBox(height: 32),
@@ -146,29 +154,25 @@ class ProfileScreen extends ConsumerWidget {
                           title: l10n.profileNoGroupsYet,
                           description: l10n.profileNoGroupsHint,
                         )
-                      : SizedBox(
-                          height: 120,
-                          child: ListView.separated(
-                            itemCount: groups.length,
-                            // §5 ListTiles hairline (U-09): tiles are
-                            // separated by 1px `hairline #1A1A1A` rules
-                            // (the U-04 dividerTheme).
-                            separatorBuilder: (_, _) =>
-                                const Divider(height: 1),
-                            itemBuilder: (context, index) {
-                              final g = groups[index];
-                              return ListTile(
-                                dense: true,
-                                leading: const Icon(Icons.group, size: 20),
-                                title: Text(g['name'] as String? ?? ''),
-                                trailing: Text(
-                                  l10n.groupsShardsCountShort(
-                                    (g['group_shards'] as num?)?.toInt() ?? 0,
-                                  ),
+                      : Column(
+                          children: [
+                            // U-19: the fixed-height 120px nested box
+                            // (U-09 flag) is gone — §7.3 forbids hard
+                            // heights on text containers. The tiles now
+                            // render inline so every row grows with the
+                            // text scale and the outer ListView scrolls
+                            // naturally (no inner viewport, no clipping).
+                            for (var i = 0; i < groups.length; i++)
+                              _GroupTile(
+                                name: groups[i]['name'] as String? ?? '',
+                                shards: l10n.groupsShardsCountShort(
+                                  (groups[i]['group_shards'] as num?)
+                                          ?.toInt() ??
+                                      0,
                                 ),
-                              );
-                            },
-                          ),
+                                showDivider: i > 0,
+                              ),
+                          ],
                         ),
                   // PRFL cosmetics entry point (I-36 foundation → I-62):
                   // flag-gated (I-49 release gating); the row navigates
@@ -189,6 +193,36 @@ class ProfileScreen extends ConsumerWidget {
                 ],
               ),
             ),
+    );
+  }
+}
+
+/// One profile-groups row (PERF-08: const sub-widget — the U-19 inline
+/// replacement of the fixed-height nested list; the hairline divider sits
+/// above every row except the first, matching the old `ListView.separated`).
+class _GroupTile extends StatelessWidget {
+  final String name;
+  final String shards;
+  final bool showDivider;
+
+  const _GroupTile({
+    required this.name,
+    required this.shards,
+    required this.showDivider,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        if (showDivider) const Divider(height: 1),
+        ListTile(
+          dense: true,
+          leading: const Icon(Icons.group, size: 20),
+          title: Text(name),
+          trailing: Text(shards),
+        ),
+      ],
     );
   }
 }
@@ -215,20 +249,25 @@ class _BalanceCard extends StatelessWidget {
             // §5.6: the balance card uses the lg 24 gold diamond.
             const VShardIcon(size: AppIconSizes.lg),
             const SizedBox(width: 12),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  l10n.profileShardsCount(personalShards),
-                  style: Theme.of(context).textTheme.bodyLarge,
-                ),
-                Text(
-                  l10n.profilePreshardsCount(preshards),
-                  style: Theme.of(context).textTheme.bodyMedium,
-                ),
-              ],
+            // U-19: the shards column is `Expanded` (§7.3 — the fixed
+            // `Spacer` let the natural-width column overflow the Row at
+            // ≥1.5× text scale; the expanded text wraps instead).
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    l10n.profileShardsCount(personalShards),
+                    style: Theme.of(context).textTheme.bodyLarge,
+                  ),
+                  Text(
+                    l10n.profilePreshardsCount(preshards),
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                ],
+              ),
             ),
-            const Spacer(),
+            const SizedBox(width: 8),
             const Icon(Icons.chevron_right, size: 20),
           ],
         ),

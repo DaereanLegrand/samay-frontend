@@ -56,47 +56,62 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
 
     return Scaffold(
       appBar: AppBar(title: Text(l10n.authCompleteProfile)),
-      body: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          children: [
-            const SizedBox(height: 32),
-            CircleAvatar(
-              radius: 48,
-              // §2.1/§5.9: `border #333333` is the avatar-ring/placeholder
-              // tone on black (was Colors.grey[800]).
-              backgroundColor: AppColors.border,
-              child: IconButton(
-                icon: const Icon(Icons.camera_alt, size: AppIconSizes.xl),
-                onPressed: () {},
+      // §7.3: scroll-safe body (the OTP pattern, U-07) — the fixed Column
+      // overflows at ≥1.5× text scale on small phones; pins the CTA when
+      // the content fits and scrolls when it doesn't. Never clip.
+      body: LayoutBuilder(
+        builder: (context, constraints) => SingleChildScrollView(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minHeight: constraints.maxHeight),
+            child: IntrinsicHeight(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  children: [
+                    const SizedBox(height: 32),
+                    CircleAvatar(
+                      radius: 48,
+                      // §2.1/§5.9: `border #333333` is the avatar-ring/
+                      // placeholder tone on black (was Colors.grey[800]).
+                      backgroundColor: AppColors.border,
+                      child: IconButton(
+                        icon: const Icon(
+                          Icons.camera_alt,
+                          size: AppIconSizes.xl,
+                        ),
+                        onPressed: () {},
+                      ),
+                    ),
+                    const SizedBox(height: 32),
+                    VInput(
+                      controller: _usernameController,
+                      label: l10n.commonUsername,
+                      hint: l10n.authUsernameHint,
+                      // §5.2: the server error rides the username field as
+                      // `errorText` (glowPink — never raw red on black).
+                      errorText: auth.hasError ? auth.errorMessage : null,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      l10n.authUsernameImmutable,
+                      // §2.4/§3.3: informational caption = bodySmall in
+                      // mutedStrong (7.37:1 AA — was grey[500]).
+                      style: AppTypography.bodySmall.copyWith(
+                        color: AppColors.mutedStrong,
+                      ),
+                    ),
+                    const Spacer(),
+                    VButton.emphasized(
+                      label: l10n.commonSave,
+                      loading: _saving || auth.isLoading,
+                      onPressed: _save,
+                    ),
+                    const SizedBox(height: 32),
+                  ],
+                ),
               ),
             ),
-            const SizedBox(height: 32),
-            VInput(
-              controller: _usernameController,
-              label: l10n.commonUsername,
-              hint: l10n.authUsernameHint,
-              // §5.2: the server error rides the username field as
-              // `errorText` (glowPink — never raw red on black).
-              errorText: auth.hasError ? auth.errorMessage : null,
-            ),
-            const SizedBox(height: 4),
-            Text(
-              l10n.authUsernameImmutable,
-              // §2.4/§3.3: informational caption = bodySmall in
-              // mutedStrong (7.37:1 AA — was grey[500]).
-              style: AppTypography.bodySmall.copyWith(
-                color: AppColors.mutedStrong,
-              ),
-            ),
-            const Spacer(),
-            VButton.emphasized(
-              label: l10n.commonSave,
-              loading: _saving || auth.isLoading,
-              onPressed: _save,
-            ),
-            const SizedBox(height: 32),
-          ],
+          ),
         ),
       ),
     );

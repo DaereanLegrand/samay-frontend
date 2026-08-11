@@ -5,6 +5,8 @@ import 'package:samay/core/providers/auth_provider.dart';
 import 'package:samay/core/services/chat_service.dart';
 import 'package:samay/features/chat/providers/chat_providers.dart';
 import 'package:samay/l10n/app_localizations.dart';
+import 'package:samay/shared/widgets/error_view.dart';
+import 'package:samay/shared/widgets/state_views.dart';
 import 'package:samay/shared/widgets/v_button.dart';
 import 'package:samay/shared/widgets/v_input.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' show RealtimeChannel;
@@ -98,20 +100,17 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         children: [
           Expanded(
             child: messages.when(
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (error, _) => Center(
-                child: Text(
-                  l10n.chatLoadError,
-                  style: const TextStyle(color: AppColors.muted),
-                ),
+              loading: () => const VLoadingView(),
+              error: (error, _) => ErrorView(
+                message: l10n.chatLoadError,
+                onRetry: () =>
+                    ref.invalidate(chatMessagesProvider(widget.chatId)),
               ),
               data: (state) {
                 if (state.messages.isEmpty) {
-                  return Center(
-                    child: Text(
-                      l10n.chatEmpty,
-                      style: const TextStyle(color: AppColors.muted),
-                    ),
+                  return VEmptyView(
+                    icon: Icons.chat_bubble_outline,
+                    title: l10n.chatEmpty,
                   );
                 }
                 final showHeader = state.hasMore || state.loadingOlder;
@@ -215,13 +214,18 @@ class _MessageBubble extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         decoration: BoxDecoration(
           color: bubbleColor,
-          borderRadius: BorderRadius.circular(16),
+          // U-25 (§4.2): every component radius = 0 — the 16px bubble pill
+          // was the pre-disco Material default; the white 1px border + the
+          // left/right alignment carry the bubble signal (§7.2).
+          borderRadius: BorderRadius.zero,
           border: Border.all(color: AppColors.white),
         ),
         child: Text(
           text,
           style: TextStyle(
-            color: decryptFailed ? AppColors.muted : textColor,
+            // §2.4: informational text is mutedStrong (#999999 AA) — `muted`
+            // #666666 fails 1.4.3 at normal size.
+            color: decryptFailed ? AppColors.mutedStrong : textColor,
             fontStyle: decryptFailed ? FontStyle.italic : FontStyle.normal,
           ),
         ),

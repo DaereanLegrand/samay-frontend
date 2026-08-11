@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:go_router/go_router.dart';
 
 /// Typed, validated navigation extras for parameterized routes.
@@ -6,6 +8,12 @@ import 'package:go_router/go_router.dart';
 /// router never performs unsafe casts on `state.extra` (finding NAV-04 / H-04).
 /// Factories return `null` on missing/invalid data instead of throwing; callers
 /// render a safe fallback (see `RouteErrorScreen`).
+///
+/// Value equality: the classes implement `==`/`hashCode` on their fields so a
+/// go_router configuration re-parsed from the engine state (which carries the
+/// extras through [RouteExtraCodec]) compares equal to the current one — the
+/// delegate's `setNewRoutePath` early-returns and the pushed screens keep
+/// their state (U-29 smoke finding, see [RouteExtraCodec]).
 sealed class RouteExtra {
   const RouteExtra();
 }
@@ -37,6 +45,15 @@ class VerifyExtra extends RouteExtra {
     if (email == null || password == null) return null;
     return VerifyExtra(email: email, password: password);
   }
+
+  @override
+  bool operator ==(Object other) =>
+      other is VerifyExtra &&
+      other.email == email &&
+      other.password == password;
+
+  @override
+  int get hashCode => Object.hash(email, password);
 }
 
 /// Payload for [RoutePaths.privacyTerms] — email and date of birth carried
@@ -59,6 +76,15 @@ class PrivacyTermsExtra extends RouteExtra {
     if (email == null || dateOfBirth == null) return null;
     return PrivacyTermsExtra(email: email, dateOfBirth: dateOfBirth);
   }
+
+  @override
+  bool operator ==(Object other) =>
+      other is PrivacyTermsExtra &&
+      other.email == email &&
+      other.dateOfBirth == dateOfBirth;
+
+  @override
+  int get hashCode => Object.hash(email, dateOfBirth);
 }
 
 /// Payload for [RoutePaths.profileSetup] — email and date of birth carried
@@ -81,6 +107,15 @@ class ProfileSetupExtra extends RouteExtra {
     if (email == null || dateOfBirth == null) return null;
     return ProfileSetupExtra(email: email, dateOfBirth: dateOfBirth);
   }
+
+  @override
+  bool operator ==(Object other) =>
+      other is ProfileSetupExtra &&
+      other.email == email &&
+      other.dateOfBirth == dateOfBirth;
+
+  @override
+  int get hashCode => Object.hash(email, dateOfBirth);
 }
 
 /// Payload for [RoutePaths.ageGate] — the signup email. The age-gate screen
@@ -101,6 +136,75 @@ class AgeGateExtra extends RouteExtra {
     final email = _stringField(extra, 'email');
     if (email == null) return null;
     return AgeGateExtra(email: email);
+  }
+
+  @override
+  bool operator ==(Object other) =>
+      other is AgeGateExtra && other.email == email;
+
+  @override
+  int get hashCode => email.hashCode;
+}
+
+/// GoRouter's `extraCodec` — round-trips the typed [RouteExtra]s through the
+/// engine's route-information state (U-29 smoke finding).
+///
+/// go_router serializes pushed-page extras into the engine state on every
+/// route report and RE-PARSES that state on every `refresh()` — the auth
+/// guard's `refreshListenable` fires on every auth-state emission. WITHOUT a
+/// codec, a non-JSON extra (any typed [RouteExtra]) is encoded as `null`, so
+/// the re-parse rebuilds pushed routes with a null extra → `RouteErrorScreen`
+/// ("Faltan los datos del registro") — the OTP screen flipped to the error
+/// screen the moment `verifyOtp` emitted its `AsyncLoading` state.
+///
+/// With the codec AND the extras' value equality, the re-parsed configuration
+/// equals the current one and go_router's `setNewRoutePath` early-returns: no
+/// rebuild, the pushed screens keep their state (counter, consents, form).
+/// JSON-able extras (null, plain maps, the donate-shards group name) pass
+/// through untouched.
+class RouteExtraCodec extends Codec<Object?, Object?> {
+  const RouteExtraCodec();
+
+  @override
+  Converter<Object?, Object?> get encoder => const _RouteExtraEncoder();
+
+  @override
+  Converter<Object?, Object?> get decoder => const _RouteExtraDecoder();
+}
+
+class _RouteExtraEncoder extends Converter<Object?, Object?> {
+  const _RouteExtraEncoder();
+
+  @override
+  Object? convert(Object? extra) {
+    return switch (extra) {
+      VerifyExtra(:final email, :final password) =>
+        {'type': 'verify', 'email': email, 'password': password},
+      AgeGateExtra(:final email) => {'type': 'ageGate', 'email': email},
+      PrivacyTermsExtra(:final email, :final dateOfBirth) =>
+        {'type': 'privacyTerms', 'email': email, 'dateOfBirth': dateOfBirth},
+      ProfileSetupExtra(:final email, :final dateOfBirth) =>
+        {'type': 'profileSetup', 'email': email, 'dateOfBirth': dateOfBirth},
+      _ => extra,
+    };
+  }
+}
+
+class _RouteExtraDecoder extends Converter<Object?, Object?> {
+  const _RouteExtraDecoder();
+
+  @override
+  Object? convert(Object? encoded) {
+    if (encoded is! Map) return encoded;
+    // The typed classes parse their own legacy-map form; the `type` marker
+    // picks the class. Unmarked maps pass through untouched.
+    return switch (encoded['type']) {
+      'verify' => VerifyExtra.fromObject(encoded),
+      'ageGate' => AgeGateExtra.fromObject(encoded),
+      'privacyTerms' => PrivacyTermsExtra.fromObject(encoded),
+      'profileSetup' => ProfileSetupExtra.fromObject(encoded),
+      _ => encoded,
+    };
   }
 }
 

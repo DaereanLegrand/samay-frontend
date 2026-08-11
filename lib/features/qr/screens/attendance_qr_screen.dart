@@ -11,6 +11,7 @@ import 'package:samay/features/events/providers/events_providers.dart';
 import 'package:samay/features/qr/providers/qr_providers.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/error_view.dart';
+import 'package:samay/shared/widgets/state_views.dart';
 import 'package:samay/shared/widgets/v_button.dart';
 
 /// Activation-window minutes (`qr.activation_minutes_before`, seed 30) — the
@@ -134,7 +135,7 @@ class _AttendanceQrScreenState extends ConsumerState<AttendanceQrScreen> {
     final displayWindow = ref.watch(qrDisplayWindowProvider).valueOrNull ?? 15;
 
     return eventAsync.when(
-      loading: () => _scaffold(l10n, const Center(child: CircularProgressIndicator())),
+      loading: () => _scaffold(l10n, const VLoadingView()),
       error: (e, _) => _scaffold(
         l10n,
         ErrorView(
@@ -143,7 +144,7 @@ class _AttendanceQrScreenState extends ConsumerState<AttendanceQrScreen> {
         ),
       ),
       data: (event) => tokenAsync.when(
-        loading: () => _scaffold(l10n, const Center(child: CircularProgressIndicator())),
+        loading: () => _scaffold(l10n, const VLoadingView()),
         error: (e, _) => _scaffold(
           l10n,
           ErrorView(
@@ -435,7 +436,9 @@ class _MessageState extends StatelessWidget {
             ],
             if (action != null) ...[
               const SizedBox(height: AppSpacing.xl),
-              SizedBox(width: 200, child: action),
+              ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 320),
+                  child: action),
             ],
           ],
         ),

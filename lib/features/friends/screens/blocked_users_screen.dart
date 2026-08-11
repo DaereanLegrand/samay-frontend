@@ -12,8 +12,12 @@ import 'package:samay/shared/widgets/v_refreshable.dart';
 class BlockedUsersScreen extends ConsumerWidget {
   const BlockedUsersScreen({super.key});
 
-  String _initials(Map<String, dynamic> user) =>
-      (user['username'] as String? ?? '?').substring(0, 1).toUpperCase();
+  // U-26 (U-24 F3): an empty (non-null) username would RangeError on
+  // substring — the '?' initial fallback.
+  String _initials(Map<String, dynamic> user) {
+    final username = user['username'] as String? ?? '';
+    return username.isEmpty ? '?' : username.substring(0, 1).toUpperCase();
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -35,10 +39,7 @@ class BlockedUsersScreen extends ConsumerWidget {
         onRetry: onRefresh,
         empty: VRefreshable(
           onRefresh: onRefresh,
-          child: VEmptyView(
-            icon: Icons.block,
-            title: l10n.friendsNoneBlocked,
-          ),
+          child: VEmptyView(icon: Icons.block, title: l10n.friendsNoneBlocked),
         ),
         child: blocked == null || blocked.isEmpty
             ? null
@@ -57,7 +58,6 @@ class BlockedUsersScreen extends ConsumerWidget {
                         imageUrl: u['avatar_url'] as String?,
                       ),
                       title: Text('@${u['username']}'),
-                      subtitle: Text('@${u['username']}'),
                       trailing: TextButton(
                         onPressed: () async {
                           await ref

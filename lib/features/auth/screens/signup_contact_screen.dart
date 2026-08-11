@@ -11,6 +11,7 @@ import 'package:samay/core/router/route_paths.dart';
 import 'package:samay/features/auth/logic/password_policy.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/show_app_error.dart';
+import 'package:samay/shared/widgets/v_breathing_glow.dart';
 import 'package:samay/shared/widgets/v_button.dart';
 import 'package:samay/shared/widgets/v_input.dart';
 
@@ -107,60 +108,75 @@ class _SignupContactScreenState extends ConsumerState<SignupContactScreen> {
 
     return Scaffold(
       appBar: AppBar(title: Text(l10n.commonCreateAccount)),
-      body: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          children: [
-            const SizedBox(height: 32),
-            // §3.2 auth big header — Playfair Display italic 40 with the glow
-            // (baked into the theme's displayMedium role).
-            Text(
-              l10n.authCreateYourAccount,
-              style: Theme.of(context).textTheme.displayMedium,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              l10n.authSignupSubtitle,
-              style: Theme.of(context).textTheme.bodyMedium,
-            ),
-            const SizedBox(height: 32),
-            VInput(
-              controller: _emailController,
-              label: l10n.commonEmail,
-              keyboardType: TextInputType.emailAddress,
-            ),
-            const SizedBox(height: 16),
-            VInput(
-              controller: _passwordController,
-              label: l10n.authPasswordWithRequirements,
-              obscureText: true,
-              // §5.2: validation errors ride the fields as `errorText`
-              // (glowPink — never raw red on black).
-              errorText: _passwordError,
-            ),
-            const SizedBox(height: 16),
-            VInput(
-              controller: _confirmController,
-              label: l10n.commonConfirmPassword,
-              obscureText: true,
-              errorText: _confirmError,
-            ),
-            if (auth.hasError)
-              Padding(
-                padding: const EdgeInsets.only(top: 16),
-                child: Text(
-                  auth.errorMessage!,
-                  style: const TextStyle(color: AppColors.error),
+      // §7.3: scroll-safe body (the OTP pattern, U-07) — the fixed Column
+      // overflows at ≥1.5× text scale on small phones; pins the CTA when
+      // the content fits and scrolls when it doesn't. Never clip.
+      body: LayoutBuilder(
+        builder: (context, constraints) => SingleChildScrollView(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minHeight: constraints.maxHeight),
+            child: IntrinsicHeight(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  children: [
+                    const SizedBox(height: 32),
+                    // §3.2 auth big header — Playfair Display italic 40 with
+                    // the glow, breathed by U-18's §6.2 disco-glow animation
+                    // (auth headers are in §6.2's breathing scope; this was
+                    // U-18's flagged gap — closed by U-23; reduced-motion →
+                    // static full-α glow).
+                    VBreathingGlow(
+                      text: l10n.authCreateYourAccount,
+                      style: Theme.of(context).textTheme.displayMedium,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      l10n.authSignupSubtitle,
+                      style: Theme.of(context).textTheme.bodyMedium,
+                    ),
+                    const SizedBox(height: 32),
+                    VInput(
+                      controller: _emailController,
+                      label: l10n.commonEmail,
+                      keyboardType: TextInputType.emailAddress,
+                    ),
+                    const SizedBox(height: 16),
+                    VInput(
+                      controller: _passwordController,
+                      label: l10n.authPasswordWithRequirements,
+                      obscureText: true,
+                      // §5.2: validation errors ride the fields as
+                      // `errorText` (glowPink — never raw red on black).
+                      errorText: _passwordError,
+                    ),
+                    const SizedBox(height: 16),
+                    VInput(
+                      controller: _confirmController,
+                      label: l10n.commonConfirmPassword,
+                      obscureText: true,
+                      errorText: _confirmError,
+                    ),
+                    if (auth.hasError)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 16),
+                        child: Text(
+                          auth.errorMessage!,
+                          style: const TextStyle(color: AppColors.error),
+                        ),
+                      ),
+                    const Spacer(),
+                    VButton.emphasized(
+                      label: l10n.commonCreateAccount,
+                      loading: auth.isLoading || _submitting,
+                      onPressed: _signup,
+                    ),
+                    const SizedBox(height: 32),
+                  ],
                 ),
               ),
-            const Spacer(),
-            VButton.emphasized(
-              label: l10n.commonCreateAccount,
-              loading: auth.isLoading || _submitting,
-              onPressed: _signup,
             ),
-            const SizedBox(height: 32),
-          ],
+          ),
         ),
       ),
     );

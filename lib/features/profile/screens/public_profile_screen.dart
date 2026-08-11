@@ -7,6 +7,7 @@ import 'package:samay/core/providers/service_providers.dart';
 import 'package:samay/core/repositories/repository_providers.dart';
 import 'package:samay/features/profile/widgets/profile_avatar.dart';
 import 'package:samay/l10n/app_localizations.dart';
+import 'package:samay/shared/widgets/skeletons.dart';
 import 'package:samay/shared/widgets/v_button.dart';
 
 class PublicProfileScreen extends ConsumerStatefulWidget {
@@ -35,8 +36,9 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
 
   Future<void> _load() async {
     try {
-      final profile =
-          await ref.read(friendsRepositoryProvider).getUserProfile(widget.userId);
+      final profile = await ref
+          .read(friendsRepositoryProvider)
+          .getUserProfile(widget.userId);
       if (mounted) setState(() => _profile = profile?.toJson());
     } catch (e, st) {
       AppLogger.instance.error('loadPublicProfile error: $e', '$st');
@@ -47,12 +49,16 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
           .read(friendsRepositoryProvider)
           .getFriendshipDetail(widget.userId);
       if (mounted) {
-        final currentUserId =
-            ref.read(authServiceProvider).auth.currentUser?.id;
+        final currentUserId = ref
+            .read(authServiceProvider)
+            .auth
+            .currentUser
+            ?.id;
         setState(() {
           _friendshipStatus = detail?['status'] as String?;
           _friendshipId = detail?['id'] as String?;
-          _isIncoming = detail != null && detail['requester_id'] != currentUserId;
+          _isIncoming =
+              detail != null && detail['requester_id'] != currentUserId;
         });
       }
     } catch (e, st) {
@@ -76,8 +82,9 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
     final l10n = AppLocalizations.of(context);
     setState(() => _sending = true);
     try {
-      final status =
-          await ref.read(friendsRepositoryProvider).sendFriendRequest(widget.userId);
+      final status = await ref
+          .read(friendsRepositoryProvider)
+          .sendFriendRequest(widget.userId);
       if (!mounted) return;
       if (status == 'accepted') {
         // R15 (F5): mutual-accept — the friendship is instant; the dialog
@@ -96,16 +103,16 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
           ),
         );
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(l10n.profileFriendRequestSent)),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(l10n.profileFriendRequestSent)));
       }
       _load();
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.toAppError().message)),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(e.toAppError().message)));
       }
     } finally {
       if (mounted) setState(() => _sending = false);
@@ -121,16 +128,16 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
           .read(friendsRepositoryProvider)
           .acceptFriendRequest(_friendshipId!);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(l10n.profileRequestAccepted)),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(l10n.profileRequestAccepted)));
       }
       _load();
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(l10n.profileAcceptError)),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(l10n.profileAcceptError)));
       }
     } finally {
       if (mounted) setState(() => _sending = false);
@@ -143,24 +150,36 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
     if (_loading) {
       return Scaffold(
         appBar: AppBar(title: Text(l10n.profileTitle)),
-        body: const Center(child: CircularProgressIndicator()),
+        // U-22 handoff (U-23): the public profile mirrors the own-profile
+        // hero — `VSkeletonProfile` (§5.8) during the first load.
+        body: const VSkeletonProfile(),
       );
     }
 
     final p = _profile;
     final username = p?['username'] as String?;
     final bio = p?['bio'] as String?;
-    final initials = (username ?? 'U').substring(0, 1).toUpperCase();
+    // U-26: the empty-string edge (U-24 F3 family) — a non-null '' would
+    // RangeError on substring; '' falls back to the 'U' initial.
+    final initials = (username == null || username.isEmpty)
+        ? 'U'
+        : username.substring(0, 1).toUpperCase();
 
     return Scaffold(
       appBar: AppBar(
         title: Text(username != null ? '@$username' : l10n.profileTitle),
         actions: [
+          // U-26 (4.1.2): the overflow menu is icon-only — the tooltip is
+          // its accessibility name for screen readers.
           PopupMenuButton<String>(
+            tooltip: l10n.commonMoreOptions,
             onSelected: _handleMenuAction,
             itemBuilder: (_) => [
               if (_isBlocked)
-                PopupMenuItem(value: 'unblock', child: Text(l10n.friendsUnblock))
+                PopupMenuItem(
+                  value: 'unblock',
+                  child: Text(l10n.friendsUnblock),
+                )
               else
                 PopupMenuItem(value: 'block', child: Text(l10n.profileBlock)),
               PopupMenuItem(value: 'report', child: Text(l10n.profileReport)),
@@ -171,9 +190,7 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
       body: ListView(
         padding: const EdgeInsets.all(24),
         children: [
-          Center(
-            child: ProfileAvatar(initials: initials),
-          ),
+          Center(child: ProfileAvatar(initials: initials)),
           const SizedBox(height: 16),
           Center(
             child: Text(
@@ -188,10 +205,9 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
             Center(
               child: Text(
                 '@$username',
-                style: Theme.of(context)
-                    .textTheme
-                    .bodyMedium
-                    ?.copyWith(color: AppColors.mutedStrong),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyMedium?.copyWith(color: AppColors.mutedStrong),
               ),
             ),
           ],
@@ -199,10 +215,9 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
           Center(
             child: Text(
               bio != null && bio.isNotEmpty ? bio : l10n.profileNoBio,
-              style: Theme.of(context)
-                  .textTheme
-                  .bodyMedium
-                  ?.copyWith(color: AppColors.mutedStrong),
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(color: AppColors.mutedStrong),
             ),
           ),
           const SizedBox(height: 32),
@@ -214,7 +229,9 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
               if (_friendshipStatus == 'pending' && _friendshipId != null)
                 Expanded(
                   child: VButton(
-                    label: _isIncoming ? l10n.commonReject : l10n.profileCancelRequest,
+                    label: _isIncoming
+                        ? l10n.commonReject
+                        : l10n.profileCancelRequest,
                     onPressed: () async {
                       await ref
                           .read(friendsRepositoryProvider)
@@ -235,10 +252,9 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
             child: Text(
               l10n.profileNoSharedGroups,
               // §5.9 empty state: mutedStrong bodyMedium (U-09).
-              style: Theme.of(context)
-                  .textTheme
-                  .bodyMedium
-                  ?.copyWith(color: AppColors.mutedStrong),
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(color: AppColors.mutedStrong),
             ),
           ),
         ],
@@ -249,10 +265,19 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
   Widget _buildActionButton() {
     final l10n = AppLocalizations.of(context);
     if (_isBlocked) {
-      return VButton.emphasized(label: l10n.friendsStatusBlocked, onPressed: () {});
+      // U-26 (U-23 F3): the status readouts (Bloqueado/Amigos/Solicitado)
+      // are NOT actions — a no-op handler renders them enabled (2.1.1/
+      // 4.1.2 violation); disabled drops them to `muted` per §5.1.
+      return VButton.emphasized(
+        label: l10n.friendsStatusBlocked,
+        onPressed: null,
+      );
     }
     if (_friendshipStatus == 'accepted') {
-      return VButton.emphasized(label: l10n.friendsStatusAccepted, onPressed: () {});
+      return VButton.emphasized(
+        label: l10n.friendsStatusAccepted,
+        onPressed: null,
+      );
     }
     if (_friendshipStatus == 'pending' && _friendshipId != null) {
       if (_isIncoming) {
@@ -263,7 +288,7 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
       } else {
         return VButton.emphasized(
           label: l10n.friendsStatusPending,
-          onPressed: () {},
+          onPressed: null,
         );
       }
     }
@@ -282,9 +307,9 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
       case 'unblock':
         _unblockUser();
       case 'report':
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(l10n.profileReportComingSoon)),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(l10n.profileReportComingSoon)));
     }
   }
 
@@ -293,16 +318,16 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
     try {
       await ref.read(friendsRepositoryProvider).blockUser(widget.userId);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(l10n.profileUserBlocked)),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(l10n.profileUserBlocked)));
       }
       _load();
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(l10n.profileBlockError)),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(l10n.profileBlockError)));
       }
     }
   }
@@ -312,16 +337,16 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
     try {
       await ref.read(friendsRepositoryProvider).unblockUser(widget.userId);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(l10n.profileUserUnblocked)),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(l10n.profileUserUnblocked)));
       }
       _load();
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(l10n.profileUnblockError)),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(l10n.profileUnblockError)));
       }
     }
   }

@@ -7,6 +7,7 @@ import 'package:samay/core/repositories/repository_providers.dart';
 import 'package:samay/features/groups/widgets/member_actions_sheet.dart';
 import 'package:samay/features/profile/widgets/profile_avatar.dart';
 import 'package:samay/l10n/app_localizations.dart';
+import 'package:samay/shared/widgets/state_views.dart';
 import 'package:samay/shared/widgets/v_badge.dart';
 
 class GroupMembersScreen extends ConsumerStatefulWidget {
@@ -73,13 +74,11 @@ class _GroupMembersScreenState extends ConsumerState<GroupMembersScreen> {
     return Scaffold(
       appBar: AppBar(title: Text(l10n.groupsMembersTitle)),
       body: _loading
-          ? const Center(child: CircularProgressIndicator())
+          ? const VLoadingView()
           : _members.isEmpty
-              ? Center(
-                  child: Text(
-                    l10n.groupsNoMembers,
-                    style: const TextStyle(color: Colors.grey),
-                  ),
+              ? VEmptyView(
+                  icon: Icons.people_outline,
+                  title: l10n.groupsNoMembers,
                 )
               : ListView.separated(
                   padding: const EdgeInsets.all(16),

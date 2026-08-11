@@ -68,6 +68,26 @@ Widget _screenForId(
   return builder(id);
 }
 
+/// NAV-08: the shell tab routes build [NoTransitionPage]s — switching tabs
+/// must NOT slide or zoom (Juega uses NoTransitionPage for its shell
+/// children; the tab switch's subtle motion comes from `MainShell`'s
+/// [VTabFade] 150ms fade-in instead — DISCO §6.1 "subtle, fast", U-18).
+/// Pushed routes keep their normal transitions (§6.1 page fade-through is a
+/// separate surface; see the U-18 daily log).
+///
+/// The page keeps go_router's default naming (`state.name ?? state.path`) —
+/// the telemetry observer (I-68) reads `RouteSettings.name`, so a custom
+/// pageBuilder must set it explicitly or tab screens stop reporting
+/// `screen_view` (U-29 integration-suite finding: U-18's custom pages
+/// dropped the name; the telemetry shell flow went red).
+CustomTransitionPage<void> _tabPage(GoRouterState state, Widget child) {
+  return NoTransitionPage(
+    key: state.pageKey,
+    name: state.name ?? state.path,
+    child: child,
+  );
+}
+
 /// EINV (I-66): one `/event/:param` route serves both the event detail (UUID
 /// event ids) and the invite-token deep links (`samay://event/{token}`,
 /// MVP §6.3). The former `/event/:inviteToken` route was SHADOWED by this
@@ -96,12 +116,20 @@ Widget _eventDetailRoute(BuildContext context, GoRouterState state) {
 final routerProvider = Provider<GoRouter>((ref) {
   final authGuard = AuthGuard(ref);
   final authRefresh = AuthRefreshNotifier();
-  ref.listen<AsyncValue<AuthState>>(authStateProvider, (_, _) => authRefresh.refresh());
+  ref.listen<AsyncValue<AuthState>>(
+    authStateProvider,
+    (previous, next) => authRefresh.refresh(),
+  );
   ref.onDispose(authRefresh.dispose);
   return GoRouter(
     initialLocation: RoutePaths.login,
     redirect: authGuard.call,
     refreshListenable: authRefresh,
+    // U-29 smoke finding: auth-state emissions refresh the router, which
+    // re-parses the engine route-information state — without the codec the
+    // pushed typed extras (VerifyExtra/…, the OTP funnel) serialize as null
+    // and the pushed screens flip to RouteErrorScreen. See RouteExtraCodec.
+    extraCodec: const RouteExtraCodec(),
     // I-68: telemetry — every route change reports a `screen_view` event via
     // the TelemetryService (stub mode = no-op with an info log). One observer
     // per navigator (a NavigatorObserver can attach to only one navigator):
@@ -198,31 +226,49 @@ final routerProvider = Provider<GoRouter>((ref) {
           // what makes the knob functional).
           GoRoute(
             path: RoutePaths.mainFeed,
-            builder: (_, _) => const FlagGate(
-              flag: AppFeatureFlag.feed,
-              child: FeedScreen(),
+            pageBuilder: (context, state) => _tabPage(
+              state,
+              const FlagGate(
+                flag: AppFeatureFlag.feed,
+                child: FeedScreen(),
+              ),
             ),
           ),
-          GoRoute(path: RoutePaths.mainGroups, builder: (_, _) => const MyGroupsScreen()),
+          GoRoute(
+            path: RoutePaths.mainGroups,
+            pageBuilder: (context, state) =>
+                _tabPage(state, const MyGroupsScreen()),
+          ),
           GoRoute(
             path: RoutePaths.mainEvents,
-            builder: (context, _) => FlagGate(
-              flag: AppFeatureFlag.events,
-              child: VComingSoonScreen(
-                title: AppLocalizations.of(context).comingSoonEventsTitle,
-                description: AppLocalizations.of(context).comingSoonEventsBody,
-                icon: Icons.event,
+            pageBuilder: (context, state) => _tabPage(
+              state,
+              FlagGate(
+                flag: AppFeatureFlag.events,
+                child: VComingSoonScreen(
+                  title: AppLocalizations.of(context).comingSoonEventsTitle,
+                  description:
+                      AppLocalizations.of(context).comingSoonEventsBody,
+                  icon: Icons.event,
+                ),
               ),
             ),
           ),
           GoRoute(
             path: RoutePaths.mainNotifications,
-            builder: (_, _) => const FlagGate(
-              flag: AppFeatureFlag.notifications,
-              child: NotificationCenterScreen(),
+            pageBuilder: (context, state) => _tabPage(
+              state,
+              const FlagGate(
+                flag: AppFeatureFlag.notifications,
+                child: NotificationCenterScreen(),
+              ),
             ),
           ),
-          GoRoute(path: RoutePaths.mainProfile, builder: (_, _) => const ProfileScreen()),
+          GoRoute(
+            path: RoutePaths.mainProfile,
+            pageBuilder: (context, state) =>
+                _tabPage(state, const ProfileScreen()),
+          ),
         ],
       ),
       GoRoute(

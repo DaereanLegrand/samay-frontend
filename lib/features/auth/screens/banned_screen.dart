@@ -5,6 +5,7 @@ import 'package:samay/core/design_tokens/app_icon_sizes.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/providers/auth_provider.dart';
 import 'package:samay/l10n/app_localizations.dart';
+import 'package:samay/shared/widgets/v_breathing_glow.dart';
 import 'package:samay/shared/widgets/v_button.dart';
 
 /// Terminal screen for suspended accounts (AUTH spec: ban enforcement, I-35).
@@ -24,40 +25,61 @@ class BannedScreen extends ConsumerWidget {
 
     return Scaffold(
       body: SafeArea(
-        child: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(AppSpacing.xl),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.block, size: AppIconSizes.xxl, color: AppColors.white),
-                const SizedBox(height: AppSpacing.xl),
-                Text(
-                  l10n.bannedTitle,
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.displayMedium,
-                ),
-                const SizedBox(height: AppSpacing.lg),
-                Text(
-                  reason != null && reason.isNotEmpty
-                      ? l10n.bannedReasonLabel(reason)
-                      : l10n.bannedDefaultBody,
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context)
-                      .textTheme
-                      .bodyMedium
-                      ?.copyWith(color: AppColors.mutedStrong),
-                ),
-                const SizedBox(height: AppSpacing.xxl),
-                SizedBox(
-                  width: 200,
-                  child: VButton.outlined(
-                    label: l10n.profileSignOut,
-                    onPressed: () =>
-                        ref.read(authStateProvider.notifier).signOut(),
+        // §7.3: scroll-safe body (the OTP pattern, U-07) — a long ban reason
+        // at large text scales overflows the centered column on small
+        // phones; keeps the centered layout when the content fits and
+        // scrolls when it doesn't. Never clip.
+        child: LayoutBuilder(
+          builder: (context, constraints) => SingleChildScrollView(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: constraints.maxHeight),
+              child: IntrinsicHeight(
+                child: Padding(
+                  padding: const EdgeInsets.all(AppSpacing.xl),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(
+                        Icons.block,
+                        size: AppIconSizes.xxl,
+                        color: AppColors.white,
+                      ),
+                      const SizedBox(height: AppSpacing.xl),
+                      // §6.2 auth header in the breathing scope — glow-strong
+                      // displayMedium, α0.75→α1.0 on a 3s alternate
+                      // (reduced-motion → static full-α glow).
+                      VBreathingGlow(
+                        text: l10n.bannedTitle,
+                        style: Theme.of(context).textTheme.displayMedium,
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: AppSpacing.lg),
+                      Text(
+                        reason != null && reason.isNotEmpty
+                            ? l10n.bannedReasonLabel(reason)
+                            : l10n.bannedDefaultBody,
+                        textAlign: TextAlign.center,
+                        style: Theme.of(context)
+                            .textTheme
+                            .bodyMedium
+                            ?.copyWith(color: AppColors.mutedStrong),
+                      ),
+                      const SizedBox(height: AppSpacing.xxl),
+                      // U-19: the sign-out CTA is full-width (max 320) — the
+                      // fixed 200px width clipped long labels at 1.5× scale.
+                      ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 320),
+                        child: VButton.outlined(
+                          label: l10n.profileSignOut,
+                          onPressed: () =>
+                              ref.read(authStateProvider.notifier).signOut(),
+                        ),
+                      ),
+                      const SizedBox(height: AppSpacing.xl),
+                    ],
                   ),
                 ),
-              ],
+              ),
             ),
           ),
         ),

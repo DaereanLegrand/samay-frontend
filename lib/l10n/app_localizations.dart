@@ -236,6 +236,12 @@ abstract class AppLocalizations {
   /// **'Invitar'**
   String get commonInvite;
 
+  /// Accessibility tooltip for icon-only overflow menus
+  ///
+  /// In es, this message translates to:
+  /// **'Más opciones'**
+  String get commonMoreOptions;
+
   /// Welcome screen brand wordmark
   ///
   /// In es, this message translates to:

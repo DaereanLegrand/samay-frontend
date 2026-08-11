@@ -1,12 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
+import 'package:samay/core/theme/samay_durations.dart';
 
-/// One shimmer sweep cycle — DISCO-DESIGN-SYSTEM.md §4.5 `shimmer` 1200ms.
-///
-/// `lib/core/theme/samay_durations.dart` (U-18) is the designated source of
-/// truth for durations; the token is not there yet, so this local const
-/// mirrors the doc value (handoff: U-18 promotes it into `SamayDurations`).
-const Duration _shimmerSweep = Duration(milliseconds: 1200);
+/// One shimmer sweep cycle — DISCO-DESIGN-SYSTEM.md §4.5 `shimmer` 1200ms
+/// (U-18 promoted U-06's local const into `SamayDurations`).
 
 /// Skeleton/shimmer loading (DISCO-DESIGN-SYSTEM.md §5.8/§6.3, owned by
 /// U-06 for the primitive — U-22 composes skeleton screens with it).
@@ -36,7 +33,7 @@ class _VShimmerState extends State<VShimmer>
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(vsync: this, duration: _shimmerSweep);
+    _controller = AnimationController(vsync: this, duration: SamayDurations.shimmer);
     _animation = CurvedAnimation(parent: _controller, curve: Curves.easeInOut);
   }
 

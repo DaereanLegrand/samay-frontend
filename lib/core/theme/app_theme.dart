@@ -107,6 +107,25 @@ class SamayTheme {
         shape: RoundedRectangleBorder(borderRadius: AppRadius.sharp),
         showCheckmark: false,
       ),
+      // Segmented pickers (settings theme selector, U-09 → U-27): the same
+      // §5.4 chip treatment — transparent + white unselected, white fill +
+      // black text selected, white side, sharp. `SegmentedButton.styleFrom`
+      // builds `WidgetStateProperty.fromMap` state maps (value-equal), so
+      // this does NOT break `SamayTheme.dark == SamayTheme.dark` — pinned by
+      // the equality test. Do NOT switch it to `resolveWith` (U-04's
+      // MISTAKE).
+      segmentedButtonTheme: SegmentedButtonThemeData(
+        style: SegmentedButton.styleFrom(
+          backgroundColor: Colors.transparent,
+          foregroundColor: AppColors.white,
+          selectedBackgroundColor: AppColors.white,
+          selectedForegroundColor: AppColors.discoBlack,
+          side: const BorderSide(color: AppColors.white),
+          shape: const RoundedRectangleBorder(
+            borderRadius: AppRadius.sharp,
+          ),
+        ),
+      ),
       // §2.1 `hairline` is the divider color ("Card borders, dividers
       // (decorative)").
       dividerTheme: const DividerThemeData(color: AppColors.hairline),

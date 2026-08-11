@@ -12,6 +12,7 @@ import 'package:samay/core/utils/input_sanitizer.dart';
 import 'package:samay/features/profile/providers/profile_providers.dart';
 import 'package:samay/features/profile/widgets/profile_avatar.dart';
 import 'package:samay/l10n/app_localizations.dart';
+import 'package:samay/shared/widgets/skeletons.dart';
 import 'package:samay/shared/widgets/v_button.dart';
 import 'package:samay/shared/widgets/v_input.dart';
 
@@ -50,8 +51,10 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   @override
   void initState() {
     super.initState();
-    ref.listenManual<AsyncValue<Map<String, dynamic>?>>(myProfileProvider,
-        (_, next) {
+    ref.listenManual<AsyncValue<Map<String, dynamic>?>>(myProfileProvider, (
+      _,
+      next,
+    ) {
       if (next.hasValue && !_bioLoaded) {
         _applyProfile(next.value ?? const <String, dynamic>{});
       }
@@ -66,8 +69,9 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     final username = profile['username']?.toString() ?? '';
     _initials = username.isEmpty
         ? ''
-        : username.substring(0, username.length < 2 ? username.length : 2)
-            .toUpperCase();
+        : username
+              .substring(0, username.length < 2 ? username.length : 2)
+              .toUpperCase();
     if (mounted) setState(() => _loading = false);
   }
 
@@ -118,20 +122,21 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     setState(() => _uploadingAvatar = true);
     try {
       final bytes = await file.readAsBytes();
-      final url =
-          await ref.read(mediaServiceProvider).uploadUserAvatar(userId, bytes);
+      final url = await ref
+          .read(mediaServiceProvider)
+          .uploadUserAvatar(userId, bytes);
       await ref.read(userServiceProvider).updateAvatarUrl(userId, url);
       ref.invalidate(myProfileProvider);
       if (!mounted) return;
       setState(() => _avatarUrl = url);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.profileAvatarUpdatedSnack)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.profileAvatarUpdatedSnack)));
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toAppError().message)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e.toAppError().message)));
     } finally {
       if (mounted) setState(() => _uploadingAvatar = false);
     }
@@ -143,7 +148,9 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     try {
       final user = ref.read(authServiceProvider).auth.currentUser;
       if (user == null) return;
-      await ref.read(userServiceProvider).updateBio(
+      await ref
+          .read(userServiceProvider)
+          .updateBio(
             user.id,
             InputSanitizer.sanitize(
               _bioController.text,
@@ -152,15 +159,15 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
           );
       ref.invalidate(myProfileProvider);
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.profileUpdatedSnack)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.profileUpdatedSnack)));
       context.pop();
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toAppError().message)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e.toAppError().message)));
     } finally {
       if (mounted) setState(() => _saving = false);
     }
@@ -178,7 +185,9 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     return Scaffold(
       appBar: AppBar(title: Text(l10n.profileEditTitle)),
       body: _loading
-          ? const Center(child: CircularProgressIndicator())
+          // U-22 handoff (U-23): the edit screen mirrors the profile hero —
+          // `VSkeletonProfile` (§5.8) stands in during the first load.
+          ? const VSkeletonProfile()
           : ListView(
               padding: const EdgeInsets.all(24),
               children: [
@@ -217,10 +226,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                   ),
                 ),
                 const SizedBox(height: 32),
-                VInput(
-                  controller: _bioController,
-                  label: l10n.profileBio,
-                ),
+                VInput(controller: _bioController, label: l10n.profileBio),
                 const SizedBox(height: 32),
                 VButton.emphasized(
                   label: l10n.profileSaveChanges,
@@ -228,8 +234,11 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                   onPressed: _save,
                 ),
                 const SizedBox(height: 16),
+                // U-26 (U-23 F4): the password-change placeholder renders
+                // disabled — an enabled no-op button fails 2.1.1/4.1.2;
+                // disabled drops to `muted` per §5.1.
                 TextButton(
-                  onPressed: () {},
+                  onPressed: null,
                   child: Text(l10n.profileChangePassword),
                 ),
               ],

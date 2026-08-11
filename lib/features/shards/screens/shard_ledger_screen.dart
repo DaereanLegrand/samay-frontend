@@ -9,6 +9,8 @@ import 'package:samay/features/shards/logic/shard_ledger_formatters.dart';
 import 'package:samay/features/shards/providers/shard_ledger_providers.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/error_view.dart';
+import 'package:samay/shared/widgets/skeletons.dart';
+import 'package:samay/shared/widgets/state_views.dart';
 import 'package:samay/shared/widgets/v_shard_icon.dart';
 
 /// Localized label for a `shard_reason` enum value (SLED display mapping
@@ -128,7 +130,9 @@ class _ShardLedgerScreenState extends ConsumerState<ShardLedgerScreen>
           TabBar(
             controller: _tabController,
             labelColor: AppColors.white,
-            unselectedLabelColor: AppColors.muted,
+            // §2.4: unselected tab labels are informational text at normal
+            // size — muted #666666 fails 1.4.3 (3.66:1); mutedStrong is AA.
+            unselectedLabelColor: AppColors.mutedStrong,
             indicatorColor: AppColors.white,
             tabs: [
               Tab(text: l10n.shardsLedgerTabShards),
@@ -137,7 +141,13 @@ class _ShardLedgerScreenState extends ConsumerState<ShardLedgerScreen>
           ),
           Expanded(
             child: ledgerAsync.when(
-              loading: () => const Center(child: CircularProgressIndicator()),
+              // U-25 (§5.8): the ledger is a list-y first load with nothing
+              // on screen, so the row skeleton stands in (U-22's handoff
+              // named shard_ledger → VSkeletonList). Pull-to-refresh keeps
+              // the list visible — the skeleton only ever replaces a blank
+              // frame.
+              skipLoadingOnRefresh: true,
+              loading: () => const VSkeletonList(),
               error: (error, _) => ErrorView(
                 message: l10n.shardsLedgerLoadError,
                 onRetry: () => ref.read(shardLedgerProvider.notifier).refresh(),
@@ -156,9 +166,10 @@ class _ShardLedgerScreenState extends ConsumerState<ShardLedgerScreen>
     final total = isShards ? ledger.shardTotal : ledger.preshardTotal;
 
     if (entries.isEmpty) {
-      return _EmptyState(
+      return VEmptyView(
+        icon: Icons.receipt_long,
         title: l10n.shardsLedgerEmpty,
-        body: l10n.shardsLedgerEmptyBody,
+        description: l10n.shardsLedgerEmptyBody,
       );
     }
     return RefreshIndicator(
@@ -257,10 +268,7 @@ class _BalanceHeader extends StatelessWidget {
           const SizedBox(height: AppSpacing.sm),
           Text(
             '${l10n.shardsLedgerEarnedNote} ${l10n.shardsLedgerPreshardsNote}',
-            style: const TextStyle(
-              color: AppColors.mutedStrong,
-              fontSize: 12,
-            ),
+            style: const TextStyle(color: AppColors.mutedStrong, fontSize: 12),
           ),
         ],
       ),
@@ -384,40 +392,6 @@ class _LedgerTile extends StatelessWidget {
             ],
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _EmptyState extends StatelessWidget {
-  final String title;
-  final String body;
-
-  const _EmptyState({required this.title, required this.body});
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.xl),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.receipt_long, size: AppIconSizes.xxl, color: AppColors.border),
-            const SizedBox(height: AppSpacing.lg),
-            Text(
-              title,
-              style: Theme.of(context).textTheme.headlineSmall,
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            Text(
-              body,
-              textAlign: TextAlign.center,
-              style: const TextStyle(color: AppColors.mutedStrong),
-            ),
-          ],
-        ),
       ),
     );
   }

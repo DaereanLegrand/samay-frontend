@@ -89,38 +89,50 @@ class _DeleteAccountScreenState extends ConsumerState<DeleteAccountScreen> {
 
     return Scaffold(
       appBar: AppBar(title: Text(l10n.profileDeleteTitle)),
-      body: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 16),
-            Text(
-              l10n.profileDeleteExplanation,
-              style: Theme.of(context).textTheme.bodyLarge,
+      // §7.3: scroll-safe body (the OTP pattern, U-07) — the fixed Column
+      // overflows at ≥1.5× text scale on small phones; pins the CTA when
+      // the content fits and scrolls when it doesn't. Never clip.
+      body: LayoutBuilder(
+        builder: (context, constraints) => SingleChildScrollView(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minHeight: constraints.maxHeight),
+            child: IntrinsicHeight(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(height: 16),
+                    Text(
+                      l10n.profileDeleteExplanation,
+                      style: Theme.of(context).textTheme.bodyLarge,
+                    ),
+                    const SizedBox(height: 24),
+                    Text(
+                      l10n.profileConfirmEmail,
+                      style: Theme.of(context).textTheme.bodyMedium,
+                    ),
+                    const SizedBox(height: 12),
+                    VInput(
+                      controller: _emailController,
+                      label: l10n.commonEmail,
+                      keyboardType: TextInputType.emailAddress,
+                    ),
+                    const Spacer(),
+                    // §5.1 danger CTA (U-09): the glowAccent *outline* — pink
+                    // 1px border + pink label; the danger is a function, not
+                    // a brand moment, so no pink fill. Disabled (empty email)
+                    // drops to `muted` per the VButton disabled state.
+                    VButton.glowAccent(
+                      label: l10n.profileDeleteTitle,
+                      onPressed: emailFilled ? _delete : null,
+                    ),
+                    const SizedBox(height: 32),
+                  ],
+                ),
+              ),
             ),
-            const SizedBox(height: 24),
-            Text(
-              l10n.profileConfirmEmail,
-              style: Theme.of(context).textTheme.bodyMedium,
-            ),
-            const SizedBox(height: 12),
-            VInput(
-              controller: _emailController,
-              label: l10n.commonEmail,
-              keyboardType: TextInputType.emailAddress,
-            ),
-            const Spacer(),
-            // §5.1 danger CTA (U-09): the glowAccent *outline* — pink 1px
-            // border + pink label; the danger is a function, not a brand
-            // moment, so no pink fill. Disabled (empty email) drops to
-            // `muted` per the VButton disabled state.
-            VButton.glowAccent(
-              label: l10n.profileDeleteTitle,
-              onPressed: emailFilled ? _delete : null,
-            ),
-            const SizedBox(height: 32),
-          ],
+          ),
         ),
       ),
     );

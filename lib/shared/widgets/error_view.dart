@@ -46,8 +46,10 @@ class ErrorView extends StatelessWidget {
             ),
             if (onRetry != null) ...[
               const SizedBox(height: AppSpacing.xl),
-              SizedBox(
-                width: 200,
+              // U-19: full-width CTA capped at 320 — the fixed 200px width
+              // clipped long labels at 1.5× text scale (§7.3).
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 320),
                 child: VButton.outlined(
                   label: retryLabel ?? l10n.commonRetry,
                   onPressed: onRetry,

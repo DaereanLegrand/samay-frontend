@@ -10,6 +10,7 @@ import 'package:samay/core/router/route_extras.dart';
 import 'package:samay/core/router/route_paths.dart';
 import 'package:samay/core/utils/otp_format.dart';
 import 'package:samay/l10n/app_localizations.dart';
+import 'package:samay/shared/widgets/v_breathing_glow.dart';
 import 'package:samay/shared/widgets/v_button.dart';
 
 class OtpVerificationScreen extends ConsumerStatefulWidget {
@@ -182,9 +183,12 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
                 child: Column(
                   children: [
                     const SizedBox(height: 32),
-                    // §3.2 auth big header — Playfair Display italic 40 with the glow.
-                    Text(
-                      l10n.authEnterVerificationCode,
+                    // §3.2 auth big header — Playfair Display italic 40 with
+                    // the glow, breathed by U-18's §6.2 disco-glow animation
+                    // (auth headers are in §6.2's breathing scope;
+                    // reduced-motion → static full-α glow).
+                    VBreathingGlow(
+                      text: l10n.authEnterVerificationCode,
                       style: Theme.of(context).textTheme.displayMedium,
                     ),
                     const SizedBox(height: 8),

@@ -11,6 +11,7 @@ import 'package:samay/core/providers/service_providers.dart';
 import 'package:samay/features/notifications/providers/notifications_providers.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/error_view.dart';
+import 'package:samay/shared/widgets/skeletons.dart';
 import 'package:samay/shared/widgets/state_views.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' show RealtimeChannel;
 
@@ -78,9 +79,9 @@ class _NotificationCenterScreenState
       final channel = await ref
           .read(notificationServiceProvider)
           .subscribeToNotifications((row) {
-        if (!mounted) return;
-        ref.read(notificationsProvider.notifier).addNotification(row);
-      });
+            if (!mounted) return;
+            ref.read(notificationsProvider.notifier).addNotification(row);
+          });
       if (!mounted) return;
       _channel = channel;
     } catch (_) {
@@ -119,11 +120,15 @@ class _NotificationCenterScreenState
         ],
       ),
       body: notifications.when(
-        loading: () => const VLoadingView(),
+        // U-22 (§5.8): the first load shows the avatar+lines skeleton
+        // instead of the bare spinner; pull-to-refresh keeps the list
+        // visible (skipLoadingOnRefresh — the skeleton only ever stands in
+        // when there is nothing on screen).
+        skipLoadingOnRefresh: true,
+        loading: () => const VSkeletonList(),
         error: (error, _) => ErrorView(
           message: l10n.notificationsLoadError,
-          onRetry: () =>
-              ref.read(notificationsProvider.notifier).refresh(),
+          onRetry: () => ref.read(notificationsProvider.notifier).refresh(),
         ),
         data: (items) => items.isEmpty
             ? VEmptyView(
@@ -137,8 +142,11 @@ class _NotificationCenterScreenState
                 child: ListView.separated(
                   physics: const AlwaysScrollableScrollPhysics(),
                   itemCount: items.length,
-                  separatorBuilder: (_, _) =>
-                      const Divider(height: 1, thickness: 1, color: AppColors.hairline),
+                  separatorBuilder: (_, _) => const Divider(
+                    height: 1,
+                    thickness: 1,
+                    color: AppColors.hairline,
+                  ),
                   itemBuilder: (context, index) {
                     final item = items[index];
                     return _NotificationTile(
