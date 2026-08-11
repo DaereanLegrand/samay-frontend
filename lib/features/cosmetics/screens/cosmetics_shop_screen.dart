@@ -280,7 +280,7 @@ class _EmptyCatalog extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.style_outlined, size: 48, color: AppColors.muted),
+            const Icon(Icons.style_outlined, size: 48, color: AppColors.muted),
             const SizedBox(height: 16),
             Text(
               l10n.cosmeticsEmptyCatalog,

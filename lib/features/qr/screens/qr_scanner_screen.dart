@@ -336,11 +336,11 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen> {
                     errorBuilder: (context, error, child) => _cameraError(l10n),
                   ),
             // Scan frame + prompts (QRSC overlay spec).
-            IgnorePointer(
+            const IgnorePointer(
               child: Center(
                 child: CustomPaint(
-                  size: const Size(280, 280),
-                  painter: const _ScanFramePainter(),
+                  size: Size(280, 280),
+                  painter: _ScanFramePainter(),
                 ),
               ),
             ),

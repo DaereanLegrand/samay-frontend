@@ -403,7 +403,7 @@ class _EmptyState extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.receipt_long, size: AppIconSizes.xxl, color: AppColors.border),
+            const Icon(Icons.receipt_long, size: AppIconSizes.xxl, color: AppColors.border),
             const SizedBox(height: AppSpacing.lg),
             Text(
               title,

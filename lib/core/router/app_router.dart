@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:samay/core/feature_flags.dart';
+import 'package:samay/core/config/feature_flags.dart';
 import 'package:samay/core/providers/auth_provider.dart';
 import 'package:samay/core/router/auth_guard.dart';
 import 'package:samay/core/router/auth_refresh_notifier.dart';
@@ -190,9 +190,9 @@ final routerProvider = Provider<GoRouter>((ref) {
           // what makes the knob functional).
           GoRoute(
             path: RoutePaths.mainFeed,
-            builder: (_, _) => FlagGate(
+            builder: (_, _) => const FlagGate(
               flag: AppFeatureFlag.feed,
-              child: const FeedScreen(),
+              child: FeedScreen(),
             ),
           ),
           GoRoute(path: RoutePaths.mainGroups, builder: (_, _) => const MyGroupsScreen()),
@@ -208,9 +208,9 @@ final routerProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: RoutePaths.mainNotifications,
-            builder: (_, _) => FlagGate(
+            builder: (_, _) => const FlagGate(
               flag: AppFeatureFlag.notifications,
-              child: const NotificationCenterScreen(),
+              child: NotificationCenterScreen(),
             ),
           ),
           GoRoute(path: RoutePaths.mainProfile, builder: (_, _) => const ProfileScreen()),
@@ -457,18 +457,18 @@ final routerProvider = Provider<GoRouter>((ref) {
         // PLAN (I-61): gated on the subscriptions flag (dark-first) — the
         // disabled state keeps the previous localized coming-soon copy.
         path: RoutePaths.subscriptions,
-        builder: (context, _) => FlagGate(
+        builder: (context, _) => const FlagGate(
           flag: AppFeatureFlag.subscriptions,
-          child: const PaywallScreen(),
+          child: PaywallScreen(),
         ),
       ),
       GoRoute(
         // PFND (I-60): gated on the partyFinder flag (dark-first) — the
         // disabled state keeps the previous localized coming-soon copy.
         path: RoutePaths.partyFinder,
-        builder: (context, _) => FlagGate(
+        builder: (context, _) => const FlagGate(
           flag: AppFeatureFlag.partyFinder,
-          child: const PartyFinderScreen(),
+          child: PartyFinderScreen(),
         ),
       ),
       GoRoute(

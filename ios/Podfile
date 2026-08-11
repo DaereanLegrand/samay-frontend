@@ -1,4 +1,6 @@
-platform :ios, '15.5'
+# Minimum iOS per samay_mvp_spec.md §Tech stack ("Minimum OS: iOS 16+").
+# Must match IPHONEOS_DEPLOYMENT_TARGET in ios/Runner.xcodeproj/project.pbxproj.
+platform :ios, '16.0'
 
 # CocoaPods analytics sends network stats synchronously affecting flutter build latency.
 ENV['COCOAPODS_DISABLE_STATS'] = 'true'

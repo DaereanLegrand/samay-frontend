@@ -364,7 +364,7 @@ class _EmptyState extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
+            const Icon(
               Icons.sports_esports,
               size: AppIconSizes.xxl,
               color: AppColors.border,

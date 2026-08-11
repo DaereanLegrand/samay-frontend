@@ -20,7 +20,7 @@ class RankBadge extends StatelessWidget {
       ),
       child: Text(
         label.toUpperCase(),
-        style: TextStyle(
+        style: const TextStyle(
           color: AppColors.white,
           fontSize: 11,
           fontWeight: FontWeight.bold,

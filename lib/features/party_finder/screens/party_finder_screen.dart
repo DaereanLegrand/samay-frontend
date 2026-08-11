@@ -130,7 +130,7 @@ class _DiscoveryOffState extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
+            const Icon(
               Icons.travel_explore,
               size: AppIconSizes.xxl,
               color: AppColors.border,
@@ -167,7 +167,7 @@ class _EmptyState extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
+            const Icon(
               Icons.people_outline,
               size: AppIconSizes.xxl,
               color: AppColors.border,

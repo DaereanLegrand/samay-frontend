@@ -1,11 +1,14 @@
-gradle-wrapper.jar
 /.gradle
 /captures/
-/gradlew
-/gradlew.bat
 /local.properties
 GeneratedPluginRegistrant.java
 .cxx/
+
+# NOTE (M-27, 2026-08-10): gradlew / gradlew.bat / gradle-wrapper.jar are
+# deliberately NOT ignored anymore — they are committed so CI builds are
+# deterministic (M-21 handoff). They were removed from the Flutter template's
+# default ignore list; flutter_tools auto-injects them when missing, but a
+# committed wrapper removes the regeneration dependency.
 
 # Remember to never publicly share your keystore.
 # See https://flutter.dev/to/reference-keystore

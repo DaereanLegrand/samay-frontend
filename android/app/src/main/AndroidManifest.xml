@@ -9,10 +9,17 @@
     <uses-permission
         android:name="android.permission.READ_EXTERNAL_STORAGE"
         android:maxSdkVersion="32"/>
+    <!-- M-27 (2026-08-10): allowBackup=false — E2EE key policy
+         (docs/security/E2EE-ARCHITECTURE.md §9.4 / R12): no plaintext
+         backups, no adb-backup exfiltration of Keystore-wrapped material.
+         enableOnBackInvokedCallback=true — predictive back on targetSdk 33+
+         (targetSdk = 36), Flutter docs recommendation. -->
     <application
         android:label="samay"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@mipmap/ic_launcher"
+        android:allowBackup="false"
+        android:enableOnBackInvokedCallback="true">
         <activity
             android:name=".MainActivity"
             android:exported="true"

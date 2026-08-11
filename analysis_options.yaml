@@ -29,8 +29,16 @@ linter:
   # `// ignore_for_file: name_of_lint` syntax on the line or in the file
   # producing the lint.
   rules:
-    # avoid_print: false  # Uncomment to disable the `avoid_print` rule
-    # prefer_single_quotes: true  # Uncomment to enable the `prefer_single_quotes` rule
+    # M-26 (CQ-08, 2026-08-10): custom rules on top of flutter_lints v6 —
+    # see docs/development/phase-00-foundation/2026-08-10_M26-lints-hooks.md
+    # for the enable/disable decision table. Each rule was verified to have
+    # 0 violations (or auto-fixed) before enabling.
+    prefer_single_quotes: true
+    prefer_const_constructors: true
+    unnecessary_late: true
+    # always_specify_types: intentionally NOT enabled — see M-26 log
+    # (7323 violations at probe time; explicit types everywhere is
+    # anti-Dart-inference convention and would churn the whole tree)
 
 # Additional information about this file can be found at
 # https://dart.dev/guides/language/analysis-options

@@ -1,6 +1,7 @@
 .PHONY: build dev install clean build-cli build-linux build-api lint check test \
         test-all test-unit test-integration test-backend-static test-go \
         flutter-test flutter-analyze define-env secrets-check tunnel-android \
+        install-hooks \
         supabase-start supabase-stop supabase-status supabase-reset \
         supabase-docker-start supabase-docker-stop supabase-docker-status supabase-docker-reset \
         supabase-db-test supabase-backend-tests supabase-stack-check \
@@ -330,6 +331,19 @@ tunnel-android:
 # allowlists live in tools/check_secrets.sh.
 secrets-check:
 	@tools/check_secrets.sh
+
+# ── Pre-commit hooks (TOOL-04, M-26) ─────────────────────────────────────────
+# Wires git's core.hooksPath to the COMMITTED tool/hooks/ dir (never
+# .git/hooks/ — that is per-clone state). The pre-commit hook delegates to
+# tool/pre-commit.sh, the FAST gate: dart analyze + flutter test smoke
+# (test/meta/ + test/core/ + test/utils/ — full suite is CI's job) +
+# secrets-check + check_ports --strict + opt-008 makefile-static. Run once
+# per clone (the setting is local to each checkout). Exit codes: 0 wired,
+# 1 hook file missing/not executable (gates never silently skip).
+install-hooks:
+	@git config core.hooksPath tool/hooks
+	@[ -x tool/hooks/pre-commit ] || { echo "❌  tool/hooks/pre-commit missing or not executable — fix before committing."; exit 1; }
+	@echo "✅  core.hooksPath → tool/hooks — pre-commit gate active (tool/pre-commit.sh)"
 
 # ── Fastlane stubs (MKE-05 / MKE-07 Makefile half, M-15) ─────────────────────
 # Lane-name CONTRACT for M-17 (iOS) / M-18 (Android) — fixed HERE and in
