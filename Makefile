@@ -214,23 +214,32 @@ lint: flutter-analyze
 migrate-check:
 	@tools/check_migrations.sh
 
-# ── Supabase ──────────────────────────────────────────────────────────────────
-
-# CLI-managed alternative (supabase start) — port-safe vs Juega since the
-# config.toml remap (db 54382 / api 54386 / studio 54381 / inbucket 54384),
-# but mutually exclusive with the compose stack below: both bind the same
-# approved ports, so run EITHER `supabase start` OR `make supabase-docker-start`.
+# ── Supabase (Docker Compose) — Juega pattern ────────────────────────────────
+# Backend lifecycle targets mirror ../Juega's Makefile: `make supabase-start`
+# boots the SELF-HOSTED compose stack (not the CLI-managed one — the two are
+# mutually exclusive on the same approved ports 54382/54386/54381/54384).
+#
+# SMTP: commented out by now — Samay email is not wired yet (compose holds a
+# placeholder GOTRUE_SMTP_PASS + GOTRUE_MAILER_AUTOCONFIRM=true, so local
+# signups complete without a mail server). Uncomment the `pass` unlock lines
+# once SMTP creds are provisioned:
+#   SMTP_PASS=$$(pass mail/samayverif@qallariy.lat) docker compose up -d --wait
+# (Juega also runs `SELECT public.update_daily_prisma_seed();` after up — no
+# such function exists for Samay yet, so it is omitted.)
 supabase-start:
-	supabase start
+	cd supabase && docker compose up -d --wait
 
 supabase-stop:
-	supabase stop
+	cd supabase && docker compose down
 
 supabase-status:
-	supabase status
+	cd supabase && docker compose ps
 
 supabase-reset:
-	supabase db reset
+	cd supabase && docker compose down && \
+	rm -rf volumes/db/data volumes/storage && \
+	docker compose up -d --wait && \
+	sh migrate.sh
 
 # ── Docker / Self-hosted Supabase ──────────────────────────
 # Canonical dev stack (SELFHOSTING.md). Each stack dir's .env sets
