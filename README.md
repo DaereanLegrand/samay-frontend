@@ -248,9 +248,22 @@ hardcode economy/QR/limit constants.
 ## Status & known gaps
 
 - **Done:** Phases 00–04 (foundation, admin CLI, auth/profile, friends/groups,
-  shard donations, rankings), H-01/H-02 fixes, C-07 CLI restoration.
-- **Planned:** Phases 05–15 (events, QR, chat, feed/photos, notifications,
-  cosmetics, minigames, subscriptions, party finder, web servers) — routes
-  exist and render `VComingSoonScreen`.
-- **Known issues:** `docs/to-fix/TODO.md` (statuses tracked per finding);
-  `docs/implementation/cross-references.md` (step-by-step dependency graph).
+  shard donations, rankings), H-01/H-02 fixes, C-07 CLI restoration, the
+  180-agent campaign through Phase 4.5 (implementation foundations
+  I-01..I-78, modifications M-01..M-30, disco UI U-01..U-30, security
+  S-01..S-20 — see `docs/agents/ORCHESTRATION.md`).
+- **Foundations shipped (feature-flagged):** ECRT/EDET/CHAT/QR/FEED/PHUP/PFND
+  screens, paywall/cosmetics/minigames/shard-ledger, deep links, telemetry
+  and crash placeholders (I-49..I-78) — Phase 05+ features land on these
+  bases; several routes still render `VComingSoonScreen` until the full
+  flows ship.
+- **Planned:** full phases 05–15 (events end-to-end, QR attendance, E2EE chat
+  UX, feed/photos, notifications, subscriptions, party finder, web servers)
+  — routes exist; the dependency graph lives in
+  `docs/implementation/cross-references.md`.
+- **Known issues:** `docs/to-fix/TODO.md` (statuses re-verified by V-02,
+  2026-08-11); `docs/implementation/cross-references.md` (step-by-step
+  dependency graph, campaign rows updated by V-01).
+- **Security:** audit series closed 6 live issues incl. one CRITICAL
+  (anon EXECUTE on all SECURITY DEFINER functions) — see
+  `docs/security/FINAL-SECURITY-REPORT.md` (S-20).
