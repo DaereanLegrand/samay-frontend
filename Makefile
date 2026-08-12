@@ -237,7 +237,8 @@ supabase-status:
 
 supabase-reset:
 	cd supabase && docker compose down && \
-	rm -rf volumes/db/data volumes/storage && \
+	rm -rf volumes/storage && \
+	docker volume rm samay_db-data samay_minio-data 2>/dev/null || true && \
 	docker compose up -d --wait && \
 	sh migrate.sh
 
@@ -267,7 +268,7 @@ supabase-docker-status:
 # covers a fresh clone where the volume doesn't exist yet) → fresh stack up.
 supabase-docker-reset:
 	$(load-env)
-	cd supabase && docker compose down && rm -rf volumes/db/data volumes/storage && (docker volume rm samay_minio-data 2>/dev/null || true) && docker compose up -d --wait
+	cd supabase && docker compose down && rm -rf volumes/storage && (docker volume rm samay_db-data samay_minio-data 2>/dev/null || true) && docker compose up -d --wait
 
 # Apply DEMO/dev seed data (supabase/seed-dev.sql, agent I-75) to a running
 # stack. Demo-only — NOT applied by default (production seed stays clean).
@@ -320,7 +321,7 @@ supabase-testing-status:
 
 supabase-testing-reset:
 	$(load-env)
-	cd supabase-testing && docker compose down && rm -rf volumes/db/data volumes/storage && (docker volume rm samay-testing_minio-data 2>/dev/null || true) && docker compose up -d --wait
+	cd supabase-testing && docker compose down && rm -rf volumes/storage && (docker volume rm samay-testing_db-data samay-testing_minio-data 2>/dev/null || true) && docker compose up -d --wait
 
 # ── Remote-device tunnel (MKE-08 / M-13) ─────────────────────────────────────
 # SSH-forward adb from a remote host that has a device attached (Juega
