@@ -6,12 +6,13 @@
 /// `lib/core/errors/**` (M-15) — the app is es-first and the message is mapped
 /// verbatim at presentation time.
 const _weakPasswordMessage =
-    'La contraseña debe tener al menos 6 caracteres y contener un número.';
+    'La contraseña debe tener al menos 8 caracteres y contener un número.';
 
-/// A password is valid when it has at least 6 characters and at least one
-/// digit (the signup screen's original rule).
+/// A password is valid when it has at least 8 characters and at least one
+/// digit (S-05: NIST SP 800-63B §5.1.1 recommended minimum — server-side
+/// `GOTRUE_PASSWORD_MIN_LENGTH: 8` matches this rule).
 bool isPasswordValid(String password) {
-  if (password.length < 6) return false;
+  if (password.length < 8) return false;
   if (!password.contains(RegExp(r'[0-9]'))) return false;
   return true;
 }

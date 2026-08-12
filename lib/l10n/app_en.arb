@@ -283,11 +283,11 @@
   "@authSignupSubtitle": {
     "description": "Signup screen subtitle"
   },
-  "authPasswordWithRequirements": "Password (min. 6 characters, 1 number)",
+  "authPasswordWithRequirements": "Password (min. 8 characters, 1 number)",
   "@authPasswordWithRequirements": {
     "description": "Password field label including the password requirements"
   },
-  "authPasswordTooWeak": "The password must be at least 6 characters and contain a number.",
+  "authPasswordTooWeak": "The password must be at least 8 characters and contain a number.",
   "@authPasswordTooWeak": {
     "description": "Validation error for a weak password"
   },
