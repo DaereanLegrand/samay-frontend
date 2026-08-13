@@ -1,5 +1,8 @@
 # =============================================================================
 # Samay — fastlane iOS + Android lanes (agents M-17 + M-18, phase 4.3).
+require "xcodeproj"
+require "shellwords"
+require "plist"
 #
 # CONTRACT: <private-ops-repo>/DEPLOYMENT-PLACEHOLDER.md §3.3. The Makefile is the ONLY
 # fastlane entrypoint, and the lane names below are pinned by
@@ -140,6 +143,18 @@ def build_ios_ipa(export_method)
   ipa
 end
 
+# Build the release IPA with an explicit ExportOptions.plist (Juega pattern:
+# method + teamID only — the archive's signing identity is matched at export).
+# Returns the produced IPA path. NOTE: fastlane runs lanes chdir'd into
+# fastlane/, so repo-root paths are `../`-relative (Juega Fastfile pattern).
+def build_ios_ipa_with_export(plist_path)
+  defines = dart_defines
+  sh("flutter build ipa --release --export-options-plist #{plist_path} #{defines.join(' ')}")
+  ipa = Dir.glob(File.join(Dir.pwd, "..", "build", "ios", "ipa", "*.ipa")).first
+  UI.user_error!("No IPA found under build/ios/ipa — did 'flutter build ipa' succeed?") if ipa.nil?
+  ipa
+end
+
 # Build a release Android artifact ("apk" or "appbundle"); return its path.
 # NOTE: flutter build apk/appbundle IS gradle assembleRelease/bundleRelease
 # (the §3.3 "gradle bundleRelease" shape) with the flutter toolchain wired in.
@@ -168,6 +183,112 @@ def ensure_matching_signing(export_method, api_key)
 end
 
 platform :ios do
+  # The Runner target's pbxproj keeps the §3.3 placeholders (Manual signing,
+  # DEVELOPMENT_TEAM = XXXXXXXXXX, empty PROVISIONING_PROFILE_SPECIFIER — the
+  # opt-008 contract). This lane patches the REAL team + the installed
+  # profile's specifier for the build and restores the placeholders
+  # crash-safely (ensure). Returns the patched target.
+  def patch_signing_for_build(team, profile_name)
+    project = Xcodeproj::Project.open("../ios/Runner.xcodeproj")
+    target = project.targets.find { |t| t.name == "Runner" }
+    UI.user_error!("Runner target not found in ios/Runner.xcodeproj") if target.nil?
+    target.build_configurations.each do |c|
+      c.build_settings["DEVELOPMENT_TEAM"] = team
+      c.build_settings["PROVISIONING_PROFILE_SPECIFIER"] = profile_name
+      # The Ad Hoc profile carries the team's DISTRIBUTION certificate, so
+      # the archive must sign with the "Apple Distribution" identity (the
+      # template default "Apple Development" cert 57TPCB9487 is not in the
+      # profile → "doesn't include signing certificate").
+      c.build_settings["CODE_SIGN_IDENTITY"] = "Apple Distribution"
+    end
+    project.save
+    target
+  end
+
+  def restore_signing_placeholders(target)
+    project = Xcodeproj::Project.open("../ios/Runner.xcodeproj")
+    t = project.targets.find { |t2| t2.name == "Runner" }
+    t.build_configurations.each do |c|
+      c.build_settings["DEVELOPMENT_TEAM"] = "XXXXXXXXXX"
+      c.build_settings["PROVISIONING_PROFILE_SPECIFIER"] = ""
+      c.build_settings["CODE_SIGN_IDENTITY"] = "Apple Development"
+    end
+    project.save
+  end
+
+  # [Name, UUID] of the installed profile matching team + com.qallariy.samay
+  # (nil when missing — the caller raises the explicit error).
+  # Xcode 16+ (Samay requires Xcode 26+) stores provisioning profiles at
+  # ~/Library/Developer/Xcode/UserData/Provisioning Profiles — the legacy
+  # ~/Library/MobileDevice/... path is NOT supported (no fallback).
+  def installed_signing_profile(team)
+    dir = File.expand_path("~/Library/Developer/Xcode/UserData/Provisioning Profiles")
+    unless File.directory?(dir)
+      UI.user_error!("Provisioning profile directory not found: #{dir} (Xcode 16+ location — Xcode 26 is required). Install the profile first: download it from the Developer Portal and double-click the .mobileprovision.")
+    end
+    Dir.glob(File.join(dir, "*.mobileprovision")).each do |path|
+      xml = `security cms -D -i #{Shellwords.escape(path)} 2>/dev/null`
+      plist = Plist.parse_xml(xml)
+      next unless plist && plist["Entitlements"]
+      next unless plist["Entitlements"]["application-identifier"] == "#{team}.com.qallariy.samay"
+      return [plist["Name"], plist["UUID"]]
+    end
+    nil
+  end
+
+  desc "Build a signed ad-hoc IPA for on-device installs (Juega pattern: make build TARGET=ios-adhoc → make install TARGET=ios-adhoc). No store upload. Signs with the developer's enrolled team from $IOS_DEVELOPMENT_TEAM (gitignored .env.local) and the installed provisioning profile for com.qallariy.samay; the tracked pbxproj keeps its §3.3 placeholders — team + profile specifier are patched for this build and restored crash-safely."
+  lane :adhoc_local do
+    team = ENV["IOS_DEVELOPMENT_TEAM"].to_s
+    if team.empty? || team == "XXXXXXXXXX"
+      UI.user_error!("IOS_DEVELOPMENT_TEAM is not set to a real team — add it to ./.env.local (never committed), e.g. IOS_DEVELOPMENT_TEAM=XXXXXXXXXX (`security find-identity -v -p codesigning`).")
+    end
+
+    # A previous `flutter build ios --no-codesign` / `--config-only` leaves
+    # CODE_SIGNING_ALLOWED = NO in the committed Flutter xcconfigs — the
+    # archive then builds UNSIGNED and the export cannot re-sign it ("No
+    # Accounts" / "No profiles"). Strip the overrides so the archive signs.
+    %w[Debug Release Profile].each do |cfg|
+      path = File.expand_path("../ios/Flutter/#{cfg}.xcconfig", Dir.pwd)
+      next unless File.exist?(path)
+      cleaned = File.readlines(path).reject { |l| l =~ /^CODE_SIGNING_(ALLOWED|REQUIRED) = NO/ }
+      File.write(path, cleaned.join)
+    end
+
+    profile = installed_signing_profile(team)
+    if profile.nil?
+      UI.user_error!("No provisioning profile installed for #{team}.com.qallariy.samay in ~/Library/Developer/Xcode/UserData/Provisioning Profiles (the Xcode 16+ location — Xcode 26 is required; the legacy ~/Library/MobileDevice/... path is NOT supported). Download an Ad Hoc (or Development) profile from the Developer Portal (developer.apple.com → Certificates, Identifiers & Profiles → Profiles → Ad Hoc → com.qallariy.samay → your device) and install it by double-clicking the .mobileprovision (Xcode installs it into the path above) — then rerun.")
+    end
+    profile_name, profile_uuid = profile
+
+    target = patch_signing_for_build(team, profile_name)
+    begin
+      plist_path = File.expand_path("../ios/ExportOptions.plist", Dir.pwd)
+      File.write(plist_path, <<~XML)
+        <?xml version="1.0" encoding="UTF-8"?>
+        <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+        <plist version="1.0">
+        <dict>
+          <key>method</key>
+          <string>ad-hoc</string>
+          <key>teamID</key>
+          <string>#{team}</string>
+          <key>provisioningProfiles</key>
+          <dict>
+            <key>com.qallariy.samay</key>
+            <string>#{profile_uuid}</string>
+          </dict>
+        </dict>
+        </plist>
+      XML
+      ipa = build_ios_ipa_with_export(plist_path)
+      sh("rm #{plist_path}")
+      sh("mv #{ipa} #{File.join(Dir.pwd, "..", "build", "ios", "ipa", "samay_app-adhoc.ipa")}")
+      UI.success("Ad-hoc IPA: build/ios/ipa/samay_app-adhoc.ipa (team #{team})")
+    ensure
+      restore_signing_placeholders(target)
+    end
+  end
+
   desc "Build the IPA (export method ad-hoc per §3.3) and upload to TestFlight via App Store Connect"
   lane :beta_testflight do
     export_method = export_method_for("ad-hoc")

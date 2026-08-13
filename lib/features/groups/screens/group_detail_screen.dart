@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
+import 'package:samay/core/design_tokens/app_gradients.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/extensions/error_mapper.dart';
 import 'package:samay/core/providers/service_providers.dart';
@@ -12,13 +13,25 @@ import 'package:samay/features/groups/widgets/member_actions_sheet.dart';
 import 'package:samay/features/profile/widgets/profile_avatar.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/error_view.dart';
+import 'package:samay/shared/widgets/glass/v_glass.dart';
 import 'package:samay/shared/widgets/rank_badge.dart';
 import 'package:samay/shared/widgets/skeletons.dart';
 import 'package:samay/shared/widgets/state_views.dart';
+import 'package:samay/shared/widgets/v_aurora.dart';
 import 'package:samay/shared/widgets/v_badge.dart';
 import 'package:samay/shared/widgets/v_button.dart';
+import 'package:samay/shared/widgets/v_display_text.dart';
 import 'package:samay/shared/widgets/v_network_image.dart';
 import 'package:samay/shared/widgets/v_shard_icon.dart';
+
+/// XL-17 (Gemma round 2, 09_groups): violet is the family but at one accent
+/// per screen — the hero card's ring rides the watered run at a whisper glow,
+/// the display voice keeps the vivid shader, and the member rows are plain
+/// hairlines (no card + divider + glow).
+final AppGradient _watered = AppGradients.wateredFamily(
+  AppGradients.violet,
+  mix: 0.4,
+);
 
 class GroupDetailScreen extends ConsumerStatefulWidget {
   final String groupId;
@@ -57,7 +70,10 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen>
   }
 
   Widget _scaffold(Widget body) {
-    return Scaffold(appBar: AppBar(), body: body);
+    return Scaffold(
+      appBar: AppBar(),
+      body: VAurora(gradients: const [AppGradients.violet], child: body),
+    );
   }
 
   @override
@@ -127,13 +143,9 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen>
     final isFrozen = g['frozen_at'] != null;
 
     return Scaffold(
+      // LUXE: the group name lives in the hero VDisplayText below — the
+      // AppBar owns only the tabs and the frozen marker (no duplicate title).
       appBar: AppBar(
-        // §3.2: the group name is the detail-hero fancy title (Playfair
-        // Display italic 28 + glow-soft baked into the theme role, U-02).
-        title: Text(
-          g['name'] as String? ?? l10n.commonGroup,
-          style: Theme.of(context).textTheme.headlineLarge,
-        ),
         bottom: TabBar(
           controller: _tabController,
           tabs: [
@@ -162,170 +174,192 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen>
             ),
         ],
       ),
-      body: LayoutBuilder(
-        builder: (context, constraints) => Column(
-          children: [
-            if (isFrozen)
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(8),
-                // §5.2: never raw red on black — the frozen banner is an
-                // error *fill* (glowPinkDeep); white text on it is 5.87:1
-                // (AA).
-                color: AppColors.errorFill,
-                child: Text(
-                  l10n.groupsFrozenBanner,
-                  style: const TextStyle(fontSize: 12, color: AppColors.white),
-                  textAlign: TextAlign.center,
+      body: VAurora(
+        gradients: const [AppGradients.violet],
+        child: LayoutBuilder(
+          builder: (context, constraints) => Column(
+            children: [
+              if (isFrozen)
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(8),
+                  // §5.2: never raw red on black — the frozen banner is an
+                  // error *fill* (glowPinkDeep); white text on it is 5.87:1
+                  // (AA).
+                  color: AppColors.errorFill,
+                  child: Text(
+                    l10n.groupsFrozenBanner,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: AppColors.white,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
                 ),
-              ),
-            // U-19 (§7.3): the hero header scrolls internally when it would
-            // otherwise crush the tabs — it may take at most the body height
-            // minus a minimum tab area (`_minTabArea` ≈ two member rows), so
-            // the TabBarView is never squeezed to nothing at large text
-            // scales. When the header fits (the normal case), this renders
-            // exactly like the pre-U-19 layout (natural height, no scroll).
-            ConstrainedBox(
-              constraints: BoxConstraints(
-                maxHeight: (constraints.maxHeight - _minTabArea).clamp(
-                  0.0,
-                  double.infinity,
+              // U-19 (§7.3): the hero header scrolls internally when it would
+              // otherwise crush the tabs — it may take at most the body height
+              // minus a minimum tab area (`_minTabArea` ≈ two member rows), so
+              // the TabBarView is never squeezed to nothing at large text
+              // scales. When the header fits (the normal case), this renders
+              // exactly like the pre-U-19 layout (natural height, no scroll).
+              ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxHeight: (constraints.maxHeight - _minTabArea).clamp(
+                    0.0,
+                    double.infinity,
+                  ),
                 ),
-              ),
-              child: SingleChildScrollView(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      if (g['cover_url'] != null)
-                        VNetworkImage(
-                          imageUrl: g['cover_url'] as String,
-                          height: 120,
-                          fit: BoxFit.cover,
-                        ),
-                      if (g['description'] != null) ...[
-                        const SizedBox(height: 8),
-                        Text(
-                          g['description'] as String,
-                          style: Theme.of(context).textTheme.bodyMedium,
-                        ),
-                      ],
-                      const SizedBox(height: 12),
-                      // U-19: `Wrap` instead of a `Row` — the tier badge +
-                      // rank badge overflowed 320px-wide screens at 1.5×
-                      // (§7.3: the badges flow to a second line instead of
-                      // clipping).
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
+                child: SingleChildScrollView(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    // LUXE hero: one glass card with the violet gradient ring
+                    // + glow owns the group identity — the Playfair MAYUS name
+                    // (VDisplayText), cover, meta badges and the CTA row.
+                    child: VGlassCard(
+                      gradient: _watered,
+                      glowAlpha: 0.12,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          if (g['size_tier'] != null)
-                            VBadge(label: g['size_tier'] as String),
-                          if (g['rank_bracket'] != null)
-                            RankBadge(bracket: g['rank_bracket'] as String),
+                          VDisplayText(
+                            text: g['name'] as String? ?? l10n.commonGroup,
+                            size: 28,
+                            gradient: AppGradients.violet,
+                          ),
+                          if (g['cover_url'] != null) ...[
+                            const SizedBox(height: 12),
+                            VNetworkImage(
+                              imageUrl: g['cover_url'] as String,
+                              height: 120,
+                              fit: BoxFit.cover,
+                            ),
+                          ],
+                          if (g['description'] != null) ...[
+                            const SizedBox(height: 8),
+                            Text(
+                              g['description'] as String,
+                              style: Theme.of(context).textTheme.bodyMedium,
+                            ),
+                          ],
+                          const SizedBox(height: 12),
+                          // U-19: `Wrap` instead of a `Row` — the tier badge +
+                          // rank badge overflowed 320px-wide screens at 1.5×
+                          // (§7.3: the badges flow to a second line instead of
+                          // clipping).
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: [
+                              if (g['size_tier'] != null)
+                                VBadge(label: g['size_tier'] as String),
+                              if (g['rank_bracket'] != null)
+                                RankBadge(bracket: g['rank_bracket'] as String),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          Row(
+                            children: [
+                              const VShardIcon(),
+                              const SizedBox(width: 8),
+                              // U-19: `Flexible` — "42 shards de grupo" at
+                              // 1.5× wraps instead of overflowing the Row
+                              // (§7.3).
+                              Flexible(
+                                child: Text(
+                                  l10n.groupsShardsCount(
+                                    (g['group_shards'] as num?)?.toInt() ?? 0,
+                                  ),
+                                  style: Theme.of(context).textTheme.bodyLarge,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            l10n.groupsMemberCount(members.length, memberLimit),
+                            style: Theme.of(context).textTheme.bodyMedium,
+                          ),
+                          // R16 (F8 ADAPTED): the leave trigger is an inline
+                          // danger row beside the member count (Juega's inline
+                          // leave; the confirm dialog stays Samay-shaped).
+                          // Error semantic per §5.2 — glowPink 6.00:1 AA,
+                          // never raw red.
+                          TextButton.icon(
+                            onPressed: _leaveGroup,
+                            icon: const Icon(Icons.logout, size: 18),
+                            label: Text(l10n.groupsLeave),
+                            style: TextButton.styleFrom(
+                              foregroundColor: AppColors.error,
+                            ),
+                          ),
+                          if (contributions.myContribution > 0) ...[
+                            const SizedBox(height: 4),
+                            Text(
+                              l10n.groupsMyContribution(
+                                contributions.myContribution,
+                              ),
+                              style: Theme.of(context).textTheme.bodyMedium,
+                            ),
+                          ],
+                          const SizedBox(height: 16),
+                          Row(
+                            children: [
+                              // §5.1 LUXE: the donate CTA is the detail
+                              // screen's one brand moment — the violet glow
+                              // accent (family gradient fill, black text
+                              // 6.00:1); the secondary actions stay outlined.
+                              Expanded(
+                                child: VButton.glowAccent(
+                                  filled: true,
+                                  gradient: AppGradients.violet,
+                                  label: l10n.groupsDonateTitle,
+                                  onPressed: () async {
+                                    await context.push(
+                                      RoutePaths.donateToGroup(widget.groupId),
+                                    );
+                                    _invalidateData();
+                                  },
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: VButton(
+                                  label: l10n.groupsCreateEvent,
+                                  onPressed: () => context.push(
+                                    RoutePaths.createGroupEvent(widget.groupId),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: VButton(
+                                  label: l10n.commonInvite,
+                                  onPressed: () => context.push(
+                                    RoutePaths.inviteToGroup(widget.groupId),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
                         ],
                       ),
-                      const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          const VShardIcon(),
-                          const SizedBox(width: 8),
-                          // U-19: `Flexible` — "42 shards de grupo" at 1.5×
-                          // wraps instead of overflowing the Row (§7.3).
-                          Flexible(
-                            child: Text(
-                              l10n.groupsShardsCount(
-                                (g['group_shards'] as num?)?.toInt() ?? 0,
-                              ),
-                              style: Theme.of(context).textTheme.bodyLarge,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        l10n.groupsMemberCount(members.length, memberLimit),
-                        style: Theme.of(context).textTheme.bodyMedium,
-                      ),
-                      // R16 (F8 ADAPTED): the leave trigger is an inline
-                      // danger row beside the member count (Juega's inline
-                      // leave; the confirm dialog stays Samay-shaped). Error
-                      // semantic per §5.2 — glowPink 6.00:1 AA, never raw
-                      // red.
-                      TextButton.icon(
-                        onPressed: _leaveGroup,
-                        icon: const Icon(Icons.logout, size: 18),
-                        label: Text(l10n.groupsLeave),
-                        style: TextButton.styleFrom(
-                          foregroundColor: AppColors.error,
-                        ),
-                      ),
-                      if (contributions.myContribution > 0) ...[
-                        const SizedBox(height: 4),
-                        Text(
-                          l10n.groupsMyContribution(
-                            contributions.myContribution,
-                          ),
-                          style: Theme.of(context).textTheme.bodyMedium,
-                        ),
-                      ],
-                      const SizedBox(height: 16),
-                      Row(
-                        children: [
-                          // §5.1: the donate CTA is the detail screen's one
-                          // brand moment (glowAccent filled — pink fill,
-                          // black text 6.00:1); the secondary actions stay
-                          // outlined white.
-                          Expanded(
-                            child: VButton.glowAccent(
-                              filled: true,
-                              label: l10n.groupsDonateTitle,
-                              onPressed: () async {
-                                await context.push(
-                                  RoutePaths.donateToGroup(widget.groupId),
-                                );
-                                _invalidateData();
-                              },
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: VButton(
-                              label: l10n.groupsCreateEvent,
-                              onPressed: () => context.push(
-                                RoutePaths.createGroupEvent(widget.groupId),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: VButton(
-                              label: l10n.commonInvite,
-                              onPressed: () => context.push(
-                                RoutePaths.inviteToGroup(widget.groupId),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
+                    ),
                   ),
                 ),
               ),
-            ),
-            const Divider(height: 1),
-            Expanded(
-              child: TabBarView(
-                controller: _tabController,
-                children: [
-                  _buildChatTab(),
-                  _buildMembersTab(members, contributions.contributors),
-                  _buildEventsTab(),
-                ],
+              const Divider(height: 1),
+              Expanded(
+                child: TabBarView(
+                  controller: _tabController,
+                  children: [
+                    _buildChatTab(),
+                    _buildMembersTab(members, contributions.contributors),
+                    _buildEventsTab(),
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -537,7 +571,8 @@ final class _RowMember extends _MembersRow {
 
 /// Dense contributor row (PERF-08: the repeated ListTile+avatar shape is a
 /// const sub-widget so unchanged rows skip rebuilds; U-11 restyle: shared
-/// `ProfileAvatar` + hairline close).
+/// `ProfileAvatar` + hairline close; XL-17: the LUXE glass card is gone —
+/// one hairline per row, the violet stays on the hero).
 class _ContributorTile extends StatelessWidget {
   final String username;
   final String shards;
@@ -569,7 +604,8 @@ class _ContributorTile extends StatelessWidget {
 
 /// Dense member row (PERF-08: same shape as [_ContributorTile] but with the
 /// role rendered as a §5.5 `VBadge` beside the name; R17: admin rows gain
-/// the actions affordance).
+/// the actions affordance; XL-17: hairline rows — the LUXE glass card is
+/// gone).
 class _MemberTile extends StatelessWidget {
   final String username;
   final String role;

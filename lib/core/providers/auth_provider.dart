@@ -62,9 +62,7 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
   @override
   Future<AuthState> build() async {
     await _authSubscription?.cancel();
-    _authSubscription = _service.onAuthStateChange.listen(
-      _onAuthStateChange,
-    );
+    _authSubscription = _service.onAuthStateChange.listen(_onAuthStateChange);
     ref.onDispose(() => _authSubscription?.cancel());
     return _resolveInitialState();
   }
@@ -98,12 +96,34 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
     try {
       final user = _service.getCurrentUser();
       if (user != null) {
-        return _authStateForUser(user, forceBanCheck: true);
+        return _authStateForUserSafe(user, forceBanCheck: true);
       }
     } catch (e, st) {
       AppLogger.instance.error('checkInitialSession error: $e', '$st');
     }
     return const AuthState();
+  }
+
+  /// [_authStateForUser] for paths with no UI to surface an error
+  /// (initial-session restore, auth-state listener events).
+  ///
+  /// No-fallback policy (2026-08-13): when the profile/ban probe fails here,
+  /// the user must NOT be bounced anywhere — the guard no longer redirects on
+  /// `hasProfile`, so staying put is explicit and safe. Log the failure and
+  /// keep the previous state; never navigate, never sign out.
+  Future<AuthState> _authStateForUserSafe(
+    Map<String, dynamic> user, {
+    bool forceBanCheck = false,
+  }) async {
+    try {
+      return await _authStateForUser(user, forceBanCheck: forceBanCheck);
+    } catch (e, st) {
+      AppLogger.instance.error(
+        'auth state probe failed (staying put): $e',
+        '$st',
+      );
+      return state.valueOrNull ?? const AuthState();
+    }
   }
 
   void _onAuthStateChange(dynamic event) async {
@@ -118,7 +138,7 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
           // Cache-aware ban check (I-35): a ban lands at worst within the
           // 30 s cache window on a long-lived session.
           state = AsyncData(
-            await _authStateForUser(user, forceBanCheck: false),
+            await _authStateForUserSafe(user, forceBanCheck: false),
           );
         } else {
           AppLogger.instance.warn(
@@ -133,7 +153,7 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
         if (session?.user != null) {
           final user = session!.user.toJson();
           state = AsyncData(
-            await _authStateForUser(user, forceBanCheck: true),
+            await _authStateForUserSafe(user, forceBanCheck: true),
           );
         } else {
           state = const AsyncData(AuthState());
@@ -169,13 +189,21 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
   /// redirect every route to the ban screen. The check is fail-open: if it
   /// cannot run, authentication proceeds (the authoritative enforcement is
   /// server-side).
+  ///
+  /// The profile probe (`users` row) PROPAGATES errors (no-fallback policy
+  /// 2026-08-13): explicit callers (signIn, verifyOtp, signUp) catch and
+  /// surface them; the listener/initial-restore paths use
+  /// [_authStateForUserSafe] which logs and stays put — never a silent
+  /// "no profile" that would redirect the user elsewhere.
   Future<AuthState> _authStateForUser(
     Map<String, dynamic> user, {
     bool forceBanCheck = false,
   }) async {
     var status = BanStatus.notBanned;
     try {
-      status = await ref.read(banServiceProvider).checkBanStatus(force: forceBanCheck);
+      status = await ref
+          .read(banServiceProvider)
+          .checkBanStatus(force: forceBanCheck);
     } catch (e, st) {
       AppLogger.instance.error('ban check failed: $e', '$st');
     }
@@ -195,11 +223,7 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
     // restore, signIn, verifyOtp, signUp-via-auth-event, tokenRefreshed.
     unawaited(ref.read(crashReporterProvider).setUser(user['id'] as String?));
     final hasProfile = await _userHasProfile(user);
-    return AuthState(
-      authenticated: true,
-      hasProfile: hasProfile,
-      user: user,
-    );
+    return AuthState(authenticated: true, hasProfile: hasProfile, user: user);
   }
 
   Future<bool> _userHasProfile(Map<String, dynamic> user) async {
@@ -208,14 +232,12 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
     return _service.userHasProfile(uid);
   }
 
-  /// Returns 'signup' if email is available (new or cleaned up), 'exists' if fully registered.
+  /// Returns 'signup' if email is available (new or cleaned up), 'exists' if
+  /// fully registered. Errors PROPAGATE (no-fallback policy 2026-08-13): a
+  /// failed check must never silently degrade to 'signup' and push the
+  /// funnel forward — the signup screen surfaces the error instead.
   Future<String> checkEmail(String email) async {
-    try {
-      return await _service.checkSignupEmail(email);
-    } catch (e, st) {
-      AppLogger.instance.error('checkEmail error: $e', '$st');
-      return 'signup';
-    }
+    return _service.checkSignupEmail(email);
   }
 
   Future<void> signIn(String email, String password) async {
@@ -260,7 +282,13 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
       );
       state = AsyncData(state.valueOrNull ?? const AuthState());
     } catch (e, st) {
+      // Rethrow on purpose: the contact screen NAVIGATES on sendOtp success,
+      // so a swallowed error would land the user on the OTP screen with a
+      // stale error (the pre-OTP signup_tracker write used to 42501 into
+      // "No tienes permiso para realizar esta acción."). Rethrowing keeps
+      // the funnel on the contact screen with its blocking error dialog.
       state = AsyncError(e.toAppError(), st);
+      rethrow;
     }
   }
 

@@ -8,7 +8,10 @@ import 'package:samay/shared/widgets/v_button.dart';
 /// Full-area error state: icon + message + optional retry button.
 ///
 /// Themed per DISCO-DESIGN-SYSTEM.md: black background, white/gray text,
-/// signature `glowPink` accent icon.
+/// accent icon in the **error** role — [AppColors.error], the semantic
+/// alias of the glowPink token (6.00:1 — AA). Error is the one place pink
+/// may appear (LUXE directive 2026-08-12: pink is not a main color; error
+/// semantics keep it as the documented exception).
 class ErrorView extends StatelessWidget {
   final String message;
   final IconData icon;
@@ -23,7 +26,7 @@ class ErrorView extends StatelessWidget {
     this.retryLabel,
   });
 
-  static const _accent = AppColors.glowPink;
+  static const _accent = AppColors.error;
   static const _muted = AppColors.mutedStrong;
 
   @override

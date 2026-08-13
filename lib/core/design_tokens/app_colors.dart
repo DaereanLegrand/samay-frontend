@@ -32,6 +32,14 @@ abstract final class AppColors {
     'discoGold': discoGold,
     'discoSilver': discoSilver,
     'discoBronze': discoBronze,
+    'pastelRose': pastelRose,
+    'pastelViolet': pastelViolet,
+    'pastelCyan': pastelCyan,
+    'pastelGold': pastelGold,
+    'pastelMint': pastelMint,
+    'pastelPeach': pastelPeach,
+    'mint': mint,
+    'peach': peach,
   };
 
   // ── Neutrals (core) — §2.1 ────────────────────────────────────────────────
@@ -93,6 +101,39 @@ abstract final class AppColors {
 
   /// Leaderboard tier 3, bronze ranks. 6.68:1 — AA.
   static const Color discoBronze = Color(0xFFCD7F32);
+
+  // ── LUXE pastel + vivid ends — §2.3 (gradient families) ──────────────────
+  //
+  // The light ends of the 6 LUXE gradient families (ORCHESTRATION-LUXE
+  // §"Gradient family → screen map") plus the two vivid ends that had no
+  // canonical token yet. Pastels are near-white by construction ("watered
+  // down with white", LUXE directive #3) so they sit at AAA contrast on
+  // black. They are meant for gradient layers / glow tints — decorative
+  // fills at low alpha — never for body text roles (use `white`/`mutedStrong`).
+
+  /// LUXE rose family light end (#FFD6E8). 16.04:1 — AAA.
+  static const Color pastelRose = Color(0xFFFFD6E8);
+
+  /// LUXE violet family light end (#E3D9FF). 15.64:1 — AAA.
+  static const Color pastelViolet = Color(0xFFE3D9FF);
+
+  /// LUXE cyan family light end (#D6F7FF). 18.61:1 — AAA.
+  static const Color pastelCyan = Color(0xFFD6F7FF);
+
+  /// LUXE gold family light end (#FFF3D6). 19.04:1 — AAA.
+  static const Color pastelGold = Color(0xFFFFF3D6);
+
+  /// LUXE mint family light end (#D8FFEE). 19.46:1 — AAA.
+  static const Color pastelMint = Color(0xFFD8FFEE);
+
+  /// LUXE peach family light end (#FFE6D9). 17.57:1 — AAA.
+  static const Color pastelPeach = Color(0xFFFFE6D9);
+
+  /// LUXE mint family vivid end (#37E6A5). 13.02:1 — AAA.
+  static const Color mint = Color(0xFF37E6A5);
+
+  /// LUXE peach family vivid end (#FF8A65). 9.08:1 — AA/AAA.
+  static const Color peach = Color(0xFFFF8A65);
 
   // ── Semantic aliases — §2 usage roles → canonical tokens ───────────────────
   //

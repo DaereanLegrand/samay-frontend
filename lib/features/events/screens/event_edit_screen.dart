@@ -2,15 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
+import 'package:samay/core/design_tokens/app_gradients.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/extensions/error_mapper.dart';
 import 'package:samay/features/events/providers/events_providers.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/error_view.dart';
+import 'package:samay/shared/widgets/glass/glass.dart';
 import 'package:samay/shared/widgets/show_app_error.dart';
 import 'package:samay/shared/widgets/state_views.dart';
+import 'package:samay/shared/widgets/v_aurora.dart';
 import 'package:samay/shared/widgets/v_button.dart';
-import 'package:samay/shared/widgets/v_card.dart';
 import 'package:samay/shared/widgets/v_input.dart';
 
 /// Event editor (EDET — promotores only, pre-live). Core details are always
@@ -63,17 +65,20 @@ class _EventEditScreenState extends ConsumerState<EventEditScreen> {
     _remainderAction =
         event['preshards_remainder_action'] as String? ?? 'return';
     _startsAt =
-        DateTime.tryParse(event['starts_at'] as String? ?? '') ?? DateTime.now();
-    _endsAt =
-        DateTime.tryParse(event['ends_at'] as String? ?? '') ?? _startsAt;
+        DateTime.tryParse(event['starts_at'] as String? ?? '') ??
+        DateTime.now();
+    _endsAt = DateTime.tryParse(event['ends_at'] as String? ?? '') ?? _startsAt;
   }
 
   bool get _poolEditable {
     return _initialized && DateTime.now().isBefore(_startsAt);
   }
 
-  Future<void> _pickDateTime(DateTime initial, ValueChanged<DateTime> onPicked,
-      {required DateTime firstTime}) async {
+  Future<void> _pickDateTime(
+    DateTime initial,
+    ValueChanged<DateTime> onPicked, {
+    required DateTime firstTime,
+  }) async {
     final date = await showDatePicker(
       context: context,
       initialDate: initial,
@@ -127,13 +132,11 @@ class _EventEditScreenState extends ConsumerState<EventEditScreen> {
       _validationError = null;
     });
     try {
-      await ref
-          .read(eventDetailProvider(widget.eventId).notifier)
-          .patch(patch);
+      await ref.read(eventDetailProvider(widget.eventId).notifier).patch(patch);
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.eventEditUpdatedSnack)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.eventEditUpdatedSnack)));
       Navigator.of(context).pop();
     } catch (e, _) {
       if (mounted) showAppError(context, e);
@@ -150,16 +153,20 @@ class _EventEditScreenState extends ConsumerState<EventEditScreen> {
 
     return Scaffold(
       appBar: AppBar(title: Text(l10n.eventEditTitle)),
-      body: detailAsync.when(
-        loading: () => const VLoadingView(),
-        error: (e, _) => ErrorView(
-          message: e.toAppError().message,
-          onRetry: () => ref.invalidate(eventDetailProvider(widget.eventId)),
+      body: VAurora(
+        gradients: const [AppGradients.peach],
+        opacity: 0.08,
+        child: detailAsync.when(
+          loading: () => const VLoadingView(),
+          error: (e, _) => ErrorView(
+            message: e.toAppError().message,
+            onRetry: () => ref.invalidate(eventDetailProvider(widget.eventId)),
+          ),
+          data: (event) {
+            final type = event['type'] as String? ?? 'casual';
+            return _buildForm(l10n, type);
+          },
         ),
-        data: (event) {
-          final type = event['type'] as String? ?? 'casual';
-          return _buildForm(l10n, type);
-        },
       ),
     );
   }
@@ -180,10 +187,7 @@ class _EventEditScreenState extends ConsumerState<EventEditScreen> {
             ),
             const SizedBox(height: AppSpacing.md),
           ],
-          VInput(
-            label: l10n.eventsNameLabel,
-            controller: _nameController,
-          ),
+          VInput(label: l10n.eventsNameLabel, controller: _nameController),
           const SizedBox(height: AppSpacing.md),
           VInput(
             label: l10n.eventsDescriptionOptional,
@@ -219,7 +223,9 @@ class _EventEditScreenState extends ConsumerState<EventEditScreen> {
           ),
           if (showPool) ...[
             const SizedBox(height: AppSpacing.xl),
-            VCard(
+            // XL-17 (10_events): the pool editor rides neutral white-only
+            // glass — the peach stays on the save CTA.
+            VGlassCard(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -266,7 +272,7 @@ class _EventEditScreenState extends ConsumerState<EventEditScreen> {
                     ],
                     onChanged: _poolEditable
                         ? (v) =>
-                            setState(() => _remainderAction = v ?? 'return')
+                              setState(() => _remainderAction = v ?? 'return')
                         : null,
                   ),
                 ],
@@ -274,8 +280,9 @@ class _EventEditScreenState extends ConsumerState<EventEditScreen> {
             ),
           ],
           const SizedBox(height: AppSpacing.xxl),
-          VButton(
+          VButton.glowAccent(
             label: l10n.commonSave,
+            gradient: AppGradients.peach,
             loading: _saving,
             onPressed: _saving ? null : _save,
           ),

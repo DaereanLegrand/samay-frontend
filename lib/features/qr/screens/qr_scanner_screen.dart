@@ -5,13 +5,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
+import 'package:samay/core/design_tokens/app_gradients.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/logging/app_logger.dart';
 import 'package:samay/core/providers/service_providers.dart';
 import 'package:samay/core/services/permission_service.dart';
+import 'package:samay/core/theme/samay_durations.dart';
 import 'package:samay/features/events/providers/events_providers.dart';
 import 'package:samay/features/qr/providers/qr_providers.dart';
 import 'package:samay/l10n/app_localizations.dart';
+import 'package:samay/shared/widgets/glass/v_glass.dart';
 import 'package:samay/shared/widgets/state_views.dart';
 import 'package:samay/shared/widgets/v_button.dart';
 
@@ -50,14 +53,18 @@ class _ScanError extends _ScanResult {
   final bool retryable;
 }
 
+/// LUXE v2 family for this screen — **cyan** (ORCHESTRATION-LUXE map:
+/// attendance_qr + qr_scanner → cyan).
+final AppGradient _family = AppGradients.familyOf('qr');
+
 /// QRSC — promotor/co_promotor attendance QR scanner.
 ///
-/// Full-screen camera via `mobile_scanner`, white scan-frame overlay,
-/// promotor event name and "Escanea el código QR del asistente" hint (QRSC
-/// §Scanner Screen). Camera access goes through [PermissionService]
-/// (`Permission.camera`) with the rationale/settings UX; the torch toggle is
-/// an overlay action (mission extension of QRSC's "no torch" note — phone
-/// screens don't glare, the toggle is off by default).
+/// Full-screen camera via `mobile_scanner`, white scan-frame overlay with the
+/// **cyan gradient scan line**, promotor event name and "Escanea el código QR
+/// del asistente" hint (QRSC §Scanner Screen). Camera access goes through
+/// [PermissionService] (`Permission.camera`) with the rationale/settings UX;
+/// the torch toggle is an overlay action (mission extension of QRSC's "no
+/// torch" note — phone screens don't glare, the toggle is off by default).
 ///
 /// On scan: `EventService.validateQrToken(eventId, token)` (the
 /// `validate_qr_token` RPC — migration 20260809000005, the SQL stand-in for
@@ -271,7 +278,10 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen> {
           if (_cameraStatus == _CameraStatus.granted)
             IconButton(
               tooltip: _torchOn ? l10n.qrTorchOff : l10n.qrTorchOn,
-              icon: Icon(_torchOn ? Icons.flash_on : Icons.flash_off),
+              icon: Icon(
+                _torchOn ? Icons.flash_on : Icons.flash_off,
+                color: AppColors.white,
+              ),
               onPressed: _toggleTorch,
             ),
         ],
@@ -316,17 +326,10 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen> {
                         }
                       }
                     },
-                    errorBuilder: (context, error, child) => _cameraError(l10n),
+                    errorBuilder: (context, error) => _cameraError(l10n),
                   ),
-            // Scan frame + prompts (QRSC overlay spec).
-            const IgnorePointer(
-              child: Center(
-                child: CustomPaint(
-                  size: Size(280, 280),
-                  painter: _ScanFramePainter(),
-                ),
-              ),
-            ),
+            // Scan frame + cyan scan line (QRSC overlay spec, LUXE restyle).
+            const IgnorePointer(child: Center(child: _ScanOverlay())),
             Positioned(
               top: AppSpacing.lg,
               left: AppSpacing.lg,
@@ -367,9 +370,11 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen> {
       right: AppSpacing.lg,
       bottom: AppSpacing.xxxl,
       child: switch (result) {
-        _Processing() => Container(
+        _Processing() => VGlass(
+            gradient: _family,
+            radius: BorderRadius.circular(16),
+            glowAlpha: 0.15,
             padding: const EdgeInsets.all(AppSpacing.md),
-            color: AppColors.surfaceAlt,
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -379,27 +384,35 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen> {
                   child: CircularProgressIndicator(strokeWidth: 2),
                 ),
                 const SizedBox(width: AppSpacing.md),
-                Text(l10n.qrScanProcessing,
-                    style: const TextStyle(color: AppColors.white)),
+                Text(
+                  l10n.qrScanProcessing,
+                  style: const TextStyle(color: AppColors.white),
+                ),
               ],
             ),
           ),
-        _Confirmed(attendeeName: final name) => Container(
+        _Confirmed(attendeeName: final name) => VGlass(
+            gradient: _family,
+            radius: BorderRadius.circular(16),
+            glowAlpha: 0.25,
             padding: const EdgeInsets.all(AppSpacing.lg),
-            color: AppColors.discoBlack,
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
+                // LUXE: the confirmation mark uses the family (cyan) vivid
+                // end — the legacy pink is gone (2026-08-12 directive).
                 const Icon(Icons.check_circle,
                     size: 48, color: AppColors.discoCyan),
                 const SizedBox(height: AppSpacing.sm),
-                Text(l10n.qrScanConfirmed,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      color: AppColors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
-                    )),
+                Text(
+                  l10n.qrScanConfirmed,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: AppColors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
                 if (name != null && name.isNotEmpty) ...[
                   const SizedBox(height: AppSpacing.xs),
                   Text(
@@ -408,23 +421,29 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen> {
                   ),
                 ],
                 const SizedBox(height: AppSpacing.sm),
-                Text(l10n.qrScanReady,
-                    style: const TextStyle(color: AppColors.mutedStrong)),
+                Text(
+                  l10n.qrScanReady,
+                  style: const TextStyle(color: AppColors.mutedStrong),
+                ),
               ],
             ),
           ),
         _ScanError(message: final message, retryable: final retryable) =>
-          Container(
+          VGlass(
+            gradient: _family,
+            radius: BorderRadius.circular(16),
+            glowAlpha: 0.15,
             padding: const EdgeInsets.all(AppSpacing.lg),
-            color: AppColors.discoBlack,
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
                   message,
                   textAlign: TextAlign.center,
+                  // Error semantics keep the pink alias through
+                  // AppColors.error (NO PINK MAINS exempts error text).
                   style: const TextStyle(
-                    color: AppColors.glowPink,
+                    color: AppColors.error,
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
                   ),
@@ -436,6 +455,7 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen> {
                     // the QRSC spec requires): avoids a new ARB key while the
                     // ARB pair is contended by other agents (I-60/I-61/I-62).
                     label: l10n.commonRetry,
+                    gradient: _family,
                     onPressed: _retryLastScan,
                   ),
                 ],
@@ -447,19 +467,110 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen> {
   }
 }
 
-/// White scan-frame guide (QRSC: white outline, corner brackets).
+/// Scan-frame overlay (QRSC: white outline, corner brackets) + the **cyan
+/// gradient scan line** sweeping top→bottom on the idle-safe engine (one
+/// 2.4s sweep then a [SamayDurations.motionCycleRest] settle, so
+/// `pumpAndSettle`-based tests land deterministically). Reduced motion →
+/// static line at the frame's vertical center.
+class _ScanOverlay extends StatefulWidget {
+  const _ScanOverlay();
+
+  @override
+  State<_ScanOverlay> createState() => _ScanOverlayState();
+}
+
+class _ScanOverlayState extends State<_ScanOverlay>
+    with SingleTickerProviderStateMixin {
+  /// One sweep leg (0 → 1 across the frame height).
+  late final AnimationController _sweep = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 2400),
+  );
+
+  Timer? _cycleTimer;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final reduced = MediaQuery.disableAnimationsOf(context);
+    if (reduced) {
+      _cycleTimer?.cancel();
+      _cycleTimer = null;
+      _sweep.stop();
+      _sweep.value = 0.5; // static center line
+    } else if (_cycleTimer == null) {
+      _cycleTimer = Timer.periodic(_cyclePeriod, (_) {
+        if (!_sweep.isAnimating) {
+          _sweep.forward(from: 0).then((_) {
+            if (mounted && !MediaQuery.disableAnimationsOf(context)) {
+              _sweep.value = 0;
+            }
+          });
+        }
+      });
+      if (!_sweep.isAnimating) {
+        _sweep.forward(from: 0).then((_) {
+          if (mounted && !MediaQuery.disableAnimationsOf(context)) {
+            _sweep.value = 0;
+          }
+        });
+      }
+    }
+  }
+
+  Duration get _cyclePeriod =>
+      const Duration(milliseconds: 2400) + SamayDurations.motionCycleRest;
+
+  @override
+  void dispose() {
+    _cycleTimer?.cancel();
+    _sweep.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 280,
+      height: 280,
+      child: AnimatedBuilder(
+        animation: _sweep,
+        builder: (context, _) => CustomPaint(
+          painter: _ScanFramePainter(progress: _sweep.value),
+        ),
+      ),
+    );
+  }
+}
+
+/// White scan-frame guide (QRSC: white outline, corner brackets) with the
+/// family **cyan gradient** scan line at [progress] (0 → top edge, 1 →
+/// bottom edge). The line is the only moving part; the frame is static white.
 class _ScanFramePainter extends CustomPainter {
-  const _ScanFramePainter();
+  const _ScanFramePainter({required this.progress});
+
+  final double progress;
 
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()
+    final frame = Paint()
       ..style = PaintingStyle.stroke
       ..strokeWidth = 3
       ..color = AppColors.white;
     const corner = 40.0;
     final r = Rect.fromLTWH(0, 0, size.width, size.height);
-    canvas.drawPath(_cornerPath(r, corner), paint);
+    canvas.drawPath(_cornerPath(r, corner), frame);
+
+    // Cyan gradient scan line (LUXE directive #2: gradient accents only).
+    final linePaint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2
+      ..shader = _family.linear().createShader(
+            Rect.fromLTWH(0, 0, size.width, 2),
+          );
+    final inset = corner * 0.9;
+    final y = inset + (size.height - 2 * inset) * progress;
+    canvas.drawLine(Offset(inset, y), Offset(size.width - inset, y), linePaint);
   }
 
   Path _cornerPath(Rect r, double c) {
@@ -479,5 +590,6 @@ class _ScanFramePainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_ScanFramePainter oldDelegate) => false;
+  bool shouldRepaint(_ScanFramePainter oldDelegate) =>
+      oldDelegate.progress != progress;
 }

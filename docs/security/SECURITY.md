@@ -180,7 +180,7 @@ Plan (S-09/I-59): enforce path-prefix ownership (`{user_id}/...`) — done for a
 | `.env.example` contains a **real publishable anon key** | `.env.example:5` (H-21/SEC-03 — committed to git history) | 🔴 — rotate + placeholder |
 | Service role / admin IDs via env only, never in app | `internal/db/client.go:21-22`, `cmd/samay-admin/root.go:15, 52-57` | ✅ |
 | Compose uses placeholder secrets (no real creds committed) | `supabase/docker-compose.yml:67, 74, 102, 124, 127, 146-147` ("your-…-change-in-production") | ✅ (M-01..M-05 to finish pinning) |
-| Makefile passes `APPLE_PASSWORD` as plaintext var | `Makefile:16, 62-70` (M-13 to move to env/pass) | ⚠️ |
+| Makefile passes `APPLE_PASSWORD` as plaintext var | ~~`Makefile` MKE-02~~ — AltServer sideload path removed 2026-08-12; iOS device installs use fastlane `adhoc_local` + `devicectl` (enrolled team from gitignored `.env.local`) | ✅ |
 | Dev test script embeds local dev keys | `test/opt-001-rls-security.sh:20-22` (local-stack dev keys only — acceptable for dev, must never be prod) | ⚠️ |
 
 Rule: **no secrets in code, tests, or docs — placeholders only** (AGENT-RULES §4). Build-time injection via `--dart-define` (Makefile `build`/`dev` targets, M-11/M-13).

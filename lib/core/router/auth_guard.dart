@@ -24,17 +24,14 @@ class AuthGuard {
       return location == RoutePaths.banned ? null : RoutePaths.banned;
     }
 
-    final isPublicRoute = location == RoutePaths.welcome ||
+    final isPublicRoute =
+        location == RoutePaths.welcome ||
         location == RoutePaths.login ||
         location == RoutePaths.forgotPassword ||
         location.startsWith(RoutePaths.authPrefix);
 
     if (data == null || !data.authenticated) {
       return isPublicRoute ? null : RoutePaths.login;
-    }
-
-    if (!data.hasProfile && !location.startsWith(RoutePaths.authPrefix)) {
-      return RoutePaths.signup;
     }
 
     if (location == RoutePaths.login || location == RoutePaths.welcome) {
@@ -44,3 +41,11 @@ class AuthGuard {
     return null;
   }
 }
+
+// NOTE (no-fallback policy, 2026-08-13): the guard must never navigate a
+// user to a screen they did not explicitly request. Profile completion is
+// driven ONLY by the explicit signup funnel (OTP → age gate → privacy/terms
+// → profile setup) — there is deliberately NO redirect for
+// authenticated-but-profile-less users. Any error in the profile check
+// surfaces as an error (with code) at the explicit action that triggered it;
+// a failed check never bounces the user to another screen.

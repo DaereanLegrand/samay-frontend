@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
+import 'package:samay/core/design_tokens/app_gradients.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/extensions/error_mapper.dart';
 import 'package:samay/core/providers/auth_provider.dart';
@@ -9,9 +10,12 @@ import 'package:samay/core/providers/config_provider.dart';
 import 'package:samay/core/services/revenuecat_service.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/error_view.dart';
+import 'package:samay/shared/widgets/glass/v_glass.dart';
 import 'package:samay/shared/widgets/state_views.dart';
+import 'package:samay/shared/widgets/v_aurora.dart';
 import 'package:samay/shared/widgets/v_badge.dart';
 import 'package:samay/shared/widgets/v_button.dart';
+import 'package:samay/shared/widgets/v_display_text.dart';
 
 /// Subscription tier identifiers, matching `users.subscription_tier`.
 class PaywallTier {
@@ -160,15 +164,20 @@ String? currentTierFromAuth(AuthState authState) {
   return null;
 }
 
+/// LUXE v2 family for this screen — **gold** (ORCHESTRATION-LUXE map:
+/// paywall → gold). The paywall is the brand moment: glass price cards with
+/// gold gradient borders + glow.
+final AppGradient _family = AppGradients.familyOf('paywall');
+
 /// Subscription paywall (PLAN spec §6.12 + `PLAN-subscription-plans-paywall`):
 /// transparent pricing for **all** tiers (Free/PRO/VIP, monthly + annual),
 /// prices from `app_config` (`subs.*_price_pen`, seeded) — never hardcoded —
 /// the "Actual" badge on the current tier, and purchase buttons that stay
 /// disabled (with a "Próximamente" tooltip) while RevenueCat is in stub mode.
 ///
-/// Black minimalist per DISCO-DESIGN-SYSTEM §1 (P1/P2): black bg, white core
-/// text, hairline borders; `discoViolet` reserved for the VIP/premium tier
-/// (§2.3 usage) and always paired with a text label (§2.5 rule 5).
+/// LUXE v2: gold liquid-glass tier cards with the gold gradient halo; the
+/// header is the single display hero (the redundant AppBar title is gone —
+/// ORCHESTRATION directive #8: one hero per screen max).
 class PaywallScreen extends ConsumerWidget {
   const PaywallScreen({super.key});
 
@@ -202,7 +211,7 @@ class PaywallScreen extends ConsumerWidget {
     final stubMode = ref.watch(revenueCatServiceProvider).isStubMode;
 
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.comingSoonSubscriptionsTitle)),
+      appBar: AppBar(),
       body: config.when(
         loading: () => const VLoadingView(),
         error: (error, _) => ErrorView(
@@ -211,41 +220,45 @@ class PaywallScreen extends ConsumerWidget {
         ),
         data: (appConfig) {
           final currentTier = currentTierFromAuth(authState.valueOrNull ?? const AuthState());
-          return ListView(
-            padding: const EdgeInsets.all(AppSpacing.xl),
-            children: [
-              Text(
-                l10n.paywallHeader,
-                style: Theme.of(context).textTheme.headlineMedium,
-              ),
-              const SizedBox(height: AppSpacing.sm),
-              Text(
-                l10n.paywallAllTiersVisible,
-                style: Theme.of(context).textTheme.bodyMedium,
-              ),
-              const SizedBox(height: AppSpacing.xl),
-              for (final tier in paywallTiers) ...[
-                _TierCard(
-                  tier: tier,
-                  l10n: l10n,
-                  config: appConfig,
-                  isCurrent: currentTier == tier.id,
-                  stubMode: stubMode,
-                  onUpgrade: tier.isPaid
-                      ? () => _purchase(context, ref, tier.id)
-                      : null,
+          return VAurora(
+            gradients: const [AppGradients.gold],
+            opacity: 0.07,
+            child: ListView(
+              padding: const EdgeInsets.all(AppSpacing.xl),
+              children: [
+                // The single display hero (LUXE directive #8): the AppBar
+                // title is removed — the header owns the screen.
+                VDisplayText(text: l10n.paywallHeader, size: 32, gradient: _family),
+                const SizedBox(height: AppSpacing.sm),
+                Text(
+                  l10n.paywallAllTiersVisible,
+                  style: Theme.of(context).textTheme.bodyMedium,
                 ),
-                const SizedBox(height: AppSpacing.lg),
+                const SizedBox(height: AppSpacing.xl),
+                for (final tier in paywallTiers) ...[
+                  _TierCard(
+                    tier: tier,
+                    l10n: l10n,
+                    config: appConfig,
+                    isCurrent: currentTier == tier.id,
+                    stubMode: stubMode,
+                    onUpgrade: tier.isPaid
+                        ? () => _purchase(context, ref, tier.id)
+                        : null,
+                  ),
+                  const SizedBox(height: AppSpacing.lg),
+                ],
+                const SizedBox(height: AppSpacing.sm),
+                Tooltip(
+                  message: l10n.comingSoonSoon,
+                  child: VButton.outlined(
+                    label: l10n.paywallRestore,
+                    gradient: _family,
+                    onPressed: stubMode ? null : () => _restore(context, ref),
+                  ),
+                ),
               ],
-              const SizedBox(height: AppSpacing.sm),
-              Tooltip(
-                message: l10n.comingSoonSoon,
-                child: VButton.outlined(
-                  label: l10n.paywallRestore,
-                  onPressed: stubMode ? null : () => _restore(context, ref),
-                ),
-              ),
-            ],
+            ),
           );
         },
       ),
@@ -273,19 +286,15 @@ class _TierCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isVip = tier.id == 'vip';
-    final accent = isVip ? AppColors.discoViolet : AppColors.white;
     final monthly = paywallMonthlyPrice(tier.id, config);
     final annual = paywallAnnualPrice(tier.id, config);
 
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        border: Border(
-          top: BorderSide(color: isVip ? accent : AppColors.hairline),
-          bottom: BorderSide(color: isVip ? accent : AppColors.hairline),
-        ),
-      ),
-      padding: const EdgeInsets.all(AppSpacing.cardPadding),
+    // LUXE brand moment: glass price cards with gold gradient borders +
+    // glow; VIP carries the stronger halo. The legacy violet VIP accent is
+    // gone — the paywall family is gold (ORCHESTRATION map).
+    return VGlassCard(
+      gradient: _family,
+      glowAlpha: isVip ? 0.4 : (isCurrent ? 0.28 : 0.16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -294,14 +303,15 @@ class _TierCard extends StatelessWidget {
               Expanded(
                 child: Text(
                   paywallRowLabel(l10n, tier.titleKey),
-                  style: TextStyle(
-                    color: accent,
+                  style: const TextStyle(
+                    color: AppColors.white,
                     fontSize: 18,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
               ),
-              if (isCurrent) VBadge(label: l10n.paywallCurrentBadge),
+              if (isCurrent)
+                VBadge.accent(label: l10n.paywallCurrentBadge, gradient: _family),
             ],
           ),
           const SizedBox(height: AppSpacing.sm),
@@ -330,6 +340,7 @@ class _TierCard extends StatelessWidget {
                 label: tier.id == 'pro'
                     ? l10n.paywallUpgradePro
                     : l10n.paywallUpgradeVip,
+                gradient: _family,
                 onPressed: stubMode ? null : onUpgrade,
               ),
             ),

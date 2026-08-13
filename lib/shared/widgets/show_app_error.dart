@@ -15,8 +15,10 @@ Future<void> showAppError(
   bool blocking = false,
 }) async {
   final l10n = AppLocalizations.of(context);
-  final mapped = error.toAppError().message.trim();
+  final appError = error.toAppError();
+  final mapped = appError.message.trim();
   final message = mapped.isNotEmpty ? mapped : (fallback ?? l10n.errorsGeneric);
+  final code = appError.code;
   if (!context.mounted) return;
 
   if (blocking) {
@@ -28,11 +30,24 @@ Future<void> showAppError(
           l10n.commonError,
           style: const TextStyle(color: AppColors.white),
         ),
-        content: Text(
-          message,
-          style: Theme.of(
-            dialogContext,
-          ).textTheme.bodyMedium?.copyWith(color: AppColors.mutedStrong),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              message,
+              style: Theme.of(
+                dialogContext,
+              ).textTheme.bodyMedium?.copyWith(color: AppColors.mutedStrong),
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            Text(
+              '${l10n.errorCodeLabel}: $code',
+              style: Theme.of(
+                dialogContext,
+              ).textTheme.bodySmall?.copyWith(color: AppColors.mutedStrong),
+            ),
+          ],
         ),
         actions: [
           TextButton(
@@ -55,15 +70,29 @@ Future<void> showAppError(
             const Icon(
               Icons.error_outline,
               size: 18,
-              color: AppColors.glowPink,
+              // Error semantics — the one place pink may appear (LUXE
+              // directive 2026-08-12): AppColors.error aliases glowPink.
+              color: AppColors.error,
             ),
             const SizedBox(width: AppSpacing.md),
             Expanded(
-              child: Text(
-                message,
-                style: Theme.of(
-                  context,
-                ).textTheme.bodyMedium?.copyWith(color: AppColors.white),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    message,
+                    style: Theme.of(
+                      context,
+                    ).textTheme.bodyMedium?.copyWith(color: AppColors.white),
+                  ),
+                  Text(
+                    '${l10n.errorCodeLabel}: $code',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: AppColors.mutedStrong,
+                    ),
+                  ),
+                ],
               ),
             ),
           ],

@@ -479,13 +479,13 @@ abstract class AppLocalizations {
   /// Password field label including the password requirements
   ///
   /// In es, this message translates to:
-  /// **'Contraseña (mín. 6 caracteres, 1 número)'**
+  /// **'Contraseña (mín. 8 caracteres, 1 número)'**
   String get authPasswordWithRequirements;
 
   /// Validation error for a weak password
   ///
   /// In es, this message translates to:
-  /// **'La contraseña debe tener al menos 6 caracteres y contener un número.'**
+  /// **'La contraseña debe tener al menos 8 caracteres y contener un número.'**
   String get authPasswordTooWeak;
 
   /// Validation error when the password confirmation differs
@@ -1963,6 +1963,12 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'Ha ocurrido un error'**
   String get errorsGeneric;
+
+  /// Label prefixing the stable machine-readable error code on error popups and snackbars
+  ///
+  /// In es, this message translates to:
+  /// **'Código de error'**
+  String get errorCodeLabel;
 
   /// Rank bracket label (90-100)
   ///

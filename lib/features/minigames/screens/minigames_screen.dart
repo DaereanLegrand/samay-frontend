@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
+import 'package:samay/core/design_tokens/app_gradients.dart';
 import 'package:samay/core/design_tokens/app_icon_sizes.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/extensions/error_mapper.dart';
@@ -8,9 +9,12 @@ import 'package:samay/core/services/minigame_service.dart';
 import 'package:samay/features/minigames/providers/minigames_providers.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/error_view.dart';
+import 'package:samay/shared/widgets/glass/v_glass.dart';
 import 'package:samay/shared/widgets/state_views.dart';
+import 'package:samay/shared/widgets/v_aurora.dart';
 import 'package:samay/shared/widgets/v_button.dart';
 import 'package:samay/shared/widgets/v_chip.dart';
+import 'package:samay/shared/widgets/v_display_text.dart';
 import 'package:samay/shared/widgets/v_input.dart';
 
 /// Friendly message for a rejected session creation (GWAG/GMCR typed errors
@@ -44,15 +48,18 @@ String minigameGameName(AppLocalizations l10n, String? gameType) {
   };
 }
 
+/// LUXE v2 family for this screen — **peach** (ORCHESTRATION-LUXE map:
+/// minigames → peach).
+final AppGradient _family = AppGradients.familyOf('minigames');
+
 /// Group minigames hub (GMCR foundation — I-63): the five game-type cards
 /// (icon + name + tagline), the optional wager input (GWAG: 0 = no wager)
 /// with the create action, and the group's session list with lifecycle
 /// status chips. Tapping a session shows the detail placeholder — the
 /// per-game UIs (turns, timers, votes) are future work.
 ///
-/// Disco-minimalist per DISCO-DESIGN-SYSTEM §1/§5: black surface, hairline
-/// borders, white core text; the signature glowPink is the game-selection
-/// accent only.
+/// LUXE v2: peach liquid-glass cards; the game-selection accent is the peach
+/// family (never pink — 2026-08-12 directive).
 class MinigamesScreen extends ConsumerStatefulWidget {
   const MinigamesScreen({super.key, required this.groupId});
 
@@ -120,9 +127,23 @@ class _MinigamesScreenState extends ConsumerState<MinigamesScreen> {
       appBar: AppBar(title: Text(l10n.minigamesTitle)),
       body: Column(
         children: [
-          _buildGamePicker(l10n),
-          const Divider(height: 1, thickness: 1, color: AppColors.hairline),
-          Expanded(child: _buildSessions(l10n, sessions)),
+          Expanded(
+            child: VAurora(
+              gradients: const [AppGradients.peach],
+              opacity: 0.06,
+              child: Column(
+                children: [
+                  _buildGamePicker(l10n),
+                  const Divider(
+                    height: 1,
+                    thickness: 1,
+                    color: AppColors.hairline,
+                  ),
+                  Expanded(child: _buildSessions(l10n, sessions)),
+                ],
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -134,9 +155,10 @@ class _MinigamesScreenState extends ConsumerState<MinigamesScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            l10n.minigamesPickGame,
-            style: Theme.of(context).textTheme.headlineSmall,
+          VDisplayText(
+            text: l10n.minigamesPickGame,
+            size: 28,
+            gradient: _family,
           ),
           const SizedBox(height: AppSpacing.md),
           SizedBox(
@@ -170,8 +192,10 @@ class _MinigamesScreenState extends ConsumerState<MinigamesScreen> {
               const SizedBox(width: AppSpacing.lg),
               SizedBox(
                 width: 150,
-                child: VButton(
+                child: VButton.glowAccent(
                   label: l10n.minigamesCreate,
+                  filled: true,
+                  gradient: _family,
                   loading: _creating,
                   onPressed: _selected == null ? null : _create,
                 ),
@@ -202,8 +226,7 @@ class _MinigamesScreenState extends ConsumerState<MinigamesScreen> {
             )
           : ListView.separated(
               itemCount: rows.length,
-              separatorBuilder: (_, _) =>
-                  const Divider(height: 1, color: AppColors.hairline),
+              separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.xs),
               itemBuilder: (_, i) => _SessionCard(
                 session: rows[i],
                 onTap: _showDetailPlaceholder,
@@ -257,44 +280,44 @@ class _GameCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final (icon, name, tagline) = _meta;
-    final accent = selected ? AppColors.glowPink : AppColors.white;
+    // LUXE: the selection accent is the peach family (vivid end), never pink.
+    final accent = selected ? _family.colors.last : AppColors.white;
 
     return InkWell(
       onTap: onTap,
-      child: Container(
+      child: SizedBox(
         width: 170,
-        padding: const EdgeInsets.all(AppSpacing.lg),
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          border: Border.all(color: accent),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Icon(icon, size: AppIconSizes.xl, color: accent),
-            const SizedBox(height: AppSpacing.md),
-            Text(
-              name(l10n),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                color: selected ? AppColors.glowPink : AppColors.white,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            const SizedBox(height: AppSpacing.xs),
-            Expanded(
-              child: Text(
-                tagline(l10n),
-                maxLines: 2,
+        child: VGlassCard(
+          gradient: _family,
+          glowAlpha: selected ? 0.28 : 0.08,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(icon, size: AppIconSizes.xl, color: accent),
+              const SizedBox(height: AppSpacing.md),
+              Text(
+                name(l10n),
+                maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  color: AppColors.mutedStrong,
-                  fontSize: 12,
+                style: TextStyle(
+                  color: selected ? _family.colors.last : AppColors.white,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
-            ),
-          ],
+              const SizedBox(height: AppSpacing.xs),
+              Expanded(
+                child: Text(
+                  tagline(l10n),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: AppColors.mutedStrong,
+                    fontSize: 12,
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -320,39 +343,42 @@ class _SessionCard extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.symmetric(
           horizontal: AppSpacing.lg,
-          vertical: AppSpacing.md,
+          vertical: AppSpacing.xs,
         ),
-        child: Row(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    minigameGameName(l10n, session['game_type'] as String?),
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                  const SizedBox(height: AppSpacing.xs),
-                  Text(
-                    wager > 0
-                        ? l10n.minigamesWagerPerPerson(wager)
-                        : l10n.minigamesParticipants(participants),
-                    style: const TextStyle(color: AppColors.mutedStrong),
-                  ),
-                ],
+        child: VGlassCard(
+          gradient: _family,
+          glowAlpha: 0.08,
+          child: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      minigameGameName(l10n, session['game_type'] as String?),
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    const SizedBox(height: AppSpacing.xs),
+                    Text(
+                      wager > 0
+                          ? l10n.minigamesWagerPerPerson(wager)
+                          : l10n.minigamesParticipants(participants),
+                      style: const TextStyle(color: AppColors.mutedStrong),
+                    ),
+                  ],
+                ),
               ),
-            ),
-            const SizedBox(width: AppSpacing.md),
-            VChip(
-              label: status == 'finished'
-                  ? l10n.minigamesStatusFinished
-                  : l10n.minigamesStatusActive,
-              selected: status != 'finished',
-            ),
-          ],
+              const SizedBox(width: AppSpacing.md),
+              VChip(
+                label: status == 'finished'
+                    ? l10n.minigamesStatusFinished
+                    : l10n.minigamesStatusActive,
+                selected: status != 'finished',
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 }
-

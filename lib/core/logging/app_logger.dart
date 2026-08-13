@@ -18,16 +18,20 @@ enum LogLevel {
 
 /// Samay's logging/observability layer.
 ///
-/// Singleton with 5 levels (debug/info/warn/error/emergency). `debug` and
-/// `info` are compiled out in release mode. Entries are written synchronously
-/// to `samay.log` in the app documents directory; `debugPrint` is kept only
-/// as a fallback sink when file I/O is unavailable.
+/// Singleton with 5 levels (debug/info/warn/error/emergency). Logging and
+/// crash markers are testing/debug-only: release builds are silent — no log
+/// output and no disk writes (privacy). [enabled] defaults to `!kReleaseMode`
+/// and can be forced with `enabled:` for tests. Entries are written
+/// synchronously to `samay.log` in the app documents directory; `debugPrint`
+/// is kept only as a fallback sink when file I/O is unavailable.
 ///
 /// Crash markers (LOG-03): [markCrash] writes `.samay_crash_marker`;
 /// [recoverCrashMarker] appends it to `samay_crash.log` and clears it on the
 /// next launch. I-70 will wrap a Sentry SDK around this API.
 class AppLogger {
-  AppLogger({Directory? storageDir}) : _storageDir = storageDir;
+  AppLogger({Directory? storageDir, bool? enabled})
+    : _enabled = enabled ?? !kReleaseMode,
+      _storageDir = storageDir;
 
   static AppLogger instance = AppLogger();
 
@@ -35,6 +39,7 @@ class AppLogger {
   static const markerFileName = '.samay_crash_marker';
   static const crashLogFileName = 'samay_crash.log';
 
+  final bool _enabled;
   final Directory? _storageDir;
   Directory? _dir;
 
@@ -54,7 +59,10 @@ class AppLogger {
 
   static final _benignRules = <({LogLevel level, RegExp pattern})>[
     (level: LogLevel.info, pattern: RegExp(r'Cancelled')),
-    (level: LogLevel.info, pattern: RegExp(r'Bad state: Future already completed')),
+    (
+      level: LogLevel.info,
+      pattern: RegExp(r'Bad state: Future already completed'),
+    ),
     (level: LogLevel.warn, pattern: RegExp(r'MissingPluginException')),
   ];
 
@@ -84,9 +92,7 @@ class AppLogger {
       log(LogLevel.emergency, message, stack);
 
   void log(LogLevel level, String message, [String stack = '']) {
-    if (kReleaseMode && (level == LogLevel.debug || level == LogLevel.info)) {
-      return;
-    }
+    if (!_enabled) return;
     final line =
         '[Samay][${level.label}] ${DateTime.now().toUtc().toIso8601String()} '
         '$message${stack.isNotEmpty ? '\n$stack' : ''}';
@@ -110,14 +116,16 @@ class AppLogger {
 
   /// Writes a crash marker file for detection on the next launch (LOG-03).
   Future<void> markCrash(String message, [String stack = '']) async {
+    if (!_enabled) return;
     final dir = await _resolveDir();
     if (dir == null) return;
     final content =
         '[Samay][EMERGENCY] ${DateTime.now().toUtc().toIso8601String()} '
         '$message${stack.isNotEmpty ? '\n$stack' : ''}';
     try {
-      await File('${dir.path}/$markerFileName').writeAsString(content,
-          flush: true);
+      await File(
+        '${dir.path}/$markerFileName',
+      ).writeAsString(content, flush: true);
     } catch (_) {
       debugPrint('[Samay] markCrash failed to write marker: $message');
     }
@@ -162,8 +170,10 @@ class AppLogger {
           await raf.close();
         }
       } catch (_) {
-        debugPrint('[Samay] recoverCrashMarker failed to append crash log: '
-            '$content');
+        debugPrint(
+          '[Samay] recoverCrashMarker failed to append crash log: '
+          '$content',
+        );
       }
     }
     await clearCrashMarker();

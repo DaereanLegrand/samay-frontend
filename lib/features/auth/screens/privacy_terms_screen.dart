@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:samay/core/design_tokens/app_gradients.dart';
 import 'package:samay/core/router/route_extras.dart';
 import 'package:samay/core/router/route_paths.dart';
 import 'package:samay/l10n/app_localizations.dart';
-import 'package:samay/shared/widgets/v_breathing_glow.dart';
+import 'package:samay/shared/widgets/v_aurora.dart';
 import 'package:samay/shared/widgets/v_button.dart';
+import 'package:samay/shared/widgets/v_display_text.dart';
 
 class PrivacyTermsScreen extends StatefulWidget {
   final String email;
@@ -28,8 +30,9 @@ class _PrivacyTermsScreenState extends State<PrivacyTermsScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final family = AppGradients.familyOf('privacy_terms');
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.authTermsTitle)),
+      appBar: AppBar(),
       // §7.3: scroll-safe body — the long checkbox subtitles + displayMedium
       // header overflow the fixed Column at ≥1.5× text scale on small
       // phones. `SliverFillRemaining` pins the CTA when the content fits
@@ -39,57 +42,70 @@ class _PrivacyTermsScreenState extends State<PrivacyTermsScreen> {
       // when the subtitle wraps — that under-measure breaks both this
       // sliver pattern and the OTP `IntrinsicHeight + Spacer` variant
       // (U-19 finding; plain Texts measure exactly).
-      body: CustomScrollView(
-        slivers: [
-          SliverFillRemaining(
-            hasScrollBody: false,
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const SizedBox(height: 32),
-                  // §3.2 auth big header — Playfair Display italic 40 with
-                  // the glow, breathed by U-18's §6.2 disco-glow animation
-                  // (auth headers are in §6.2's breathing scope; this was
-                  // U-18's flagged gap — closed by U-23; reduced-motion →
-                  // static full-α glow).
-                  VBreathingGlow(
-                    text: l10n.authAcceptTermsToContinue,
-                    style: Theme.of(context).textTheme.displayMedium,
-                  ),
-                  const SizedBox(height: 16),
-                  _ConsentRow(
-                    title: l10n.authPrivacyPolicy,
-                    subtitle: l10n.authPrivacyPolicySubtitle,
-                    value: _privacyAccepted,
-                    onChanged: (v) => setState(() => _privacyAccepted = v),
-                  ),
-                  _ConsentRow(
-                    title: l10n.authServiceTerms,
-                    subtitle: l10n.authServiceTermsSubtitle,
-                    value: _termsAccepted,
-                    onChanged: (v) => setState(() => _termsAccepted = v),
-                  ),
-                  const Spacer(),
-                  VButton.emphasized(
-                    label: l10n.commonCreateAccount,
-                    onPressed: _allAccepted
-                        ? () => context.push(
-                            RoutePaths.profileSetup,
-                            extra: ProfileSetupExtra(
-                              email: widget.email,
-                              dateOfBirth: widget.dateOfBirth,
-                            ),
-                          )
-                        : null,
-                  ),
-                  const SizedBox(height: 32),
-                ],
+      // XL-16 (06_privacy_terms — "a trivial display of over-complication"):
+      // whisper aurora; the glass card panel is gone — black bg + the two
+      // consent rows is the cleaner surface (the hero gradient and the CTA
+      // own the only glow on screen).
+      // XL-19 (06_privacy_terms — "over-complication"): the aurora drops to
+      // α0.03 (floor of the whisper range); the rows keep their section
+      // labels with NO extra instruction text — exactly hero, 2 consent
+      // rows, CTA.
+      body: VAurora(
+        gradients: [family],
+        opacity: 0.03,
+        child: CustomScrollView(
+          slivers: [
+            SliverFillRemaining(
+              hasScrollBody: false,
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(height: 32),
+                    // §3.2 auth big header — LUXE v2: mint-family
+                    // VDisplayText (gradient fill + slowly pulsing glow).
+                    VDisplayText(
+                      text: l10n.authAcceptTermsToContinue,
+                      gradient: family,
+                    ),
+                    const SizedBox(height: 24),
+                    _ConsentRow(
+                      title: l10n.authPrivacyPolicy,
+                      subtitle: l10n.authPrivacyPolicySubtitle,
+                      value: _privacyAccepted,
+                      onChanged: (v) => setState(() => _privacyAccepted = v),
+                    ),
+                    const SizedBox(height: 20),
+                    _ConsentRow(
+                      title: l10n.authServiceTerms,
+                      subtitle: l10n.authServiceTermsSubtitle,
+                      value: _termsAccepted,
+                      onChanged: (v) => setState(() => _termsAccepted = v),
+                    ),
+                    const Spacer(),
+                    // §5.1 brand moment: the primary CTA is emphasized with
+                    // the mint-family gradient fill + black text.
+                    VButton.emphasized(
+                      label: l10n.commonCreateAccount,
+                      gradient: family,
+                      onPressed: _allAccepted
+                          ? () => context.push(
+                              RoutePaths.profileSetup,
+                              extra: ProfileSetupExtra(
+                                email: widget.email,
+                                dateOfBirth: widget.dateOfBirth,
+                              ),
+                            )
+                          : null,
+                    ),
+                    const SizedBox(height: 32),
+                  ],
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -146,4 +162,3 @@ class _ConsentRow extends StatelessWidget {
     );
   }
 }
-

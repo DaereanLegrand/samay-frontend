@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
+import 'package:samay/core/design_tokens/app_gradients.dart';
 import 'package:samay/core/design_tokens/app_icon_sizes.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/models/ledger_entry.dart';
@@ -9,8 +10,10 @@ import 'package:samay/features/shards/logic/shard_ledger_formatters.dart';
 import 'package:samay/features/shards/providers/shard_ledger_providers.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/error_view.dart';
+import 'package:samay/shared/widgets/glass/v_glass.dart';
 import 'package:samay/shared/widgets/skeletons.dart';
 import 'package:samay/shared/widgets/state_views.dart';
+import 'package:samay/shared/widgets/v_aurora.dart';
 import 'package:samay/shared/widgets/v_shard_icon.dart';
 
 /// Localized label for a `shard_reason` enum value (SLED display mapping
@@ -75,6 +78,17 @@ IconData preshardReasonIcon(String reason) {
   };
 }
 
+/// LUXE v2 family for this screen — **gold** (ORCHESTRATION-LUXE map:
+/// shards → gold).
+final AppGradient _family = AppGradients.familyOf('shards');
+
+/// XL-17 (Gemma round 2, 16_shard_ledger: "pathetic, cluttered mess",
+/// luxury 2/minimalism 2): fills and borders ride the watered run — only the
+/// display delta shader may hold a hint more, and the vivid end is reserved
+/// for micro accents. Every per-row glass card is gone (one hairline per row,
+/// no divider + card + glow).
+final AppGradient _watered = AppGradients.wateredFamily(_family, mix: 0.4);
+
 /// The shard & preshard ledger (SLED spec): header balances (personal shards
 /// earned + preshards bought/granted, with the economy note), two tabs
 /// (Shards / Preshards) over the newest-first movement lists — each entry
@@ -82,8 +96,8 @@ IconData preshardReasonIcon(String reason) {
 /// strikethrough), the timestamp and the short reference id — plus
 /// pull-to-refresh and empty/error states.
 ///
-/// Black-minimalist per DISCO-DESIGN-SYSTEM §1/§5: black background, hairline
-/// borders, white core text; discoGold is the shards-currency accent only.
+/// LUXE v2: gold liquid-glass cards (border + glow + gradient delta text);
+/// the gold shard diamond is the currency accent (§5.6).
 class ShardLedgerScreen extends ConsumerStatefulWidget {
   const ShardLedgerScreen({super.key});
 
@@ -140,19 +154,24 @@ class _ShardLedgerScreenState extends ConsumerState<ShardLedgerScreen>
             ],
           ),
           Expanded(
-            child: ledgerAsync.when(
-              // U-25 (§5.8): the ledger is a list-y first load with nothing
-              // on screen, so the row skeleton stands in (U-22's handoff
-              // named shard_ledger → VSkeletonList). Pull-to-refresh keeps
-              // the list visible — the skeleton only ever replaces a blank
-              // frame.
-              skipLoadingOnRefresh: true,
-              loading: () => const VSkeletonList(),
-              error: (error, _) => ErrorView(
-                message: l10n.shardsLedgerLoadError,
-                onRetry: () => ref.read(shardLedgerProvider.notifier).refresh(),
+            child: VAurora(
+              gradients: const [AppGradients.gold],
+              opacity: 0.06,
+              child: ledgerAsync.when(
+                // U-25 (§5.8): the ledger is a list-y first load with nothing
+                // on screen, so the row skeleton stands in (U-22's handoff
+                // named shard_ledger → VSkeletonList). Pull-to-refresh keeps
+                // the list visible — the skeleton only ever replaces a blank
+                // frame.
+                skipLoadingOnRefresh: true,
+                loading: () => const VSkeletonList(),
+                error: (error, _) => ErrorView(
+                  message: l10n.shardsLedgerLoadError,
+                  onRetry: () =>
+                      ref.read(shardLedgerProvider.notifier).refresh(),
+                ),
+                data: (ledger) => _buildLedger(l10n, ledger),
               ),
-              data: (ledger) => _buildLedger(l10n, ledger),
             ),
           ),
         ],
@@ -179,7 +198,7 @@ class _ShardLedgerScreenState extends ConsumerState<ShardLedgerScreen>
         itemCount: entries.length + 1,
         separatorBuilder: (_, index) => index == 0
             ? const SizedBox.shrink()
-            : const Divider(height: 1, thickness: 1, color: AppColors.hairline),
+            : const Divider(height: 1),
         itemBuilder: (context, index) {
           if (index == 0) {
             return _NetHeader(total: total, l10n: l10n);
@@ -203,7 +222,8 @@ class _ShardLedgerScreenState extends ConsumerState<ShardLedgerScreen>
 
 /// The economy summary header (SLED "Economy summary on profile screen"
 /// balances — also rendered here so the ledger is self-contained): earned vs
-/// bought/granted with the "no expiran / solo eventos" note.
+/// bought/granted with the "no expiran / solo eventos" note. LUXE: gold
+/// liquid-glass card.
 class _BalanceHeader extends StatelessWidget {
   final int personalShards;
   final int preshards;
@@ -225,58 +245,64 @@ class _BalanceHeader extends StatelessWidget {
         AppSpacing.xl,
         AppSpacing.md,
       ),
-      padding: const EdgeInsets.all(AppSpacing.lg),
-      decoration: BoxDecoration(border: Border.all(color: AppColors.border)),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  l10n.shardsLedgerEarned,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(color: AppColors.mutedStrong),
+      child: VGlassCard(
+        gradient: _watered,
+        glowAlpha: 0.10,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    l10n.shardsLedgerEarned,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(color: AppColors.mutedStrong),
+                  ),
                 ),
-              ),
-              const VShardIcon(size: AppIconSizes.sm),
-              const SizedBox(width: AppSpacing.xs),
-              Text(
-                l10n.profileShardsCount(personalShards),
-                style: Theme.of(context).textTheme.bodyLarge,
-              ),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.xs),
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  l10n.shardsLedgerBought,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(color: AppColors.mutedStrong),
+                const VShardIcon(size: AppIconSizes.sm),
+                const SizedBox(width: AppSpacing.xs),
+                Text(
+                  l10n.profileShardsCount(personalShards),
+                  style: Theme.of(context).textTheme.bodyLarge,
                 ),
+              ],
+            ),
+            const SizedBox(height: AppSpacing.xs),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    l10n.shardsLedgerBought,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(color: AppColors.mutedStrong),
+                  ),
+                ),
+                Text(
+                  l10n.profilePreshardsCount(preshards),
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+              ],
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            Text(
+              '${l10n.shardsLedgerEarnedNote} ${l10n.shardsLedgerPreshardsNote}',
+              style: const TextStyle(
+                color: AppColors.mutedStrong,
+                fontSize: 12,
               ),
-              Text(
-                l10n.profilePreshardsCount(preshards),
-                style: Theme.of(context).textTheme.bodyMedium,
-              ),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          Text(
-            '${l10n.shardsLedgerEarnedNote} ${l10n.shardsLedgerPreshardsNote}',
-            style: const TextStyle(color: AppColors.mutedStrong, fontSize: 12),
-          ),
-        ],
+            ),
+          ],
+        ),
       ),
     );
   }
 }
 
-/// Net of the visible side (derived totals from the provider).
+/// Net of the visible side (derived totals from the provider). LUXE: a
+/// positive net renders in the gold family gradient (ShaderMask fill).
 class _NetHeader extends StatelessWidget {
   final int total;
   final AppLocalizations l10n;
@@ -286,6 +312,7 @@ class _NetHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final positive = total >= 0;
+    final text = '${positive ? '+' : ''}$total';
     return Padding(
       padding: const EdgeInsets.fromLTRB(
         AppSpacing.xl,
@@ -300,18 +327,49 @@ class _NetHeader extends StatelessWidget {
             style: const TextStyle(color: AppColors.mutedStrong),
           ),
           const SizedBox(width: AppSpacing.sm),
-          Text(
-            '${positive ? '+' : ''}$total',
-            style: TextStyle(
-              color: positive ? AppColors.white : AppColors.mutedStrong,
-              fontWeight: FontWeight.w700,
-              decoration: positive
-                  ? TextDecoration.none
-                  : TextDecoration.lineThrough,
-            ),
+          _GradientDelta(
+            text: text,
+            positive: positive,
+            style: const TextStyle(fontWeight: FontWeight.w700),
           ),
         ],
       ),
+    );
+  }
+}
+
+/// A signed shard delta — positive values render in the gold family gradient
+/// (LUXE directive #2: gradient text, never flat accents); negative stays
+/// `mutedStrong` strikethrough (loss). The shader rides the watered run —
+/// the vivid end is reserved for the display voice (XL-17).
+class _GradientDelta extends StatelessWidget {
+  const _GradientDelta({
+    required this.text,
+    required this.positive,
+    this.style,
+  });
+
+  final String text;
+  final bool positive;
+  final TextStyle? style;
+
+  @override
+  Widget build(BuildContext context) {
+    final base = style ?? const TextStyle();
+    if (!positive) {
+      return Text(
+        text,
+        style: base.copyWith(
+          color: AppColors.mutedStrong,
+          decoration: TextDecoration.lineThrough,
+        ),
+      );
+    }
+    return ShaderMask(
+      shaderCallback: (bounds) =>
+          AppGradients.textShader(_watered, bounds),
+      blendMode: BlendMode.srcIn,
+      child: Text(text, style: base.copyWith(color: AppColors.white)),
     );
   }
 }
@@ -334,21 +392,31 @@ class _LedgerTile extends StatelessWidget {
     final positive = entry.delta >= 0;
     final reference = shortReferenceId(entry.referenceId);
 
+    // XL-17: the row is a hairline list row — no glass card, no glow, no
+    // shard diamond beside the delta (the watered gradient delta already
+    // carries the "+" accent; the diamond is the balance-card token).
     return Padding(
       padding: const EdgeInsets.symmetric(
         horizontal: AppSpacing.lg,
-        vertical: AppSpacing.md,
+        vertical: AppSpacing.xs,
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, size: AppIconSizes.md, color: AppColors.mutedStrong),
+          Icon(
+            icon,
+            size: AppIconSizes.md,
+            color: _watered.colors[1].withValues(alpha: 0.9),
+          ),
           const SizedBox(width: AppSpacing.md),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(label, style: Theme.of(context).textTheme.titleMedium),
+                Text(
+                  label,
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
                 const SizedBox(height: AppSpacing.xs),
                 Text(
                   formatLedgerTimestamp(entry.createdAt, l10n.localeName),
@@ -371,25 +439,13 @@ class _LedgerTile extends StatelessWidget {
             ),
           ),
           const SizedBox(width: AppSpacing.md),
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (positive) ...[
-                const VShardIcon(size: AppIconSizes.xs),
-                const SizedBox(width: AppSpacing.xs),
-              ],
-              Text(
-                '${positive ? '+' : ''}${entry.delta}',
-                style: TextStyle(
-                  color: positive ? AppColors.white : AppColors.mutedStrong,
-                  fontWeight: FontWeight.w700,
-                  fontSize: 16,
-                  decoration: positive
-                      ? TextDecoration.none
-                      : TextDecoration.lineThrough,
-                ),
-              ),
-            ],
+          _GradientDelta(
+            text: '${positive ? '+' : ''}${entry.delta}',
+            positive: positive,
+            style: const TextStyle(
+              fontWeight: FontWeight.w700,
+              fontSize: 16,
+            ),
           ),
         ],
       ),

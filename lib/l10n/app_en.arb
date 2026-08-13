@@ -1361,6 +1361,10 @@
   "@errorsGeneric": {
     "description": "Generic error-presentation fallback message"
   },
+  "errorCodeLabel": "Error code",
+  "@errorCodeLabel": {
+    "description": "Label prefixing the stable machine-readable error code on error popups and snackbars"
+  },
   "rankFullVibe": "Full Vibe",
   "@rankFullVibe": {
     "description": "Rank bracket label (90-100)"

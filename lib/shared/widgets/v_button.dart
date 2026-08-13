@@ -1,28 +1,52 @@
 import 'package:flutter/material.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
+import 'package:samay/core/design_tokens/app_gradients.dart';
 import 'package:samay/core/design_tokens/app_radius.dart';
+import 'package:samay/shared/widgets/glass/v_gradient_border.dart';
 
 enum VButtonVariant { outlined, emphasized, glow }
 
-/// Samay primary button — DISCO-DESIGN-SYSTEM.md §5.1 (U-05).
+/// Samay primary button — DISCO-DESIGN-SYSTEM.md §5.1 (U-05), LUXE v2
+/// gradient-capable (ORCHESTRATION-LUXE.md "NO PINK MAINS", 2026-08-12).
 ///
 /// | Variant | Spec |
 /// |---|---|---|
-/// | `VButton` / `VButton.outlined` | 1px white border, transparent fill, white `labelLarge` text, sharp, full-width, 14px vertical padding |
-/// | `VButton.emphasized` | white fill, black text, sharp, full-width |
-/// | `VButton.glowAccent` | pink 1px border (or pink fill when `filled`) + black text, optional `glow-hairline` shadow; pressed = `glowPinkDeep` fill + white text (5.87:1). Use ≤ 1 per screen — always a primary action |
+/// | `VButton` / `VButton.outlined` | 1px white border, transparent fill, white `labelLarge` text, sharp, full-width, 14px vertical padding; `gradient:` → pastel gradient border |
+/// | `VButton.emphasized` | white fill, black text, sharp, full-width; `gradient:` → family gradient fill — pastel-first stops keep black text contrast |
+/// | `VButton.glowAccent` | 1px **violet-family** gradient border (or [gradient]), black text when [filled] / white when outline, `AppGradients.glowShadows` halo at α0.35; pressed → darker-violet overlay + white text. Use ≤ 1 per screen — always a primary action |
+///
+/// The accent family default is **violet — never pink** (user directive
+/// 2026-08-12: pink is not the main color). Callers pass `gradient:` to
+/// adopt their screen's family (`AppGradients.familyOf`).
+/// [VButtonVariant.glow] always renders its ring as a 1px gradient
+/// ([VGradientBorder]) and its fill as the family gradient when [filled].
 ///
 /// Disabled (`onPressed: null` or [loading]): outline/text drop to
-/// `muted #666666` (exempt from contrast as an inactive component). Press
-/// feedback: α0.1 white/black overlay (no scale, no bounce). Loading keeps
-/// the same shape with the spinner in the foreground color.
+/// `muted #666666` (exempt from contrast as an inactive component); the
+/// gradient ring drops to a muted rule as well. Press feedback: α0.1
+/// white/black overlay (no scale, no bounce); the glow variant's pressed
+/// state is the family's darker-violet overlay + white text. Loading keeps
+/// the same shape with the spinner in the foreground color (contrast-safe
+/// against the fill).
 class VButton extends StatelessWidget {
+  /// Design doc §5.1: 14px vertical padding (not on the 8-step scale) —
+  /// the documented U-03 keeper, shared by both render paths.
+  static const EdgeInsets _padding = EdgeInsets.symmetric(
+    horizontal: 14,
+    vertical: 14,
+  );
+
   final Widget? child;
   final String? label;
   final VoidCallback? onPressed;
   final bool loading;
   final VButtonVariant variant;
   final bool filled;
+
+  /// LUXE gradient family override. Null → the variant default:
+  /// [VButtonVariant.glow] resolves to [AppGradients.violet]; the flat
+  /// variants keep their white treatment. Never pink.
+  final AppGradient? gradient;
 
   const VButton._({
     super.key,
@@ -32,6 +56,7 @@ class VButton extends StatelessWidget {
     this.child,
     this.variant = VButtonVariant.outlined,
     this.filled = false,
+    this.gradient,
   });
 
   factory VButton({
@@ -39,6 +64,7 @@ class VButton extends StatelessWidget {
     String? label,
     VoidCallback? onPressed,
     bool loading = false,
+    AppGradient? gradient,
     Widget? child,
   }) {
     return VButton._(
@@ -46,6 +72,7 @@ class VButton extends StatelessWidget {
       label: label,
       onPressed: onPressed,
       loading: loading,
+      gradient: gradient,
       child: child,
     );
   }
@@ -55,6 +82,7 @@ class VButton extends StatelessWidget {
     String? label,
     VoidCallback? onPressed,
     bool loading = false,
+    AppGradient? gradient,
     Widget? child,
   }) {
     return VButton._(
@@ -62,6 +90,7 @@ class VButton extends StatelessWidget {
       label: label,
       onPressed: onPressed,
       loading: loading,
+      gradient: gradient,
       child: child,
     );
   }
@@ -71,6 +100,7 @@ class VButton extends StatelessWidget {
     String? label,
     VoidCallback? onPressed,
     bool loading = false,
+    AppGradient? gradient,
     Widget? child,
   }) {
     return VButton._(
@@ -79,17 +109,21 @@ class VButton extends StatelessWidget {
       onPressed: onPressed,
       loading: loading,
       variant: VButtonVariant.emphasized,
+      gradient: gradient,
       child: child,
     );
   }
 
-  /// §5.1 glow-accent variant — pink border (or pink fill when [filled]).
+  /// §5.1 glow-accent variant — LUXE v2: violet-family gradient ring (or
+  /// [gradient]), black text when [filled], white when outline; pressed =
+  /// darker-violet overlay + white text.
   factory VButton.glowAccent({
     Key? key,
     String? label,
     VoidCallback? onPressed,
     bool loading = false,
     bool filled = false,
+    AppGradient? gradient,
     Widget? child,
   }) {
     return VButton._(
@@ -99,12 +133,25 @@ class VButton extends StatelessWidget {
       loading: loading,
       filled: filled,
       variant: VButtonVariant.glow,
+      gradient: gradient,
       child: child,
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    // The glow variant always resolves a family (violet by default); the
+    // flat variants only gradient-render when the caller passes one.
+    final family =
+        gradient ??
+        (variant == VButtonVariant.glow ? AppGradients.violet : null);
+    if (family == null) return _flatButton();
+    return _gradientButton(family);
+  }
+
+  /// The legacy flat path — byte-identical rendering to the pre-LUXE
+  /// button (white border / white fill + black text / muted disabled).
+  Widget _flatButton() {
     final Color fill;
     final Color text;
     final Color? borderColor;
@@ -121,29 +168,18 @@ class VButton extends StatelessWidget {
         borderColor = null;
         overlayBase = AppColors.discoBlack;
       case VButtonVariant.glow:
-        fill = filled ? AppColors.glowPink : Colors.transparent;
-        text = filled ? AppColors.discoBlack : AppColors.glowPink;
-        borderColor = AppColors.glowPink;
-        overlayBase = filled ? AppColors.discoBlack : AppColors.white;
+        // Unreachable — the glow variant always resolves a family above.
+        // Defensive flat fallback so the switch stays exhaustive.
+        fill = Colors.transparent;
+        text = AppColors.white;
+        borderColor = AppColors.white;
+        overlayBase = AppColors.white;
     }
 
-    // Disabled (and loading) drop outline/text to `muted` (§5.1); the glow
-    // variant's pressed state is `glowPinkDeep` fill + white text (5.87:1).
-    final WidgetStateProperty<Color?> backgroundColor =
-        WidgetStateProperty.resolveWith((states) {
-          if (variant == VButtonVariant.glow &&
-              states.contains(WidgetState.pressed)) {
-            return AppColors.glowPinkDeep;
-          }
-          return fill;
-        });
+    // Disabled (and loading) drop outline/text to `muted` (§5.1).
     final WidgetStateProperty<Color?> foregroundColor =
         WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.disabled)) return AppColors.muted;
-          if (variant == VButtonVariant.glow &&
-              states.contains(WidgetState.pressed)) {
-            return AppColors.white;
-          }
           return text;
         });
     final WidgetStateProperty<BorderSide?> side =
@@ -162,46 +198,159 @@ class VButton extends StatelessWidget {
       overlayColor: overlayBase,
       shape: const RoundedRectangleBorder(borderRadius: AppRadius.sharp),
       // Design doc §5.1: 14px vertical padding (not on the 8-step scale).
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+      padding: _padding,
     );
-    final style = base.copyWith(
-      side: side,
-      backgroundColor: backgroundColor,
-      foregroundColor: foregroundColor,
-    );
+    final style = base.copyWith(side: side, foregroundColor: foregroundColor);
 
     return SizedBox(
       width: double.infinity,
       child: TextButton(
         onPressed: loading ? null : onPressed,
         style: style,
-        child: loading
-            ? SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(strokeWidth: 2, color: text),
-              )
-            : child ??
-                  Text(
-                    label ?? '',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    // §5.1: glow-accent text may carry the glow-hairline shadow
-                    // (1 layer, glowPink α0.35, blur = fontSize × 0.25).
-                    style: variant == VButtonVariant.glow && !filled
-                        ? TextStyle(
-                            shadows: [
-                              Shadow(
-                                color: AppColors.glowPink.withValues(
-                                  alpha: 0.35,
-                                ),
-                                blurRadius: 3.5,
-                              ),
-                            ],
-                          )
-                        : null,
-                  ),
+        child: _child(text, glowFamily: null),
       ),
     );
+  }
+
+  /// The LUXE gradient path — [VGradientBorder] ring + optional family
+  /// gradient fill + the glow variant's halo, all driven by [family].
+  Widget _gradientButton(AppGradient family) {
+    final glow = variant == VButtonVariant.glow;
+    final isDisabled = loading || onPressed == null;
+
+    // Disabled: the ring drops to `muted` (§5.1 inactive components); the
+    // fill keeps the family gradient (legacy behavior kept the flat fill).
+    final ringColors = isDisabled
+        ? [AppColors.muted, AppColors.muted]
+        : family.colors;
+    final ringGradient = LinearGradient(
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+      colors: ringColors,
+      // The disabled ring is a flat muted rule (2 colors) — no stops.
+      stops: isDisabled ? null : family.stops,
+    );
+
+    // Text color: black on any light fill (pastel-first), white otherwise;
+    // disabled text drops to `muted`. The glow variant's pressed state
+    // flips to white on the darker-violet overlay.
+    final text = glow
+        ? (filled ? AppColors.discoBlack : AppColors.white)
+        : (variant == VButtonVariant.emphasized
+              ? AppColors.discoBlack
+              : AppColors.white);
+    final WidgetStateProperty<Color?> foregroundColor =
+        WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.disabled)) return AppColors.muted;
+          if (glow && states.contains(WidgetState.pressed)) {
+            return AppColors.white;
+          }
+          return text;
+        });
+
+    // Press feedback: the α0.1 base overlay from styleFrom (no scale, no
+    // bounce), except the glow variant's pressed state, which darkens the
+    // whole face toward the family's vivid end — the M3 InkHighlight paints
+    // the resolved overlay color over the full button rect ("pressed →
+    // darker violet").
+    final baseOverlayColor = glow
+        ? AppColors.white
+        : variant == VButtonVariant.emphasized
+        ? AppColors.discoBlack
+        : AppColors.white;
+    final baseOverlay = TextButton.styleFrom(
+      overlayColor: baseOverlayColor,
+    ).overlayColor;
+    final WidgetStateProperty<Color?> overlay = WidgetStateProperty.resolveWith(
+      (states) {
+        if (glow && states.contains(WidgetState.pressed)) {
+          return Color.lerp(family.colors.last, AppColors.discoBlack, 0.35);
+        }
+        return baseOverlay?.resolve(states);
+      },
+    );
+
+    final style =
+        TextButton.styleFrom(
+          foregroundColor: text,
+          backgroundColor: Colors.transparent,
+          shape: const RoundedRectangleBorder(borderRadius: AppRadius.sharp),
+          padding: _padding,
+        ).copyWith(
+          side: const WidgetStatePropertyAll(
+            BorderSide(color: Colors.transparent),
+          ),
+          backgroundColor: const WidgetStatePropertyAll(Colors.transparent),
+          foregroundColor: foregroundColor,
+          overlayColor: overlay,
+        );
+
+    // Fill: family gradient when the variant is a filled surface — the
+    // glow variant only when [filled]; emphasized always (white → gradient).
+    final showFill = glow ? filled : variant == VButtonVariant.emphasized;
+    final Widget face = DecoratedBox(
+      key: showFill ? const ValueKey('vButtonGradientFill') : null,
+      decoration: BoxDecoration(
+        borderRadius: AppRadius.sharp,
+        gradient: showFill ? family.linear() : null,
+      ),
+      child: TextButton(
+        onPressed: loading ? null : onPressed,
+        style: style,
+        child: _child(text, glowFamily: glow && !filled ? family : null),
+      ),
+    );
+
+    final Widget ring = VGradientBorder(
+      gradient: ringGradient,
+      width: 1,
+      radius: AppRadius.sharp,
+      color: Colors.transparent,
+      child: face,
+    );
+
+    // The glow variant's halo (§5.1 glow-hairline, LUXE slow-glow family
+    // stack): three zero-offset layers at α0.35 (tight → wide aura).
+    final Widget body = glow
+        ? DecoratedBox(
+            decoration: BoxDecoration(
+              borderRadius: AppRadius.sharp,
+              boxShadow: AppGradients.glowShadows(family, alpha: 0.35),
+            ),
+            child: ring,
+          )
+        : ring;
+    return SizedBox(width: double.infinity, child: body);
+  }
+
+  /// The button payload — loading spinner in the foreground [text] color
+  /// (contrast-safe against the fill) or the label/child. [glowFamily]
+  /// non-null → the glow variant's outline label carries the family's
+  /// glow-hairline shadow.
+  Widget _child(Color text, {required AppGradient? glowFamily}) {
+    return loading
+        ? SizedBox(
+            width: 20,
+            height: 20,
+            child: CircularProgressIndicator(strokeWidth: 2, color: text),
+          )
+        : child ??
+              Text(
+                label ?? '',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                // §5.1: glow-accent outline text may carry the glow-hairline
+                // shadow (1 layer, family mid stop α0.35, blur 3.5).
+                style: glowFamily != null
+                    ? TextStyle(
+                        shadows: [
+                          Shadow(
+                            color: glowFamily.colors[1].withValues(alpha: 0.35),
+                            blurRadius: 3.5,
+                          ),
+                        ],
+                      )
+                    : null,
+              );
   }
 }

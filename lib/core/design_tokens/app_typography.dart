@@ -28,6 +28,19 @@ abstract final class AppTypography {
   /// UI voice — everything else: body, buttons, inputs, labels, nav (§3.1).
   static const String inter = 'Inter';
 
+  // ── LUXE v2 display-voice contract (XL-03) ─────────────────────────────────
+  //
+  // The display voices (displayLarge/displayMedium/displaySmall and
+  // headlineLarge) are Playfair Display **italic bold** — the ONLY Playfair
+  // usage in the app (ORCHESTRATION-LUXE directive #6).
+  //
+  // MAYUS rule: display copy MUST render UPPERCASE. Enforcement lives in
+  // `VDisplayText` (lib/shared/widgets/v_display_text.dart) — it uppercases
+  // the input, so callers pass natural-case strings and never call
+  // `.toUpperCase()` themselves. Display roles must NOT be rendered as raw
+  // `Text` widgets; always route them through `VDisplayText` so the MAYUS
+  // rule, the gradient fill and the slow halo pulse stay uniform.
+
   // ── §3.3 type-scale consts (exact doc values) ─────────────────────────────
 
   /// Welcome wordmark (glow-strong). Playfair Display italic 700 at 64.
@@ -169,6 +182,19 @@ abstract final class AppTypography {
     fontWeight: FontWeight.w800,
     letterSpacing: 8,
     height: 1.5,
+  );
+
+  /// Section labels (LUXE v2 — XL-03): Inter w600 at 12 with 2.0 tracking,
+  /// `mutedStrong` (7.37:1 — AA). Rendered ABOVE content as an all-caps
+  /// eyebrow; the label text itself is uppercase at call sites (`.toUpperCase()`
+  /// or an already-caps l10n string) — this role is NOT a display voice and
+  /// does NOT go through `VDisplayText`.
+  static const TextStyle sectionLabel = TextStyle(
+    fontFamily: inter,
+    fontSize: 12,
+    fontWeight: FontWeight.w600,
+    letterSpacing: 2.0,
+    color: AppColors.mutedStrong,
   );
 
   // ── §3.4 glow treatment (the signature) ───────────────────────────────────

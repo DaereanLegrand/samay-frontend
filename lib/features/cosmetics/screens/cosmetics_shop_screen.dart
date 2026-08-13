@@ -1,23 +1,31 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
+import 'package:samay/core/design_tokens/app_gradients.dart';
 import 'package:samay/core/extensions/error_mapper.dart';
 import 'package:samay/features/cosmetics/providers/cosmetics_providers.dart';
 import 'package:samay/features/profile/providers/profile_providers.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/error_view.dart';
+import 'package:samay/shared/widgets/glass/v_glass.dart';
 import 'package:samay/shared/widgets/skeletons.dart';
 import 'package:samay/shared/widgets/state_views.dart';
+import 'package:samay/shared/widgets/v_aurora.dart';
 import 'package:samay/shared/widgets/v_badge.dart';
 import 'package:samay/shared/widgets/v_button.dart';
 import 'package:samay/shared/widgets/v_shard_icon.dart';
+
+/// LUXE v2 family for this screen — **violet** (ORCHESTRATION-LUXE map:
+/// cosmetics → violet).
+final AppGradient _family = AppGradients.familyOf('cosmetics');
 
 /// The personal cosmetics shop (COSM spec): catalog grid over the three
 /// personal categories (Marcos/Fondos/Insignias), shard-only purchases with a
 /// confirm dialog, and equip/unequip for owned items (one equipped per type).
 ///
-/// Black-minimalist per DISCO-DESIGN-SYSTEM.md §1: black background, white
-/// core, hairline geometry — gold shard icon is the only currency accent.
+/// LUXE v2: violet liquid-glass cards with the equipped state in the violet
+/// family (accent badge + stronger glow); the gold shard icon is the
+/// currency accent (§5.6).
 class CosmeticsShopScreen extends ConsumerStatefulWidget {
   const CosmeticsShopScreen({super.key});
 
@@ -182,67 +190,73 @@ class _CosmeticsShopScreenState extends ConsumerState<CosmeticsShopScreen>
             ],
           ),
           Expanded(
-            child: catalogAsync.when(
-              // U-25 (§5.8): the shop is a grid first load with nothing on
-              // screen — the §5.3 card-grid skeleton stands in (U-22's
-              // handoff suggested VSkeletonList, but the shop renders a
-              // 2-column card grid, so VSkeletonGrid is the closer shape).
-              loading: () => const VSkeletonGrid(rows: 2, columns: 2),
-              error: (e, _) => ErrorView(
-                message: e.toAppError().message,
-                onRetry: () =>
-                    ref.read(cosmeticsCatalogProvider.notifier).refresh(),
-              ),
-              data: (catalog) {
-                final visible = catalog
-                    .where(
-                      (item) => item['type'] == _tabTypes[_tabController.index],
-                    )
-                    .toList();
-                final ownedByCosmeticId = {
-                  for (final owned in ownedAsync.valueOrNull ?? const [])
-                    owned['cosmetic_id'] as String: owned,
-                };
-                if (visible.isEmpty) {
-                  return VEmptyView(
-                    icon: Icons.style_outlined,
-                    title: l10n.cosmeticsEmptyCatalog,
-                  );
-                }
-                return GridView.builder(
-                  padding: const EdgeInsets.fromLTRB(24, 4, 24, 24),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    mainAxisSpacing: 12,
-                    crossAxisSpacing: 12,
-                    childAspectRatio: 0.82,
-                  ),
-                  itemCount: visible.length,
-                  itemBuilder: (context, index) {
-                    final item = visible[index];
-                    final owned = ownedByCosmeticId[item['id'] as String];
-                    return _CosmeticCard(
-                      item: item,
-                      owned: owned,
-                      locked: isCosmeticLocked(item, userTier),
-                      busy: _busyId == item['id'],
-                      typeLabel: _typeLabel(
-                        l10n,
-                        item['type']?.toString() ?? '',
-                      ),
-                      tierLabel: _tierLabel(
-                        l10n,
-                        item['tier_requirement']?.toString() ?? 'free',
-                      ),
-                      l10n: l10n,
-                      onBuy: () => _confirmPurchase(item),
-                      onToggleEquipped: owned == null
-                          ? null
-                          : () => _toggleEquipped(owned),
+            child: VAurora(
+              gradients: const [AppGradients.violet],
+              opacity: 0.06,
+              child: catalogAsync.when(
+                // U-25 (§5.8): the shop is a grid first load with nothing on
+                // screen — the §5.3 card-grid skeleton stands in (U-22's
+                // handoff suggested VSkeletonList, but the shop renders a
+                // 2-column card grid, so VSkeletonGrid is the closer shape).
+                loading: () => const VSkeletonGrid(rows: 2, columns: 2),
+                error: (e, _) => ErrorView(
+                  message: e.toAppError().message,
+                  onRetry: () =>
+                      ref.read(cosmeticsCatalogProvider.notifier).refresh(),
+                ),
+                data: (catalog) {
+                  final visible = catalog
+                      .where(
+                        (item) =>
+                            item['type'] == _tabTypes[_tabController.index],
+                      )
+                      .toList();
+                  final ownedByCosmeticId = {
+                    for (final owned in ownedAsync.valueOrNull ?? const [])
+                      owned['cosmetic_id'] as String: owned,
+                  };
+                  if (visible.isEmpty) {
+                    return VEmptyView(
+                      icon: Icons.style_outlined,
+                      title: l10n.cosmeticsEmptyCatalog,
                     );
-                  },
-                );
-              },
+                  }
+                  return GridView.builder(
+                    padding: const EdgeInsets.fromLTRB(24, 4, 24, 24),
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 2,
+                          mainAxisSpacing: 12,
+                          crossAxisSpacing: 12,
+                          childAspectRatio: 0.82,
+                        ),
+                    itemCount: visible.length,
+                    itemBuilder: (context, index) {
+                      final item = visible[index];
+                      final owned = ownedByCosmeticId[item['id'] as String];
+                      return _CosmeticCard(
+                        item: item,
+                        owned: owned,
+                        locked: isCosmeticLocked(item, userTier),
+                        busy: _busyId == item['id'],
+                        typeLabel: _typeLabel(
+                          l10n,
+                          item['type']?.toString() ?? '',
+                        ),
+                        tierLabel: _tierLabel(
+                          l10n,
+                          item['tier_requirement']?.toString() ?? 'free',
+                        ),
+                        l10n: l10n,
+                        onBuy: () => _confirmPurchase(item),
+                        onToggleEquipped: owned == null
+                            ? null
+                            : () => _toggleEquipped(owned),
+                      );
+                    },
+                  );
+                },
+              ),
             ),
           ),
         ],
@@ -252,7 +266,7 @@ class _CosmeticsShopScreenState extends ConsumerState<CosmeticsShopScreen>
 }
 
 /// Current `personal_shards` (profile provider) — the currency the shop
-/// spends. Gold diamond marks the balance per DISCO §5.6.
+/// spends. LUXE: violet glass card; the gold diamond marks the balance (§5.6).
 class _BalanceBar extends StatelessWidget {
   final int shards;
 
@@ -264,17 +278,19 @@ class _BalanceBar extends StatelessWidget {
     return Container(
       width: double.infinity,
       margin: const EdgeInsets.fromLTRB(24, 4, 24, 12),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(border: Border.all(color: AppColors.border)),
-      child: Row(
-        children: [
-          const VShardIcon(),
-          const SizedBox(width: 12),
-          Text(
-            l10n.profileShardsCount(shards),
-            style: Theme.of(context).textTheme.bodyLarge,
-          ),
-        ],
+      child: VGlassCard(
+        gradient: _family,
+        glowAlpha: 0.2,
+        child: Row(
+          children: [
+            const VShardIcon(),
+            const SizedBox(width: 12),
+            Text(
+              l10n.profileShardsCount(shards),
+              style: Theme.of(context).textTheme.bodyLarge,
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -314,14 +330,11 @@ class _CosmeticCard extends StatelessWidget {
     final hasTierRequirement =
         (item['tier_requirement']?.toString() ?? 'free') != 'free';
 
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: locked ? AppColors.surfaceAlt : AppColors.surface,
-        border: Border.all(
-          color: _equipped ? AppColors.white : AppColors.hairline,
-        ),
-      ),
+    return VGlassCard(
+      gradient: _family,
+      // The equipped state carries the stronger violet glow (the LUXE
+      // "selected" signal — border + glow + accent badge).
+      glowAlpha: _equipped ? 0.32 : (locked ? 0.06 : 0.14),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -346,8 +359,12 @@ class _CosmeticCard extends StatelessWidget {
                   constraints: const BoxConstraints(maxWidth: 88),
                   child: FittedBox(
                     fit: BoxFit.scaleDown,
-                    child: VBadge(
+                    // LUXE: the equipped badge is the violet-family accent
+                    // (never pink — 2026-08-12 directive); owned-but-idle
+                    // keeps the muted flat accent.
+                    child: VBadge.accent(
                       label: l10n.cosmeticsOwned,
+                      gradient: _equipped ? _family : null,
                       color: _equipped ? null : AppColors.mutedStrong,
                     ),
                   ),
@@ -398,6 +415,7 @@ class _CosmeticCard extends StatelessWidget {
             child: owned == null
                 ? VButton.outlined(
                     label: l10n.cosmeticsBuyWithCost(_cost),
+                    gradient: _family,
                     loading: busy,
                     onPressed: locked ? null : onBuy,
                   )
@@ -405,6 +423,7 @@ class _CosmeticCard extends StatelessWidget {
                     label: _equipped
                         ? l10n.cosmeticsEquipped
                         : l10n.cosmeticsEquip,
+                    gradient: _family,
                     loading: busy,
                     onPressed: onToggleEquipped,
                   ),

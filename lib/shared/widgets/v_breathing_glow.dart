@@ -1,10 +1,11 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:samay/core/design_tokens/app_colors.dart';
+import 'package:samay/core/design_tokens/app_gradients.dart';
 import 'package:samay/core/theme/samay_durations.dart';
 
-/// Disco-glow breathing — DISCO-DESIGN-SYSTEM.md §6.2 (U-18).
+/// Disco-glow breathing — DISCO-DESIGN-SYSTEM.md §6.2 (U-18), LUXE v2
+/// gradient-capable (ORCHESTRATION-LUXE.md "NO PINK MAINS", 2026-08-12).
 ///
 /// Renders [text] with the canonical §3.4 glow shadow stack (the same stacks
 /// as [VGlowText]) and breathes the halo ALPHA between 0.75 and 1.0 of the
@@ -12,6 +13,11 @@ import 'package:samay/core/theme/samay_durations.dart';
 /// user's `animation: disco-glow 3s ease-in-out infinite alternate`. Only
 /// the shadow alphas move; the glyph fill stays 100% opaque (§7.4), and the
 /// α0.75 floor keeps effective contrast ≥ 4.75:1 (§6.2 legibility floor).
+///
+/// Halo color resolution: [gradient] (its vivid end) → legacy [color] →
+/// the LUXE default family [AppGradients.violet]. **The default is violet,
+/// never pink** (user directive 2026-08-12: pink is not the main color —
+/// screens pass their own family via `AppGradients.familyOf`).
 ///
 /// Cycle shape: 1.5s easeInOut up (α0.75→α1.0) + 1.5s easeInOut down
 /// (α1.0→α0.75), then [SamayDurations.motionCycleRest] static settle at the
@@ -40,8 +46,13 @@ class VBreathingGlow extends StatefulWidget {
   /// `false` → the 3-layer glow-strong stack (display titles ≥32px).
   final bool soft;
 
-  /// Halo color — the brand signature [AppColors.glowPink] by default.
-  final Color color;
+  /// Halo family — its vivid end drives the shadow stack. Null → the
+  /// default family [AppGradients.violet].
+  final AppGradient? gradient;
+
+  /// Legacy flat halo color override (pre-LUXE API). Used only when
+  /// [gradient] is null.
+  final Color? color;
 
   /// Optional alignment (the parent may already center the text).
   final TextAlign? textAlign;
@@ -51,7 +62,8 @@ class VBreathingGlow extends StatefulWidget {
     required this.text,
     required this.style,
     this.soft = false,
-    this.color = AppColors.glowPink,
+    this.gradient,
+    this.color,
     this.textAlign,
   });
 
@@ -124,33 +136,40 @@ class _VBreathingGlowState extends State<VBreathingGlow>
     );
   }
 
+  /// The halo color: [gradient]'s vivid end > legacy [color] > violet.
+  Color get _haloColor =>
+      widget.gradient?.colors.last ??
+      widget.color ??
+      AppGradients.violet.colors.last;
+
   /// The §3.4 canonical stacks (mirror of [VGlowText] /
   /// `AppTypography.fancyTitle`; the parity is pinned by tests) with every
   /// shadow alpha multiplied by [breath] (§6.2 amplitude).
   List<Shadow> _glowShadows(double size, double breath) {
+    final halo = _haloColor;
     if (widget.soft) {
       return [
         Shadow(
-          color: widget.color.withValues(alpha: 0.6 * breath),
+          color: halo.withValues(alpha: 0.6 * breath),
           blurRadius: size * 0.3,
         ),
         Shadow(
-          color: widget.color.withValues(alpha: 0.25 * breath),
+          color: halo.withValues(alpha: 0.25 * breath),
           blurRadius: size * 0.6,
         ),
       ];
     }
     return [
       Shadow(
-        color: widget.color.withValues(alpha: 0.9 * breath),
+        color: halo.withValues(alpha: 0.9 * breath),
         blurRadius: size * 0.35,
       ),
       Shadow(
-        color: widget.color.withValues(alpha: 0.5 * breath),
+        color: halo.withValues(alpha: 0.5 * breath),
         blurRadius: size * 0.7,
       ),
       Shadow(
-        color: widget.color.withValues(alpha: 0.25 * breath),
+        color: halo.withValues(alpha: 0.25 * breath),
         blurRadius: size * 1.0,
       ),
     ];

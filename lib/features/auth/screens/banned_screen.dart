@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
+import 'package:samay/core/design_tokens/app_gradients.dart';
 import 'package:samay/core/design_tokens/app_icon_sizes.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/providers/auth_provider.dart';
 import 'package:samay/l10n/app_localizations.dart';
-import 'package:samay/shared/widgets/v_breathing_glow.dart';
+import 'package:samay/shared/widgets/glass/v_glass.dart';
+import 'package:samay/shared/widgets/v_aurora.dart';
 import 'package:samay/shared/widgets/v_button.dart';
+import 'package:samay/shared/widgets/v_display_text.dart';
 
 /// Terminal screen for suspended accounts (AUTH spec: ban enforcement, I-35).
 ///
@@ -22,61 +25,70 @@ class BannedScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final reason = ref.watch(authStateProvider).valueOrNull?.banReason;
+    final family = AppGradients.familyOf('banned');
 
     return Scaffold(
       body: SafeArea(
-        // §7.3: scroll-safe body (the OTP pattern, U-07) — a long ban reason
-        // at large text scales overflows the centered column on small
-        // phones; keeps the centered layout when the content fits and
-        // scrolls when it doesn't. Never clip.
-        child: LayoutBuilder(
-          builder: (context, constraints) => SingleChildScrollView(
-            child: ConstrainedBox(
-              constraints: BoxConstraints(minHeight: constraints.maxHeight),
-              child: IntrinsicHeight(
-                child: Padding(
-                  padding: const EdgeInsets.all(AppSpacing.xl),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(
-                        Icons.block,
-                        size: AppIconSizes.xxl,
-                        color: AppColors.white,
-                      ),
-                      const SizedBox(height: AppSpacing.xl),
-                      // §6.2 auth header in the breathing scope — glow-strong
-                      // displayMedium, α0.75→α1.0 on a 3s alternate
-                      // (reduced-motion → static full-α glow).
-                      VBreathingGlow(
-                        text: l10n.bannedTitle,
-                        style: Theme.of(context).textTheme.displayMedium,
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: AppSpacing.lg),
-                      Text(
-                        reason != null && reason.isNotEmpty
-                            ? l10n.bannedReasonLabel(reason)
-                            : l10n.bannedDefaultBody,
-                        textAlign: TextAlign.center,
-                        style: Theme.of(context)
-                            .textTheme
-                            .bodyMedium
-                            ?.copyWith(color: AppColors.mutedStrong),
-                      ),
-                      const SizedBox(height: AppSpacing.xxl),
-                      // U-19: the sign-out CTA is full-width (max 320) — the
-                      // fixed 200px width clipped long labels at 1.5× scale.
-                      ConstrainedBox(
-                        constraints: const BoxConstraints(maxWidth: 320),
-                        child: VButton.outlined(
-                          label: l10n.profileSignOut,
-                          onPressed: () =>
-                              ref.read(authStateProvider.notifier).signOut(),
+        // LUXE v2: one mint-family ambient aurora behind the terminal card.
+        child: VAurora(
+          gradients: [family],
+          // §7.3: scroll-safe body (the OTP pattern, U-07) — a long ban reason
+          // at large text scales overflows the centered column on small
+          // phones; keeps the centered layout when the content fits and
+          // scrolls when it doesn't. Never clip.
+          child: LayoutBuilder(
+            builder: (context, constraints) => SingleChildScrollView(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                child: IntrinsicHeight(
+                  child: Padding(
+                    padding: const EdgeInsets.all(AppSpacing.xl),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(
+                          Icons.block,
+                          size: AppIconSizes.xxl,
+                          color: AppColors.white,
                         ),
-                      ),
-                      const SizedBox(height: AppSpacing.xl),
-                    ],
+                        const SizedBox(height: AppSpacing.xl),
+                        // LUXE §6.2: the suspension title is the display
+                        // voice — mint-family VDisplayText (gradient fill +
+                        // slowly pulsing glow).
+                        VDisplayText(
+                          text: l10n.bannedTitle,
+                          gradient: family,
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: AppSpacing.lg),
+                        Text(
+                          reason != null && reason.isNotEmpty
+                              ? l10n.bannedReasonLabel(reason)
+                              : l10n.bannedDefaultBody,
+                          textAlign: TextAlign.center,
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(color: AppColors.mutedStrong),
+                        ),
+                        const SizedBox(height: AppSpacing.xxl),
+                        // U-19: the sign-out CTA is full-width (max 320) — the
+                        // fixed 200px width clipped long labels at 1.5× scale.
+                        // LUXE v2: the action rides a liquid-glass card
+                        // (mint-family ring + soft glow).
+                        ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 320),
+                          child: VGlassCard(
+                            gradient: family,
+                            child: VButton.outlined(
+                              label: l10n.profileSignOut,
+                              onPressed: () => ref
+                                  .read(authStateProvider.notifier)
+                                  .signOut(),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: AppSpacing.xl),
+                      ],
+                    ),
                   ),
                 ),
               ),

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
+import 'package:samay/core/design_tokens/app_gradients.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/extensions/error_mapper.dart';
 import 'package:samay/core/models/event_photo.dart';
@@ -12,14 +13,20 @@ import 'package:samay/features/events/providers/events_providers.dart';
 import 'package:samay/features/photos/providers/photos_providers.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/error_view.dart';
+import 'package:samay/shared/widgets/glass/v_glass.dart';
 import 'package:samay/shared/widgets/show_app_error.dart';
 import 'package:samay/shared/widgets/state_views.dart';
+import 'package:samay/shared/widgets/v_aurora.dart';
 import 'package:samay/shared/widgets/v_network_image.dart';
 
 /// Gallery-picking seam for tests: `image_picker` is a platform plugin that
 /// cannot run in widget tests, so the screen accepts an injectable function
 /// (same thin-wrapper pattern as `CreateEventScreen`/`CreateGroupScreen`).
 typedef PhotoPicker = Future<XFile?> Function(ImageSource source);
+
+/// LUXE v2 family for this screen — **mint** (ORCHESTRATION-LUXE map:
+/// photos → mint).
+final AppGradient _family = AppGradients.familyOf('photos');
 
 /// PHUP — event photo gallery (I-59): grid of thumbnails served via signed
 /// URLs, optimistic like hearts, long-press reporting, and the upload flow
@@ -147,50 +154,66 @@ class _PhotoGalleryScreenState extends ConsumerState<PhotoGalleryScreen> {
                       height: 18,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
-                  : const Icon(Icons.add_a_photo_outlined),
+                  : Icon(
+                      Icons.add_a_photo_outlined,
+                      color: _family.colors[1],
+                    ),
             ),
         ],
       ),
       body: Column(
         children: [
           if (!windowOpen)
-            Container(
-              width: double.infinity,
-              color: AppColors.surfaceAlt,
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppSpacing.md,
-                vertical: AppSpacing.sm,
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.lg,
+                AppSpacing.sm,
+                AppSpacing.lg,
+                0,
               ),
-              child: Text(
-                l10n.photosUploadWindowClosed,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  color: AppColors.mutedStrong,
-                  fontSize: 12,
+              child: VGlass(
+                gradient: _family,
+                radius: BorderRadius.circular(12),
+                glowAlpha: 0.1,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.md,
+                  vertical: AppSpacing.sm,
+                ),
+                child: Text(
+                  l10n.photosUploadWindowClosed,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: AppColors.mutedStrong,
+                    fontSize: 12,
+                  ),
                 ),
               ),
             ),
           Expanded(
-            child: photosAsync.when(
-              loading: () => const VLoadingView(),
-              error: (e, _) => ErrorView(
-                message: e.toAppError().message,
-                onRetry: () =>
-                    ref.invalidate(eventPhotosProvider(widget.eventId)),
+            child: VAurora(
+              gradients: const [AppGradients.mint],
+              opacity: 0.05,
+              child: photosAsync.when(
+                loading: () => const VLoadingView(),
+                error: (e, _) => ErrorView(
+                  message: e.toAppError().message,
+                  onRetry: () =>
+                      ref.invalidate(eventPhotosProvider(widget.eventId)),
+                ),
+                data: (photos) => photos.isEmpty
+                    ? VEmptyView(
+                        icon: Icons.photo_library_outlined,
+                        title: l10n.photosEmpty,
+                        description: l10n.photosEmptyBody,
+                        actionLabel: windowOpen ? l10n.photosUpload : null,
+                        onAction: windowOpen ? _pickAndUpload : null,
+                      )
+                    : _PhotoGrid(
+                        photos: photos,
+                        onLike: _toggleLike,
+                        onLongPress: _report,
+                      ),
               ),
-              data: (photos) => photos.isEmpty
-                  ? VEmptyView(
-                      icon: Icons.photo_library_outlined,
-                      title: l10n.photosEmpty,
-                      description: l10n.photosEmptyBody,
-                      actionLabel: windowOpen ? l10n.photosUpload : null,
-                      onAction: windowOpen ? _pickAndUpload : null,
-                    )
-                  : _PhotoGrid(
-                      photos: photos,
-                      onLike: _toggleLike,
-                      onLongPress: _report,
-                    ),
             ),
           ),
         ],
@@ -247,14 +270,24 @@ class _ReportDialogState extends State<_ReportDialog> {
               autofocus: true,
               maxLength: 500,
               style: const TextStyle(color: AppColors.white),
+              // LUXE directive #7: no underline inputs — a filled
+              // liquid-glass field with a hairline border + focus glow.
               decoration: InputDecoration(
                 hintText: l10n.photosReportHint,
                 hintStyle: const TextStyle(color: AppColors.muted),
-                enabledBorder: const UnderlineInputBorder(
+                filled: true,
+                fillColor: AppColors.surfaceAlt,
+                border: const OutlineInputBorder(
                   borderSide: BorderSide(color: AppColors.border),
+                  borderRadius: BorderRadius.all(Radius.circular(8)),
                 ),
-                focusedBorder: const UnderlineInputBorder(
-                  borderSide: BorderSide(color: AppColors.white),
+                enabledBorder: const OutlineInputBorder(
+                  borderSide: BorderSide(color: AppColors.border),
+                  borderRadius: BorderRadius.all(Radius.circular(8)),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderSide: BorderSide(color: _family.colors[1]),
+                  borderRadius: const BorderRadius.all(Radius.circular(8)),
                 ),
               ),
             ),
@@ -368,8 +401,10 @@ class _PhotoTile extends StatelessWidget {
                       photo.likedByMe
                           ? Icons.favorite
                           : Icons.favorite_border,
+                      // LUXE: the like-heart accent is the mint family vivid
+                      // end — the legacy pink is gone (2026-08-12 directive).
                       color: photo.likedByMe
-                          ? AppColors.glowPink
+                          ? AppColors.mint
                           : AppColors.white,
                     ),
                   ),
@@ -389,4 +424,3 @@ class _PhotoTile extends StatelessWidget {
     );
   }
 }
-

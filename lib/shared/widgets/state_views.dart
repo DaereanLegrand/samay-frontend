@@ -9,9 +9,10 @@ import 'package:samay/shared/widgets/v_button.dart';
 /// Full-area loading state: white spinner + optional `mutedStrong` caption,
 /// centered on black (DISCO-DESIGN-SYSTEM §5.8).
 ///
-/// The spinner is **white** — not `glowPink` — because loading is not a brand
-/// moment (P3: accents are privileges, not defaults; pink is reserved for
-/// welcome/checkout-class moments). 24px per §5.8.
+/// The spinner is **white** — not an accent color — because loading is not a
+/// brand moment (P3: accents are privileges, not defaults; the LUXE v2
+/// palette reserves gradients/glows for the screen's own family, never for
+/// neutral chrome). 24px per §5.8.
 class VLoadingView extends StatelessWidget {
   final String? label;
 

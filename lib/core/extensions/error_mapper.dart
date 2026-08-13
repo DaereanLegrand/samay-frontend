@@ -22,9 +22,14 @@ extension ObjectX on Object {
         return ValidationError('credenciales', 'Correo o contraseña inválidos');
       }
       if (code == 'otp_expired') {
-        return ValidationError('código', 'El código ha expirado. Solicita uno nuevo.');
+        return ValidationError(
+          'código',
+          'El código ha expirado. Solicita uno nuevo.',
+        );
       }
-      if (msg.contains('jwt') || msg.contains('token') || msg.contains('session')) {
+      if (msg.contains('jwt') ||
+          msg.contains('token') ||
+          msg.contains('session')) {
         return UnauthorizedError();
       }
       return UnauthorizedError();
@@ -34,7 +39,9 @@ extension ObjectX on Object {
       final e = this as PostgrestException;
       final code = e.code ?? '';
       if (code == 'PGRST301') return UnauthorizedError();
-      if (code == '23503') return ValidationError('data', 'Referencia inválida');
+      if (code == '23503') {
+        return ValidationError('data', 'Referencia inválida');
+      }
       if (code == '23505') return ValidationError('data', 'Ya existe');
       if (code == '42501') return PermissionError();
       if (code == 'P0001') return ServerError(e.message);

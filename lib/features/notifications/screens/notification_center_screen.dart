@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
+import 'package:samay/core/design_tokens/app_gradients.dart';
 import 'package:samay/core/design_tokens/app_icon_sizes.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/models/notification_item.dart';
@@ -11,8 +12,10 @@ import 'package:samay/core/providers/service_providers.dart';
 import 'package:samay/features/notifications/providers/notifications_providers.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/error_view.dart';
+import 'package:samay/shared/widgets/glass/v_glass.dart';
 import 'package:samay/shared/widgets/skeletons.dart';
 import 'package:samay/shared/widgets/state_views.dart';
+import 'package:samay/shared/widgets/v_aurora.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' show RealtimeChannel;
 
 /// Icon per notification type (NOTI spec table, 16 rows). The title/body
@@ -40,13 +43,20 @@ IconData notificationIconForType(String type) {
   };
 }
 
+/// LUXE v2 family for this screen — **gold** (ORCHESTRATION-LUXE map:
+/// notifications → gold).
+final AppGradient _family = AppGradients.familyOf('notifications');
+
 /// In-app notification center (NOTI spec): newest-first list from the
 /// `notifications` table, live inserts via Realtime, tap → deep link + mark
 /// read, unread dot, pull-to-refresh, mark-all-read, empty state.
 ///
-/// Black minimalist per DISCO-DESIGN-SYSTEM §1 (P1/P2): white core text,
-/// hairline separators, `glowPink` reserved for the unread indicator — and
-/// unread state is never color-only (bold title + dot, §2.5 rule 5).
+/// LUXE v2: unread rows are gold liquid-glass cards with the gold unread dot
+/// (never pink — 2026-08-12 directive); unread state stays never color-only
+/// (bold title + dot, §2.5 rule 5). XL-18 (Gemma 11_notifications "visual
+/// hierarchy needs refinement"): the read title lifts from w300 to w400 so
+/// the muted rows still read as typography, and the unread dot fill is the
+/// gold family watered 45% (no saturated fills — ORCHESTRATION directive 3).
 class NotificationCenterScreen extends ConsumerStatefulWidget {
   const NotificationCenterScreen({super.key});
 
@@ -119,43 +129,48 @@ class _NotificationCenterScreenState
             ),
         ],
       ),
-      body: notifications.when(
-        // U-22 (§5.8): the first load shows the avatar+lines skeleton
-        // instead of the bare spinner; pull-to-refresh keeps the list
-        // visible (skipLoadingOnRefresh — the skeleton only ever stands in
-        // when there is nothing on screen).
-        skipLoadingOnRefresh: true,
-        loading: () => const VSkeletonList(),
-        error: (error, _) => ErrorView(
-          message: l10n.notificationsLoadError,
-          onRetry: () => ref.read(notificationsProvider.notifier).refresh(),
-        ),
-        data: (items) => items.isEmpty
-            ? VEmptyView(
-                icon: Icons.notifications_none,
-                title: l10n.notificationsEmpty,
-                description: l10n.notificationsEmptyBody,
-              )
-            : RefreshIndicator(
-                onRefresh: () =>
-                    ref.read(notificationsProvider.notifier).refresh(),
-                child: ListView.separated(
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  itemCount: items.length,
-                  separatorBuilder: (_, _) => const Divider(
-                    height: 1,
-                    thickness: 1,
-                    color: AppColors.hairline,
+      body: VAurora(
+        gradients: const [AppGradients.gold],
+        opacity: 0.05,
+        child: notifications.when(
+          // U-22 (§5.8): the first load shows the avatar+lines skeleton
+          // instead of the bare spinner; pull-to-refresh keeps the list
+          // visible (skipLoadingOnRefresh — the skeleton only ever stands in
+          // when there is nothing on screen).
+          skipLoadingOnRefresh: true,
+          loading: () => const VSkeletonList(),
+          error: (error, _) => ErrorView(
+            message: l10n.notificationsLoadError,
+            onRetry: () => ref.read(notificationsProvider.notifier).refresh(),
+          ),
+          data: (items) => items.isEmpty
+              ? VEmptyView(
+                  icon: Icons.notifications_none,
+                  title: l10n.notificationsEmpty,
+                  description: l10n.notificationsEmptyBody,
+                )
+              : RefreshIndicator(
+                  onRefresh: () =>
+                      ref.read(notificationsProvider.notifier).refresh(),
+                  child: ListView.separated(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: const EdgeInsets.symmetric(
+                      vertical: AppSpacing.xs,
+                    ),
+                    itemCount: items.length,
+                    separatorBuilder: (_, _) => const SizedBox(
+                      height: AppSpacing.xs,
+                    ),
+                    itemBuilder: (context, index) {
+                      final item = items[index];
+                      return _NotificationTile(
+                        item: item,
+                        onTap: () => _onTap(item),
+                      );
+                    },
                   ),
-                  itemBuilder: (context, index) {
-                    final item = items[index];
-                    return _NotificationTile(
-                      item: item,
-                      onTap: () => _onTap(item),
-                    );
-                  },
                 ),
-              ),
+        ),
       ),
     );
   }
@@ -181,77 +196,94 @@ class _NotificationTile extends StatelessWidget {
 
     return InkWell(
       onTap: onTap,
-      child: Container(
-        color: unread ? AppColors.surface : AppColors.discoBlack,
+      child: Padding(
         padding: const EdgeInsets.symmetric(
           horizontal: AppSpacing.lg,
-          vertical: AppSpacing.md,
+          vertical: AppSpacing.xs,
         ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Icon(
-              notificationIconForType(item.type),
-              size: AppIconSizes.md,
-              color: unread ? AppColors.glowPink : AppColors.mutedStrong,
-            ),
-            const SizedBox(width: AppSpacing.md),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          item.title,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontWeight: unread
-                                ? FontWeight.w600
-                                : FontWeight.w300,
-                            fontSize: 16,
+        child: VGlassCard(
+          gradient: unread ? _family : null,
+          glowAlpha: unread ? 0.18 : 0.0,
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(
+                notificationIconForType(item.type),
+                size: AppIconSizes.md,
+                // LUXE: the unread accent is the gold family vivid end —
+                // never pink (2026-08-12 directive).
+                color: unread
+                    ? AppGradients.gold.colors.last
+                    : AppColors.mutedStrong,
+              ),
+              const SizedBox(width: AppSpacing.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            item.title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontWeight: unread
+                                  ? FontWeight.w600
+                                  // XL-18 (Gemma 11 "hierarchy"): w300 read
+                                  // rows read as dim, not as hierarchy —
+                                  // w400 keeps the unread w600 dominant while
+                                  // the text stays legible at AA.
+                                  : FontWeight.w400,
+                              fontSize: 16,
+                            ),
                           ),
                         ),
-                      ),
-                      const SizedBox(width: AppSpacing.sm),
-                      Text(
-                        time,
-                        style: const TextStyle(
-                          color: AppColors.mutedStrong,
-                          fontSize: 12,
+                        const SizedBox(width: AppSpacing.sm),
+                        Text(
+                          time,
+                          style: const TextStyle(
+                            color: AppColors.mutedStrong,
+                            fontSize: 12,
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: AppSpacing.xs),
-                  Text(
-                    item.body,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: AppColors.mutedStrong,
-                      fontSize: 14,
-                      height: 1.4,
+                      ],
                     ),
-                  ),
-                ],
-              ),
-            ),
-            if (unread) ...[
-              const SizedBox(width: AppSpacing.sm),
-              Container(
-                key: ValueKey('unread-dot-${item.id}'),
-                width: 8,
-                height: 8,
-                decoration: const BoxDecoration(
-                  color: AppColors.glowPink,
-                  shape: BoxShape.circle,
+                    const SizedBox(height: AppSpacing.xs),
+                    Text(
+                      item.body,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: AppColors.mutedStrong,
+                        fontSize: 14,
+                        height: 1.4,
+                      ),
+                    ),
+                  ],
                 ),
               ),
+              if (unread) ...[
+                const SizedBox(width: AppSpacing.sm),
+                Container(
+                  key: ValueKey('unread-dot-${item.id}'),
+                  width: 8,
+                  height: 8,
+                  // XL-18: no saturated fills — the gold vivid end is
+                  // watered 45% toward white, keeping the gold read while
+                  // reading as a pastel indicator (directive #3).
+                  decoration: BoxDecoration(
+                    color: AppGradients.watered(
+                      [AppGradients.gold.colors.last],
+                      mix: 0.45,
+                    ).single,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+              ],
             ],
-          ],
+          ),
         ),
       ),
     );

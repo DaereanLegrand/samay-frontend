@@ -2,11 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
+import 'package:samay/core/design_tokens/app_gradients.dart';
+import 'package:samay/core/design_tokens/app_typography.dart';
 import 'package:samay/core/providers/auth_provider.dart';
 import 'package:samay/core/providers/theme_provider.dart';
 import 'package:samay/core/router/route_paths.dart';
 import 'package:samay/l10n/app_localizations.dart';
-import 'package:samay/shared/widgets/v_card.dart';
+import 'package:samay/shared/widgets/glass/v_glass.dart';
+import 'package:samay/shared/widgets/v_aurora.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -53,109 +56,123 @@ class SettingsScreen extends ConsumerWidget {
         ref.watch(themeModeProvider).valueOrNull ?? ThemeMode.dark;
     return Scaffold(
       appBar: AppBar(title: Text(l10n.profileSettingsTitle)),
-      body: ListView(
-        children: [
-          // U-15 R6 (F18 ADAPTED): Juega's grouped settings (VISUAL/ACCOUNT/
-          // LEGAL cards) → Samay's flat section headers (uppercase labelSmall
-          // mutedStrong) + sharp VCard groups with hairline row dividers —
-          // the grouping structure transfers, the glass does not (N2).
-          _SectionHeader(l10n.settingsSectionAppearance),
-          VCard(
-            // The transparent Material lets the ListTiles paint their ink
-            // splashes above the card surface (the framework asserts when a
-            // ListTile sits under a colored DecoratedBox without one).
-            child: Material(
-              type: MaterialType.transparency,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _ThemeSection(
-                    themeMode: themeMode,
-                    onChanged: (mode) =>
-                        ref.read(themeModeProvider.notifier).setThemeMode(mode),
-                  ),
-                ],
+      // LUXE v2 (XL-08): settings is a flat utility screen — no hero; the
+      // gold ambient stays a whisper (α0.06) behind the glass groups.
+      body: VAurora(
+        gradients: const [AppGradients.gold],
+        opacity: 0.06,
+        child: ListView(
+          children: [
+            // U-15 R6 (F18 ADAPTED): Juega's grouped settings (VISUAL/ACCOUNT/
+            // LEGAL cards) → Samay's flat section headers (uppercase
+            // `AppTypography.sectionLabel` — Inter letter-spaced) + sharp
+            // glass groups with hairline row dividers (LUXE v2: the U-15
+            // grouping structure now wears liquid glass).
+            _SectionHeader(l10n.settingsSectionAppearance),
+            VGlassCard(
+              gradient: AppGradients.gold,
+              glowAlpha: 0.18,
+              // The transparent Material lets the ListTiles paint their ink
+              // splashes above the glass face (the framework asserts when a
+              // ListTile sits under a colored DecoratedBox without one).
+              child: Material(
+                type: MaterialType.transparency,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _ThemeSection(
+                      themeMode: themeMode,
+                      onChanged: (mode) => ref
+                          .read(themeModeProvider.notifier)
+                          .setThemeMode(mode),
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
-          _SectionHeader(l10n.settingsSectionAccount),
-          VCard(
-            child: Material(
-              type: MaterialType.transparency,
-              child: Column(
-                children: [
-                  _SettingsTile(
-                    icon: Icons.subscriptions,
-                    label: l10n.profileSubscription,
-                    onTap: () => context.push(RoutePaths.subscriptions),
-                  ),
-                  const Divider(),
-                  _SettingsTile(
-                    icon: Icons.notifications,
-                    label: l10n.profileNotifications,
-                    // U-26 (U-23 F4): placeholder rows render disabled —
-                    // an enabled no-op row looks tappable (2.1.1/4.1.2);
-                    // disabled = `muted` treatment (§5.1).
-                    enabled: false,
-                  ),
-                  const Divider(),
-                  _SettingsTile(
-                    icon: Icons.person,
-                    label: l10n.profileEditTitle,
-                    onTap: () => context.push(RoutePaths.profileEdit),
-                  ),
-                  const Divider(),
-                  _SettingsTile(
-                    icon: Icons.shield,
-                    label: l10n.profilePrivacy,
-                    enabled: false,
-                  ),
-                  const Divider(),
-                  _SettingsTile(
-                    icon: Icons.block,
-                    label: l10n.profileBlockedUsers,
-                    onTap: () => context.push(RoutePaths.blockedUsers),
-                  ),
-                  const Divider(),
-                  // U-15 R7: the danger pair closes the account section —
-                  // delete + sign out, both in the error semantic.
-                  _SettingsTile(
-                    icon: Icons.delete_forever,
-                    label: l10n.profileDeleteMyAccount,
-                    destructive: true,
-                    onTap: () => context.push(RoutePaths.deleteAccount),
-                  ),
-                  const Divider(),
-                  _SettingsTile(
-                    icon: Icons.logout,
-                    label: l10n.profileSignOut,
-                    destructive: true,
-                    onTap: () => _confirmSignOut(context, ref),
-                  ),
-                ],
+            _SectionHeader(l10n.settingsSectionAccount),
+            VGlassCard(
+              gradient: AppGradients.gold,
+              glowAlpha: 0.18,
+              child: Material(
+                type: MaterialType.transparency,
+                child: Column(
+                  children: [
+                    _SettingsTile(
+                      icon: Icons.subscriptions,
+                      label: l10n.profileSubscription,
+                      onTap: () => context.push(RoutePaths.subscriptions),
+                    ),
+                    const Divider(),
+                    _SettingsTile(
+                      icon: Icons.notifications,
+                      label: l10n.profileNotifications,
+                      // U-26 (U-23 F4): placeholder rows render disabled —
+                      // an enabled no-op row looks tappable (2.1.1/4.1.2);
+                      // disabled = `muted` treatment (§5.1).
+                      enabled: false,
+                    ),
+                    const Divider(),
+                    _SettingsTile(
+                      icon: Icons.person,
+                      label: l10n.profileEditTitle,
+                      onTap: () => context.push(RoutePaths.profileEdit),
+                    ),
+                    const Divider(),
+                    _SettingsTile(
+                      icon: Icons.shield,
+                      label: l10n.profilePrivacy,
+                      enabled: false,
+                    ),
+                    const Divider(),
+                    _SettingsTile(
+                      icon: Icons.block,
+                      label: l10n.profileBlockedUsers,
+                      onTap: () => context.push(RoutePaths.blockedUsers),
+                    ),
+                    const Divider(),
+                    // U-15 R7: the danger pair closes the account section —
+                    // delete + sign out, both in the error semantic (LUXE:
+                    // danger stays semantic, the gold family never touches it).
+                    _SettingsTile(
+                      icon: Icons.delete_forever,
+                      label: l10n.profileDeleteMyAccount,
+                      destructive: true,
+                      onTap: () => context.push(RoutePaths.deleteAccount),
+                    ),
+                    const Divider(),
+                    _SettingsTile(
+                      icon: Icons.logout,
+                      label: l10n.profileSignOut,
+                      destructive: true,
+                      onTap: () => _confirmSignOut(context, ref),
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Text(
-              l10n.profileVersion,
-              // §2.4: the version string is informational text below the
-              // muted threshold — mutedStrong (7.37:1 AA).
-              style: Theme.of(
-                context,
-              ).textTheme.bodyMedium?.copyWith(color: AppColors.mutedStrong),
-              textAlign: TextAlign.center,
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Text(
+                l10n.profileVersion,
+                // §2.4: the version string is informational text below the
+                // muted threshold — mutedStrong (7.37:1 AA).
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyMedium?.copyWith(color: AppColors.mutedStrong),
+                textAlign: TextAlign.center,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 }
 
-/// U-15 R6: settings section header — uppercase `labelSmall` (the §3.3
-/// overline role) in mutedStrong (§2.4 AA). The grouping voice, flat.
+/// U-15 R6: settings section header — the §3.3 overline voice
+/// (`AppTypography.sectionLabel`: uppercase Inter w600 12, 2.0 tracking,
+/// mutedStrong 7.37:1 AA). The grouping voice, flat — LUXE v2 (XL-08).
 class _SectionHeader extends StatelessWidget {
   const _SectionHeader(this.label);
 
@@ -165,12 +182,7 @@ class _SectionHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
-      child: Text(
-        label.toUpperCase(),
-        style: Theme.of(
-          context,
-        ).textTheme.labelSmall?.copyWith(color: AppColors.mutedStrong),
-      ),
+      child: Text(label.toUpperCase(), style: AppTypography.sectionLabel),
     );
   }
 }
@@ -198,9 +210,9 @@ class _SettingsTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListTile(
-      // The tiles live inside VCard groups (R6), which already carry the
-      // 16px card padding — zero content padding keeps the row metrics
-      // identical to the pre-grouping flat list.
+      // The tiles live inside VGlassCard groups (R6 — LUXE v2), which
+      // already carry the 16px glass padding — zero content padding keeps
+      // the row metrics identical to the pre-grouping flat list.
       contentPadding: EdgeInsets.zero,
       enabled: enabled,
       leading: Icon(

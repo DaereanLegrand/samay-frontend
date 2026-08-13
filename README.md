@@ -64,8 +64,8 @@ and `.env` is declared as a Flutter asset in `pubspec.yaml`.
 | Target | What it does |
 |--------|--------------|
 | `make build` | `flutter build apk` (or `TARGET=ios` → unsigned IPA) |
-| `make dev` | `flutter run` (or `TARGET=android`/`waydroid`/device id) |
-| `make install` | Install APK/IPA to device (iOS needs `APPLE_PASSWORD`) |
+| `make dev` | `flutter run` (or `TARGET=android`/`waydroid`/`simulator`/`ios-adhoc`/device id) |
+| `make install` | Install APK/IPA to device (`TARGET=ios-adhoc` → devicectl install of the fastlane-built ad-hoc IPA; `TARGET=ios` aliases it) |
 | `make build-cli` | `go build -o samay ./cmd/samay-admin` |
 | `make build-linux` | Cross-compile CLI for linux/amd64 → `samay-linux` |
 | `make flutter-test` | `flutter test` |

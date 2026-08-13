@@ -39,9 +39,11 @@ dependencies:
   uuid: ^4.5.3
   # QR attendance + promotor scanner (I-57 re-add per DEP-02/DEP-03
   # re-adoption — removed by I-23 as dead when QR was unbuilt; the
-  # phase-06 QRAT/QRSC foundations import them).
+  # phase-06 QRAT/QRSC foundations import them). 7.x: iOS backend moved
+  # from MLKit (no arm64-simulator slice — blocked `flutter run` on
+  # Apple Silicon iOS 26+ simulators) to Apple Vision.
   qr_flutter: ^4.1.0
-  mobile_scanner: ^6.0.2
+  mobile_scanner: ^7.4.0
   # Deep-link / universal-link handling for invite links `samay://event/{token}`
   # (EINV — I-66). Already a transitive dep of supabase_flutter (>=6.2.0 <8.0.0)
   # and registered as a native plugin on every platform, so the direct

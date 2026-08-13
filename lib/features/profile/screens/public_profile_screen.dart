@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
+import 'package:samay/core/design_tokens/app_gradients.dart';
+import 'package:samay/core/design_tokens/app_typography.dart';
 import 'package:samay/core/extensions/error_mapper.dart';
 import 'package:samay/core/logging/app_logger.dart';
 import 'package:samay/core/providers/service_providers.dart';
@@ -8,7 +10,9 @@ import 'package:samay/core/repositories/repository_providers.dart';
 import 'package:samay/features/profile/widgets/profile_avatar.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/skeletons.dart';
+import 'package:samay/shared/widgets/v_aurora.dart';
 import 'package:samay/shared/widgets/v_button.dart';
+import 'package:samay/shared/widgets/v_display_text.dart';
 
 class PublicProfileScreen extends ConsumerStatefulWidget {
   final String userId;
@@ -149,7 +153,9 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
     final l10n = AppLocalizations.of(context);
     if (_loading) {
       return Scaffold(
-        appBar: AppBar(title: Text(l10n.profileTitle)),
+        // LUXE v2 (XL-08): no AppBar title — the hero owns the identity
+        // (directive #8: one hero per screen, nothing duplicated).
+        appBar: AppBar(),
         // U-22 handoff (U-23): the public profile mirrors the own-profile
         // hero — `VSkeletonProfile` (§5.8) during the first load.
         body: const VSkeletonProfile(),
@@ -166,8 +172,10 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
         : username.substring(0, 1).toUpperCase();
 
     return Scaffold(
+      // LUXE v2 (XL-08): no AppBar title — the username hero below is the
+      // identity (directive #8: the '@dana' AppBar title duplicated the
+      // hero + handle; the overflow menu keeps its slot).
       appBar: AppBar(
-        title: Text(username != null ? '@$username' : l10n.profileTitle),
         actions: [
           // U-26 (4.1.2): the overflow menu is icon-only — the tooltip is
           // its accessibility name for screen readers.
@@ -187,77 +195,84 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
           ),
         ],
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(24),
-        children: [
-          Center(child: ProfileAvatar(initials: initials)),
-          const SizedBox(height: 16),
-          Center(
-            child: Text(
-              username ?? l10n.commonUser,
-              // §3.2 fancy moment (U-09): mirrors the own-profile header —
-              // Playfair italic 28 with the glow-soft stack.
-              style: Theme.of(context).textTheme.headlineLarge,
+      // LUXE v2 (XL-08): faint gold ambient — the public profile is
+      // informational, the hero carries the gold moment (α0.06).
+      body: VAurora(
+        gradients: const [AppGradients.gold],
+        opacity: 0.06,
+        child: ListView(
+          padding: const EdgeInsets.all(24),
+          children: [
+            Center(child: ProfileAvatar(initials: initials)),
+            const SizedBox(height: 16),
+            Center(
+              child: VDisplayText(
+                text: username ?? l10n.commonUser,
+                size: 28,
+                gradient: AppGradients.gold,
+              ),
             ),
-          ),
-          if (username != null) ...[
-            const SizedBox(height: 4),
+            if (username != null) ...[
+              const SizedBox(height: 4),
+              Center(
+                child: Text(
+                  '@$username',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: AppColors.mutedStrong,
+                  ),
+                ),
+              ),
+            ],
+            const SizedBox(height: 8),
             Center(
               child: Text(
-                '@$username',
+                bio != null && bio.isNotEmpty ? bio : l10n.profileNoBio,
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyMedium?.copyWith(color: AppColors.mutedStrong),
+              ),
+            ),
+            const SizedBox(height: 32),
+            Row(
+              children: [
+                Expanded(child: _buildActionButton()),
+                if (_friendshipStatus == 'pending' && _friendshipId != null)
+                  const SizedBox(width: 8),
+                if (_friendshipStatus == 'pending' && _friendshipId != null)
+                  Expanded(
+                    child: VButton(
+                      label: _isIncoming
+                          ? l10n.commonReject
+                          : l10n.profileCancelRequest,
+                      onPressed: () async {
+                        await ref
+                            .read(friendsRepositoryProvider)
+                            .declineFriendRequest(_friendshipId!);
+                        _load();
+                      },
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            // LUXE v2 (XL-08): the shared-groups header is the §3.3
+            // sectionLabel overline voice, not a title.
+            Text(
+              l10n.profileSharedGroups.toUpperCase(),
+              style: AppTypography.sectionLabel,
+            ),
+            const SizedBox(height: 8),
+            Center(
+              child: Text(
+                l10n.profileNoSharedGroups,
+                // §5.9 empty state: mutedStrong bodyMedium (U-09).
                 style: Theme.of(
                   context,
                 ).textTheme.bodyMedium?.copyWith(color: AppColors.mutedStrong),
               ),
             ),
           ],
-          const SizedBox(height: 8),
-          Center(
-            child: Text(
-              bio != null && bio.isNotEmpty ? bio : l10n.profileNoBio,
-              style: Theme.of(
-                context,
-              ).textTheme.bodyMedium?.copyWith(color: AppColors.mutedStrong),
-            ),
-          ),
-          const SizedBox(height: 32),
-          Row(
-            children: [
-              Expanded(child: _buildActionButton()),
-              if (_friendshipStatus == 'pending' && _friendshipId != null)
-                const SizedBox(width: 8),
-              if (_friendshipStatus == 'pending' && _friendshipId != null)
-                Expanded(
-                  child: VButton(
-                    label: _isIncoming
-                        ? l10n.commonReject
-                        : l10n.profileCancelRequest,
-                    onPressed: () async {
-                      await ref
-                          .read(friendsRepositoryProvider)
-                          .declineFriendRequest(_friendshipId!);
-                      _load();
-                    },
-                  ),
-                ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Text(
-            l10n.profileSharedGroups,
-            style: Theme.of(context).textTheme.labelLarge,
-          ),
-          const SizedBox(height: 8),
-          Center(
-            child: Text(
-              l10n.profileNoSharedGroups,
-              // §5.9 empty state: mutedStrong bodyMedium (U-09).
-              style: Theme.of(
-                context,
-              ).textTheme.bodyMedium?.copyWith(color: AppColors.mutedStrong),
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -296,6 +311,9 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
       filled: true,
       label: _sending ? l10n.profileSending : l10n.profileAddFriend,
       onPressed: _sendRequest,
+      // LUXE v2 (XL-08): the public-profile primary action wears the gold
+      // family (violet is the widget default; gold is this screen's family).
+      gradient: AppGradients.gold,
     );
   }
 

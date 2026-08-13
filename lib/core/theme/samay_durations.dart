@@ -36,4 +36,22 @@ class SamayDurations {
   /// animation run a continuous `glowBreath`/`liveDotPulse` alternate and
   /// then rest so tests land deterministically (see `VBreathingGlow`).
   static const motionCycleRest = Duration(milliseconds: 300);
+
+  // ── LUXE v2 motion tokens (ORCHESTRATION-LUXE.md, owned by XL-04) ─────────
+
+  /// [VGlowPulse] halo alternate: α0.35→α0.7 easeInOut, one direction per
+  /// half — the campaign's "glow must slowly pulsate (3.6–4s)" range.
+  static const glowPulse = Duration(milliseconds: 3800);
+
+  /// [VAurora] ambient drift: one full orbit of the pastel blobs.
+  static const auroraDrift = Duration(milliseconds: 10000);
+
+  /// [VThinkingDots] per-dot pulse period (up-down alternate, staggered).
+  static const thinkingDot = Duration(milliseconds: 900);
+
+  /// Liquid-glass hover/focus accent transition (glass inputs, chips).
+  static const glassHover = Duration(milliseconds: 150);
+
+  /// Once-only shimmer sweep on hero display text (VDisplayText).
+  static const displaySweep = Duration(milliseconds: 900);
 }

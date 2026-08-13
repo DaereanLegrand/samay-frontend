@@ -1,6 +1,10 @@
+import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:samay/core/design_tokens/app_colors.dart';
+import 'package:samay/core/design_tokens/app_gradients.dart';
 import 'package:samay/core/router/route_paths.dart';
 import 'package:samay/features/friends/providers/friends_providers.dart';
 import 'package:samay/features/groups/providers/groups_providers.dart';
@@ -99,23 +103,50 @@ class MainShell extends ConsumerWidget {
     final body = VTabFade(key: ValueKey(currentIndex), child: child);
     return Scaffold(
       body: body,
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: currentIndex,
-        onTap: (index) => context.go(mainShellTabs[index].path),
-        items: [
-          for (var i = 0; i < mainShellTabs.length; i++)
-            BottomNavigationBarItem(
-              // R18: the Grupos tab icon carries the pending badge (U-16's
-              // `VCountBadge` — tiny, accent-scale per §7.2). The badge shows
-              // only while the user is NOT on the tab (Juega hides its feed
-              // badge the same way) — the active tab renders `activeIcon`,
-              // which never carries it.
-              icon: _tabIcon(context, i, pendingCount),
-              activeIcon: Icon(mainShellTabs[i].selectedIcon),
-              label: _tabLabel(l10n, i),
-            ),
+      // LUXE v2 (XL-06): the shell bar is a LIQUID GLASS strip — a
+      // blur-12 white-sheen layer + 1px gradient top hairline painted
+      // behind the translucent Material bar (theme fill `surface` α0.85,
+      // see bottomNavigationBarTheme). Behavior is untouched: index, taps,
+      // badge, fade.
+      bottomNavigationBar: Stack(
+        children: [
+          const Positioned.fill(child: _NavGlassStrip()),
+          BottomNavigationBar(
+            currentIndex: currentIndex,
+            onTap: (index) => context.go(mainShellTabs[index].path),
+            items: [
+              for (var i = 0; i < mainShellTabs.length; i++)
+                BottomNavigationBarItem(
+                  // R18: the Grupos tab icon carries the pending badge (U-16's
+                  // `VCountBadge` — tiny, accent-scale per §7.2). The badge shows
+                  // only while the user is NOT on the tab (Juega hides its feed
+                  // badge the same way) — the active tab renders `activeIcon`,
+                  // which never carries it.
+                  icon: _tabIcon(context, i, pendingCount),
+                  activeIcon: _tabGlowIcon(mainShellTabs[i].selectedIcon),
+                  label: _tabLabel(l10n, i),
+                ),
+            ],
+          ),
         ],
       ),
+    );
+  }
+
+  /// Selected-tab icon wrapped in a STATIC violet halo (LUXE XL-06): the
+  /// `glowShadows` stack at fixed α0.30 / blur 28. Deliberately NOT
+  /// `VGlowPulse` — chrome must not animate; the glow is a fixed BoxShadow.
+  Widget _tabGlowIcon(IconData icon) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        boxShadow: AppGradients.glowShadows(
+          AppGradients.violet,
+          alpha: 0.30,
+          blur: 28,
+        ),
+      ),
+      child: Icon(icon),
     );
   }
 
@@ -149,5 +180,58 @@ class MainShell extends ConsumerWidget {
       4 => l10n.shellProfile,
       _ => mainShellTabs[index].label,
     };
+  }
+}
+
+/// The liquid-glass strip behind the shell's nav bar (LUXE v2, XL-06).
+///
+/// Layers, back → front:
+/// 1. `BackdropFilter` blur-12 — glassmorphism over whatever scrolls beneath
+///    the bar (over flat black it degrades to the white sheen, like [VGlass]).
+/// 2. Translucent white fill α0.05 → α0.01, topLeft → bottomRight (the
+///    design-language "white fill α 0.04–0.06").
+/// 3. The 1px gradient top hairline — white α0.25 (left) → transparent
+///    (right) — the "liquid edge" separating the bar from the page.
+///
+/// Sharp, radius 0 (brutalism): the bar IS the bottom screen edge, so the
+/// strip carries no ring border (unlike [VGlass], which draws a full ring).
+class _NavGlassStrip extends StatelessWidget {
+  const _NavGlassStrip();
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRect(
+      child: BackdropFilter(
+        filter: ui.ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                AppColors.white.withValues(alpha: 0.05),
+                AppColors.white.withValues(alpha: 0.01),
+              ],
+            ),
+          ),
+          child: Align(
+            alignment: Alignment.topCenter,
+            child: Container(
+              height: 1,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.centerLeft,
+                  end: Alignment.centerRight,
+                  colors: [
+                    AppColors.white.withValues(alpha: 0.25),
+                    AppColors.white.withValues(alpha: 0.0),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }

@@ -5,13 +5,16 @@ import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
+import 'package:samay/core/design_tokens/app_gradients.dart';
 import 'package:samay/core/logging/app_logger.dart';
 import 'package:samay/core/providers/service_providers.dart';
 import 'package:samay/core/services/permission_service.dart';
 import 'package:samay/core/utils/form_validators.dart';
 import 'package:samay/core/utils/input_sanitizer.dart';
 import 'package:samay/l10n/app_localizations.dart';
+import 'package:samay/shared/widgets/glass/v_glass.dart';
 import 'package:samay/shared/widgets/show_app_error.dart';
+import 'package:samay/shared/widgets/v_aurora.dart';
 import 'package:samay/shared/widgets/v_button.dart';
 import 'package:samay/shared/widgets/v_input.dart';
 
@@ -74,7 +77,9 @@ class _CreateGroupScreenState extends ConsumerState<CreateGroupScreen> {
     final l10n = AppLocalizations.of(context);
     setState(() => _loading = true);
     try {
-      final groupCount = await ref.read(groupServiceProvider).getUserGroupCount();
+      final groupCount = await ref
+          .read(groupServiceProvider)
+          .getUserGroupCount();
       if (groupCount >= 5) {
         setState(() => _loading = false);
         if (mounted) {
@@ -106,9 +111,9 @@ class _CreateGroupScreenState extends ConsumerState<CreateGroupScreen> {
       });
       setState(() => _loading = false);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(l10n.groupsCreatedSnack)),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(l10n.groupsCreatedSnack)));
         context.pop();
       }
     } catch (e, st) {
@@ -130,68 +135,84 @@ class _CreateGroupScreenState extends ConsumerState<CreateGroupScreen> {
     final l10n = AppLocalizations.of(context);
     return Scaffold(
       appBar: AppBar(title: Text(l10n.groupsCreateGroup)),
-      body: ListView(
-        padding: const EdgeInsets.all(24),
-        children: [
-          GestureDetector(
-            onTap: _pickImage,
-            child: Container(
-              height: 160,
-              decoration: BoxDecoration(
-                // §5.8 skeleton-base surface for the empty cover slot +
-                // the §2.1 interactive-outline token (never raw greys).
-                color: AppColors.surfaceAlt,
-                border: Border.all(color: AppColors.border),
-              ),
-              child: _coverImage != null
-                  ? ClipRect(
-                      child: Image.file(
-                        File(_coverImage!.path),
-                        fit: BoxFit.cover,
-                        width: double.infinity,
-                        height: 160,
+      body: VAurora(
+        gradients: const [AppGradients.violet],
+        child: ListView(
+          padding: const EdgeInsets.all(24),
+          children: [
+            VGlassCard(
+              gradient: AppGradients.violet,
+              glowAlpha: 0.20,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  GestureDetector(
+                    onTap: _pickImage,
+                    child: Container(
+                      height: 160,
+                      decoration: BoxDecoration(
+                        // §5.8 skeleton-base surface for the empty cover slot +
+                        // the §2.1 interactive-outline token (never raw greys).
+                        color: AppColors.surfaceAlt,
+                        border: Border.all(color: AppColors.border),
                       ),
-                    )
-                  : Center(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(
-                            Icons.camera_alt,
-                            size: 40,
-                            color: AppColors.muted,
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            l10n.groupsAddCover,
-                            style: const TextStyle(color: AppColors.mutedStrong),
-                          ),
-                        ],
-                      ),
+                      child: _coverImage != null
+                          ? ClipRect(
+                              child: Image.file(
+                                File(_coverImage!.path),
+                                fit: BoxFit.cover,
+                                width: double.infinity,
+                                height: 160,
+                              ),
+                            )
+                          : Center(
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(
+                                    Icons.camera_alt,
+                                    size: 40,
+                                    color: AppColors.muted,
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    l10n.groupsAddCover,
+                                    style: const TextStyle(
+                                      color: AppColors.mutedStrong,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
                     ),
+                  ),
+                  const SizedBox(height: 24),
+                  VInput(
+                    controller: _nameController,
+                    label: l10n.groupsNameLabel,
+                  ),
+                  const SizedBox(height: 16),
+                  VInput(
+                    controller: _descController,
+                    label: l10n.groupsDescriptionOptional,
+                    maxLines: 3,
+                  ),
+                  const SizedBox(height: 32),
+                  // §5.1 LUXE: creating the group is the screen's one brand
+                  // moment — the violet glow accent (family gradient fill,
+                  // black text 6.00:1).
+                  VButton.glowAccent(
+                    filled: true,
+                    gradient: AppGradients.violet,
+                    label: l10n.commonCreate,
+                    loading: _loading,
+                    onPressed: _create,
+                  ),
+                ],
+              ),
             ),
-          ),
-          const SizedBox(height: 24),
-          VInput(
-            controller: _nameController,
-            label: l10n.groupsNameLabel,
-          ),
-          const SizedBox(height: 16),
-          VInput(
-            controller: _descController,
-            label: l10n.groupsDescriptionOptional,
-            maxLines: 3,
-          ),
-          const SizedBox(height: 32),
-          // §5.1: creating the group is the screen's one brand moment
-          // (glowAccent filled — pink fill, black text 6.00:1).
-          VButton.glowAccent(
-            filled: true,
-            label: l10n.commonCreate,
-            loading: _loading,
-            onPressed: _create,
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

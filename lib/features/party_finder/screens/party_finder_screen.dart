@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
+import 'package:samay/core/design_tokens/app_gradients.dart';
 import 'package:samay/core/design_tokens/app_icon_sizes.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/extensions/error_mapper.dart';
@@ -11,10 +12,26 @@ import 'package:samay/features/party_finder/providers/party_finder_providers.dar
 import 'package:samay/features/profile/widgets/interests.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/error_view.dart';
+import 'package:samay/shared/widgets/glass/v_glass.dart';
 import 'package:samay/shared/widgets/skeletons.dart';
 import 'package:samay/shared/widgets/state_views.dart';
+import 'package:samay/shared/widgets/v_aurora.dart';
 import 'package:samay/shared/widgets/v_chip.dart';
 import 'package:samay/shared/widgets/v_network_image.dart';
+
+/// LUXE v2 family for this screen — **cyan** (ORCHESTRATION-LUXE map:
+/// party_finder → cyan).
+final AppGradient _family = AppGradients.familyOf('party_finder');
+
+/// XL-18: the accent chip accent — the cyan family **watered 35% toward
+/// white** (ORCHESTRATION directive #3: no saturated fills). The vivid end
+/// drives `VChip`'s selected fill, so the watered run keeps the chips a
+/// single cyan accent without a neon slab.
+final AppGradient _chipFamily = AppGradient(
+  name: _family.name,
+  colors: AppGradients.watered(_family.colors, mix: 0.35),
+  stops: _family.stops,
+);
 
 /// Party Finder (PFND spec — I-60): opt-in discovery by interest tags.
 ///
@@ -25,9 +42,9 @@ import 'package:samay/shared/widgets/v_network_image.dart';
 /// * Tap → public profile; "Bloquear" reuses the friendships block path so a
 ///   blocked user never appears again.
 ///
-/// Disco-minimalist per DISCO-DESIGN-SYSTEM §1/§5: black surface, hairline
-/// borders, white core text; the signature glowPink reserved for the opt-in
-/// highlight state (chip selection / switch accent).
+/// LUXE v2: cyan liquid-glass cards; the opt-in highlight state (chip
+/// selection / switch accent) is the cyan family (never pink —
+/// 2026-08-12 directive).
 class PartyFinderScreen extends ConsumerWidget {
   const PartyFinderScreen({super.key});
 
@@ -67,13 +84,31 @@ class PartyFinderScreen extends ConsumerWidget {
       appBar: AppBar(title: Text(l10n.partyFinderTitle)),
       body: Column(
         children: [
-          SwitchListTile(
-            title: Text(l10n.partyFinderOptInLabel),
-            value: optIn.valueOrNull ?? false,
-            onChanged: (value) => _setOptIn(ref, value),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.lg,
+              AppSpacing.sm,
+              AppSpacing.lg,
+              AppSpacing.sm,
+            ),
+            child: VGlassCard(
+              gradient: _family,
+              glowAlpha: 0.14,
+              child: SwitchListTile(
+                title: Text(l10n.partyFinderOptInLabel),
+                value: optIn.valueOrNull ?? false,
+                onChanged: (value) => _setOptIn(ref, value),
+              ),
+            ),
           ),
           const Divider(height: 1, thickness: 1, color: AppColors.hairline),
-          Expanded(child: _body(context, ref, l10n, optIn)),
+          Expanded(
+            child: VAurora(
+              gradients: const [AppGradients.cyan],
+              opacity: 0.06,
+              child: _body(context, ref, l10n, optIn),
+            ),
+          ),
         ],
       ),
     );
@@ -120,6 +155,9 @@ class PartyFinderScreen extends ConsumerWidget {
                       ref.read(partyMatchesProvider.notifier).refresh(),
                   child: ListView.builder(
                     physics: const AlwaysScrollableScrollPhysics(),
+                    padding: const EdgeInsets.symmetric(
+                      vertical: AppSpacing.xs,
+                    ),
                     itemCount: matches.length,
                     itemBuilder: (_, i) {
                       final match = matches[i];
@@ -141,7 +179,7 @@ class PartyFinderScreen extends ConsumerWidget {
 /// invisible but can still browse).
 
 /// One match row: avatar, @username, shared-interests count, tag chips and
-/// the block action (PFND spec row contract).
+/// the block action (PFND spec row contract). LUXE: cyan liquid-glass card.
 class _MatchCard extends StatelessWidget {
   final Map<String, dynamic> match;
   final VoidCallback onTap;
@@ -169,55 +207,58 @@ class _MatchCard extends StatelessWidget {
 
     return InkWell(
       onTap: onTap,
-      child: Container(
+      child: Padding(
         padding: const EdgeInsets.symmetric(
           horizontal: AppSpacing.lg,
-          vertical: AppSpacing.md,
+          vertical: AppSpacing.xs,
         ),
-        decoration: const BoxDecoration(
-          border: Border(bottom: BorderSide(color: AppColors.hairline)),
-        ),
-        child: Row(
-          children: [
-            _MatchAvatar(avatarUrl: avatarUrl, username: username),
-            const SizedBox(width: AppSpacing.md),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    '@$username',
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                  const SizedBox(height: AppSpacing.xs),
-                  Text(
-                    l10n.partyFinderSharedInterests(count),
-                    style: const TextStyle(color: AppColors.mutedStrong),
-                  ),
-                  if (knownTags.isNotEmpty) ...[
-                    const SizedBox(height: AppSpacing.sm),
-                    Wrap(
-                      spacing: AppSpacing.sm,
-                      runSpacing: AppSpacing.sm,
-                      children: [
-                        for (final tag in knownTags)
-                          VChip(
-                            label: interestTagLabel(l10n, tag),
-                            selected: true,
-                          ),
-                      ],
+        child: VGlassCard(
+          gradient: _family,
+          glowAlpha: 0.1,
+          child: Row(
+            children: [
+              _MatchAvatar(avatarUrl: avatarUrl, username: username),
+              const SizedBox(width: AppSpacing.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '@$username',
+                      style: Theme.of(context).textTheme.titleMedium,
                     ),
+                    const SizedBox(height: AppSpacing.xs),
+                    Text(
+                      l10n.partyFinderSharedInterests(count),
+                      style: const TextStyle(color: AppColors.mutedStrong),
+                    ),
+                    if (knownTags.isNotEmpty) ...[
+                      const SizedBox(height: AppSpacing.sm),
+                      Wrap(
+                        spacing: AppSpacing.sm,
+                        runSpacing: AppSpacing.sm,
+                        children: [
+                          for (final tag in knownTags)
+                            VChip.accent(
+                              label: interestTagLabel(l10n, tag),
+                              selected: true,
+                              // XL-18: watered fill (no saturated slab).
+                              gradient: _chipFamily,
+                            ),
+                        ],
+                      ),
+                    ],
                   ],
-                ],
+                ),
               ),
-            ),
-            IconButton(
-              icon: const Icon(Icons.block, size: AppIconSizes.lg),
-              tooltip: l10n.profileBlock,
-              color: AppColors.mutedStrong,
-              onPressed: onBlock,
-            ),
-          ],
+              IconButton(
+                icon: const Icon(Icons.block, size: AppIconSizes.lg),
+                tooltip: l10n.profileBlock,
+                color: AppColors.mutedStrong,
+                onPressed: onBlock,
+              ),
+            ],
+          ),
         ),
       ),
     );

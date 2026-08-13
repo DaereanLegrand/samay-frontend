@@ -4,10 +4,13 @@ import 'package:samay/core/design_tokens/app_icon_sizes.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/l10n/app_localizations.dart';
 
-/// Inline error banner: pink icon + message + optional retry / close.
+/// Inline error banner: accent icon + message + optional retry / close.
 ///
 /// Themed per DISCO-DESIGN-SYSTEM.md: black surface, hairline border,
-/// white/gray text, signature `glowPink` accent icon.
+/// white/gray text, accent icon in the **error** role — [AppColors.error],
+/// the semantic alias of the glowPink token (6.00:1 — AA). Error is the one
+/// place pink may appear (LUXE directive 2026-08-12: pink is not a main
+/// color; error semantics keep it as the documented exception).
 class ErrorBanner extends StatelessWidget {
   final String message;
   final IconData icon;
@@ -22,7 +25,7 @@ class ErrorBanner extends StatelessWidget {
     this.onClose,
   });
 
-  static const _accent = AppColors.glowPink;
+  static const _accent = AppColors.error;
   static const _muted = AppColors.mutedStrong;
 
   @override

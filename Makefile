@@ -15,13 +15,30 @@ APP_NAME := samay_app
 APK := build/app/outputs/flutter-apk/app-release.apk
 GO_BIN := samay
 GO_BIN_LINUX := samay-linux
+IPA_ADHOC := build/ios/ipa/$(APP_NAME)-adhoc.ipa
 
-# iOS install config (MKE-02: APPLE_PASSWORD is NEVER a Make variable — it is
-# read from the sourced env files or the shell env at recipe time only, so it
-# cannot leak into `make -n` output, shell history, or CI logs).
-IOS_UDID      ?= 00008110-000254960A79401E
-APPLE_ID      ?= burner.dom@icloud.com
-MACVM_PATH    ?= /Users/daerean/Codes/Samay
+# ── Toolchain PATH (../Juega pattern) ────────────────────────────────────────
+# Every recipe resolves the Homebrew ruby (and its gem binstubs) first — the
+# macOS system ruby (2.6.10) and its bundler reject the Gemfile (>= 3.0) and
+# the bundler-4 lockfile ("The running version of Bundler ... does not match
+# ..."). Mirror of Juega's Makefile export (Juega also prepends openjdk@21 —
+# Samay's Flutter builds use their own JDK, so only the ruby/gem bins here).
+# Like Juega, the lanes are invoked via the COMMITTED ./bin/fastlane binstub
+# (never the `bundle` command — Xcode's make 3.81 execvp's simple commands
+# directly and would resolve `bundle` to /usr/bin/bundle, bypassing this
+# export; the slash-qualified binstub resolves by path, and its
+# `#!/usr/bin/env ruby` picks this exported PATH).
+export PATH := /opt/homebrew/opt/ruby/bin:/Users/daerean/.local/share/gem/ruby/4.0.0/bin:$(PATH)
+# Absolute bundler for the explicit setup step (make bundle-install) — same
+# fast-path rationale as above.
+BREW_BUNDLE := /opt/homebrew/opt/ruby/bin/bundle
+
+# Apple Developer enrollment signing team for iOS DEVICE builds
+# (make build TARGET=ios-adhoc): an env export wins; otherwise .env.local
+# (gitignored — the repo contract never tracks a real team ID; find yours
+# with `security find-identity -v -p codesigning`).
+IOS_DEVELOPMENT_TEAM ?= $(shell sed -n 's/^IOS_DEVELOPMENT_TEAM=//p' .env.local 2>/dev/null | head -1)
+
 
 # SSH tunnel config (MKE-08 — remote-device adb, Juega pattern).
 TUNNEL_HOST   ?= <build-host>
@@ -66,6 +83,70 @@ endif
 #   make test-unit FLUTTER_TEST_DEFINES="--dart-define=SUPABASE_URL=..."
 FLUTTER_TEST_DEFINES ?=
 
+# ── TESTING mode (TESTING=true) ──────────────────────────────────────────────
+# Points EVERY Flutter build/run/install at the LOCAL self-hosted stack
+# (Kong on the approved 127.0.0.1:54386) instead of .env's URL, and mints a
+# FRESH temporary anon JWT (24h, signed with the local stack's JWT_SECRET
+# from supabase/.env) instead of reusing the committed publishable key — so
+# test builds never touch the remote stack and never bake the repo-wide key.
+# The temp JWT is registered with the local Kong (idempotent append to the
+# container's resolved /usr/local/kong/kong.yml + kong reload — the TRACKED
+# template keeps only $VAR refs per the opt-007 gate) and dies with the next
+# kong restart (entrypoint re-templates) or after 24h.
+#   make dev TESTING=true | make build TESTING=true | make install TESTING=true
+TESTING ?= false
+ifeq ($(TESTING),true)
+TESTING_JWT_SECRET := $(or $(shell sed -n 's/^JWT_SECRET=//p' supabase/.env 2>/dev/null | head -1),$(JWT_SECRET))
+ifeq ($(strip $(TESTING_JWT_SECRET)),)
+$(error TESTING=true needs the local stack signing secret: JWT_SECRET in supabase/.env (or exported))
+endif
+TESTING_ANON_KEY := $(shell JWT_SECRET='$(TESTING_JWT_SECRET)' python3 tool/gen_testing_anon_key.py)
+FLUTTER_DEFINES += --dart-define=SUPABASE_URL=http://127.0.0.1:54386 --dart-define=SUPABASE_ANON_KEY=$(TESTING_ANON_KEY)
+build: | testing-kong-register
+dev: | testing-kong-register
+install: | testing-kong-register
+tunnel-android: | testing-kong-register
+endif
+
+# ── fastlane lane env (ios-adhoc builds) ─────────────────────────────────────
+# The adhoc_local lane reads SUPABASE_URL / SUPABASE_ANON_KEY from the
+# environment (Fastfile dart_defines).
+#   * DEFAULT: the REMOTE API — https://samay-api.qallariy.lat (no port: the
+#     tunnel fronts the standard HTTPS port).
+#   * TESTING=true: the LOCAL stack via this Mac's LAN IP <local-lan-ip>
+#     (127.0.0.1 is NOT reachable from the iPhone) + the freshly minted
+#     anon JWT (registered with the local Kong by the testing-kong-register
+#     prereq).
+ifeq ($(TESTING),true)
+LANE_SUPABASE_URL := http://<local-lan-ip>:54386
+LANE_SUPABASE_ANON_KEY := $(TESTING_ANON_KEY)
+else
+LANE_SUPABASE_URL := https://samay-api.qallariy.lat
+LANE_SUPABASE_ANON_KEY := $(shell sed -n 's/^SUPABASE_ANON_KEY=//p' .env 2>/dev/null | head -1)
+endif
+
+# Register the TESTING anon JWT with the local Kong so the app's requests
+# pass key-auth (the temp key is NOT the committed $ANON_KEY credential).
+# The Kong container is located by the approved host port (54386) so this
+# works whichever local stack is up (supabase/ or supabase-testing/).
+# Appends to the CONTAINER-side resolved config only — the tracked
+# kong.yml template keeps its $VAR refs (opt-007 no-literal-key gate) and
+# the entrypoint regenerates the resolved file on every kong restart, so
+# the temp key is truly temporary. Non-fatal: a build without the stack
+# still proceeds (the app fails fast at runtime if Kong is unreachable).
+testing-kong-register:
+	@[ -n "$(TESTING_ANON_KEY)" ] || { echo "❌  TESTING=true: failed to mint the anon JWT (see tool/gen_testing_anon_key.py)."; exit 1; }
+	@KONG=$$(docker ps --format '{{.Names}}' --filter publish=54386 | head -1); \
+	if [ -z "$$KONG" ]; then \
+		echo "⚠️  No Kong on 127.0.0.1:54386 — temp JWT NOT registered (app will 401). Start a stack: make supabase-docker-start / supabase-testing-start"; \
+	elif docker exec "$$KONG" sh -c 'grep -qF "$(TESTING_ANON_KEY)" /usr/local/kong/kong.yml' 2>/dev/null; then \
+		echo "✅  TESTING mode: anon JWT already registered in $$KONG (127.0.0.1:54386)"; \
+	elif docker exec "$$KONG" sh -c 'printf "\n  - consumer: anon\n    key: %s\n" "$(TESTING_ANON_KEY)" >> /usr/local/kong/kong.yml' 2>/dev/null && docker exec "$$KONG" kong reload >/dev/null 2>&1; then \
+		echo "✅  TESTING mode: 127.0.0.1:54386 + fresh anon JWT registered in $$KONG (24h; cleared on kong restart)"; \
+	else \
+		echo "⚠️  Kong registration failed on $$KONG — temp JWT NOT registered (app will 401)."; \
+	fi
+
 # ── load-env (MKE-03 / M-13) ────────────────────────────────────────────────
 # Source the local env files into the recipe shell; `set -a` exports, so
 # later recipe lines and subprocesses inherit the values. `[ -r ] &&` guards
@@ -94,11 +175,25 @@ build:
 		cp -R iphoneos/Runner.app Payload/ && \
 		mkdir -p ipa && zip -r -y ipa/$(APP_NAME).ipa Payload && rm -rf Payload && \
 		echo "✅  IPA: build/ios/ipa/$(APP_NAME).ipa"; \
+	elif [ "$(TARGET)" = "ios-adhoc" ]; then \
+		IOS_DEVELOPMENT_TEAM="$(IOS_DEVELOPMENT_TEAM)" \
+		SUPABASE_URL="$(LANE_SUPABASE_URL)" \
+		SUPABASE_ANON_KEY="$(LANE_SUPABASE_ANON_KEY)" \
+		./bin/fastlane ios adhoc_local && \
+		echo "✅  IPA: $(IPA_ADHOC)"; \
+	elif [ "$(TARGET)" = "simulator" ]; then \
+		flutter build ios --simulator $(PUB_FLAG) $(FLUTTER_DEFINES) && \
+		echo "✅  Simulator app: build/ios/iphonesimulator/Runner.app"; \
 	else \
 		flutter build apk $(PUB_FLAG) $(FLUTTER_DEFINES) && \
 		echo "✅  APK: $(APK)"; \
 	fi
 
+# NOTE (dev, TARGET=ios-adhoc): the delegation below uses a LITERAL `make`,
+# not the $(MAKE) variable — GNU make EXECUTES recipe lines containing
+# $(MAKE) even under `make -n`, which would run the chain for real and break
+# opt-008's dry-run gate. A literal `make` still inherits MAKEFLAGS
+# (TESTING=true etc.) through the recipe environment.
 dev:
 	$(load-env)
 	@if [ "$(TARGET)" = "waydroid" ]; then \
@@ -112,6 +207,17 @@ dev:
 		else \
 			flutter run $(PUB_FLAG) $(FLUTTER_DEFINES); \
 		fi; \
+	elif [ "$(TARGET)" = "simulator" ]; then \
+		DEV=$$(xcrun simctl list devices booted | awk -F '[()]' '/Booted/ {print $$2}' | head -1); \
+		if [ -z "$$DEV" ]; then \
+			DEV=$$(xcrun simctl list devices available | awk -F '[()]' '/iPhone/ {print $$2; exit}'); \
+			xcrun simctl boot "$$DEV"; \
+			open -a Simulator; \
+		fi; \
+		flutter run $(PUB_FLAG) $(FLUTTER_DEFINES) -d "$$DEV"; \
+	elif [ "$(TARGET)" = "ios-adhoc" ]; then \
+		make build TARGET=ios-adhoc NO_PUB=$(NO_PUB) && \
+		make install TARGET=ios-adhoc NO_PUB=$(NO_PUB); \
 	elif [ -n "$(TARGET)" ]; then \
 		flutter run $(PUB_FLAG) $(FLUTTER_DEFINES) -d "$(TARGET)"; \
 	else \
@@ -120,16 +226,34 @@ dev:
 
 install:
 	$(load-env)
-	@if [ "$(TARGET)" = "ios" ]; then \
-		if [ -z "$$APPLE_PASSWORD" ]; then \
-			echo "❌  APPLE_PASSWORD not set. Add it to ./.env.local (never committed) or export it (export APPLE_PASSWORD=... make install TARGET=ios)."; \
+	@if [ "$(TARGET)" = "ios" ] || [ "$(TARGET)" = "ios-adhoc" ]; then \
+		if [ ! -f "$(IPA_ADHOC)" ]; then \
+			echo "❌  IPA not found at $(IPA_ADHOC). Run 'make build TARGET=ios-adhoc' first (fastlane adhoc_local — the AltServer sideload path was removed)."; \
 			exit 1; \
 		fi; \
-		ssh macvm "FLUTTER_DEFINES='$$FLUTTER_DEFINES' zsh -c 'source ~/.zprofile; source ~/.zshrc 2>/dev/null; export PATH; cd $(MACVM_PATH) && git stash push -m \"build_save\" 2>/dev/null; git pull; make build TARGET=ios NO_PUB=$(NO_PUB) FLUTTER_DEFINES=\"\$$FLUTTER_DEFINES\"; git stash pop 2>/dev/null; true'" && \
-		mkdir -p build/ios/ipa && \
-		scp macvm:$(MACVM_PATH)/build/ios/ipa/$(APP_NAME).ipa build/ios/ipa/ && \
-		ALTSERVER_ANISETTE_SERVER="http://127.0.0.1:6969" \
-		altserver -u $(IOS_UDID) -a $(APPLE_ID) -p "$$APPLE_PASSWORD" build/ios/ipa/$(APP_NAME).ipa; \
+		DEVICE=$$(idevice_id -l | head -1); \
+		if [ -z "$$DEVICE" ]; then \
+			echo "❌  No iOS device connected (idevice_id found none)."; \
+			exit 1; \
+		fi; \
+		echo "📱  Installing $(IPA_ADHOC) to device: $$DEVICE"; \
+		xcrun devicectl device install app --device "$$DEVICE" "$(IPA_ADHOC)" && \
+		echo "✅  Installed $(IPA_ADHOC) to device $$DEVICE"; \
+	elif [ "$(TARGET)" = "simulator" ]; then \
+		APP="build/ios/iphonesimulator/Runner.app"; \
+		if [ ! -d "$$APP" ]; then \
+			echo "❌  Simulator app not found at $$APP. Run 'make build TARGET=simulator' first."; \
+			exit 1; \
+		fi; \
+		DEV=$$(xcrun simctl list devices booted | awk -F '[()]' '/Booted/ {print $$2}' | head -1); \
+		if [ -z "$$DEV" ]; then \
+			DEV=$$(xcrun simctl list devices available | awk -F '[()]' '/iPhone/ {print $$2; exit}'); \
+			xcrun simctl boot "$$DEV"; \
+			open -a Simulator; \
+		fi; \
+		echo "📱  Installing $$APP to simulator: $$DEV"; \
+		xcrun simctl install "$$DEV" "$$APP" && \
+		echo "✅  Installed to simulator $$DEV"; \
 	elif [ "$(TARGET)" = "waydroid" ]; then \
 		IP=$$(waydroid status | awk '/IP address:/ {print $$3}'); \
 		adb connect "$$IP:5555" && adb -s "$$IP:5555" install -r $(APK); \
@@ -395,7 +519,7 @@ android-release:
 # clone gets a clear message instead of bundler's own error.
 bundle-install:
 	@[ -f Gemfile ] || { echo "❌  No Gemfile — fastlane's Gemfile is M-19 scope (MKE-10). Nothing to bundle yet."; exit 1; }
-	bundle install
+	$(BREW_BUNDLE) install
 
 # ── Deploy placeholders (M-16 scope, landed with M-15) ───────────────────────
 # Deployment is NOT wired. These targets echo the target shapes and point at

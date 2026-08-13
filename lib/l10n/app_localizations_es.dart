@@ -222,11 +222,11 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get authPasswordWithRequirements =>
-      'Contraseña (mín. 6 caracteres, 1 número)';
+      'Contraseña (mín. 8 caracteres, 1 número)';
 
   @override
   String get authPasswordTooWeak =>
-      'La contraseña debe tener al menos 6 caracteres y contener un número.';
+      'La contraseña debe tener al menos 8 caracteres y contener un número.';
 
   @override
   String get authPasswordsDontMatch => 'Las contraseñas no coinciden.';
@@ -1028,6 +1028,9 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get errorsGeneric => 'Ha ocurrido un error';
+
+  @override
+  String get errorCodeLabel => 'Código de error';
 
   @override
   String get rankFullVibe => 'Full Vibe';

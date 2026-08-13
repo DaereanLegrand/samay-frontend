@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/core/design_tokens/app_radius.dart';
@@ -42,8 +43,14 @@ class SamayTheme {
         backgroundColor: AppColors.discoBlack,
         foregroundColor: AppColors.white,
       ),
-      bottomNavigationBarTheme: const BottomNavigationBarThemeData(
-        backgroundColor: AppColors.discoBlack,
+      // LUXE v2 (XL-06): the shell bar is a liquid-glass strip — the Material
+      // bar paints a translucent dark tint (`surface` α0.85) OVER the white
+      // glass sheen + blur + top hairline that MainShell's `_NavGlassStrip`
+      // paints behind it. `withValues` is not const → this block drops
+      // `const` (same as the inputDecorationTheme below); value equality of
+      // `SamayTheme.dark` is preserved (pinned by the theme equality test).
+      bottomNavigationBarTheme: BottomNavigationBarThemeData(
+        backgroundColor: AppColors.surface.withValues(alpha: 0.85),
         selectedItemColor: AppColors.white,
         // Design doc §2.1/§2.4: `muted #666666` is the unselected-nav-icon
         // color (3.66:1 ≥ the 3:1 non-text rule).
@@ -72,20 +79,61 @@ class SamayTheme {
         surfaceTintColor: Colors.transparent,
         shape: RoundedRectangleBorder(borderRadius: AppRadius.sharp),
       ),
-      // §5.2 underline inputs: 1px white rule, 2px focused; labels
-      // `mutedStrong` (the doc's fix — §2.4: `muted` fails 1.4.3 at normal
-      // size); hints `muted` (allowed — placeholder re-declared by the
-      // label); error text `glowPink` (never raw red on black).
-      inputDecorationTheme: const InputDecorationThemeData(
-        labelStyle: TextStyle(color: AppColors.mutedStrong),
-        hintStyle: TextStyle(color: AppColors.muted),
-        enabledBorder: UnderlineInputBorder(
-          borderSide: BorderSide(color: AppColors.white),
+      // ── LUXE v2 (XL-03): iOS swipe-back on every pushed route ────────────
+      // `CupertinoPageTransitionsBuilder` gives the native left-to-right
+      // edge-swipe back gesture (LUXE directive #9). Applied on every
+      // platform so the iPhone-17-Pro focus carries everywhere. The const
+      // builders map keeps `SamayTheme.dark == SamayTheme.dark` (const
+      // canonicalization → value equality, pinned by the equality test).
+      pageTransitionsTheme: const PageTransitionsTheme(
+        builders: {
+          TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+          TargetPlatform.android: CupertinoPageTransitionsBuilder(),
+          TargetPlatform.macOS: CupertinoPageTransitionsBuilder(),
+          TargetPlatform.linux: CupertinoPageTransitionsBuilder(),
+          TargetPlatform.windows: CupertinoPageTransitionsBuilder(),
+          // The 6th platform value — covered too so no route ever falls
+          // back to the Zoom builder.
+          TargetPlatform.fuchsia: CupertinoPageTransitionsBuilder(),
+        },
+      ),
+      // ── LUXE v2 (XL-03): liquid-glass inputs — NO underline (§5.2 → LUXE
+      // directive #7). Defaults for raw Material TextFields: radius-16
+      // `OutlineInputBorder`, `surfaceAlt` α0.5 fill, label always floating
+      // above the field; focused border white α0.8 1.5px, error border
+      // glowPink α0.8. `withValues` is not const → this block drops `const`.
+      inputDecorationTheme: InputDecorationThemeData(
+        filled: true,
+        fillColor: AppColors.surfaceAlt.withValues(alpha: 0.5),
+        floatingLabelBehavior: FloatingLabelBehavior.always,
+        labelStyle: const TextStyle(color: AppColors.mutedStrong),
+        hintStyle: const TextStyle(color: AppColors.muted),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide(
+            color: AppColors.white.withValues(alpha: 0.25),
+          ),
         ),
-        focusedBorder: UnderlineInputBorder(
-          borderSide: BorderSide(color: AppColors.white, width: 2),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide(
+            color: AppColors.white.withValues(alpha: 0.8),
+            width: 1.5,
+          ),
         ),
-        errorStyle: TextStyle(color: AppColors.error),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide(
+            color: AppColors.glowPink.withValues(alpha: 0.8),
+          ),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide(
+            color: AppColors.glowPink.withValues(alpha: 0.8),
+          ),
+        ),
+        errorStyle: const TextStyle(color: AppColors.error),
       ),
       // §5.3 cards: `surface` fill over black, hairline 1px border, sharp.
       cardTheme: const CardThemeData(

@@ -9,10 +9,12 @@ import 'package:samay/core/providers/auth_provider.dart';
 import 'package:samay/core/providers/service_providers.dart';
 import 'package:samay/core/services/permission_service.dart';
 import 'package:samay/core/utils/input_sanitizer.dart';
+import 'package:samay/core/design_tokens/app_gradients.dart';
 import 'package:samay/features/profile/providers/profile_providers.dart';
 import 'package:samay/features/profile/widgets/profile_avatar.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/skeletons.dart';
+import 'package:samay/shared/widgets/v_aurora.dart';
 import 'package:samay/shared/widgets/v_button.dart';
 import 'package:samay/shared/widgets/v_input.dart';
 
@@ -184,65 +186,77 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     final l10n = AppLocalizations.of(context);
     return Scaffold(
       appBar: AppBar(title: Text(l10n.profileEditTitle)),
-      body: _loading
-          // U-22 handoff (U-23): the edit screen mirrors the profile hero —
-          // `VSkeletonProfile` (§5.8) stands in during the first load.
-          ? const VSkeletonProfile()
-          : ListView(
-              padding: const EdgeInsets.all(24),
-              children: [
-                Center(
-                  child: Stack(
-                    children: [
-                      ProfileAvatar(initials: _initials, imageUrl: _avatarUrl),
-                      Positioned(
-                        bottom: 0,
-                        right: 0,
-                        child: CircleAvatar(
-                          radius: 16,
-                          backgroundColor: Colors.white,
-                          child: _uploadingAvatar
-                              ? const SizedBox(
-                                  width: 16,
-                                  height: 16,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    color: Colors.black,
-                                  ),
-                                )
-                              : IconButton(
-                                  icon: const Icon(
-                                    Icons.camera_alt,
-                                    size: 14,
-                                    color: Colors.black,
-                                  ),
-                                  tooltip: l10n.profileAvatarChange,
-                                  onPressed: _uploadAvatar,
-                                  padding: EdgeInsets.zero,
-                                ),
+      // LUXE v2 (XL-08): faint gold ambient behind the editor — the form is
+      // informational, the save CTA carries the gold moment.
+      body: VAurora(
+        gradients: const [AppGradients.gold],
+        opacity: 0.06,
+        child: _loading
+            // U-22 handoff (U-23): the edit screen mirrors the profile hero —
+            // `VSkeletonProfile` (§5.8) stands in during the first load.
+            ? const VSkeletonProfile()
+            : ListView(
+                padding: const EdgeInsets.all(24),
+                children: [
+                  Center(
+                    child: Stack(
+                      children: [
+                        ProfileAvatar(
+                          initials: _initials,
+                          imageUrl: _avatarUrl,
                         ),
-                      ),
-                    ],
+                        Positioned(
+                          bottom: 0,
+                          right: 0,
+                          child: CircleAvatar(
+                            radius: 16,
+                            backgroundColor: Colors.white,
+                            child: _uploadingAvatar
+                                ? const SizedBox(
+                                    width: 16,
+                                    height: 16,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: Colors.black,
+                                    ),
+                                  )
+                                : IconButton(
+                                    icon: const Icon(
+                                      Icons.camera_alt,
+                                      size: 14,
+                                      color: Colors.black,
+                                    ),
+                                    tooltip: l10n.profileAvatarChange,
+                                    onPressed: _uploadAvatar,
+                                    padding: EdgeInsets.zero,
+                                  ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-                const SizedBox(height: 32),
-                VInput(controller: _bioController, label: l10n.profileBio),
-                const SizedBox(height: 32),
-                VButton.emphasized(
-                  label: l10n.profileSaveChanges,
-                  loading: _saving,
-                  onPressed: _save,
-                ),
-                const SizedBox(height: 16),
-                // U-26 (U-23 F4): the password-change placeholder renders
-                // disabled — an enabled no-op button fails 2.1.1/4.1.2;
-                // disabled drops to `muted` per §5.1.
-                TextButton(
-                  onPressed: null,
-                  child: Text(l10n.profileChangePassword),
-                ),
-              ],
-            ),
+                  const SizedBox(height: 32),
+                  VInput(controller: _bioController, label: l10n.profileBio),
+                  const SizedBox(height: 32),
+                  // LUXE v2 (XL-08): the save CTA is the gold family fill —
+                  // pastel-first stops keep the black label contrast.
+                  VButton.emphasized(
+                    label: l10n.profileSaveChanges,
+                    loading: _saving,
+                    onPressed: _save,
+                    gradient: AppGradients.gold,
+                  ),
+                  const SizedBox(height: 16),
+                  // U-26 (U-23 F4): the password-change placeholder renders
+                  // disabled — an enabled no-op button fails 2.1.1/4.1.2;
+                  // disabled drops to `muted` per §5.1.
+                  TextButton(
+                    onPressed: null,
+                    child: Text(l10n.profileChangePassword),
+                  ),
+                ],
+              ),
+      ),
     );
   }
 }

@@ -5,18 +5,25 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
+import 'package:samay/core/design_tokens/app_gradients.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/theme/samay_durations.dart';
 import 'package:samay/features/events/providers/events_providers.dart';
 import 'package:samay/features/qr/providers/qr_providers.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/error_view.dart';
+import 'package:samay/shared/widgets/glass/v_glass.dart';
 import 'package:samay/shared/widgets/state_views.dart';
+import 'package:samay/shared/widgets/v_aurora.dart';
 import 'package:samay/shared/widgets/v_button.dart';
 
 /// Activation-window minutes (`qr.activation_minutes_before`, seed 30) — the
 /// MVP-spec contract used when app_config is unreachable.
 const int _activationMinutes = 30;
+
+/// LUXE v2 family for this screen — **cyan** (ORCHESTRATION-LUXE map:
+/// attendance_qr + qr_scanner → cyan).
+final AppGradient _family = AppGradients.familyOf('qr');
 
 /// QRAT — dynamic attendance QR (attendee side).
 ///
@@ -194,6 +201,7 @@ class _AttendanceQrScreenState extends ConsumerState<AttendanceQrScreen> {
                 caption: l10n.qrServerPendingBody,
                 action: VButton(
                   label: l10n.commonRetry,
+                  gradient: _family,
                   onPressed: _rotating
                       ? null
                       : () => ref.invalidate(myQrTokenProvider(widget.eventId)),
@@ -210,6 +218,7 @@ class _AttendanceQrScreenState extends ConsumerState<AttendanceQrScreen> {
                 caption: l10n.qrAttendeeExpiredBody,
                 action: VButton(
                   label: l10n.commonRetry,
+                  gradient: _family,
                   onPressed: _rotating ? null : _rotate,
                 ),
               ),
@@ -233,7 +242,13 @@ class _AttendanceQrScreenState extends ConsumerState<AttendanceQrScreen> {
   Widget _scaffold(AppLocalizations l10n, Widget body) {
     return Scaffold(
       appBar: AppBar(title: Text(l10n.qrAttendanceTitle)),
-      body: SafeArea(child: body),
+      body: SafeArea(
+        child: VAurora(
+          gradients: const [AppGradients.cyan],
+          opacity: 0.06,
+          child: body,
+        ),
+      ),
     );
   }
 
@@ -245,7 +260,9 @@ class _AttendanceQrScreenState extends ConsumerState<AttendanceQrScreen> {
 }
 
 /// Active state: white-on-black QR (QRAT: "black background, white QR"),
-/// "SAMAY" center overlay, countdown ring with "Nuevo código en: {s}".
+/// "SAMAY" center overlay, cyan countdown ring with "Nuevo código en: {s}".
+/// LUXE: the QR sits on a cyan liquid-glass panel; the ring arc uses the
+/// cyan family gradient (never pink — 2026-08-12 directive).
 class _ActiveQr extends StatelessWidget {
   const _ActiveQr({
     required this.token,
@@ -266,61 +283,72 @@ class _ActiveQr extends StatelessWidget {
     return Container(
       color: AppColors.discoBlack,
       alignment: Alignment.center,
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Stack(
-            alignment: Alignment.center,
-            children: [
-              QrImageView(
-                data: token,
-                version: QrVersions.auto,
-                size: 280,
-                backgroundColor: AppColors.discoBlack,
-                eyeStyle: const QrEyeStyle(
-                  eyeShape: QrEyeShape.square,
-                  color: AppColors.white,
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      child: VGlass(
+        gradient: _family,
+        radius: BorderRadius.circular(20),
+        glowAlpha: 0.3,
+        padding: const EdgeInsets.all(AppSpacing.xl),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Stack(
+              alignment: Alignment.center,
+              children: [
+                QrImageView(
+                  data: token,
+                  version: QrVersions.auto,
+                  size: 280,
+                  backgroundColor: AppColors.discoBlack,
+                  eyeStyle: const QrEyeStyle(
+                    eyeShape: QrEyeShape.square,
+                    color: AppColors.white,
+                  ),
+                  dataModuleStyle: const QrDataModuleStyle(
+                    dataModuleShape: QrDataModuleShape.square,
+                    color: AppColors.white,
+                  ),
                 ),
-                dataModuleStyle: const QrDataModuleStyle(
-                  dataModuleShape: QrDataModuleShape.square,
-                  color: AppColors.white,
+                Container(
+                  color: AppColors.discoBlack,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.md,
+                    vertical: AppSpacing.xs,
+                  ),
+                  child: Text(
+                    'SAMAY',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          color: AppColors.white,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 2,
+                        ),
+                  ),
                 ),
-              ),
-              Container(
-                color: AppColors.discoBlack,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.md,
-                  vertical: AppSpacing.xs,
-                ),
-                child: Text(
-                  'SAMAY',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        color: AppColors.white,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 2,
-                      ),
-                ),
+              ],
+            ),
+            const SizedBox(height: AppSpacing.xl),
+            _CountdownRing(
+              remaining: remaining,
+              total: displayWindow,
+              label: l10n.qrNewCodeIn(remaining),
+            ),
+            if (rotating) ...[
+              const SizedBox(height: AppSpacing.lg),
+              Text(
+                l10n.qrUpdating,
+                style: const TextStyle(color: AppColors.mutedStrong),
               ),
             ],
-          ),
-          const SizedBox(height: AppSpacing.xl),
-          _CountdownRing(
-            remaining: remaining,
-            total: displayWindow,
-            label: l10n.qrNewCodeIn(remaining),
-          ),
-          if (rotating) ...[
-            const SizedBox(height: AppSpacing.lg),
-            Text(l10n.qrUpdating, style: const TextStyle(color: AppColors.mutedStrong)),
           ],
-        ],
+        ),
       ),
     );
   }
 }
 
 /// Circular progress ring for the rotation countdown (white arc on a hairline
-/// base, `glowPink` end cap). The seconds label swaps with a
+/// base, **cyan gradient** end cap — the family's gradient, LUXE directive #2
+/// "never flat single-color accents"). The seconds label swaps with a
 /// [SamayDurations.fast] crossfade.
 class _CountdownRing extends StatelessWidget {
   const _CountdownRing({
@@ -378,11 +406,15 @@ class _RingPainter extends CustomPainter {
       ..strokeWidth = stroke
       ..color = AppColors.hairline;
     canvas.drawCircle(center, radius, base);
+    // LUXE: the progress arc is the cyan family gradient (ShaderMask-free —
+    // a shader on the stroke paint), never the legacy pink.
     final arc = Paint()
       ..style = PaintingStyle.stroke
       ..strokeWidth = stroke
       ..strokeCap = StrokeCap.round
-      ..color = AppColors.glowPink;
+      ..shader = _family.linear().createShader(
+            Rect.fromCircle(center: center, radius: radius),
+          );
     canvas.drawArc(
       Rect.fromCircle(center: center, radius: radius),
       -math.pi / 2,
@@ -397,7 +429,8 @@ class _RingPainter extends CustomPainter {
       oldDelegate.progress != progress;
 }
 
-/// Simple centered message state for inactive/serverPending/expired/ended.
+/// Simple centered message state for inactive/serverPending/expired/ended —
+/// LUXE: a cyan liquid-glass panel with the family-tinted icon.
 class _MessageState extends StatelessWidget {
   const _MessageState({
     required this.icon,
@@ -416,31 +449,45 @@ class _MessageState extends StatelessWidget {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(AppSpacing.xl),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: 48, color: AppColors.border),
-            const SizedBox(height: AppSpacing.lg),
-            Text(
-              message,
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.headlineSmall,
+        child: VGlass(
+          gradient: _family,
+          radius: BorderRadius.circular(16),
+          glowAlpha: 0.2,
+          padding: const EdgeInsets.all(AppSpacing.xl),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 420),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  icon,
+                  size: 48,
+                  color: _family.colors[1].withValues(alpha: 0.9),
+                ),
+                const SizedBox(height: AppSpacing.lg),
+                Text(
+                  message,
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.headlineSmall,
+                ),
+                if (caption != null) ...[
+                  const SizedBox(height: AppSpacing.sm),
+                  Text(
+                    caption!,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(color: AppColors.mutedStrong),
+                  ),
+                ],
+                if (action != null) ...[
+                  const SizedBox(height: AppSpacing.xl),
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 320),
+                    child: action,
+                  ),
+                ],
+              ],
             ),
-            if (caption != null) ...[
-              const SizedBox(height: AppSpacing.sm),
-              Text(
-                caption!,
-                textAlign: TextAlign.center,
-                style: const TextStyle(color: AppColors.mutedStrong),
-              ),
-            ],
-            if (action != null) ...[
-              const SizedBox(height: AppSpacing.xl),
-              ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 320),
-                  child: action),
-            ],
-          ],
+          ),
         ),
       ),
     );
