@@ -48,18 +48,23 @@ TUNNEL_WAYDROID_CMD ?= flutter run $(PUB_FLAG) $(FLUTTER_DEFINES) -d localhost:$
 
 # Juega-pattern tunnel helpers (macOS → <build-host>): `dev`/`install`/`clear-storage`
 # route TARGET=android|waydroid through these on Darwin; non-Darwin hosts run
-# `waydroid status`/adb directly.
+# `waydroid status`/adb directly. The SSH host is resolved at runtime by
+# <tunnel-host-helper>: the LOCAL-network <build-host> (<local-lan-ip> /
+# <build-host>) is used whenever it is pingable, otherwise the remote alias
+# (<build-host> — e.g. Tailscale) — adb auth only works over the LAN path.
 define tunnel-android
+  HOST="$(TUNNEL_HOST)"; [ -n "$$HOST" ] || { echo "TUNNEL_HOST is required"; exit 2; }; \
   (trap 'adb disconnect localhost:$(TUNNEL_PORT); kill 0' EXIT; \
-   ssh -N -L $(TUNNEL_PORT):127.0.0.1:$(TUNNEL_PORT) $(TUNNEL_HOST) & sleep 1; \
+   ssh -N -L $(TUNNEL_PORT):127.0.0.1:$(TUNNEL_PORT) "$$HOST" & sleep 1; \
    adb connect localhost:$(TUNNEL_PORT); \
    $(1))
 endef
 
 define tunnel-waydroid
-  WIP=$$(ssh $(TUNNEL_HOST) "waydroid status | awk '/IP address/ {print \$$3}'"); \
+  HOST="$(TUNNEL_HOST)"; [ -n "$$HOST" ] || { echo "TUNNEL_HOST is required"; exit 2; }; \
+  WIP=$$(ssh "$$HOST" "waydroid status | awk '/IP address/ {print \$$3}'"); \
   (trap 'adb disconnect localhost:$(TUNNEL_PORT); kill 0' EXIT; \
-   ssh -N -L $(TUNNEL_PORT):$$WIP:$(TUNNEL_PORT) $(TUNNEL_HOST) & sleep 1; \
+   ssh -N -L $(TUNNEL_PORT):$$WIP:$(TUNNEL_PORT) "$$HOST" & sleep 1; \
    adb connect localhost:$(TUNNEL_PORT); \
    $(1))
 endef
@@ -522,17 +527,19 @@ supabase-testing-reset:
 #   make tunnel-android TUNNEL_HOST=ci-box TUNNEL_PORT=5555
 #   make tunnel-android TUNNEL_CMD="adb -s localhost:5555 install -r build/app/outputs/flutter-apk/app-release.apk"
 tunnel-android:
-	@(trap 'adb disconnect localhost:$(TUNNEL_PORT); kill 0' EXIT; \
-		ssh -N -L $(TUNNEL_PORT):127.0.0.1:$(TUNNEL_PORT) $(TUNNEL_HOST) & sleep 1; \
+	@HOST="$(TUNNEL_HOST)"; [ -n "$$HOST" ] || { echo "TUNNEL_HOST is required"; exit 2; }; \
+		(trap 'adb disconnect localhost:$(TUNNEL_PORT); kill 0' EXIT; \
+		ssh -N -L $(TUNNEL_PORT):127.0.0.1:$(TUNNEL_PORT) "$$HOST" & sleep 1; \
 		adb connect localhost:$(TUNNEL_PORT); \
 		$(TUNNEL_CMD))
 
 # Waydroid variant: forwards the <build-host>'s waydroid adb port (resolved via
 # `ssh <build-host> "waydroid status"`) into localhost:$(TUNNEL_PORT). Juega parity.
 tunnel-waydroid:
-	@WIP=$$(ssh $(TUNNEL_HOST) "waydroid status | awk '/IP address/ {print \$$3}'"); \
+	@HOST="$(TUNNEL_HOST)"; [ -n "$$HOST" ] || { echo "TUNNEL_HOST is required"; exit 2; }; \
+		WIP=$$(ssh "$$HOST" "waydroid status | awk '/IP address/ {print \$$3}'"); \
 		(trap 'adb disconnect localhost:$(TUNNEL_PORT); kill 0' EXIT; \
-		ssh -N -L $(TUNNEL_PORT):$$WIP:$(TUNNEL_PORT) $(TUNNEL_HOST) & sleep 1; \
+		ssh -N -L $(TUNNEL_PORT):$$WIP:$(TUNNEL_PORT) "$$HOST" & sleep 1; \
 		adb connect localhost:$(TUNNEL_PORT); \
 		$(TUNNEL_WAYDROID_CMD))
 
