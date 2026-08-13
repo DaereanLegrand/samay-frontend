@@ -1,6 +1,7 @@
 .PHONY: build dev install clean clear-storage uninstall build-cli build-linux build-api lint check test \
         test-all test-unit test-integration test-backend-static test-go \
         flutter-test flutter-analyze define-env secrets-check tunnel-android tunnel-waydroid \
+        ios-signing-restore \
         install-hooks \
         supabase-start supabase-stop supabase-status supabase-reset \
         supabase-docker-start supabase-docker-stop supabase-docker-status supabase-docker-reset \
@@ -257,6 +258,24 @@ dev:
 			open -a Simulator; \
 		fi; \
 		flutter run $(PUB_FLAG) $(FLUTTER_DEFINES) -d "$$DEV"; \
+	elif [ "$(TARGET)" = "ios" ]; then \
+		DEVICE=$$(flutter devices --machine 2>/dev/null | python3 -c 'import json,sys; devs=json.load(sys.stdin); ios=[d["id"] for d in devs if d.get("targetPlatform")=="ios" and not d.get("emulator")]; print(ios[0] if ios else "")'); \
+		if [ -z "$$DEVICE" ]; then DEVICE=$$(idevice_id -l 2>/dev/null | head -1); fi; \
+		if [ -z "$$DEVICE" ]; then \
+			echo "❌  No physical iOS device found. Connect + unlock the iPhone (flutter devices) and retry."; \
+			exit 1; \
+		fi; \
+		TEAM=$$(sed -n 's/^IOS_DEVELOPMENT_TEAM=//p' .env.local 2>/dev/null | head -1); \
+		if [ -z "$$TEAM" ] || [ "$$TEAM" = "XXXXXXXXXX" ]; then \
+			echo "❌  IOS_DEVELOPMENT_TEAM not set in .env.local — dev TARGET=ios needs the real team for signing."; \
+			exit 1; \
+		fi; \
+		make ios-signing-restore; \
+		cp ios/Runner.xcodeproj/project.pbxproj /tmp/samay-pbxproj.bak && \
+		trap 'make ios-signing-restore 2>/dev/null' EXIT INT TERM HUP; \
+		$(BREW_BUNDLE) exec ruby tools/ios_dev_signing.rb apply "$$TEAM"; \
+		echo "📱  Running on device: $$DEVICE"; \
+		flutter run $(PUB_FLAG) $(FLUTTER_DEFINES) -d "$$DEVICE"; \
 	elif [ "$(TARGET)" = "ios-adhoc" ]; then \
 		make build TARGET=ios-adhoc NO_PUB=$(NO_PUB) && \
 		make install TARGET=ios-adhoc NO_PUB=$(NO_PUB) && \
@@ -628,6 +647,21 @@ tunnel-waydroid:
 		ssh -N -L $(TUNNEL_WAYDROID_PORT):$$WIP:5555 "$$HOST" & SSH_PID=$$!; sleep 1; \
 		adb connect localhost:$(TUNNEL_WAYDROID_PORT); \
 		$(TUNNEL_WAYDROID_CMD))
+
+# Restore the iOS project's §3.3 signing PLACEHOLDERS (opt-008 contract).
+# `dev TARGET=ios` patches the pbxproj for automatic signing; this undoes that
+# patch: from the fixed backup left by the dev branch when it exists, else
+# straight from git HEAD (the placeholder version). A SIGKILLed flutter run
+# cannot leave the real team tracked anymore — the pre-commit gate stays green.
+ios-signing-restore:
+	@if [ -f /tmp/samay-pbxproj.bak ]; then \
+		cp /tmp/samay-pbxproj.bak ios/Runner.xcodeproj/project.pbxproj && \
+		rm -f /tmp/samay-pbxproj.bak && \
+		echo "✅  ios signing restored from backup"; \
+	else \
+		git checkout HEAD -- ios/Runner.xcodeproj/project.pbxproj && \
+		echo "✅  ios signing restored from HEAD (placeholders)"; \
+	fi
 
 # ── Secrets gate (MKE-02 / MKE-03, M-13) ─────────────────────────────────────
 # Committed-secret scan over TRACKED files only (git grep — untracked local
