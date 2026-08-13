@@ -1,6 +1,6 @@
-.PHONY: build dev install clean build-cli build-linux build-api lint check test \
+.PHONY: build dev install clean clear-storage build-cli build-linux build-api lint check test \
         test-all test-unit test-integration test-backend-static test-go \
-        flutter-test flutter-analyze define-env secrets-check tunnel-android \
+        flutter-test flutter-analyze define-env secrets-check tunnel-android tunnel-waydroid \
         install-hooks \
         supabase-start supabase-stop supabase-status supabase-reset \
         supabase-docker-start supabase-docker-stop supabase-docker-status supabase-docker-reset \
@@ -44,6 +44,25 @@ IOS_DEVELOPMENT_TEAM ?= $(shell sed -n 's/^IOS_DEVELOPMENT_TEAM=//p' .env.local 
 TUNNEL_HOST   ?= <build-host>
 TUNNEL_PORT   ?= 5555
 TUNNEL_CMD    ?= flutter run $(PUB_FLAG) $(FLUTTER_DEFINES) -d localhost:$(TUNNEL_PORT)
+TUNNEL_WAYDROID_CMD ?= flutter run $(PUB_FLAG) $(FLUTTER_DEFINES) -d localhost:$(TUNNEL_PORT)
+
+# Juega-pattern tunnel helpers (macOS → <build-host>): `dev`/`install`/`clear-storage`
+# route TARGET=android|waydroid through these on Darwin; non-Darwin hosts run
+# `waydroid status`/adb directly.
+define tunnel-android
+  (trap 'adb disconnect localhost:$(TUNNEL_PORT); kill 0' EXIT; \
+   ssh -N -L $(TUNNEL_PORT):127.0.0.1:$(TUNNEL_PORT) $(TUNNEL_HOST) & sleep 1; \
+   adb connect localhost:$(TUNNEL_PORT); \
+   $(1))
+endef
+
+define tunnel-waydroid
+  WIP=$$(ssh $(TUNNEL_HOST) "waydroid status | awk '/IP address/ {print \$$3}'"); \
+  (trap 'adb disconnect localhost:$(TUNNEL_PORT); kill 0' EXIT; \
+   ssh -N -L $(TUNNEL_PORT):$$WIP:$(TUNNEL_PORT) $(TUNNEL_HOST) & sleep 1; \
+   adb connect localhost:$(TUNNEL_PORT); \
+   $(1))
+endef
 
 NO_PUB ?= true
 TARGET ?=
@@ -196,7 +215,12 @@ build:
 # (TESTING=true etc.) through the recipe environment.
 dev:
 	$(load-env)
-	@if [ "$(TARGET)" = "waydroid" ]; then \
+	@UNAME=$$(uname); \
+	if [ "$$UNAME" = "Darwin" ] && [ "$(TARGET)" = "android" ]; then \
+		$(call tunnel-android, flutter run $(PUB_FLAG) $(FLUTTER_DEFINES) -d localhost:$(TUNNEL_PORT)); \
+	elif [ "$$UNAME" = "Darwin" ] && [ "$(TARGET)" = "waydroid" ]; then \
+		$(call tunnel-waydroid, flutter run $(PUB_FLAG) $(FLUTTER_DEFINES) -d localhost:$(TUNNEL_PORT)); \
+	elif [ "$(TARGET)" = "waydroid" ]; then \
 		IP=$$(waydroid status | awk '/IP address:/ {print $$3}'); \
 		adb connect "$$IP:5555"; \
 		flutter run $(PUB_FLAG) $(FLUTTER_DEFINES) -d "$$IP:5555"; \
@@ -226,7 +250,12 @@ dev:
 
 install:
 	$(load-env)
-	@if [ "$(TARGET)" = "ios" ] || [ "$(TARGET)" = "ios-adhoc" ]; then \
+	@UNAME=$$(uname); \
+	if [ "$$UNAME" = "Darwin" ] && [ "$(TARGET)" = "android" ]; then \
+		$(call tunnel-android, adb -s localhost:$(TUNNEL_PORT) install -r $(APK)); \
+	elif [ "$$UNAME" = "Darwin" ] && [ "$(TARGET)" = "waydroid" ]; then \
+		$(call tunnel-waydroid, adb -s localhost:$(TUNNEL_PORT) install -r $(APK)); \
+	elif [ "$(TARGET)" = "ios" ] || [ "$(TARGET)" = "ios-adhoc" ]; then \
 		if [ ! -f "$(IPA_ADHOC)" ]; then \
 			echo "❌  IPA not found at $(IPA_ADHOC). Run 'make build TARGET=ios-adhoc' first (fastlane adhoc_local — the AltServer sideload path was removed)."; \
 			exit 1; \
@@ -268,6 +297,27 @@ install:
 		adb install -r $(APK); \
 	fi
 
+# Clear the app's local storage (Juega parity — device workflow).
+clear-storage:
+	@UNAME=$$(uname); \
+	if [ "$$UNAME" = "Darwin" ] && [ "$(TARGET)" = "android" ]; then \
+		$(call tunnel-android, adb -s localhost:$(TUNNEL_PORT) shell pm clear com.qallariy.samay); \
+	elif [ "$$UNAME" = "Darwin" ] && [ "$(TARGET)" = "waydroid" ]; then \
+		$(call tunnel-waydroid, adb -s localhost:$(TUNNEL_PORT) shell pm clear com.qallariy.samay); \
+	elif [ "$(TARGET)" = "waydroid" ]; then \
+		IP=$$(waydroid status | awk '/IP address:/ {print $$3}'); \
+		adb connect "$$IP:5555" && adb -s "$$IP:5555" shell pm clear com.qallariy.samay; \
+	elif [ "$(TARGET)" = "android" ]; then \
+		DEV=$$(adb devices | grep -o 'emulator-[0-9]*' | head -1); \
+		if [ -n "$$DEV" ]; then \
+			adb -s "$$DEV" shell pm clear com.qallariy.samay; \
+		else \
+			adb -d shell pm clear com.qallariy.samay; \
+		fi; \
+	else \
+		adb shell pm clear com.qallariy.samay; \
+	fi
+
 clean:
 	flutter clean
 	rm -f $(GO_BIN) $(GO_BIN_LINUX)
@@ -302,7 +352,25 @@ flutter-test:
 	flutter test test/ $(FLUTTER_TEST_DEFINES)
 
 test-integration:
-	bash integration_test/runner.sh
+	@UNAME=$$(uname); \
+	if [ "$$UNAME" = "Darwin" ] && [ "$(TARGET)" = "android" ]; then \
+		$(call tunnel-android, flutter test integration_test/ -d localhost:$(TUNNEL_PORT)); \
+	elif [ "$$UNAME" = "Darwin" ] && [ "$(TARGET)" = "waydroid" ]; then \
+		$(call tunnel-waydroid, flutter test integration_test/ -d localhost:$(TUNNEL_PORT)); \
+	elif [ "$(TARGET)" = "waydroid" ]; then \
+		IP=$$(waydroid status | awk '/IP address:/ {print $$3}'); \
+		adb connect "$$IP:5555"; \
+		flutter test integration_test/ -d "$$IP:5555"; \
+	elif [ "$(TARGET)" = "android" ]; then \
+		DEV=$$(adb devices | grep -o 'emulator-[0-9]*' | head -1); \
+		if [ -n "$$DEV" ]; then \
+			flutter test integration_test/ -d "$$DEV"; \
+		else \
+			bash integration_test/runner.sh; \
+		fi; \
+	else \
+		bash integration_test/runner.sh; \
+	fi
 
 test-backend-static:
 	bash test/opt-005-seed-dev-static.sh
@@ -458,6 +526,15 @@ tunnel-android:
 		ssh -N -L $(TUNNEL_PORT):127.0.0.1:$(TUNNEL_PORT) $(TUNNEL_HOST) & sleep 1; \
 		adb connect localhost:$(TUNNEL_PORT); \
 		$(TUNNEL_CMD))
+
+# Waydroid variant: forwards the <build-host>'s waydroid adb port (resolved via
+# `ssh <build-host> "waydroid status"`) into localhost:$(TUNNEL_PORT). Juega parity.
+tunnel-waydroid:
+	@WIP=$$(ssh $(TUNNEL_HOST) "waydroid status | awk '/IP address/ {print \$$3}'"); \
+		(trap 'adb disconnect localhost:$(TUNNEL_PORT); kill 0' EXIT; \
+		ssh -N -L $(TUNNEL_PORT):$$WIP:$(TUNNEL_PORT) $(TUNNEL_HOST) & sleep 1; \
+		adb connect localhost:$(TUNNEL_PORT); \
+		$(TUNNEL_WAYDROID_CMD))
 
 # ── Secrets gate (MKE-02 / MKE-03, M-13) ─────────────────────────────────────
 # Committed-secret scan over TRACKED files only (git grep — untracked local
