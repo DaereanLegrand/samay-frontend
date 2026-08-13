@@ -1,4 +1,4 @@
-.PHONY: build dev install clean clear-storage build-cli build-linux build-api lint check test \
+.PHONY: build dev install clean clear-storage uninstall build-cli build-linux build-api lint check test \
         test-all test-unit test-integration test-backend-static test-go \
         flutter-test flutter-analyze define-env secrets-check tunnel-android tunnel-waydroid \
         install-hooks \
@@ -16,6 +16,8 @@ APK := build/app/outputs/flutter-apk/app-release.apk
 GO_BIN := samay
 GO_BIN_LINUX := samay-linux
 IPA_ADHOC := build/ios/ipa/$(APP_NAME)-adhoc.ipa
+# Package id the app is installed under on every platform (uninstall/clear).
+APP_ID := com.qallariy.samay
 
 # ── Toolchain PATH (../Juega pattern) ────────────────────────────────────────
 # Every recipe resolves the Homebrew ruby (and its gem binstubs) first — the
@@ -312,21 +314,68 @@ install:
 clear-storage:
 	@UNAME=$$(uname); \
 	if [ "$$UNAME" = "Darwin" ] && [ "$(TARGET)" = "android" ]; then \
-		$(call tunnel-android, adb -s localhost:$(TUNNEL_ANDROID_PORT) shell pm clear com.qallariy.samay); \
+		$(call tunnel-android, adb -s localhost:$(TUNNEL_ANDROID_PORT) shell pm clear $(APP_ID)); \
 	elif [ "$$UNAME" = "Darwin" ] && [ "$(TARGET)" = "waydroid" ]; then \
-		$(call tunnel-waydroid, adb -s localhost:$(TUNNEL_WAYDROID_PORT) shell pm clear com.qallariy.samay); \
+		$(call tunnel-waydroid, adb -s localhost:$(TUNNEL_WAYDROID_PORT) shell pm clear $(APP_ID)); \
 	elif [ "$(TARGET)" = "waydroid" ]; then \
 		IP=$$(waydroid status | awk '/IP address:/ {print $$3}'); \
-		adb connect "$$IP:5555" && adb -s "$$IP:5555" shell pm clear com.qallariy.samay; \
+		adb connect "$$IP:5555" && adb -s "$$IP:5555" shell pm clear $(APP_ID); \
 	elif [ "$(TARGET)" = "android" ]; then \
 		DEV=$$(adb devices | grep -o 'emulator-[0-9]*' | head -1); \
 		if [ -n "$$DEV" ]; then \
-			adb -s "$$DEV" shell pm clear com.qallariy.samay; \
+			adb -s "$$DEV" shell pm clear $(APP_ID); \
 		else \
-			adb -d shell pm clear com.qallariy.samay; \
+			adb -d shell pm clear $(APP_ID); \
 		fi; \
 	else \
-		adb shell pm clear com.qallariy.samay; \
+		adb shell pm clear $(APP_ID); \
+	fi
+
+# Uninstall the app from the targeted device(s). TARGET=all uninstalls from
+# every reachable device: android (emulator), waydroid (tunnel), ios-adhoc
+# (physical iPhone), simulator. Individual targets work like install/clear.
+uninstall:
+	@UNAME=$$(uname); \
+	if [ "$(TARGET)" = "all" ]; then \
+		for t in android waydroid ios-adhoc simulator; do \
+			echo "━━━ uninstall from $$t ━━━"; \
+			make uninstall TARGET=$$t || echo "⚠️  $$t skipped/failed (no device?)"; \
+		done; \
+	elif [ "$$UNAME" = "Darwin" ] && [ "$(TARGET)" = "android" ]; then \
+		$(call tunnel-android, adb -s localhost:$(TUNNEL_ANDROID_PORT) uninstall $(APP_ID)); \
+	elif [ "$$UNAME" = "Darwin" ] && [ "$(TARGET)" = "waydroid" ]; then \
+		$(call tunnel-waydroid, adb -s localhost:$(TUNNEL_WAYDROID_PORT) uninstall $(APP_ID)); \
+	elif [ "$(TARGET)" = "waydroid" ]; then \
+		IP=$$(waydroid status | awk '/IP address:/ {print $$3}'); \
+		adb connect "$$IP:5555" && adb -s "$$IP:5555" uninstall $(APP_ID); \
+	elif [ "$(TARGET)" = "android" ]; then \
+		DEV=$$(adb devices | grep -o 'emulator-[0-9]*' | head -1); \
+		if [ -n "$$DEV" ]; then \
+			adb -s "$$DEV" uninstall $(APP_ID); \
+		else \
+			adb -d uninstall $(APP_ID); \
+		fi; \
+	elif [ "$(TARGET)" = "ios" ] || [ "$(TARGET)" = "ios-adhoc" ]; then \
+		DEVICE=$$(idevice_id -l | head -1); \
+		if [ -z "$$DEVICE" ]; then \
+			echo "❌  No iOS device connected (idevice_id found none)."; \
+			exit 1; \
+		fi; \
+		echo "📱  Uninstalling $(APP_ID) from device: $$DEVICE"; \
+		xcrun devicectl device uninstall app --device "$$DEVICE" "$(APP_ID)" && \
+		echo "✅  Uninstalled $(APP_ID) from device $$DEVICE"; \
+	elif [ "$(TARGET)" = "simulator" ]; then \
+		DEV=$$(xcrun simctl list devices booted | awk -F '[()]' '/Booted/ {print $$2}' | head -1); \
+		if [ -z "$$DEV" ]; then \
+			echo "❌  No booted simulator. Boot one (make dev TARGET=simulator) and retry."; \
+			exit 1; \
+		fi; \
+		echo "📱  Uninstalling $(APP_ID) from simulator: $$DEV"; \
+		xcrun simctl uninstall "$$DEV" "$(APP_ID)" && \
+		echo "✅  Uninstalled $(APP_ID) from simulator $$DEV"; \
+	else \
+		echo "❌  TARGET=$(TARGET) unknown for uninstall. Use: all, android, waydroid, ios, ios-adhoc, simulator."; \
+		exit 1; \
 	fi
 
 clean:
