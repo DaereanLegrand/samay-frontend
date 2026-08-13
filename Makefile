@@ -335,6 +335,10 @@ clear-storage:
 # every reachable device: android (emulator), waydroid (tunnel), ios-adhoc
 # (physical iPhone), simulator. Individual targets work like install/clear.
 uninstall:
+	@if [ -z "$(TARGET)" ]; then \
+		echo "❌  make uninstall REQUIRES a target: TARGET=all|android|waydroid|ios|ios-adhoc|simulator (nothing was uninstalled)."; \
+		exit 1; \
+	fi
 	@UNAME=$$(uname); \
 	if [ "$(TARGET)" = "all" ]; then \
 		for t in android waydroid ios-adhoc simulator; do \
