@@ -275,6 +275,9 @@ dev:
 		trap 'make ios-signing-restore 2>/dev/null' EXIT INT TERM HUP; \
 		$(BREW_BUNDLE) exec ruby tools/ios_dev_signing.rb apply "$$TEAM"; \
 		echo "📱  Running on device: $$DEVICE"; \
+		if [ -n "$$TMUX" ]; then \
+			echo "⚠️  You are inside tmux — macOS Local Network (mDNS) grants do NOT propagate through the tmux server, so Dart VM discovery will fail with 'No route to host' (errno 65). Detach and run directly in the terminal: tmux detach, then make dev TARGET=ios."; \
+		fi; \
 		flutter run $(PUB_FLAG) $(FLUTTER_DEFINES) -d "$$DEVICE"; \
 		RC=$$?; \
 		if [ "$$RC" -ne 0 ]; then \
