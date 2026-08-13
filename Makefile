@@ -201,7 +201,12 @@ define-env:
 
 build:
 	$(load-env)
-	@if [ "$(TARGET)" = "ios" ]; then \
+	@if [ "$(TARGET)" = "all" ]; then \
+		for t in ios-adhoc simulator android; do \
+			echo "━━━ build for $$t ━━━"; \
+			make build TARGET=$$t NO_PUB=$(NO_PUB) || true; \
+		done; \
+	elif [ "$(TARGET)" = "ios" ]; then \
 		flutter build ios --release --no-codesign $(PUB_FLAG) $(FLUTTER_DEFINES) && \
 		cd build/ios && rm -rf Payload && mkdir Payload && \
 		cp -R iphoneos/Runner.app Payload/ && \
@@ -264,19 +269,30 @@ dev:
 install:
 	$(load-env)
 	@UNAME=$$(uname); \
-	if [ "$$UNAME" = "Darwin" ] && [ "$(TARGET)" = "android" ]; then \
+	if [ "$(TARGET)" = "android" ] || [ "$(TARGET)" = "waydroid" ]; then \
+		if [ ! -f "$(APK)" ]; then \
+			echo "⚠️  APK not found at $(APK) — run 'make build TARGET=android' first (skipping install)."; \
+			exit 0; \
+		fi; \
+	fi; \
+	if [ "$(TARGET)" = "all" ]; then \
+		for t in android waydroid ios-adhoc simulator; do \
+			echo "━━━ install to $$t ━━━"; \
+			make install TARGET=$$t NO_PUB=$(NO_PUB) || true; \
+		done; \
+	elif [ "$$UNAME" = "Darwin" ] && [ "$(TARGET)" = "android" ]; then \
 		$(call tunnel-android, adb -s localhost:$(TUNNEL_ANDROID_PORT) install -r $(APK)); \
 	elif [ "$$UNAME" = "Darwin" ] && [ "$(TARGET)" = "waydroid" ]; then \
 		$(call tunnel-waydroid, adb -s localhost:$(TUNNEL_WAYDROID_PORT) install -r $(APK)); \
 	elif [ "$(TARGET)" = "ios" ] || [ "$(TARGET)" = "ios-adhoc" ]; then \
 		if [ ! -f "$(IPA_ADHOC)" ]; then \
-			echo "❌  IPA not found at $(IPA_ADHOC). Run 'make build TARGET=ios-adhoc' first (fastlane adhoc_local — the AltServer sideload path was removed)."; \
-			exit 1; \
+			echo "⚠️  IPA not found at $(IPA_ADHOC) — run 'make build TARGET=ios-adhoc' first (skipping install)."; \
+			exit 0; \
 		fi; \
-		DEVICE=$$(idevice_id -l | head -1); \
+		DEVICE=$$(idevice_id -l 2>/dev/null | head -1); \
 		if [ -z "$$DEVICE" ]; then \
-			echo "❌  No iOS device connected (idevice_id found none)."; \
-			exit 1; \
+			echo "⚠️  no iOS device connected — skipped."; \
+			exit 0; \
 		fi; \
 		echo "📱  Installing $(IPA_ADHOC) to device: $$DEVICE"; \
 		xcrun devicectl device install app --device "$$DEVICE" "$(IPA_ADHOC)" && \
