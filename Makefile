@@ -62,8 +62,8 @@ TUNNEL_WAYDROID_CMD ?= flutter run $(PUB_FLAG) $(FLUTTER_DEFINES) -d localhost:$
 # (<build-host> — e.g. Tailscale) — adb auth only works over the LAN path.
 define tunnel-android
   HOST="$(TUNNEL_HOST)"; [ -n "$$HOST" ] || { echo "TUNNEL_HOST is required"; exit 2; }; \
-  (trap 'adb disconnect localhost:$(TUNNEL_ANDROID_PORT); kill 0' EXIT; \
-   ssh -N -L $(TUNNEL_ANDROID_PORT):127.0.0.1:5555 "$$HOST" & sleep 1; \
+  (trap 'kill $$SSH_PID 2>/dev/null; adb disconnect localhost:$(TUNNEL_ANDROID_PORT) 2>/dev/null' EXIT; \
+   ssh -N -L $(TUNNEL_ANDROID_PORT):127.0.0.1:5555 "$$HOST" & SSH_PID=$$!; sleep 1; \
    adb connect localhost:$(TUNNEL_ANDROID_PORT); \
    $(1))
 endef
@@ -71,8 +71,8 @@ endef
 define tunnel-waydroid
   HOST="$(TUNNEL_HOST)"; [ -n "$$HOST" ] || { echo "TUNNEL_HOST is required"; exit 2; }; \
   WIP=$$(ssh "$$HOST" "waydroid status | awk '/IP address/ {print \$$3}'"); \
-  (trap 'adb disconnect localhost:$(TUNNEL_WAYDROID_PORT); kill 0' EXIT; \
-   ssh -N -L $(TUNNEL_WAYDROID_PORT):$$WIP:5555 "$$HOST" & sleep 1; \
+  (trap 'kill $$SSH_PID 2>/dev/null; adb disconnect localhost:$(TUNNEL_WAYDROID_PORT) 2>/dev/null' EXIT; \
+   ssh -N -L $(TUNNEL_WAYDROID_PORT):$$WIP:5555 "$$HOST" & SSH_PID=$$!; sleep 1; \
    adb connect localhost:$(TUNNEL_WAYDROID_PORT); \
    $(1))
 endef
@@ -333,7 +333,8 @@ clear-storage:
 
 # Uninstall the app from the targeted device(s). TARGET=all uninstalls from
 # every reachable device: android (emulator), waydroid (tunnel), ios-adhoc
-# (physical iPhone), simulator. Individual targets work like install/clear.
+# (physical iPhone), simulator — any device that is not available is SKIPPED,
+# never an error. Individual targets work like install/clear.
 uninstall:
 	@if [ -z "$(TARGET)" ]; then \
 		echo "❌  make uninstall REQUIRES a target: TARGET=all|android|waydroid|ios|ios-adhoc|simulator (nothing was uninstalled)."; \
@@ -343,40 +344,44 @@ uninstall:
 	if [ "$(TARGET)" = "all" ]; then \
 		for t in android waydroid ios-adhoc simulator; do \
 			echo "━━━ uninstall from $$t ━━━"; \
-			make uninstall TARGET=$$t || echo "⚠️  $$t skipped/failed (no device?)"; \
+			make uninstall TARGET=$$t || true; \
 		done; \
 	elif [ "$$UNAME" = "Darwin" ] && [ "$(TARGET)" = "android" ]; then \
-		$(call tunnel-android, adb -s localhost:$(TUNNEL_ANDROID_PORT) uninstall $(APP_ID)); \
+		$(call tunnel-android, if adb -s localhost:$(TUNNEL_ANDROID_PORT) shell pm list packages $(APP_ID) 2>/dev/null | grep -q $(APP_ID); then adb -s localhost:$(TUNNEL_ANDROID_PORT) uninstall $(APP_ID); else echo "⚠️  $(APP_ID) not installed on android — nothing to do."; fi); \
 	elif [ "$$UNAME" = "Darwin" ] && [ "$(TARGET)" = "waydroid" ]; then \
-		$(call tunnel-waydroid, adb -s localhost:$(TUNNEL_WAYDROID_PORT) uninstall $(APP_ID)); \
+		$(call tunnel-waydroid, if adb -s localhost:$(TUNNEL_WAYDROID_PORT) shell pm list packages $(APP_ID) 2>/dev/null | grep -q $(APP_ID); then adb -s localhost:$(TUNNEL_WAYDROID_PORT) uninstall $(APP_ID); else echo "⚠️  $(APP_ID) not installed on waydroid — nothing to do."; fi); \
 	elif [ "$(TARGET)" = "waydroid" ]; then \
 		IP=$$(waydroid status | awk '/IP address:/ {print $$3}'); \
-		adb connect "$$IP:5555" && adb -s "$$IP:5555" uninstall $(APP_ID); \
+		if [ -z "$$IP" ]; then echo "⚠️  waydroid not running — skipped."; else adb connect "$$IP:5555" && if adb -s "$$IP:5555" shell pm list packages $(APP_ID) 2>/dev/null | grep -q $(APP_ID); then adb -s "$$IP:5555" uninstall $(APP_ID); else echo "⚠️  $(APP_ID) not installed on waydroid — nothing to do."; fi; fi; \
 	elif [ "$(TARGET)" = "android" ]; then \
-		DEV=$$(adb devices | grep -o 'emulator-[0-9]*' | head -1); \
-		if [ -n "$$DEV" ]; then \
+		DEV=$$(adb devices | awk 'NR>1 && $$2=="device" {print $$1; exit}'); \
+		if [ -z "$$DEV" ]; then \
+			echo "⚠️  no Android device/emulator available — skipped."; \
+		elif adb -s "$$DEV" shell pm list packages $(APP_ID) 2>/dev/null | grep -q $(APP_ID); then \
 			adb -s "$$DEV" uninstall $(APP_ID); \
 		else \
-			adb -d uninstall $(APP_ID); \
+			echo "⚠️  $(APP_ID) not installed on $$DEV — nothing to do."; \
 		fi; \
 	elif [ "$(TARGET)" = "ios" ] || [ "$(TARGET)" = "ios-adhoc" ]; then \
-		DEVICE=$$(idevice_id -l | head -1); \
+		DEVICE=$$(idevice_id -l 2>/dev/null | head -1); \
 		if [ -z "$$DEVICE" ]; then \
-			echo "❌  No iOS device connected (idevice_id found none)."; \
-			exit 1; \
+			echo "⚠️  no iOS device connected — skipped."; \
+		else \
+			echo "📱  Uninstalling $(APP_ID) from device: $$DEVICE"; \
+			xcrun devicectl device uninstall app --device "$$DEVICE" "$(APP_ID)" && \
+			echo "✅  Uninstalled $(APP_ID) from device $$DEVICE"; \
 		fi; \
-		echo "📱  Uninstalling $(APP_ID) from device: $$DEVICE"; \
-		xcrun devicectl device uninstall app --device "$$DEVICE" "$(APP_ID)" && \
-		echo "✅  Uninstalled $(APP_ID) from device $$DEVICE"; \
 	elif [ "$(TARGET)" = "simulator" ]; then \
 		DEV=$$(xcrun simctl list devices booted | awk -F '[()]' '/Booted/ {print $$2}' | head -1); \
 		if [ -z "$$DEV" ]; then \
-			echo "❌  No booted simulator. Boot one (make dev TARGET=simulator) and retry."; \
-			exit 1; \
+			echo "⚠️  no booted simulator — skipped."; \
+		elif ! xcrun simctl get_app_container "$$DEV" "$(APP_ID)" >/dev/null 2>&1; then \
+			echo "⚠️  $(APP_ID) not installed on simulator — nothing to do."; \
+		else \
+			echo "📱  Uninstalling $(APP_ID) from simulator: $$DEV"; \
+			xcrun simctl uninstall "$$DEV" "$(APP_ID)" && \
+			echo "✅  Uninstalled $(APP_ID) from simulator $$DEV"; \
 		fi; \
-		echo "📱  Uninstalling $(APP_ID) from simulator: $$DEV"; \
-		xcrun simctl uninstall "$$DEV" "$(APP_ID)" && \
-		echo "✅  Uninstalled $(APP_ID) from simulator $$DEV"; \
 	else \
 		echo "❌  TARGET=$(TARGET) unknown for uninstall. Use: all, android, waydroid, ios, ios-adhoc, simulator."; \
 		exit 1; \
@@ -587,8 +592,8 @@ supabase-testing-reset:
 #   make tunnel-android TUNNEL_CMD="adb -s localhost:5565 install -r build/app/outputs/flutter-apk/app-release.apk"
 tunnel-android:
 	@HOST="$(TUNNEL_HOST)"; [ -n "$$HOST" ] || { echo "TUNNEL_HOST is required"; exit 2; }; \
-		(trap 'adb disconnect localhost:$(TUNNEL_ANDROID_PORT); kill 0' EXIT; \
-		ssh -N -L $(TUNNEL_ANDROID_PORT):127.0.0.1:5555 "$$HOST" & sleep 1; \
+		(trap 'kill $$SSH_PID 2>/dev/null; adb disconnect localhost:$(TUNNEL_ANDROID_PORT) 2>/dev/null' EXIT; \
+		ssh -N -L $(TUNNEL_ANDROID_PORT):127.0.0.1:5555 "$$HOST" & SSH_PID=$$!; sleep 1; \
 		adb connect localhost:$(TUNNEL_ANDROID_PORT); \
 		$(TUNNEL_CMD))
 
@@ -597,8 +602,8 @@ tunnel-android:
 tunnel-waydroid:
 	@HOST="$(TUNNEL_HOST)"; [ -n "$$HOST" ] || { echo "TUNNEL_HOST is required"; exit 2; }; \
 		WIP=$$(ssh "$$HOST" "waydroid status | awk '/IP address/ {print \$$3}'"); \
-		(trap 'adb disconnect localhost:$(TUNNEL_WAYDROID_PORT); kill 0' EXIT; \
-		ssh -N -L $(TUNNEL_WAYDROID_PORT):$$WIP:5555 "$$HOST" & sleep 1; \
+		(trap 'kill $$SSH_PID 2>/dev/null; adb disconnect localhost:$(TUNNEL_WAYDROID_PORT) 2>/dev/null' EXIT; \
+		ssh -N -L $(TUNNEL_WAYDROID_PORT):$$WIP:5555 "$$HOST" & SSH_PID=$$!; sleep 1; \
 		adb connect localhost:$(TUNNEL_WAYDROID_PORT); \
 		$(TUNNEL_WAYDROID_CMD))
 
