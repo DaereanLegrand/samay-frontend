@@ -34,6 +34,19 @@ class AuthGuard {
       return isPublicRoute ? null : RoutePaths.login;
     }
 
+    // Funnel-completion gate (2026-08-13): an authenticated user without a
+    // `users` row must NOT enter the app — age verification, terms and
+    // username selection are mandatory, not skippable (a mid-funnel app
+    // restart previously dropped these users straight onto the feed).
+    // The age gate is the ONLY legitimate next step: it resolves the email
+    // from the session and re-establishes the explicit chain age gate →
+    // privacy/terms → profile setup. This is not a hidden navigation — it is
+    // the funnel itself; every screen in it is under `authPrefix`, so the
+    // redirect fires only when the user is NOT already in the funnel.
+    if (!data.hasProfile && !location.startsWith(RoutePaths.authPrefix)) {
+      return RoutePaths.ageGate;
+    }
+
     if (location == RoutePaths.login || location == RoutePaths.welcome) {
       return RoutePaths.mainFeed;
     }
@@ -43,9 +56,9 @@ class AuthGuard {
 }
 
 // NOTE (no-fallback policy, 2026-08-13): the guard must never navigate a
-// user to a screen they did not explicitly request. Profile completion is
-// driven ONLY by the explicit signup funnel (OTP → age gate → privacy/terms
-// → profile setup) — there is deliberately NO redirect for
-// authenticated-but-profile-less users. Any error in the profile check
-// surfaces as an error (with code) at the explicit action that triggered it;
-// a failed check never bounces the user to another screen.
+// user to an UNRELATED screen they did not explicitly request. The only
+// implicit redirects are: banned → ban screen, unauthenticated → login,
+// authenticated → feed, and (funnel-completion) authenticated-without-profile
+// → the age gate — the start of the explicit signup-completion funnel. Any
+// error in the profile check surfaces as an error (with code) at the explicit
+// action that triggered it; a failed check never bounces the user around.
