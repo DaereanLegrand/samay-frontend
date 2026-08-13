@@ -276,6 +276,11 @@ dev:
 		$(BREW_BUNDLE) exec ruby tools/ios_dev_signing.rb apply "$$TEAM"; \
 		echo "📱  Running on device: $$DEVICE"; \
 		flutter run $(PUB_FLAG) $(FLUTTER_DEFINES) -d "$$DEVICE"; \
+		RC=$$?; \
+		if [ "$$RC" -ne 0 ]; then \
+			echo "ℹ️  If the app installed but the CLI stalled on 'Installing and launching...', grant Local Network permission to your terminal (System Settings → Privacy & Security → Local Network, restart the terminal) or plug the iPhone in via USB — Flutter discovers the Dart VM over mDNS."; \
+		fi; \
+		exit $$RC; \
 	elif [ "$(TARGET)" = "ios-adhoc" ]; then \
 		make build TARGET=ios-adhoc NO_PUB=$(NO_PUB) && \
 		make install TARGET=ios-adhoc NO_PUB=$(NO_PUB) && \
