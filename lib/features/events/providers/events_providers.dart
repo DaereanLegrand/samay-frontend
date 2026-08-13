@@ -23,11 +23,14 @@ class EventDetailNotifier
 }
 
 /// A single event row by id.
-final eventDetailProvider = AsyncNotifierProvider.family<EventDetailNotifier,
-    Map<String, dynamic>, String>(EventDetailNotifier.new);
+final eventDetailProvider =
+    AsyncNotifierProvider.family<
+      EventDetailNotifier,
+      Map<String, dynamic>,
+      String
+    >(EventDetailNotifier.new);
 
-class EventByInviteTokenNotifier
-    extends FamilyAsyncNotifier<Event?, String> {
+class EventByInviteTokenNotifier extends FamilyAsyncNotifier<Event?, String> {
   EventService get _service => ref.read(eventServiceProvider);
 
   @override
@@ -38,10 +41,10 @@ class EventByInviteTokenNotifier
 
 /// Resolves an invite token to its event (null when the token matches no
 /// event) — the EINV deep-link lookup (`invite_token` is UNIQUE + indexed).
-final eventByInviteTokenProvider = AsyncNotifierProvider.family<
-    EventByInviteTokenNotifier, Event?, String>(
-  EventByInviteTokenNotifier.new,
-);
+final eventByInviteTokenProvider =
+    AsyncNotifierProvider.family<EventByInviteTokenNotifier, Event?, String>(
+      EventByInviteTokenNotifier.new,
+    );
 
 class EventPromotoresNotifier
     extends FamilyAsyncNotifier<List<Map<String, dynamic>>, String> {
@@ -57,10 +60,12 @@ class EventPromotoresNotifier
 }
 
 /// Promotores of an event (rows enriched with `users.username`).
-final eventPromotoresProvider = AsyncNotifierProvider.family<
-    EventPromotoresNotifier, List<Map<String, dynamic>>, String>(
-  EventPromotoresNotifier.new,
-);
+final eventPromotoresProvider =
+    AsyncNotifierProvider.family<
+      EventPromotoresNotifier,
+      List<Map<String, dynamic>>,
+      String
+    >(EventPromotoresNotifier.new);
 
 class MyEventInviteNotifier
     extends FamilyAsyncNotifier<Map<String, dynamic>?, String> {
@@ -76,5 +81,30 @@ class MyEventInviteNotifier
 }
 
 /// The current user's invite row for an event (null when not invited).
-final myEventInviteProvider = AsyncNotifierProvider.family<MyEventInviteNotifier,
-    Map<String, dynamic>?, String>(MyEventInviteNotifier.new);
+final myEventInviteProvider =
+    AsyncNotifierProvider.family<
+      MyEventInviteNotifier,
+      Map<String, dynamic>?,
+      String
+    >(MyEventInviteNotifier.new);
+
+class MyEventsNotifier extends AsyncNotifier<List<Map<String, dynamic>>> {
+  EventService get _service => ref.read(eventServiceProvider);
+
+  /// The events tab list (R1 events sweep): every event visible to the
+  /// session, ordered by `starts_at` ASC (the service's ordering).
+  @override
+  Future<List<Map<String, dynamic>>> build() async {
+    return _service.listEvents();
+  }
+
+  /// Re-runs [build] (pull-to-refresh).
+  Future<void> refresh() async => ref.invalidateSelf();
+}
+
+/// The events tab list — every event the current session can see, earliest
+/// first.
+final myEventsProvider =
+    AsyncNotifierProvider<MyEventsNotifier, List<Map<String, dynamic>>>(
+      MyEventsNotifier.new,
+    );

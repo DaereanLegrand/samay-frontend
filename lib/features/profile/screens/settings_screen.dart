@@ -7,6 +7,8 @@ import 'package:samay/core/design_tokens/app_typography.dart';
 import 'package:samay/core/providers/auth_provider.dart';
 import 'package:samay/core/providers/theme_provider.dart';
 import 'package:samay/core/router/route_paths.dart';
+import 'package:samay/features/profile/screens/notification_settings_screen.dart';
+import 'package:samay/features/profile/screens/privacy_info_screen.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/glass/v_glass.dart';
 import 'package:samay/shared/widgets/v_aurora.dart';
@@ -104,13 +106,17 @@ class SettingsScreen extends ConsumerWidget {
                       onTap: () => context.push(RoutePaths.subscriptions),
                     ),
                     const Divider(),
+                    // R2: the notifications row opens the real
+                    // notification-preferences screen (persisted toggles,
+                    // local Hive config cache — no more disabled placeholder).
                     _SettingsTile(
                       icon: Icons.notifications,
                       label: l10n.profileNotifications,
-                      // U-26 (U-23 F4): placeholder rows render disabled —
-                      // an enabled no-op row looks tappable (2.1.1/4.1.2);
-                      // disabled = `muted` treatment (§5.1).
-                      enabled: false,
+                      onTap: () => Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          builder: (_) => const NotificationSettingsScreen(),
+                        ),
+                      ),
                     ),
                     const Divider(),
                     _SettingsTile(
@@ -119,10 +125,17 @@ class SettingsScreen extends ConsumerWidget {
                       onTap: () => context.push(RoutePaths.profileEdit),
                     ),
                     const Divider(),
+                    // R2: the privacy row opens the static privacy/terms info
+                    // screen (the signup-funnel consent gate cannot render
+                    // standalone — it requires email/dateOfBirth extras).
                     _SettingsTile(
                       icon: Icons.shield,
                       label: l10n.profilePrivacy,
-                      enabled: false,
+                      onTap: () => Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          builder: (_) => const PrivacyInfoScreen(),
+                        ),
+                      ),
                     ),
                     const Divider(),
                     _SettingsTile(
@@ -187,7 +200,7 @@ class _SectionHeader extends StatelessWidget {
   }
 }
 
-/// Settings menu row (PERF-08/CQ-05: the seven repeated ListTile shapes are
+/// Settings menu row (PERF-08/CQ-05: the repeated ListTile shapes are
 /// one const sub-widget; only the data that changes is passed in).
 class _SettingsTile extends StatelessWidget {
   const _SettingsTile({
@@ -195,17 +208,12 @@ class _SettingsTile extends StatelessWidget {
     required this.label,
     this.onTap,
     this.destructive = false,
-    this.enabled = true,
   });
 
   final IconData icon;
   final String label;
   final VoidCallback? onTap;
   final bool destructive;
-
-  /// U-26: placeholder rows render disabled (semantics + muted treatment) —
-  /// an enabled row with no action fails 2.1.1/4.1.2.
-  final bool enabled;
 
   @override
   Widget build(BuildContext context) {
@@ -214,7 +222,6 @@ class _SettingsTile extends StatelessWidget {
       // already carry the 16px glass padding — zero content padding keeps
       // the row metrics identical to the pre-grouping flat list.
       contentPadding: EdgeInsets.zero,
-      enabled: enabled,
       leading: Icon(
         icon,
         // §5.2 (U-09): danger rows use the error semantic — glowPink
@@ -226,9 +233,9 @@ class _SettingsTile extends StatelessWidget {
         label,
         style: destructive ? const TextStyle(color: AppColors.error) : null,
       ),
-      // The chevron is the "navigates elsewhere" affordance — a disabled
-      // row must not show it (U-26).
-      trailing: enabled ? const Icon(Icons.chevron_right) : null,
+      // The chevron is the "navigates elsewhere" affordance — a row with no
+      // destination must not show it.
+      trailing: onTap != null ? const Icon(Icons.chevron_right) : null,
       onTap: onTap,
     );
   }

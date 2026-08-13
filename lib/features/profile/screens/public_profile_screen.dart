@@ -9,6 +9,7 @@ import 'package:samay/core/providers/service_providers.dart';
 import 'package:samay/core/repositories/repository_providers.dart';
 import 'package:samay/features/profile/widgets/profile_avatar.dart';
 import 'package:samay/l10n/app_localizations.dart';
+import 'package:samay/shared/widgets/show_app_error.dart';
 import 'package:samay/shared/widgets/skeletons.dart';
 import 'package:samay/shared/widgets/v_aurora.dart';
 import 'package:samay/shared/widgets/v_button.dart';
@@ -318,16 +319,54 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
   }
 
   void _handleMenuAction(String action) {
-    final l10n = AppLocalizations.of(context);
     switch (action) {
       case 'block':
         _blockUser();
       case 'unblock':
         _unblockUser();
       case 'report':
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(l10n.profileReportComingSoon)));
+        _reportUser();
+    }
+  }
+
+  /// R2: the report menu item opens the reason dialog, then submits a real
+  /// report through [ModerationService.reportContent] ('user' target). No
+  /// more "próximamente" snackbar — the moderation pipeline exists.
+  Future<void> _reportUser() async {
+    final l10n = AppLocalizations.of(context);
+    final reason = await showDialog<String>(
+      context: context,
+      builder: (ctx) => SimpleDialog(
+        title: Text(l10n.profileReportTitle),
+        children: [
+          for (final reason in [
+            l10n.profileReportReasonHarassment,
+            l10n.profileReportReasonSpam,
+            l10n.profileReportReasonInappropriate,
+            l10n.profileReportReasonOther,
+          ])
+            SimpleDialogOption(
+              onPressed: () => Navigator.pop(ctx, reason),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: Text(reason),
+              ),
+            ),
+        ],
+      ),
+    );
+    if (reason == null || !mounted) return;
+
+    try {
+      await ref
+          .read(moderationServiceProvider)
+          .reportContent('user', widget.userId, reason);
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.profileReportSent)));
+    } catch (e) {
+      if (mounted) showAppError(context, e);
     }
   }
 

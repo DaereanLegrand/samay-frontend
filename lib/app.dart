@@ -6,9 +6,15 @@ import 'package:samay/core/theme/app_theme.dart';
 import 'package:samay/core/router/app_router.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/connectivity_banner.dart';
+import 'package:samay/shared/widgets/crash_recovery_banner.dart';
 
 class SamayApp extends ConsumerWidget {
-  const SamayApp({super.key});
+  /// LOG-03: true when a crash marker existed at launch and was recovered —
+  /// [main.dart] feeds the `recoverCrashMarker` result through here so the
+  /// user-facing recovery banner shows exactly once after a real crash.
+  final bool recoveredFromCrash;
+
+  const SamayApp({super.key, this.recoveredFromCrash = false});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -36,15 +42,12 @@ class SamayApp extends ConsumerWidget {
       // deepLinkStreamProvider is null (default — tests).
       builder: (context, child) => Column(
         children: [
+          // LOG-03: the recovery banner sits above the offline indicator —
+          // it only appears once (right after a real crash) and collapses on
+          // dismissal.
+          CrashRecoveryBanner(visible: recoveredFromCrash),
           const ConnectivityBanner(),
-          Expanded(
-            child: Stack(
-              children: [
-                ?child,
-                const DeepLinkListener(),
-              ],
-            ),
-          ),
+          Expanded(child: Stack(children: [?child, const DeepLinkListener()])),
         ],
       ),
       routerConfig: router,

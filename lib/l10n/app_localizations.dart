@@ -938,11 +938,17 @@ abstract class AppLocalizations {
   /// **'Crear evento'**
   String get groupsCreateEvent;
 
-  /// Placeholder for the group chat tab
+  /// Group chat tab empty-state title explaining chats are 1:1 for now
   ///
   /// In es, this message translates to:
-  /// **'Chat próximamente'**
-  String get groupsChatComingSoon;
+  /// **'Los chats son 1:1 por ahora'**
+  String get groupsChatOneToOneTitle;
+
+  /// Group chat tab empty-state body pointing to the messages list
+  ///
+  /// In es, this message translates to:
+  /// **'Los chats de grupo se habilitan desde el listado de mensajes.'**
+  String get groupsChatOneToOneBody;
 
   /// Empty state when a group has no members
   ///
@@ -968,11 +974,17 @@ abstract class AppLocalizations {
   /// **'Miembros ({count})'**
   String groupsMembersCount(int count);
 
-  /// Placeholder for the group events tab
+  /// Group events tab empty state when the group has no events
   ///
   /// In es, this message translates to:
-  /// **'Eventos próximamente'**
-  String get groupsEventsComingSoon;
+  /// **'Sin eventos en este grupo'**
+  String get groupsEventsEmptyTitle;
+
+  /// Group events tab empty-state body pointing at the create-event button
+  ///
+  /// In es, this message translates to:
+  /// **'Crea el primer evento del grupo con el botón Crear evento.'**
+  String get groupsEventsEmptyBody;
 
   /// Leave-group confirmation dialog body
   ///
@@ -1190,6 +1202,30 @@ abstract class AppLocalizations {
   /// **'Cuenta'**
   String get settingsSectionAccount;
 
+  /// Static privacy-policy body on the privacy info screen
+  ///
+  /// In es, this message translates to:
+  /// **'Tus datos personales se usan solo para operar Samay: autenticarte, mantener tus grupos y eventos y proteger a la comunidad. Nunca se venden ni se comparten con terceros con fines publicitarios.'**
+  String get settingsPrivacyPolicyBody;
+
+  /// Static service-terms body on the privacy info screen
+  ///
+  /// In es, this message translates to:
+  /// **'Al usar Samay aceptas comportarte con respeto: nada de acoso, spam ni contenido inapropiado. El mal uso puede llevar a la suspensión de tu cuenta.'**
+  String get settingsServiceTermsBody;
+
+  /// Notification-settings screen app bar title
+  ///
+  /// In es, this message translates to:
+  /// **'Preferencias de notificaciones'**
+  String get notificationSettingsTitle;
+
+  /// Footer explaining notification preferences are stored locally
+  ///
+  /// In es, this message translates to:
+  /// **'Estas preferencias se guardan en este dispositivo.'**
+  String get notificationSettingsLocalNote;
+
   /// Bio input label
   ///
   /// In es, this message translates to:
@@ -1322,11 +1358,41 @@ abstract class AppLocalizations {
   /// **'Agregar amigo'**
   String get profileAddFriend;
 
-  /// Snackbar stating that reporting is not implemented yet
+  /// Title of the report-user dialog
   ///
   /// In es, this message translates to:
-  /// **'Reportar será implementado próximamente'**
-  String get profileReportComingSoon;
+  /// **'Reportar usuario'**
+  String get profileReportTitle;
+
+  /// Report reason option for harassment or abuse
+  ///
+  /// In es, this message translates to:
+  /// **'Acoso o abuso'**
+  String get profileReportReasonHarassment;
+
+  /// Report reason option for spam
+  ///
+  /// In es, this message translates to:
+  /// **'Spam'**
+  String get profileReportReasonSpam;
+
+  /// Report reason option for inappropriate content
+  ///
+  /// In es, this message translates to:
+  /// **'Contenido inapropiado'**
+  String get profileReportReasonInappropriate;
+
+  /// Report reason option for any other reason
+  ///
+  /// In es, this message translates to:
+  /// **'Otro motivo'**
+  String get profileReportReasonOther;
+
+  /// Snackbar confirming that the report was submitted
+  ///
+  /// In es, this message translates to:
+  /// **'Gracias por reportar. Lo revisaremos pronto.'**
+  String get profileReportSent;
 
   /// Snackbar after blocking a user
   ///
@@ -1471,174 +1537,6 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'Volver'**
   String get comingSoonBack;
-
-  /// Coming-soon screen title for the events tab
-  ///
-  /// In es, this message translates to:
-  /// **'Eventos'**
-  String get comingSoonEventsTitle;
-
-  /// Coming-soon screen body for the events tab
-  ///
-  /// In es, this message translates to:
-  /// **'Los eventos de tus grupos aparecerán aquí pronto.'**
-  String get comingSoonEventsBody;
-
-  /// Coming-soon screen title for the notifications tab
-  ///
-  /// In es, this message translates to:
-  /// **'Notificaciones'**
-  String get comingSoonNotificationsTitle;
-
-  /// Coming-soon screen body for the notifications tab
-  ///
-  /// In es, this message translates to:
-  /// **'Tus notificaciones aparecerán aquí pronto.'**
-  String get comingSoonNotificationsBody;
-
-  /// Coming-soon screen title for the event detail
-  ///
-  /// In es, this message translates to:
-  /// **'Evento'**
-  String get comingSoonEventTitle;
-
-  /// Coming-soon screen body for the event detail
-  ///
-  /// In es, this message translates to:
-  /// **'El detalle del evento estará disponible pronto.'**
-  String get comingSoonEventBody;
-
-  /// Coming-soon screen title for the event editor
-  ///
-  /// In es, this message translates to:
-  /// **'Editar evento'**
-  String get comingSoonEditEventTitle;
-
-  /// Coming-soon screen body for the event editor
-  ///
-  /// In es, this message translates to:
-  /// **'La edición de eventos estará disponible pronto.'**
-  String get comingSoonEditEventBody;
-
-  /// Coming-soon screen title for event invitations
-  ///
-  /// In es, this message translates to:
-  /// **'Invitar'**
-  String get comingSoonEventInviteTitle;
-
-  /// Coming-soon screen body for event invitations
-  ///
-  /// In es, this message translates to:
-  /// **'La invitación a eventos estará disponible pronto.'**
-  String get comingSoonEventInviteBody;
-
-  /// Coming-soon screen title for event photos
-  ///
-  /// In es, this message translates to:
-  /// **'Fotos'**
-  String get comingSoonPhotosTitle;
-
-  /// Coming-soon screen body for event photos
-  ///
-  /// In es, this message translates to:
-  /// **'Las fotos del evento estarán disponibles pronto.'**
-  String get comingSoonPhotosBody;
-
-  /// Coming-soon screen title for the photo collage
-  ///
-  /// In es, this message translates to:
-  /// **'Collage'**
-  String get comingSoonCollageTitle;
-
-  /// Coming-soon screen body for the photo collage
-  ///
-  /// In es, this message translates to:
-  /// **'El collage de fotos estará disponible pronto.'**
-  String get comingSoonCollageBody;
-
-  /// Coming-soon screen title for the invite-token landing
-  ///
-  /// In es, this message translates to:
-  /// **'Invitación'**
-  String get comingSoonInvitationTitle;
-
-  /// Coming-soon screen body for the invite-token landing
-  ///
-  /// In es, this message translates to:
-  /// **'Las invitaciones a eventos aparecerán aquí pronto.'**
-  String get comingSoonInvitationBody;
-
-  /// Coming-soon screen title for event creation
-  ///
-  /// In es, this message translates to:
-  /// **'Crear evento'**
-  String get comingSoonCreateEventTitle;
-
-  /// Coming-soon screen body for event creation
-  ///
-  /// In es, this message translates to:
-  /// **'La creación de eventos estará disponible pronto.'**
-  String get comingSoonCreateEventBody;
-
-  /// Coming-soon screen title for the chat
-  ///
-  /// In es, this message translates to:
-  /// **'Chat'**
-  String get comingSoonChatTitle;
-
-  /// Coming-soon screen body for the chat
-  ///
-  /// In es, this message translates to:
-  /// **'El chat estará disponible pronto.'**
-  String get comingSoonChatBody;
-
-  /// Coming-soon screen title for the QR code
-  ///
-  /// In es, this message translates to:
-  /// **'QR'**
-  String get comingSoonQrTitle;
-
-  /// Coming-soon screen body for the QR code
-  ///
-  /// In es, this message translates to:
-  /// **'El código QR del evento estará disponible pronto.'**
-  String get comingSoonQrBody;
-
-  /// Coming-soon screen title for the QR scanner
-  ///
-  /// In es, this message translates to:
-  /// **'Escáner'**
-  String get comingSoonScannerTitle;
-
-  /// Coming-soon screen body for the QR scanner
-  ///
-  /// In es, this message translates to:
-  /// **'El escáner de códigos QR estará disponible pronto.'**
-  String get comingSoonScannerBody;
-
-  /// Coming-soon screen title for subscriptions
-  ///
-  /// In es, this message translates to:
-  /// **'Suscripciones'**
-  String get comingSoonSubscriptionsTitle;
-
-  /// Coming-soon screen body for subscriptions
-  ///
-  /// In es, this message translates to:
-  /// **'Las suscripciones estarán disponibles pronto.'**
-  String get comingSoonSubscriptionsBody;
-
-  /// Coming-soon screen title for the party finder
-  ///
-  /// In es, this message translates to:
-  /// **'Party Finder'**
-  String get comingSoonPartyFinderTitle;
-
-  /// Coming-soon screen body for the party finder
-  ///
-  /// In es, this message translates to:
-  /// **'El Party Finder estará disponible pronto.'**
-  String get comingSoonPartyFinderBody;
 
   /// Paywall screen heading
   ///
@@ -2125,6 +2023,30 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'Notificaciones'**
   String get notificationsTitle;
+
+  /// Notification preference toggle: event reminders
+  ///
+  /// In es, this message translates to:
+  /// **'Recordatorios de eventos'**
+  String get notificationSettingsEventReminders;
+
+  /// Notification preference toggle: friend requests
+  ///
+  /// In es, this message translates to:
+  /// **'Solicitudes de amistad'**
+  String get notificationSettingsFriendRequests;
+
+  /// Notification preference toggle: chat messages
+  ///
+  /// In es, this message translates to:
+  /// **'Mensajes de chat'**
+  String get notificationSettingsChatMessages;
+
+  /// Notification preference toggle: shards and ranking updates
+  ///
+  /// In es, this message translates to:
+  /// **'Shards y ranking'**
+  String get notificationSettingsShardsRank;
 
   /// Empty state when the user has no notifications
   ///
@@ -3032,18 +2954,6 @@ abstract class AppLocalizations {
   /// **'No hay cosméticos disponibles aún'**
   String get cosmeticsEmptyCatalog;
 
-  /// Coming-soon screen title for the cosmetics shop
-  ///
-  /// In es, this message translates to:
-  /// **'Cosméticos'**
-  String get comingSoonCosmeticsTitle;
-
-  /// Coming-soon screen body for the cosmetics shop
-  ///
-  /// In es, this message translates to:
-  /// **'Tu armario de cosméticos aparecerá aquí.'**
-  String get comingSoonCosmeticsBody;
-
   /// App bar title of the group minigames hub
   ///
   /// In es, this message translates to:
@@ -3212,18 +3122,6 @@ abstract class AppLocalizations {
   /// **'La partida se jugará aquí pronto.'**
   String get minigamesDetailComingSoon;
 
-  /// Coming-soon screen title for the minigames hub
-  ///
-  /// In es, this message translates to:
-  /// **'Juegos'**
-  String get comingSoonMinigamesTitle;
-
-  /// Coming-soon screen body for the minigames hub
-  ///
-  /// In es, this message translates to:
-  /// **'Los mini-juegos de grupo estarán disponibles pronto.'**
-  String get comingSoonMinigamesBody;
-
   /// Shard & preshard ledger screen app bar title
   ///
   /// In es, this message translates to:
@@ -3386,11 +3284,83 @@ abstract class AppLocalizations {
   /// **'Otorgado por Samay'**
   String get preshardsReasonAdminGrant;
 
+  /// Events tab hero heading (R1 events sweep)
+  ///
+  /// In es, this message translates to:
+  /// **'Mis eventos'**
+  String get eventsTabTitle;
+
+  /// Events tab create-event CTA
+  ///
+  /// In es, this message translates to:
+  /// **'Crear evento'**
+  String get eventsCreateCta;
+
+  /// Events tab helper explaining that event creation lives in a group
+  ///
+  /// In es, this message translates to:
+  /// **'El evento se crea dentro de un grupo — elige uno en la pestaña Grupos.'**
+  String get eventsCreateCtaBody;
+
+  /// Events tab empty state heading
+  ///
+  /// In es, this message translates to:
+  /// **'Aún no tienes eventos'**
+  String get eventsEmpty;
+
+  /// Events tab empty state body
+  ///
+  /// In es, this message translates to:
+  /// **'Cuando te inviten o crees uno, aparecerá aquí.'**
+  String get eventsEmptyBody;
+
+  /// Neutral flag-gate fallback heading (no coming-soon copy)
+  ///
+  /// In es, this message translates to:
+  /// **'No disponible'**
+  String get featureUnavailableTitle;
+
+  /// Neutral flag-gate fallback body
+  ///
+  /// In es, this message translates to:
+  /// **'Esta función aún no está disponible.'**
+  String get featureUnavailableBody;
+
+  /// Event collage screen app bar title
+  ///
+  /// In es, this message translates to:
+  /// **'Collage'**
+  String get collageTitle;
+
+  /// Event collage empty state heading
+  ///
+  /// In es, this message translates to:
+  /// **'Aún no hay fotos para el collage'**
+  String get collageEmpty;
+
+  /// Event collage empty state body
+  ///
+  /// In es, this message translates to:
+  /// **'El collage se arma solo con las fotos del evento.'**
+  String get collageEmptyBody;
+
+  /// Event collage photo count label
+  ///
+  /// In es, this message translates to:
+  /// **'{count} fotos'**
+  String collagePhotoCount(int count);
+
   /// Global banner shown while the device has no network connection (I-67)
   ///
   /// In es, this message translates to:
   /// **'Sin conexión — los datos podrían no estar actualizados'**
   String get connectivityOfflineBanner;
+
+  /// Dismissible banner shown after the app recovered from a previous crash (LOG-03)
+  ///
+  /// In es, this message translates to:
+  /// **'La app se recuperó de un cierre inesperado'**
+  String get crashRecoveryBannerTitle;
 }
 
 class _AppLocalizationsDelegate

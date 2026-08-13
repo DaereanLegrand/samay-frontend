@@ -1,15 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/l10n/app_localizations.dart';
-import 'package:samay/shared/widgets/v_coming_soon.dart';
+import 'package:samay/shared/widgets/state_views.dart';
 
 /// Every future feature ships behind one of these flags (I-49, release
 /// gating). A flag is the single release knob for its feature:
 ///
-/// * **dark by default** (`false`) — the feature is unreachable until its
-///   stack lands; gated screens render the [VComingSoonScreen] fallback.
-/// * **live** (`true`) — the feature ships in this build.
+/// * **live** (`true`) — the feature ships in this build; the flag remains
+///   wired as the kill-switch/remote-config knob (the [FlagGate] fallback is
+///   a neutral unavailable state).
+/// * **dark** (`false`) — the feature is unreachable until its stack lands;
+///   gated screens render the neutral [FlagGate] fallback.
 ///
 /// Flags are read through [featureFlagsProvider] (overridable at app startup
 /// and in tests) — never through a compile-time constant, so a flag can be
@@ -24,16 +25,17 @@ import 'package:samay/shared/widgets/v_coming_soon.dart';
 ///    child: const KaraokeScreen())`.
 enum AppFeatureFlag {
   /// Profile "Cosméticos" section (PRFL gap — I-36; shop/equip stack is
-  /// phase-10 / COSM / I-62).
+  /// phase-10 / COSM / I-62). LIVE — the flag is the kill-switch knob.
   cosmeticsSection,
 
-  /// Events core (ECRT/EDET — I-54/I-55).
+  /// Events core (ECRT/EDET — I-54/I-55). LIVE — the flag is the
+  /// kill-switch knob.
   events,
 
   /// E2EE chat (LIVE — landed with I-38; `/chat/:chatId` is real).
   chat,
 
-  /// QR attendance + scanner (I-57).
+  /// QR attendance + scanner (I-57). LIVE — the flag is the kill-switch knob.
   qr,
 
   /// Social feed (FEED — I-58; LIVE: it's the landing tab, so the flag is
@@ -44,16 +46,18 @@ enum AppFeatureFlag {
   /// the kill-switch/remote-config knob for the live route).
   notifications,
 
-  /// Subscriptions / paywall (PLAN — I-61).
+  /// Subscriptions / paywall (PLAN — I-61). DARK: purchases await the
+  /// RevenueCat SDK key — do not flip this flag.
   subscriptions,
 
-  /// Party finder (PFND — I-60).
+  /// Party finder (PFND — I-60). LIVE — the flag is the kill-switch knob.
   partyFinder,
 
-  /// Minigames (I-63).
+  /// Minigames (I-63). LIVE — the flag is the kill-switch knob.
   minigames,
 
-  /// Event photo upload + gallery (PHUP — I-59).
+  /// Event photo upload + gallery (PHUP — I-59). LIVE — the flag is the
+  /// kill-switch knob.
   photoUpload,
 
   /// End-to-end encryption of chat content — always on while the E2EE
@@ -70,18 +74,18 @@ enum AppFeatureFlag {
 /// const constructor (startup/remote-config seam, see [featureFlagsProvider]).
 class AppFeatureFlags {
   const AppFeatureFlags({
-    this.cosmeticsSection = false,
-    this.events = false,
+    this.cosmeticsSection = true,
+    this.events = true,
     this.chat = true,
-    this.qr = false,
+    this.qr = true,
     // NOTE (I-58): the feed IS the landing tab — the real feed ships by
     // default (true); flipping to false returns it to the dark state.
     this.feed = true,
     this.notifications = true,
     this.subscriptions = false,
-    this.partyFinder = false,
-    this.minigames = false,
-    this.photoUpload = false,
+    this.partyFinder = true,
+    this.minigames = true,
+    this.photoUpload = true,
     this.e2ee = true,
     this.themePersistence = false,
   });
@@ -101,19 +105,19 @@ class AppFeatureFlags {
 
   /// Resolves [flag] to its current state.
   bool isEnabled(AppFeatureFlag flag) => switch (flag) {
-        AppFeatureFlag.cosmeticsSection => cosmeticsSection,
-        AppFeatureFlag.events => events,
-        AppFeatureFlag.chat => chat,
-        AppFeatureFlag.qr => qr,
-        AppFeatureFlag.feed => feed,
-        AppFeatureFlag.notifications => notifications,
-        AppFeatureFlag.subscriptions => subscriptions,
-        AppFeatureFlag.partyFinder => partyFinder,
-        AppFeatureFlag.minigames => minigames,
-        AppFeatureFlag.photoUpload => photoUpload,
-        AppFeatureFlag.e2ee => e2ee,
-        AppFeatureFlag.themePersistence => themePersistence,
-      };
+    AppFeatureFlag.cosmeticsSection => cosmeticsSection,
+    AppFeatureFlag.events => events,
+    AppFeatureFlag.chat => chat,
+    AppFeatureFlag.qr => qr,
+    AppFeatureFlag.feed => feed,
+    AppFeatureFlag.notifications => notifications,
+    AppFeatureFlag.subscriptions => subscriptions,
+    AppFeatureFlag.partyFinder => partyFinder,
+    AppFeatureFlag.minigames => minigames,
+    AppFeatureFlag.photoUpload => photoUpload,
+    AppFeatureFlag.e2ee => e2ee,
+    AppFeatureFlag.themePersistence => themePersistence,
+  };
 
   @override
   bool operator ==(Object other) =>
@@ -133,19 +137,19 @@ class AppFeatureFlags {
 
   @override
   int get hashCode => Object.hash(
-        cosmeticsSection,
-        events,
-        chat,
-        qr,
-        feed,
-        notifications,
-        subscriptions,
-        partyFinder,
-        minigames,
-        photoUpload,
-        e2ee,
-        themePersistence,
-      );
+    cosmeticsSection,
+    events,
+    chat,
+    qr,
+    feed,
+    notifications,
+    subscriptions,
+    partyFinder,
+    minigames,
+    photoUpload,
+    e2ee,
+    themePersistence,
+  );
 }
 
 /// The app-wide flag set. Override in tests with
@@ -173,8 +177,9 @@ final featureFlagsProvider = Provider<AppFeatureFlags>((ref) {
 });
 
 /// One-liner gating for screens: renders [child] when [flag] is enabled,
-/// otherwise the [fallback] (default: a localized [VComingSoonScreen] for the
-/// flag, when one exists).
+/// otherwise the [fallback] (default: a neutral "unavailable" empty state —
+/// no coming-soon copy; the per-feature coming-soon screens were retired
+/// when every gated feature shipped a real screen).
 ///
 /// ```dart
 /// GoRoute(
@@ -203,43 +208,16 @@ class FlagGate extends ConsumerWidget {
     return fallback ?? _defaultFallback(context);
   }
 
-  /// The default disabled state: a [VComingSoonScreen] with the localized
-  /// title/description for flags that have one — each with its §5.7 per-feature
-  /// icon (U-12 icon map; the icon is `border #333333` at `xxl 48`, except
-  /// Party Finder's faint `glowPink` α0.5 hero-topic treatment). Flags
-  /// without a dedicated copy render the generic coming-soon shell — feature
-  /// agents may pass a custom [fallback] for a tailored message.
+  /// The default disabled state: a neutral [VEmptyView] — centered icon +
+  /// localized title/body. Used today only by the subscriptions kill-switch
+  /// (RevenueCat key pending) and by any test flipping a live flag dark.
   Widget _defaultFallback(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    return switch (flag) {
-      AppFeatureFlag.events => VComingSoonScreen(
-          title: l10n.comingSoonEventsTitle,
-          description: l10n.comingSoonEventsBody,
-          icon: Icons.event,
-        ),
-      AppFeatureFlag.notifications => VComingSoonScreen(
-          title: l10n.comingSoonNotificationsTitle,
-          description: l10n.comingSoonNotificationsBody,
-          icon: Icons.notifications,
-        ),
-      AppFeatureFlag.subscriptions => VComingSoonScreen(
-          title: l10n.comingSoonSubscriptionsTitle,
-          description: l10n.comingSoonSubscriptionsBody,
-          icon: Icons.subscriptions,
-        ),
-      AppFeatureFlag.partyFinder => VComingSoonScreen(
-          title: l10n.comingSoonPartyFinderTitle,
-          description: l10n.comingSoonPartyFinderBody,
-          icon: Icons.celebration,
-          iconColor: AppColors.glowPink.withValues(alpha: 0.5),
-        ),
-      AppFeatureFlag.qr => VComingSoonScreen(
-          title: l10n.comingSoonQrTitle,
-          description: l10n.comingSoonQrBody,
-          icon: Icons.qr_code,
-        ),
-      _ => const VComingSoonScreen(title: '', description: ''),
-    };
+    return VEmptyView(
+      icon: Icons.hourglass_empty,
+      title: l10n.featureUnavailableTitle,
+      description: l10n.featureUnavailableBody,
+    );
   }
 }
 

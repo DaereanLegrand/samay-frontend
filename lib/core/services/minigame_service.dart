@@ -129,66 +129,121 @@ class MinigameService {
 
     return switch (status) {
       'created' => result['sessionId'] as String,
-      'not_authenticated' =>
-        throw const MinigameSessionRejectedException(
-          MinigameSessionRejection.notAuthenticated,
-        ),
+      'not_authenticated' => throw const MinigameSessionRejectedException(
+        MinigameSessionRejection.notAuthenticated,
+      ),
       'not_member' => throw const MinigameSessionRejectedException(
-          MinigameSessionRejection.notMember,
-        ),
+        MinigameSessionRejection.notMember,
+      ),
       'invalid_wager' => throw const MinigameSessionRejectedException(
-          MinigameSessionRejection.invalidWager,
-        ),
+        MinigameSessionRejection.invalidWager,
+      ),
       'invalid_game_type' => throw const MinigameSessionRejectedException(
-          MinigameSessionRejection.invalidGameType,
-        ),
+        MinigameSessionRejection.invalidGameType,
+      ),
       'insufficient_shards' => throw const MinigameSessionRejectedException(
-          MinigameSessionRejection.insufficientShards,
-        ),
+        MinigameSessionRejection.insufficientShards,
+      ),
       _ => throw Exception('Unexpected create_minigame_session response: $res'),
     };
   }
 
-  /// Appends the current user to [sessionId]'s participants array (self
-  /// only — never another user).
-  ///
-  /// NOTE (server RPC gap): `minigame_sessions` has no UPDATE policy under
-  /// FORCE RLS, so this client-side contract is blocked until a
-  /// `join_minigame_session` SECURITY DEFINER RPC lands (handoff I-77/S-03;
-  /// see the I-63 daily log).
+  /// Appends the current user to [sessionId]'s participants via the
+  /// `join_minigame_session` SECURITY DEFINER RPC (migration
+  /// 20260813000001) — `minigame_sessions` has no UPDATE policy under FORCE
+  /// RLS, so the join is a server-side contract (self only — never another
+  /// user): session-exists + group-membership validation, idempotent
+  /// participants append, and — for wagered sessions — the atomic wager
+  /// deduction + `minigame_wager` escrow ledger entry (GWAG, mirroring
+  /// create_minigame_session). Business outcomes come back as jsonb statuses
+  /// (I-57 contract).
   Future<void> joinSession(String id) async {
     final user = auth.currentUser;
     if (user == null) throw Exception('No authenticated user');
 
-    final session = await getSession(id);
-    if (session == null) throw Exception('Session not found');
+    final res = await client.rpc(
+      'join_minigame_session',
+      params: {'p_session_id': id},
+    );
+    final result = res is Map
+        ? Map<String, dynamic>.from(res)
+        : <String, dynamic>{};
+    final status = result['status'] as String?;
 
-    final participants = (session['participants'] as List?)
-            ?.map((e) => e.toString())
-            .toList() ??
-        <String>[];
-    if (participants.contains(user.id)) return;
-
-    participants.add(user.id);
-    await client
-        .from('minigame_sessions')
-        .update({'participants': participants})
-        .eq('id', id);
+    switch (status) {
+      case 'joined':
+        return;
+      case 'not_authenticated':
+        throw const MinigameSessionRejectedException(
+          MinigameSessionRejection.notAuthenticated,
+        );
+      case 'not_member':
+        throw const MinigameSessionRejectedException(
+          MinigameSessionRejection.notMember,
+        );
+      case 'insufficient_shards':
+        throw const MinigameSessionRejectedException(
+          MinigameSessionRejection.insufficientShards,
+        );
+      case 'session_not_found':
+        throw Exception('Session not found');
+      case 'session_not_active':
+        throw Exception('Session is not active');
+      default:
+        throw Exception('Unexpected join_minigame_session response: $res');
+    }
   }
 
-  /// Flips the session lifecycle status (GMCR: `active` → `finished`).
+  /// Flips the session lifecycle status (GMCR: `active` → `finished`) via the
+  /// `finish_minigame_session` SECURITY DEFINER RPC (migration
+  /// 20260813000001) — the client-side UPDATE is RLS-blocked
+  /// (`minigame_sessions` has no UPDATE policy under FORCE RLS) and the
+  /// settlement MUST happen server-side.
   ///
-  /// NOTE (server RPC gap): the same FORCE-RLS UPDATE restriction applies,
-  /// and the winner settlement (`minigame_win` ledger + escrow credit to the
-  /// winner, `minigame_refund` on draw — GWAG §Wager Resolution) MUST happen
-  /// server-side in a `finish_minigame_session` SECURITY DEFINER RPC, not on
-  /// the client. Until that RPC lands, finishing a wagered session leaves
-  /// the escrow in the ledger (handoff I-77/S-03).
+  /// The RPC settles the escrow in one transaction (GWAG §Wager Resolution):
+  /// with a winner it credits `users.personal_shards` with the full pot and
+  /// writes the `minigame_win` ledger row; with a null winner (draw) it
+  /// refunds every participant (`minigame_refund`). This seam carries no
+  /// winner id, so finishing through it resolves a wagered session as a
+  /// draw — a future winner-aware caller can invoke `finish_minigame_session`
+  /// directly with `p_winner_id`. Reactivating a finished session has no
+  /// server contract and is rejected.
   Future<void> updateStatus(String id, MinigameStatus status) async {
-    await client
-        .from('minigame_sessions')
-        .update({'status': status.value})
-        .eq('id', id);
+    if (status != MinigameStatus.finished) {
+      throw Exception(
+        'Only MinigameStatus.finished has a server contract '
+        '(finish_minigame_session); reactivation is not supported',
+      );
+    }
+
+    final res = await client.rpc(
+      'finish_minigame_session',
+      params: {'p_session_id': id, 'p_winner_id': null, 'p_place': null},
+    );
+    final result = res is Map
+        ? Map<String, dynamic>.from(res)
+        : <String, dynamic>{};
+    final statusResponse = result['status'] as String?;
+
+    switch (statusResponse) {
+      case 'finished':
+      case 'already_finished':
+        return;
+      case 'not_authenticated':
+        throw const MinigameSessionRejectedException(
+          MinigameSessionRejection.notAuthenticated,
+        );
+      case 'not_member':
+        throw const MinigameSessionRejectedException(
+          MinigameSessionRejection.notMember,
+        );
+      case 'session_not_found':
+        throw Exception('Session not found');
+      case 'invalid_winner':
+        throw Exception('Invalid winner');
+      default:
+        throw Exception('Unexpected finish_minigame_session response: $res');
+    }
   }
 
   /// Live subscription to one session's row changes (GMCR Realtime sync:

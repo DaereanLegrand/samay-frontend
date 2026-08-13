@@ -624,9 +624,13 @@
   "@groupsCreateEvent": {
     "description": "Create-event button label"
   },
-  "groupsChatComingSoon": "Chat próximamente",
-  "@groupsChatComingSoon": {
-    "description": "Placeholder for the group chat tab"
+  "groupsChatOneToOneTitle": "Los chats son 1:1 por ahora",
+  "@groupsChatOneToOneTitle": {
+    "description": "Group chat tab empty-state title explaining chats are 1:1 for now"
+  },
+  "groupsChatOneToOneBody": "Los chats de grupo se habilitan desde el listado de mensajes.",
+  "@groupsChatOneToOneBody": {
+    "description": "Group chat tab empty-state body pointing to the messages list"
   },
   "groupsNoMembers": "No hay miembros",
   "@groupsNoMembers": {
@@ -654,9 +658,13 @@
       }
     }
   },
-  "groupsEventsComingSoon": "Eventos próximamente",
-  "@groupsEventsComingSoon": {
-    "description": "Placeholder for the group events tab"
+  "groupsEventsEmptyTitle": "Sin eventos en este grupo",
+  "@groupsEventsEmptyTitle": {
+    "description": "Group events tab empty state when the group has no events"
+  },
+  "groupsEventsEmptyBody": "Crea el primer evento del grupo con el botón Crear evento.",
+  "@groupsEventsEmptyBody": {
+    "description": "Group events tab empty-state body pointing at the create-event button"
   },
   "groupsConfirmLeave": "¿Estás seguro?",
   "@groupsConfirmLeave": {
@@ -825,6 +833,22 @@
   "@settingsSectionAccount": {
     "description": "Settings section header for the account rows group (R6)"
   },
+  "settingsPrivacyPolicyBody": "Tus datos personales se usan solo para operar Samay: autenticarte, mantener tus grupos y eventos y proteger a la comunidad. Nunca se venden ni se comparten con terceros con fines publicitarios.",
+  "@settingsPrivacyPolicyBody": {
+    "description": "Static privacy-policy body on the privacy info screen"
+  },
+  "settingsServiceTermsBody": "Al usar Samay aceptas comportarte con respeto: nada de acoso, spam ni contenido inapropiado. El mal uso puede llevar a la suspensión de tu cuenta.",
+  "@settingsServiceTermsBody": {
+    "description": "Static service-terms body on the privacy info screen"
+  },
+  "notificationSettingsTitle": "Preferencias de notificaciones",
+  "@notificationSettingsTitle": {
+    "description": "Notification-settings screen app bar title"
+  },
+  "notificationSettingsLocalNote": "Estas preferencias se guardan en este dispositivo.",
+  "@notificationSettingsLocalNote": {
+    "description": "Footer explaining notification preferences are stored locally"
+  },
   "profileBio": "Biografía",
   "@profileBio": {
     "description": "Bio input label"
@@ -923,9 +947,29 @@
   "@profileAddFriend": {
     "description": "Button to send a friend request"
   },
-  "profileReportComingSoon": "Reportar será implementado próximamente",
-  "@profileReportComingSoon": {
-    "description": "Snackbar stating that reporting is not implemented yet"
+  "profileReportTitle": "Reportar usuario",
+  "@profileReportTitle": {
+    "description": "Title of the report-user dialog"
+  },
+  "profileReportReasonHarassment": "Acoso o abuso",
+  "@profileReportReasonHarassment": {
+    "description": "Report reason option for harassment or abuse"
+  },
+  "profileReportReasonSpam": "Spam",
+  "@profileReportReasonSpam": {
+    "description": "Report reason option for spam"
+  },
+  "profileReportReasonInappropriate": "Contenido inapropiado",
+  "@profileReportReasonInappropriate": {
+    "description": "Report reason option for inappropriate content"
+  },
+  "profileReportReasonOther": "Otro motivo",
+  "@profileReportReasonOther": {
+    "description": "Report reason option for any other reason"
+  },
+  "profileReportSent": "Gracias por reportar. Lo revisaremos pronto.",
+  "@profileReportSent": {
+    "description": "Snackbar confirming that the report was submitted"
   },
   "profileUserBlocked": "Usuario bloqueado",
   "@profileUserBlocked": {
@@ -1022,118 +1066,6 @@
   "comingSoonBack": "Volver",
   "@comingSoonBack": {
     "description": "Back button on the coming-soon screen"
-  },
-  "comingSoonEventsTitle": "Eventos",
-  "@comingSoonEventsTitle": {
-    "description": "Coming-soon screen title for the events tab"
-  },
-  "comingSoonEventsBody": "Los eventos de tus grupos aparecerán aquí pronto.",
-  "@comingSoonEventsBody": {
-    "description": "Coming-soon screen body for the events tab"
-  },
-  "comingSoonNotificationsTitle": "Notificaciones",
-  "@comingSoonNotificationsTitle": {
-    "description": "Coming-soon screen title for the notifications tab"
-  },
-  "comingSoonNotificationsBody": "Tus notificaciones aparecerán aquí pronto.",
-  "@comingSoonNotificationsBody": {
-    "description": "Coming-soon screen body for the notifications tab"
-  },
-  "comingSoonEventTitle": "Evento",
-  "@comingSoonEventTitle": {
-    "description": "Coming-soon screen title for the event detail"
-  },
-  "comingSoonEventBody": "El detalle del evento estará disponible pronto.",
-  "@comingSoonEventBody": {
-    "description": "Coming-soon screen body for the event detail"
-  },
-  "comingSoonEditEventTitle": "Editar evento",
-  "@comingSoonEditEventTitle": {
-    "description": "Coming-soon screen title for the event editor"
-  },
-  "comingSoonEditEventBody": "La edición de eventos estará disponible pronto.",
-  "@comingSoonEditEventBody": {
-    "description": "Coming-soon screen body for the event editor"
-  },
-  "comingSoonEventInviteTitle": "Invitar",
-  "@comingSoonEventInviteTitle": {
-    "description": "Coming-soon screen title for event invitations"
-  },
-  "comingSoonEventInviteBody": "La invitación a eventos estará disponible pronto.",
-  "@comingSoonEventInviteBody": {
-    "description": "Coming-soon screen body for event invitations"
-  },
-  "comingSoonPhotosTitle": "Fotos",
-  "@comingSoonPhotosTitle": {
-    "description": "Coming-soon screen title for event photos"
-  },
-  "comingSoonPhotosBody": "Las fotos del evento estarán disponibles pronto.",
-  "@comingSoonPhotosBody": {
-    "description": "Coming-soon screen body for event photos"
-  },
-  "comingSoonCollageTitle": "Collage",
-  "@comingSoonCollageTitle": {
-    "description": "Coming-soon screen title for the photo collage"
-  },
-  "comingSoonCollageBody": "El collage de fotos estará disponible pronto.",
-  "@comingSoonCollageBody": {
-    "description": "Coming-soon screen body for the photo collage"
-  },
-  "comingSoonInvitationTitle": "Invitación",
-  "@comingSoonInvitationTitle": {
-    "description": "Coming-soon screen title for the invite-token landing"
-  },
-  "comingSoonInvitationBody": "Las invitaciones a eventos aparecerán aquí pronto.",
-  "@comingSoonInvitationBody": {
-    "description": "Coming-soon screen body for the invite-token landing"
-  },
-  "comingSoonCreateEventTitle": "Crear evento",
-  "@comingSoonCreateEventTitle": {
-    "description": "Coming-soon screen title for event creation"
-  },
-  "comingSoonCreateEventBody": "La creación de eventos estará disponible pronto.",
-  "@comingSoonCreateEventBody": {
-    "description": "Coming-soon screen body for event creation"
-  },
-  "comingSoonChatTitle": "Chat",
-  "@comingSoonChatTitle": {
-    "description": "Coming-soon screen title for the chat"
-  },
-  "comingSoonChatBody": "El chat estará disponible pronto.",
-  "@comingSoonChatBody": {
-    "description": "Coming-soon screen body for the chat"
-  },
-  "comingSoonQrTitle": "QR",
-  "@comingSoonQrTitle": {
-    "description": "Coming-soon screen title for the QR code"
-  },
-  "comingSoonQrBody": "El código QR del evento estará disponible pronto.",
-  "@comingSoonQrBody": {
-    "description": "Coming-soon screen body for the QR code"
-  },
-  "comingSoonScannerTitle": "Escáner",
-  "@comingSoonScannerTitle": {
-    "description": "Coming-soon screen title for the QR scanner"
-  },
-  "comingSoonScannerBody": "El escáner de códigos QR estará disponible pronto.",
-  "@comingSoonScannerBody": {
-    "description": "Coming-soon screen body for the QR scanner"
-  },
-  "comingSoonSubscriptionsTitle": "Suscripciones",
-  "@comingSoonSubscriptionsTitle": {
-    "description": "Coming-soon screen title for subscriptions"
-  },
-  "comingSoonSubscriptionsBody": "Las suscripciones estarán disponibles pronto.",
-  "@comingSoonSubscriptionsBody": {
-    "description": "Coming-soon screen body for subscriptions"
-  },
-  "comingSoonPartyFinderTitle": "Party Finder",
-  "@comingSoonPartyFinderTitle": {
-    "description": "Coming-soon screen title for the party finder"
-  },
-  "comingSoonPartyFinderBody": "El Party Finder estará disponible pronto.",
-  "@comingSoonPartyFinderBody": {
-    "description": "Coming-soon screen body for the party finder"
   },
   "paywallHeader": "Suscripción",
   "@paywallHeader": {
@@ -1473,6 +1405,22 @@
   "notificationsTitle": "Notificaciones",
   "@notificationsTitle": {
     "description": "Notification center app bar title"
+  },
+  "notificationSettingsEventReminders": "Recordatorios de eventos",
+  "@notificationSettingsEventReminders": {
+    "description": "Notification preference toggle: event reminders"
+  },
+  "notificationSettingsFriendRequests": "Solicitudes de amistad",
+  "@notificationSettingsFriendRequests": {
+    "description": "Notification preference toggle: friend requests"
+  },
+  "notificationSettingsChatMessages": "Mensajes de chat",
+  "@notificationSettingsChatMessages": {
+    "description": "Notification preference toggle: chat messages"
+  },
+  "notificationSettingsShardsRank": "Shards y ranking",
+  "@notificationSettingsShardsRank": {
+    "description": "Notification preference toggle: shards and ranking updates"
   },
   "notificationsEmpty": "Sin notificaciones",
   "@notificationsEmpty": {
@@ -2161,14 +2109,6 @@
   "@cosmeticsEmptyCatalog": {
     "description": "Empty state on the cosmetics shop"
   },
-  "comingSoonCosmeticsTitle": "Cosméticos",
-  "@comingSoonCosmeticsTitle": {
-    "description": "Coming-soon screen title for the cosmetics shop"
-  },
-  "comingSoonCosmeticsBody": "Tu armario de cosméticos aparecerá aquí.",
-  "@comingSoonCosmeticsBody": {
-    "description": "Coming-soon screen body for the cosmetics shop"
-  },
   "minigamesTitle": "Juegos",
   "@minigamesTitle": {
     "description": "App bar title of the group minigames hub"
@@ -2291,14 +2231,6 @@
   "@minigamesDetailComingSoon": {
     "description": "Placeholder snackbar when tapping a session (per-game UIs are future work)"
   },
-  "comingSoonMinigamesTitle": "Juegos",
-  "@comingSoonMinigamesTitle": {
-    "description": "Coming-soon screen title for the minigames hub"
-  },
-  "comingSoonMinigamesBody": "Los mini-juegos de grupo estarán disponibles pronto.",
-  "@comingSoonMinigamesBody": {
-    "description": "Coming-soon screen body for the minigames hub"
-  },
   "shardsLedgerTitle": "Historial de shards",
   "@shardsLedgerTitle": {
     "description": "Shard & preshard ledger screen app bar title"
@@ -2412,8 +2344,61 @@
   "@preshardsReasonAdminGrant": {
     "description": "Preshard ledger reason: preshards granted by the Samay team"
   },
+  "eventsTabTitle": "Mis eventos",
+  "@eventsTabTitle": {
+    "description": "Events tab hero heading (R1 events sweep)"
+  },
+  "eventsCreateCta": "Crear evento",
+  "@eventsCreateCta": {
+    "description": "Events tab create-event CTA"
+  },
+  "eventsCreateCtaBody": "El evento se crea dentro de un grupo — elige uno en la pestaña Grupos.",
+  "@eventsCreateCtaBody": {
+    "description": "Events tab helper explaining that event creation lives in a group"
+  },
+  "eventsEmpty": "Aún no tienes eventos",
+  "@eventsEmpty": {
+    "description": "Events tab empty state heading"
+  },
+  "eventsEmptyBody": "Cuando te inviten o crees uno, aparecerá aquí.",
+  "@eventsEmptyBody": {
+    "description": "Events tab empty state body"
+  },
+  "featureUnavailableTitle": "No disponible",
+  "@featureUnavailableTitle": {
+    "description": "Neutral flag-gate fallback heading (no coming-soon copy)"
+  },
+  "featureUnavailableBody": "Esta función aún no está disponible.",
+  "@featureUnavailableBody": {
+    "description": "Neutral flag-gate fallback body"
+  },
+  "collageTitle": "Collage",
+  "@collageTitle": {
+    "description": "Event collage screen app bar title"
+  },
+  "collageEmpty": "Aún no hay fotos para el collage",
+  "@collageEmpty": {
+    "description": "Event collage empty state heading"
+  },
+  "collageEmptyBody": "El collage se arma solo con las fotos del evento.",
+  "@collageEmptyBody": {
+    "description": "Event collage empty state body"
+  },
+  "collagePhotoCount": "{count} fotos",
+  "@collagePhotoCount": {
+    "description": "Event collage photo count label",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "connectivityOfflineBanner": "Sin conexión — los datos podrían no estar actualizados",
   "@connectivityOfflineBanner": {
     "description": "Global banner shown while the device has no network connection (I-67)"
+  },
+  "crashRecoveryBannerTitle": "La app se recuperó de un cierre inesperado",
+  "@crashRecoveryBannerTitle": {
+    "description": "Dismissible banner shown after the app recovered from a previous crash (LOG-03)"
   }
 }

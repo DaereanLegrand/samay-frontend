@@ -32,11 +32,13 @@ void handleFlutterError(FlutterErrorDetails details, CrashReporter reporter) {
   final stack = details.stack?.toString() ?? '';
   AppLogger.instance.error(message, stack);
   unawaited(AppLogger.instance.markCrash(message, stack));
-  unawaited(reporter.reportError(
-    details.exception,
-    details.stack ?? StackTrace.current,
-    context: const {'handler': 'flutterError'},
-  ));
+  unawaited(
+    reporter.reportError(
+      details.exception,
+      details.stack ?? StackTrace.current,
+      context: const {'handler': 'flutterError'},
+    ),
+  );
   FlutterError.presentError(details);
 }
 
@@ -60,11 +62,9 @@ bool handlePlatformError(
   final message = 'Unhandled error: $error';
   AppLogger.instance.error(message, stack.toString());
   unawaited(AppLogger.instance.markCrash(message, stack.toString()));
-  unawaited(reporter.reportError(
-    error,
-    stack,
-    context: const {'handler': 'platform'},
-  ));
+  unawaited(
+    reporter.reportError(error, stack, context: const {'handler': 'platform'}),
+  );
   return true;
 }
 
@@ -75,16 +75,15 @@ Future<void> main() async {
   // I-70: one reporter instance for the app's lifetime; stub mode (no
   // SENTRY_DSN dart-define) keeps reportError a logged no-op.
   final crashReporter = CrashReporter();
-  FlutterError.onError = (details) => handleFlutterError(details, crashReporter);
+  FlutterError.onError = (details) =>
+      handleFlutterError(details, crashReporter);
 
-  PlatformDispatcher.instance.onError =
-      (error, stack) => handlePlatformError(error, stack, crashReporter);
+  PlatformDispatcher.instance.onError = (error, stack) =>
+      handlePlatformError(error, stack, crashReporter);
 
   final recovered = await AppLogger.instance.recoverCrashMarker();
   if (recovered != null) {
     AppLogger.instance.warn('Recovered from a previous crash:\n$recovered');
-    // TODO(LOG-03): recovery UI ("Vive recovered from a previous crash"
-    // banner/dialog) is future work.
   }
 
   // SEC-10 / M-32 (I-26): encrypted Hive caches (config, photo URLs,
@@ -136,7 +135,9 @@ Future<void> main() async {
   runApp(
     UncontrolledProviderScope(
       container: container,
-      child: const SamayApp(),
+      // LOG-03: a recovered crash marker surfaces as the dismissible
+      // recovery banner (CrashRecoveryBanner inside SamayApp's builder).
+      child: SamayApp(recoveredFromCrash: recovered != null),
     ),
   );
 }

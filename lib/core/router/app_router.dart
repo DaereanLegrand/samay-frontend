@@ -25,10 +25,12 @@ import 'package:samay/features/profile/screens/edit_profile_screen.dart';
 import 'package:samay/features/profile/screens/settings_screen.dart';
 import 'package:samay/features/profile/screens/public_profile_screen.dart';
 import 'package:samay/features/profile/screens/delete_account_screen.dart';
+import 'package:samay/features/events/screens/create_event_screen.dart';
+import 'package:samay/features/events/screens/event_collage_screen.dart';
 import 'package:samay/features/events/screens/event_detail_screen.dart';
 import 'package:samay/features/events/screens/event_edit_screen.dart';
+import 'package:samay/features/events/screens/my_events_screen.dart';
 import 'package:samay/features/events/widgets/event_invite_route.dart';
-import 'package:samay/features/events/screens/create_event_screen.dart';
 import 'package:samay/features/feed/screens/feed_screen.dart';
 import 'package:samay/features/photos/screens/photo_gallery_screen.dart';
 import 'package:samay/features/chat/screens/chat_screen.dart';
@@ -52,7 +54,6 @@ import 'package:samay/features/qr/screens/qr_scanner_screen.dart';
 import 'package:samay/features/shards/screens/shard_ledger_screen.dart';
 import 'package:samay/features/subscriptions/screens/paywall_screen.dart';
 import 'package:samay/shared/widgets/route_error_screen.dart';
-import 'package:samay/shared/widgets/v_coming_soon.dart';
 import 'package:uuid/uuid.dart';
 
 /// Resolves a required path parameter, rendering [RouteErrorScreen] when it is
@@ -142,15 +143,12 @@ final routerProvider = Provider<GoRouter>((ref) {
       message: AppLocalizations.of(context).routerRouteNotFoundBody,
     ),
     routes: [
-      GoRoute(path: RoutePaths.welcome, builder: (_, _) => const WelcomeScreen()),
       GoRoute(
-        path: RoutePaths.banned,
-        builder: (_, _) => const BannedScreen(),
+        path: RoutePaths.welcome,
+        builder: (_, _) => const WelcomeScreen(),
       ),
-      GoRoute(
-        path: RoutePaths.login,
-        builder: (_, _) => const LoginScreen(),
-      ),
+      GoRoute(path: RoutePaths.banned, builder: (_, _) => const BannedScreen()),
+      GoRoute(path: RoutePaths.login, builder: (_, _) => const LoginScreen()),
       GoRoute(
         // U-14 R3: the dedicated password-recovery screen. Registered with
         // the other pre-auth routes (before the ShellRoute) so no parameter
@@ -228,10 +226,7 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: RoutePaths.mainFeed,
             pageBuilder: (context, state) => _tabPage(
               state,
-              const FlagGate(
-                flag: AppFeatureFlag.feed,
-                child: FeedScreen(),
-              ),
+              const FlagGate(flag: AppFeatureFlag.feed, child: FeedScreen()),
             ),
           ),
           GoRoute(
@@ -240,17 +235,15 @@ final routerProvider = Provider<GoRouter>((ref) {
                 _tabPage(state, const MyGroupsScreen()),
           ),
           GoRoute(
+            // I-69: the events tab is LIVE (R1 events sweep) but the flag
+            // stays wired as the kill-switch/remote-config knob — the real
+            // [MyEventsScreen] ships behind it.
             path: RoutePaths.mainEvents,
             pageBuilder: (context, state) => _tabPage(
               state,
-              FlagGate(
+              const FlagGate(
                 flag: AppFeatureFlag.events,
-                child: VComingSoonScreen(
-                  title: AppLocalizations.of(context).comingSoonEventsTitle,
-                  description:
-                      AppLocalizations.of(context).comingSoonEventsBody,
-                  icon: Icons.event,
-                ),
+                child: MyEventsScreen(),
               ),
             ),
           ),
@@ -289,69 +282,45 @@ final routerProvider = Provider<GoRouter>((ref) {
         ),
       ),
       GoRoute(
-        // EINV (I-66): the invite sub-screen placeholder, gated on the events
-        // flag (I-69) — dark-first, the disabled state keeps the localized
-        // coming-soon copy; the child is swapped for the real invite screen
-        // when EINV's share/management stack lands.
+        // EINV (I-66): the invite sub-screen, gated on the events flag
+        // (I-69) as the kill-switch knob — the child is the real
+        // [EventInviteRoute], which resolves the invite token (UUID event
+        // ids land on it too; EventInviteRoute's provider handles both).
         path: RoutePaths.eventInvite(':eventId'),
         builder: (context, state) => _screenForId(
           state,
           'eventId',
           (eventId) => FlagGate(
             flag: AppFeatureFlag.events,
-            fallback: VComingSoonScreen(
-              title: AppLocalizations.of(context).comingSoonEventInviteTitle,
-              description: AppLocalizations.of(context).comingSoonEventInviteBody,
-              icon: Icons.mail,
-            ),
-            child: VComingSoonScreen(
-              title: AppLocalizations.of(context).comingSoonEventInviteTitle,
-              description: AppLocalizations.of(context).comingSoonEventInviteBody,
-              icon: Icons.mail,
-            ),
+            child: EventInviteRoute(token: eventId),
           ),
           errorMessage: AppLocalizations.of(context).routerEventNotFound,
         ),
       ),
       GoRoute(
-        // PHUP (I-59): gated on the photoUpload flag (dark-first) — the
-        // disabled state keeps the previous localized coming-soon copy.
+        // PHUP (I-59): gated on the photoUpload flag as the kill-switch knob
+        // — the child is the real gallery.
         path: RoutePaths.eventPhotos(':eventId'),
         builder: (context, state) => _screenForId(
           state,
           'eventId',
           (eventId) => FlagGate(
             flag: AppFeatureFlag.photoUpload,
-            fallback: VComingSoonScreen(
-              title: AppLocalizations.of(context).comingSoonPhotosTitle,
-              description: AppLocalizations.of(context).comingSoonPhotosBody,
-              icon: Icons.photo,
-            ),
             child: PhotoGalleryScreen(eventId: eventId),
           ),
           errorMessage: AppLocalizations.of(context).routerEventNotFound,
         ),
       ),
       GoRoute(
-        // COLL (phase-08): the auto-collage placeholder, gated on the
-        // photoUpload flag (I-69) — the collage is a photos feature; the
-        // disabled state keeps the localized coming-soon copy.
+        // COLL (phase-08): the auto-collage, gated on the photoUpload flag
+        // as the kill-switch knob — the child is the real photo-wall screen.
         path: RoutePaths.eventCollage(':eventId'),
         builder: (context, state) => _screenForId(
           state,
           'eventId',
           (eventId) => FlagGate(
             flag: AppFeatureFlag.photoUpload,
-            fallback: VComingSoonScreen(
-              title: AppLocalizations.of(context).comingSoonCollageTitle,
-              description: AppLocalizations.of(context).comingSoonCollageBody,
-              icon: Icons.grid_view,
-            ),
-            child: VComingSoonScreen(
-              title: AppLocalizations.of(context).comingSoonCollageTitle,
-              description: AppLocalizations.of(context).comingSoonCollageBody,
-              icon: Icons.grid_view,
-            ),
+            child: EventCollageScreen(eventId: eventId),
           ),
           errorMessage: AppLocalizations.of(context).routerEventNotFound,
         ),
@@ -397,19 +366,13 @@ final routerProvider = Provider<GoRouter>((ref) {
         // shadowed by `/event/:eventId` (registered above) unless declared
         // BEFORE it; ECRT creates from group detail and public events are
         // reachable here via the visibility toggle. Gated on the events flag
-        // (dark-first): disabled keeps the previous coming-soon copy.
+        // as the kill-switch knob.
         path: RoutePaths.createGroupEvent(':groupId'),
         builder: (context, state) => _screenForId(
           state,
           'groupId',
           (groupId) => FlagGate(
             flag: AppFeatureFlag.events,
-            fallback: VComingSoonScreen(
-              title: AppLocalizations.of(context).comingSoonCreateEventTitle,
-              description:
-                  AppLocalizations.of(context).comingSoonCreateEventBody,
-              icon: Icons.event_note,
-            ),
             child: CreateEventScreen(groupId: groupId),
           ),
           errorMessage: AppLocalizations.of(context).routerGroupNotFound,
@@ -426,20 +389,15 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         // GMCR (I-63): the group minigames hub, gated on the minigames flag
-        // (dark-first) — the disabled state keeps the localized coming-soon
-        // copy. No static /minigames routes exist, so :groupId cannot be
-        // shadowed (registered after the group routes on purpose).
+        // as the kill-switch knob. No static /minigames routes exist, so
+        // :groupId cannot be shadowed (registered after the group routes on
+        // purpose).
         path: RoutePaths.minigames(':groupId'),
         builder: (context, state) => _screenForId(
           state,
           'groupId',
           (groupId) => FlagGate(
             flag: AppFeatureFlag.minigames,
-            fallback: VComingSoonScreen(
-              title: AppLocalizations.of(context).comingSoonMinigamesTitle,
-              description: AppLocalizations.of(context).comingSoonMinigamesBody,
-              icon: Icons.sports_esports,
-            ),
             child: MinigamesScreen(groupId: groupId),
           ),
           errorMessage: AppLocalizations.of(context).routerGroupNotFound,
@@ -452,24 +410,22 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         // I-69: chat is LIVE (I-38 E2EE) but the flag stays wired as the
         // kill-switch/remote-config knob — the disabled state restores the
-        // localized coming-soon copy.
+        // neutral FlagGate fallback.
         path: RoutePaths.chat(':chatId'),
         builder: (context, state) => _screenForId(
           state,
           'chatId',
           (chatId) => FlagGate(
             flag: AppFeatureFlag.chat,
-            fallback: VComingSoonScreen(
-              title: AppLocalizations.of(context).comingSoonChatTitle,
-              description: AppLocalizations.of(context).comingSoonChatBody,
-              icon: Icons.chat,
-            ),
             child: ChatScreen(chatId: chatId),
           ),
           errorMessage: AppLocalizations.of(context).routerChatNotFound,
         ),
       ),
-      GoRoute(path: RoutePaths.userSearch, builder: (_, _) => const SearchScreen()),
+      GoRoute(
+        path: RoutePaths.userSearch,
+        builder: (_, _) => const SearchScreen(),
+      ),
       GoRoute(
         path: RoutePaths.userProfile(':userId'),
         builder: (context, state) => _screenForId(
@@ -479,23 +435,26 @@ final routerProvider = Provider<GoRouter>((ref) {
           errorMessage: AppLocalizations.of(context).routerUserNotFound,
         ),
       ),
-      GoRoute(path: RoutePaths.friendsRequests, builder: (_, _) => const RequestsScreen()),
-      GoRoute(path: RoutePaths.friendsList, builder: (_, _) => const FriendsListScreen()),
-      GoRoute(path: RoutePaths.blockedUsers, builder: (_, _) => const BlockedUsersScreen()),
       GoRoute(
-        // QRAT/QRSC (I-57): gated on the qr flag (dark-first) — the disabled
-        // state keeps the previous localized coming-soon copy.
+        path: RoutePaths.friendsRequests,
+        builder: (_, _) => const RequestsScreen(),
+      ),
+      GoRoute(
+        path: RoutePaths.friendsList,
+        builder: (_, _) => const FriendsListScreen(),
+      ),
+      GoRoute(
+        path: RoutePaths.blockedUsers,
+        builder: (_, _) => const BlockedUsersScreen(),
+      ),
+      GoRoute(
+        // QRAT/QRSC (I-57): gated on the qr flag as the kill-switch knob.
         path: RoutePaths.qr(':eventId'),
         builder: (context, state) => _screenForId(
           state,
           'eventId',
           (eventId) => FlagGate(
             flag: AppFeatureFlag.qr,
-            fallback: VComingSoonScreen(
-              title: AppLocalizations.of(context).comingSoonQrTitle,
-              description: AppLocalizations.of(context).comingSoonQrBody,
-              icon: Icons.qr_code,
-            ),
             child: AttendanceQrScreen(eventId: eventId),
           ),
           errorMessage: AppLocalizations.of(context).routerEventNotFound,
@@ -508,19 +467,15 @@ final routerProvider = Provider<GoRouter>((ref) {
           'eventId',
           (eventId) => FlagGate(
             flag: AppFeatureFlag.qr,
-            fallback: VComingSoonScreen(
-              title: AppLocalizations.of(context).comingSoonScannerTitle,
-              description: AppLocalizations.of(context).comingSoonScannerBody,
-              icon: Icons.qr_code_scanner,
-            ),
             child: QrScannerScreen(eventId: eventId),
           ),
           errorMessage: AppLocalizations.of(context).routerEventNotFound,
         ),
       ),
       GoRoute(
-        // PLAN (I-61): gated on the subscriptions flag (dark-first) — the
-        // disabled state keeps the previous localized coming-soon copy.
+        // PLAN (I-61): gated on the subscriptions flag (dark-first — the
+        // disabled state renders the neutral FlagGate fallback while the
+        // RevenueCat SDK key is absent; purchases stay dark).
         path: RoutePaths.subscriptions,
         builder: (context, _) => const FlagGate(
           flag: AppFeatureFlag.subscriptions,
@@ -528,8 +483,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         ),
       ),
       GoRoute(
-        // PFND (I-60): gated on the partyFinder flag (dark-first) — the
-        // disabled state keeps the previous localized coming-soon copy.
+        // PFND (I-60): gated on the partyFinder flag as the kill-switch knob.
         path: RoutePaths.partyFinder,
         builder: (context, _) => const FlagGate(
           flag: AppFeatureFlag.partyFinder,
@@ -537,17 +491,12 @@ final routerProvider = Provider<GoRouter>((ref) {
         ),
       ),
       GoRoute(
-        // COSM (I-62): gated on the cosmeticsSection flag (dark-first) — the
-        // disabled state keeps the previous localized coming-soon copy.
+        // COSM (I-62): gated on the cosmeticsSection flag as the kill-switch
+        // knob.
         path: RoutePaths.cosmetics,
-        builder: (context, _) => FlagGate(
+        builder: (context, _) => const FlagGate(
           flag: AppFeatureFlag.cosmeticsSection,
-          fallback: VComingSoonScreen(
-            title: AppLocalizations.of(context).comingSoonCosmeticsTitle,
-            description: AppLocalizations.of(context).comingSoonCosmeticsBody,
-            icon: Icons.checkroom,
-          ),
-          child: const CosmeticsShopScreen(),
+          child: CosmeticsShopScreen(),
         ),
       ),
       GoRoute(
@@ -557,9 +506,18 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: RoutePaths.shardsLedger,
         builder: (_, _) => const ShardLedgerScreen(),
       ),
-      GoRoute(path: RoutePaths.settings, builder: (_, _) => const SettingsScreen()),
-      GoRoute(path: RoutePaths.deleteAccount, builder: (_, _) => const DeleteAccountScreen()),
-      GoRoute(path: RoutePaths.profileEdit, builder: (_, _) => const EditProfileScreen()),
+      GoRoute(
+        path: RoutePaths.settings,
+        builder: (_, _) => const SettingsScreen(),
+      ),
+      GoRoute(
+        path: RoutePaths.deleteAccount,
+        builder: (_, _) => const DeleteAccountScreen(),
+      ),
+      GoRoute(
+        path: RoutePaths.profileEdit,
+        builder: (_, _) => const EditProfileScreen(),
+      ),
     ],
   );
 });

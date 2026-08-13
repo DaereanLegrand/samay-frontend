@@ -9,6 +9,7 @@ import 'package:samay/core/providers/service_providers.dart';
 import 'package:samay/core/repositories/repository_providers.dart';
 import 'package:samay/core/router/route_paths.dart';
 import 'package:samay/features/groups/providers/groups_providers.dart';
+import 'package:samay/features/groups/widgets/group_events_tab.dart';
 import 'package:samay/features/groups/widgets/member_actions_sheet.dart';
 import 'package:samay/features/profile/widgets/profile_avatar.dart';
 import 'package:samay/l10n/app_localizations.dart';
@@ -367,10 +368,15 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen>
 
   Widget _buildChatTab() {
     final l10n = AppLocalizations.of(context);
+    // R2: group chat is not a dead-end — E2EE is 1:1-only for now
+    // (chat_service.dart: group fan-out is a later step, E2EE §9.6), so the
+    // tab explains where group chats will come from instead of promising
+    // nothing.
     return _scrollableTabBody(
       VEmptyView(
         icon: Icons.chat_bubble_outline,
-        title: l10n.groupsChatComingSoon,
+        title: l10n.groupsChatOneToOneTitle,
+        description: l10n.groupsChatOneToOneBody,
       ),
     );
   }
@@ -467,13 +473,9 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen>
   }
 
   Widget _buildEventsTab() {
-    final l10n = AppLocalizations.of(context);
-    return _scrollableTabBody(
-      VEmptyView(
-        icon: Icons.event_outlined,
-        title: l10n.groupsEventsComingSoon,
-      ),
-    );
+    // R2: the events tab lists the group's real events (loading/error/empty
+    // states included) — no more "Eventos próximamente" placeholder.
+    return GroupEventsTab(groupId: widget.groupId);
   }
 
   /// U-19 (§7.3): the tab area keeps a 120px minimum (`_minTabArea`) when the

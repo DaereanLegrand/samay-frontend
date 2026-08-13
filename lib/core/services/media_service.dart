@@ -27,14 +27,13 @@ class MediaService {
   /// path uses the `.png` extension regardless of the source format.
   Future<String> uploadGroupCover(Uint8List bytes) async {
     final processed = await ImageProcessor.compressBytes(bytes);
-    final path =
-        'group_covers/${DateTime.now().millisecondsSinceEpoch}.png';
+    final path = 'group_covers/${DateTime.now().millisecondsSinceEpoch}.png';
     await client.storage.from('groups').uploadBinary(path, processed);
     return client.storage.from('groups').getPublicUrl(path);
   }
 
-  /// Uploads an event cover into the `events` bucket and returns its public
-  /// URL (ECRT step 2 — I-54).
+  /// Uploads an event cover into the public `groups` bucket and returns its
+  /// public URL (ECRT step 2 — I-54; S-09 bucket bug fixed).
   ///
   /// Mirrors [uploadGroupCover]: the payload is downscaled client-side first
   /// ([ImageProcessor.compressBytes]) and the stored object is always a PNG.
@@ -42,12 +41,20 @@ class MediaService {
   /// creation form because `event_id` only exists after `createEvent` returns
   /// — the timestamped `event_covers/` layout is uploaded *before* the event
   /// row and its public URL is passed in as `events.cover_url`.
+  ///
+  /// The cover MUST live in the public `groups` bucket, not the private
+  /// `events` bucket (S-09/M-08 handoff): the `events` bucket is public=false
+  /// and serves only signed URLs, so `getPublicUrl` on it returns nothing —
+  /// and a signed URL would expire while `events.cover_url` is stored for the
+  /// event's lifetime. The `groups` bucket is public=true and its read
+  /// policy (`storage_objects_public_read_avatars_groups`) plus the own-row
+  /// INSERT policy (`storage_objects_insert_own`) cover this upload exactly
+  /// like [uploadGroupCover]'s.
   Future<String> uploadEventCover(Uint8List bytes) async {
     final processed = await ImageProcessor.compressBytes(bytes);
-    final path =
-        'event_covers/${DateTime.now().millisecondsSinceEpoch}.png';
-    await client.storage.from('events').uploadBinary(path, processed);
-    return client.storage.from('events').getPublicUrl(path);
+    final path = 'event_covers/${DateTime.now().millisecondsSinceEpoch}.png';
+    await client.storage.from('groups').uploadBinary(path, processed);
+    return client.storage.from('groups').getPublicUrl(path);
   }
 
   /// Uploads the current user's avatar into the `avatars` bucket and returns
@@ -61,8 +68,7 @@ class MediaService {
   /// I-36 daily log).
   Future<String> uploadUserAvatar(String userId, Uint8List bytes) async {
     final processed = await ImageProcessor.compressBytes(bytes);
-    final path =
-        'avatars/$userId/${DateTime.now().millisecondsSinceEpoch}.png';
+    final path = 'avatars/$userId/${DateTime.now().millisecondsSinceEpoch}.png';
     await client.storage.from('avatars').uploadBinary(path, processed);
     return client.storage.from('avatars').getPublicUrl(path);
   }
@@ -114,7 +120,9 @@ class MediaService {
   }
 
   Future<String> getSignedPhotoUrl(String storagePath) async {
-    final res = await client.storage.from('events').createSignedUrl(storagePath, 3600);
+    final res = await client.storage
+        .from('events')
+        .createSignedUrl(storagePath, 3600);
     return res;
   }
 

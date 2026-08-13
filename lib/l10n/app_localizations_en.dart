@@ -471,7 +471,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get groupsCreateEvent => 'Create event';
 
   @override
-  String get groupsChatComingSoon => 'Chat coming soon';
+  String get groupsChatOneToOneTitle => 'Chats are 1:1 for now';
+
+  @override
+  String get groupsChatOneToOneBody =>
+      'Group chats will be enabled from the messages list.';
 
   @override
   String get groupsNoMembers => 'No members';
@@ -490,7 +494,11 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get groupsEventsComingSoon => 'Events coming soon';
+  String get groupsEventsEmptyTitle => 'No events in this group';
+
+  @override
+  String get groupsEventsEmptyBody =>
+      'Create the group\'s first event with the Create event button.';
 
   @override
   String get groupsConfirmLeave => 'Are you sure?';
@@ -610,6 +618,21 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsSectionAccount => 'Account';
 
   @override
+  String get settingsPrivacyPolicyBody =>
+      'Your personal data is used only to operate Samay: sign you in, keep your groups and events running, and protect the community. It is never sold or shared with third parties for advertising.';
+
+  @override
+  String get settingsServiceTermsBody =>
+      'By using Samay you agree to behave respectfully: no harassment, no spam, and no inappropriate content. Misuse may lead to account suspension.';
+
+  @override
+  String get notificationSettingsTitle => 'Notification preferences';
+
+  @override
+  String get notificationSettingsLocalNote =>
+      'These preferences are saved on this device.';
+
+  @override
   String get profileBio => 'Bio';
 
   @override
@@ -680,7 +703,23 @@ class AppLocalizationsEn extends AppLocalizations {
   String get profileAddFriend => 'Add friend';
 
   @override
-  String get profileReportComingSoon => 'Reporting will be implemented soon';
+  String get profileReportTitle => 'Report user';
+
+  @override
+  String get profileReportReasonHarassment => 'Harassment or abuse';
+
+  @override
+  String get profileReportReasonSpam => 'Spam';
+
+  @override
+  String get profileReportReasonInappropriate => 'Inappropriate content';
+
+  @override
+  String get profileReportReasonOther => 'Other reason';
+
+  @override
+  String get profileReportSent =>
+      'Thanks for reporting. We\'ll review it soon.';
 
   @override
   String get profileUserBlocked => 'User blocked';
@@ -756,99 +795,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get comingSoonBack => 'Back';
-
-  @override
-  String get comingSoonEventsTitle => 'Events';
-
-  @override
-  String get comingSoonEventsBody =>
-      'Your groups\' events will appear here soon.';
-
-  @override
-  String get comingSoonNotificationsTitle => 'Notifications';
-
-  @override
-  String get comingSoonNotificationsBody =>
-      'Your notifications will appear here soon.';
-
-  @override
-  String get comingSoonEventTitle => 'Event';
-
-  @override
-  String get comingSoonEventBody => 'Event details will be available soon.';
-
-  @override
-  String get comingSoonEditEventTitle => 'Edit event';
-
-  @override
-  String get comingSoonEditEventBody => 'Event editing will be available soon.';
-
-  @override
-  String get comingSoonEventInviteTitle => 'Invite';
-
-  @override
-  String get comingSoonEventInviteBody =>
-      'Event invitations will be available soon.';
-
-  @override
-  String get comingSoonPhotosTitle => 'Photos';
-
-  @override
-  String get comingSoonPhotosBody => 'Event photos will be available soon.';
-
-  @override
-  String get comingSoonCollageTitle => 'Collage';
-
-  @override
-  String get comingSoonCollageBody =>
-      'The photo collage will be available soon.';
-
-  @override
-  String get comingSoonInvitationTitle => 'Invitation';
-
-  @override
-  String get comingSoonInvitationBody =>
-      'Event invitations will appear here soon.';
-
-  @override
-  String get comingSoonCreateEventTitle => 'Create event';
-
-  @override
-  String get comingSoonCreateEventBody =>
-      'Event creation will be available soon.';
-
-  @override
-  String get comingSoonChatTitle => 'Chat';
-
-  @override
-  String get comingSoonChatBody => 'The chat will be available soon.';
-
-  @override
-  String get comingSoonQrTitle => 'QR';
-
-  @override
-  String get comingSoonQrBody => 'The event QR code will be available soon.';
-
-  @override
-  String get comingSoonScannerTitle => 'Scanner';
-
-  @override
-  String get comingSoonScannerBody =>
-      'The QR code scanner will be available soon.';
-
-  @override
-  String get comingSoonSubscriptionsTitle => 'Subscriptions';
-
-  @override
-  String get comingSoonSubscriptionsBody =>
-      'Subscriptions will be available soon.';
-
-  @override
-  String get comingSoonPartyFinderTitle => 'Party Finder';
-
-  @override
-  String get comingSoonPartyFinderBody =>
-      'The Party Finder will be available soon.';
 
   @override
   String get paywallHeader => 'Subscription';
@@ -1111,6 +1057,18 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get notificationsTitle => 'Notifications';
+
+  @override
+  String get notificationSettingsEventReminders => 'Event reminders';
+
+  @override
+  String get notificationSettingsFriendRequests => 'Friend requests';
+
+  @override
+  String get notificationSettingsChatMessages => 'Chat messages';
+
+  @override
+  String get notificationSettingsShardsRank => 'Shards and ranking';
 
   @override
   String get notificationsEmpty => 'No notifications';
@@ -1624,13 +1582,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get cosmeticsEmptyCatalog => 'No cosmetics available yet';
 
   @override
-  String get comingSoonCosmeticsTitle => 'Cosmetics';
-
-  @override
-  String get comingSoonCosmeticsBody =>
-      'Your cosmetics collection will appear here.';
-
-  @override
   String get minigamesTitle => 'Games';
 
   @override
@@ -1725,13 +1676,6 @@ class AppLocalizationsEn extends AppLocalizations {
       'The game will be playable here soon.';
 
   @override
-  String get comingSoonMinigamesTitle => 'Games';
-
-  @override
-  String get comingSoonMinigamesBody =>
-      'Group mini-games will be available soon.';
-
-  @override
   String get shardsLedgerTitle => 'Shards ledger';
 
   @override
@@ -1817,6 +1761,48 @@ class AppLocalizationsEn extends AppLocalizations {
   String get preshardsReasonAdminGrant => 'Granted by Samay';
 
   @override
+  String get eventsTabTitle => 'My events';
+
+  @override
+  String get eventsCreateCta => 'Create event';
+
+  @override
+  String get eventsCreateCtaBody =>
+      'Events are created inside a group — pick one in the Groups tab.';
+
+  @override
+  String get eventsEmpty => 'No events yet';
+
+  @override
+  String get eventsEmptyBody =>
+      'Invitations and events you create will show up here.';
+
+  @override
+  String get featureUnavailableTitle => 'Unavailable';
+
+  @override
+  String get featureUnavailableBody => 'This feature is not available yet.';
+
+  @override
+  String get collageTitle => 'Collage';
+
+  @override
+  String get collageEmpty => 'No photos for the collage yet';
+
+  @override
+  String get collageEmptyBody =>
+      'The collage builds itself from the event\'s photos.';
+
+  @override
+  String collagePhotoCount(int count) {
+    return '$count photos';
+  }
+
+  @override
   String get connectivityOfflineBanner =>
       'No connection — data might not be up to date';
+
+  @override
+  String get crashRecoveryBannerTitle =>
+      'The app recovered from an unexpected shutdown';
 }
