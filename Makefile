@@ -259,7 +259,13 @@ dev:
 		flutter run $(PUB_FLAG) $(FLUTTER_DEFINES) -d "$$DEV"; \
 	elif [ "$(TARGET)" = "ios-adhoc" ]; then \
 		make build TARGET=ios-adhoc NO_PUB=$(NO_PUB) && \
-		make install TARGET=ios-adhoc NO_PUB=$(NO_PUB); \
+		make install TARGET=ios-adhoc NO_PUB=$(NO_PUB) && \
+		DEVICE=$$(idevice_id -l 2>/dev/null | head -1); \
+		if [ -n "$$DEVICE" ]; then \
+			xcrun devicectl device process launch --device "$$DEVICE" "$(APP_ID)" && \
+			echo "✅  Launched $(APP_ID) on device $$DEVICE" || \
+			echo "⚠️  Installed, but could not launch $(APP_ID) on device (already running?)"; \
+		fi; \
 	elif [ -n "$(TARGET)" ]; then \
 		flutter run $(PUB_FLAG) $(FLUTTER_DEFINES) -d "$(TARGET)"; \
 	else \
