@@ -41,10 +41,16 @@ IOS_DEVELOPMENT_TEAM ?= $(shell sed -n 's/^IOS_DEVELOPMENT_TEAM=//p' .env.local 
 
 
 # SSH tunnel config (MKE-08 — remote-device adb, Juega pattern).
-TUNNEL_HOST   ?= <build-host>
-TUNNEL_PORT   ?= 5555
-TUNNEL_CMD    ?= flutter run $(PUB_FLAG) $(FLUTTER_DEFINES) -d localhost:$(TUNNEL_PORT)
-TUNNEL_WAYDROID_CMD ?= flutter run $(PUB_FLAG) $(FLUTTER_DEFINES) -d localhost:$(TUNNEL_PORT)
+#
+# Port scheme: EVERY (repo, target) pair uses its own LOCAL port so waydroid
+# AND android (emulator) can tunnel at the same time, and Juega (5555/5556)
+# and Vive (5565/5566) can tunnel concurrently from the same Mac. The
+# <build-host>-side device ports stay 5555 (emulator adbd / waydroid adbd).
+TUNNEL_HOST          ?= <build-host>
+TUNNEL_ANDROID_PORT  ?= 5565
+TUNNEL_WAYDROID_PORT ?= 5566
+TUNNEL_CMD    ?= flutter run $(PUB_FLAG) $(FLUTTER_DEFINES) -d localhost:$(TUNNEL_ANDROID_PORT)
+TUNNEL_WAYDROID_CMD ?= flutter run $(PUB_FLAG) $(FLUTTER_DEFINES) -d localhost:$(TUNNEL_WAYDROID_PORT)
 
 # Juega-pattern tunnel helpers (macOS → <build-host>): `dev`/`install`/`clear-storage`
 # route TARGET=android|waydroid through these on Darwin; non-Darwin hosts run
@@ -54,18 +60,18 @@ TUNNEL_WAYDROID_CMD ?= flutter run $(PUB_FLAG) $(FLUTTER_DEFINES) -d localhost:$
 # (<build-host> — e.g. Tailscale) — adb auth only works over the LAN path.
 define tunnel-android
   HOST="$(TUNNEL_HOST)"; [ -n "$$HOST" ] || { echo "TUNNEL_HOST is required"; exit 2; }; \
-  (trap 'adb disconnect localhost:$(TUNNEL_PORT); kill 0' EXIT; \
-   ssh -N -L $(TUNNEL_PORT):127.0.0.1:$(TUNNEL_PORT) "$$HOST" & sleep 1; \
-   adb connect localhost:$(TUNNEL_PORT); \
+  (trap 'adb disconnect localhost:$(TUNNEL_ANDROID_PORT); kill 0' EXIT; \
+   ssh -N -L $(TUNNEL_ANDROID_PORT):127.0.0.1:5555 "$$HOST" & sleep 1; \
+   adb connect localhost:$(TUNNEL_ANDROID_PORT); \
    $(1))
 endef
 
 define tunnel-waydroid
   HOST="$(TUNNEL_HOST)"; [ -n "$$HOST" ] || { echo "TUNNEL_HOST is required"; exit 2; }; \
   WIP=$$(ssh "$$HOST" "waydroid status | awk '/IP address/ {print \$$3}'"); \
-  (trap 'adb disconnect localhost:$(TUNNEL_PORT); kill 0' EXIT; \
-   ssh -N -L $(TUNNEL_PORT):$$WIP:$(TUNNEL_PORT) "$$HOST" & sleep 1; \
-   adb connect localhost:$(TUNNEL_PORT); \
+  (trap 'adb disconnect localhost:$(TUNNEL_WAYDROID_PORT); kill 0' EXIT; \
+   ssh -N -L $(TUNNEL_WAYDROID_PORT):$$WIP:5555 "$$HOST" & sleep 1; \
+   adb connect localhost:$(TUNNEL_WAYDROID_PORT); \
    $(1))
 endef
 
@@ -222,9 +228,9 @@ dev:
 	$(load-env)
 	@UNAME=$$(uname); \
 	if [ "$$UNAME" = "Darwin" ] && [ "$(TARGET)" = "android" ]; then \
-		$(call tunnel-android, flutter run $(PUB_FLAG) $(FLUTTER_DEFINES) -d localhost:$(TUNNEL_PORT)); \
+		$(call tunnel-android, flutter run $(PUB_FLAG) $(FLUTTER_DEFINES) -d localhost:$(TUNNEL_ANDROID_PORT)); \
 	elif [ "$$UNAME" = "Darwin" ] && [ "$(TARGET)" = "waydroid" ]; then \
-		$(call tunnel-waydroid, flutter run $(PUB_FLAG) $(FLUTTER_DEFINES) -d localhost:$(TUNNEL_PORT)); \
+		$(call tunnel-waydroid, flutter run $(PUB_FLAG) $(FLUTTER_DEFINES) -d localhost:$(TUNNEL_WAYDROID_PORT)); \
 	elif [ "$(TARGET)" = "waydroid" ]; then \
 		IP=$$(waydroid status | awk '/IP address:/ {print $$3}'); \
 		adb connect "$$IP:5555"; \
@@ -257,9 +263,9 @@ install:
 	$(load-env)
 	@UNAME=$$(uname); \
 	if [ "$$UNAME" = "Darwin" ] && [ "$(TARGET)" = "android" ]; then \
-		$(call tunnel-android, adb -s localhost:$(TUNNEL_PORT) install -r $(APK)); \
+		$(call tunnel-android, adb -s localhost:$(TUNNEL_ANDROID_PORT) install -r $(APK)); \
 	elif [ "$$UNAME" = "Darwin" ] && [ "$(TARGET)" = "waydroid" ]; then \
-		$(call tunnel-waydroid, adb -s localhost:$(TUNNEL_PORT) install -r $(APK)); \
+		$(call tunnel-waydroid, adb -s localhost:$(TUNNEL_WAYDROID_PORT) install -r $(APK)); \
 	elif [ "$(TARGET)" = "ios" ] || [ "$(TARGET)" = "ios-adhoc" ]; then \
 		if [ ! -f "$(IPA_ADHOC)" ]; then \
 			echo "❌  IPA not found at $(IPA_ADHOC). Run 'make build TARGET=ios-adhoc' first (fastlane adhoc_local — the AltServer sideload path was removed)."; \
@@ -306,9 +312,9 @@ install:
 clear-storage:
 	@UNAME=$$(uname); \
 	if [ "$$UNAME" = "Darwin" ] && [ "$(TARGET)" = "android" ]; then \
-		$(call tunnel-android, adb -s localhost:$(TUNNEL_PORT) shell pm clear com.qallariy.samay); \
+		$(call tunnel-android, adb -s localhost:$(TUNNEL_ANDROID_PORT) shell pm clear com.qallariy.samay); \
 	elif [ "$$UNAME" = "Darwin" ] && [ "$(TARGET)" = "waydroid" ]; then \
-		$(call tunnel-waydroid, adb -s localhost:$(TUNNEL_PORT) shell pm clear com.qallariy.samay); \
+		$(call tunnel-waydroid, adb -s localhost:$(TUNNEL_WAYDROID_PORT) shell pm clear com.qallariy.samay); \
 	elif [ "$(TARGET)" = "waydroid" ]; then \
 		IP=$$(waydroid status | awk '/IP address:/ {print $$3}'); \
 		adb connect "$$IP:5555" && adb -s "$$IP:5555" shell pm clear com.qallariy.samay; \
@@ -359,9 +365,9 @@ flutter-test:
 test-integration:
 	@UNAME=$$(uname); \
 	if [ "$$UNAME" = "Darwin" ] && [ "$(TARGET)" = "android" ]; then \
-		$(call tunnel-android, flutter test integration_test/ -d localhost:$(TUNNEL_PORT)); \
+		$(call tunnel-android, flutter test integration_test/ -d localhost:$(TUNNEL_ANDROID_PORT)); \
 	elif [ "$$UNAME" = "Darwin" ] && [ "$(TARGET)" = "waydroid" ]; then \
-		$(call tunnel-waydroid, flutter test integration_test/ -d localhost:$(TUNNEL_PORT)); \
+		$(call tunnel-waydroid, flutter test integration_test/ -d localhost:$(TUNNEL_WAYDROID_PORT)); \
 	elif [ "$(TARGET)" = "waydroid" ]; then \
 		IP=$$(waydroid status | awk '/IP address:/ {print $$3}'); \
 		adb connect "$$IP:5555"; \
@@ -523,24 +529,24 @@ supabase-testing-reset:
 # ── Remote-device tunnel (MKE-08 / M-13) ─────────────────────────────────────
 # SSH-forward adb from a remote host that has a device attached (Juega
 # pattern, read-only reference). Usage:
-#   make tunnel-android                                   # default: <build-host>:5555 → flutter run
-#   make tunnel-android TUNNEL_HOST=ci-box TUNNEL_PORT=5555
-#   make tunnel-android TUNNEL_CMD="adb -s localhost:5555 install -r build/app/outputs/flutter-apk/app-release.apk"
+#   make tunnel-android                                   # default: <build-host> → flutter run
+#   make tunnel-android TUNNEL_HOST=ci-box TUNNEL_ANDROID_PORT=5565
+#   make tunnel-android TUNNEL_CMD="adb -s localhost:5565 install -r build/app/outputs/flutter-apk/app-release.apk"
 tunnel-android:
 	@HOST="$(TUNNEL_HOST)"; [ -n "$$HOST" ] || { echo "TUNNEL_HOST is required"; exit 2; }; \
-		(trap 'adb disconnect localhost:$(TUNNEL_PORT); kill 0' EXIT; \
-		ssh -N -L $(TUNNEL_PORT):127.0.0.1:$(TUNNEL_PORT) "$$HOST" & sleep 1; \
-		adb connect localhost:$(TUNNEL_PORT); \
+		(trap 'adb disconnect localhost:$(TUNNEL_ANDROID_PORT); kill 0' EXIT; \
+		ssh -N -L $(TUNNEL_ANDROID_PORT):127.0.0.1:5555 "$$HOST" & sleep 1; \
+		adb connect localhost:$(TUNNEL_ANDROID_PORT); \
 		$(TUNNEL_CMD))
 
 # Waydroid variant: forwards the <build-host>'s waydroid adb port (resolved via
-# `ssh <build-host> "waydroid status"`) into localhost:$(TUNNEL_PORT). Juega parity.
+# `ssh <build-host> "waydroid status"`) into localhost:$(TUNNEL_WAYDROID_PORT).
 tunnel-waydroid:
 	@HOST="$(TUNNEL_HOST)"; [ -n "$$HOST" ] || { echo "TUNNEL_HOST is required"; exit 2; }; \
 		WIP=$$(ssh "$$HOST" "waydroid status | awk '/IP address/ {print \$$3}'"); \
-		(trap 'adb disconnect localhost:$(TUNNEL_PORT); kill 0' EXIT; \
-		ssh -N -L $(TUNNEL_PORT):$$WIP:$(TUNNEL_PORT) "$$HOST" & sleep 1; \
-		adb connect localhost:$(TUNNEL_PORT); \
+		(trap 'adb disconnect localhost:$(TUNNEL_WAYDROID_PORT); kill 0' EXIT; \
+		ssh -N -L $(TUNNEL_WAYDROID_PORT):$$WIP:5555 "$$HOST" & sleep 1; \
+		adb connect localhost:$(TUNNEL_WAYDROID_PORT); \
 		$(TUNNEL_WAYDROID_CMD))
 
 # ── Secrets gate (MKE-02 / MKE-03, M-13) ─────────────────────────────────────
