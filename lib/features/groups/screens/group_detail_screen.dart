@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:samay/core/config/feature_flags.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/core/design_tokens/app_gradients.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
@@ -340,6 +341,17 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen>
                                   ),
                                 ),
                               ),
+                              if (ref.isEnabled(AppFeatureFlag.minigames)) ...[
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: VButton(
+                                    label: l10n.minigamesTitle,
+                                    onPressed: () => context.push(
+                                      RoutePaths.minigames(widget.groupId),
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ],
                           ),
                         ],

@@ -24,8 +24,10 @@ Key mechanics (from specs):
   categories: Eventos, Chat, Social, Juegos, Economía, Promociones.
 - Secrets/placeholders in `.env.example`: `PUSHER_BEAMS_INSTANCE_ID`,
   `PUSHER_BEAMS_SECRET_KEY` — never hardcode.
-- Note: `lib/core/services/supabase_service.dart` already has `getNotifications`,
-  `markNotificationRead`, `subscribeToNotifications`.
+- Note: `lib/core/services/notification_service.dart` already has `getNotifications`,
+  `markNotificationRead`, `subscribeToNotifications` (realtime stream rides
+  `lib/core/providers/realtime_provider.dart`; the `supabase_service.dart` facade
+  was deleted by I-78).
 
 ## Steps & dependency status (cross-references.md, verified 2026-08-09)
 
@@ -33,11 +35,11 @@ Key mechanics (from specs):
 |------|-------------|------------|-------------|
 | `NOTI` | `AUTH`⚠️, `SBAS`✅, `DATA`✅ | 3/3 green | ✅ **Done (I-53, 2026-08-09)** — notification center at `/main/notifications` (real screen + providers + tests) |
 | `PUSH` | `NOTI`✅, `INFR`✅ (Pusher Beams) | 2/2 green | ❌ No code |
-| `NTRG` | `PUSH`❌, `DATA`✅ | 1/2 green | ❌ No code |
+| `NTRG` | `PUSH`❌, `DATA`✅ | 1/2 green | ⚠️ **8/16 dispatch points live (e0eab3c, 2026-08-13)** — `20260814000005_notification_triggers.sql`: 8 SECURITY DEFINER `notify_*` triggers (event invite/friend request/event live/cancelled/attendance/new message E2EE-safe generic body/minigame invite/feature request) write in-app rows via the guarded `insert_notification` helper; push + per-user preference check pending |
 
 ## Orchestration agents starting here
 
-| Agent | Scope (per ORCHESTRATION.md / FILE-OWNERSHIP.md) |
+| Agent | Scope (per **docs/process/DEVELOPMENT-WORKFLOW.md** / FILE-OWNERSHIP.md) |
 |-------|--------------------------------------------------|
 | I-53 | ✅ Done (2026-08-09) — `lib/features/notifications/notification_center_screen.dart` + `notifications_providers.dart`, router swap, 27 unit/widget tests, hermetic integration flow. See `2026-08-09_I53-notification-center.md` |
 | I-49/I-50/I-51 | Feature flags / repositories / typed REST client |

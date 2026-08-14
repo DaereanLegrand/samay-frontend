@@ -30,8 +30,8 @@ Key mechanics (from specs):
 
 | Step | Direct deps | Dep status | Step status |
 |------|-------------|------------|-------------|
-| `ECRT` | `AUTH`⚠️, `GROU`⚠️, `SBAS`✅, `DSNG`✅, `DATA`✅, `ROUT`✅ | 4/6 green | ❌ No code |
-| `EDET` | `ECRT`❌, `SBAS`✅, `DSNG`✅ | — | 🔄 I-55 landed the screens (2026-08-09); ECRT still has no code, so EDET's data layer is provider/service-only (fixtures in tests) — server-side cancel pool-return + invitee/QR actions deferred to EEDG/EINV/ESTA |
+| `ECRT` | `AUTH`⚠️, `GROU`⚠️, `SBAS`✅, `DSNG`✅, `DATA`✅, `ROUT`✅ | 4/6 green | ✅ **Landed (I-54, 2026-08-09)** — `create_event_screen.dart` + `event_form_data.dart` + `events_providers.dart` wired to `/group/:groupId/create-event`; `createEvent` does the 3-table insert + `invite_token` + `dynamic_qr_enabled` derivation; daily-limit check + static QR rendering still open (EEDG/EINV/I-55 — see acceptance at :65-78) |
+| `EDET` | `ECRT`❌, `SBAS`✅, `DSNG`✅ | — | 🔄 I-55 landed the screens (2026-08-09); ECRT foundation landed (I-54) and EDET's data layer is provider/service-only (fixtures in tests) — server-side cancel pool-return + invitee/QR actions deferred to EEDG/EINV/ESTA |
 | `ESTA` | `ECRT`❌, `EEDG`❌, `DATA`✅ | — | ❌ No code, blocked by `EEDG` |
 | `EINV` | `ECRT`❌, `ROUT`✅, `DSNG`✅ | — | ❌ No code |
 | `EEDG` | `DATA`✅, `INFR`✅, `CRON`✅ | 3/3 green | ❌ No Edge Functions (`supabase/functions/` absent) |
@@ -42,7 +42,7 @@ but AUTH's missing pieces (avatar upload, OTP UX) are not ECRT blockers either.
 
 ## Orchestration agents starting here (I-49..I-78)
 
-| Agent | Scope (per ORCHESTRATION.md / FILE-OWNERSHIP.md) |
+| Agent | Scope (per **docs/process/DEVELOPMENT-WORKFLOW.md** / FILE-OWNERSHIP.md) |
 |-------|--------------------------------------------------|
 | I-49 | Feature flags + release gating provider (pre-req for gated shipping) |
 | I-50 | Repository layer (providers → repos → services) |

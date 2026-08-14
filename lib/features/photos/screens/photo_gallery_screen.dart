@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:go_router/go_router.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/core/design_tokens/app_gradients.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
@@ -9,6 +10,7 @@ import 'package:samay/core/extensions/error_mapper.dart';
 import 'package:samay/core/models/event_photo.dart';
 import 'package:samay/core/providers/config_provider.dart';
 import 'package:samay/core/services/permission_service.dart';
+import 'package:samay/core/router/route_paths.dart';
 import 'package:samay/features/events/providers/events_providers.dart';
 import 'package:samay/features/photos/providers/photos_providers.dart';
 import 'package:samay/l10n/app_localizations.dart';
@@ -159,6 +161,17 @@ class _PhotoGalleryScreenState extends ConsumerState<PhotoGalleryScreen> {
                       color: _family.colors[1],
                     ),
             ),
+          // Plugged gallery (2026-08-13): the collage auto-wall entry.
+          IconButton(
+            key: const ValueKey('photos-wall-button'),
+            tooltip: l10n.collageTitle,
+            onPressed: () =>
+                context.push(RoutePaths.eventCollage(widget.eventId)),
+            icon: Icon(
+              Icons.grid_view_outlined,
+              color: _family.colors[1],
+            ),
+          ),
         ],
       ),
       body: Column(

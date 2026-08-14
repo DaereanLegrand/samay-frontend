@@ -352,6 +352,9 @@ class AppLocalizationsEs extends AppLocalizations {
   String get friendsStatusAccepted => 'Amigos';
 
   @override
+  String get profileMessage => 'Mensaje';
+
+  @override
   String get friendsStatusPending => 'Solicitado';
 
   @override
@@ -1589,6 +1592,23 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get minigamesTitle => 'Juegos';
+
+  @override
+  String get homeGamesTitle => 'Juegos';
+
+  @override
+  String get homePartyFinderBody =>
+      'Encuentra personas que compartan tus intereses';
+
+  @override
+  String get minigamesChooseGroup => 'Elige un grupo';
+
+  @override
+  String get minigamesNoGroups => 'Aún no tienes grupos';
+
+  @override
+  String get minigamesNoGroupsBody =>
+      'Únete o crea un grupo para jugar con tus amigos.';
 
   @override
   String get minigamesPickGame => 'Elige un juego';

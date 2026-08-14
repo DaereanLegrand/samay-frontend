@@ -610,8 +610,8 @@ migrate-check:
 # SMTP: commented out by now — Samay email is not wired yet (compose holds a
 # placeholder GOTRUE_SMTP_PASS + GOTRUE_MAILER_AUTOCONFIRM=true, so local
 # signups complete without a mail server). Uncomment the `pass` unlock lines
-# once SMTP creds are provisioned:
-#   SMTP_PASS=$$(pass mail/samayverif@qallariy.lat) docker compose up -d --wait
+# once SMTP creds are provisioned (real inbox at release — placeholder domain):
+#   SMTP_PASS=$$(pass mail/samayverif@samay.example.com) docker compose up -d --wait
 # (Juega also runs `SELECT public.update_daily_prisma_seed();` after up — no
 # such function exists for Samay yet, so it is omitted.)
 supabase-start:

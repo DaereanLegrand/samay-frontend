@@ -34,13 +34,13 @@ Key mechanics (from specs):
 
 | Step | Direct deps | Dep status | Step status |
 |------|-------------|------------|-------------|
-| `PFND` | `FRND`✅, `PRFL`⚠️, `CHAT`❌, `AUTH`⚠️, `DSNG`✅ | 2/5 green | ❌ No code (`/party-finder` = coming-soon; interest tags deferred from PRFL) |
+| `PFND` | `FRND`✅, `PRFL`⚠️, `CHAT`❌, `AUTH`⚠️, `DSNG`✅ | 2/5 green | ✅ **Landed (I-60, 2026-08-09)** — `party_finder_screen.dart` + `party_finder_providers.dart` + `UserService.findMatches/getDiscoveryOptIn/setDiscoveryOptIn/getMyInterestTags`; `/party-finder` real screen (still flag-gated/dark); `users.interest_tags` + `discovery_opt_in` + `discovery_view` migration `20260809000004`; interest-tags wiring into edit-profile save deferred (PRFL gap) |
 | `VIDS` | `PHUP`❌, `FLUT`✅, `DSNG`✅ | 2/3 green | ❌ No code |
 | `MUSC` | `VIDS`❌ | 0/1 green | ❌ No `assets/music/` |
 
 ## Orchestration agents starting here
 
-| Agent | Scope (per ORCHESTRATION.md / FILE-OWNERSHIP.md) |
+| Agent | Scope (per **docs/process/DEVELOPMENT-WORKFLOW.md** / FILE-OWNERSHIP.md) |
 |-------|--------------------------------------------------|
 | I-60 | `lib/features/party_finder/party_finder_screen.dart` (foundation) — ✅ **DONE 2026-08-09**: PFND foundation landed (see `2026-08-09_I60-party-finder.md`): migration `20260809000004` (`users.interest_tags` + `users.discovery_opt_in` + `discovery_view` security barrier, pgTAP §43), `UserService.findMatches/getDiscoveryOptIn/setDiscoveryOptIn/getMyInterestTags`, `party_finder_providers.dart` (opt-in + matches), `party_finder_screen.dart` (opt-in toggle + match cards + block), route `/party-finder` flag-gated (`partyFinder`, still dark by default). CHAT dep (`Enviar mensaje` → direct chat) NOT wired — deferred to I-56/I-38 per PLAN. |
 | I-56/I-38 | Chat screen + E2EE (direct chat from PFND match cards depends on CHAT) |

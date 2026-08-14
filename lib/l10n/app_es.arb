@@ -454,6 +454,10 @@
     "description": "Empty state when the user search matches nothing"
   },
   "friendsStatusAccepted": "Amigos",
+  "profileMessage": "Mensaje",
+  "@profileMessage": {
+    "description": "Botón que abre el chat directo E2EE con un amigo desde su perfil público"
+  },
   "@friendsStatusAccepted": {
     "description": "Friendship status label for accepted friends"
   },
@@ -2110,6 +2114,26 @@
     "description": "Empty state on the cosmetics shop"
   },
   "minigamesTitle": "Juegos",
+  "homeGamesTitle": "Juegos",
+  "@homeGamesTitle": {
+    "description": "Sección de acceso rápido a los juegos al tope del feed principal"
+  },
+  "homePartyFinderBody": "Encuentra personas que compartan tus intereses",
+  "@homePartyFinderBody": {
+    "description": "Subtítulo de la tarjeta de Party Finder en el feed principal"
+  },
+  "minigamesChooseGroup": "Elige un grupo",
+  "@minigamesChooseGroup": {
+    "description": "Título del selector de grupo al empezar un juego desde el feed principal"
+  },
+  "minigamesNoGroups": "Aún no tienes grupos",
+  "@minigamesNoGroups": {
+    "description": "Título del snackbar al intentar jugar sin pertenecer a ningún grupo"
+  },
+  "minigamesNoGroupsBody": "Únete o crea un grupo para jugar con tus amigos.",
+  "@minigamesNoGroupsBody": {
+    "description": "Cuerpo del snackbar al intentar jugar sin pertenecer a ningún grupo"
+  },
   "@minigamesTitle": {
     "description": "App bar title of the group minigames hub"
   },

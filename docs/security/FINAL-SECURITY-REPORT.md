@@ -31,7 +31,7 @@ The 4.5 audit series then re-verified every surface; no new open criticals.
 | O1 | MEDIUM | Kong has **no rate-limit plugin**; `security.*` app_config thresholds unenforced (FLMT blocked on EEDG) | S-10 / EEDG chain (FLMT) |
 | O2 | MEDIUM | API server admin gate is a static-key placeholder — real JWT/JWKS + `admin_users` before any deployment | S-06/M-21 |
 | O3 | MEDIUM | `functions-v1` Kong route unauth'd + `VERIFY_JWT` default false (no functions yet — flip when EEDG ships) | EEDG |
-| O4 | MEDIUM | Event-cover serving broken: `uploadEventCover` returns a public URL on the private events bucket | S-09 / ECRT |
+| O4 | MEDIUM | Event-cover serving broken: `uploadEventCover` returns a public URL on the private events bucket | ✅ **closed 2026-08-13** — `MediaService.uploadEventCover` uploads to the public `groups` bucket (`media_service.dart:45-57`, S-09/M-08 handoff); covers servable for the event's lifetime |
 | O5 | MEDIUM | No certificate pinning / no Android network-security-config | S-05/S-18, pre-prod domain |
 | O6 | MEDIUM | No screenshot protection / OS-integrity checks (E2EE surfaces) | S-18, pre-wide-E2EE |
 | O7 | LOW | quic-go GO-2026-5676 reachable (fixed v0.59.1) — `go get github.com/quic-go/quic-go@v0.59.1` | S-02 / next dep pass |
@@ -39,7 +39,7 @@ The 4.5 audit series then re-verified every surface; no new open criticals.
 | O9 | LOW | Image-default TABLE grants (`arwdDxtm`) remain — triggers+RLS are the enforcement; column-grant model cleanup | S-03 follow-up, pre-Alpha |
 | O10 | LOW | pgTAP harness functions live in `public` (anon-callable, inert) — move to a private schema | S-03 / CI infra |
 | O11 | LOW | No data-export feature (store-review risk); H-21 historical anon key rotation (ops); DB_ENC_KEY/JWT_SECRET prod rotation | S-14 / release checklist |
-| O12 | INFO | `govulncheck` CI job recommended; Gemfile.lock to commit at first fastlane run | S-15 |
+| O12 | INFO | `govulncheck` CI job recommended; Gemfile.lock to commit at first fastlane run | S-15 — premise changed 2026-08-13: **`.github/workflows/*` removed by product decision (a0814c7)**; re-add govulncheck when CI is reintroduced. Gemfile.lock **committed** (M-19) |
 
 ## 3. What held up under audit (no action needed)
 
@@ -52,7 +52,7 @@ The 4.5 audit series then re-verified every surface; no new open criticals.
   non-reachable; images pinned (layer scan deferred — registry unreachable,
   S-16 has the exact re-run commands).
 - **E2EE crypto:** implementation matches E2EE-ARCHITECTURE.md
-  (X3DH/Double Ratchet/envelope/key lifecycle); 116 tests green.
+  (X3DH/Double Ratchet/envelope/key lifecycle); **125** tests green (was 116 at report time).
 - **Live attack probes:** OTP enumeration, signup flood, refresh replay,
   cross-user RPC, mass-assignment, anon matrix — all held (S-19).
 - **Gate matrix:** pgTAP 321/321 · opt-tests 8/8 (001: 40/40, 006: 16/16) ·
@@ -65,11 +65,11 @@ The 4.5 audit series then re-verified every surface; no new open criticals.
    SMTP before any non-local deployment.
 2. Flip `VERIFY_JWT` default + Kong auth on `/functions/v1` when EEDG ships.
 3. Real API-server auth (JWT/JWKS + admin_users) before `deploy-api`.
-4. Quic-go bump; add govulncheck CI; commit Gemfile.lock.
+4. Quic-go bump; add govulncheck when CI is reintroduced.
 5. Apply the Kong rate-limit plugin with the `security.*` thresholds.
-6. Address O4 (event-cover serving) with the ECRT work.
+6. ~~Address O4 (event-cover serving)~~ — **closed 2026-08-13** (groups bucket).
 
 ---
 
-*Samay Final Security Report — S-20 · 2026-08-11 · gate: STRONG (no open
-critical/high in the shipped surface; 12 tracked follow-ups, 6 release-gated)*
+*Samay Final Security Report — S-20 · 2026-08-11 · refreshed 2026-08-13 · gate: STRONG (no open
+critical/high in the shipped surface; 11 tracked follow-ups, 5 release-gated)*

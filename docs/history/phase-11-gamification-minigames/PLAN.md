@@ -33,13 +33,13 @@ Key mechanics (from specs):
 
 | Step | Direct deps | Dep status | Step status |
 |------|-------------|------------|-------------|
-| `GRCK` | `DATA`✅, `INFR`✅, `CRON`✅ | 3/3 green | ❌ No code (Edge Function absent; `ranks.update_cron` not scheduled in `20260510000002_cron.sql`) |
+| `GRCK` | `DATA`✅, `INFR`✅, `CRON`✅ | 3/3 green | ✅ **Delivered as SQL (2026-08-13, e0eab3c)** — `recalculate_ranks` RPC (boost decay, bracket-change notifications, `search_path=''`) + daily `ranks-recalculate` cron scheduled by `20260814000003_rank_recalc_decay_cron.sql` honoring the `ranks.update_cron` app_config key (seed default `59 23 * * *`); RANK leaderboard data now flows |
 | `GMCR` | `GROU`⚠️, `AUTH`⚠️, `DATA`✅, `DSNG`✅ | 2/4 green | ❌ No code |
 | `GWAG` | `GMCR`❌, `DATA`✅, `SDIS`❌ | 1/3 green | ❌ No code |
 
 ## Orchestration agents starting here
 
-| Agent | Scope (per ORCHESTRATION.md / FILE-OWNERSHIP.md) |
+| Agent | Scope (per **docs/process/DEVELOPMENT-WORKFLOW.md** / FILE-OWNERSHIP.md) |
 |-------|--------------------------------------------------|
 | I-63 | `lib/features/minigames/minigames_screen.dart` (foundation) ✅ **COMPLETE (2026-08-09)** — see `2026-08-09_I63-minigames.md`: `create_minigame_session` SECURITY DEFINER RPC (migration 20260809000006 + mirror, pgTAP §45 plan 262), `MinigameService` (list/get/create→RPC/join/updateStatus/subscribeToSession), `minigameSessionsProvider` + `sessionStatusProvider`, hub screen (5 game cards + wager create + session list with status chips), route `/minigames/:groupId` flag-gated (`minigames`, dark), 30 ARB keys ×2, 54 unit/widget + router tests + hermetic `integration_test/minigames_flow_test.dart` (runner.sh). Full suite 1396/0. |
 | I-52 | Realtime lifecycle (all game state sync) ✅ (provider standard — `sessionStatusProvider` rides `realtimeChannelProvider`) |

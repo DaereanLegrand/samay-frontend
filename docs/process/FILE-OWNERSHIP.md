@@ -7,6 +7,14 @@ tools/agent_lock.sh) or free for any agent with a legitimate need (new files).
 
 Legend: ✅ primary owner · ⚙️ may modify with lock (coordination) · 🔒 read-only
 
+**Appendix A — existing paths without an explicit row (orchestrator-owned/free
+by the header rule):** `docs/audit/**` (gate reports), `docs/design/DISCO-LUXE-
+DESIGN-SYSTEM.md`, `docs/specs/steps/phase-05..15/*.md` step files,
+`<private-ops-repo>/*`, `tools/check_secrets.sh`, `tools/check_migrations.sh`,
+`<tunnel-host-helper>`, `tools/ios_dev_signing.rb`,
+`tools/gen_testing_anon_key.py`, `tools/icon_gen.dart`, `tools/gemma_critique*`,
+`tools/hooks/pre-commit`, `bin/`, `test_driver/`, `test/design_tokens/**`.
+
 ---
 
 ## Phase 4.1 — Documentation agents (D-01..D-12)
@@ -40,7 +48,7 @@ Legend: ✅ primary owner · ⚙️ may modify with lock (coordination) · 🔒 
 | `lib/core/utils/async_ops.dart` (new: withRetry/withTimeout/backoff — created as `lib/core/utils/async_ops.dart` by I-07; the old `retry.dart` name never shipped) | I-07 ✅ |
 | `lib/core/errors/app_error.dart`, `lib/core/extensions/error_mapper.dart` | I-08 ✅ |
 | `lib/core/providers/auth_provider.dart` (AsyncNotifier migration) | I-09 ✅ ⚙️ I-47 |
-| `lib/core/models/**` (new: freezed models) + `build.yaml`/generation config | I-10 ✅ |
+| `lib/core/models/**` (new: freezed models) + generation config (**note: `build.yaml` never created — freezed runs on default builders, I-10**) | I-10 ✅ |
 | `lib/core/services/supabase_service.dart` → decompose into `lib/features/*/services/` or `lib/core/services/` | I-11 ✅ |
 | `lib/features/**/*provider.dart` state-management audit | I-12 ✅ |
 | `lib/features/profile/screens/profile_screen.dart` → provider | I-13 ✅ |
@@ -137,7 +145,7 @@ Legend: ✅ primary owner · ⚙️ may modify with lock (coordination) · 🔒 
 | ~~`.github/workflows/release.yml` (placeholders, no creds)~~ **removed 2026-08-14** | M-22 ✅ (historical) |
 | `lib/features/**` restructure (screens/providers/widgets subdirs) — **DONE 2026-08-10 (M-23): every feature dir now nests `screens/ providers/ widgets/ logic/` (only non-empty subdirs created; 58 files moved, zero content changes, full suite green — see `docs/history/phase-00-foundation/2026-08-10_M23-restructure.md`). New convention: `*_screen.dart` → `screens/`, `*_provider(s).dart` → `providers/`, widget-only files → `widgets/`, pure domain logic → `logic/`. Feature services stay in `lib/core/services/` (I-11); cross-cutting providers stay in `lib/core/providers/`.** | M-23 ✅ ⚙️ I-11/I-12 |
 | `lib/core/**` restructure (constants/design_tokens/errors/extensions) — **DONE 2026-08-10 (M-24): `lib/core/feature_flags.dart` moved → `lib/core/config/feature_flags.dart` (git mv + all 12 importers rewritten; `lib/core/` root now contains only subdirs); `constants/` deliberately NOT created — the constants home is `design_tokens/` + `config/feature_flags.dart` (AppFeatureFlags/AppFeatureFlag release knobs) + `EnvConfig`, and empty placeholder dirs are forbidden (structure_test dynamic invariant); guards updated (structure_test core-layers list pinned to the 14 real subdirs + ARC-03 no-stray-root-file invariant in conventions_test). See `docs/history/phase-00-foundation/2026-08-10_M24-core-restructure.md`.** | M-24 ✅ |
-| `.opencode/**`, `.agents/**`, `AGENTS.md` agent config | M-25 ✅ |
+| `.opencode/**` + `AGENTS.md` agent config (**note: `.agents/**` intentionally never created — documented decision M-25; the same skills exist user-wide in `~/.agents/skills/`, see `.opencode/README.md`**) | M-25 ✅ |
 | `analysis_options.yaml` + `tools/pre-commit.sh` + hooks | M-26 ✅ |
 | `android/**` (manifests, permissions, minSdk, gradle) | M-27 ✅ |
 | `ios/**` (Info.plist, Podfile, signing placeholders) | M-28 ✅ |
@@ -167,7 +175,7 @@ Legend: ✅ primary owner · ⚙️ may modify with lock (coordination) · 🔒 
 | Juega main-shell/tab flow alignment | U-17 ✅ |
 | Animations + micro-interactions (`lib/core/theme/samay_durations.dart`, reduced-motion) | U-18 ✅ |
 | Responsive layout + safe areas | U-19 ✅ |
-| `assets/images/`, `assets/icons/` (disco assets) + `flutter_launcher_icons` | U-20 ✅ |
+| `assets/icons/` (disco assets) + `flutter_launcher_icons` (**note: `assets/images/` does not exist — `assets/` is fonts/ + icons/ only**) | U-20 ✅ |
 | Empty/loading/error state widgets (shared) | U-21 ✅ |
 | Skeleton/shimmer loading states | U-22 ✅ |
 | UI review pass: auth → profile | U-23 ✅ |
@@ -217,4 +225,4 @@ Legend: ✅ primary owner · ⚙️ may modify with lock (coordination) · 🔒 
 | V-07 | Design system docs vs theme implementation |
 | V-08 | Agent registry + orchestration docs accuracy |
 | V-09 | README/onboarding/docs/process/DEVELOPMENT-WORKFLOW correctness |
-| V-10 | Final gate: full validation matrix + gate report `docs/process/GATE-REPORT.md` |
+| V-10 | Final gate: full validation matrix + gate report `docs/audit/GATE-REPORT.md` |

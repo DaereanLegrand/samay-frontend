@@ -21,7 +21,8 @@ Key mechanics (from specs):
   admin action).
 - **Backend service layer is already complete (C-02):** `loadMessages`,
   `sendMessage`, `subscribeToMessages`, media upload helpers exist in
-  `lib/core/services/supabase_service.dart`. Only screens + client logic missing.
+  `lib/core/services/chat_service.dart` (the `supabase_service.dart` facade was
+  deleted by I-78). Only screens + client logic missing.
 - E2EE (X3DH + Double Ratchet) is a planned enhancement via I-37 (`lib/crypto/**`)
   then I-38 (chat E2EE integration) — ciphertext-only server.
 
@@ -42,7 +43,7 @@ before chat ships (SECURITY.md §5.2).
 
 ## Orchestration agents starting here
 
-| Agent | Scope (per ORCHESTRATION.md / FILE-OWNERSHIP.md) |
+| Agent | Scope (per **docs/process/DEVELOPMENT-WORKFLOW.md** / FILE-OWNERSHIP.md) |
 |-------|--------------------------------------------------|
 | I-56 | `lib/features/chat/chat_screen.dart` (message list foundation) — ✅ pagination shipped (2026-08-09, daily log `2026-08-09_I56-chat-pagination.md`) |
 | I-37 | `lib/crypto/**` (X25519, Double Ratchet, envelope) — E2EE pre-req |

@@ -1,6 +1,6 @@
 # Samay — Security Architecture & Threat Model
 
-**Owner:** D-06 (security architecture doc) · **Reviewed:** 2026-08-09 · **Status:** living document — update at every security change (RLS hardening, E2EE rollout, release checklist)
+**Owner:** D-06 (security architecture doc) · **Reviewed:** 2026-08-13 · **Status:** living document — update at every security change (RLS hardening, E2EE rollout, release checklist)
 
 > Companion docs: `docs/security/E2EE-ARCHITECTURE.md` (D-07, planned — X3DH + Double Ratchet spec), `docs/security/MASVS-AUDIT.md` (S-01), `docs/security/CVE-SCAN.md` (S-02), `docs/security/FINAL-SECURITY-REPORT.md` (S-20), `docs/to-fix/categories/08-SECURITY.md` and `06-SUPABASE-BACKEND.md` (findings), `docs/specs/steps/phase-00-foundation/SECU-rls-policies.md` (RLS design).
 
@@ -38,9 +38,9 @@ Industry standards this document is aligned with (all claims below cite these):
 | Asset | Where it lives | Sensitivity | Notes |
 |-------|---------------|-------------|-------|
 | A1 — User identity | `auth.users` (GoTrue), `public.users`, `signup_tracker` | High | email, date_of_birth (PII), username (permanent) |
-| A2 — E2EE chat keys | Device only (planned `lib/crypto/`, I-37/I-38) | Critical | X25519 identity + ratchet keys; **never on server**; ciphertext-only server (R4/R5) |
+| A2 — E2EE chat keys | Device only (`lib/crypto/`, I-37/I-38/81722ef) | Critical | X25519 identity + ratchet keys; **never on server**; ciphertext-only server (R4/R5) |
 | A3 — Shard balances | `users.personal_shards`, `users.preshards`, `shard_ledger`, `preshard_ledger`, `groups.group_shards` | Critical | economy integrity = app integrity; double-spend = top risk |
-| A4 — PII & UGC | `users` (bio, DoB), `messages`, `event_photos`, `event_qr_tokens`, `notifications` | High | photos in Storage, chat plaintext (until E2EE) |
+| A4 — PII & UGC | `users` (bio, DoB), `messages`, `event_photos`, `event_qr_tokens`, `notifications` | High | photos in Storage; chat ciphertext (E2EE, I-37/81722ef) |
 | A5 — Session tokens | Client (in-memory / platform secure storage), GoTrue refresh tokens | Critical | access JWT (1 h) + refresh token; rotation enabled |
 | A6 — Admin credentials | `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_ADMIN_USER_ID` (env) | Critical | bypasses RLS (R7); CLI-only, never in app |
 | A7 — RevenueCat/Pusher/PostHog secrets | `.env` / env (unused at MVP) | High | webhook signature + idempotency required (FLMT spec) |
@@ -53,7 +53,7 @@ Industry standards this document is aligned with (all claims below cite these):
 | Anonymous (`anon` role) | Reads public catalog (app_config, cosmetics, leaderboard), public events, `user_search_view`; calls `check_signup_email` RPC; sends OTP | Untrusted — RLS + GoTrue rate limits only |
 | Authenticated user | Full client surface via PostgREST/Realtime with own JWT | Semi-trusted — scoped by RLS policies |
 | Malicious authenticated user | Attempts: cross-user reads (RLS blocks), own-row mass assignment, OTP abuse, search enumeration, QR replay, shard manipulation | Primary adversary |
-| Compromised backend role | service_role / table owner / `postgres` credentials theft (CLI machine, leaked `.env`) | **Defense:** no FORCE RLS today = table owner bypasses policies (R8) → I-31 |
+| Compromised backend role | service_role / table owner / `postgres` credentials theft (CLI machine, leaked `.env`) | **Defense:** FORCE RLS on all 33 RLS-enabled tables closes the table-owner bypass (I-31 → 20260809000001) |
 | Network attacker | Passive TLS interception / MITM, Realtime WS sniffing | Mitigated by HTTPS (Kong 54443); no cert pinning yet |
 | Insider admin | Full service_role access via CLI; audit-logged | Mitigated by `admin_audit_log` (A8) + least-privilege roles |
 
@@ -61,14 +61,14 @@ Industry standards this document is aligned with (all claims below cite these):
 
 | Threat | Samay component exposed | Current status | Primary mitigation | Owner |
 |--------|------------------------|----------------|-------------------|-------|
-| **S — Spoofing identity** | Auth (OTP), JWT handling, session persistence | ⚠️ `refreshSession()` never called (supabase_service.dart:53-60); `AuthFlowType` not set on init (main.dart:38-41); tokens not wired to SecureStorage (storage_service.dart:4-18 unused by auth) | PKCE on init, auto token refresh (I-30), SecureStorage persistence (I-25), GoTrue `enable_refresh_token_rotation` (config.toml:58) | I-30, I-25 |
-| **T — Tampering (data)** | PostgREST writes; RLS policies; triggers | ⚠️ `users_update_own` allows updating **every column** of own row incl. `personal_shards`/`preshards`/`subscription_tier`/`banned_at` (full_schema.sql:611-612) — mass-assignment / self-elevation vector (API3:2023) | Column-level policies or restricted views (I-32); server-side validation in Edge Functions (FLMT); forbid client writes on ledger/economy columns | I-32, S-03 |
-| **T — Tampering (privileged)** | SECURITY DEFINER functions | 🔴 12 SECURITY DEFINER functions lack `SET search_path = ''` (evidence in §2.2) → search_path hijack ⇒ privilege escalation (R9) | I-31 hardening migration | I-31 |
-| **R — Repudiation** | Admin operations | ✅ `admin_audit_log` row per CLI mutation (internal/ops/audit.go:17-25; policy denies client access full_schema.sql:785) | Keep append-only; S-17 integrity review | S-17 |
-| **I — Information disclosure** | `user_search_view` (security barrier, id/username/avatar_url only — 20260520000001:217-222); `users` read-own (full_schema.sql:610); messages/events/group policies | ✅ mostly scoped; ⚠️ `.env.example` contains a **real publishable anon key** (.env.example:5, H-21 open) | Rotate key + placeholder (I-34); column-level grants; S-03 audit | I-34, S-03 |
-| **I — Information disclosure (E2EE)** | Chat `messages.content` | 🔴 plaintext in Postgres until E2EE lands (I-37/I-38); route is coming-soon (app_router.dart:159) | X3DH + Double Ratchet, client-only keys (R4/R5) → E2EE-ARCHITECTURE.md | I-37, I-38 |
-| **D — Denial of service** | OTP sending (GoTrue `email_sent = 2` config.toml:65); search `.ilike` prefix enumeration (supabase_service.dart:310-317); RPC `donate_shards_to_group` (no rate limit); Realtime channels (supabase_service.dart:863-918); photo upload 50MiB (config.toml:42) | ⚠️ auth-level limits exist; no app-level limiting; no Kong rate-limit plugin (kong.yml plugins: cors/key-auth/acl only); FLMT blocked on Edge Functions | Kong rate-limit plugin (M-09), app_config thresholds (seed.sql:43-46), I-29 OTP UX caps, S-10 audit | I-29, S-10, M-09 |
-| **E — Elevation of privilege** | RLS bypass: no `FORCE RLS` on 30/31 tables (only signup_tracker: 20260724000001:73); table owner bypasses RLS (R8) | 🔴 open (H-19/H-25, SUP-02) | I-31 migration adds `FORCE ROW LEVEL SECURITY` on all tables + per-table exception review | I-31 |
+| **S — Spoofing identity** | Auth (OTP), JWT handling, session persistence | ✅ PKCE pinned on init (`lib/main.dart:118`); `refreshSession()` wired through `AuthService` + `tokenRefreshed` handler (auth_provider.dart); session + PKCE verifier persisted in flutter_secure_storage (`SecureSessionStorage`/`SecurePkceStorage`, M-33); GoTrue `enable_refresh_token_rotation` (config.toml:58) | I-30, I-25 ✅ |
+| **T — Tampering (data)** | PostgREST writes; RLS policies; triggers | ✅ `users_update_own` mass-assignment closed (G-03): `20260809000002` `REVOKE UPDATE` on the 7 economy/subscription columns + `assert_safe_user_update()` BEFORE trigger (SECURITY INVOKER, one-way `deleted_at` preserved) | I-32 ✅ |
+| **T — Tampering (privileged)** | SECURITY DEFINER functions | ✅ all SECURITY DEFINER functions carry `SET search_path = ''` (I-31 hardening migration `20260809000001` redefined all 12; every later SD function follows — evidence §2.2) | I-31 ✅ |
+| **R — Repudiation** | Admin operations | ✅ `admin_audit_log` row per CLI mutation (internal/ops/audit.go; policy denies client access full_schema.sql) | S-17 |
+| **I — Information disclosure** | `user_search_view` (security barrier, id/username/avatar_url only — 20260520000001:217-222); `users` read-own (full_schema.sql); messages/events/group policies | ✅ scoped; `.env.example` anon key rotated to placeholder (I-34/H-21) | I-34 ✅ |
+| **I — Information disclosure (E2EE)** | Chat `messages.content` | ✅ ciphertext in Postgres — X3DH + Double Ratchet landed (I-37/81722ef: replay protection, session convergence, SPK expiry); keys client-only → E2EE-ARCHITECTURE.md | I-37, I-38 ✅ |
+| **D — Denial of service** | OTP sending (GoTrue `email_sent = 2` config.toml:65); search `.ilike` prefix enumeration; RPC `donate_shards_to_group` (no rate limit); Realtime channels; photo upload 50 MiB (config.toml:42) | ⚠️ auth-level limits exist + client OTP cooldown/attempt caps (I-29); no Kong rate-limit plugin, no server-side RPC limiting (FLMT blocked on Edge Functions — EEDG ❌) | I-29 ✅, S-10, M-09 |
+| **E — Elevation of privilege** | RLS bypass: table owner bypasses RLS without FORCE (R8) | ✅ FORCE RLS on all 33 RLS-enabled tables (`20260809000001` ×31 + `20260724000001` + `20260809000003` e2ee_identity_keys) | I-31 ✅ |
 
 ---
 
@@ -82,40 +82,53 @@ Industry standards this document is aligned with (all claims below cite these):
 
 | Claim | Evidence | Status |
 |-------|----------|--------|
-| RLS enabled on all 30 base tables | `supabase/migrations/20260510000001_full_schema.sql:578-607` (30× `ALTER TABLE ... ENABLE ROW LEVEL SECURITY`) | ✅ |
+| RLS enabled on all 33 base + post-gate tables | `supabase/migrations/20260510000001_full_schema.sql:578-607` (30× `ENABLE ROW LEVEL SECURITY`) + `20260513000002` (signup_tracker) + `20260810000007` (storage-era) + `20260809000003` (e2ee_identity_keys) | ✅ 33 |
 | RLS enabled on `signup_tracker` | `supabase/migrations/20260513000002_fix_signup_tracker.sql:13` | ✅ |
-| **FORCE RLS: enabled only on `signup_tracker`** | `supabase/migrations/20260724000001_fix_signup_tracker_rls.sql:73` (`ALTER TABLE public.signup_tracker FORCE ROW LEVEL SECURITY;`) — the **only** `FORCE RLS` in the repo (grep: 3 matches, all in this file) | ⚠️ 1/31 tables |
+| **FORCE RLS on every RLS-enabled table** | `20260809000001_harden_rls_search_path.sql:39-69` (31× `ALTER TABLE ... FORCE ROW LEVEL SECURITY`) + `20260724000001_fix_signup_tracker_rls.sql:73` + `20260809000003_e2ee_tables.sql:62` → **33 FORCE statements** (was 1/31 pre-I-31) | ✅ 33/33 |
 | signup_tracker policies email-scoped (own-email only) | `20260724000001_fix_signup_tracker_rls.sql:57-68` (`email = auth.jwt() ->> 'email'`) — replaces the original wide-open `USING (true)` policies (`20260513000002:15-30`) | ✅ (C-01, commit b02090e) |
 | Pre-auth email check via hardened RPC | `check_signup_email` — `SECURITY DEFINER`, `SET search_path = ''`, explicit `REVOKE/GRANT` (`20260724000001:15-44`) | ✅ pattern reference |
 | RLS recursion bugs fixed post-hoc | `20260512000006_fix_group_members_rls_recursion.sql`, `20260512000008_fix_events_rls_recursion.sql` (42P17) | ✅ history |
 | `user_search_view` exposes only id/username/avatar_url | `20260520000001_admin_rpc_and_rls.sql:217-222` (`security_barrier` view, `deleted_at IS NULL`) | ✅ |
 | `donate_shards_to_group` RPC requires auth + own-user check | `20260724000002_fix_donate_shards_rpc.sql:17-19` (`auth.uid() != p_user_id` → exception), `:36-37` (`REVOKE ... FROM PUBLIC; GRANT ... TO authenticated`) | ✅ |
 | RLS verified by integration tests | `test/opt-001-rls-security.sh` — anon/auth/service role matrix (A–H sections) | ✅ (run via `test/run_all_backend.sh`) |
-| pgTAP suite **still asserts the old wide-open signup_tracker policies** | `supabase/tests/schema_test.sql:170-177` (expects `Anyone can select...`) | 🔴 stale — D-04 owns the fix |
+| pgTAP asserts email-scoped signup_tracker policies + FORCE | `supabase/tests/schema_test.sql` Sections 6/15/37 (both stacks, byte-identical) — no "Anyone can …" assertions remain (G-17) | ✅ |
 
-**Plan (owner I-31):** migration adding `ALTER TABLE ... FORCE ROW LEVEL SECURITY` to all tables, with audited exceptions where service_role genuinely needs unfiltered access (e.g. `admin_audit_log` inserts from CLI); per-table exception justification required (SECU-rls-policies.md pattern, Juega reference).
+**Post-gate hardening (2026-08-11..14):**
+- `20260811000001_harden_function_execute_rls.sql` — anon EXECUTE revoked on 17 functions (F-1, MASVS §F1); adds `assert_safe_group_update`/`assert_safe_event_update` triggers.
+- `20260814000001_chat_direct_rls.sql` — direct-chat membership RLS (CHPT); `20260814000002_user_views_block_exclusion.sql` — blocked users excluded from search/profile views (S-03).
+- `20260814000003_rank_recalc_decay_cron.sql` — rank recalc + decay cron honoring `ranks.update_cron`; `20260814000004_qr_token_rotate_rpc.sql` — QR rotation RPC with `pg_advisory_xact_lock`.
+- `20260814000005_notification_triggers.sql` — 8 `notify_*` SECURITY DEFINER triggers (NTRG subset). All new SD functions carry `SET search_path = ''`.
 
 ### 2.2 SECURITY DEFINER search_path hardening (I-31)
 
 Postgres executes `SECURITY DEFINER` functions with the *creator's* privileges, so an attacker-controllable `search_path` can hijack unqualified object references → arbitrary SQL with elevated rights (R9). Fix: `SET search_path = ''` + fully-qualified `public.` references.
 
-**Verified inventory — 12 SECURITY DEFINER functions, 11 unhardened (only `check_signup_email` sets `search_path = ''`):**
+**Verified inventory — all SECURITY DEFINER functions hardened (I-31 done 2026-08-09; zero unhardened remain):**
+
+The 12 original functions were redefined by `20260809000001_harden_rls_search_path.sql:85-427` with `SET search_path = ''` + fully-qualified `public.` references; every post-gate SD function carries the same hardening:
 
 | Function | Migration : line | search_path |
 |----------|------------------|-------------|
-| `update_group_size_tier` | 20260510000001_full_schema.sql:469 (redefined 20260512000007:25) | ❌ missing |
-| `set_dynamic_qr_enabled` | 20260510000001_full_schema.sql:482 | ❌ missing |
-| `enforce_message_cap` | 20260510000001_full_schema.sql:513 | ❌ missing |
-| `increment_group_shards` | 20260510000001_full_schema.sql:527 | ❌ missing |
-| `update_photo_likes_count` | 20260510000001_full_schema.sql:551 | ❌ missing |
-| `dispatch_shard_distribution` | 20260510000001_full_schema.sql:567 | ❌ missing |
-| `hard_delete_expired_users` | 20260510000002_cron.sql:32 | ❌ missing |
-| `donate_shards_to_group` | 20260512000001:13 / 20260724000002:14 | ❌ missing |
-| `grant_shards` | 20260520000001_admin_rpc_and_rls.sql:15 | ❌ missing |
-| `grant_preshards` | 20260520000001_admin_rpc_and_rls.sql:40 | ❌ missing |
-| `distribute_shards` | 20260520000001_admin_rpc_and_rls.sql:65 | ❌ missing |
-| `recalculate_ranks` | 20260520000001_admin_rpc_and_rls.sql:165 | ❌ missing |
-| `check_signup_email` | 20260724000001_fix_signup_tracker_rls.sql:19 | ✅ `''` (reference pattern) |
+| `update_group_size_tier` | 20260510000001_full_schema.sql:469 (redefined 20260809000001) | ✅ `''` |
+| `set_dynamic_qr_enabled` | 20260510000001_full_schema.sql:482 (redefined 20260809000001) | ✅ `''` |
+| `enforce_message_cap` | 20260510000001_full_schema.sql:513 (redefined 20260809000001) | ✅ `''` |
+| `increment_group_shards` | 20260510000001_full_schema.sql:527 (redefined 20260809000001) | ✅ `''` |
+| `update_photo_likes_count` | 20260510000001_full_schema.sql:551 (redefined 20260809000001) | ✅ `''` |
+| `dispatch_shard_distribution` | 20260510000001_full_schema.sql:567 (redefined 20260809000001) | ✅ `''` |
+| `hard_delete_expired_users` | 20260510000002_cron.sql:32 (redefined 20260809000001) | ✅ `''` |
+| `donate_shards_to_group` | 20260512000001:13 / 20260724000002:14 (redefined 20260809000001) | ✅ `''` |
+| `grant_shards` | 20260520000001_admin_rpc_and_rls.sql:15 (redefined 20260809000001) | ✅ `''` |
+| `grant_preshards` | 20260520000001_admin_rpc_and_rls.sql:40 (redefined 20260809000001) | ✅ `''` |
+| `distribute_shards` | 20260520000001_admin_rpc_and_rls.sql:65 (redefined 20260809000001) | ✅ `''` |
+| `recalculate_ranks` | 20260520000001_admin_rpc_and_rls.sql:165 (redefined 20260809000001 + 20260814000003) | ✅ `''` |
+| `check_signup_email` | 20260724000001_fix_signup_tracker_rls.sql:19 | ✅ `''` (original pattern) |
+| `assert_safe_user_update` | 20260809000002_rls_audit_fixes.sql | ✅ `''` |
+| `validate_qr_token` | 20260809000005_qr_validate_rpc.sql | ✅ `''` |
+| `submit_minigame_score` | 20260809000006_minigame_rpc.sql | ✅ `''` |
+| `create_direct_chat` | 20260814000001_chat_direct_rls.sql | ✅ `''` |
+| `rotate_qr_token` | 20260814000004_qr_token_rotate_rpc.sql | ✅ `''` |
+| `assert_safe_group/event_update` | 20260811000001_harden_function_execute_rls.sql | ✅ `''` |
+| 8× `notify_*` | 20260814000005_notification_triggers.sql | ✅ `''` |
 | `handle_signup` (dropped) | 20260513000001:9 had `SET search_path = public` | 🔴 history — dropped by 20260513000002:4 |
 
 ### 2.3 Auth: JWT, PKCE, session handling (I-30)
@@ -127,21 +140,20 @@ Postgres executes `SECURITY DEFINER` functions with the *creator's* privileges, 
 | JWT expiry 1 h, refresh-token rotation ON, reuse-interval 10 s | `supabase/config.toml:57-59` |
 | GoTrue rate limits configured (email_sent=2, token_refresh=150, token_verifications=30, …) | `supabase/config.toml:64-71` |
 | OTP: 6 digits, 1 h expiry; email max_frequency 1s | `supabase/config.toml:79-80`, `:78` |
-| `refreshSession()` **defined but never called** | `lib/core/services/supabase_service.dart:53-60` (grep: no callers) |
-| No explicit PKCE (`AuthFlowType`) on client init | `lib/main.dart:38-41` (`Supabase.initialize(url:…, anonKey:…)` only) |
-| Auth state listens to `tokenRefreshed` | `lib/core/providers/auth_provider.dart:60` (handles event, but relies on SDK auto-refresh, not explicit refreshSession) |
-| Tokens NOT stored via `flutter_secure_storage` | `lib/core/services/storage_service.dart:4-18` exists; zero references from auth code (SEC-11) |
-| `secure_password_change = false`, password min length 6 | `supabase/config.toml:62, 77` (⚠️ 6 < NIST SP 800-63B §5.1.1 recommended minimum of 8) |
+| PKCE pinned on init | `lib/main.dart:118` (`authFlowType: AuthFlowType.pkce`) |
+| `refreshSession()` wired | `AuthService.refreshSession()` → `tokenRefreshed` handler in `lib/core/providers/auth_provider.dart` (null-session handling, I-30) |
+| Session + PKCE verifier in SecureStorage | `SecureSessionStorage`/`SecurePkceStorage` (flutter_secure_storage, I-25/M-33) |
+| `secure_password_change = false`, password min length 8 | `supabase/config.toml:62` (8 ≥ NIST SP 800-63B §5.1.1 minimum) |
 | Auth guard redirect logic | `lib/core/router/auth_guard.dart:13-36` (`if (auth.loading) return null;` — SEC-12 loading flash, open M-34) |
 
-**Plan (I-30):** enable PKCE on init, subscribe + call `refreshSession()` on `TOKEN_REFRESHED`, persist session via SecureStorage-backed `AsyncStorage`, ban-enforcement hook when Edge Functions land (AUTH spec §ban).
+**Plan (I-30):** DONE — PKCE, explicit refresh, SecureStorage persistence all landed 2026-08-09 (G-04). Remaining: ban-enforcement server hook when Edge Functions land (AUTH spec §ban).
 
 ### 2.4 E2EE chat (I-37/I-38 — spec lives in `docs/security/E2EE-ARCHITECTURE.md`, owned by D-07)
 
-- Protocol: **X3DH** key agreement (R4) + **Double Ratchet** message ratchet (R5) — "as secure as Signal": identity keys and ratchet state client-only, server stores ciphertext only (see ORCHESTRATION.md cross-cutting requirement #4).
+- Protocol: **X3DH** key agreement (R4) + **Double Ratchet** message ratchet (R5) — "as secure as Signal": identity keys and ratchet state client-only, server stores ciphertext only.
 - Parameters (per X3DH §2.1): curve **X25519**, hash **SHA-256**, AEAD via AES-256-GCM; per-message keys from HKDF chains; `MAX_SKIP` bounds skipped-key storage (Double Ratchet §3.1, §8.4).
-- Prekey management per X3DH §3.2: signed prekey rotation (e.g. weekly) + one-time prekey replenishment + rate-limited prekey-bundle fetch (X3DH §4.7 server-trust).
-- Current code state: no crypto code exists (`lib/crypto/` planned); chat route is `VComingSoonScreen` (app_router.dart:159); `messages.content` is plaintext (full_schema.sql:251-260).
+- Prekey management per X3DH §3.2: signed prekey rotation (with server-side `signed_prekey_expires_at`) + one-time prekey replenishment.
+- **Landed 2026-08-09..13 (I-37 + 81722ef):** 10 modules in `lib/crypto/` (x3dh, ratchet, session, envelope, prekey store, key store…); replay-protection blacklist; session convergence (≤ 2 inactive sessions bound); failed-init restore; persisted `init-marker`; chat route live (`app_router.dart:414-420` ChatScreen); `messages.content` holds **ciphertext only** (full_schema.sql:251-260). Deviations from the E2EE spec are recorded in E2EE-ARCHITECTURE.md errata.
 
 ### 2.5 Storage buckets + signed URLs (S-09)
 
@@ -150,12 +162,12 @@ Postgres executes `SECURITY DEFINER` functions with the *creator's* privileges, 
 | Event photos: private bucket, 1 h signed URLs | `lib/core/services/media_service.dart:116-119` (`createSignedUrl(storagePath, 3600)`); bucket design: SECU-rls-policies.md:51-55; bucket public=false via `20260810000007_storage_buckets.sql` (M-08) |
 | Group covers: public bucket + public URL | `lib/features/groups/create_group_screen.dart:77-80` (`uploadBinary` + `getPublicUrl`); `groups` bucket public=true via `20260810000007_storage_buckets.sql` (M-08) |
 | Avatars: public bucket + public URL | `lib/core/services/media_service.dart:62-68` (`uploadUserAvatar` → `getPublicUrl`); `avatars` bucket public=true via `20260810000007_storage_buckets.sql` (M-08) |
-| No image size/resizing on upload (full-res files) | `lib/core/services/supabase_service.dart:641-645` (raw bytes) — I-22 image_processor |
+| No image size/resizing on upload (full-res files) | `lib/core/services/media_service.dart` + `lib/core/utils/image_processor.dart` (I-22 image_processor — client-side downscale landed PERF-03/M-36) |
 | Storage file-size cap 50 MiB | `supabase/config.toml:42` |
 | **Bucket rows + storage.objects RLS policies** ✅ (M-08, 2026-08-10 — closes the I-36/I-59 bucket-creation gap) | `supabase/migrations/20260810000007_storage_buckets.sql` (×2): `avatars`/`groups` public=true, `events` public=false; 5 objects policies: public SELECT avatars/groups, events SELECT gated on `event_photos` visibility (eph_read_access), own-row INSERT/UPDATE/DELETE on `owner_id` = `auth.jwt()->>'sub'` (avatars INSERT also requires the `{user_id}/` path prefix). Column verified against storage-api v1.60.4 tenant migrations: `storage.objects.owner_id` (text, since 0018) — NOT `owner` |
-| **Signed-URL/RLS interplay — verified + handoff stays S-09** | v1.60.4 source check (M-08): signing (`signObjectUrl`) runs `findObject` through the caller's RLS session → a SELECT policy matching event access is REQUIRED (this is why `storage_objects_events_select_access` exists); signed-URL retrieval (`getSignedObject`) runs `asSuperUser()` → RLS-independent. ⚠️ `MediaService.uploadEventCover` returns `getPublicUrl` for the PRIVATE events bucket (non-servable) — ECRT/S-09 follow-up |
+| **Signed-URL/RLS interplay — verified + handoff stays S-09** | v1.60.4 source check (M-08): signing (`signObjectUrl`) runs `findObject` through the caller's RLS session → a SELECT policy matching event access is REQUIRED (this is why `storage_objects_events_select_access` exists); signed-URL retrieval (`getSignedObject`) runs `asSuperUser()` → RLS-independent. ✅ `MediaService.uploadEventCover` now uploads to the **public `groups` bucket** (`media_service.dart:45-57`) — event covers are servable (O4 closed) |
 
-Plan (S-09/I-59): enforce path-prefix ownership (`{user_id}/...`) — done for avatars INSERT, groups/events paths do not embed a user id (own-row `owner_id` check instead); signed URL expiry ≤ 1 h — app uses 1 h (media_service.dart:117); rate-limit URL generation — open (S-09/S-10); event-cover serving — open (see above).
+Plan (S-09/I-59): path-prefix ownership (`{user_id}/...`) — done for avatars INSERT, groups/events paths do not embed a user id (own-row `owner_id` check instead); signed URL expiry ≤ 1 h — app uses 1 h (media_service.dart); event-cover serving — **closed** (groups bucket, see above); rate-limit URL generation — open (S-09/S-10).
 
 ### 2.6 Input sanitization (I-27 — ✅ DONE 2026-08-09)
 
@@ -167,29 +179,30 @@ Plan (S-09/I-59): enforce path-prefix ownership (`{user_id}/...`) — done for a
 |-------|--------|----------|
 | GoTrue auth rate limits | ✅ configured | config.toml:64-71; docker-compose.yml:86 (`GOTRUE_RATE_LIMIT_EMAIL_SENT: 2`) |
 | Kong gateway plugins | ⚠️ key-auth + ACL + CORS only — **no rate-limit plugin** | supabase/volumes/api/kong.yml:22-32 (rest-v1), :34-49 (rest-admin service_role-only) |
-| app_config abuse thresholds | ✅ seeded, **not enforced** (FLMT blocked — no Edge Functions) | seed.sql:43-46 (`security.max_events_per_minute=3`, `max_concurrent_event_invites=50`, `max_qr_token_rotations=20`, `max_failed_qr_validations=5`); docs/specs/steps/phase-00-foundation/FLMT-edge-functions-rate-limiting.md |
-| OTP client-side cooldown / attempt caps | ❌ none (SEC-05) | supabase_service.dart:39-45 (`sendOtp`/`verifyOtp` uncapped) |
-| Search enumeration | ⚠️ `.ilike('username', '$query%')` prefix search, limit 20, authenticated-only view | supabase_service.dart:310-317 |
+| app_config abuse thresholds | ✅ seeded, **not enforced** (FLMT blocked — no Edge Functions) | seed.sql (`security.max_events_per_minute=3`, `max_concurrent_event_invites=50`, `max_qr_token_rotations=20`, `max_failed_qr_validations=5`); docs/specs/steps/phase-00-foundation/FLMT-edge-functions-rate-limiting.md |
+| OTP client-side cooldown / attempt caps | ✅ (I-29) | `lib/features/auth/otp_verification_screen.dart:27-33` (60 s cooldown, 5-attempt cap) |
+| Search enumeration | ⚠️ `.ilike('username', '$query%')` prefix search, limit 20, authenticated-only view (block-exclusion via `20260814000002`) | media/user repositories |
 
 ### 2.8 Secrets management (I-34 / M-13)
 
 | Claim | Evidence | Status |
 |-------|----------|--------|
-| `.env` bundled as Flutter asset | `pubspec.yaml:38-39` (`assets: [.env]`) — extractable from APK/IPA (SEC-09/M-31) | 🔴 |
-| Env consumed via `flutter_dotenv` at runtime | `lib/main.dart:37`, `lib/core/config/env_config.dart:9-15` | 🔴 (must move to `String.fromEnvironment` dart-define) |
-| `.env.example` contains a **real publishable anon key** | `.env.example:5` (H-21/SEC-03 — committed to git history) | 🔴 — rotate + placeholder |
-| Service role / admin IDs via env only, never in app | `internal/db/client.go:21-22`, `cmd/samay-admin/root.go:15, 52-57` | ✅ |
-| Compose uses placeholder secrets (no real creds committed) | `supabase/docker-compose.yml:67, 74, 102, 124, 127, 146-147` ("your-…-change-in-production") | ✅ (M-01..M-05 to finish pinning) |
-| Makefile passes `APPLE_PASSWORD` as plaintext var | ~~`Makefile` MKE-02~~ — AltServer sideload path removed 2026-08-12; iOS device installs use fastlane `adhoc_local` + `devicectl` (enrolled team from gitignored `.env.local`) | ✅ |
-| Dev test script embeds local dev keys | `test/opt-001-rls-security.sh:20-22` (local-stack dev keys only — acceptable for dev, must never be prod) | ⚠️ |
+| `.env` bundled as Flutter asset | **No** — `pubspec.yaml` has no `assets:` entry; config injected via `--dart-define-from-file` (Makefile build/dev targets, I-34) | ✅ |
+| Env consumed via `String.fromEnvironment` | `lib/core/config/env_config.dart` (dart-define, no `flutter_dotenv` dep) | ✅ |
+| `.env.example` uses placeholders only | `.env.example:18` `your_supabase_anon_key_here` (H-21/SEC-03 closed — key rotated) | ✅ |
+| Service role / admin IDs via env only, never in app | `internal/db/client.go:21-22`, `cmd/samay-admin/root.go:19, 52-57` | ✅ |
+| Compose uses placeholder secrets (no real creds committed) | `supabase/docker-compose.yml` ("your-…-change-in-production") | ✅ (M-01..M-05) |
+| Makefile passes `APPLE_PASSWORD` as plaintext var | ~~AltServer sideload path removed 2026-08-12~~; iOS device installs use fastlane `adhoc_local` + `devicectl` (enrolled team from gitignored `.env.local`) | ✅ |
+| Dev test script embeds local dev keys | `test/opt-001-rls-security.sh` (local-stack dev keys only — acceptable for dev, must never be prod) | ⚠️ |
+| Post-gate migrations carry no secrets | `20260814000001..05` + `20260811000001` — RLS/RPC/trigger only, no keys | ✅ |
 
-Rule: **no secrets in code, tests, or docs — placeholders only** (AGENT-RULES §4). Build-time injection via `--dart-define` (Makefile `build`/`dev` targets, M-11/M-13).
+Rule: **no secrets in code, tests, or docs — placeholders only** (docs/process/DEVELOPMENT-WORKFLOW.md §4.2). Build-time injection via `--dart-define` (Makefile `build`/`dev` targets, M-11/M-13).
 
 ### 2.9 Network transport
 
 - HTTPS in prod via Kong TLS (`54443`, AGENTS.md port map); PostgREST/GoTrue behind Kong (kong.yml). Self-hosted dev is HTTP on localhost only.
 - No certificate pinning implemented (S-05 scope); keep OS trust store + enforce TLS 1.2+ (R11).
-- Realtime: WebSocket with JWT; channel names embed user/entity ids (`supabase_service.dart:880-918`) — Realtime row access is governed by table RLS; channel-existence enumeration is a residual risk (S-11).
+- Realtime: WebSocket with JWT; channel names embed user/entity ids (`lib/core/providers/realtime_provider.dart` / `realtime_service.dart`) — Realtime row access is governed by table RLS; channel-existence enumeration is a residual risk (S-11).
 
 ---
 
@@ -238,7 +251,7 @@ Required by MVP spec §2 (privacy policy at signup, right to deletion, data secu
 | Age gate 18+ (block underage) | DoB picker, birth-date cutoff check | `lib/features/auth/age_gate_screen.dart:21-25, 68-85` |
 | Right to request deletion of personal data | In-app delete-account flow (email confirm + confirm dialog) | `lib/features/profile/delete_account_screen.dart:41-72` |
 | Data stored with appropriate security | RLS everywhere (primary layer), FORCE RLS hardening in flight (I-31) | §2.1 of this doc |
-| PII minimized on hard delete | anonymization (username → `deleted_user_{id}`, avatar/bio nulled, messages `[deleted]`) | `supabase_service.dart:72-84`, `20260510000002_cron.sql:7-32` |
+| PII minimized on hard delete | anonymization (username → `deleted_user_{id}`, avatar/bio nulled, messages `[deleted]`, ledgers `user_id` NULLed) | `lib/core/services/user_service.dart` (soft delete), `20260510000002_cron.sql:7-32` |
 
 Legal source: Law N° 29733 (Peru) — https://www.gob.pe/institucion/congreso-de-la-republica/normas-legales/243470-29733
 
@@ -246,8 +259,8 @@ Legal source: Law N° 29733 (Peru) — https://www.gob.pe/institucion/congreso-d
 
 | Obligation | Implementation | Evidence |
 |------------|---------------|----------|
-| In-app account deletion (App Store 5.1.1(v); Play data-deletion policy) | Soft-delete (immediate, reversible 30 d) + hard-delete cron (permanent) | `delete_account_screen.dart:41-72` → `supabase_service.dart:72-84` → cron `20260510000002_cron.sql:47-52` |
-| UGC reporting mechanism (chat, photos, users) | `reports` table + `reportContent()` | `supabase_service.dart:770-781`; table `full_schema.sql:329-337` |
+| In-app account deletion (App Store 5.1.1(v); Play data-deletion policy) | Soft-delete (immediate, reversible 30 d) + hard-delete cron (permanent) | `delete_account_screen.dart` → `auth_provider.dart:385` → `auth_service.dart:93` → cron `20260510000002_cron.sql:47-52` |
+| UGC reporting mechanism (chat, photos, users) | `reports` table + `reportContent()` | `lib/core/services/moderation_service.dart:14`; table `full_schema.sql:329-337` |
 | Age rating 17+ / Mature | Declared in spec §2 (age-gated signup) | spec §2; age_gate_screen.dart |
 | Data Safety form (Play) | Declare: account data, approximate location, photos/videos, messages, app activity | spec §2 (filing before release) |
 | Privacy Policy URL (both stores) | Required at release; text lives in app | spec §2 / release checklist §12 |
@@ -260,9 +273,9 @@ User taps "Eliminar mi cuenta"           lib/features/profile/settings_screen.da
   → DeleteAccountScreen (email match check)  lib/features/profile/delete_account_screen.dart:32-39, 41-49
   → confirmation dialog                       delete_account_screen.dart:50-66
   → authProvider.deleteAccount()              lib/core/providers/auth_provider.dart:186-190
-  → softDeleteUser():                         lib/core/services/supabase_service.dart:72-84
+  → softDeleteUser():                         lib/core/services/auth_service.dart:93
       deleted_at = now, username = deleted_user_{id}, avatar_url/bio = NULL
-  → signOut()                                 supabase_service.dart:35-37
+  → signOut()                                 auth_service.dart (via auth_provider.dart:379)
 Recovery window (30 days): admin CLI clears deleted_at  internal/ops/users.go (SoftDeleteUser counterpart) / docs/specs/steps/phase-03-auth-profiles/DELE-account-deletion.md
 Hard delete (daily 03:00):                    supabase/migrations/20260510000002_cron.sql:47-52
   hard_delete_expired_users()                 cron.sql:7-32
@@ -305,46 +318,48 @@ Hard delete (daily 03:00):                    supabase/migrations/20260510000002
 
 | # | Gap | Severity | Owner agent(s) | Reference |
 |---|-----|----------|----------------|-----------|
-| G-01 | `FORCE RLS` on 30/31 tables (only signup_tracker) | 🔴 | I-31 | SUP-02, H-19/H-25, SEC-13 |
-| G-02 | `SET search_path = ''` missing on 11 SECURITY DEFINER functions | 🔴 | I-31 | SUP-03, H-20/H-26, SEC-14 |
+| G-01 | `FORCE RLS` on 30/31 tables (only signup_tracker) | ✅ (I-31, 2026-08-09 — migration `20260809000001`: 31× `FORCE ROW LEVEL SECURITY`; `20260809000003` adds e2ee_identity_keys → **33 FORCE total**; pgTAP §15/37 assert them) | I-31 | SUP-02, H-19/H-25, SEC-13 |
+| G-02 | `SET search_path = ''` missing on 11 SECURITY DEFINER functions | ✅ (I-31, 2026-08-09 — `20260809000001` redefines all 12 with `SET search_path = ''`; every post-gate SD function follows) | I-31 | SUP-03, H-20/H-26, SEC-14 |
 | G-03 | `users_update_own` allows mass-assignment of economy/subscription columns (self-elevation) | ✅ (I-32, 2026-08-09 — migration `20260809000002`: `REVOKE UPDATE` on the 7 protected columns from authenticated/anon + `assert_safe_user_update()` BEFORE INSERT OR UPDATE trigger (SECURITY INVOKER, one-way `deleted_at` soft-delete preserved); pgTAP §39a/39b) | I-32 | API3:2023 (R3) |
 | G-04 | Token refresh never invoked; no PKCE on init; tokens not in SecureStorage | ✅ (I-30 + I-25, 2026-08-09 — `authFlowType: AuthFlowType.pkce` pinned in `lib/main.dart`; `tokenRefreshed` null-session handling + `AuthNotifier.refreshSession()` wired through `AuthService.refreshSession()`; session + PKCE code verifier persisted in flutter_secure_storage via `SecureSessionStorage`/`SecurePkceStorage` (SEC-04/SEC-11 closed, H-22) | I-30, I-25 | SEC-04, SEC-11, H-22 |
 | G-05 | OTP rate limiting: no client cooldown, no attempt caps | ✅ (I-29, 2026-08-09 — client-side OTP UX guards: 60 s resend cooldown, 5-consecutive-failure block, signup double-tap guard, `RateLimitError` surfaced (SEC-05 client half, H-23). Server-side DB `rate_limits` caps remain S-10/I-31) | I-29 | SEC-05, H-23 |
-| G-06 | `permission_handler` missing (camera/gallery runtime permission) | 🟠 | I-28 | SEC-07, M-29 |
-| G-07 | No input sanitization (NFKC, control chars, length caps) | 🟠 | I-27 ✅ | SEC-06, H-24 |
-| G-08 | `.env` bundled as asset + `flutter_dotenv`; `.env.example` leaks real anon key | 🟠 | I-34, M-13 (+S-08) | SEC-03, SEC-09, H-21, M-31, SUP-05 |
-| G-09 | E2EE chat: no crypto code, plaintext `messages.content`, no key lifecycle | 🔴 (before chat ships) | I-37, I-38 (spec D-07) | SEC-10/M-32 (Hive), E2EE-ARCHITECTURE.md |
+| G-06 | `permission_handler` missing (camera/gallery runtime permission) | ✅ (I-28, 2026-08-09 — `permission_handler: ^12.0.3` in pubspec.yaml; camera/gallery/notification permission flows wired in qr_scanner/photo pickers) | I-28 | SEC-07, M-29 |
+| G-07 | No input sanitization (NFKC, control chars, length caps) | ✅ (I-27, 2026-08-09 — shared `InputSanitizer` at every write boundary, 29 unit tests) | I-27 ✅ | SEC-06, H-24 |
+| G-08 | `.env` bundled as asset + `flutter_dotenv`; `.env.example` leaks real anon key | ✅ (I-34, 2026-08-09 — no `assets:` in pubspec, dart-define injection, `.env.example` placeholder; M-13/S-08) | I-34, M-13 ✅ | SEC-03, SEC-09, H-21, M-31, SUP-05 |
+| G-09 | E2EE chat: no crypto code, plaintext `messages.content`, no key lifecycle | ✅ (I-37/81722ef, 2026-08-09..13 — `lib/crypto/` 10 modules: X3DH + Double Ratchet, replay protection, session convergence, SPK expiry, secure key store; chat live; server stores ciphertext only. Residual: `prekey_fetch_log` rate limit deferred to S-10) | I-37, I-38 ✅ | SEC-10/M-32 (Hive), E2EE-ARCHITECTURE.md |
 | G-10 | Unencrypted Hive caches (config/photo/message) | ✅ (I-26, 2026-08-09 — `HiveService` opens all 4 boxes with `HiveAesCipher` (AES-256); 32-byte key in flutter_secure_storage (`samay.hive.key`), never on disk beside data; `crashRecovery: false` + zone-guarded opens; wrong-key → `HiveError` → delete + re-create (SEC-10/M-32 closed) | I-26 | SEC-10, M-32 |
 | G-11 | Kong has no rate-limit plugin; app-level limits unenforced (FLMT blocked on Edge Functions) | 🟠 | M-09, S-10 (FLMT: EEDG) | SEC-05, FLMT doc |
 | G-12 | Storage bucket policies not created; no signed-URL access check (client calls `createSignedUrl` directly) | ✅ (M-08, 2026-08-10 — buckets + storage.objects RLS shipped in `20260810000007_storage_buckets.sql`: avatars/groups public SELECT, events SELECT gated on event access via `event_photos` visibility, own-row INSERT/UPDATE/DELETE on `owner_id`; pgTAP Section 47. **Remaining:** client-side signed-URL issuance stays (no server-side signing RPC — edge functions blocked), event-cover serving on the private events bucket, signed-URL generation rate limiting — S-09/S-10) | S-09, I-59 | SECU-rls-policies.md §storage |
 | G-13 | No crash/error reporting (Sentry placeholder) | 🟡 | I-70, I-05 | SEC-08, M-30 |
 | G-14 | AuthGuard loading flash (`return null`) | 🟡 | I-03 | SEC-12, M-34 |
 | G-15 | PostgREST error strings leak schema details to users | 🟡 | I-08 (done), verify S-13 | SEC-15, M-35 |
-| G-16 | docker-compose port conflicts with Juega (5432, 54321) — violates AGENTS.md map | 🟠 | I-02, M-01..M-05, M-10 | AGENTS.md §port; docker-compose.yml:13,44; run.sh:17 |
-| G-17 | Stale pgTAP assertions on signup_tracker wide-open policies | ✅ (D-04, 2026-08-09 — `supabase/tests/schema_test.sql` + `supabase-testing/tests/schema_test.sql` Sections 6/15/37 now assert the email-scoped `signup_tracker_*_own` policies + `FORCE ROW LEVEL SECURITY` + `check_signup_email` grants; no "Anyone can …" assertions remain; both files byte-identical) | D-04 | supabase/tests/schema_test.sql:170-177 |
+| G-16 | docker-compose port conflicts with Juega (5432, 54321) — violates AGENTS.md map | ✅ (I-02/M-01..M-10, 2026-08-10 — remap to 54382/54381/54384/54386/54388/54443; `tools/check_ports.sh --strict` PASS: 19 mappings / 221 refs / 0 violations) | I-02, M-01..M-05, M-10 | AGENTS.md §port; docker-compose.yml |
+| G-17 | Stale pgTAP assertions on signup_tracker wide-open policies | ✅ (D-04, 2026-08-09 — `supabase/tests/schema_test.sql` + `supabase-testing/tests/schema_test.sql` Sections 6/15/37 now assert the email-scoped `signup_tracker_*_own` policies + `FORCE ROW LEVEL SECURITY` + `check_signup_email` grants; no "Anyone can …" assertions remain; both files byte-identical) | D-04 | supabase/tests/schema_test.sql |
 | G-18 | Realtime channel abuse / presence enumeration | 🟡 | S-11 | §2.9 |
 | G-19 | Deep-link/invite-token validation (samay://event/{token}) | 🟡 | S-12, I-66 | MASTG-BEST-0071 |
 | G-20 | Go HTTP client: no timeouts/context; silent error swallowing in secondary queries | 🟡 | I-39 (+I-42 tests) | M-43, H-31 |
-| G-21 | `minimum_password_length = 6` (NIST 800-63B recommends ≥ 8) | 🟡 | I-30 (config change) | R10 §5.1.1; config.toml:62 |
-| G-22 | No certificate pinning; no Android network-security-config hardening | 🟡 | S-05, M-27 | R11 |
+| G-21 | `minimum_password_length = 6` (NIST 800-63B recommends ≥ 8) | ✅ (2026-08-09 — `config.toml:62` = 8, both stacks) | I-30 | R10 §5.1.1; config.toml:62 |
+| G-22 | No certificate pinning; no Android network-security-config hardening | 🟠 | S-05, M-27 | R11 |
 | G-23 | Audit log integrity (append-only enforcement, CLI identity) | 🟡 | S-17 | §1.3 R-row |
+| G-24 | Server-side rate limiting (Kong plugin + RPC-level caps, FLMT) | 🟠 (client OTP caps landed I-29; server-side blocked on Edge Functions — EEDG ❌) | S-10, M-09 | FLMT doc |
+| G-25 | E2EE prekey-fetch rate limit (`prekey_fetch_log`) | 🟡 (deferred to S-10 — comment in `20260809000003:73-78`) | S-10 | E2EE-ARCHITECTURE.md §5.5 |
 
 ---
 
 ## 7. Verification Notes (D-06 evidence ledger)
 
-Every "current status" claim above was cross-checked against the working tree on 2026-08-09:
+Original ledger verified **2026-08-09** (pre-I-31 state); re-verified **2026-08-13** against HEAD `18b8c8b`:
 
-- `rg "FORCE ROW LEVEL SECURITY"` across `supabase/` → exactly one enforcement (signup_tracker), three comment+statement matches in `20260724000001_fix_signup_tracker_rls.sql` (lines 4, 71, 73).
-- `rg "SECURITY DEFINER"` across `supabase/migrations/` → 14 functions defined SECURITY DEFINER; 12 survive today; only `check_signup_email` carries `SET search_path = ''`; `handle_signup` carried `SET search_path = public` and was dropped.
-- `rg "ENABLE ROW LEVEL SECURITY"` → 30 in `20260510000001_full_schema.sql` + 1 in `20260513000002_fix_signup_tracker.sql` = 31 RLS-enabled tables.
-- `refreshSession` callers: grep over `lib/` → definition at `supabase_service.dart:53`, zero invocations.
-- `AuthFlowType`/`pkce`/`permission_handler`/`sentry`/`cached_network` over `lib/`: zero matches.
-- Input sites: 21 `TextEditingController`/`TextField` matches across 13 files; no sanitizer module exists.
-- Anon key presence in `.env.example:5` and `.env` as Flutter asset (`pubspec.yaml:38-39`) confirmed by direct read (key value deliberately not repeated in this doc).
-- Compose port map vs AGENTS.md: `docker-compose.yml:13` (`5432:5432`) and `:44` (`54321:8000`) conflict with the approved map (54382/54386) — filed as G-16.
-- `supabase/tests/schema_test.sql:170-177` still asserts the four "Anyone can …" signup_tracker policies (stale since 20260724000001) — filed as G-17.
+- `rg "FORCE ROW LEVEL SECURITY"` across `supabase/migrations/` → **33 statements**: 31× in `20260809000001_harden_rls_search_path.sql:39-69`, signup_tracker in `20260724000001:73`, `e2ee_identity_keys` in `20260809000003:62`. (2026-08-09 ledger: 1.)
+- `rg "SECURITY DEFINER"` across `supabase/migrations/` → 22 files define SD functions; **every live SD function carries `SET search_path = ''`** (verified per migration; zero unhardened). (2026-08-09 ledger: 11 unhardened.)
+- `rg "ENABLE ROW LEVEL SECURITY"` → 33 RLS-enabled tables (30 base + signup_tracker + storage-era + e2ee_identity_keys).
+- `refreshSession` callers: definition `lib/core/services/auth_service.dart`, invoked from `auth_provider.dart` `tokenRefreshed` handler (2026-08-09 ledger: zero callers).
+- `AuthFlowType.pkce` present at `lib/main.dart:118`; `flutter_secure_storage` used by `SecureSessionStorage`/`SecurePkceStorage`/`HiveService`/E2EE key store.
+- Input sanitizer: `lib/core/utils/input_sanitizer.dart`, 29 unit tests (2026-08-09 ledger: none).
+- `.env.example:18` is the `your_supabase_anon_key_here` placeholder; pubspec.yaml has no `assets:` block (2026-08-09 ledger: real key at :5, `.env` asset at pubspec :38-39).
+- Compose port map vs AGENTS.md: `tools/check_ports.sh --strict` → **PASS** (19 mappings / 221 refs / 0 violations); no 5432/54321 host mappings (2026-08-09 ledger: `5432:5432` + `54321:8000` conflicts).
+- pgTAP: `plan(385) == 385` both stacks; Sections 6/15/37 assert email-scoped policies + FORCE (2026-08-09 ledger: "Anyone can …" assertions present).
 
 ---
 
-*Samay Security Architecture — v1.0 (D-06) · 2026-08-09 · Next review: after I-31/I-30/I-37 land and before Alpha release checklist (§12 of MVP spec).*
+*Samay Security Architecture — v1.1 (D-06) · 2026-08-13 refresh · Next review: after FLMT/rate-limiting and before Alpha release checklist (§12 of MVP spec).*

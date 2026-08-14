@@ -722,6 +722,12 @@ abstract class AppLocalizations {
   /// **'Amigos'**
   String get friendsStatusAccepted;
 
+  /// Botón que abre el chat directo E2EE con un amigo desde su perfil público
+  ///
+  /// In es, this message translates to:
+  /// **'Mensaje'**
+  String get profileMessage;
+
   /// Friendship status label for pending requests
   ///
   /// In es, this message translates to:
@@ -2959,6 +2965,36 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'Juegos'**
   String get minigamesTitle;
+
+  /// Sección de acceso rápido a los juegos al tope del feed principal
+  ///
+  /// In es, this message translates to:
+  /// **'Juegos'**
+  String get homeGamesTitle;
+
+  /// Subtítulo de la tarjeta de Party Finder en el feed principal
+  ///
+  /// In es, this message translates to:
+  /// **'Encuentra personas que compartan tus intereses'**
+  String get homePartyFinderBody;
+
+  /// Título del selector de grupo al empezar un juego desde el feed principal
+  ///
+  /// In es, this message translates to:
+  /// **'Elige un grupo'**
+  String get minigamesChooseGroup;
+
+  /// Título del snackbar al intentar jugar sin pertenecer a ningún grupo
+  ///
+  /// In es, this message translates to:
+  /// **'Aún no tienes grupos'**
+  String get minigamesNoGroups;
+
+  /// Cuerpo del snackbar al intentar jugar sin pertenecer a ningún grupo
+  ///
+  /// In es, this message translates to:
+  /// **'Únete o crea un grupo para jugar con tus amigos.'**
+  String get minigamesNoGroupsBody;
 
   /// Section heading above the five game-type cards
   ///

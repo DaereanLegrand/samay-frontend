@@ -6,7 +6,9 @@
 > **I-57 progress (2026-08-09):** QRAT/QRSC **client foundations landed** —
 > `lib/features/qr/attendance_qr_screen.dart` (inactive/server-pending/active/
 > expired/ended states, 15s countdown ring, rotation refetch — server rotation
-> RPC is EEDG/QEDG future work), `lib/features/qr/qr_scanner_screen.dart`
+> RPC landed 2026-08-13: `rotate_qr_token` `20260814000004_qr_token_rotate_rpc.sql`,
+> advisory-lock serialized at :74, window + invite gates, old tokens invalidated,
+> `MyQrTokenNotifier` self-issues on first fetch), `lib/features/qr/qr_scanner_screen.dart`
 > (permission flow via `PermissionService`, mobile_scanner camera, torch
 > toggle, scan → `validate_qr_token` RPC with the QRSC error copy),
 > `lib/features/qr/qr_providers.dart`, `EventService.getMyQrToken` +
@@ -15,9 +17,8 @@
 > in supabase-testing, pgTAP Section 44, routes `/qr/:eventId` +
 > `/scanner/:eventId` flag-gated on `AppFeatureFlag.qr` (disabled keeps the
 > coming-soon copy). **Remaining (server-side):** `qr-token-manager` +
-> `validate-attendance` Edge Functions (QEDG, blocked by EEDG), rotation RPC
-> handoff (see `2026-08-09_I57-qr-foundation.md`), invite-screen QR actions,
-> opt-test + pgTAP behavioral coverage when the stack is up.
+> `validate-attendance` Edge Functions (QEDG, blocked by EEDG), invite-screen
+> QR actions, opt-test + pgTAP behavioral coverage when the stack is up.
 
 ## Summary
 
@@ -45,8 +46,8 @@ Key mechanics (from specs):
 
 | Step | Direct deps | Dep status | Step status |
 |------|-------------|------------|-------------|
-| `QRAT` | `ECRT`❌, `QEDG`❌, `ROUT`✅, `DSNG`✅ | 2/4 green | ❌ No code |
-| `QRSC` | `ECRT`❌, `QEDG`❌, `DSNG`✅ | 1/3 green | ❌ No code |
+| `QRAT` | `ECRT`❌, `QEDG`❌, `ROUT`✅, `DSNG`✅ | 2/4 green | ✅ **Landed (I-57, 2026-08-09)** — `attendance_qr_screen.dart` (pre-activation/active/post-event states, countdown ring, server-pending + retry), `myQrTokenProvider`, `validate_qr_token` RPC (`20260809000005`); rotation now served by `rotate_qr_token` RPC (`20260814000004`) |
+| `QRSC` | `ECRT`❌, `QEDG`❌, `DSNG`✅ | 1/3 green | ✅ **Landed (I-57, 2026-08-09)** — `qr_scanner_screen.dart` (mobile_scanner 6.x, `PermissionService` camera flow, torch toggle) + scan → `validate_qr_token` RPC |
 | `QEDG` | `DATA`✅, `INFR`✅ | 2/2 green | ❌ No Edge Functions |
 
 `QEDG`'s own deps are green — it only needs `supabase/functions/` infrastructure
@@ -55,7 +56,7 @@ for) and ROUT.
 
 ## Orchestration agents starting here
 
-| Agent | Scope (per ORCHESTRATION.md / FILE-OWNERSHIP.md) |
+| Agent | Scope (per **docs/process/DEVELOPMENT-WORKFLOW.md** / FILE-OWNERSHIP.md) |
 |-------|--------------------------------------------------|
 | I-57 | `lib/features/qr/attendance_qr_screen.dart` + `qr_scanner_screen.dart` (foundation) — **DONE 2026-08-09** (client screens, RPC contract `validate_qr_token`, flag-gated routes; server rotation RPC handed off to QEDG/EEDG) |
 | I-49/I-50/I-51 | Feature flags, repository layer, typed REST client (foundations the QR client calls will use) |
@@ -76,7 +77,7 @@ EEDG (Phase 05) and QEDG (Phase 06) — coordinate so they are implemented once.
 
 **QRAT (`QRAT-dynamic-attendance-qr-attendee.md`):**
 - [x] Pre-activation state w/ countdown ("El código QR se activará {X} minutos antes del evento")
-- [x] Active state: full-screen black QR (white modules), "Samay" center overlay, countdown ring "Nuevo código en: {s}", auto-rotate at 0 (rotation refetch — server rotate RPC pending)
+- [x] Active state: full-screen black QR (white modules), "Samay" center overlay, countdown ring "Nuevo código en: {s}", auto-rotate at 0 (rotation via `rotate_qr_token` RPC — `20260814000004`, advisory-lock serialized)
 - [x] Post-event state ("El evento ha finalizado...")
 - [x] Token fetch cycle: on activation → get current token; countdown from `qr.display_countdown_seconds`; rotate at 0; server-pending + network-error retries w/ "Reintentar"
 - [x] Late-join first-token-on-demand path (same get_token path — no special handling)

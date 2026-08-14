@@ -115,6 +115,20 @@ tests=(
   "7.4|Ranks: Group in list|Shows position, name, badge, shards, members"
   "7.5|Ranks: Pull-to-refresh|Leaderboard refreshes"
   "7.6|Ranks: Detail badge matches leaderboard|Consistent data"
+
+  "8.1|Plugged: Feed shows GAMES row under the hero|5 game cards + Party Finder card (flag-gated)"
+  "8.2|Plugged: Tap a game card with no groups|Snackbar \"No groups yet\" hint"
+  "8.3|Plugged: Tap a game card with exactly 1 group|Navigates straight to that group's minigames hub"
+  "8.4|Plugged: Tap a game card with several groups|Bottom sheet \"Choose a group\" → picker → hub"
+  "8.5|Plugged: Tap Party Finder card on feed|Navigates to /party-finder"
+  "8.6|Plugged: Group detail → \"Minijuegos\" button|Navigates to that group's minigames hub"
+  "8.7|Plugged: Event detail (live event) → QR attendance button|Navigates to attendee QR screen"
+  "8.8|Plugged: Event detail (live event, promotor) → scanner button|Navigates to QR scanner screen"
+  "8.9|Plugged: Event detail (live event) → photo gallery button|Navigates to the event photo gallery"
+  "8.10|Plugged: Event detail (ended/cancelled event)|Live-actions row hidden"
+  "8.11|Plugged: Photo gallery → collage wall button|Navigates to the auto-collage wall"
+  "8.12|Plugged: Public profile of a friend → \"Enviar mensaje\"|Creates/opens the E2EE direct chat"
+  "8.13|Plugged: Public profile of a blocked user|No \"Enviar mensaje\" button"
 )
 
 # ── Results file header ─────────────────────────────────────

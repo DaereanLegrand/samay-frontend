@@ -128,8 +128,9 @@ lib/                          Flutter app
                               party_finder/ subscriptions/ — screens/ providers/
                               widgets/ logic/ per feature (M-23); most real screens
                               enabled behind feature flags; subscriptions still gated
-  shared/                     providers/ (realtime), widgets/ (v_button, v_input, v_card,
-                              v_chip, v_badge, v_shard_icon, rank_badge, v_coming_soon)
+  shared/                     widgets/ (v_button, v_input, v_card, v_chip, v_badge,
+                              v_shard_icon, rank_badge) — realtime lives in
+                              lib/core/providers/realtime_provider.dart
 
 cmd/samay-admin/              Cobra CLI entry (users, events, groups, reports, shards,
                               config, subs, system, feature-requests) — thin wrappers
@@ -138,15 +139,16 @@ internal/db/                  PostgREST HTTP client (service_role) + Go models
 internal/format/              Table/JSON output formatters
 
 supabase/                     Self-hosted stack: config.toml, docker-compose*.yml,
-                              migrations/ (17 files), seed.sql, run.sh, reset.sh,
-                              migrate.sh, tests/schema_test.sql (pgTAP), volumes/
+                              migrations/ (33 files, mirrored 33/33 in testing),
+                              seed.sql, run.sh, reset.sh, migrate.sh,
+                              tests/schema_test.sql (pgTAP), volumes/
 supabase-testing/             Isolated testing stack (same layout, mailpit, separate volumes)
 
 test/                         Flutter unit/widget tests + backend curl opt-tests
   opt-NNN-*.sh                curl integration tests (self-contained, exit 0/1)
   run_all_backend.sh          Runs every opt test against http://127.0.0.1:54386
   README.md                   Full testing guide
-integration_test/             Hermetic modular Flutter integration suite — 18 flows + smoke (I-01..U-29, runner.sh)
+integration_test/             Hermetic modular Flutter integration suite — 18 registered flows incl. ui_smoke (I-01..U-29, runner.sh)
 test_runner.sh                gum-based MANUAL end-user QA runner (55 cases, phases 00–04)
 
 docs/
@@ -193,9 +195,9 @@ If someone else holds it, wait — never edit under a held lock.**
 tools/agent_lock.sh list                                     # who holds what
 tools/agent_lock.sh status lib/core/router/app_router.dart   # LOCKED/FREE + owner
 
-tools/agent_lock.sh acquire lib/core/services/supabase_service.dart --owner my-name
+tools/agent_lock.sh acquire lib/core/services/chat_service.dart --owner my-name
 # ... edit the file ...
-tools/agent_lock.sh release lib/core/services/supabase_service.dart --owner my-name
+tools/agent_lock.sh release lib/core/services/chat_service.dart --owner my-name
 
 # One-shot: acquire → run → auto-release
 tools/agent_lock.sh run lib/core/router/app_router.dart --owner my-name -- \
@@ -216,7 +218,7 @@ tools/agent_lock.sh run lib/core/router/app_router.dart --owner my-name -- \
 | Layer | Command | Notes |
 |-------|---------|-------|
 | Flutter unit/widget | `make flutter-test` | `test/` — mirrors `lib/` layout. Full suite green — **2209/2209** (re-verified 2026-08-13) |
-| Flutter modular integration | `bash integration_test/runner.sh` (hermetic) / `-d <device>` | `integration_test/` — **18 flows + `ui_smoke_test.dart`**: auth, ban, error, profile, theme, cosmetics, events, photos, chat, QR, realtime, notifications, feed, party finder, subscriptions, minigames, telemetry (I-01 + per-feature agents, U-29); hermetic by default (`support/fake_supabase.dart`), each file runs standalone |
+| Flutter modular integration | `bash integration_test/runner.sh` (hermetic) / `-d <device>` | `integration_test/` — **18 registered (17 flows + `ui_smoke_test.dart`)**: auth, ban, error, profile, theme, cosmetics, events, photos, chat, QR, realtime, notifications, feed, party finder, subscriptions, minigames, telemetry (I-01 + per-feature agents, U-29); hermetic by default (`support/fake_supabase.dart`), each file runs standalone (`luxe_screenshots_test.dart` intentionally unregistered) |
 | Backend (curl) | `bash test/run_all_backend.sh` | Runs every `test/opt-*.sh` against Kong at `http://127.0.0.1:54386`; requires the stack up + `make supabase-docker-reset` |
 | Go | `go test ./...` | 182 tests, 5 packages (re-verified 2026-08-13; CLI flag/validation tests + ops business logic with `httptest` mocks) |
 | SQL (pgTAP) | `supabase db test` | `supabase/tests/schema_test.sql` — **385 assertions** (plan 385, I-77/S-03 + 20260814 migrations): extensions, enums, tables, triggers, RPCs, RLS policies, seed data |
@@ -260,8 +262,8 @@ hardcode economy/QR/limit constants.
   most real screens are now enabled behind `AppFeatureFlag` toggles;
   **subscriptions stay gated** (RevenueCat service shipped, store wiring pending).
 - **Planned / remaining:** edge functions (EEDG/QEDG/PUSH — `supabase/functions/`
-  does not exist yet), subscriptions end-to-end, web servers (APIS Gin scaffold
-  landed, I-41), and the full phase 05–15 flows per
+  exists only as a boot stub with no real functions yet), subscriptions end-to-end,
+  web servers (APIS Gin scaffold landed, I-41), and the full phase 05–15 flows per
   `docs/specs/steps/cross-references.md`.
 - **Known issues:** `docs/to-fix/TODO.md` (statuses re-verified by R-3,
   2026-08-13); `docs/specs/steps/cross-references.md` (step-by-step

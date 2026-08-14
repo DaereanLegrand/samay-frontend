@@ -41,7 +41,7 @@ Key mechanics (from specs):
 
 ## Orchestration agents starting here
 
-| Agent | Scope (per ORCHESTRATION.md / FILE-OWNERSHIP.md) |
+| Agent | Scope (per **docs/process/DEVELOPMENT-WORKFLOW.md** / FILE-OWNERSHIP.md) |
 |-------|--------------------------------------------------|
 | I-61 | ✅ DONE 2026-08-09 — `lib/features/subscriptions/paywall_screen.dart` (RevenueCat placeholder foundation: tier table from `app_config` prices, current-tier badge, stub-mode disabled buttons, `/subscriptions` route behind the flag) + `lib/core/services/revenuecat_service.dart` (stub/configured seam) + `purchases_flutter ^10.8.0` re-added; evidence: `2026-08-09_I61-paywall.md` |
 | I-49/I-50/I-51 | Feature flags (paywall behind flag — Alpha ships without purchase UI per RSDK), repositories, typed REST client |

@@ -454,6 +454,10 @@
     "description": "Empty state when the user search matches nothing"
   },
   "friendsStatusAccepted": "Friends",
+  "profileMessage": "Message",
+  "@profileMessage": {
+    "description": "Button that opens the E2EE direct chat with a friend from their public profile (2026-08-13)"
+  },
   "@friendsStatusAccepted": {
     "description": "Friendship status label for accepted friends"
   },
@@ -2112,6 +2116,26 @@
   "minigamesTitle": "Games",
   "@minigamesTitle": {
     "description": "App bar title of the group minigames hub"
+  },
+  "homeGamesTitle": "Games",
+  "@homeGamesTitle": {
+    "description": "Section heading of the games quick-access row at the top of the home feed (2026-08-13)"
+  },
+  "homePartyFinderBody": "Find people who share your interests",
+  "@homePartyFinderBody": {
+    "description": "Subtitle of the Party Finder entry card on the home feed"
+  },
+  "minigamesChooseGroup": "Choose a group",
+  "@minigamesChooseGroup": {
+    "description": "Title of the group-picker bottom sheet shown when starting a game from the home feed"
+  },
+  "minigamesNoGroups": "No groups yet",
+  "@minigamesNoGroups": {
+    "description": "Title of the snackbar shown when starting a game without any group membership"
+  },
+  "minigamesNoGroupsBody": "Join or create a group to play games with your friends.",
+  "@minigamesNoGroupsBody": {
+    "description": "Body of the snackbar shown when starting a game without any group membership"
   },
   "minigamesPickGame": "Pick a game",
   "@minigamesPickGame": {

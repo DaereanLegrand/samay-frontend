@@ -38,7 +38,7 @@ Key mechanics (from specs):
 
 ## Orchestration agents starting here
 
-| Agent | Scope (per ORCHESTRATION.md / FILE-OWNERSHIP.md) |
+| Agent | Scope (per **docs/process/DEVELOPMENT-WORKFLOW.md** / FILE-OWNERSHIP.md) |
 |-------|--------------------------------------------------|
 | I-62 | `lib/features/cosmetics/cosmetics_shop_screen.dart` (foundation) |
 | I-64 | `lib/features/shards/shard_ledger_screen.dart` — **landed** (see log `2026-08-09_I64-shard-ledger.md`) |

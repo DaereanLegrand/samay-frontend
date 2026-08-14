@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:samay/core/config/feature_flags.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/core/design_tokens/app_gradients.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
@@ -260,11 +261,70 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
                 onPressed: _cancelling ? null : _cancelEvent,
               ),
             ],
+            if (!_isClosed(status))
+              _buildLiveActions(promotoresAsync.valueOrNull, uid),
             const SizedBox(height: AppSpacing.xl),
           ],
         ),
       ),
     );
+  }
+
+  /// Plugged event actions (2026-08-13): the attendee QR, the promotor
+  /// scanner and the photo gallery — each flag-gated and hidden once the
+  /// event is closed (ended/cancelled).
+  Widget _buildLiveActions(
+    List<Map<String, dynamic>>? promotores,
+    String? uid,
+  ) {
+    final l10n = AppLocalizations.of(context);
+    final isPromotor = uid != null &&
+        promotores != null &&
+        promotores.any((p) => p['user_id'] == uid && p['role'] == 'promotor');
+    final showQr = ref.isEnabled(AppFeatureFlag.qr);
+    final showPhotos = ref.isEnabled(AppFeatureFlag.photoUpload);
+    if (!showQr && !showPhotos) return const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const SizedBox(height: AppSpacing.xl),
+        if (showQr) ...[
+          Row(
+            children: [
+              Expanded(
+                child: VButton.outlined(
+                  label: l10n.qrAttendanceTitle,
+                  onPressed: () => context.push(RoutePaths.qr(widget.eventId)),
+                ),
+              ),
+              if (isPromotor) ...[
+                const SizedBox(width: AppSpacing.sm),
+                Expanded(
+                  child: VButton.outlined(
+                    label: l10n.qrScannerTitle,
+                    onPressed: () => context
+                        .push(RoutePaths.scanner(widget.eventId)),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ],
+        if (showPhotos) ...[
+          const SizedBox(height: AppSpacing.sm),
+          VButton.outlined(
+            label: l10n.photosTitle,
+            onPressed: () =>
+                context.push(RoutePaths.eventPhotos(widget.eventId)),
+          ),
+        ],
+      ],
+    );
+  }
+
+  bool _isClosed(String status) {
+    return status == 'ended' || status == 'cancelled';
   }
 
   bool _canEdit(

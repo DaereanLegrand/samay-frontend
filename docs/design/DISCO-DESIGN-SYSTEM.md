@@ -127,19 +127,30 @@ Source of truth: `lib/core/design_tokens/app_typography.dart` — `AppTypography
 
 ### 3.2 Playfair Display — exact usages (exhaustive, implemented)
 
-Use italic 700 (600 for the 28px hero role, per the §3.3 table). **Nowhere else.** If a text role isn't in this list, it's Inter. **AppBar titles are Inter utility titles, never Playfair** (U-12 decision, pinned by test — the fancy moment belongs to the "Próximamente" headline and hero titles only).
+Use italic 700 (600 for the 28px hero role, per the §3.3 table). **Nowhere else.** If a text role isn't in this list, it's Inter. **AppBar titles are Inter utility titles, never Playfair** (U-12 decision, pinned by test — the fancy moment belongs to the ~~"Próximamente" headline and~~ hero titles only).
+
+> **DEPARTURE (2026-08-13):** VComingSoonScreen deleted — see §5.7 note.
 
 | Screen / element | Where | Size | Implemented by |
 |---|---|---|---|
 | Welcome screen wordmark ("VIVE" — the ARB literal `welcomeVive`; the original "SAMAY" copy was never adopted, acknowledged copy decision U-23 F5) | `lib/features/auth/screens/welcome_screen.dart` — `VBreathingGlow` + `displayLarge` | 64 | U-07/U-18/U-23 |
 | Auth flow big headers ("Crea tu cuenta", "¿Cuál es tu fecha de nacimiento?", "Verificar edad", "Restablecer contraseña"…) | `signup_contact_screen.dart`, `age_gate_screen.dart`, `otp_verification_screen.dart`, `privacy_terms_screen.dart`, `forgot_password_screen.dart` — `displayMedium` through `VBreathingGlow` | 40 | U-07/U-14/U-23 |
 | Ban screen title | `banned_screen.dart` — `displayMedium` + `VBreathingGlow` | 40 | U-07/U-23 |
-| Feed hero header ("SAMAY" / "Eventos") | `feed_screen.dart` — `VBreathingGlow` + `displaySmall` | 32 | U-08/U-18 |
-| Event titles — featured/hero cards | `event_detail_screen.dart` — `headlineLarge` (theme role, glow-soft baked in) | 28 | U-02/U-25 |
+| Feed hero header ("SAMAY" / "Eventos") | `feed_screen.dart` — `VDisplayText` default (maps to `displayMedium`) | 40 | U-08/U-18 |
+| Event titles — featured/hero cards | `event_detail_screen.dart` (hero) + `my_events_screen.dart` (tab header) — `VDisplayText` default (maps to `displayMedium`) | 40 | U-02/U-25 |
 | Leaderboard podium group names (top 3) | `leaderboard_screen.dart` — `headlineLarge` (top-3 rows only; the rest stay Inter) | 28 | U-11 |
 | Group names on detail hero | `group_detail_screen.dart` AppBar hero name — `headlineLarge` | 28 | U-11 |
 | Profile username (own + public) | `profile_screen.dart`, `public_profile_screen.dart` — `headlineLarge` | 28 | U-09 |
-| Coming-soon "Próximamente" | `v_coming_soon.dart` — `VBreathingGlow` + `displaySmall`, `soft: true` | 32 | U-05/U-06/U-18 |
+| ~~Coming-soon "Próximamente"~~ | ~~`v_coming_soon.dart` — `VBreathingGlow` + `displaySmall`, `soft: true`~~ | ~~32~~ | ~~U-05/U-06/U-18~~ |
+
+> **DEPARTURE (2026-08-13):** VComingSoonScreen deleted — see §5.7 note.
+
+> **DEPARTURE (2026-08-13, plugged home):** the feed now carries a games
+> quick-access section under the hero — the "GAMES" heading uses the
+> `sectionLabel` token (**Inter**, uppercase — the Playfair list stays
+> exhaustive) and the five minigame cards + Party Finder entry render with
+> existing tokens only (`VGlassCard` cyan, `discoCyan` icons, 13px Inter
+> labels). No new type roles introduced; one hero per screen preserved.
 
 **Do NOT use Playfair for:** button labels, inputs, chips, badges, list tiles, body copy, settings rows, dialogs, tab labels, notification text, numbers, prices, AppBar titles (U-12), donate/checkout headers (U-02).
 
@@ -151,7 +162,7 @@ Implemented in `lib/core/design_tokens/app_typography.dart` (U-02) as const-cons
 |---|---|---|---|---|---|---|
 | `displayLarge` | Playfair Display | 64 | w700 *italic* | -1.9 (~-0.03em) | 1.0 | Welcome wordmark (glow-strong) |
 | `displayMedium` | Playfair Display | 40 | w700 *italic* | -1.2 (~-0.03em) | 1.0 | Auth flow big headers (glow-strong) |
-| `displaySmall` | Playfair Display | 32 | w700 *italic* | -1.0 | 1.05 | Feed hero, coming-soon, section heroes (glow-strong) |
+| `displaySmall` | Playfair Display | 32 | w700 *italic* | -1.0 | 1.05 | Feed hero, ~~coming-soon,~~ section heroes (glow-strong) |
 | `headlineLarge` | Playfair Display | 28 | w600 *italic* | -0.8 | 1.1 | Event titles, podium names, group hero, profile username (glow-soft) |
 | `headlineMedium` | Inter | 24 | w700 | -0.3 | 1.2 | Screen headers |
 | `headlineSmall` | Inter | 20 | w600 | -0.2 | 1.3 | Card titles, empty-state titles |
@@ -164,6 +175,8 @@ Implemented in `lib/core/design_tokens/app_typography.dart` (U-02) as const-cons
 | `labelMedium` | Inter | 12 | w600 | 0.8 (uppercase) | 1.3 | Chips, small buttons |
 | `labelSmall` | Inter | 10 | w500 | 1.2 (uppercase) | 1.3 | Badges, rank labels, overlines, section headers — **renders uppercase** (`.toUpperCase()` at call sites / in `VBadge`/`RankBadge`) |
 | `otpInputText` | Inter | 30 | w800 | 8 | 1.5 | OTP code input (token only — not a composed `TextTheme` role; wired in `otp_verification_screen.dart` by U-07) |
+
+> **DEPARTURE (2026-08-13):** VComingSoonScreen deleted — see §5.7 note.
 
 ### 3.4 Glow text style spec (the signature)
 
@@ -251,10 +264,16 @@ Component map → existing widgets in `lib/shared/widgets/` (restyled by U-05/U-
 |---|---|---|
 | `VButton` (outlined, default) | 1px white border (`BorderSide(color: white)`), transparent fill, white text `labelLarge`, sharp corners, full-width, 14px vertical padding | `border white` · `text white` |
 | `VButton.emphasized` | White fill, black text `labelLarge`, sharp, full-width | `fill white` · `text discoBlack` |
-| `VButton.glowAccent` | Pink 1px border (or pink fill when `filled: true`) + black text (fill form) / pink text (border form, may carry the `glow-hairline` shadow). Pressed: `glowPinkDeep` fill + white text (5.87:1). Use ≤ 1 per screen — always a primary action | `border/fill glowPink` · text `discoBlack`/`glowPink` · pressed `glowPinkDeep` |
+| `VButton.glowAccent` | Pink 1px border (or pink fill when `filled: true`) + black text (fill form) / pink text (border form, may carry the `glow-hairline` shadow). Pressed: ~~`glowPinkDeep` fill + white text (5.87:1)~~ — superseded, see note below. Use ≤ 1 per screen — always a primary action | `border/fill glowPink` · text `discoBlack`/`glowPink` · pressed ~~`glowPinkDeep`~~ → family lerp (LUXE §4.2) |
 | Loading | same shape, `CircularProgressIndicator(strokeWidth: 2)` in the variant's **foreground color** (U-05 fix — was theme-white, invisible on the emphasized fill) | |
 | Disabled | `onPressed: null`; outline AND text drop to `#666666` (exempt from contrast as inactive component) | `muted` |
 | Press feedback | `fast` (150ms), white/black α0.1 overlay derived from the variant base color — no scale, no bounce (U-18 verified + pinned; the user's CSS `:active scale(0.97)` is explicitly rejected — §6.1 bans scale) | |
+
+> **SUPERSEDED (2026-08-13):** the §5.1 pressed-face claim above (`glowPinkDeep` fill + white text,
+> 5.87:1) matches v1.1 only — the LUXE `glowAccent` pressed face is
+> `Color.lerp(family.colors.last, discoBlack, 0.35)` + white text (`v_button.dart:266-268`), and
+> 5.87:1 was the v1.1 `glowPinkDeep` figure. Pressed contrast now varies per family (violet ≈ 8.1:1 ✅
+> … cyan ≈ 3.6:1 ⚠️) — see DISCO-LUXE-DESIGN-SYSTEM §4.2.
 
 > **Canonical glow CTA form (U-30, concretized by U-07/U-09/U-11):** brand-primary CTAs on black use **`glowAccent(filled: true)`** (welcome, login, OTP, forgot-password, public-profile add-friend, group Donar, create-group, donate-shards). The **outlined** glow form is reserved for destructive CTAs (delete-account — danger is a function, not a brand moment). Exactly ≤ 1 glow CTA per screen (U-23 F1 keeps signup's CTA emphasized-white as a deliberate product inconsistency — flagged for product, unchanged).
 
@@ -300,11 +319,23 @@ Component map → existing widgets in `lib/shared/widgets/` (restyled by U-05/U-
 - `VShardIcon`: `Icons.diamond` in **`discoGold #FFC94D`** at 16px default (gold is the currency color — 13.71:1 on black, far beyond the 3:1 non-text rule). Pass a different `color:` for the white-only mode (P2 fallback). Sizes: `xs 12` (inline in list subtitles) · `sm 16` (default) · `lg 24` (balance cards).
 - **Semantics (U-26, 1.4.1):** the diamond is decorative in every usage (the adjacent count text carries the meaning) — wrapped in `ExcludeSemantics` so screen readers never announce a redundant "shards" node.
 
-### 5.7 Coming-soon screens — `v_coming_soon.dart` (U-05/U-06/U-12/U-18)
+### 5.7 Coming-soon screens — `v_coming_soon.dart` (U-05/U-06/U-12/U-18) — **RETIRED**
 
-- Implemented: AppBar transparent/black (theme; **Inter title**, U-12), icon at `xxl 48` in `border #333333` (`iconColor:` for the faint `glowPink` α0.5 hero-topic option — **Party Finder is the one hero-topic icon**, U-12), "Próximamente" in Playfair Display italic 32 with `glow-soft` via `VBreathingGlow`, description `bodyMedium` `mutedStrong`, outlined back button (full-width capped 320, U-19), scroll-safe body (U-19).
-- Per-feature icon map (U-12): party-finder `celebration` (faint-pink hero), cosmetics `checkroom`, create-event `event_note`, events `event`, chat `chat`, qr `qr_code`, scanner `qr_code_scanner`, subscriptions `subscriptions`, photos `photo`, collage `grid_view`, invite `mail`, minigames `sports_esports`, notifications `notifications`.
+> **DEPARTURE (2026-08-13):** VComingSoonScreen deleted — see §5.7 note.
+
+- ~~Implemented: AppBar transparent/black (theme; **Inter title**, U-12), icon at `xxl 48` in `border #333333` (`iconColor:` for the faint `glowPink` α0.5 hero-topic option — **Party Finder is the one hero-topic icon**, U-12), "Próximamente" in Playfair Display italic 32 with `glow-soft` via `VBreathingGlow`, description `bodyMedium` `mutedStrong`, outlined back button (full-width capped 320, U-19), scroll-safe body (U-19).~~
+- ~~Per-feature icon map (U-12): party-finder `celebration` (faint-pink hero), cosmetics `checkroom`, create-event `event_note`, events `event`, chat `chat`, qr `qr_code`, scanner `qr_code_scanner`, subscriptions `subscriptions`, photos `photo`, collage `grid_view`, invite `mail`, minigames `sports_esports`, notifications `notifications`.~~
 - Never a full-screen accent. **DEPARTURE (U-30):** the v1.0 "icon fade (`slow` 500ms)" was never implemented — the only motion is the headline breathing (§6.2, reduced-motion-gated).
+
+> **DEPARTURE (2026-08-13) — the consolidated §5.7 note:** the entire spec above describes a widget
+> that no longer exists — `VComingSoonScreen` / `v_coming_soon.dart` was **deleted** on 2026-08-13
+> (commit `c36da76`) when every gated feature shipped a real screen. Gated routes now render through
+> `FlagGate` (`lib/core/config/feature_flags.dart:179-222`), whose neutral disabled fallback is a
+> `VEmptyView` (localized "unavailable" title/body — no "Próximamente" headline). The "Próximamente"
+> copy survives only in the paywall tooltip/snackbar l10n (`comingSoonSoon`). The §3.2 row, the §3.3
+> usage cell, the §6.2 scope + reduced-motion mentions, the §7.3 Pattern A list, the §7.5 evidence
+> stop, the §8.1 row and the §9.2 registry row each carry the short **DEPARTURE (2026-08-13)** pointer
+> note.
 
 ### 5.8 Loading states — `state_views.dart` (I-74/U-21) + skeletons (U-22/U-23..U-25)
 
@@ -352,11 +383,15 @@ Implemented by U-18 (DISCO §6 entire + §4.5 + §7.5) + U-23 (breathing scope c
 
 ### 6.2 Disco-glow breathing animation (the one allowed ambient motion)
 
-- **Scope (exhaustive — U-18 + U-23 completion):** every §3.2 display/hero title breathes — welcome wordmark, feed hero, coming-soon "Próximamente", and ALL auth big headers (OTP, banned, signup, age-gate, privacy-terms, forgot-password form + success). One breathing element per screen, max.
+- **Scope (exhaustive — U-18 + U-23 completion):** every §3.2 display/hero title breathes — welcome wordmark, feed hero, ~~coming-soon "Próximamente",~~ and ALL auth big headers (OTP, banned, signup, age-gate, privacy-terms, forgot-password form + success). One breathing element per screen, max.
+
+> **DEPARTURE (2026-08-13):** VComingSoonScreen deleted — see §5.7 note.
 - **Implementation (`VBreathingGlow`, U-18):** animates the glow *shadow alphas* (never the glyphs) α **0.75 → 1.0** of the canonical §3.4 stack on a `glowBreath` (3000ms) `easeInOut` `alternate` loop — the user's `animation: disco-glow 3s ease-in-out infinite alternate`.
 - **Legibility floor:** effective luminance at α0.75 = 0.75 × 0.250 = 0.188 → contrast vs black = **(0.188+0.05)/0.05 = 4.75:1 ≥ 4.5** — still AA. Never animate below α0.75; never blur the glyph fill.
 - **Idle-safe engine (D-7, U-18):** each cycle = 1.5s up + 1.5s down + a **300ms static settle** (`motionCycleRest`, period ≈3.3s vs the doc's 3s) — a hard `repeat()` would hang every `pumpAndSettle`-based widget test over brand screens; the visible motion is still the continuous 3s alternate. `isAnimating` guard absorbs late timer ticks.
-- **Reduced motion:** `MediaQuery.disableAnimationsOf(context)` → **static glow** (shadows fixed at the full α1.0 canonical stack, no ticker). Re-enabling resumes the breath. **App-level evidence:** the U-29 UI smoke flips `accessibilityFeaturesTestValue` and asserts zero tickers + the α1.0 stack on the coming-soon stop (§7.5).
+- **Reduced motion:** `MediaQuery.disableAnimationsOf(context)` → **static glow** (shadows fixed at the full α1.0 canonical stack, no ticker). Re-enabling resumes the breath. **App-level evidence:** the U-29 UI smoke flips `accessibilityFeaturesTestValue` and asserts zero tickers + the α1.0 stack on the ~~coming-soon~~ reduced-motion stop (§7.5).
+
+> **DEPARTURE (2026-08-13):** VComingSoonScreen deleted — see §5.7 note.
 
 ### 6.3 Micro-interaction list (implemented state)
 
@@ -393,7 +428,9 @@ U-26 ran the audit (per-SC evidence: 1.4.3, 1.4.4, 1.4.11, 1.4.1, 2.1.1, 2.3.3, 
 - No fixed-height text containers; buttons/inputs grow; `maxLines` + ellipsis only on single-line labels.
 - `AppSpacing.scale()` for responsive spacing (finding UI-09 — consumer: feed carousel/chip-row heights, §4.1).
 - **Scroll-safe body templates (implemented, U-19):**
-  - **Pattern A** (text/VInput-only columns — the OTP template, U-07): `LayoutBuilder → SingleChildScrollView → ConstrainedBox(minHeight) → IntrinsicHeight → Column(Spacer)` — pins the CTA when the content fits, scrolls when it doesn't. Applied to login, signup, age-gate, profile-setup, delete-account, banned, welcome, coming-soon (+ OTP/forgot-password born with it).
+  - **Pattern A** (text/VInput-only columns — the OTP template, U-07): `LayoutBuilder → SingleChildScrollView → ConstrainedBox(minHeight) → IntrinsicHeight → Column(Spacer)` — pins the CTA when the content fits, scrolls when it doesn't. Applied to login, signup, age-gate, profile-setup, delete-account, banned, welcome, ~~coming-soon~~ (+ OTP/forgot-password born with it).
+
+  > **DEPARTURE (2026-08-13):** VComingSoonScreen deleted — see §5.7 note.
   - **Pattern B** (`CustomScrollView → SliverFillRemaining(hasScrollBody: false)`) for **tile-like children** — `ListTile`'s intrinsic height is smaller than its laid-out height when the subtitle wraps, so the IntrinsicHeight pass under-measures and overflows even inside a scroll view (U-19 MISTAKE 1). privacy_terms uses pattern B with custom `_ConsentRow` (checkbox + text, intrinsic-exact).
   - **Bounded-scroll hero** (group_detail): the header may scroll within `bodyHeight − _minTabArea(120)` so the TabBarView is never crushed (U-19).
   - **Rows:** `Wrap` for badge/button rows that overflow at 1.5× (my_groups, group_detail hero); `Flexible` for shards text.
@@ -411,7 +448,9 @@ U-26 ran the audit (per-SC evidence: 1.4.3, 1.4.4, 1.4.11, 1.4.1, 2.1.1, 2.3.3, 
 
 - `MediaQuery.disableAnimationsOf(context)` gates every ambient animation: `VBreathingGlow` (static α1.0), `VStatusDot` (static α1.0), `VTabFade` (static), `VShimmer` (static blocks, zero tickers), and the §6.3 table's entries. Static fallbacks defined per component.
 - No flashing, no strobing, no hue rotation — the disco look is *static color + slow breathing*, safe for photosensitivity (no 3Hz+ flicker anywhere). 2.3.3 evidence: the U-18 widget suites pin `transientCallbackCount == 0` under `disableAnimations`.
-- **App-level evidence (U-29):** the UI smoke's coming-soon stop flips `TestPlatformDispatcher.accessibilityFeaturesTestValue = FakeAccessibilityFeatures(disableAnimations: true)` for the whole app → `transientCallbackCount == 0` + shadows at the full α1.0 soft stack. Reusable technique for any future §7.5 verification.
+- **App-level evidence (U-29):** the UI smoke's ~~coming-soon~~ reduced-motion stop flips `TestPlatformDispatcher.accessibilityFeaturesTestValue = FakeAccessibilityFeatures(disableAnimations: true)` for the whole app → `transientCallbackCount == 0` + shadows at the full α1.0 soft stack. Reusable technique for any future §7.5 verification.
+
+> **DEPARTURE (2026-08-13):** VComingSoonScreen deleted — see §5.7 note.
 
 ### 7.6 Color-blindness & semantics
 
@@ -470,7 +509,7 @@ Per `docs/process/FILE-OWNERSHIP.md` (Phase 4.4). Each agent implemented the sec
 | §5.4 chips/segmented/tabs | `v_chip.dart`, `app_theme.dart` (`chipTheme`/`segmentedButtonTheme`/`tabBarTheme`) | U-05, U-04, U-27, U-26 | DONE |
 | §5.5 badges/dots | `v_badge.dart` · `rank_badge.dart` · `v_count_badge.dart` · `v_status_dot.dart` | U-05, U-16, U-17, U-18, U-24 | DONE |
 | §5.6 shard icon | `v_shard_icon.dart` | U-05, U-26 | DONE |
-| §5.7 coming soon | `v_coming_soon.dart` + `app_router.dart`/`feature_flags.dart` | U-05, U-06, U-12, U-18 | DONE |
+| §5.7 coming soon | ~~`v_coming_soon.dart`~~ (deleted 2026-08-13) + `app_router.dart`/`feature_flags.dart` — `FlagGate` neutral fallback | U-05, U-06, U-12, U-18 | ~~DONE~~ **DELETED (2026-08-13 — see §5.7 note)** |
 | §5.8 loading/skeletons | `state_views.dart` · `v_shimmer.dart` · `skeletons.dart` | I-74, U-06, U-21, U-22, U-23..U-25 | DONE |
 | §5.9 empty/error/refresh | `state_views.dart` · `error_view.dart` · `error_banner.dart` · `show_app_error.dart` · `route_error_screen.dart` · `v_refreshable.dart` | I-74, U-05, U-10, U-16, U-19, U-21, U-25 | DONE |
 | §5.10 component themes | `lib/core/theme/app_theme.dart` | U-04, U-27 | DONE |
@@ -481,6 +520,8 @@ Per `docs/process/FILE-OWNERSHIP.md` (Phase 4.4). Each agent implemented the sec
 | §7.3 responsive | `test/features/responsive_test.dart` + the 19 screen/widget edits | U-19 | DONE |
 | §7.5 reduced motion | the four motion widgets + the U-29 smoke stop | U-18, U-29 | DONE |
 | §9 registry | `lib/shared/widgets/**` + feature widgets + tokens | U-30 (this finalization) | DONE |
+
+> **DEPARTURE (2026-08-13):** VComingSoonScreen deleted — see §5.7 note.
 
 ### Extending the system (refactorability — future features)
 
@@ -524,7 +565,7 @@ The exact implemented API surface — future features import from these files; t
 | `VCountBadge` (`count`) | `v_count_badge.dart` | §5.5/§5.12 |
 | `VStatusDot` (`size`, `color`, α pulse) | `v_status_dot.dart` | §5.5/§6.3 |
 | `VShardIcon` (`size`, `color`) | `v_shard_icon.dart` | §5.6 |
-| `VComingSoonScreen` | `v_coming_soon.dart` | §5.7 |
+| ~~`VComingSoonScreen`~~ | ~~`v_coming_soon.dart`~~ (deleted 2026-08-13) | ~~§5.7~~ |
 | `VLoadingView` / `VEmptyView` / `VStateView` | `state_views.dart` | §5.8/§5.9 |
 | `ErrorView` | `error_view.dart` | §5.9 |
 | `ErrorBanner` | `error_banner.dart` | §5.9 |
@@ -540,6 +581,8 @@ The exact implemented API surface — future features import from these files; t
 | `VSkeletonList` / `VSkeletonGrid` / `VSkeletonProfile` / `VSkeletonDetail` | `skeletons.dart` | §5.8 |
 | `VTabFade` (`child`) | `v_tab_fade.dart` | §6.1/§6.3 |
 | Barrel `disco_widgets.dart` (exports VGlowText, VDiscoDivider, VShimmer) | `disco_widgets.dart` | §3.4/§5.8 |
+
+> **DEPARTURE (2026-08-13):** VComingSoonScreen deleted — see §5.7 note.
 
 ### 9.3 Feature-scoped shared widgets & core utilities
 

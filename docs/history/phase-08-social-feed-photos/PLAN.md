@@ -38,7 +38,7 @@ Key mechanics (from specs):
 
 ## Orchestration agents starting here
 
-| Agent | Scope (per ORCHESTRATION.md / FILE-OWNERSHIP.md) |
+| Agent | Scope (per **docs/process/DEVELOPMENT-WORKFLOW.md** / FILE-OWNERSHIP.md) |
 |-------|--------------------------------------------------|
 | I-58 | `lib/features/feed/feed_screen.dart` + `feed_providers.dart` — **real feed foundation landed (2026-08-09)**; ⚙️ U-08 later restyles |
 | I-59 | `lib/features/photos/photo_gallery_screen.dart` + upload flow |

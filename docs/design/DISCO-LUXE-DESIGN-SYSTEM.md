@@ -160,7 +160,15 @@ role (v1.1 §3.2's exhaustive Playfair list is hereby routed through it):
   letters must be deleted").** There is deliberately no boxShadow/halo behind display glyphs. The
   ambient glow lives in the screen's `VAurora` and the glass/button halos — never around the text.
 - Sizes map to the v1.1 roles: 64 `displayLarge`, 40 `displayMedium` (default), 32 `displaySmall`,
-  28 `headlineLarge`; neutral tracking (no negative letter-spacing — the LUXE display voice breathes).
+  28 `headlineLarge`; ~~neutral tracking (no negative letter-spacing — the LUXE display voice
+  breathes)~~.
+
+> **DEPARTURE (2026-08-13):** "no negative letter-spacing" is false for the 4 canonical sizes —
+> `VDisplayText._displayStyle()` maps 64/40/32/28 onto `displayLarge`/`displayMedium`/`displaySmall`/
+> `headlineLarge`, which carry **−1.9 / −1.2 / −1.0 / −0.8** (`v_display_text.dart:160-175`,
+> `app_typography.dart:47-86`); `letterSpacing: 0` applies only to the unknown-size fallback style. The
+> in-code comment at `v_display_text.dart:158-159` repeats the false claim — flagged for a future code
+> fix; this note records the doc-side departure.
 - One hero per screen (L7) — `VDisplayText` appears at most once per screen.
 
 ### 3.2 UI voice — Inter
@@ -219,8 +227,25 @@ used by `VGlass`, `VButton`, chips, inputs, sheets).
 |---|---|
 | `VButton` / `.outlined` | flat path byte-identical to v1.1 (white border/white text); `gradient:` → pastel gradient ring. |
 | `VButton.emphasized` | white fill + black text; `gradient:` → family gradient fill (pastel-first stops keep black text legal). |
-| `VButton.glowAccent` | **always gradient-renders**: 1px `VGradientBorder` ring (default family **violet**, caller passes `AppGradients.familyOf`), black text when `filled` / white when outline, halo = `glowShadows(α 0.35)`; pressed = `Color.lerp(family.colors.last, black, 0.35)` overlay + white text (the "darker violet" face, 5.87:1). **Use ≤ 1 per screen — always the primary action.** |
+| `VButton.glowAccent` | **always gradient-renders**: 1px `VGradientBorder` ring (default family **violet**, caller passes `AppGradients.familyOf`), black text when `filled` / white when outline, halo = `glowShadows(α 0.35)`; pressed = `Color.lerp(family.colors.last, black, 0.35)` overlay + white text (the "darker violet" face — per-family contrast, see note below). **Use ≤ 1 per screen — always the primary action.** |
 | Disabled / loading | ring + text drop to `muted #666666` (flat 2-color ring, no stops); spinner in the foreground color. |
+
+> **DEPARTURE (2026-08-13):** the single "5.87:1" figure was the v1.1 `glowPinkDeep`-fill contrast —
+> the LUXE pressed face is `Color.lerp(family.colors.last, discoBlack, 0.35)` + white text
+> (`v_button.dart:266-268`), so pressed contrast depends on the family. White text at 14px
+> `labelLarge` (WCAG 1.4.3 needs 4.5:1):
+>
+> | Family | White-text contrast | Verdict |
+> |---|---|---|
+> | violet | ≈ 8.1:1 | ✅ AA |
+> | rose | ≈ 7.1:1 | ✅ AA |
+> | peach | ≈ 5.1:1 | ✅ AA |
+> | mint | ≈ 3.7:1 | ⚠️ fails 4.5:1 AA (passes 3:1 AA-large only) |
+> | gold | ≈ 3.6:1 | ⚠️ fails 4.5:1 AA (passes 3:1 AA-large only) |
+> | cyan | ≈ 3.6:1 | ⚠️ fails 4.5:1 AA (passes 3:1 AA-large only) |
+>
+> mint/gold/cyan pressed faces must not be the only text-legibility signal (WCAG 1.4.1) — the face is
+> transient press feedback, but a future pass may deepen those families' lerp toward black.
 
 ### 4.3 Inputs — `v_input.dart` (XL-03 redesign, API-identical — 32 call sites compile untouched)
 
@@ -229,13 +254,18 @@ used by `VGlass`, `VButton`, chips, inputs, sheets).
 - Ring states: default white α0.25 · focused white diagonal α0.8 → α0.25 · error glowPink α0.8.
 - Focus glow: white α0.12, blur 24 (only when focused, not on error).
 - Label ALWAYS visible above the field (`floatingLabelBehavior: always`, `labelSmall`-adjacent voice:
-  `mutedStrong` → white on focus → glowPink on error). Hint `muted`, text white 17px, cursor white,
-  error text glowPink (never raw red).
+  `mutedStrong` → white on focus → glowPink on error). Hint ~~`muted`~~ `mutedStrong` (widget-level
+  override — see note below), text white 17px, cursor white, error text glowPink (never raw red).
 - **Per-screen gradient borders are applied screen-locally where the family moment demands it** (the
   OTP 6-digit slab wears the gold family border + halo — XL-18); `VInput` itself stays neutral white
   so every field is a quiet member of the form.
 - Theme-level `inputDecorationTheme` (XL-03) gives raw Material `TextField`s the same glass treatment
   (radius-16 `OutlineInputBorder`, `surfaceAlt` α0.5 fill, floating labels).
+
+> **DEPARTURE (2026-08-13):** "Hint `muted`" is only the theme-level default (`app_theme.dart:110` —
+> raw Material `TextField`s via `inputDecorationTheme`). `VInput` overrides the hint at the widget
+> level to **`mutedStrong` `#999999`** (7.37:1 — AA; `v_input.dart:162-167`). Both are canonical: the
+> theme default for bare fields, `mutedStrong` inside `VInput`.
 
 ### 4.4 Ambient & AI-thinking widgets (XL-04)
 
@@ -383,7 +413,7 @@ Per-round results and fixes were tracked in `docs/history/phase-04-luxe/GEMMA-RO
 | §5 motion tokens | `lib/core/theme/samay_durations.dart` | U-18, XL-04 | DONE |
 | §6 decluttered screens (auth) | 9 auth screens | XL-05 (declutter XL-16, polish XL-19) | DONE |
 | §6 decluttered screens (data) | profile, shards, groups (4), events (2) | XL-08/XL-10/XL-11 (declutter XL-17) | DONE |
-| §6 decluttered screens (chat/rest) | chat, otp, notifications, party_finder, v_coming_soon | XL-12/XL-13 (XL-18, XL-19) | DONE |
+| §6 decluttered screens (chat/rest) | chat, otp, notifications, party_finder, ~~v_coming_soon~~ (deleted 2026-08-13 — see DISCO-DESIGN-SYSTEM §5.7 note) | XL-12/XL-13 (XL-18, XL-19) | DONE |
 | §7 Gemma loop | `tools/gemma_critique.sh`, `gemma_critique_all.sh`, `gemma_critique_prompt.md`, `integration_test/luxe_screenshots_test.dart` | XL-15 + orchestrator | DONE |
 | §8 this document | `docs/design/DISCO-LUXE-DESIGN-SYSTEM.md` | XL-21 | DONE |
 

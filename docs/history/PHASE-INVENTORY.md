@@ -27,7 +27,7 @@ Status key (same as cross-references.md): ✅ implemented · ⚠️ partially im
 | `INFR` | ✅ `INFR.DONE` | ✅ (Edge Functions not deployed) | `INFR-supabase-deployment.md` | 2 logs | Self-hosted compose + `config.toml` exist; `supabase/functions/` = M-07 boot stub only |
 | `DATA` | ✅ `DATA.DONE` | ✅ | `DATA-database-schema.md` | 2 logs | 33 migrations in both `supabase/` and `supabase-testing/`; 30+ tables, 21 enums |
 | `SECU` | ✅ `SECU.DONE` | ✅ (signup_tracker fixed, C-01) | `SECU-rls-policies.md` | 2 logs | Migrations `20260724000001`/`20260724000002` present |
-| `TRIG` | ✅ `TRIG.DONE` | ✅ (9 base triggers; `shard_distribution_dispatch_trigger` = `RAISE LOG` placeholder) | `TRIG-database-triggers.md` | 2 logs | 9 triggers in `20260510000001_full_schema.sql` + 8 notification triggers in `20260814000005` (17 total) |
+| `TRIG` | ✅ `TRIG.DONE` | ✅ (9 base triggers; `shard_distribution_dispatch_trigger` = `RAISE LOG` placeholder) | `TRIG-database-triggers.md` | 2 logs | 20 total: 9 base in `20260510000001_full_schema.sql` + 3 `assert_safe_*` (`assert_safe_user_update_trigger` 20260809000002:143; `assert_safe_group_update_trigger` + `assert_safe_event_update_trigger` 20260811000001:168,208) + 8 notification triggers in `20260814000005` |
 | `CRON` | ✅ `CRON.DONE` | ✅ (status-poll, end-events, hard-delete scheduled) | `CRON-postgres-cron-jobs.md` | 2 logs | `20260510000002_cron.sql` schedules 3 jobs; `ranks.update_cron` scheduled 2026-08-13 (`20260814000003`, with decay); `override-reconciler` pending |
 | `FLMT` | ❌ no marker | 🔴 blocked by `EEDG` | `FLMT-edge-functions-rate-limiting.md` | none | Spec itself documents "Current Implementation Status" |
 
@@ -73,7 +73,7 @@ All 6 steps `.DONE` + ✅. Specs + 4 dev logs (scaffold, H-01, H-02).
 | `FLUT` | ✅ | ✅ | `pubspec.yaml` (Riverpod, GoRouter, Supabase, Hive, qr_flutter, mobile_scanner, purchases_flutter, image_picker) — `share_plus` removed by I-23 |
 | `DSNG` | ✅ | ✅ | `SamayTheme.dark` + `SamayDurations`; shared widgets `v_*` |
 | `STAT` | ✅ | ✅ | `auth_provider.dart`, `config_provider.dart`, `user_provider.dart` (appConfigProvider live — C-03) |
-| `ROUT` | ✅ | ✅ | `route_paths.dart` (24 constants + 15 builders, H-02) + `app_router.dart` (H-01 placeholders replaced by real screens; `VComingSoonScreen` deleted 2026-08-13) |
+| `ROUT` | ✅ | ✅ | `route_paths.dart` (28 constants + 16 builders, H-02) + `app_router.dart` (H-01 placeholders replaced by real screens; `VComingSoonScreen` deleted 2026-08-13) |
 | `SBAS` | ✅ | ✅ | Decomposed feature services (I-11) — `supabase_service.dart` facade deleted by I-78 |
 | `STOR` | ✅ | ✅ | `storage_service.dart` (SecureStorage + Hive boxes) |
 
@@ -87,7 +87,7 @@ All 6 steps `.DONE` + ✅. Specs + 4 dev logs (scaffold, H-01, H-02).
 | Step | DONE | Cross-ref status | Spec | Dev logs | Notes |
 |------|------|------------------|------|----------|-------|
 | `AUTH` | ✅ `AUTH.DONE` | ⚠️ 37/64 requirements | `AUTH-signup-login.md` | 3 logs | Signup = email+password+OTP+age gate+terms+username. OTP auto-submit + resend countdown (I-29), avatar upload (I-36), client ban screen (I-35) landed. Missing: phone entry, server-side ban-enforcement Edge Function, brand logo. `users_search` → `user_search_view` security barrier. |
-| `PRFL` | ✅ `PRFL.DONE` | ⚠️ | `PRFL-profile-screen-edit.md` | 3 logs | Avatar upload + interest tags (I-36) + privacy/notification settings screens (2026-08-13) landed. Missing: cosmetics display in profile, "Enviar mensaje"/"Bloquear" on public profile, mutual friends |
+| `PRFL` | ✅ `PRFL.DONE` | ⚠️ | `PRFL-profile-screen-edit.md` | 3 logs | Avatar upload + interest tags (I-36) + privacy/notification settings screens (2026-08-13) landed. "Enviar mensaje" landed 2026-08-13 (plugged chat entry: `createDirectChat` → `/chat/:chatId`, flag-gated, accepted-and-unblocked friends only). Missing: cosmetics display in profile, "Bloquear" from profile, mutual friends |
 | `DELE` | ✅ `DELE.DONE` | ✅ | `DELE-account-deletion.md` | 3 logs | Soft-delete screen + `hard_delete_expired_users` cron |
 
 **Phase 03 status:** ⚠️ AUTH + PRFL partially met despite `.DONE` markers
@@ -101,7 +101,7 @@ Remaining gaps listed in the rows above (R-4 refresh, 2026-08-13).
 | Step | DONE | Cross-ref status | Spec | Notes |
 |------|------|------------------|------|-------|
 | `FRND` | ✅ `FRND.DONE` | ✅ | `FRND-friends-system.md` | 3-tab requests incl. Invitaciones (addition not in spec). Screens: search, requests, friends list, blocked |
-| `GROU` | ⚠️ `GROU.DONE` (text: PARTIALLY MET) | ⚠️ | `GROU-groups-core.md` | Missing: promotor transfer UI, co-promotor UI, cosmetics display, group chat (E2EE 1:1-only — chat tab is an explanatory R2 card). Cover upload done (image_picker + Storage); real `CreateEventScreen` route at `/group/:groupId/create-event` |
+| `GROU` | ⚠️ `GROU.DONE` (text: PARTIALLY MET) | ⚠️ | `GROU-groups-core.md` | Missing: promotor transfer UI, co-promotor UI, cosmetics display, group chat (E2EE 1:1-only — chat tab is an explanatory R2 card). Cover upload done (image_picker + Storage); real `CreateEventScreen` route at `/group/:groupId/create-event`; minigames hub button on group detail (flag-gated, 2026-08-13) |
 | `GLIM` | ⚠️ `GLIM.DONE` (text: PARTIALLY MET) | ⚠️ | `GLIM-group-limits-subscription-enforcement.md` | Member limit hardcoded `14` (`group_detail_screen._getMemberLimit`), group-count limit hardcoded `5` (`create_group_screen`), not wired to `app_config`. Freeze banner UI done |
 | `SDON` | ✅ `SDON.DONE` | ✅ | `SDON-shard-donations.md` | Donation RPC (auth-checked C-06), contribution display, top contributors; boost-expiry days display deferred |
 | `RANK` | ✅ `RANK.DONE` | ✅ (UI only) | `RANK-group-rank-display.md` | Leaderboard + RankBadge complete; **data empty until Phase 11 `GRCK` cron** |
@@ -116,7 +116,7 @@ gaps). FRND/SDON/RANK done (RANK pending GRCK data).
 | Step | DONE | Cross-ref status | Spec | Reality |
 |------|------|------------------|------|---------|
 | `ECRT` | ⚠️ no marker | ⚠️ foundation landed (I-54) | `ECRT-event-creation-flow.md` | `lib/features/events/` landed (2026-08-09): `screens/create_event_screen.dart` + `logic/event_form_data.dart` + `events_providers.dart`; `create_event_test.dart` green (suite 2151/2151, XL-22 gate) |
-| `EDET` | ⚠️ no marker | ⚠️ foundation landed (I-55) | `EDET-event-detail-edit.md` | `event_detail_screen.dart` + `event_edit_screen.dart` + `my_events_screen.dart`; client cancel flips `status=cancelled` only — preshard pool return + invitee accept/decline server-side (ESTA/EINV/EEDG) |
+| `EDET` | ⚠️ no marker | ⚠️ foundation landed (I-55) | `EDET-event-detail-edit.md` | `event_detail_screen.dart` + `event_edit_screen.dart` + `my_events_screen.dart`; client cancel flips `status=cancelled` only — preshard pool return + invitee accept/decline server-side (ESTA/EINV/EEDG). Live-actions row (2026-08-13): QR attendance + promotor scanner + photo gallery buttons, flag-gated, hidden once the event is ended/cancelled |
 | `ESTA` | ❌ | ❌ Blocked by `EEDG` | `ESTA-event-status-machine.md` | No code |
 | `EINV` | ❌ | ❌ No code | `EINV-event-invites-static-qr.md` | Client invite route wrapper exists (`events/widgets/event_invite_route.dart`); server-side invite flow pending |
 | `EEDG` | ❌ | ❌ No Edge Functions | `EEDG-edge-functions-event-lifecycle.md` | `supabase/functions/` = M-07 boot stub only; QR/rank/notify mechanics shipped as SQL RPCs + pg_cron (documented deviations, `20260814000003/04/05`); `shard_distribution_dispatch_trigger` = `RAISE LOG` placeholder |
@@ -130,11 +130,11 @@ server-side pending; EEDG blocked (no `supabase/functions/`).
 
 | Step | DONE | Cross-ref status | Spec | Reality |
 |------|------|------------------|------|---------|
-| `QRAT` | ⚠️ no marker | ⚠️ client foundation landed (I-57) | `QRAT-dynamic-attendance-qr-attendee.md` | `lib/features/qr/` (2026-08-09): `attendance_qr_screen.dart` + `myQrTokenProvider` + `validate_qr_token` RPC migration `20260809000005`; token rotation landed as SQL RPC `rotate_qr_token` (`20260814000004`, advisory-lock guarded) |
-| `QRSC` | ⚠️ no marker | ⚠️ client foundation landed (I-57) | `QRSC-qr-scanner-promotor.md` | `qr_scanner_screen.dart` (mobile_scanner 6.x, PermissionService camera flow) + scan → `validate_qr_token` RPC |
+| `QRAT` | ⚠️ no marker | ⚠️ client foundation landed (I-57) | `QRAT-dynamic-attendance-qr-attendee.md` | `lib/features/qr/` (2026-08-09): `attendance_qr_screen.dart` + `myQrTokenProvider` + `validate_qr_token` RPC migration `20260809000005`; token rotation landed as SQL RPC `rotate_qr_token` (`20260814000004`, advisory-lock guarded); reachable from the event-detail live-actions row (2026-08-13) |
+| `QRSC` | ⚠️ no marker | ⚠️ client foundation landed (I-57) | `QRSC-qr-scanner-promotor.md` | `qr_scanner_screen.dart` (mobile_scanner 6.x, PermissionService camera flow) + scan → `validate_qr_token` RPC; reachable from the event-detail live-actions row for promotors (2026-08-13) |
 | `QEDG` | ❌ | ✅ SQL RPC stand-ins | `QEDG-qr-edge-functions.md` | Delivered as SQL SECURITY DEFINER RPCs (`validate_qr_token` `20260809000005`, `rotate_qr_token` `20260814000004`) instead of Edge Functions — documented deviation; no `supabase/functions/` business code |
 
-**Phase 06 status:** ⚠️ QRAT/QRSC client + validate RPC landed (I-57); QEDG blocked (no `supabase/functions/`).
+**Phase 06 status:** ⚠️ QRAT/QRSC client + validate RPC landed (I-57), reachable from the event-detail live-actions row (2026-08-13); QEDG blocked (no `supabase/functions/`).
 
 ---
 
@@ -142,11 +142,11 @@ server-side pending; EEDG blocked (no `supabase/functions/`).
 
 | Step | DONE | Cross-ref status | Spec | Reality |
 |------|------|------------------|------|---------|
-| `CHAT` | ⚠️ no marker | ⚠️ core landed (I-37/I-38/I-56) | `CHAT-chat-system-core.md` | E2EE core `lib/crypto/` (x3dh, double ratchet, key store, envelope) + `chat_screen.dart` + pagination (load 50 + `loadOlder()`, `chat.message_cap` rolling window); `/chat/:chatId` → real screen |
+| `CHAT` | ⚠️ no marker | ⚠️ core landed (I-37/I-38/I-56) | `CHAT-chat-system-core.md` | E2EE core `lib/crypto/` (x3dh, double ratchet, key store, envelope) + `chat_screen.dart` + pagination (load 50 + `loadOlder()`, `chat.message_cap` rolling window); `/chat/:chatId` → real screen; direct-chat entry from the public profile "Enviar mensaje" button (`createDirectChat`, flag-gated, 2026-08-13) |
 | `CHPT` | ❌ | ❌ No code | `CHPT-chat-participation-access-rules.md` | No code |
 | `CHMC` | ❌ | ❌ No code | `CHMC-message-cap-reporting.md` | Trigger exists (TRIG #3); client reporting flow absent |
 
-**Phase 07 status:** ⚠️ CHAT core landed (E2EE + pagination); CHPT/CHMC pending.
+**Phase 07 status:** ⚠️ CHAT core landed (E2EE + pagination, profile "Enviar mensaje" entry 2026-08-13); CHPT/CHMC pending.
 
 ---
 
@@ -154,12 +154,12 @@ server-side pending; EEDG blocked (no `supabase/functions/`).
 
 | Step | DONE | Cross-ref status | Spec | Reality |
 |------|------|------------------|------|---------|
-| `FEED` | ⚠️ no marker | ⚠️ foundation landed (I-58) | `FEED-social-feed.md` | `lib/features/feed/` (2026-08-09): `feed_screen.dart` + providers + `feed_flow_test.dart`; full data flows pending server data |
+| `FEED` | ⚠️ no marker | ⚠️ foundation landed (I-58) | `FEED-social-feed.md` | `lib/features/feed/` (2026-08-09): `feed_screen.dart` + providers + `feed_flow_test.dart`; full data flows pending server data. Games quick-access row landed 2026-08-13 (5 minigame cards + Party Finder card, flag-gated) |
 | `FEET` | ❌ | ❌ No code | `FEET-featured-events.md` | CLI side done (`EVTC` feature/unfeature/reject + `FREC`); in-app form absent |
-| `PHUP` | ⚠️ no marker | ⚠️ foundation landed (I-59) | `PHUP-photo-upload-gallery.md` | `lib/features/photos/` (2026-08-09): `photo_gallery_screen.dart` + upload pipeline (`MediaService.uploadEventPhoto` + `ImageProcessor`); `photos_flow_test.dart` |
-| `COLL` | ❌ | ❌ No code | `COLL-photo-collage.md` | Collage screen file exists (`events/screens/event_collage_screen.dart`); flow pending |
+| `PHUP` | ⚠️ no marker | ⚠️ foundation landed (I-59) | `PHUP-photo-upload-gallery.md` | `lib/features/photos/` (2026-08-09): `photo_gallery_screen.dart` + upload pipeline (`MediaService.uploadEventPhoto` + `ImageProcessor`); `photos_flow_test.dart`; collage-wall entry button in the gallery AppBar (2026-08-13) |
+| `COLL` | ❌ | ❌ No code | `COLL-photo-collage.md` | Collage screen file exists (`events/screens/event_collage_screen.dart`); wall reachable via the gallery entry button (2026-08-13, photoUpload-gated); PNG export still pending |
 
-**Phase 08 status:** ⚠️ FEED/PHUP foundations landed (I-58/I-59); FEET/COLL pending.
+**Phase 08 status:** ⚠️ FEED/PHUP foundations landed (I-58/I-59, home games row + collage-wall entry 2026-08-13); FEET pending, COLL wall reachable but PNG export pending.
 
 ---
 
@@ -169,9 +169,9 @@ server-side pending; EEDG blocked (no `supabase/functions/`).
 |------|------|------------------|------|---------|
 | `NOTI` | ⚠️ no marker | ⚠️ foundation landed (I-53) | `NOTI-notification-center.md` | `lib/features/notifications/` (2026-08-09): `notification_center_screen.dart` + providers + realtime live-insert + `notifications_flow_test.dart`; `/main/notifications` → real screen |
 | `PUSH` | ❌ | ❌ No code | `PUSH-push-notification-edge-functions.md` | No Pusher Beams setup; env placeholders in `.env.example` |
-| `NTRG` | ❌ | ❌ No code | `NTRG-notification-triggers-routing.md` | No trigger dispatch |
+| `NTRG` | ⚠️ no marker | ⚠️ 8/16 dispatch points live (e0eab3c) | `NTRG-notification-triggers-routing.md` | 1 log | `20260814000005_notification_triggers.sql` — 8 SECURITY DEFINER `notify_*` triggers write in-app notifications via the guarded `insert_notification` helper (20260814000003); push + preference check still pending |
 
-**Phase 09 status:** ⚠️ NOTI foundation landed (I-53); PUSH/NTRG pending (edge functions).
+**Phase 09 status:** ⚠️ NOTI foundation landed (I-53); NTRG 8/16 dispatch points live (in-app rows); PUSH pending (edge functions).
 
 ---
 
@@ -193,10 +193,10 @@ server-side pending; EEDG blocked (no `supabase/functions/`).
 | Step | DONE | Cross-ref status | Spec | Reality |
 |------|------|------------------|------|---------|
 | `GRCK` | ❌ | ✅ SQL + cron | `GRCK-rank-calculation-edge-function.md` | No Edge Function; delivered as SQL: `recalculate_ranks` RPC (SHRD) + `ranks.update_cron` with boost decay scheduled (`20260814000003`); RANK leaderboard data now flows |
-| `GMCR` | ⚠️ no marker | ⚠️ foundation landed (I-63) | `GMCR-minigames-core.md` | `lib/features/minigames/` (2026-08-09): screens + providers + `minigames_flow_test.dart`; `minigame_sessions` table + join/finish RPCs (migration `20260813000001`) |
+| `GMCR` | ⚠️ no marker | ⚠️ foundation landed (I-63) | `GMCR-minigames-core.md` | `lib/features/minigames/` (2026-08-09): screens + providers + `minigames_flow_test.dart`; `minigame_sessions` table + join/finish RPCs (migration `20260813000001`); entry points landed 2026-08-13: home games row + group-detail button (flag-gated; single/multi/no-group resolution + shared `minigame_meta.dart` icons/names) |
 | `GWAG` | ❌ | ❌ No code | `GWAG-wager-system.md` | No code |
 
-**Phase 11 status:** ⚠️ GMCR foundation landed (I-63); GRCK/GWAG pending (edge functions). RANK leaderboard data depends on `GRCK`.
+**Phase 11 status:** ⚠️ GMCR foundation landed (I-63) with home/group entry points (2026-08-13); GRCK/GWAG pending (edge functions). RANK leaderboard data depends on `GRCK`.
 
 ---
 
@@ -218,11 +218,11 @@ server-side pending; EEDG blocked (no `supabase/functions/`).
 
 | Step | DONE | Cross-ref status | Spec | Reality |
 |------|------|------------------|------|---------|
-| `PFND` | ⚠️ no marker | ⚠️ foundation landed (I-60) | `PFND-party-finder.md` | `lib/features/party_finder/` (2026-08-09): `party_finder_screen.dart` + providers + `party_finder_flow_test.dart`; interest tags deferred (PRFL gap) |
+| `PFND` | ⚠️ no marker | ⚠️ foundation landed (I-60) | `PFND-party-finder.md` | `lib/features/party_finder/` (2026-08-09): `party_finder_screen.dart` + providers + `party_finder_flow_test.dart`; interest tags deferred (PRFL gap); home-feed entry card landed 2026-08-13 (flag-gated) |
 | `VIDS` | ❌ | ❌ No code | `VIDS-video-souvenir.md` | No code |
 | `MUSC` | ❌ | ❌ No code | `MUSC-music-library.md` | No `assets/music/` |
 
-**Phase 13 status:** ⚠️ PFND foundation landed (I-60); VIDS/MUSC pending.
+**Phase 13 status:** ⚠️ PFND foundation landed (I-60, home-feed entry card 2026-08-13); VIDS/MUSC pending.
 
 ---
 

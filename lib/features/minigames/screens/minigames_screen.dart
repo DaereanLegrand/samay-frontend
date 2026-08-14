@@ -6,6 +6,7 @@ import 'package:samay/core/design_tokens/app_icon_sizes.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/extensions/error_mapper.dart';
 import 'package:samay/core/services/minigame_service.dart';
+import 'package:samay/features/minigames/logic/minigame_meta.dart';
 import 'package:samay/features/minigames/providers/minigames_providers.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/error_view.dart';
@@ -32,19 +33,6 @@ String minigameRejectionMessage(
     MinigameSessionRejection.notAuthenticated ||
     MinigameSessionRejection.invalidWager =>
       l10n.minigamesErrorCreate,
-  };
-}
-
-/// Localized name of a `game_type` column value (the DB enum string maps to
-/// the l10n label; unknown values fall back to the raw data string).
-String minigameGameName(AppLocalizations l10n, String? gameType) {
-  return switch (gameType) {
-    'poke_chain' => l10n.minigamesGamePokeChain,
-    'questions' => l10n.minigamesGameQuestions,
-    'truth_dare' => l10n.minigamesGameTruthDare,
-    'drunk_bottle' => l10n.minigamesGameDrunkBottle,
-    'challenge' => l10n.minigamesGameChallenge,
-    _ => gameType ?? l10n.minigamesTitle,
   };
 }
 
@@ -250,27 +238,27 @@ class _GameCard extends StatelessWidget {
   (IconData, String Function(AppLocalizations), String Function(AppLocalizations))
       get _meta => switch (type) {
             MinigameType.pokeChain => (
-                Icons.bolt,
+                minigameIcon(type),
                 (l) => l.minigamesGamePokeChain,
                 (l) => l.minigamesGamePokeChainTagline,
               ),
             MinigameType.questions => (
-                Icons.question_answer,
+                minigameIcon(type),
                 (l) => l.minigamesGameQuestions,
                 (l) => l.minigamesGameQuestionsTagline,
               ),
             MinigameType.truthDare => (
-                Icons.psychology,
+                minigameIcon(type),
                 (l) => l.minigamesGameTruthDare,
                 (l) => l.minigamesGameTruthDareTagline,
               ),
             MinigameType.drunkBottle => (
-                Icons.sports_bar,
+                minigameIcon(type),
                 (l) => l.minigamesGameDrunkBottle,
                 (l) => l.minigamesGameDrunkBottleTagline,
               ),
             MinigameType.challenge => (
-                Icons.emoji_events,
+                minigameIcon(type),
                 (l) => l.minigamesGameChallenge,
                 (l) => l.minigamesGameChallengeTagline,
               ),

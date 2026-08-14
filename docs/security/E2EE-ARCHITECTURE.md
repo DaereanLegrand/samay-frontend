@@ -1,12 +1,47 @@
 # Samay — E2EE Chat Architecture (X3DH + Double Ratchet)
 
-**Owner:** D-07 (E2EE architecture doc) · **Reviewed:** 2026-08-09 · **Status:** authoritative design spec
+**Owner:** D-07 (E2EE architecture doc) · **Reviewed:** 2026-08-13 · **Status:** authoritative design spec — implementation landed (I-37/81722ef); deviations recorded as errata below
 **Drives:** `I-37` (crypto core — `lib/crypto/**`) and `I-38` (chat integration — `lib/features/chat/**`, `chat_service`, prekey server migration)
 
 > Companion docs: `docs/security/SECURITY.md` (D-06 — threat model, crypto policy §3, gap G-09),
 > `docs/specs/steps/phase-07-chat/CHAT-chat-system-core.md`, `CHPT-chat-participation-access-rules.md`,
 > `CHMC-message-cap-reporting.md`; `docs/specs/steps/phase-00-foundation/SECU-rls-policies.md`;
 > `supabase/migrations/20260510000001_full_schema.sql` (chats/messages/chat_participants, RLS, message_cap trigger).
+
+---
+
+## 0. Implementation Status & Errata (2026-08-13, HEAD 18b8c8b)
+
+I-37/I-38 landed (commits `81722ef`, `e0eab3c`; 2026-08-09..13). `lib/crypto/` ships 10
+modules (codec, constants, x3dh, double_ratchet, envelope, session, e2ee_key_store,
+e2ee_primitives, e2ee_prekey_service, interfaces); chat is live with E2EE. The spec
+sections below remain authoritative for the *design*; this block records where the
+implementation differs or went further. **125 unit tests in `test/crypto/`.**
+
+### 0.1 Implemented beyond the spec (add to the design)
+
+| Feature | Where | Spec gap |
+|---|---|---|
+| **Init-envelope replay protection** | `lib/crypto/e2ee_primitives.dart:115-116`, `session.dart:35-37,323-326` — HKDF marker `samay.e2ee.init-marker.v1` (`constants.dart:32`) over `sender_ik_dh ‖ ekA ‖ spk_id ‖ opk_id`; identical replayed init dropped without re-decrypting | §4.2/§5.4 do not define replay mitigation (X3DH §4.2); **implemented, add subsection to §4.2** |
+| **Session convergence (≤ 2 inactive)** | `constants.dart:54-61` (`e2eeMaxInactiveSessions = 2`, retired max age 30 d); `session.dart:28-33` — on init, match against inactive sessions first, activate, demote old active (Sesame §3.4 convergence) | §7.2 says "last-processed-wins … kept inactive 30 d" without the bounded-inactive convergence |
+| **Failed-init restore** | `session.dart:40,306,348,392,420` — snapshot before init/decrypt; auth failure restores prior session (Sesame §3.4 error handling) | §4.5 atomicity covers decrypt only; init path documented in code, not spec |
+| **Persisted `last_init_marker`** | `session.dart:247,304,591` — replay marker serialized in session JSON (`$8.3` schema extension) | §8.3 JSON schema lacks the field |
+| **Server-side SPK expiry** | `e2ee_identity_keys.signed_prekey_expires_at` (`20260809000003:33`), enforced client-side by `e2ee_prekey_service.dart:79,122-130` | §5.2 says server "keeps the last 2"; the expiry column is undocumented in §9.1 |
+| **In-app key material wipe on ban** | `session.dart:192-193` wipes sessions/replay markers; account wipe on `deleteAccount` (I-6 acceptance) | — |
+
+### 0.2 Spec claims NOT shipped (deviations)
+
+| Claim | Status | Where tracked |
+|---|---|---|
+| §5.5 + §9.1: `prekey_fetch_log` table + 10 fetches/hour rate limit on `fetch_prekey_bundle` | **Not shipped** — no `prekey_fetch_log` table, no fetch RPC (bundle fetch is a plain RLS read of `e2ee_identity_keys`); deferred to S-10 (comment in `20260809000003:73-78`) | SECURITY.md G-25 |
+| §9.1/§9.3/§12.2: three-table server model (`user_devices`, `signed_prekeys`, `one_time_prekeys`) + migration `2026XXXXXXXX_e2ee_prekeys.sql` | **Merged into ONE table** `e2ee_identity_keys` (public keys, SPK + its Ed25519 signature + expiry, OPK batch consumed in a transaction), migration `20260809000003_e2ee_tables.sql` — deviation documented in the migration header | §9.1 corrected inline below |
+| §8.1/§12.1: bump `flutter_secure_storage` to `^11.0.0` | **Open follow-up** — still `^9.2.4` (`pubspec.yaml:17`); I-37 accepted the existing version | §8.1 note below |
+
+### 0.3 Verification notes (re-run 2026-08-13)
+
+- `test/crypto/` = 125 `test(` (x3dh 10, prekey 10, session 23, primitives 25, key_store 21, envelope 13, ratchet 23).
+- `rg "plaintext" lib/crypto/` → zero persistence of plaintext; only envelope bytes reach `messages.content` (opt-003 asserts non-plaintext).
+- All §10.4 interfaces implemented in `lib/crypto/interfaces.dart`; chat UI depends only on the interfaces (V-06 verified).
 
 ---
 
@@ -125,6 +160,7 @@ Assets, actors and trust boundaries are defined in `docs/security/SECURITY.md` �
 | Message-key → AEAD key+nonce expansion | `samay.e2ee.aead.v1` | 44 (32 key ‖ 12 nonce) |
 | (Reserved) header encryption | `samay.e2ee.header.v1` | — |
 | Fingerprint | `samay.e2ee.fingerprint.v1` | 30 |
+| Init-envelope replay marker | `samay.e2ee.init-marker.v1` (`constants.dart:32`) | 32 — HMAC marker over the init header (§0.1) |
 
 ---
 
@@ -301,6 +337,10 @@ SK  = HKDF-SHA256(salt = 0x00×32,
 
 `fetch_prekey_bundle` is a `SECURITY DEFINER` RPC with `SET search_path = ''` (pattern: `check_signup_email`, migration 20260724000001) enforcing **10 fetches/hour per caller** (server-trust requirement R1 §4.7: prevent OPK draining). Counter lives in `prekey_fetch_log` (user_id, fetched_at); window prune on insert.
 
+> **ERRATA (2026-08-13): NOT SHIPPED.** There is no `fetch_prekey_bundle` RPC and no
+> `prekey_fetch_log`; bundle fetch is a plain RLS-scoped read of `e2ee_identity_keys`
+> (`20260809000003`). Rate limiting deferred to S-10 (see §0.2 / SECURITY.md G-25).
+
 ---
 
 ## 6. Message Envelope & Payload Format (FINAL)
@@ -406,7 +446,7 @@ Follows Sesame (R3) semantics reduced to single-device async messaging.
 
 - First outbound message to a peer: fetch bundle (§5.3), run X3DH, `RatchetInitAlice`, send type-0x01 envelope, persist session.
 - First inbound init message: §5.4 flow creates the responder session, persist, decrypt payload.
-- **Simultaneous initiation** (both sides send type-0x01 within one session lifetime): last-processed-wins — the session whose init message was processed most recently becomes the active session; the other is kept as inactive for up to 30 days (Sesame "insert then activate", R3 §3.2). Acceptable at MVP (single device, rare); documented behavior, not silent.
+- **Simultaneous initiation** (both sides send type-0x01 within one session lifetime): **convergence** — the incoming init is matched against the ≤ 2 kept inactive sessions first; the match becomes active and the previous active session is demoted to inactive (Sesame §3.2 "insert then activate" / §3.4 convergence; bounded by `e2eeMaxInactiveSessions = 2`). Failed init restores the prior session (§0.1). Acceptable at MVP (single device, rare); documented behavior, not silent.
 
 ### 7.3 Session storage & resumption
 
@@ -439,7 +479,11 @@ Follows Sesame (R3) semantics reduced to single-device async messaging.
 
 ### 8.1 Package
 
-`flutter_secure_storage` — already a dependency (`pubspec.yaml:15`, `^9.2.4`). I-37 should **bump to `^11.0.0`** (R12) for: Android Keystore RSA-OAEP + AES-GCM by default, backup-aware cipher migration, `AndroidOptions` controls. Config:
+`flutter_secure_storage` — already a dependency (`pubspec.yaml:17`, `^9.2.4`). I-37 should **bump to `^11.0.0`** (R12) for: Android Keystore RSA-OAEP + AES-GCM by default, backup-aware cipher migration, `AndroidOptions` controls. Config:
+
+> **ERRATA (2026-08-13):** the bump is an **open follow-up** — I-37 shipped on `^9.2.4`
+> (the `AndroidOptions(migrateWithBackup: true)` config works from 9.x); revisit before
+> release (see §0.2 / MASVS S7.1 follow-up).
 
 ```dart
 const storage = FlutterSecureStorage(
@@ -509,10 +553,13 @@ The existing `SecureStorageService` (`lib/core/services/storage_service.dart:4-1
 |--------------|---------|-------|
 | `messages.content` | base64url `SamayEnvelope` (ciphertext) | opaque blob; RLS unchanged (`messages_read_participant`, `messages_insert_own`, full_schema.sql:742-753) |
 | `messages.*` (existing) | id, chat_id, sender_id, media_url, reported, created_at | unchanged |
-| `user_devices` (NEW) | user_id PK, ik_dh, ik_sig, registration_id, created_at, updated_at | public keys only |
-| `signed_prekeys` (NEW) | user_id, spk_id, public_key, signature, created_at, retired_at | public keys + Ed25519 sig |
-| `one_time_prekeys` (NEW) | user_id, opk_id, public_key, created_at, used_at NULL | consumed via RPC in a transaction |
-| `prekey_fetch_log` (NEW) | user_id, fetched_at | rate-limit counter for §5.5 |
+| `e2ee_identity_keys` (NEW — **single-table model**, migration `20260809000003`) | user_id PK, ik_dh, ik_sig, registration_id, spk_id, spk_public, spk_signature, **signed_prekey_expires_at**, opk_batch (jsonb), created_at, updated_at | public keys + Ed25519 SPK sig + expiry; OPK batch consumed in a transaction |
+
+> **ERRATA (2026-08-13):** the three-table model below (`user_devices`,
+> `signed_prekeys`, `one_time_prekeys` + `prekey_fetch_log`) was **merged into the
+> single `e2ee_identity_keys` table** by `20260809000003_e2ee_tables.sql` (deviation
+> documented in its header). No `prekey_fetch_log` exists (§0.2). All three tables
+> were specified pre-I-37; the RLS/RPC design in §9.3 applies to the single table.
 
 ### 9.2 What the server must NOT store
 
@@ -522,7 +569,11 @@ The existing `SecureStorageService` (`lib/core/services/storage_service.dart:4-1
 
 ### 9.3 RLS + RPC design (I-38 server step)
 
-- `user_devices`: SELECT to `authenticated` (bundle fetch), INSERT/UPDATE own row (`user_id = auth.uid()`), FORCE RLS (per I-31 pattern).
+- **ERRATA (2026-08-13):** implemented as RLS on the single `e2ee_identity_keys` table —
+  SELECT/INSERT/UPDATE/DELETE own-row policies + `FORCE ROW LEVEL SECURITY`
+  (`20260809000003:46-62`); no SECURITY DEFINER RPCs (no rate limiting — §0.2).
+- (Design as originally specified, for the three-table model:) `user_devices`:
+  SELECT to `authenticated` (bundle fetch), INSERT/UPDATE own row (`user_id = auth.uid()`), FORCE RLS (per I-31 pattern).
 - `signed_prekeys`: SELECT to `authenticated`, INSERT/DELETE own.
 - `one_time_prekeys`: INSERT own, SELECT **denied** (direct reads would let clients drain the pool — consumption happens inside the RPC with `FOR UPDATE`).
 - `fetch_prekey_bundle(p_peer_id uuid)` — `SECURITY DEFINER`, `SET search_path = ''`, REVOKE/GRANT to `authenticated` (pattern: migration 20260724000001 `check_signup_email`):
@@ -537,7 +588,7 @@ The existing `SecureStorageService` (`lib/core/services/storage_service.dart:4-1
 
 ### 9.4 Realtime delivery design
 
-- Keep the existing per-chat channel pattern (`lib/core/services/supabase_service.dart:880-918`; the I-52 lifecycle provider refactor carries it): channel `messages:$chatId`, `onPostgresChanges(insert, table: messages, filter: chat_id=eq.<chatId>)` — the filter form is supported (R13).
+- Keep the existing per-chat channel pattern (`lib/core/providers/realtime_provider.dart` + `realtime_service.dart`; the I-52 lifecycle provider refactor carries it): channel `messages:$chatId`, `onPostgresChanges(insert, table: messages, filter: chat_id=eq.<chatId>)` — the filter form is supported (R13).
 - RLS governs membership (existing `messages_read_participant`).
 - The client receives the **envelope blob** and decrypts locally. Realtime is a delivery channel for opaque blobs — it carries ciphertext only.
 - No new presence/channel-join metadata beyond what exists today (S-11 audits channel abuse).
@@ -676,7 +727,7 @@ Two in-memory "clients" (the real `lib/crypto/`) against a fake server implement
 
 | Step | Deliverable | Acceptance |
 |------|-------------|------------|
-| 1 | pubspec: add `cryptography ^2.9.0`, `cryptography_flutter ^2.3.4`; bump `flutter_secure_storage` to `^11.0.0` | `flutter pub get` clean; S-02 CVE scan re-run |
+| 1 | pubspec: add `cryptography ^2.9.0`, `cryptography_flutter ^2.3.4`; bump `flutter_secure_storage` to `^11.0.0` (→ **deferred, still ^9.2.4** — §0.2) | `flutter pub get` clean; S-02 CVE scan re-run |
 | 2 | `constants.dart`, `codec.dart`, `hkdf.dart`, `keys.dart` | U2–U4, U15 green |
 | 3 | `x3dh.dart` | U1 green |
 | 4 | `ratchet.dart` | U5–U9 green |
@@ -691,12 +742,12 @@ Two in-memory "clients" (the real `lib/crypto/`) against a fake server implement
 
 | Step | Deliverable | Acceptance |
 |------|-------------|------------|
-| 1 | Migration `2026XXXXXXXX_e2ee_prekeys.sql`: `user_devices`, `signed_prekeys`, `one_time_prekeys`, `prekey_fetch_log` + RLS + FORCE RLS + RPCs + `REPLICA IDENTITY FULL` + realtime publication | pgTAP cases added (I-77 pattern) |
+| 1 | Migration `2026XXXXXXXX_e2ee_prekeys.sql` (→ landed as **`20260809000003_e2ee_tables.sql`, single `e2ee_identity_keys` table** — §9.1 errata): prekey tables + RLS + FORCE RLS + REPLICA IDENTITY FULL + realtime publication | pgTAP cases added (I-77 pattern) |
 | 2 | `E2eePrekeyService` wired to the two RPCs; publish on profile creation; rotate SPK on foreground when >7d | opt-003 asserts bundle round-trip + rate limit |
 | 3 | `lib/core/services/chat_service.dart` = `E2eeMessageCipher` + `messages` table ops: `sendMessage` encrypts → stores envelope; `loadMessages` decrypts; `subscribeToMessages` decrypts Realtime envelope | I1–I4 green (fake + real stack) |
 | 4 | Key lifecycle hooks in auth: publish on `createProfile`, `wipeAll()` on `deleteAccount`/`signOut` | I6 green |
 | 5 | `integration_test/e2ee_flow_test.dart` + `test/opt-003-chat.sh` | I5 green |
-| 6 | Wire `RoutePaths.chat` (app_router.dart:159) to the real chat screen (replaces `VComingSoonScreen`) with decrypt path | chat UI shows decrypted text; undecryptable → "Mensaje no disponible" |
+| 6 | Wire `RoutePaths.chat` to the real chat screen (**landed** — ChatScreen live at app_router.dart:414-420, replaces `VComingSoonScreen`) with decrypt path | chat UI shows decrypted text; undecryptable → "Mensaje no disponible" |
 
 **I-38 done =** two clients exchange E2EE messages end-to-end through the stack; server DB dump of `messages` contains only envelopes; opt-003 + integration test green; S-07 audit opened.
 
@@ -729,9 +780,9 @@ Two in-memory "clients" (the real `lib/crypto/`) against a fake server implement
 
 ## 14. Verification Notes (D-07)
 
-- Every repo path referenced above was verified to exist in the working tree on 2026-08-09: `docs/security/SECURITY.md`, `docs/specs/steps/phase-07-chat/*`, `supabase/migrations/20260510000001_full_schema.sql` (chats/messages RLS + policies at :742-753), `20260510000002_cron.sql:19`, `20260724000001_fix_signup_tracker_rls.sql` (check_signup_email pattern), `lib/core/services/supabase_service.dart` (:613 loadMessages, :625 sendMessage, :880 subscribeToMessages), `lib/core/services/storage_service.dart:4-18`, `lib/core/providers/auth_provider.dart:186-190`, `lib/core/router/app_router.dart:159`, `pubspec.yaml:15`.
+- Every repo path referenced above was verified to exist in the working tree on 2026-08-09 **and re-verified 2026-08-13**: `docs/security/SECURITY.md`, `docs/specs/steps/phase-07-chat/*`, `supabase/migrations/20260510000001_full_schema.sql` (chats/messages RLS + policies at :742-753), `20260510000002_cron.sql:19`, `20260724000001_fix_signup_tracker_rls.sql` (check_signup_email pattern), `lib/crypto/*` (10 modules, landed), `lib/core/services/chat_service.dart`, `lib/core/services/e2ee_*` (via `lib/crypto/e2ee_prekey_service.dart`), `lib/core/providers/auth_provider.dart`, `lib/core/router/app_router.dart` (ChatScreen live at :414-420), `pubspec.yaml:17`.
 - Agent IDs referenced (I-25, I-28, I-30, I-31, I-37, I-38, I-52, I-56, I-77, S-02, S-07, S-11, S-18, S-20, V-06, M-27, D-07) all exist in `docs/process/FILE-OWNERSHIP.md`.
 - Sources fetched 2026-08-09: R1, R2, R3, R8, R10 (pub.dev + GitHub), R12, R13 (see §0 URLs).
-- No code changed by D-07; this document is the spec consumed by I-37/I-38. `dart analyze` / `flutter test` / `go test` untouched (docs-only agent).
+- D-07 is the spec consumed by I-37/I-38; implementation status and deviations are recorded in §0.
 
-*Samay E2EE Architecture — v1.0 (D-07) · 2026-08-09 · Next review: S-07 after I-37/I-38 land, before chat ships.*
+*Samay E2EE Architecture — v1.1 (D-07) · 2026-08-13 refresh · Next review: S-07 crypto audit (post-I-37) + S-10 prekey rate limit, before release.*

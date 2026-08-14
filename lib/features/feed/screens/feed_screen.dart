@@ -1,14 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:samay/core/config/feature_flags.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/core/design_tokens/app_gradients.dart';
 import 'package:samay/core/design_tokens/app_icon_sizes.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
+import 'package:samay/core/design_tokens/app_typography.dart';
 import 'package:samay/core/models/event.dart';
 import 'package:samay/core/router/route_paths.dart';
+import 'package:samay/core/services/minigame_service.dart';
 import 'package:samay/features/events/logic/event_formatters.dart';
 import 'package:samay/features/feed/providers/feed_providers.dart';
+import 'package:samay/features/groups/providers/groups_providers.dart';
+import 'package:samay/features/minigames/logic/minigame_meta.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/error_view.dart';
 import 'package:samay/shared/widgets/glass/glass.dart';
@@ -89,6 +94,11 @@ class FeedScreen extends ConsumerWidget {
                         family: family,
                       ),
                     ),
+                    // Plugged home (2026-08-13): the games quick-access
+                    // section sits ON TOP of the feed content, right under
+                    // the brand hero — five minigame cards + the Party
+                    // Finder entry, flag-gated.
+                    const SliverToBoxAdapter(child: _GamesSection()),
                     // The hairline + cyan-accent section separator (U-06
                     // divider, LUXE cyan tint) between the header and the
                     // content — and again between the featured carousel and
@@ -542,5 +552,217 @@ class _EventCard extends StatelessWidget {
       'tono' => l10n.eventsTypeTono,
       _ => l10n.eventsTypeJuerga,
     };
+  }
+}
+
+/// Plugged home — games quick-access (2026-08-13).
+///
+/// Sits at the top of the feed, under the brand hero: the five minigame
+/// cards open the group minigames hub. Tapping a game with zero groups shows
+/// the join-a-group hint; with exactly one group it navigates straight
+/// there; otherwise a bottom sheet picks the group. Party Finder is the
+/// discovery entry below. Both entries are flag-gated
+/// ([AppFeatureFlag.minigames] / [AppFeatureFlag.partyFinder]).
+class _GamesSection extends ConsumerWidget {
+  const _GamesSection();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+    final minigamesOn = ref.isEnabled(AppFeatureFlag.minigames);
+    final partyFinderOn = ref.isEnabled(AppFeatureFlag.partyFinder);
+    if (!minigamesOn && !partyFinderOn) return const SizedBox.shrink();
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.screenHorizontal,
+        AppSpacing.xl,
+        AppSpacing.screenHorizontal,
+        0,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            l10n.homeGamesTitle.toUpperCase(),
+            style: AppTypography.sectionLabel,
+          ),
+          const SizedBox(height: AppSpacing.md),
+          if (minigamesOn) ...[
+            SizedBox(
+              height: AppSpacing.scale(context, 132),
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                itemCount: MinigameType.values.length,
+                separatorBuilder: (_, _) =>
+                    const SizedBox(width: AppSpacing.md),
+                itemBuilder: (context, index) => _HomeGameCard(
+                  type: MinigameType.values[index],
+                  onTap: () => _openMinigames(context, ref),
+                ),
+              ),
+            ),
+            const SizedBox(height: AppSpacing.md),
+          ],
+          if (partyFinderOn)
+            _PartyFinderCard(
+              onTap: () => context.push(RoutePaths.partyFinder),
+            ),
+        ],
+      ),
+    );
+  }
+
+  /// Opens the group minigames hub for the picked group. Single group →
+  /// straight navigation; multiple groups → bottom-sheet picker; none → the
+  /// join-a-group hint. The groups list is awaited (the provider is only
+  /// built on first tap — a synchronous `.valueOrNull` read would always be
+  /// null/loading).
+  Future<void> _openMinigames(BuildContext context, WidgetRef ref) async {
+    final l10n = AppLocalizations.of(context);
+    late final List<Map<String, dynamic>> groups;
+    try {
+      groups = await ref.read(myGroupsProvider.future);
+    } catch (_) {
+      groups = const [];
+    }
+    if (groups.isEmpty) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            '${l10n.minigamesNoGroups}\n${l10n.minigamesNoGroupsBody}',
+          ),
+        ),
+      );
+      return;
+    }
+
+    String? groupId;
+    if (groups.length == 1) {
+      groupId = groups.first['id'] as String?;
+    } else {
+      if (!context.mounted) return;
+      groupId = await showModalBottomSheet<String>(
+        context: context,
+        backgroundColor: AppColors.surfaceAlt,
+        builder: (sheetContext) => SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(AppSpacing.lg),
+                child: Text(
+                  l10n.minigamesChooseGroup,
+                  style: Theme.of(sheetContext).textTheme.titleMedium,
+                ),
+              ),
+              for (final group in groups)
+                ListTile(
+                  leading: const Icon(Icons.group_outlined),
+                  title: Text(group['name'] as String? ?? ''),
+                  onTap: () => Navigator.of(sheetContext).pop(
+                    group['id'] as String?,
+                  ),
+                ),
+              const SizedBox(height: AppSpacing.sm),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (groupId != null && context.mounted) {
+      await context.push(RoutePaths.minigames(groupId));
+    }
+  }
+}
+
+/// Home tile for one minigame: icon + localized name, opening the games hub
+/// for the user's group (LUXE: the cyan glass treatment, same family as the
+/// hub's cards — icons are shared via [minigameIcon]).
+class _HomeGameCard extends StatelessWidget {
+  final MinigameType type;
+  final VoidCallback onTap;
+
+  const _HomeGameCard({required this.type, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return InkWell(
+      onTap: onTap,
+      child: SizedBox(
+        width: 120,
+        child: VGlassCard(
+          gradient: AppGradients.cyan,
+          glowAlpha: 0.08,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(minigameIcon(type), color: AppColors.discoCyan),
+              const Spacer(),
+              Text(
+                minigameGameName(l10n, type.value),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: AppColors.white,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 13,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Home entry card for the Party Finder: discovery of people by interest
+/// tags (PFND — I-60). Cyan glass, one row.
+class _PartyFinderCard extends StatelessWidget {
+  final VoidCallback onTap;
+
+  const _PartyFinderCard({required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return InkWell(
+      onTap: onTap,
+      child: VGlassCard(
+        gradient: AppGradients.cyan,
+        glowAlpha: 0.08,
+        child: Row(
+          children: [
+            const Icon(Icons.travel_explore, color: AppColors.discoCyan),
+            const SizedBox(width: AppSpacing.md),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    l10n.partyFinderTitle,
+                    style: Theme.of(context).textTheme.titleSmall,
+                  ),
+                  const SizedBox(height: AppSpacing.xs),
+                  Text(
+                    l10n.homePartyFinderBody,
+                    style: const TextStyle(
+                      color: AppColors.mutedStrong,
+                      fontSize: 13,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right, color: AppColors.mutedStrong),
+          ],
+        ),
+      ),
+    );
   }
 }

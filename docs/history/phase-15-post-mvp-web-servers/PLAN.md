@@ -48,7 +48,7 @@ Key mechanics (from specs):
 
 | Step | Direct deps | Dep status | Step status |
 |------|-------------|------------|-------------|
-| `APIS` | `DBCL`✅, `ROOT`✅, `USRS`✅, `EVTC`✅, `GRPS`✅, `RPTS`✅, `SHRD`✅, `CONF`✅, `SUBS`✅, `SYST`✅, `AUDT`✅ | ALL GREEN | ❌ `cmd/samay-api-server/` does NOT exist (removed in Vive→Samay rename); no `build-api` target. I-41 plans the Gin scaffold; `internal/ops` is import-ready |
+| `APIS` | `DBCL`✅, `ROOT`✅, `USRS`✅, `EVTC`✅, `GRPS`✅, `RPTS`✅, `SHRD`✅, `CONF`✅, `SUBS`✅, `SYST`✅, `AUDT`✅ | ALL GREEN | ✅ **Landed (I-41, 2026-08-09)** — `cmd/samay-api-server/main.go` + `routes.go` exist (Gin scaffold: 31 admin routes + `/api/v1/health` + reserved 501 namespaces); `make build-api` target present (Makefile:530); 17 httptest tests (`main_test.go` 3 + `routes_test.go` 14) green; `ADMIN_API_KEY` placeholder gate (JWT/JWKS = S-06/M-21) |
 | `DASH` | `APIS`❌, `DATA`✅ | 1/2 green | ❌ |
 | `PORT` | `APIS`❌, `DATA`✅ | 1/2 green | ❌ |
 | `VENU` | `APIS`❌, `DATA`✅, `FLUT`✅ | 2/3 green | ❌ |

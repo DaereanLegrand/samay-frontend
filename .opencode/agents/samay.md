@@ -60,7 +60,7 @@ follow the campaign protocol exactly — your instructions ARE the rules.
 7. **Validation:** before calling work done, run the affected suites and
    `dart analyze`; the baseline is documented in DEVELOPMENT-WORKFLOW.md §3.6
    — any new failure is yours. Then write your daily log at
-   `docs/development/phase-XX/YYYY-MM-DD_<ID>-<slug>.md` (create it in PREP,
+   `docs/history/phase-XX/YYYY-MM-DD_<ID>-<slug>.md` (create it in PREP,
    before code).
 8. **Report format** (final message): agent ID + role · what was built ·
    files created/modified with lock acquire/release evidence · tests added +

@@ -50,7 +50,7 @@ Write tests at **every layer your change touches** (see §3):
 | Layer | Where | Example |
 |---|---|---|
 | Dart unit/widget | `test/`, mirroring `lib/` | `test/features/groups_screens_test.dart` |
-| Flutter integration | `integration_test/<module>_flow_test.dart` (planned, I-01) | `integration_test/groups_flow_test.dart` |
+| Flutter integration | `integration_test/<module>_flow_test.dart` (I-01, 2026-08-09) | `integration_test/events_flow_test.dart` |
 | Backend behavior | `test/opt-NNN-desc.sh` + registered in `test/run_all_backend.sh` | `test/opt-001-rls-security.sh` |
 | Go | `*_test.go` next to the code | `internal/ops/users_test.go` |
 | SQL | `supabase/tests/schema_test.sql` (pgTAP) | one `SELECT ok(...)` per assertion |
@@ -192,8 +192,8 @@ are. Always pass `--owner`.
   in `setUpAll` (see the H-01 harness in
   `docs/history/phase-02-flutter-foundation/2026-07-30_H01-coming-soon-screens.md` —
   `Supabase.initialize(url: ..., anonKey: ..., authOptions: FlutterAuthClientOptions(
-  localStorage: _MemoryStorage(), pkceAsyncStorage: _MemoryAsyncStorage(), ...))`). The 11
-  pre-existing failures caused by *not* doing this are documented baseline, not your template.
+  localStorage: _MemoryStorage(), pkceAsyncStorage: _MemoryAsyncStorage(), ...))`). The 23
+  pre-existing failures caused by *not* doing this are documented baseline (H-01 log), not your template.
 
 ### 3.2 Flutter modular integration suite — `integration_test/`
 
@@ -206,7 +206,8 @@ are. Always pass `--owner`.
 **Layout:**
 
 - **One file per module/feature**: `integration_test/auth_flow_test.dart`,
-  `integration_test/groups_flow_test.dart`, `integration_test/events_flow_test.dart`, …
+  `integration_test/events_flow_test.dart`, `integration_test/chat_flow_test.dart`, …
+  (18 registered flows in `runner.sh`; ghost entries removed with an in-file note)
 - **`integration_test/README.md`** — philosophy, prerequisites, per-file and
   whole-suite run instructions, and the template for new flow files.
 - **`integration_test/runner.sh`** — whole-suite orchestrator: runs every
@@ -249,8 +250,10 @@ bash integration_test/runner.sh -d <device-id>               # whole suite, on d
 
 ### 3.3 Backend curl opt-tests — `test/opt-NNN-*.sh`
 
-- **Naming**: `test/opt-NNN-description.sh` (e.g. `opt-001-rls-security.sh`). Currently only
-  `opt-001` exists; opt-002 (events), 003 (chat), 004 (photos) are planned as I-76.
+- **Naming**: `test/opt-NNN-description.sh` (e.g. `opt-001-rls-security.sh`). **opt-001..008
+  exist** (I-76/I-77/8a2f82d): live suite = 001 (RLS/security), 002 (events), 003 (chat/E2EE),
+  004 (photos), 006 (minigames/QR); static gates = 005 (seed-dev), 007 (compose/parity),
+  008 (Makefile). `test/run_all_backend.sh` globs every `opt-*.sh`.
 - **Self-contained**: create their own test users via the admin auth API, seed via
   `service_role`, run assertions as anon/authenticated, clean up on exit (`trap`).
 - **Exit contract**: `exit 0` on success, `exit 1` on failure. Each file runs standalone:
@@ -367,10 +370,10 @@ services onto them, and never stop/start Juega containers. Samay's approved map:
 | Foundation | Status | What it means for new code |
 |---|---|---|
 | Feature-first dirs | now | `lib/features/<feature>/` nests `screens/ providers/ widgets/ logic/` subdirs (M-23, 2026-08-10 — ARC-01; only non-empty subdirs exist; `*_screen.dart` → `screens/`, `*_provider(s).dart` → `providers/`, widget-only files → `widgets/`, pure domain logic → `logic/`); `lib/core/` holds cross-cutting code |
-| Design tokens | planned (I-16, U-01..U-03) | colors/typography/spacing/radius via `lib/core/design_tokens/` — never inline magic colors; today: `SamayTheme` + `SamayDurations` |
-| Typed models | planned (I-10, freezed) | data shapes in `lib/core/models/` (freezed) — raw `Map<String, dynamic>` is the documented *stopgap*, not the target |
-| Feature services + repositories | planned (I-11, I-50) | business logic in feature-scoped services / `lib/core/repositories/`, not in widgets; screens stay dumb |
-| Feature flags | planned (I-49, I-69) | new behavior ships behind a flag and can be released by config, dark-first |
+| Design tokens | now (I-16, U-01..U-03) | colors/typography/spacing/radius via `lib/core/design_tokens/` — never inline magic colors (SamayThemeExtension + SamayDurations) |
+| Typed models | now (I-10, freezed) | data shapes in `lib/core/models/` (freezed, `*.freezed.dart`/`*.g.dart` generated) — raw `Map<String, dynamic>` is the documented *stopgap*, not the target |
+| Feature services + repositories | now (I-11, I-50) | business logic in feature-scoped services / `lib/core/repositories/`, not in widgets; screens stay dumb |
+| Feature flags | now (I-49, I-69) | new behavior ships behind a flag (`lib/core/config/feature_flags.dart` + `FlagGate`) and can be released by config, dark-first |
 | Route registration | now | register routes in `lib/core/router/route_paths.dart` (constants/builders) + `app_router.dart`; never raw path strings in call sites |
 | Tuneable values | now | economy/QR/limit constants go in `app_config` (admin: `./samay config set <key> <value> --confirm`) — never hardcode them |
 | Riverpod state | now | state in providers (`lib/core/providers/`, `lib/features/**/providers`), not in `StatefulWidget` locals where a provider fits |

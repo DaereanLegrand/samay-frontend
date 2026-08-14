@@ -28,14 +28,14 @@ documentation matches the actual code. Read-only: report, never fix.
 - `docs/process/FILE-OWNERSHIP.md` (owner map — the paths it lists must exist
   and the owners must match the daily logs)
 - `docs/to-fix/TODO.md` + `docs/to-fix/categories/*.md` (statuses)
-- `docs/development/PHASE-INVENTORY.md` + `docs/development/phase-XX/*.DONE`
+- `docs/history/PHASE-INVENTORY.md` + `docs/history/phase-XX/*.DONE`
 
 ## What you verify (checklist)
 
 1. **Statuses vs reality:** for every `✅`/`🔄` row in `docs/to-fix/TODO.md`,
    spot-check the referenced file/path exists and implements the claim; for
    every `❌` row, confirm it is still genuinely absent. Report drifts.
-2. **Daily logs vs files:** `docs/development/phase-XX/YYYY-MM-DD_<ID>-*.md`
+2. **Daily logs vs files:** `docs/history/phase-XX/YYYY-MM-DD_<ID>-*.md`
    logs must list files that exist and test results that match the current
    suite (flag deltas — a log claiming a number that contradicts today's
    `flutter test` run needs a note).
@@ -45,7 +45,7 @@ documentation matches the actual code. Read-only: report, never fix.
 4. **FILE-OWNERSHIP paths:** every path in the ownership map exists (or is a
    documented decision); new files created by agents are owned by their
    creator and noted in the daily log.
-5. **Spec compliance:** `docs/planification/` + `docs/implementation/`
+5. **Spec compliance:** `docs/specs/product/` + `docs/specs/steps/`
    claims vs `lib/`, `cmd/`, `internal/`, `supabase/` (cross-references.md
    dependency markers).
 6. **No placeholder drift:** no invented deployment URLs outside

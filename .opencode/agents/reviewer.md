@@ -39,8 +39,8 @@ validation gate), plus `docs/process/FILE-OWNERSHIP.md` to know who owns what.
 ## What you do
 
 1. **Validation gate (before any sign-off claim):**
-   - `dart analyze` — must be 0 errors (19 pre-existing info-level notes are
-     documented baseline; report NEW issues only).
+   - `dart analyze` — must be 0 issues (baseline per DEVELOPMENT-WORKFLOW.md
+     §3.6; report NEW issues only).
    - `flutter test` — compare against the documented baseline. Any *new*
      failure or changed failure-set is a blocker; report it.
    - `go test ./...` — must be green.
