@@ -7,13 +7,17 @@ import 'package:samay/crypto/e2ee_key_store.dart';
 import 'package:samay/crypto/e2ee_prekey_service.dart';
 import 'package:samay/crypto/interfaces.dart';
 
-/// Compile-time flag: when `true`, E2EE key/session material lives in
-/// flutter_secure_storage ([SecureE2eeKeyStore]/[SecureE2eeSessionStore]).
-/// Defaults to the in-memory stores until the secure-storage production
-/// wiring lands (Android backup rules `allowBackup=false` + iOS keychain
-/// entitlements — M-27/M-28 scope, E2EE-ARCHITECTURE.md §8.4); the memory
-/// fallback is what tests and the current dev build use (documented).
-const bool useSecureE2eeKeyStore = false;
+/// Compile-time switch for E2EE key/session storage:
+/// `true` → flutter_secure_storage ([SecureE2eeKeyStore]/[SecureE2eeSessionStore],
+/// iOS Keychain / Android Keystore, §8.2 namespaces, allowBackup=false
+/// Android rule M-27 + iOS keychain entitlements M-28).
+/// `false` → in-memory stores (tests / the two-party harness only).
+///
+/// Production wiring landed 2026-08-13: the secure stores were already
+/// implemented, tested (test/crypto/e2ee_key_store_test.dart) and used by
+/// nothing except the flag; identity/prekey/ratchet material now survives
+/// app restarts at rest, protected by the platform keystore (E2EE §8).
+const bool useSecureE2eeKeyStore = true;
 
 /// Device-local E2EE key material (identity, SPKs, OPKs).
 final e2eeKeyStoreProvider = Provider<E2eeKeyStore>((ref) {

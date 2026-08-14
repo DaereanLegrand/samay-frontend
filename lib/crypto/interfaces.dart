@@ -117,6 +117,11 @@ abstract class E2eeSessionStore {
 
   /// Deletes sessions idle past [maxAgeDays] days (app-foreground sweep).
   Future<void> sweepExpiredSessions({int maxAgeDays = 90});
+
+  /// Wipes ALL persisted sessions for this account — called by
+  /// `deleteAccount()` / `signOut()` together with `E2eeKeyStore.wipeAll`
+  /// (E2EE §7.6: key material must not survive logout/account deletion).
+  Future<void> wipeAll();
 }
 
 /// The chat-facing cipher contract. The concrete orchestrator is

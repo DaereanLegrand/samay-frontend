@@ -112,6 +112,14 @@ Future<Uint8List> hkdfSha256({
 
 Uint8List utf8Bytes(String value) => Uint8List.fromList(utf8.encode(value));
 
+/// Deterministic 32-byte fingerprint of [data] — the init-envelope replay
+/// marker (X3DH §4.2 blacklist). Implemented as HMAC-SHA256 with a fixed
+/// public domain-separation key (the marker is a digest of public envelope
+/// fields, never secret; the constant key only separates the domain).
+Future<Uint8List> sha256Digest(Uint8List data) async {
+  return hmacSha256(utf8Bytes(e2eeInitMarkerInfo), data);
+}
+
 /// HMAC-SHA256 (RFC 2104) of [data] keyed by [key].
 Future<Uint8List> hmacSha256(Uint8List key, Uint8List data) async {
   final mac = await Hmac.sha256().calculateMac(data, secretKey: SecretKey(key));

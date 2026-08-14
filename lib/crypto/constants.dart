@@ -27,6 +27,10 @@ const String e2eeRatchetInfo = 'samay.e2ee.rk.v1';
 const String e2eeAeadInfo = 'samay.e2ee.aead.v1';
 const String e2eeFingerprintInfo = 'samay.e2ee.fingerprint.v1';
 
+/// HMAC domain-separation key for the init-envelope replay marker
+/// (X3DH §4.2 blacklist — a digest of public envelope fields).
+const String e2eeInitMarkerInfo = 'samay.e2ee.init-marker.v1';
+
 /// Session JSON schema version (§8.3).
 const int e2eeSessionJsonVersion = 1;
 
@@ -47,8 +51,22 @@ const Duration e2eeSkippedKeyMaxAge = Duration(days: 30);
 /// Inactive sessions older than this are deleted at app foreground (§7.7).
 const Duration e2eeSessionMaxAge = Duration(days: 90);
 
+/// A session replaced by a newer init envelope is kept as inactive (Sesame
+/// §3.2 "insert then activate") for up to this long, so in-flight ciphertext
+/// from the old session still decrypts (§7.2 — the MAXLATENCY analog).
+const Duration e2eeRetiredSessionMaxAge = Duration(days: 30);
+
+/// Upper bound on kept inactive sessions per chat (Sesame §6.5 bounded
+/// storage — oldest are dropped from the tail when exceeded).
+const int e2eeMaxInactiveSessions = 2;
+
 /// Signed prekey rotation interval (§5.2: "e.g. once a week").
 const Duration e2eeSignedPrekeyRotationAge = Duration(days: 7);
+
+/// Signed prekey retention window after rotation (§5.2: the previous SPK
+/// private key is kept for 7 more days to decrypt delayed init messages,
+/// then deleted for forward secrecy).
+const Duration e2eeSignedPrekeyRetentionAge = Duration(days: 7);
 
 /// One-time prekey batch published per rotation (§5.1: 100).
 const int e2eeOneTimePrekeyBatchSize = 100;

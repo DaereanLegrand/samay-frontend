@@ -23,6 +23,15 @@ import 'package:samay/crypto/interfaces.dart';
 /// Generates a registration id in [1, 0x3FFF] (libsignal-compatible).
 int _generateRegistrationId() => Random.secure().nextInt(0x3FFF) + 1;
 
+/// A retired signed prekey with its rotation-out timestamp — the 7-day
+/// retention window (§5.2) counts from retirement, not from creation.
+class _RetiredSpk {
+  _RetiredSpk({required this.record, required this.retiredAt});
+
+  final SignedPrekeyRecord record;
+  final DateTime retiredAt;
+}
+
 // ---------------------------------------------------------------------------
 // E2eeKeyStore
 // ---------------------------------------------------------------------------
@@ -33,7 +42,7 @@ class MemoryE2eeKeyStore implements E2eeKeyStore {
   final DateTime Function() _clock;
   E2eeIdentityKeys? _identity;
   final Map<int, SignedPrekeyRecord> _signedPrekeys = {};
-  final Map<int, SignedPrekeyRecord> _retiredSignedPrekeys = {};
+  final Map<int, _RetiredSpk> _retiredSignedPrekeys = {};
   final Map<int, OneTimePrekeyRecord> _oneTimePrekeys = {};
   int _nextOpkId = 0;
 
@@ -70,6 +79,7 @@ class MemoryE2eeKeyStore implements E2eeKeyStore {
   @override
   Future<void> rotateSignedPrekey() async {
     final identity = await loadOrCreateIdentity();
+    _pruneExpiredRetired();
     final ids = _signedPrekeys.keys.toList()..sort();
     final oldId = ids.isNotEmpty ? ids.last : null;
     final id = (oldId ?? -1) + 1;
@@ -78,7 +88,10 @@ class MemoryE2eeKeyStore implements E2eeKeyStore {
     if (oldId != null) {
       final retired = _signedPrekeys.remove(oldId);
       if (retired != null) {
-        _retiredSignedPrekeys[oldId] = retired;
+        _retiredSignedPrekeys[oldId] = _RetiredSpk(
+          record: retired,
+          retiredAt: _clock(),
+        );
       }
     }
     _signedPrekeys[id] = SignedPrekeyRecord(
@@ -89,9 +102,25 @@ class MemoryE2eeKeyStore implements E2eeKeyStore {
     );
   }
 
+  /// Drops retired SPKs past their 7-day retention window (§5.2 — forward
+  /// secrecy: the private key must not outlive the retention period).
+  void _pruneExpiredRetired() {
+    final cutoff = _clock().subtract(e2eeSignedPrekeyRetentionAge);
+    _retiredSignedPrekeys.removeWhere((_, r) => r.retiredAt.isBefore(cutoff));
+  }
+
   @override
-  Future<E2eeKeyPair?> loadSignedPrekeyPrivate(int id) async =>
-      _signedPrekeys[id]?.keyPair ?? _retiredSignedPrekeys[id]?.keyPair;
+  Future<E2eeKeyPair?> loadSignedPrekeyPrivate(int id) async {
+    final current = _signedPrekeys[id];
+    if (current != null) return current.keyPair;
+    final retired = _retiredSignedPrekeys[id];
+    if (retired == null) return null;
+    if (_clock().difference(retired.retiredAt) > e2eeSignedPrekeyRetentionAge) {
+      _retiredSignedPrekeys.remove(id);
+      return null;
+    }
+    return retired.record.keyPair;
+  }
 
   @override
   Future<int> oneTimePrekeyCount() async => _oneTimePrekeys.length;
@@ -235,12 +264,19 @@ class SecureE2eeKeyStore implements E2eeKeyStore {
     final keyPair = await E2eeKeyPair.generate(type: E2eeKeyType.x25519);
     final signature = await ed25519Sign(identity.ikSigPrivate, keyPair.publicKey);
     await _storage.write(key: '$spkPrivPrefix$id', value: base64UrlNoPadEncode(keyPair.privateKey));
+    // Only current + 1 retained (§5.2): the grand-retired key file (from
+    // the previous rotation) is deleted now.
+    final prevRetired = meta?['retired_id'] as int?;
+    if (prevRetired != null && prevRetired != oldId) {
+      await _storage.delete(key: '$spkPrivPrefix$prevRetired');
+    }
     await _storage.write(
       key: spkMetaKey,
       value: jsonEncode({
         'current_id': id,
         'rotated_at': _clock().toIso8601String(),
         'retired_id': oldId,
+        'retired_at': oldId == null ? null : _clock().toIso8601String(),
         'sig': base64UrlNoPadEncode(signature),
       }),
     );
@@ -259,6 +295,29 @@ class SecureE2eeKeyStore implements E2eeKeyStore {
 
   @override
   Future<E2eeKeyPair?> loadSignedPrekeyPrivate(int id) async {
+    final meta = await _readSpkMeta();
+    if (meta == null) return null;
+    final currentId = meta['current_id'] as int?;
+    if (id == currentId) {
+      return _loadSpkPrivate(id);
+    }
+    if (id == meta['retired_id'] as int?) {
+      // Retained for 7 days after rotation (§5.2), then deleted.
+      final retiredAt = DateTime.tryParse(meta['retired_at'] as String? ?? '');
+      if (retiredAt != null &&
+          _clock().difference(retiredAt) > e2eeSignedPrekeyRetentionAge) {
+        await _storage.delete(key: '$spkPrivPrefix$id');
+        return null;
+      }
+      return _loadSpkPrivate(id);
+    }
+    // Unknown id (stale meta from an older app version): purge the orphan
+    // key file — it is not current and not within any retention window.
+    await _storage.delete(key: '$spkPrivPrefix$id');
+    return null;
+  }
+
+  Future<E2eeKeyPair?> _loadSpkPrivate(int id) async {
     final priv = await _storage.read(key: '$spkPrivPrefix$id');
     if (priv == null) return null;
     return _pairFromPrivate(priv);
@@ -374,6 +433,11 @@ class MemoryE2eeSessionStore implements E2eeSessionStore {
   }
 
   @override
+  Future<void> wipeAll() async {
+    _sessions.clear();
+  }
+
+  @override
   Future<void> sweepExpiredSessions({int maxAgeDays = 90}) async {
     for (final chatId in _sessions.keys.toList()) {
       if (_isExpired(_sessions[chatId]!, maxAgeDays: maxAgeDays)) {
@@ -440,6 +504,16 @@ class SecureE2eeSessionStore implements E2eeSessionStore {
 
   @override
   Future<Map<String, String>> sessionIndex() => _readIndex();
+
+  @override
+  Future<void> wipeAll() async {
+    final all = await _storage.readAll();
+    for (final key in all.keys) {
+      if (key.startsWith(sessionKeyPrefix) || key == indexKey) {
+        await _storage.delete(key: key);
+      }
+    }
+  }
 
   @override
   Future<void> sweepExpiredSessions({int maxAgeDays = 90}) async {

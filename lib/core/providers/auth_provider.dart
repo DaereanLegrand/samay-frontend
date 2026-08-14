@@ -10,6 +10,7 @@ import 'package:samay/core/services/ban_service.dart';
 import 'package:samay/core/services/crash_reporter.dart';
 import 'package:samay/core/services/telemetry_service.dart';
 import 'package:samay/core/utils/async_ops.dart';
+import 'package:samay/features/chat/providers/chat_providers.dart';
 
 class AuthState {
   final bool authenticated;
@@ -377,13 +378,28 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
 
   Future<void> signOut() async {
     await _service.signOut();
+    await _wipeE2eeMaterial();
     state = const AsyncData(AuthState());
   }
 
   Future<void> deleteAccount() async {
     await _service.softDeleteUser();
     await _service.signOut();
+    await _wipeE2eeMaterial();
     state = const AsyncData(AuthState());
+  }
+
+  /// E2EE §7.6: wipes ALL device-local key material and chat sessions after
+  /// a successful sign-out / account deletion (identity keys, signed +
+  /// one-time prekeys, every persisted session). Best-effort: a storage
+  /// failure must never block the sign-out itself.
+  Future<void> _wipeE2eeMaterial() async {
+    try {
+      await ref.read(e2eeKeyStoreProvider).wipeAll();
+      await ref.read(e2eeSessionStoreProvider).wipeAll();
+    } catch (e, st) {
+      AppLogger.instance.error('E2EE key/session wipe failed: $e', '$st');
+    }
   }
 }
 

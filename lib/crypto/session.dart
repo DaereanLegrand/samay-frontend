@@ -23,10 +23,21 @@ import 'package:samay/crypto/x3dh.dart';
 ///   **type-0x02** ratchet envelopes.
 /// - The responder creates its session by *processing* an init envelope;
 ///   it cannot send before that (§4.3 — no sending chain yet).
-/// - Processing an init envelope while another session exists **replaces**
-///   it: last-processed-wins (decision D-11, §7.2).
+/// - Processing a NEW init envelope while another session exists **replaces**
+///   it: last-processed-wins, and the replaced session moves to the head of
+///   the inactive list (Sesame §3.2) — bounded at [e2eeMaxInactiveSessions],
+///   kept for [e2eeRetiredSessionMaxAge] so in-flight ciphertext from the
+///   old session still decrypts (§7.2, Sesame §6.4/§6.5).
+/// - A ratchet envelope that fails against the active session is tried
+///   against each inactive session; the first match is **activated** and the
+///   previous active session becomes inactive (Sesame §3.4 — convergence on
+///   simultaneous initiation).
+/// - A replayed init envelope (identical `sender_ik_dh ‖ ekA ‖ spk_id ‖
+///   opk_id`, persisted marker) is dropped without re-decrypting and without
+///   touching the session (X3DH §4.2 replay mitigation).
 /// - Undecryptable messages return null and leave the session untouched
-///   (atomicity §4.5).
+///   (atomicity §4.5). A failed init attempt discards all state changes and
+///   restores the previously active session (Sesame §3.4 error handling).
 class E2eeSession implements E2eeMessageCipher {
   E2eeSession({
     required this.chatId,
@@ -63,6 +74,18 @@ class E2eeSession implements E2eeMessageCipher {
   Uint8List? _ekA;
   int? _spkId;
   int? _opkId;
+
+  /// Sessions displaced by a newer init envelope (Sesame §3.2 inactive
+  /// list), head = most recently retired, bounded at
+  /// [e2eeMaxInactiveSessions], entries older than
+  /// [e2eeRetiredSessionMaxAge] are dropped (Sesame §6.4/§6.5).
+  final List<_RetiredSession> _retired = [];
+
+  /// Fingerprint of the last processed init envelope
+  /// (`sha256(sender_ik_dh ‖ ekA ‖ spk_id ‖ opk_id)`, base64url) — the X3DH
+  /// §4.2 replay blacklist. Persisted with the session JSON so a replay is
+  /// still dropped after an app restart.
+  String? _lastInitMarker;
 
   String get _role => _ratchet?.role ?? 'initiator';
 
@@ -118,7 +141,7 @@ class E2eeSession implements E2eeMessageCipher {
     final (header, ciphertext) = await ratchetEncrypt(
       ratchet,
       utf8.encode(plaintext),
-      _adBase(identity),
+      _adBase(identity, _peerIkDh!, _peerIkSig!),
     );
     ratchet.pruneSkippedKeys(_clock());
     ratchet.lastUsedAt = _clock();
@@ -166,7 +189,8 @@ class E2eeSession implements E2eeMessageCipher {
   }
 
   /// Discards the session: deletes it from the store and zeroes the
-  /// in-memory key material. (Account-level wipe of ALL material is
+  /// in-memory key material (including inactive sessions and the replay
+  /// marker). (Account-level wipe of ALL material is
   /// `E2eeKeyStore.wipeAll()` — §7.6.)
   void wipe() {
     _ratchet = null;
@@ -174,6 +198,8 @@ class E2eeSession implements E2eeMessageCipher {
     _peerIkSig = null;
     _ekA = null;
     _hasSentInit = false;
+    _retired.clear();
+    _lastInitMarker = null;
     _sessionStore.deleteSession(chatId);
   }
 
@@ -181,21 +207,32 @@ class E2eeSession implements E2eeMessageCipher {
   /// `HKDF(salt=0x00×32, ikm=AD_base, info="samay.e2ee.fingerprint.v1")`,
   /// displayed as 5×6-hex groups. Symmetric for both parties.
   ///
-  /// Loads the session from the store first, so a freshly-restarted session
-  /// object can compute it without any prior operation.
+  /// STRICTLY read-only: it never initiates X3DH (a fresh initiate would
+  /// consume one of the peer's one-time prekeys server-side and mint a
+  /// session the user did not ask for). Requires an established session —
+  /// without one it throws [E2eeCryptoException]; the UI shows the
+  /// fingerprint only once the chat session exists.
   Future<Uint8List> computeFingerprint() async {
     final identity = await _identityKeys();
-    await _ensureSessionReady(identity);
+    if (_ratchet == null) {
+      final saved = await _sessionStore.loadSession(chatId);
+      if (saved != null) _restore(saved);
+    }
+    if (_ratchet == null || _peerIkDh == null || _peerIkSig == null) {
+      throw const E2eeCryptoException(
+        'no established session — fingerprint requires an active chat session',
+      );
+    }
     return hkdfSha256(
-      ikm: _adBase(identity),
+      ikm: _adBase(identity, _peerIkDh!, _peerIkSig!),
       salt: Uint8List(32),
       info: utf8Bytes(e2eeFingerprintInfo),
       length: 30,
     );
   }
 
-  /// Serializes the session (§8.3 + chat metadata). Null before any
-  /// session state exists.
+  /// Serializes the session (§8.3 + chat metadata + inactive sessions +
+  /// replay marker). Null before any session state exists.
   String? toJson() {
     final ratchet = _ratchet;
     if (ratchet == null || _peerIkDh == null) return null;
@@ -207,6 +244,16 @@ class E2eeSession implements E2eeMessageCipher {
       'peer_ik_dh': base64UrlNoPadEncode(_peerIkDh!),
       'peer_ik_sig': base64UrlNoPadEncode(_peerIkSig!),
       'has_sent_init': _hasSentInit,
+      'last_init_marker': _lastInitMarker,
+      'retired_sessions': [
+        for (final r in _retired)
+          {
+            'ratchet': r.ratchet.toJson(),
+            'peer_ik_dh': base64UrlNoPadEncode(r.peerIkDh),
+            'peer_ik_sig': base64UrlNoPadEncode(r.peerIkSig),
+            'retired_at': r.retiredAt.toIso8601String(),
+          },
+      ],
     });
   }
 
@@ -251,9 +298,13 @@ class E2eeSession implements E2eeMessageCipher {
     _hasSentInit = false;
   }
 
-  /// Type 0x01: X3DH responder flow (§5.4). Replaces any existing session
-  /// (last-processed-wins, §7.2 / D-11). On auth failure everything is
-  /// discarded (R1 §3.4) and the consumed OPK private key is deleted.
+  /// Type 0x01: X3DH responder flow (§5.4). A NEW init envelope replaces
+  /// any existing session (last-processed-wins, §7.2 / D-11) and moves the
+  /// displaced session to the inactive list (Sesame §3.2); a REPLAYED init
+  /// envelope (identical marker) is dropped without touching the session
+  /// (X3DH §4.2). On auth failure all state changes are discarded and the
+  /// previous session is restored (Sesame §3.4) — an attacker cannot clobber
+  /// a healthy session with a forged init.
   Future<String?> _handleInitEnvelope(
     SamayEnvelope env,
     E2eeIdentityKeys identity,
@@ -269,6 +320,23 @@ class E2eeSession implements E2eeMessageCipher {
       return null; // our own init echoed back — never process
     }
 
+    // Replay blacklist (X3DH §4.2): the marker fingerprints the full init
+    // header. Identical bytes → same marker → the message was already
+    // processed (the no-OPK variant is fully re-derivable, so only this
+    // marker stops the replay). A fresh init from the same sender always
+    // carries a new ephemeral key and therefore a new marker.
+    final marker = base64UrlNoPadEncode(
+      await sha256Digest(concatBytes([
+        env.senderIkDh,
+        env.ekA!,
+        _uint32Bytes(env.spkId!),
+        _uint32Bytes(env.opkId!),
+      ])),
+    );
+    if (marker == _lastInitMarker) {
+      return null;
+    }
+
     final spkPair = await _keyStore.loadSignedPrekeyPrivate(env.spkId!);
     if (spkPair == null) return null;
     final needsOpk = env.opkId! != e2eeNoOpkId;
@@ -276,6 +344,12 @@ class E2eeSession implements E2eeMessageCipher {
         ? await _keyStore.loadOneTimePrekeyPrivate(env.opkId!)
         : null;
     if (needsOpk && opkPair == null) return null;
+
+    // Snapshot for the Sesame §3.4 abort path: on failure, restore.
+    final prevRatchet = _ratchet;
+    final prevPeerIkDh = _peerIkDh;
+    final prevPeerIkSig = _peerIkSig;
+    final prevRetired = List<_RetiredSession>.from(_retired);
 
     final sharedSecret = await x3dhRespond(
       ourIdentityPrivateKey: identity.ikDhPrivate,
@@ -290,24 +364,39 @@ class E2eeSession implements E2eeMessageCipher {
       bobRatchetKeyPair: spkPair,
       now: _clock(),
     );
+
+    // Sesame §3.2 "insert then activate": the displaced active session moves
+    // to the head of the inactive list (bounded, age-pruned).
+    _retireCurrentSession();
     _ratchet = responder;
     _peerIkDh = Uint8List.fromList(env.senderIkDh);
     _peerIkSig = Uint8List.fromList(env.senderIkSig);
     _hasSentInit = true; // responders never send an init envelope
 
     try {
-      final plaintext = await _decryptWith(responder, env, identity);
+      final plaintext = await _decryptWith(
+        responder,
+        _peerIkDh!,
+        _peerIkSig!,
+        env,
+        identity,
+      );
       // Consumed OPK: delete now (forward secrecy, R1 §3.4 / §5.4 step 2).
       if (needsOpk) {
         await _keyStore.deleteOneTimePrekey(env.opkId!);
       }
+      _lastInitMarker = marker;
       await _persist();
       return plaintext;
     } on RatchetError {
-      // Abort and discard everything (R1 §3.4 / §5.4 step 6).
-      _ratchet = null;
-      _peerIkDh = null;
-      _peerIkSig = null;
+      // Abort and restore everything (R1 §3.4 / §5.4 step 6 + Sesame §3.4:
+      // a failed init must not destroy the established session).
+      _ratchet = prevRatchet;
+      _peerIkDh = prevPeerIkDh;
+      _peerIkSig = prevPeerIkSig;
+      _retired
+        ..clear()
+        ..addAll(prevRetired);
       if (needsOpk) {
         await _keyStore.deleteOneTimePrekey(env.opkId!);
       }
@@ -316,8 +405,11 @@ class E2eeSession implements E2eeMessageCipher {
   }
 
   /// Type 0x02: existing-session decrypt. Never creates sessions from
-  /// ratchet messages (Sesame R3 §3.4 / §6.5). Sessions idle past 90 days
-  /// are refused even when still in memory (§7.7).
+  /// ratchet messages (Sesame R3 §3.4 / §6.5). A message that fails against
+  /// the active session is tried against each inactive session; the first
+  /// match is activated and the previous active session becomes inactive
+  /// (Sesame §3.4 — session convergence on simultaneous initiation).
+  /// Sessions idle past 90 days are refused even when still in memory (§7.7).
   Future<String?> _handleRatchetEnvelope(
     SamayEnvelope env,
     E2eeIdentityKeys identity,
@@ -338,16 +430,111 @@ class E2eeSession implements E2eeMessageCipher {
       return null; // idle too long — session retired (§7.7)
     }
     try {
-      final plaintext = await _decryptWith(_ratchet!, env, identity);
+      final plaintext = await _decryptWith(
+        _ratchet!,
+        _peerIkDh!,
+        _peerIkSig!,
+        env,
+        identity,
+      );
       await _persist();
       return plaintext;
     } on RatchetError {
-      return null; // dropped message, session preserved (atomicity)
+      // Active session could not decrypt — try the inactive sessions.
+      return _decryptWithRetired(env, identity);
     }
   }
 
+  /// Tries every inactive session (Sesame §3.4 step 2-4): the first one
+  /// bound to [env.senderIkDh] that decrypts the message becomes the active
+  /// session, and the previous active session moves to the head of the
+  /// inactive list. Returns null when no inactive session matches (the
+  /// message is dropped; all session state is preserved — atomicity §4.5).
+  Future<String?> _decryptWithRetired(
+    SamayEnvelope env,
+    E2eeIdentityKeys identity,
+  ) async {
+    _pruneRetired();
+    for (var i = 0; i < _retired.length; i++) {
+      final retired = _retired[i];
+      if (!constantTimeEquals(env.senderIkDh, retired.peerIkDh)) continue;
+      if (_clock().difference(retired.ratchet.lastUsedAt) > e2eeSessionMaxAge) {
+        continue;
+      }
+      try {
+        final plaintext = await _decryptWith(
+          retired.ratchet,
+          retired.peerIkDh,
+          retired.peerIkSig,
+          env,
+          identity,
+        );
+        // Activate (Sesame §3.4 step 4): swap active ↔ inactive.
+        _retired.removeAt(i);
+        final active = _ratchet;
+        final peerDh = _peerIkDh;
+        final peerSig = _peerIkSig;
+        _ratchet = retired.ratchet;
+        _peerIkDh = retired.peerIkDh;
+        _peerIkSig = retired.peerIkSig;
+        if (active != null && peerDh != null) {
+          _retired.insert(
+            0,
+            _RetiredSession(
+              ratchet: active,
+              peerIkDh: peerDh,
+              peerIkSig: peerSig ?? Uint8List(0),
+              retiredAt: _clock(),
+            ),
+          );
+        }
+        await _persist();
+        return plaintext;
+      } on RatchetError {
+        // Not this session — try the next inactive one.
+      }
+    }
+    return null;
+  }
+
+  /// Sesame §3.2: moves the current active session to the head of the
+  /// inactive list (bounded at [e2eeMaxInactiveSessions], entries older than
+  /// [e2eeRetiredSessionMaxAge] pruned — Sesame §6.4/§6.5).
+  void _retireCurrentSession() {
+    final ratchet = _ratchet;
+    final peerDh = _peerIkDh;
+    if (ratchet == null || peerDh == null) return;
+    _pruneRetired();
+    _retired.insert(
+      0,
+      _RetiredSession(
+        ratchet: ratchet,
+        peerIkDh: peerDh,
+        peerIkSig: _peerIkSig ?? Uint8List(0),
+        retiredAt: _clock(),
+      ),
+    );
+    if (_retired.length > e2eeMaxInactiveSessions) {
+      _retired.removeLast();
+    }
+  }
+
+  void _pruneRetired() {
+    final cutoff = _clock().subtract(e2eeRetiredSessionMaxAge);
+    _retired.removeWhere((r) => r.retiredAt.isBefore(cutoff));
+  }
+
+  static Uint8List _uint32Bytes(int value) => Uint8List.fromList([
+    (value >> 24) & 0xff,
+    (value >> 16) & 0xff,
+    (value >> 8) & 0xff,
+    value & 0xff,
+  ]);
+
   Future<String> _decryptWith(
     RatchetState ratchet,
+    Uint8List peerIkDh,
+    Uint8List peerIkSig,
     SamayEnvelope env,
     E2eeIdentityKeys identity,
   ) async {
@@ -356,7 +543,7 @@ class E2eeSession implements E2eeMessageCipher {
       ratchet,
       header,
       env.ciphertext,
-      _adBase(identity),
+      _adBase(identity, peerIkDh, peerIkSig),
       now: _clock(),
     );
     ratchet.pruneSkippedKeys(_clock());
@@ -366,13 +553,19 @@ class E2eeSession implements E2eeMessageCipher {
 
   /// AD_base = Encode(IK_dh_A) ‖ Encode(IK_dh_B) ‖ Encode(IK_sig_A) ‖
   /// Encode(IK_sig_B), sorted lexicographically by the two DH keys —
-  /// role-independent (§6.1). Recomputed from the stored identity + the
-  /// session's peer keys, never serialized (§8.3).
-  Uint8List _adBase(E2eeIdentityKeys identity) {
+  /// role-independent (§6.1). Recomputed from the stored identity and the
+  /// session's peer keys ([peerIkDh]/[peerIkSig] — the active session's on
+  /// the normal path, an inactive session's on the retired-decrypt path),
+  /// never serialized (§8.3).
+  Uint8List _adBase(
+    E2eeIdentityKeys identity,
+    Uint8List peerIkDh,
+    Uint8List peerIkSig,
+  ) {
     final myDh = identity.ikDhPublic;
-    final peerDh = _peerIkDh!;
+    final peerDh = peerIkDh;
     final mySig = identity.ikSigPublic;
-    final peerSig = _peerIkSig!;
+    final peerSig = peerIkSig;
     final A = constantTimeEquals(myDh, peerDh) || _lessThan(myDh, peerDh)
         ? myDh
         : peerDh;
@@ -395,6 +588,23 @@ class E2eeSession implements E2eeMessageCipher {
     _peerIkDh = base64UrlNoPadDecode(map['peer_ik_dh'] as String);
     _peerIkSig = base64UrlNoPadDecode(map['peer_ik_sig'] as String);
     _hasSentInit = map['has_sent_init'] as bool? ?? true;
+    _lastInitMarker = map['last_init_marker'] as String?;
+    _retired.clear();
+    final cutoff = _clock().subtract(e2eeRetiredSessionMaxAge);
+    for (final entry in map['retired_sessions'] as List<dynamic>? ?? const []) {
+      final r = Map<String, dynamic>.from(entry as Map);
+      final retiredAt = DateTime.tryParse(r['retired_at'] as String? ?? '');
+      final peerDh = base64UrlNoPadDecode(r['peer_ik_dh'] as String);
+      final peerSig = base64UrlNoPadDecode(r['peer_ik_sig'] as String);
+      if (retiredAt == null || peerDh == null || peerSig == null) continue;
+      if (retiredAt.isBefore(cutoff)) continue; // retention window passed
+      _retired.add(_RetiredSession(
+        ratchet: RatchetState.fromJson(Map<String, dynamic>.from(r['ratchet'] as Map)),
+        peerIkDh: peerDh,
+        peerIkSig: peerSig,
+        retiredAt: retiredAt,
+      ));
+    }
   }
 
   Future<void> _persist() async {
@@ -403,4 +613,22 @@ class E2eeSession implements E2eeMessageCipher {
       await _sessionStore.saveSession(chatId, json);
     }
   }
+}
+
+/// A session displaced by a newer init envelope (Sesame §3.2 inactive
+/// list). Kept for [e2eeRetiredSessionMaxAge] so in-flight ciphertext from
+/// the old session still decrypts; deleted once the retention window passes
+/// (Sesame §6.4/§6.5).
+class _RetiredSession {
+  _RetiredSession({
+    required this.ratchet,
+    required this.peerIkDh,
+    required this.peerIkSig,
+    required this.retiredAt,
+  });
+
+  final RatchetState ratchet;
+  final Uint8List peerIkDh;
+  final Uint8List peerIkSig;
+  final DateTime retiredAt;
 }
