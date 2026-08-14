@@ -28,7 +28,7 @@ port convention (AGENTS.md). Read-only: you report findings, you never fix.
 
 ## Mandatory reading
 
-- `docs/agents/AGENT-RULES.md` (rules incl. the port map)
+- `docs/process/DEVELOPMENT-WORKFLOW.md` (rules incl. the port map)
 - `docs/security/SECURITY.md` + `docs/security/E2EE-ARCHITECTURE.md`
 - `docs/to-fix/categories/08-SECURITY.md` (open security findings)
 - `<private-ops-repo>/SELFHOSTING.md` (approved ports, Juega coexistence)

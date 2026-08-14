@@ -190,7 +190,7 @@ TESTING_JWT_SECRET := $(or $(shell sed -n 's/^JWT_SECRET=//p' supabase/.env 2>/d
 ifeq ($(strip $(TESTING_JWT_SECRET)),)
 $(error TESTING=true needs the local stack signing secret: JWT_SECRET in supabase/.env (or exported))
 endif
-TESTING_ANON_KEY := $(shell JWT_SECRET='$(TESTING_JWT_SECRET)' python3 tool/gen_testing_anon_key.py)
+TESTING_ANON_KEY := $(shell JWT_SECRET='$(TESTING_JWT_SECRET)' python3 tools/gen_testing_anon_key.py)
 FLUTTER_DEFINES += --dart-define=SUPABASE_URL=http://127.0.0.1:54386 --dart-define=SUPABASE_ANON_KEY=$(TESTING_ANON_KEY)
 build: | testing-kong-register
 dev: | testing-kong-register
@@ -201,8 +201,9 @@ endif
 # ── fastlane lane env (ios-adhoc builds) ─────────────────────────────────────
 # The adhoc_local lane reads SUPABASE_URL / SUPABASE_ANON_KEY from the
 # environment (Fastfile dart_defines).
-#   * DEFAULT: the REMOTE API — https://samay-api.qallariy.lat (no port: the
-#     tunnel fronts the standard HTTPS port).
+#   * DEFAULT: the REMOTE API — https://supabase.samay.example.com (no port: the
+#     tunnel fronts the standard HTTPS port; placeholder per
+#     <private-ops-repo>/DEPLOYMENT-PLACEHOLDER.md R03 — pass the real URL via env).
 #   * TESTING=true: the LOCAL stack via this Mac's LAN IP <local-lan-ip>
 #     (127.0.0.1 is NOT reachable from the iPhone) + the freshly minted
 #     anon JWT (registered with the local Kong by the testing-kong-register
@@ -211,7 +212,7 @@ ifeq ($(TESTING),true)
 LANE_SUPABASE_URL := http://<local-lan-ip>:54386
 LANE_SUPABASE_ANON_KEY := $(TESTING_ANON_KEY)
 else
-LANE_SUPABASE_URL := https://samay-api.qallariy.lat
+LANE_SUPABASE_URL := https://supabase.samay.example.com
 LANE_SUPABASE_ANON_KEY := $(shell sed -n 's/^SUPABASE_ANON_KEY=//p' .env 2>/dev/null | head -1)
 endif
 
@@ -225,7 +226,7 @@ endif
 # the temp key is truly temporary. Non-fatal: a build without the stack
 # still proceeds (the app fails fast at runtime if Kong is unreachable).
 testing-kong-register:
-	@[ -n "$(TESTING_ANON_KEY)" ] || { echo "❌  TESTING=true: failed to mint the anon JWT (see tool/gen_testing_anon_key.py)."; exit 1; }
+	@[ -n "$(TESTING_ANON_KEY)" ] || { echo "❌  TESTING=true: failed to mint the anon JWT (see tools/gen_testing_anon_key.py)."; exit 1; }
 	@KONG=$$(docker ps --format '{{.Names}}' --filter publish=54386 | head -1); \
 	if [ -z "$$KONG" ]; then \
 		echo "⚠️  No Kong on 127.0.0.1:54386 — temp JWT NOT registered (app will 401). Start a stack: make supabase-docker-start / supabase-testing-start"; \
@@ -664,7 +665,7 @@ supabase-docker-reset:
 supabase-seed-dev:
 	cd supabase && PGPASSWORD=postgres psql -h localhost -p 54382 -U postgres -d postgres -f seed-dev.sql
 
-# pgTAP schema tests (312 assertions, supabase/tests/schema_test.sql) against
+# pgTAP schema tests (385 assertions, supabase/tests/schema_test.sql) against
 # the SELF-HOSTED stack — `supabase db test --db-url` connects to the running
 # compose DB on the approved port (verified: CLI v2.113.0 enables pgtap, then
 # runs pg_prove via the supabase/pg_prove:3.36 docker image; first run pulls
@@ -752,17 +753,17 @@ secrets-check:
 	@tools/check_secrets.sh
 
 # ── Pre-commit hooks (TOOL-04, M-26) ─────────────────────────────────────────
-# Wires git's core.hooksPath to the COMMITTED tool/hooks/ dir (never
+# Wires git's core.hooksPath to the COMMITTED tools/hooks/ dir (never
 # .git/hooks/ — that is per-clone state). The pre-commit hook delegates to
-# tool/pre-commit.sh, the FAST gate: dart analyze + flutter test smoke
+# tools/pre-commit.sh, the FAST gate: dart analyze + flutter test smoke
 # (test/meta/ + test/core/ + test/utils/ — full suite is CI's job) +
 # secrets-check + check_ports --strict + opt-008 makefile-static. Run once
 # per clone (the setting is local to each checkout). Exit codes: 0 wired,
 # 1 hook file missing/not executable (gates never silently skip).
 install-hooks:
-	@git config core.hooksPath tool/hooks
-	@[ -x tool/hooks/pre-commit ] || { echo "❌  tool/hooks/pre-commit missing or not executable — fix before committing."; exit 1; }
-	@echo "✅  core.hooksPath → tool/hooks — pre-commit gate active (tool/pre-commit.sh)"
+	@git config core.hooksPath tools/hooks
+	@[ -x tools/hooks/pre-commit ] || { echo "❌  tools/hooks/pre-commit missing or not executable — fix before committing."; exit 1; }
+	@echo "✅  core.hooksPath → tools/hooks — pre-commit gate active (tools/pre-commit.sh)"
 
 # ── Fastlane stubs (MKE-05 / MKE-07 Makefile half, M-15) ─────────────────────
 # Lane-name CONTRACT for M-17 (iOS) / M-18 (Android) — fixed HERE and in

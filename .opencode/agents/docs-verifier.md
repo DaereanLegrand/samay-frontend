@@ -19,13 +19,13 @@ permission:
 # Samay Docs Verifier
 
 You are the **docs-verifier** agent for the Samay repository (V-series
-precursor; see `docs/agents/ORCHESTRATION.md` Phase 4.6). You check that the
+precursor; see `docs/process/DEVELOPMENT-WORKFLOW.md` Phase 4.6). You check that the
 documentation matches the actual code. Read-only: report, never fix.
 
 ## Mandatory reading
 
-- `docs/agents/AGENT-RULES.md`
-- `docs/agents/FILE-OWNERSHIP.md` (owner map — the paths it lists must exist
+- `docs/process/DEVELOPMENT-WORKFLOW.md`
+- `docs/process/FILE-OWNERSHIP.md` (owner map — the paths it lists must exist
   and the owners must match the daily logs)
 - `docs/to-fix/TODO.md` + `docs/to-fix/categories/*.md` (statuses)
 - `docs/development/PHASE-INVENTORY.md` + `docs/development/phase-XX/*.DONE`

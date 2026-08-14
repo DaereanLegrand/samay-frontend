@@ -2,7 +2,7 @@
 
 **Owner:** D-06 (security architecture doc) · **Reviewed:** 2026-08-09 · **Status:** living document — update at every security change (RLS hardening, E2EE rollout, release checklist)
 
-> Companion docs: `docs/security/E2EE-ARCHITECTURE.md` (D-07, planned — X3DH + Double Ratchet spec), `docs/security/MASVS-AUDIT.md` (S-01), `docs/security/CVE-SCAN.md` (S-02), `docs/security/FINAL-SECURITY-REPORT.md` (S-20), `docs/to-fix/categories/08-SECURITY.md` and `06-SUPABASE-BACKEND.md` (findings), `docs/implementation/phase-00-foundation/SECU-rls-policies.md` (RLS design).
+> Companion docs: `docs/security/E2EE-ARCHITECTURE.md` (D-07, planned — X3DH + Double Ratchet spec), `docs/security/MASVS-AUDIT.md` (S-01), `docs/security/CVE-SCAN.md` (S-02), `docs/security/FINAL-SECURITY-REPORT.md` (S-20), `docs/to-fix/categories/08-SECURITY.md` and `06-SUPABASE-BACKEND.md` (findings), `docs/specs/steps/phase-00-foundation/SECU-rls-policies.md` (RLS design).
 
 ---
 
@@ -76,7 +76,7 @@ Industry standards this document is aligned with (all claims below cite these):
 
 ### 2.1 RLS strategy + FORCE RLS
 
-**Design (from `docs/implementation/phase-00-foundation/SECU-rls-policies.md`):** RLS is the *primary* security layer (spec §4). Every table in the exposed `public` schema carries `ENABLE ROW LEVEL SECURITY`; the `authenticated` role is gated per-table; `service_role` is the privileged path for CLI/Edge Functions; admin tables (`admin_users`, `admin_audit_log`, `subscription_overrides`, `processed_webhooks`) are `FOR ALL USING (false)` (defense-in-depth, full_schema.sql:783-787).
+**Design (from `docs/specs/steps/phase-00-foundation/SECU-rls-policies.md`):** RLS is the *primary* security layer (spec §4). Every table in the exposed `public` schema carries `ENABLE ROW LEVEL SECURITY`; the `authenticated` role is gated per-table; `service_role` is the privileged path for CLI/Edge Functions; admin tables (`admin_users`, `admin_audit_log`, `subscription_overrides`, `processed_webhooks`) are `FOR ALL USING (false)` (defense-in-depth, full_schema.sql:783-787).
 
 **Verified current status (evidence):**
 
@@ -167,7 +167,7 @@ Plan (S-09/I-59): enforce path-prefix ownership (`{user_id}/...`) — done for a
 |-------|--------|----------|
 | GoTrue auth rate limits | ✅ configured | config.toml:64-71; docker-compose.yml:86 (`GOTRUE_RATE_LIMIT_EMAIL_SENT: 2`) |
 | Kong gateway plugins | ⚠️ key-auth + ACL + CORS only — **no rate-limit plugin** | supabase/volumes/api/kong.yml:22-32 (rest-v1), :34-49 (rest-admin service_role-only) |
-| app_config abuse thresholds | ✅ seeded, **not enforced** (FLMT blocked — no Edge Functions) | seed.sql:43-46 (`security.max_events_per_minute=3`, `max_concurrent_event_invites=50`, `max_qr_token_rotations=20`, `max_failed_qr_validations=5`); docs/implementation/phase-00-foundation/FLMT-edge-functions-rate-limiting.md |
+| app_config abuse thresholds | ✅ seeded, **not enforced** (FLMT blocked — no Edge Functions) | seed.sql:43-46 (`security.max_events_per_minute=3`, `max_concurrent_event_invites=50`, `max_qr_token_rotations=20`, `max_failed_qr_validations=5`); docs/specs/steps/phase-00-foundation/FLMT-edge-functions-rate-limiting.md |
 | OTP client-side cooldown / attempt caps | ❌ none (SEC-05) | supabase_service.dart:39-45 (`sendOtp`/`verifyOtp` uncapped) |
 | Search enumeration | ⚠️ `.ilike('username', '$query%')` prefix search, limit 20, authenticated-only view | supabase_service.dart:310-317 |
 
@@ -263,7 +263,7 @@ User taps "Eliminar mi cuenta"           lib/features/profile/settings_screen.da
   → softDeleteUser():                         lib/core/services/supabase_service.dart:72-84
       deleted_at = now, username = deleted_user_{id}, avatar_url/bio = NULL
   → signOut()                                 supabase_service.dart:35-37
-Recovery window (30 days): admin CLI clears deleted_at  internal/ops/users.go (SoftDeleteUser counterpart) / docs/implementation/phase-03-auth-profiles/DELE-account-deletion.md
+Recovery window (30 days): admin CLI clears deleted_at  internal/ops/users.go (SoftDeleteUser counterpart) / docs/specs/steps/phase-03-auth-profiles/DELE-account-deletion.md
 Hard delete (daily 03:00):                    supabase/migrations/20260510000002_cron.sql:47-52
   hard_delete_expired_users()                 cron.sql:7-32
     anonymize shard_ledger/preshard_ledger (user_id = NULL)   cron.sql:15-16

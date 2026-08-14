@@ -13,8 +13,8 @@ This repository is a **3-track project**:
 | **Go admin CLI** (`cmd/samay-admin/`, `internal/`) | Cobra-based operational CLI (`samay`) using the `service_role` key — users, events, groups, reports, shards, config, subs, system | Complete |
 | **Self-hosted Supabase** (`supabase/`, `supabase-testing/`) | PostgreSQL 17 + GoTrue + PostgREST + Realtime + Storage + Kong gateway; Docker Compose and `config.toml` dual setups; migration-based testing | Foundation done; approved port map enforced (I-02/M-01..M-10) |
 
-Full product spec: [`docs/planification/samay_mvp_spec.md`](docs/planification/samay_mvp_spec.md).
-CLI spec: [`docs/planification/samay_admin_cli_spec.md`](docs/planification/samay_admin_cli_spec.md).
+Full product spec: [`docs/specs/product/samay_mvp_spec.md`](docs/specs/product/samay_mvp_spec.md).
+CLI spec: [`docs/specs/product/samay_admin_cli_spec.md`](docs/specs/product/samay_admin_cli_spec.md).
 
 ---
 
@@ -147,18 +147,19 @@ test/                         Flutter unit/widget tests + backend curl opt-tests
   run_all_backend.sh          Runs every opt test against http://127.0.0.1:54386
   README.md                   Full testing guide
 integration_test/             Hermetic modular Flutter integration suite — 18 flows + smoke (I-01..U-29, runner.sh)
-test_runner.sh                gum-based MANUAL end-user QA runner (63 cases, phases 00–04)
+test_runner.sh                gum-based MANUAL end-user QA runner (55 cases, phases 00–04)
 
 docs/
-  planification/              Read-only product/CLI/web-server specs
-  implementation/             Read-only step specs + cross-references.md (dependency graph)
-  development/                Daily developer logs + *.DONE markers per phase
-  agents/                     Orchestration: ORCHESTRATION.md, AGENT-RULES.md,
-                              FILE-OWNERSHIP.md, AGENT-REGISTRY.md
-  to-fix/                     Adversarial review findings (173 findings, TODO.md statuses)
-  design/                     DISCO-DESIGN-SYSTEM.md, DISCO-LUXE-DESIGN-SYSTEM.md (D-11/XL-21)
-  infra/                      SELFHOSTING.md, DEPLOYMENT-PLACEHOLDER.md (D-08/D-10)
-  security/                   SECURITY.md, E2EE-ARCHITECTURE.md, FINAL-SECURITY-REPORT.md (D-06/D-07/S-20)
+  README.md                     Hub/index — where to find what (Diátaxis layout)
+  process/                      How-to: DEVELOPMENT-WORKFLOW.md, FILE-OWNERSHIP.md
+  specs/product/                Read-only product/CLI/web-server specs (was planification/)
+  specs/steps/                  Read-only step specs + cross-references.md (was implementation/)
+  history/                      Daily developer logs + *.DONE markers per phase (was development/)
+  design/                       DISCO-DESIGN-SYSTEM.md, DISCO-LUXE-DESIGN-SYSTEM.md (D-11/XL-21)
+  infra/                        SELFHOSTING.md, DEPLOYMENT-PLACEHOLDER.md (D-08/D-10)
+  security/                     SECURITY.md, E2EE-ARCHITECTURE.md, FINAL-SECURITY-REPORT.md (D-06/D-07/S-20)
+  audit/                        Audit reports + gate reports (docs↔code audit, GATE-REPORT)
+  to-fix/                       Adversarial review findings (173 findings, TODO.md statuses)
 
 tools/agent_lock.sh           File semaphore for parallel agents (see "Parallel work" below)
 repo-locks/                   Held locks (gitignored, ephemeral)
@@ -166,16 +167,16 @@ repo-locks/                   Held locks (gitignored, ephemeral)
 
 ---
 
-## The 180-agent orchestration (read before contributing)
+## The 180-agent orchestration (completed 2026-08-11)
 
-The repo is being driven by a **180-agent campaign** (`docs/agents/ORCHESTRATION.md`):
-documentation (D-01..D-12) → implementation (I-01..I-78) → modifications (M-01..M-30)
-→ disco UI (U-01..U-30) → security (S-01..S-20) → verification (V-01..V-10).
+The repo was driven by a **180-agent campaign** (documentation D-01..D-12 →
+implementation I-01..I-78 → modifications M-01..M-30 → disco UI U-01..U-30 →
+security S-01..S-20 → verification V-01..V-10), which **COMPLETED at STOP-180**
+(gate record: `docs/audit/GATE-REPORT.md`). The campaign's per-agent docs
+(`ORCHESTRATION.md`, `AGENT-RULES.md`, `AGENT-REGISTRY.md`) were removed; the
+standing protocol for any future parallel work is **`docs/process/DEVELOPMENT-WORKFLOW.md`**:
 
-- **Every agent must read `docs/agents/AGENT-RULES.md` first** — it defines the
-  repo-wide read mandate, the file-semaphore protocol, test conventions, and the
-  report format.
-- **File ownership:** `docs/agents/FILE-OWNERSHIP.md` maps every path to its
+- **File ownership:** `docs/process/FILE-OWNERSHIP.md` maps every path to its
   owning agent. Don't modify a file owned by another agent unless your
   assignment requires it (and hold its lock).
 - The design language (black background, disco colors, Playfair Display, pink
@@ -214,12 +215,12 @@ tools/agent_lock.sh run lib/core/router/app_router.dart --owner my-name -- \
 
 | Layer | Command | Notes |
 |-------|---------|-------|
-| Flutter unit/widget | `make flutter-test` | `test/` — mirrors `lib/` layout. Full suite green — **2151/2151** (XL-22 gate, 2026-08-13) |
+| Flutter unit/widget | `make flutter-test` | `test/` — mirrors `lib/` layout. Full suite green — **2209/2209** (re-verified 2026-08-13) |
 | Flutter modular integration | `bash integration_test/runner.sh` (hermetic) / `-d <device>` | `integration_test/` — **18 flows + `ui_smoke_test.dart`**: auth, ban, error, profile, theme, cosmetics, events, photos, chat, QR, realtime, notifications, feed, party finder, subscriptions, minigames, telemetry (I-01 + per-feature agents, U-29); hermetic by default (`support/fake_supabase.dart`), each file runs standalone |
 | Backend (curl) | `bash test/run_all_backend.sh` | Runs every `test/opt-*.sh` against Kong at `http://127.0.0.1:54386`; requires the stack up + `make supabase-docker-reset` |
-| Go | `go test ./...` | 178 tests, 5 packages (I-42 baseline; CLI flag/validation tests + ops business logic with `httptest` mocks) |
-| SQL (pgTAP) | `supabase db test` | `supabase/tests/schema_test.sql` — **344 assertions** (plan 344, I-77/S-03 expansion): extensions, enums, tables, triggers, RPCs, RLS policies, seed data |
-| Manual end-user QA | `bash test_runner.sh` | gum-based manual runner (63 cases, auth → leaderboard), writes a timestamped results markdown |
+| Go | `go test ./...` | 182 tests, 5 packages (re-verified 2026-08-13; CLI flag/validation tests + ops business logic with `httptest` mocks) |
+| SQL (pgTAP) | `supabase db test` | `supabase/tests/schema_test.sql` — **385 assertions** (plan 385, I-77/S-03 + 20260814 migrations): extensions, enums, tables, triggers, RPCs, RLS policies, seed data |
+| Manual end-user QA | `bash test_runner.sh` | gum-based manual runner (55 cases, auth → leaderboard), writes a timestamped results markdown |
 
 See [`test/README.md`](test/README.md) for the full test matrix and the curl
 test-writing guide.
@@ -252,7 +253,7 @@ hardcode economy/QR/limit constants.
   shard donations, rankings), H-01/H-02 fixes, C-07 CLI restoration, the
   180-agent campaign through Phase 4.5 (implementation foundations
   I-01..I-78, modifications M-01..M-30, disco UI U-01..U-30 + LUXE XL-01..XL-22,
-  security S-01..S-20 — see `docs/agents/ORCHESTRATION.md`).
+  security S-01..S-20 — gate record: `docs/audit/GATE-REPORT.md`).
 - **Foundations shipped (feature-flagged):** ECRT/EDET/CHAT/QR/FEED/PHUP/PFND
   screens, notification center, paywall/cosmetics/minigames/shard-ledger, deep
   links, storage, realtime, telemetry and crash-reporting seams (I-49..I-78) —
@@ -261,9 +262,9 @@ hardcode economy/QR/limit constants.
 - **Planned / remaining:** edge functions (EEDG/QEDG/PUSH — `supabase/functions/`
   does not exist yet), subscriptions end-to-end, web servers (APIS Gin scaffold
   landed, I-41), and the full phase 05–15 flows per
-  `docs/implementation/cross-references.md`.
+  `docs/specs/steps/cross-references.md`.
 - **Known issues:** `docs/to-fix/TODO.md` (statuses re-verified by R-3,
-  2026-08-13); `docs/implementation/cross-references.md` (step-by-step
+  2026-08-13); `docs/specs/steps/cross-references.md` (step-by-step
   dependency graph, campaign rows updated by V-01).
 - **Security:** audit series closed 6 live issues incl. one CRITICAL
   (anon EXECUTE on all SECURITY DEFINER functions) — see

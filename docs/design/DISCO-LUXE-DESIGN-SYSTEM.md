@@ -5,9 +5,10 @@
 authoritative read-only reference for everything LUXE does NOT override; this document defines the
 LUXE v2 language and reconciles it against the implemented code (post-XL-19).
 **Date:** 2026-08-12
-**Upstream specs:** `docs/development/phase-04-luxe/ORCHESTRATION-LUXE.md` (campaign spec, non-negotiables,
+**Upstream specs:** `docs/audit/GATE-REPORT-LUXE.md` (campaign gate record; the per-round
+campaign spec `ORCHESTRATION-LUXE.md` and `GEMMA-ROUNDS.md` were removed post-campaign), non-negotiables,
 gradient map), `docs/design/DISCO-DESIGN-SYSTEM.md` (v1.1 — superseded where noted),
-`docs/development/phase-04-luxe/2026-08-12_XL-{01..19}-*.md` (per-agent decisions).
+`docs/history/phase-04-luxe/2026-08-12_XL-{01..19}-*.md` (per-agent decisions).
 
 > **What LUXE v2 is:** a full UI overhaul following 2026 UI/UX tendencies — AI-like thinking
 > interfaces, liquid glass, maximum luxury + minimalism, black background always, pastel soft vibrant
@@ -362,7 +363,8 @@ The vision-model critique gate that drove rounds 1–3 and every subsequent poli
 3. **ONE CHANGE** — the single most impactful fix.
 4. **VERDICT** — one brutally honest line.
 
-Per-round results and fixes are tracked in `docs/development/phase-04-luxe/GEMMA-ROUNDS.md`.
+Per-round results and fixes were tracked in `docs/history/phase-04-luxe/GEMMA-ROUNDS.md`
+(removed post-campaign; the gate record is `docs/audit/GATE-REPORT-LUXE.md`).
 
 ---
 
@@ -403,12 +405,12 @@ Per-round results and fixes are tracked in `docs/development/phase-04-luxe/GEMMA
 
 ## 9. Sources
 
-- Campaign spec: `docs/development/phase-04-luxe/ORCHESTRATION-LUXE.md` (directives, family map,
-  Gemma protocol)
+- Campaign spec: `ORCHESTRATION-LUXE.md` (removed post-campaign; gate record:
+  `docs/audit/GATE-REPORT-LUXE.md` — directives, family map, Gemma protocol)
 - v1.1 design system: `docs/design/DISCO-DESIGN-SYSTEM.md` (read-only reference; LUXE overrides only)
-- Gemma verdicts + rounds: `docs/development/phase-04-luxe/GEMMA-ROUNDS.md`,
+- Gemma verdicts + rounds: `GEMMA-ROUNDS.md` (removed post-campaign),
   `luxe-screenshots/verdicts/`
-- Agent logs: `docs/development/phase-04-luxe/2026-08-12_XL-01..XL-19-*.md`
+- Agent logs: `docs/history/phase-04-luxe/2026-08-12_XL-01..XL-19-*.md`
 - Apple HIG — Color (restraint; watered chrome vs brand moment): https://developer.apple.com/design/human-interface-guidelines/color
 - 2026 gradient trends (pastel/aurora/glass on dark): https://dev.to/will_indie/css-gradient-trends-in-2026-and-how-developers-actually-use-them-3hec · https://pxltool.com/en/blog/design-trends-2026 · https://www.kittl.com/blogs/gradient-design-trend-stl/
 

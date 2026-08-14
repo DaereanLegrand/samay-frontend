@@ -9,11 +9,11 @@ Samay is built in **16 phases** (00–15). Each phase follows a strict TDD + doc
 ## Per-Phase Workflow
 
 ```
-1. PLAN  → Review docs/planification/ and docs/implementation/ for this phase
+1. PLAN  → Review docs/specs/product/ and docs/specs/steps/ for this phase
             Read cross-references.md to identify dependencies
             Break phase into steps
 
-2. PREP  → Create docs/development/phase-XX/ directory
+2. PREP  → Create docs/history/phase-XX/ directory
             Create daily log file for current date
 
 3. RED   → Write tests that define the expected behavior
@@ -27,7 +27,7 @@ Samay is built in **16 phases** (00–15). Each phase follows a strict TDD + doc
 
 6. VALIDATE → Run all tests (existing + new)
               Lint & typecheck
-              Verify against docs/planification/ specs
+              Verify against docs/specs/product/ specs
               Update cross-references.md if dependencies changed
 
 7. DOCUMENT → Write daily log entry covering:
@@ -47,7 +47,7 @@ Samay is built in **16 phases** (00–15). Each phase follows a strict TDD + doc
 
 ## Phase Dependency Rules
 
-Dependencies are defined in `docs/implementation/cross-references.md`. When starting a step:
+Dependencies are defined in `docs/specs/steps/cross-references.md`. When starting a step:
 
 1. Verify all direct deps are complete (their `DONE` marker in the phase dir).
 2. After completing a step, check if any downstream step's dependency is now satisfied — update the progress tracker.
@@ -79,22 +79,27 @@ Each track has its own daily log. Sync points occur when a track's output is nee
 | Analytics | 54388 | |
 | Kong HTTPS | 54443 | self-hosted compose stack |
 
-## Agent Orchestration Protocol (180-agent campaigns)
+## Agent Orchestration Protocol
 
-When a large multi-agent campaign runs (see `docs/agents/ORCHESTRATION.md`):
+The 180-agent orchestration campaign (phases 4.1–4.6, 2026-08-09..11) is
+**COMPLETE** (see `docs/audit/GATE-REPORT.md`); its per-agent docs were removed.
+The workflow below remains the standing protocol for any future multi-agent or
+parallel-human work — see `docs/process/DEVELOPMENT-WORKFLOW.md` for the full guide:
 
-- **Every agent reads the entire repo first** (no shortcuts) and follows `docs/agents/AGENT-RULES.md`.
+- **Every agent reads the entire repo first** (no shortcuts) and follows `docs/process/DEVELOPMENT-WORKFLOW.md`.
 - **File semaphore:** before modifying any file, `tools/agent_lock.sh acquire <path> --owner <AGENT_ID>`; if another agent holds it, WAIT; release after (`release`). Locks live in `repo-locks/` (gitignored). `tools/agent_lock.sh list` shows held locks.
-- **File ownership:** `docs/agents/FILE-OWNERSHIP.md` maps every path to its owning agent.
+- **File ownership:** `docs/process/FILE-OWNERSHIP.md` maps every path to its owning agent.
 - **Tests:** each worked-on thing ships tests + updates the modular integration suite (`integration_test/`, `test/opt-*.sh`, pgTAP).
 - **Checkpoints:** orchestrator validates (`dart analyze`, `flutter test`, `go test ./...`), then commits AND pushes at every 50-agent stop.
-- **Refactorability:** features will keep being added after this campaign; keep code modular, typed, and easily extensible (tokens, feature services, models).
+- **Refactorability:** features will keep being added; keep code modular, typed, and easily extensible (tokens, feature services, models).
 
 ## Documentation Standards
 
-- `docs/development/phase-XX/YYYY-MM-DD_step-NAME.md` — daily developer log
-- `docs/planification/` — spec documents (read-only reference)
-- `docs/implementation/` — step specifications (read-only reference)
+- `docs/history/phase-XX/YYYY-MM-DD_step-NAME.md` — daily developer log
+- `docs/specs/product/` — product/CLI/web-server specs (read-only reference)
+- `docs/specs/steps/` — step specifications + `cross-references.md` (read-only reference)
+- Docs are organized per the Diátaxis model (`docs/README.md` hub): `process/` (how-to),
+  `specs/` (reference), `design|security|infra/` (explanation), `history/|audit/|to-fix/` (records)
 - Mistakes are documented as **MISTAKE** blocks in daily logs so future devs can search for them
 
 ## Testing Commands
@@ -117,7 +122,7 @@ Before marking a phase complete, run:
 
 - [ ] All tests pass
 - [ ] Lint passes (`golangci-lint run ./...` for Go, `dart analyze` for Flutter)
-- [ ] Spec docs are satisfied (checklist from docs/planification/ and docs/implementation/)
+- [ ] Spec docs are satisfied (checklist from docs/specs/product/ and docs/specs/steps/)
 - [ ] Cross-references updated if needed
 - [ ] Daily log written for each step
 - [ ] AGENTS.md updated if methodology changes

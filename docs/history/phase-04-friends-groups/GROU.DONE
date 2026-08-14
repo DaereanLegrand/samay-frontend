@@ -1,0 +1,11 @@
+⚠️ PARTIALLY MET — see gap analysis in 2026-05-12_FRND-GROU-GLIM-SDON-RANK.md
+
+- Group creation: done (name/description, cover image upload via Storage, chat auto-created)
+- Group detail: done (size/bracket badges, shards, members, tabs)
+- Leave/kick: done (auto-delete group if last member)
+- Cover image upload: done (image_picker + Storage)
+- Promotor transfer UI: backend exists, no screen
+- Add co-promotor UI: backend exists, no screen
+- Invite screen: done (debounced username search + multi-select + bulk invite)
+- Group chat: placeholder
+- Group cosmetics display: deferred

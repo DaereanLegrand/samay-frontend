@@ -4,8 +4,8 @@
 **Drives:** `I-37` (crypto core — `lib/crypto/**`) and `I-38` (chat integration — `lib/features/chat/**`, `chat_service`, prekey server migration)
 
 > Companion docs: `docs/security/SECURITY.md` (D-06 — threat model, crypto policy §3, gap G-09),
-> `docs/implementation/phase-07-chat/CHAT-chat-system-core.md`, `CHPT-chat-participation-access-rules.md`,
-> `CHMC-message-cap-reporting.md`; `docs/implementation/phase-00-foundation/SECU-rls-policies.md`;
+> `docs/specs/steps/phase-07-chat/CHAT-chat-system-core.md`, `CHPT-chat-participation-access-rules.md`,
+> `CHMC-message-cap-reporting.md`; `docs/specs/steps/phase-00-foundation/SECU-rls-policies.md`;
 > `supabase/migrations/20260510000001_full_schema.sql` (chats/messages/chat_participants, RLS, message_cap trigger).
 
 ---
@@ -373,7 +373,7 @@ Fixed header: 4+1+1+32+32+32+4+4+4 = **114 bytes**.
 > (`lib/crypto/envelope.dart`, `ratchetHeaderSize = 4+1+1+32+32+32+4+4+4 = 114`)
 > is authoritative: a 112-byte header misaligns `ct_len` by 2 bytes and every
 > ratchet envelope fails AEAD (I-37 verified empirically; see MISTAKE-1 in
-> `docs/development/phase-02-flutter-foundation/2026-08-09_I37-e2ee-core.md`).
+> `docs/history/phase-02-flutter-foundation/2026-08-09_I37-e2ee-core.md`).
 
 ### 6.5 Parse rules
 
@@ -627,7 +627,7 @@ abstract class E2eePrekeyService {
 
 ---
 
-## 11. Test Matrix (mandatory, per AGENT-RULES §2)
+## 11. Test Matrix (mandatory, per DEVELOPMENT-WORKFLOW §3)
 
 ### 11.1 Unit tests — `test/crypto/` (I-37)
 
@@ -729,8 +729,8 @@ Two in-memory "clients" (the real `lib/crypto/`) against a fake server implement
 
 ## 14. Verification Notes (D-07)
 
-- Every repo path referenced above was verified to exist in the working tree on 2026-08-09: `docs/security/SECURITY.md`, `docs/implementation/phase-07-chat/*`, `supabase/migrations/20260510000001_full_schema.sql` (chats/messages RLS + policies at :742-753), `20260510000002_cron.sql:19`, `20260724000001_fix_signup_tracker_rls.sql` (check_signup_email pattern), `lib/core/services/supabase_service.dart` (:613 loadMessages, :625 sendMessage, :880 subscribeToMessages), `lib/core/services/storage_service.dart:4-18`, `lib/core/providers/auth_provider.dart:186-190`, `lib/core/router/app_router.dart:159`, `pubspec.yaml:15`.
-- Agent IDs referenced (I-25, I-28, I-30, I-31, I-37, I-38, I-52, I-56, I-77, S-02, S-07, S-11, S-18, S-20, V-06, M-27, D-07) all exist in `docs/agents/AGENT-REGISTRY.md` / `docs/agents/FILE-OWNERSHIP.md`.
+- Every repo path referenced above was verified to exist in the working tree on 2026-08-09: `docs/security/SECURITY.md`, `docs/specs/steps/phase-07-chat/*`, `supabase/migrations/20260510000001_full_schema.sql` (chats/messages RLS + policies at :742-753), `20260510000002_cron.sql:19`, `20260724000001_fix_signup_tracker_rls.sql` (check_signup_email pattern), `lib/core/services/supabase_service.dart` (:613 loadMessages, :625 sendMessage, :880 subscribeToMessages), `lib/core/services/storage_service.dart:4-18`, `lib/core/providers/auth_provider.dart:186-190`, `lib/core/router/app_router.dart:159`, `pubspec.yaml:15`.
+- Agent IDs referenced (I-25, I-28, I-30, I-31, I-37, I-38, I-52, I-56, I-77, S-02, S-07, S-11, S-18, S-20, V-06, M-27, D-07) all exist in `docs/process/FILE-OWNERSHIP.md`.
 - Sources fetched 2026-08-09: R1, R2, R3, R8, R10 (pub.dev + GitHub), R12, R13 (see §0 URLs).
 - No code changed by D-07; this document is the spec consumed by I-37/I-38. `dart analyze` / `flutter test` / `go test` untouched (docs-only agent).
 

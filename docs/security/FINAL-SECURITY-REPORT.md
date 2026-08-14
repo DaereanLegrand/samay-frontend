@@ -3,7 +3,7 @@
 **Agent:** S-20 (Phase 4.5 — Security) · **Date:** 2026-08-11 · **Branch:** `fixes`
 **Scope:** consolidates S-01..S-19 + the Step-0 security fixes. Companion
 docs: `MASVS-AUDIT.md`, `CVE-SCAN.md` (S-01/S-02), the per-agent daily logs
-(`docs/development/phase-00-foundation/2026-08-11_S0X-*.md`), SECURITY.md.
+(`docs/history/phase-00-foundation/2026-08-11_S0X-*.md`), SECURITY.md.
 
 ---
 
