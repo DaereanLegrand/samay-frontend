@@ -16,24 +16,44 @@ final qrDisplayWindowProvider = FutureProvider<int>((ref) async {
 
 /// The current user's attendance-QR token row for an event
 /// (`event_qr_tokens`, own-row RLS `eqt_read_own`), or `null` when the server
-/// has not issued one yet — the pre-activation state (QRAT) or EEDG/QEDG
-/// not deployed.
+/// has not issued one yet — the pre-activation state (QRAT).
 class MyQrTokenNotifier
     extends FamilyAsyncNotifier<Map<String, dynamic>?, String> {
   @override
   Future<Map<String, dynamic>?> build(String eventId) async {
-    return ref.read(eventServiceProvider).getMyQrToken(eventId);
+    var row = await ref.read(eventServiceProvider).getMyQrToken(eventId);
+    if (row == null) {
+      // Self-issuing token (QRAT §Token Fetch Cycle / QEDG `rotate_token` —
+      // SQL stand-in, migration 20260814000004): inside the activation
+      // window the server issues the first token (returned as a row-shaped
+      // map); before the window it answers `not_in_window` and the countdown
+      // state stays.
+      final issued = await ref.read(eventServiceProvider).rotateQrToken(eventId);
+      if (issued != null && issued['status'] == 'ok') {
+        return {
+          'token': issued['token'],
+          'expires_at': issued['expiresAt'],
+        };
+      }
+    }
+    return row;
   }
 
   /// Rotation contract (QRAT §Token Fetch Cycle / QEDG `rotate_token`): the
-  /// client countdown calls this at 0s. The server-side rotation (Edge
-  /// Function `qr-token-manager` — QEDG/EEDG, blocked) will invalidate the
-  /// previous token (`expires_at = now()`) and issue a new one. Until that
-  /// lands, `rotate()` re-fetches the current token: a rotation that never
-  /// happened server-side yields the same row and the client keeps showing
-  /// the last token the server issued (graceful degradation — see the I-57
-  /// daily log for the EEDG handoff).
-  Future<void> rotate() async => ref.invalidateSelf();
+  /// client countdown calls this at 0s. The server-side rotation (SQL
+  /// stand-in for the blocked `qr-token-manager` Edge Function) invalidates
+  /// the previous token (`expires_at = now()`) and issues a new one
+  /// atomically; the rebuild then re-reads the latest row. A server failure
+  /// is swallowed — the rebuild re-reads the current row and the countdown
+  /// continues (graceful degradation, I-57).
+  Future<void> rotate() async {
+    try {
+      await ref.read(eventServiceProvider).rotateQrToken(arg);
+    } catch (_) {
+      // Server unreachable — the refresh below shows the current token.
+    }
+    ref.invalidateSelf();
+  }
 }
 
 /// The current user's attendance-QR token row for [eventId].

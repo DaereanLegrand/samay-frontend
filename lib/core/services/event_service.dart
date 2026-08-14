@@ -220,4 +220,21 @@ class EventService {
     });
     return Map<String, dynamic>.from(res as Map);
   }
+
+  /// Rotates (or first-issues) the caller's attendance-QR token for
+  /// [eventId] — QRAT.
+  ///
+  /// Invokes the `rotate_qr_token` RPC (migration 20260814000004, the SQL
+  /// stand-in for the blocked `qr-token-manager` Edge Function). The server
+  /// returns the still-valid current token, or atomically invalidates the
+  /// previous one and issues a fresh token (`qr.token_valid_seconds`
+  /// lifetime). Business outcomes are `status` payloads (`not_in_window`,
+  /// `not_invited`, `ok`) — never exceptions; infra failures throw and the
+  /// provider degrades to re-reading the current row.
+  Future<Map<String, dynamic>?> rotateQrToken(String eventId) async {
+    final res = await client.rpc('rotate_qr_token', params: {
+      'p_event_id': eventId,
+    });
+    return res == null ? null : Map<String, dynamic>.from(res as Map);
+  }
 }

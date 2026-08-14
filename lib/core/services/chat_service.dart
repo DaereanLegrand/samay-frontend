@@ -120,6 +120,29 @@ class ChatService {
     });
   }
 
+  /// Creates (or reuses) a direct chat with [peerUserId] and returns its id.
+  ///
+  /// Goes through the `create_direct_chat` SECURITY DEFINER RPC (migration
+  /// 20260814000001 — the SQL stand-in while EEDG stays blocked, same
+  /// pattern as `validate_qr_token`): `chats_insert_related` forbids
+  /// client-side direct-chat inserts (the caller is not a participant yet),
+  /// so the RPC creates the chat row + both participant rows atomically and
+  /// returns the existing chat when the pair already has one. This is the
+  /// missing first step of the live E2EE path — without a `chat_participants`
+  /// row for the peer, `_resolvePeerUserId` sees an empty peer list and
+  /// `sendMessage` throws.
+  Future<String> createDirectChat(String peerUserId) async {
+    final res = await client.rpc('create_direct_chat', params: {
+      'p_peer_id': peerUserId,
+    });
+    final data = Map<String, dynamic>.from(res as Map);
+    final chatId = data['chatId'];
+    if (chatId is! String) {
+      throw Exception('create_direct_chat returned no chatId');
+    }
+    return chatId;
+  }
+
   /// Subscribes to live inserts for [chatId]. Rows arrive as raw envelopes
   /// and are decrypted before [onInsert] sees them (E2EE §9.4: realtime
   /// carries ciphertext only). Returns the channel so callers can
