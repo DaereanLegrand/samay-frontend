@@ -1,4 +1,4 @@
-.PHONY: build dev install clean clear-storage uninstall build-cli build-linux build-api lint check test \
+.PHONY: help build dev install build-install clean clear-storage uninstall build-cli build-linux build-api lint check test \
         test-all test-unit test-integration test-backend-static test-go \
         flutter-test flutter-analyze define-env secrets-check tunnel-android tunnel-waydroid \
         ios-signing-restore \
@@ -11,6 +11,63 @@
         migrate-check \
         ios-beta ios-release android-alpha android-release \
         deploy-api deploy-dashboard deploy-venue bundle-install
+
+# ── Help ─────────────────────────────────────────────────────────────────────
+# Usage cheatsheet for every documented target. TARGET values: all, android,
+# waydroid, ios, ios-adhoc, simulator (see each target's comments).
+help:
+	@echo "Samay — make targets (TARGET=all|android|waydroid|ios|ios-adhoc|simulator)"
+	@echo ""
+	@echo "  BUILD / RUN"
+	@echo "    build [TARGET]           build for a platform: ios-adhoc (device IPA),"
+	@echo "                             simulator (Runner.app), android (APK), ios"
+	@echo "                             (unsigned iphoneos IPA), all (sweep, skips unavailable)"
+	@echo "    dev [TARGET]             build + run with hot reload (ios = physical iPhone,"
+	@echo "                             simulator, android/waydroid via LAN tunnels, ios-adhoc ="
+	@echo "                             deploy + launch); auto-fixes Xcode/signing state"
+	@echo "    install [TARGET]         install the built app on target device(s)"
+	@echo "    build-install [TARGET]   build + install in one go (any TARGET)"
+	@echo "    uninstall TARGET         remove the app from device(s) (TARGET REQUIRED)"
+	@echo "    clear-storage TARGET     wipe the app's local data on device(s)"
+	@echo "    clean                    flutter clean + remove Go binaries and IPAs"
+	@echo ""
+	@echo "  DEVICE TUNNELS (macOS -> <build-host>)"
+	@echo "    tunnel-android           SSH adb tunnel to the <build-host>'s Android/emulator (LAN-first)"
+	@echo "    tunnel-waydroid          SSH adb tunnel to the <build-host>'s waydroid"
+	@echo "    ios-signing-restore      reset the pbxproj signing placeholders (opt-008)"
+	@echo ""
+	@echo "  CHECKS / TESTS"
+	@echo "    check                    full static gate: analyzers + go vet + ports + secrets"
+	@echo "    test / test-all          full local gate (unit + Go + static + integration)"
+	@echo "    test-unit / flutter-test Flutter unit/widget tests"
+	@echo "    test-integration [TARGET] integration flows (TARGET = on-device run)"
+	@echo "    test-backend-static      static opt gates (no stack needed)"
+	@echo "    test-go                  go test ./..."
+	@echo "    flutter-analyze          dart analyze"
+	@echo "    secrets-check            committed-secret scan"
+	@echo "    define-env               print the effective dart-define flags"
+	@echo "    install-hooks            wire the pre-commit gate (core.hooksPath)"
+	@echo ""
+	@echo "  GO BINARIES"
+	@echo "    build-cli                build ./samay (admin CLI)"
+	@echo "    build-linux              build ./samay-linux (admin CLI, linux/amd64)"
+	@echo "    build-api                build ./samay-api-server (Gin API server)"
+	@echo ""
+	@echo "  SUPABASE STACKS (ports 54382/54386/54381/54384/54443 — never Juega's)"
+	@echo "    supabase-start/stop/status/reset      prod stack lifecycle (reset = fresh DB + migrate)"
+	@echo "    supabase-docker-*        same, explicit docker compose lifecycle"
+	@echo "    supabase-testing-*       testing stack lifecycle (mutually exclusive with prod)"
+	@echo "    supabase-db-test         pgTAP schema tests"
+	@echo "    supabase-backend-tests   backend opt-test suite (needs the stack up)"
+	@echo "    supabase-stack-check     stack health/port check"
+	@echo "    supabase-seed-dev        apply dev demo seed (SEED_DEV data)"
+	@echo "    migrate-check            migration drift check"
+	@echo ""
+	@echo "  RELEASE / DEPLOY"
+	@echo "    ios-beta / ios-release   fastlane TestFlight / App Store lanes"
+	@echo "    android-alpha / android-release   fastlane Firebase / Play lanes"
+	@echo "    deploy-api / deploy-dashboard / deploy-venue   deploy placeholders (not wired)"
+	@echo "    bundle-install           install bundler gems (fastlane)"
 
 APP_NAME := samay_app
 APK := build/app/outputs/flutter-apk/app-release.apk
@@ -271,17 +328,26 @@ dev:
 			exit 1; \
 		fi; \
 		make ios-signing-restore; \
-		cp ios/Runner.xcodeproj/project.pbxproj /tmp/samay-pbxproj.bak && \
 		trap 'make ios-signing-restore 2>/dev/null' EXIT INT TERM HUP; \
 		$(BREW_BUNDLE) exec ruby tools/ios_dev_signing.rb apply "$$TEAM"; \
+		grep -q "DEVELOPMENT_TEAM = $$TEAM" ios/Runner.xcodeproj/project.pbxproj || { echo "❌  signing patch did not stick — a previous run's restore raced this one; rerun."; exit 1; }; \
 		echo "📱  Running on device: $$DEVICE"; \
-		if [ -n "$$TMUX" ]; then \
-			echo "⚠️  You are inside tmux — macOS Local Network (mDNS) grants do NOT propagate through the tmux server, so Dart VM discovery will fail with 'No route to host' (errno 65). Detach and run directly in the terminal: tmux detach, then make dev TARGET=ios."; \
+		if [ "$(NO_XCODE_RESET)" != "1" ]; then \
+			echo "🔄  Quitting Xcode (the proven remedy — clears the stale temp Runner workspace; flutter reopens it, flutter/flutter#181480)"; \
+			osascript -e 'tell application "Xcode" to quit' 2>/dev/null || true; \
+			sleep 2; \
+			killall Xcode 2>/dev/null || true; \
+		fi; \
+		if [ "$(CLEAN_INSTALL)" = "1" ]; then \
+			echo "🧹  CLEAN_INSTALL=1 — uninstalling $(APP_ID) from device (stale-state fix, flutter/flutter#181480)"; \
+			xcrun devicectl device uninstall app --device "$$DEVICE" "$(APP_ID)" 2>/dev/null || true; \
+		else \
+			xcrun devicectl device process terminate --device "$$DEVICE" "$(APP_ID)" 2>/dev/null || true; \
 		fi; \
 		flutter run $(PUB_FLAG) $(FLUTTER_DEFINES) -d "$$DEVICE"; \
 		RC=$$?; \
 		if [ "$$RC" -ne 0 ]; then \
-			echo "ℹ️  If the app installed but the CLI stalled on 'Installing and launching...', grant Local Network permission to your terminal (System Settings → Privacy & Security → Local Network, restart the terminal) or plug the iPhone in via USB — Flutter discovers the Dart VM over mDNS."; \
+			echo "ℹ️  Known iOS 26/Xcode 26 regression (flutter/flutter#181480): every flutter run leaves a temp Runner workspace open in Xcode, so the next run's debug-launch automation resolves the STALE workspace and times out waiting for CONFIGURATION_BUILD_DIR. This target now closes those stale windows automatically (NO_XCODE_RESET=1 disables). Remedies if it still hangs: rerun, rerun with CLEAN_INSTALL=1, or quit Xcode. Local Network permission for your terminal is also required."; \
 		fi; \
 		exit $$RC; \
 	elif [ "$(TARGET)" = "ios-adhoc" ]; then \
@@ -379,6 +445,17 @@ clear-storage:
 	else \
 		adb shell pm clear $(APP_ID); \
 	fi
+
+# Build + install in one go for any supported TARGET (all, android, waydroid,
+# ios, ios-adhoc, simulator). Delegates to the individual targets, so the same
+# skip-when-unavailable semantics apply.
+build-install:
+	@if [ -z "$(TARGET)" ]; then \
+		echo "❌  make build-install REQUIRES a target: TARGET=all|android|waydroid|ios|ios-adhoc|simulator"; \
+		exit 1; \
+	fi
+	@make build TARGET=$(TARGET) NO_PUB=$(NO_PUB) && \
+		make install TARGET=$(TARGET) NO_PUB=$(NO_PUB)
 
 # Uninstall the app from the targeted device(s). TARGET=all uninstalls from
 # every reachable device: android (emulator), waydroid (tunnel), ios-adhoc
@@ -658,18 +735,14 @@ tunnel-waydroid:
 
 # Restore the iOS project's §3.3 signing PLACEHOLDERS (opt-008 contract).
 # `dev TARGET=ios` patches the pbxproj for automatic signing; this undoes that
-# patch: from the fixed backup left by the dev branch when it exists, else
-# straight from git HEAD (the placeholder version). A SIGKILLed flutter run
-# cannot leave the real team tracked anymore — the pre-commit gate stays green.
+# patch by checking out HEAD (the placeholder version). Restoring to a fixed
+# state (not a per-run backup) makes the trap idempotent and race-free: a
+# killed run's trap can never clobber another run's patch — at worst it leaves
+# placeholders and the interrupted run fails signing with a clear message.
 ios-signing-restore:
-	@if [ -f /tmp/samay-pbxproj.bak ]; then \
-		cp /tmp/samay-pbxproj.bak ios/Runner.xcodeproj/project.pbxproj && \
-		rm -f /tmp/samay-pbxproj.bak && \
-		echo "✅  ios signing restored from backup"; \
-	else \
-		git checkout HEAD -- ios/Runner.xcodeproj/project.pbxproj && \
-		echo "✅  ios signing restored from HEAD (placeholders)"; \
-	fi
+	@git checkout HEAD -- ios/Runner.xcodeproj/project.pbxproj && \
+		rm -f /tmp/samay-pbxproj.bak /tmp/juega-pbxproj.bak 2>/dev/null; \
+		echo "✅  ios signing restored from HEAD (placeholders)"
 
 # ── Secrets gate (MKE-02 / MKE-03, M-13) ─────────────────────────────────────
 # Committed-secret scan over TRACKED files only (git grep — untracked local
