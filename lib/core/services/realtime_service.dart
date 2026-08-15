@@ -21,6 +21,10 @@ class RealtimeService {
   /// when the socket closed. This is the seam the realtime provider (I-52)
   /// uses to drive connection state + reconnect backoff.
   ///
+  /// [filter] narrows which rows are delivered (postgres_changes column
+  /// filter — e.g. the inbox's `sender_id <> me`). RLS still gates what the
+  /// caller may receive.
+  ///
   /// Returns the channel — the caller owns the unsubscribe handle.
   RealtimeChannel subscribeToChannel(
     String channelName,
@@ -28,12 +32,14 @@ class RealtimeService {
     String table,
     void Function(Map<String, dynamic>) callback, {
     void Function(RealtimeSubscribeStatus status, Object? error)? onStatus,
+    PostgresChangeFilter? filter,
   }) {
     final channel = client.channel(channelName);
     channel.onPostgresChanges(
       event: event,
       schema: 'public',
       table: table,
+      filter: filter,
       callback: (payload) => callback(payload.newRecord),
     );
     if (onStatus != null) {
@@ -46,6 +52,34 @@ class RealtimeService {
 
   RealtimeChannel subscribeToMessages(String chatId, void Function(Map<String, dynamic>) onInsert) {
     return subscribeToChannel('messages:$chatId', PostgresChangeEvent.insert, 'messages', onInsert);
+  }
+
+  /// Inbound messages for the current user's INBOX — any insert from someone
+  /// else (the badge / chat-list freshness signal, 2026-08-15).
+  ///
+  /// postgres_changes cannot OR two columns and `neq` needs one column, so
+  /// the stream is `sender_id <> me`; RLS (`messages_read_participant`)
+  /// additionally restricts delivery to chats the user participates in, so
+  /// the consumer can refresh the inbox on every event. The consumer
+  /// invalidates `chatInboxProvider` (unread counts re-derive server-side).
+  ///
+  /// Returns the channel — the caller owns the unsubscribe handle.
+  Future<RealtimeChannel> subscribeToInbox(
+    void Function(Map<String, dynamic>) onInsert,
+  ) async {
+    final user = auth.currentUser;
+    if (user == null) throw Exception('No authenticated user');
+    return subscribeToChannel(
+      'messages:inbox:${user.id}',
+      PostgresChangeEvent.insert,
+      'messages',
+      onInsert,
+      filter: PostgresChangeFilter(
+        type: PostgresChangeFilterType.neq,
+        column: 'sender_id',
+        value: user.id,
+      ),
+    );
   }
 
   /// Returns the live channel so callers can unsubscribe on dispose
@@ -92,5 +126,30 @@ class RealtimeService {
       },
     );
     channel.subscribe();
+  }
+
+  /// Friendships involving the current user — any insert/update/delete.
+  ///
+  /// postgres_changes cannot OR two columns, so the whole `friendships`
+  /// stream is subscribed and [onChange] fires only when the row touches
+  /// the current user (requester OR addressee). The consumer invalidates
+  /// the friends/requests providers — the remote-side fix for the stale
+  /// friends list (2026-08-14).
+  Future<RealtimeChannel> subscribeToFriendships(
+    void Function(Map<String, dynamic>) onChange,
+  ) async {
+    final user = auth.currentUser;
+    if (user == null) throw Exception('No authenticated user');
+    return subscribeToChannel(
+      'friendships:${user.id}',
+      PostgresChangeEvent.all,
+      'friendships',
+      (row) {
+        if (row['requester_id'] == user.id ||
+            row['addressee_id'] == user.id) {
+          onChange(row);
+        }
+      },
+    );
   }
 }

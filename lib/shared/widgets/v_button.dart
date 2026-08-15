@@ -3,8 +3,9 @@ import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/core/design_tokens/app_gradients.dart';
 import 'package:samay/core/design_tokens/app_radius.dart';
 import 'package:samay/shared/widgets/glass/v_gradient_border.dart';
+import 'package:samay/shared/widgets/v_spinner.dart';
 
-enum VButtonVariant { outlined, emphasized, glow }
+enum VButtonVariant { outlined, emphasized, glow, dark }
 
 /// Samay primary button — DISCO-DESIGN-SYSTEM.md §5.1 (U-05), LUXE v2
 /// gradient-capable (ORCHESTRATION-LUXE.md "NO PINK MAINS", 2026-08-12).
@@ -138,6 +139,26 @@ class VButton extends StatelessWidget {
     );
   }
 
+  /// BLACK button (user directive 2026-08-14): `surfaceAlt` black fill,
+  /// white text, 1px white hairline — the home/login CTA voice. Never a
+  /// family gradient; same press feedback as the flat variants.
+  factory VButton.dark({
+    Key? key,
+    String? label,
+    VoidCallback? onPressed,
+    bool loading = false,
+    Widget? child,
+  }) {
+    return VButton._(
+      key: key,
+      label: label,
+      onPressed: onPressed,
+      loading: loading,
+      variant: VButtonVariant.dark,
+      child: child,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     // The glow variant always resolves a family (violet by default); the
@@ -167,6 +188,13 @@ class VButton extends StatelessWidget {
         text = AppColors.discoBlack;
         borderColor = null;
         overlayBase = AppColors.discoBlack;
+      case VButtonVariant.dark:
+        // BLACK button (user directive 2026-08-14): black fill, white text,
+        // 1px white hairline.
+        fill = AppColors.surfaceAlt;
+        text = AppColors.white;
+        borderColor = AppColors.white;
+        overlayBase = AppColors.white;
       case VButtonVariant.glow:
         // Unreachable — the glow variant always resolves a family above.
         // Defensive flat fallback so the switch stays exhaustive.
@@ -329,11 +357,7 @@ class VButton extends StatelessWidget {
   /// glow-hairline shadow.
   Widget _child(Color text, {required AppGradient? glowFamily}) {
     return loading
-        ? SizedBox(
-            width: 20,
-            height: 20,
-            child: CircularProgressIndicator(strokeWidth: 2, color: text),
-          )
+        ? VSpinner(size: 20, color: text)
         : child ??
               Text(
                 label ?? '',

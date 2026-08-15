@@ -11,8 +11,8 @@ import 'package:samay/core/design_tokens/app_colors.dart';
 /// (`lib/core/theme/app_theme.dart`).
 ///
 /// Contract notes (design doc §3):
-/// - Playfair Display italic appears ONLY in display/fancy roles (§3.1/§3.2);
-///   every other role is Inter.
+/// - Playfair Display (no italics — user directive 2026-08-14) appears ONLY
+///   in display/fancy roles (§3.1/§3.2); every other role is Inter.
 /// - The consts carry the §3.3 metrics **without** glow. Shadows are applied
 ///   by [fancyTitle] with `em`-relative blur radii (fontSize × factor, like
 ///   the CSS source `text-shadow: 0 0 0.35em/0.7em/1em var(--pink)`), so they
@@ -31,8 +31,9 @@ abstract final class AppTypography {
   // ── LUXE v2 display-voice contract (XL-03) ─────────────────────────────────
   //
   // The display voices (displayLarge/displayMedium/displaySmall and
-  // headlineLarge) are Playfair Display **italic bold** — the ONLY Playfair
-  // usage in the app (ORCHESTRATION-LUXE directive #6).
+  // headlineLarge) are Playfair Display **bold** — the ONLY Playfair usage
+  // in the app (ORCHESTRATION-LUXE directive #6). No italics (user directive
+  // 2026-08-14).
   //
   // MAYUS rule: display copy MUST render UPPERCASE. Enforcement lives in
   // `VDisplayText` (lib/shared/widgets/v_display_text.dart) — it uppercases
@@ -43,44 +44,40 @@ abstract final class AppTypography {
 
   // ── §3.3 type-scale consts (exact doc values) ─────────────────────────────
 
-  /// Welcome wordmark (glow-strong). Playfair Display italic 700 at 64.
+  /// Welcome wordmark (glow-strong). Playfair Display bold 700 at 64.
   static const TextStyle displayLarge = TextStyle(
     fontFamily: playfair,
     fontSize: 64,
     fontWeight: FontWeight.w700,
-    fontStyle: FontStyle.italic,
     letterSpacing: -1.9,
     height: 1.0,
   );
 
-  /// Auth flow big headers (glow-strong). Playfair Display italic 700 at 40.
+  /// Auth flow big headers (glow-strong). Playfair Display bold 700 at 40.
   static const TextStyle displayMedium = TextStyle(
     fontFamily: playfair,
     fontSize: 40,
     fontWeight: FontWeight.w700,
-    fontStyle: FontStyle.italic,
     letterSpacing: -1.2,
     height: 1.0,
   );
 
   /// Feed hero, coming-soon, section heroes (glow-strong). Playfair Display
-  /// italic 700 at 32.
+  /// bold 700 at 32.
   static const TextStyle displaySmall = TextStyle(
     fontFamily: playfair,
     fontSize: 32,
     fontWeight: FontWeight.w700,
-    fontStyle: FontStyle.italic,
     letterSpacing: -1.0,
     height: 1.05,
   );
 
   /// Event titles, podium names, group hero (glow-soft). Playfair Display
-  /// italic 600 at 28.
+  /// bold 600 at 28.
   static const TextStyle headlineLarge = TextStyle(
     fontFamily: playfair,
     fontSize: 28,
     fontWeight: FontWeight.w600,
-    fontStyle: FontStyle.italic,
     letterSpacing: -0.8,
     height: 1.1,
   );

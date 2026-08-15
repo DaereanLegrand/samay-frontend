@@ -1,17 +1,15 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:samay/core/logging/app_logger.dart';
 import 'package:samay/core/providers/service_providers.dart';
 
 /// QR display-window seconds for the attendance-QR countdown
-/// (`qr.display_countdown_seconds` from app_config, seed 15). Falls back to
-/// the seed value when the config table is unreachable — the QR still
-/// rotates; only the label precision degrades.
+/// (`qr.display_countdown_seconds` from app_config, seed 15). The screen
+/// consumes this via `.valueOrNull ?? 15`, so a failed config fetch is NOT
+/// silently hidden: the provider rethrows (observable AsyncError) and the
+/// countdown keeps the seed value.
 final qrDisplayWindowProvider = FutureProvider<int>((ref) async {
-  try {
-    final config = await ref.read(configServiceProvider).fetchAppConfig();
-    return int.tryParse(config['qr.display_countdown_seconds'] ?? '') ?? 15;
-  } catch (_) {
-    return 15;
-  }
+  final config = await ref.read(configServiceProvider).fetchAppConfig();
+  return int.tryParse(config['qr.display_countdown_seconds'] ?? '') ?? 15;
 });
 
 /// The current user's attendance-QR token row for an event
@@ -44,13 +42,14 @@ class MyQrTokenNotifier
   /// stand-in for the blocked `qr-token-manager` Edge Function) invalidates
   /// the previous token (`expires_at = now()`) and issues a new one
   /// atomically; the rebuild then re-reads the latest row. A server failure
-  /// is swallowed — the rebuild re-reads the current row and the countdown
-  /// continues (graceful degradation, I-57).
+  /// is logged (never silent) — the rebuild re-reads the current row and the
+  /// countdown continues (graceful degradation, I-57).
   Future<void> rotate() async {
     try {
       await ref.read(eventServiceProvider).rotateQrToken(arg);
-    } catch (_) {
+    } catch (e, st) {
       // Server unreachable — the refresh below shows the current token.
+      AppLogger.instance.error('rotate_qr_token failed: $e', '$st');
     }
     ref.invalidateSelf();
   }

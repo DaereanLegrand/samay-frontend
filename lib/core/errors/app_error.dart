@@ -96,3 +96,21 @@ class NotConfiguredError extends AppError {
   @override
   String get message => 'Los pagos aún no están disponibles.';
 }
+
+/// A user's public profile could not be resolved (missing row, soft-deleted,
+/// or blocked). No-fallback (2026-08-14): identity lists must surface this —
+/// never render a placeholder name like "Usuario".
+class ProfileResolutionError extends AppError {
+  final String userId;
+
+  ProfileResolutionError(this.userId);
+
+  @override
+  String get code => 'PROFILE_RESOLUTION';
+
+  @override
+  String get message => 'No se pudo cargar el perfil de un usuario.';
+
+  @override
+  String toString() => 'ProfileResolutionError($userId)';
+}

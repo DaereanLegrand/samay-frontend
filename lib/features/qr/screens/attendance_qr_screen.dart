@@ -7,6 +7,7 @@ import 'package:qr_flutter/qr_flutter.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/core/design_tokens/app_gradients.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
+import 'package:samay/core/logging/app_logger.dart';
 import 'package:samay/core/theme/samay_durations.dart';
 import 'package:samay/features/events/providers/events_providers.dart';
 import 'package:samay/features/qr/providers/qr_providers.dart';
@@ -116,9 +117,11 @@ class _AttendanceQrScreenState extends ConsumerState<AttendanceQrScreen> {
     _rotating = true;
     try {
       await ref.read(myQrTokenProvider(widget.eventId).notifier).rotate();
-    } catch (_) {
-      // The failure surfaces through the provider's AsyncError state; the
-      // last rendered token stays visible with the countdown restarted.
+    } catch (e, st) {
+      // The failure surfaces through the provider's AsyncError state (and is
+      // logged by the notifier); the last rendered token stays visible with
+      // the countdown restarted.
+      AppLogger.instance.error('qr rotate failed: $e', '$st');
     } finally {
       // Always restart the display window — even when the refetch returned
       // the SAME row (server rotation not deployed): the client keeps showing
@@ -371,7 +374,10 @@ class _CountdownRing extends StatelessWidget {
         painter: _RingPainter(progress: progress),
         child: Center(
           child: AnimatedSwitcher(
-            duration: SamayDurations.fast,
+            // ANIM-OFF (2026-08-14): zero-duration under reduced motion.
+            duration: MediaQuery.disableAnimationsOf(context)
+                ? Duration.zero
+                : SamayDurations.fast,
             transitionBuilder: (child, animation) =>
                 FadeTransition(opacity: animation, child: child),
             child: Text(

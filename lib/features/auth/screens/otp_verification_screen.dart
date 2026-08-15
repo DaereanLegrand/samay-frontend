@@ -126,9 +126,14 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
   /// pastel α0.35) with the family's soft halo ([AppGradients.glowShadows])
   /// — the field is the star of the screen (Gemma 04_otp).
   Widget _codeField(AppGradient family) {
+    // ANIM-OFF (2026-08-14): zero-duration under reduced motion — the glass
+    // ring swaps instantly instead of animating.
+    final shellDuration = MediaQuery.disableAnimationsOf(context)
+        ? Duration.zero
+        : const Duration(milliseconds: 200);
     return AnimatedContainer(
       key: const ValueKey('otpGlassShell'),
-      duration: const Duration(milliseconds: 200),
+      duration: shellDuration,
       curve: Curves.easeOutCubic,
       decoration: BoxDecoration(
         gradient: LinearGradient(
@@ -151,7 +156,7 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
       ),
       padding: const EdgeInsets.all(1),
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
+        duration: shellDuration,
         curve: Curves.easeOutCubic,
         decoration: BoxDecoration(
           color: AppColors.surfaceAlt.withValues(alpha: 0.5),

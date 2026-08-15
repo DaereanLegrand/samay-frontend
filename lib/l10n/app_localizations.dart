@@ -2150,6 +2150,42 @@ abstract class AppLocalizations {
   /// **'Cargar anteriores'**
   String get chatLoadOlder;
 
+  /// Inbox / chat list screen title (also the feed button tooltip)
+  ///
+  /// In es, this message translates to:
+  /// **'Chats'**
+  String get chatInboxTitle;
+
+  /// Empty state title when the inbox has no chats
+  ///
+  /// In es, this message translates to:
+  /// **'No hay conversaciones'**
+  String get chatInboxEmpty;
+
+  /// Empty state body explaining how to start a chat
+  ///
+  /// In es, this message translates to:
+  /// **'Toca \'Enviar mensaje\' en el perfil de alguien para iniciar un chat.'**
+  String get chatInboxEmptyBody;
+
+  /// Error state when the inbox fails to load
+  ///
+  /// In es, this message translates to:
+  /// **'No se pudieron cargar los chats'**
+  String get chatInboxLoadError;
+
+  /// Prefix for the preview of a chat whose last message the user sent
+  ///
+  /// In es, this message translates to:
+  /// **'Tú: '**
+  String get chatInboxPreviewOwn;
+
+  /// Relative time label for something that just happened
+  ///
+  /// In es, this message translates to:
+  /// **'ahora'**
+  String get commonNow;
+
   /// Event creation: type selector section label
   ///
   /// In es, this message translates to:

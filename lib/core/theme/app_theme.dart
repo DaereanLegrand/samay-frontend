@@ -85,16 +85,19 @@ class SamayTheme {
       // platform so the iPhone-17-Pro focus carries everywhere. The const
       // builders map keeps `SamayTheme.dark == SamayTheme.dark` (const
       // canonicalization → value equality, pinned by the equality test).
+      // ANIM-OFF (2026-08-14): the [StaticPageTransitionsBuilder] renders
+      // routes with NO transition when `disableAnimations` is set (the app
+      // forces it in `SamayApp`), keeping the Cupertino swipe otherwise.
       pageTransitionsTheme: const PageTransitionsTheme(
         builders: {
-          TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
-          TargetPlatform.android: CupertinoPageTransitionsBuilder(),
-          TargetPlatform.macOS: CupertinoPageTransitionsBuilder(),
-          TargetPlatform.linux: CupertinoPageTransitionsBuilder(),
-          TargetPlatform.windows: CupertinoPageTransitionsBuilder(),
+          TargetPlatform.iOS: StaticPageTransitionsBuilder(),
+          TargetPlatform.android: StaticPageTransitionsBuilder(),
+          TargetPlatform.macOS: StaticPageTransitionsBuilder(),
+          TargetPlatform.linux: StaticPageTransitionsBuilder(),
+          TargetPlatform.windows: StaticPageTransitionsBuilder(),
           // The 6th platform value — covered too so no route ever falls
           // back to the Zoom builder.
-          TargetPlatform.fuchsia: CupertinoPageTransitionsBuilder(),
+          TargetPlatform.fuchsia: StaticPageTransitionsBuilder(),
         },
       ),
       // ── LUXE v2 (XL-03): liquid-glass inputs — NO underline (§5.2 → LUXE
@@ -246,6 +249,34 @@ class SamayTheme {
         textStyle: TextStyle(color: AppColors.white),
       ),
       extensions: const [SamayThemeExtension.dark],
+    );
+  }
+}
+
+/// ANIM-OFF (2026-08-14): page transition that renders routes STATICALLY
+/// when `disableAnimations` is set (the app forces it in `SamayApp`), and
+/// otherwise delegates to the Cupertino swipe (the LUXE v2 route gesture).
+class StaticPageTransitionsBuilder extends PageTransitionsBuilder {
+  const StaticPageTransitionsBuilder();
+
+  static const CupertinoPageTransitionsBuilder _fallback =
+      CupertinoPageTransitionsBuilder();
+
+  @override
+  Widget buildTransitions<T>(
+    PageRoute<T> route,
+    BuildContext context,
+    Animation<double> animation,
+    Animation<double> secondaryAnimation,
+    Widget child,
+  ) {
+    if (MediaQuery.disableAnimationsOf(context)) return child;
+    return _fallback.buildTransitions(
+      route,
+      context,
+      animation,
+      secondaryAnimation,
+      child,
     );
   }
 }

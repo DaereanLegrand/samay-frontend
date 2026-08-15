@@ -20,6 +20,7 @@ import 'package:samay/shared/widgets/glass/v_glass.dart';
 import 'package:samay/shared/widgets/state_views.dart';
 import 'package:samay/shared/widgets/show_app_error.dart';
 import 'package:samay/shared/widgets/v_aurora.dart';
+import 'package:samay/shared/widgets/v_spinner.dart';
 
 class InviteScreen extends ConsumerStatefulWidget {
   final String groupId;
@@ -107,11 +108,7 @@ class _InviteScreenState extends ConsumerState<InviteScreen> {
             TextButton(
               onPressed: _sending ? null : _invite,
               child: _sending
-                  ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
+                  ? const VSpinner(size: 20)
                   : Text(l10n.groupsInviteCount(_selectedIds.length)),
             ),
         ],

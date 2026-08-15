@@ -10,6 +10,7 @@ import 'package:samay/core/logging/app_logger.dart';
 import 'package:samay/core/providers/service_providers.dart';
 import 'package:samay/core/repositories/repository_providers.dart';
 import 'package:samay/core/router/route_paths.dart';
+import 'package:samay/features/friends/providers/friends_providers.dart';
 import 'package:samay/features/profile/widgets/profile_avatar.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/show_app_error.dart';
@@ -97,6 +98,7 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
       if (status == 'accepted') {
         // R15 (F5): mutual-accept — the friendship is instant; the dialog
         // says so instead of the pending snackbar.
+        ref.invalidate(friendsListProvider);
         await showDialog<void>(
           context: context,
           builder: (_) => AlertDialog(
@@ -135,6 +137,8 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
       await ref
           .read(friendsRepositoryProvider)
           .acceptFriendRequest(_friendshipId!);
+      // The new friend must appear in the list immediately (2026-08-14).
+      ref.invalidate(friendsListProvider);
       if (mounted) {
         ScaffoldMessenger.of(
           context,
@@ -406,6 +410,8 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
     final l10n = AppLocalizations.of(context);
     try {
       await ref.read(friendsRepositoryProvider).blockUser(widget.userId);
+      // Blocking removes the friendship — the list must drop them.
+      ref.invalidate(friendsListProvider);
       if (mounted) {
         ScaffoldMessenger.of(
           context,

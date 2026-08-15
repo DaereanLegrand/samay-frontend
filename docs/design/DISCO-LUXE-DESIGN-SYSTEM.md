@@ -31,7 +31,7 @@ gradient map), `docs/design/DISCO-DESIGN-SYSTEM.md` (v1.1 — superseded where n
 | L2 | **Pastel gradients, watered with white** | Every accent is a *gradient* — text, borders, buttons, glows. Never a flat single-color accent (directive #2). Colors are pastels mixed toward white; vivid hues appear only at low alpha inside glow/gradient layers or as the display-text shader (directive #3). |
 | L3 | **NO PINK MAINS** | `rose` is NOT a main color anywhere (user directive 2026-08-12). Rose survives only as a possible micro-accent inside ambient multi-color auroras (low alpha), never as a screen's hero, display, or CTA gradient. `AppGradients.familyOf` default = **violet**, and every shared widget's accent default (VButton.glowAccent, VBadge.accent, VChip.accent, VCountBadge) is violet. Pink remains only in error semantics (`AppColors.error`/`errorFill` — the documented exception). Gemma critiques MUST flag pink dominance as a critical defect (see §7). |
 | L4 | **Glow pulsates slowly** | Ambient halos breathe on a **3.8s** ease-in-out α ramp (non-negotiable 5: 3.6–4s), reduced-motion → static at a fixed α. See §5. |
-| L5 | **Playfair ONLY uppercase** | Playfair Display italic bold is the display voice and renders **MAYUS** — enforced by the shared `VDisplayText` widget (`text.toUpperCase()`), never at call sites (directive #6). Everything else is Inter. |
+| L5 | **Playfair ONLY uppercase** | Playfair Display **bold** (no italics — user directive 2026-08-14) is the display voice and renders **MAYUS** — enforced by the shared `VDisplayText` widget (`text.toUpperCase()`), never at call sites (directive #6). Everything else is Inter. |
 | L6 | **Inputs are glass, never underline** | NO underline inputs (directive #7). All fields are liquid-glass slabs: radius-16 shell, 1px gradient ring, `surfaceAlt` α0.5 fill, floating label, focus glow. |
 | L7 | **One hero per screen** | One `VDisplayText` hero and one primary CTA per screen, max. No title duplicated in an AppBar + hero (directive #8). Strictly what is necessary; nothing else. |
 | L8 | **iOS swipe-back** | Left-to-right edge swipe to go back on every pushed route — `CupertinoPageTransitionsBuilder` on **all** platforms (iPhone-17-Pro focus carries everywhere; directive #9). |
@@ -150,10 +150,12 @@ end far enough toward white to read "pastel chrome" while the α0.18 border ring
 `lib/shared/widgets/v_display_text.dart` (XL-03) is the **only** sanctioned way to render a display
 role (v1.1 §3.2's exhaustive Playfair list is hereby routed through it):
 
-- Playfair Display italic bold, `text.toUpperCase()` — **the MAYUS rule is enforced here, never at
+- Playfair Display bold (no italics — user directive 2026-08-14),
+  `text.toUpperCase()` — **the MAYUS rule is enforced here, never at
   call sites**. Callers pass natural case.
 - Gradient glyph fill via `ShaderMask(BlendMode.srcIn)` over `AppGradients.textShader(family,
-  bounds)`; `gradient: null` → pure white glyphs.
+  bounds)`; `gradient: null` → pure white glyphs. **The cyan family also
+  renders white glyphs** (skyblue text banned on glyphs — user directive 2026-08-14).
 - **Once-only shimmer sweep (900ms)** across the glyphs on first build — inside the letters, off at
   t=1, never restarts, reduced-motion → none.
 - **NO EXTERNAL GLOW — the halo was deleted (2026-08-12 user directive: "glowing pulsation outside

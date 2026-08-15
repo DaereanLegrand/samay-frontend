@@ -17,6 +17,7 @@ import 'package:samay/shared/widgets/skeletons.dart';
 import 'package:samay/shared/widgets/v_aurora.dart';
 import 'package:samay/shared/widgets/v_button.dart';
 import 'package:samay/shared/widgets/v_input.dart';
+import 'package:samay/shared/widgets/v_spinner.dart';
 
 /// Gallery-picking seam for tests: `image_picker` is a platform plugin that
 /// cannot run in widget tests, so the screen accepts an injectable function
@@ -212,13 +213,9 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                             radius: 16,
                             backgroundColor: Colors.white,
                             child: _uploadingAvatar
-                                ? const SizedBox(
-                                    width: 16,
-                                    height: 16,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      color: Colors.black,
-                                    ),
+                                ? const VSpinner(
+                                    size: 16,
+                                    color: Colors.black,
                                   )
                                 : IconButton(
                                     icon: const Icon(

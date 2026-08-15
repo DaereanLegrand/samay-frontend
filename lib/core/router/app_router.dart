@@ -33,6 +33,7 @@ import 'package:samay/features/events/screens/my_events_screen.dart';
 import 'package:samay/features/events/widgets/event_invite_route.dart';
 import 'package:samay/features/feed/screens/feed_screen.dart';
 import 'package:samay/features/photos/screens/photo_gallery_screen.dart';
+import 'package:samay/features/chat/screens/chat_list_screen.dart';
 import 'package:samay/features/chat/screens/chat_screen.dart';
 import 'package:samay/features/cosmetics/screens/cosmetics_shop_screen.dart';
 import 'package:samay/features/friends/screens/search_screen.dart';
@@ -420,6 +421,14 @@ final routerProvider = Provider<GoRouter>((ref) {
             child: ChatScreen(chatId: chatId),
           ),
           errorMessage: AppLocalizations.of(context).routerChatNotFound,
+        ),
+      ),
+      GoRoute(
+        // Chat inbox (2026-08-15): the feed's chat button lands here.
+        path: RoutePaths.chatList,
+        builder: (context, state) => const FlagGate(
+          flag: AppFeatureFlag.chat,
+          child: ChatListScreen(),
         ),
       ),
       GoRoute(

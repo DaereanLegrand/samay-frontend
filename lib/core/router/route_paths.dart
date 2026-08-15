@@ -44,6 +44,7 @@ abstract final class RoutePaths {
   static String inviteToGroup(String groupId) => '/group/$groupId/invite';
   static String minigames(String groupId) => '/minigames/$groupId';
   static String chat(String chatId) => '/chat/$chatId';
+  static const chatList = '/chats';
   static String userProfile(String userId) => '/user/$userId';
   static String qr(String eventId) => '/qr/$eventId';
   static String scanner(String eventId) => '/scanner/$eventId';

@@ -97,7 +97,9 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
     try {
       final user = _service.getCurrentUser();
       if (user != null) {
-        return _authStateForUserSafe(user, forceBanCheck: true);
+        final state = await _authStateForUserSafe(user, forceBanCheck: true);
+        await _ensureE2eeKeysPublished(uid: user['id'] as String?);
+        return state;
       }
     } catch (e, st) {
       AppLogger.instance.error('checkInitialSession error: $e', '$st');
@@ -156,6 +158,7 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
           state = AsyncData(
             await _authStateForUserSafe(user, forceBanCheck: true),
           );
+          await _ensureE2eeKeysPublished(uid: user['id'] as String?);
         } else {
           state = const AsyncData(AuthState());
         }
@@ -369,6 +372,7 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
         maxRetries: 2,
         initialDelay: const Duration(seconds: 1),
       );
+      await _ensureE2eeKeysPublished(force: true, uid: _service.getCurrentUser()?['id'] as String?);
       final current = state.valueOrNull ?? const AuthState();
       state = AsyncData(current.copyWith(hasProfile: true));
     } catch (e, st) {
@@ -378,7 +382,10 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
 
   Future<void> signOut() async {
     await _service.signOut();
-    await _wipeE2eeMaterial();
+    // E2EE §7.6 (Signal model, 2026-08-15): the identity + prekeys + chat
+    // sessions SURVIVE a sign-out — the key material is bound to the
+    // ACCOUNT, not the session. Only an account switch (ownership guard in
+    // [_ensureE2eeKeysPublished]) or account deletion wipes it.
     state = const AsyncData(AuthState());
   }
 
@@ -389,10 +396,73 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
     state = const AsyncData(AuthState());
   }
 
+  /// E2EE §12.2 step 4 (auth lifecycle hooks — wired 2026-08-15): guarantees
+  /// the account's prekey bundle exists on the server before any chat. A peer
+  /// without a published bundle cannot receive a first message
+  /// (`fetch_prekey_bundle` → null → X3DH cannot initiate), so:
+  ///
+  /// - `createProfile` publishes unconditionally (`force: true` — the row
+  ///   cannot exist yet);
+  /// - session restore / sign-in calls [E2eePrekeyService.handleMissingSession]
+  ///   (idempotent) to heal legacy accounts created before this hook, and
+  ///   republishes when the published identity differs from the local one.
+  ///
+  /// Account ownership (Signal model, 2026-08-15): the key material is bound
+  /// to the FIRST account that uses this install. When a DIFFERENT account
+  /// signs in, the previous material is wiped (identity, prekeys, sessions)
+  /// so keys never cross accounts; a fresh install (no owner recorded)
+  /// claims the current account.
+  ///
+  /// Best-effort by design: a publish failure must never block auth — the
+  /// send-time bootstrap in `ChatService.sendMessage` remains as a backstop,
+  /// and the next restore retries the heal.
+  Future<void> _ensureE2eeKeysPublished({
+    bool force = false,
+    String? uid,
+  }) async {
+    if (uid != null) {
+      final keys = ref.read(e2eeKeyStoreProvider);
+      try {
+        final owner = await keys.ownerUid();
+        if (owner != null && owner != uid) {
+          AppLogger.instance.warn(
+            'e2ee ownership switch $owner → $uid — wiping previous key '
+            'material (Signal model: keys are per-account)',
+          );
+          await _wipeE2eeMaterial();
+        }
+        if (owner != uid) {
+          await keys.setOwnerUid(uid);
+        }
+      } catch (e, st) {
+        AppLogger.instance.error('E2EE ownership check failed: $e', '$st');
+      }
+    }
+    try {
+      final prekeys = ref.read(e2eePrekeyServiceProvider);
+      final stopwatch = Stopwatch()..start();
+      if (force) {
+        await prekeys.publishAll();
+        AppLogger.instance.debug(
+          'e2ee auth-hook publishAll done force=true '
+          'ms=${stopwatch.elapsedMilliseconds}',
+        );
+      } else {
+        await prekeys.handleMissingSession();
+        AppLogger.instance.debug(
+          'e2ee auth-hook handleMissingSession done '
+          'ms=${stopwatch.elapsedMilliseconds}',
+        );
+      }
+    } catch (e, st) {
+      AppLogger.instance.error('E2EE prekey publish failed: $e', '$st');
+    }
+  }
+
   /// E2EE §7.6: wipes ALL device-local key material and chat sessions after
-  /// a successful sign-out / account deletion (identity keys, signed +
-  /// one-time prekeys, every persisted session). Best-effort: a storage
-  /// failure must never block the sign-out itself.
+  /// account DELETION or an account SWITCH (identity keys, signed + one-time
+  /// prekeys, every persisted session). Best-effort: a storage failure must
+  /// never block the auth transition itself.
   Future<void> _wipeE2eeMaterial() async {
     try {
       await ref.read(e2eeKeyStoreProvider).wipeAll();

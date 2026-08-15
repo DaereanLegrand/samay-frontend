@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:samay/core/logging/app_logger.dart';
 import 'package:samay/core/providers/service_providers.dart';
 import 'package:samay/core/router/app_router.dart';
 import 'package:samay/core/router/route_paths.dart';
@@ -75,7 +76,10 @@ final class DeepLinkHandler {
     String? eventId;
     try {
       eventId = await resolveEventId(token);
-    } catch (_) {
+    } catch (e, st) {
+      // The failure is surfaced to the user below; it is also logged so the
+      // token-resolution error is never silent.
+      AppLogger.instance.error('invite token resolution failed: $e', '$st');
       eventId = null;
     }
     if (eventId == null) {

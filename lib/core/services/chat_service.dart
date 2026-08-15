@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:samay/core/logging/app_logger.dart';
 import 'package:samay/core/services/realtime_service.dart';
 import 'package:samay/core/utils/input_sanitizer.dart';
 import 'package:samay/crypto/interfaces.dart';
@@ -78,6 +79,7 @@ class ChatService {
   Future<List<Map<String, dynamic>>> loadMessages(String chatId, {int limit = 50, int offset = 0}) async {
     final user = auth.currentUser;
     if (user == null) throw Exception('No authenticated user');
+    final stopwatch = Stopwatch()..start();
     final res = await client
         .from('messages')
         .select('id, sender_id, content, media_url, created_at')
@@ -86,38 +88,95 @@ class ChatService {
         .range(offset, offset + limit - 1);
     final rows = (res as List).reversed.map((e) => Map<String, dynamic>.from(e)).toList();
     if (!e2eeEnabled) return rows;
-    return [for (final row in rows) await _decryptMessage(chatId, row)];
+    final decrypted = [for (final row in rows) await _decryptMessage(chatId, row)];
+    AppLogger.instance.debug(
+      'chat loadMessages chat=$chatId offset=$offset rows=${rows.length} '
+      'ms=${stopwatch.elapsedMilliseconds}',
+    );
+    return decrypted;
   }
 
   Future<void> sendMessage(String chatId, String content, String? mediaUrl) async {
+    final stopwatch = Stopwatch()..start();
     final user = auth.currentUser;
     if (user == null) throw Exception('No authenticated user');
+    AppLogger.instance.debug(
+      'chat sendMessage start chat=$chatId e2ee=$e2eeEnabled chars=${content.length}',
+    );
     var sanitized = InputSanitizer.sanitize(
       content,
       maxLength: InputSanitizer.messageMaxLength,
     );
+    E2eeMessageCipher? sentCipher;
+    var wasInit = false;
     if (e2eeEnabled) {
       // Session bootstrap (E2EE §12.2 step 2): ensure our own bundle is
       // published before the first X3DH initiate of this chat.
       if (!_sessions.containsKey(chatId)) {
         await _e2eePrekeyService!.publishAll();
+        AppLogger.instance.debug(
+          'chat sendMessage publishAll done chat=$chatId '
+          'ms=${stopwatch.elapsedMilliseconds}',
+        );
       }
-      final cipher = await _cipherFor(chatId);
-      final envelope = await cipher.encrypt(
+      sentCipher = await _cipherFor(chatId);
+      final envelope = await sentCipher.encrypt(
         chatId: chatId,
         peerUserId: await _resolvePeerUserId(chatId),
         plaintext: sanitized,
       );
+      wasInit = sentCipher.envelopeIsInit(envelope);
+      AppLogger.instance.debug(
+        'chat sendMessage encrypt done chat=$chatId '
+        'type=${wasInit ? "init(0x01)" : "ratchet(0x02)"} '
+        'envelopeBytes=${envelope.length} ms=${stopwatch.elapsedMilliseconds}',
+      );
       _outbox[envelope] = sanitized;
       sanitized = envelope;
     }
-    await client.from('messages').insert({
-      'chat_id': chatId,
-      'sender_id': user.id,
-      'content': sanitized,
-      'media_url': mediaUrl,
-      'created_at': DateTime.now().toIso8601String(),
-    });
+    try {
+      await client.from('messages').insert({
+        'chat_id': chatId,
+        'sender_id': user.id,
+        'content': sanitized,
+        'media_url': mediaUrl,
+        'created_at': DateTime.now().toIso8601String(),
+      });
+    } catch (e) {
+      // The PostgREST status/code are the server's verdict on the insert
+      // (RLS policy rejection, trigger failure, constraint) — log them raw.
+      if (e is PostgrestException) {
+        AppLogger.instance.error(
+          'chat sendMessage INSERT failed chat=$chatId '
+          'code=${e.code} '
+          'message="${e.message}" details="${e.details}" hint="${e.hint}" '
+          'ms=${stopwatch.elapsedMilliseconds}',
+        );
+      } else {
+        AppLogger.instance.error(
+          'chat sendMessage INSERT failed chat=$chatId '
+          'type=${e.runtimeType} ms=${stopwatch.elapsedMilliseconds}',
+        );
+      }
+      // Session/insert atomicity (2026-08-15): when the failed envelope was
+      // the session's INIT, the peer never received it. The persisted session
+      // still believes it did (has_sent_init=true) and the next retry would
+      // send an undecryptable ratchet message into a session the peer never
+      // saw. Roll the session back so the next send re-initiates fresh X3DH.
+      if (wasInit && sentCipher != null) {
+        AppLogger.instance.warn(
+          'chat sendMessage rolled back session chat=$chatId — init envelope '
+          'INSERT failed, next send re-initiates (E2EE session/insert '
+          'atomicity)',
+        );
+        await sentCipher.wipe();
+        _sessions.remove(chatId);
+      }
+      rethrow;
+    }
+    AppLogger.instance.debug(
+      'chat sendMessage ok chat=$chatId ms=${stopwatch.elapsedMilliseconds}',
+    );
   }
 
   /// Creates (or reuses) a direct chat with [peerUserId] and returns its id.
@@ -141,6 +200,61 @@ class ChatService {
       throw Exception('create_direct_chat returned no chatId');
     }
     return chatId;
+  }
+
+  /// The caller's chat inbox (migration 20260815000004): every chat they
+  /// participate in, ordered most-recent-first, with the peer identity, the
+  /// last message (its `content` is the E2EE envelope — the server never
+  /// sees plaintext; the client decrypts for the preview) and the unread
+  /// count (messages from the peer newer than the caller's read watermark).
+  ///
+  /// Rows keep `Map<String, dynamic>` shape (the inbox preview decrypts via
+  /// the same per-chat cipher path as the thread).
+  Future<List<Map<String, dynamic>>> fetchInbox() async {
+    final user = auth.currentUser;
+    if (user == null) throw Exception('No authenticated user');
+    final res = await client.rpc('get_chat_inbox');
+    return (res as List)
+        .whereType<Map>()
+        .map((e) => Map<String, dynamic>.from(e))
+        .toList();
+  }
+
+  /// Bumps the caller's read watermark for [chatId] (self-only RPC) — the
+  /// unread badge for that chat drops to zero. Call after a successful
+  /// first-page load of the thread.
+  Future<void> markChatRead(String chatId) async {
+    final user = auth.currentUser;
+    if (user == null) throw Exception('No authenticated user');
+    await client.rpc('mark_chat_read', params: {'p_chat_id': chatId});
+  }
+
+  /// Best-effort decryption of an inbox row's last-message envelope — the
+  /// same path as the thread ([_decryptMessage]): own messages render from
+  /// the outbox, peer envelopes decrypt via the per-chat session,
+  /// undecryptable → [chatUndecryptablePlaceholder] + `decryptFailed`.
+  /// Never throws. The returned row carries the plaintext under
+  /// `last_message_content` (the thread-row contract, prefixed for the
+  /// inbox shape).
+  Future<Map<String, dynamic>> decryptInboxRow(Map<String, dynamic> row) async {
+    final chatId = row['chat_id'];
+    if (chatId is! String) {
+      return {...row, 'last_message_decrypt_failed': false};
+    }
+    if (!e2eeEnabled) {
+      return {...row, 'last_message_decrypt_failed': false};
+    }
+    final last = {
+      'id': row['last_message_id'],
+      'sender_id': row['last_message_sender_id'],
+      'content': row['last_message_content'],
+    };
+    final decrypted = await _decryptMessage(chatId, last);
+    return {
+      ...row,
+      'last_message_content': decrypted['content'],
+      'last_message_decrypt_failed': decrypted['decryptFailed'] == true,
+    };
   }
 
   /// Subscribes to live inserts for [chatId]. Rows arrive as raw envelopes
@@ -226,9 +340,17 @@ class ChatService {
         }
         return row;
       }
-    } catch (_) {
-      // Fall through to the marker (atomicity §4.5 keeps the session safe).
+    } catch (e, st) {
+      AppLogger.instance.warn(
+        'chat decrypt threw chat=$chatId msg=$messageId '
+        'type=${e.runtimeType}: $e',
+        '$st',
+      );
     }
+    AppLogger.instance.warn(
+      'chat decrypt failed chat=$chatId msg=$messageId — undecryptable '
+      '(null decrypt or throw; see above)',
+    );
     row['content'] = chatUndecryptablePlaceholder;
     row['decryptFailed'] = true;
     return row;
@@ -263,7 +385,15 @@ class ChatService {
         .map((e) => e['user_id'] as String)
         .where((id) => id != user.id)
         .toList();
+    AppLogger.instance.debug(
+      'chat resolvePeer chat=$chatId participants=${(res as List).length} '
+      'peers=${peers.length}',
+    );
     if (peers.isEmpty) {
+      AppLogger.instance.error(
+        'chat resolvePeer FAILED chat=$chatId — no peer participant '
+        '(RLS cp_read_participant / is_chat_participant mismatch?)',
+      );
       throw Exception('No peer participant in chat $chatId');
     }
     final peer = peers.first;

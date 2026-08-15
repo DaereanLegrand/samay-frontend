@@ -17,6 +17,7 @@ import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/error_view.dart';
 import 'package:samay/shared/widgets/glass/v_glass.dart';
 import 'package:samay/shared/widgets/show_app_error.dart';
+import 'package:samay/shared/widgets/v_spinner.dart';
 import 'package:samay/shared/widgets/state_views.dart';
 import 'package:samay/shared/widgets/v_aurora.dart';
 import 'package:samay/shared/widgets/v_network_image.dart';
@@ -151,11 +152,7 @@ class _PhotoGalleryScreenState extends ConsumerState<PhotoGalleryScreen> {
               tooltip: l10n.photosUpload,
               onPressed: uploading ? null : _pickAndUpload,
               icon: uploading
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
+                  ? const VSpinner(size: 18)
                   : Icon(
                       Icons.add_a_photo_outlined,
                       color: _family.colors[1],

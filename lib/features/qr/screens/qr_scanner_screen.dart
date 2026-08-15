@@ -17,6 +17,7 @@ import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/glass/v_glass.dart';
 import 'package:samay/shared/widgets/state_views.dart';
 import 'package:samay/shared/widgets/v_button.dart';
+import 'package:samay/shared/widgets/v_spinner.dart';
 
 /// Camera-widget seam for tests: `mobile_scanner` is a platform plugin that
 /// cannot run in widget tests, so the screen accepts an injectable builder
@@ -378,11 +379,7 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                ),
+                const VSpinner(size: 16),
                 const SizedBox(width: AppSpacing.md),
                 Text(
                   l10n.qrScanProcessing,

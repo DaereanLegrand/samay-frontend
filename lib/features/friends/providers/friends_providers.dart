@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:samay/core/errors/app_error.dart';
 import 'package:samay/core/repositories/repository_providers.dart';
 import 'package:samay/core/utils/throttled_refresh.dart';
 
@@ -7,6 +8,10 @@ import 'package:samay/core/utils/throttled_refresh.dart';
 ///
 /// Names are fetched per user because the friendships table only stores ids;
 /// the map is keyed by `user_id`.
+///
+/// No-fallback (2026-08-14): a friend whose profile cannot be resolved is
+/// an ERROR, never a placeholder name — [build] throws and the screens
+/// render the ErrorView + retry.
 class FriendRequestsData {
   final List<Map<String, dynamic>> requests;
   final Map<String, String> names;
@@ -22,8 +27,13 @@ class FriendsListNotifier extends AsyncNotifier<List<Map<String, dynamic>>>
     final res = await repo.getFriends();
     final profiles = <Map<String, dynamic>>[];
     for (final f in res) {
+      // No-fallback (2026-08-14): a friend with an unresolvable profile is
+      // an ERROR — never silently dropped from the list.
       final profile = await repo.getUserProfile(f.userId);
-      if (profile != null) profiles.add(profile.toJson());
+      if (profile == null) {
+        throw ProfileResolutionError(f.userId);
+      }
+      profiles.add(profile.toJson());
     }
     markFetched();
     return profiles;
@@ -51,8 +61,13 @@ class FriendRequestsNotifier extends AsyncNotifier<FriendRequestsData>
     for (final r in requests) {
       final userId = r['user_id'] as String;
       if (names.containsKey(userId)) continue;
+      // No-fallback (2026-08-14): an unresolvable or username-less profile is
+      // an ERROR — never the "Usuario" placeholder.
       final profile = await repo.getUserProfile(userId);
-      names[userId] = profile?.username ?? 'Usuario';
+      if (profile == null || profile.username.isEmpty) {
+        throw ProfileResolutionError(userId);
+      }
+      names[userId] = profile.username;
     }
     markFetched();
     return FriendRequestsData(requests: requests, names: names);
@@ -79,16 +94,11 @@ class BlockedUsersNotifier extends AsyncNotifier<List<Map<String, dynamic>>>
     final profiles = <Map<String, dynamic>>[];
     for (final b in res) {
       final uid = b['blocked_user_id'] as String;
+      // No-fallback (2026-08-14): an unresolvable blocked-user profile is an
+      // ERROR — never a truncated-uid placeholder.
       final profile = await repo.getUserProfile(uid);
-      if (profile != null) {
-        profiles.add(profile.toJson());
-      } else {
-        profiles.add({
-          'id': uid,
-          'username': uid.substring(0, uid.length < 8 ? uid.length : 8),
-          'avatar_url': null,
-        });
-      }
+      if (profile == null) throw ProfileResolutionError(uid);
+      profiles.add(profile.toJson());
     }
     markFetched();
     return profiles;

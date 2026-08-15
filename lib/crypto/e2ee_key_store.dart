@@ -41,6 +41,7 @@ class MemoryE2eeKeyStore implements E2eeKeyStore {
 
   final DateTime Function() _clock;
   E2eeIdentityKeys? _identity;
+  String? _owner;
   final Map<int, SignedPrekeyRecord> _signedPrekeys = {};
   final Map<int, _RetiredSpk> _retiredSignedPrekeys = {};
   final Map<int, OneTimePrekeyRecord> _oneTimePrekeys = {};
@@ -151,8 +152,17 @@ class MemoryE2eeKeyStore implements E2eeKeyStore {
   }
 
   @override
+  Future<String?> ownerUid() async => _owner;
+
+  @override
+  Future<void> setOwnerUid(String uid) async {
+    _owner = uid;
+  }
+
+  @override
   Future<void> wipeAll() async {
     _identity = null;
+    _owner = null;
     _signedPrekeys.clear();
     _retiredSignedPrekeys.clear();
     _oneTimePrekeys.clear();
@@ -187,6 +197,7 @@ class SecureE2eeKeyStore implements E2eeKeyStore {
   static const spkPrivPrefix = 'samay.e2ee.spk.priv.';
   static const opkMetaKey = 'samay.e2ee.opk.meta';
   static const opkPrivPrefix = 'samay.e2ee.opk.priv.';
+  static const ownerUidKey = 'samay.e2ee.owner_uid';
 
   final FlutterSecureStorage _storage;
   final DateTime Function() _clock;
@@ -378,6 +389,14 @@ class SecureE2eeKeyStore implements E2eeKeyStore {
         value: jsonEncode({...meta, 'count': count < 0 ? 0 : count}),
       );
     }
+  }
+
+  @override
+  Future<String?> ownerUid() async => _storage.read(key: ownerUidKey);
+
+  @override
+  Future<void> setOwnerUid(String uid) async {
+    await _storage.write(key: ownerUidKey, value: uid);
   }
 
   @override

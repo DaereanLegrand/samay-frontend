@@ -6,7 +6,9 @@ import 'package:go_router/go_router.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/core/design_tokens/app_gradients.dart';
 import 'package:samay/core/router/route_paths.dart';
+import 'package:samay/features/chat/providers/inbox_realtime_listener.dart';
 import 'package:samay/features/friends/providers/friends_providers.dart';
+import 'package:samay/features/friends/providers/friendships_realtime_listener.dart';
 import 'package:samay/features/groups/providers/groups_providers.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/v_count_badge.dart';
@@ -73,7 +75,10 @@ int shellIndexFor(String location) {
 /// shell only *watches*: nothing new is fetched by mounting it.
 final pendingCountsProvider = Provider<int>((ref) {
   final requests =
-      ref.watch(friendRequestsProvider).valueOrNull?.requests
+      ref
+          .watch(friendRequestsProvider)
+          .valueOrNull
+          ?.requests
           .where((r) => r['type'] == 'received')
           .length ??
       0;
@@ -85,11 +90,7 @@ class MainShell extends ConsumerWidget {
   final Widget child;
   final int currentIndex;
 
-  const MainShell({
-    super.key,
-    required this.child,
-    required this.currentIndex,
-  });
+  const MainShell({super.key, required this.child, required this.currentIndex});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -101,35 +102,44 @@ class MainShell extends ConsumerWidget {
     // The shared `VTabFade` owns the reduced-motion contract
     // (`disableAnimations` → static, U-18) + the duration/curve tokens.
     final body = VTabFade(key: ValueKey(currentIndex), child: child);
-    return Scaffold(
-      body: body,
-      // LUXE v2 (XL-06): the shell bar is a LIQUID GLASS strip — a
-      // blur-12 white-sheen layer + 1px gradient top hairline painted
-      // behind the translucent Material bar (theme fill `surface` α0.85,
-      // see bottomNavigationBarTheme). Behavior is untouched: index, taps,
-      // badge, fade.
-      bottomNavigationBar: Stack(
-        children: [
-          const Positioned.fill(child: _NavGlassStrip()),
-          BottomNavigationBar(
-            currentIndex: currentIndex,
-            onTap: (index) => context.go(mainShellTabs[index].path),
-            items: [
-              for (var i = 0; i < mainShellTabs.length; i++)
-                BottomNavigationBarItem(
-                  // R18: the Grupos tab icon carries the pending badge (U-16's
-                  // `VCountBadge` — tiny, accent-scale per §7.2). The badge shows
-                  // only while the user is NOT on the tab (Juega hides its feed
-                  // badge the same way) — the active tab renders `activeIcon`,
-                  // which never carries it.
-                  icon: _tabIcon(context, i, pendingCount),
-                  activeIcon: _tabGlowIcon(mainShellTabs[i].selectedIcon),
-                  label: _tabLabel(l10n, i),
-                ),
+    // Friendships realtime (2026-08-14): the listener is mounted for the
+    // shell's lifetime — invalidates friends/requests providers on remote
+    // row events, so the accepting side's list updates without pull.
+    return Stack(
+      children: [
+        const FriendshipsRealtimeListener(),
+        const InboxRealtimeListener(),
+        Scaffold(
+          body: body,
+          // LUXE v2 (XL-06): the shell bar is a LIQUID GLASS strip — a
+          // blur-12 white-sheen layer + 1px gradient top hairline painted
+          // behind the translucent Material bar (theme fill `surface` α0.85,
+          // see bottomNavigationBarTheme). Behavior is untouched: index, taps,
+          // badge, fade.
+          bottomNavigationBar: Stack(
+            children: [
+              const Positioned.fill(child: _NavGlassStrip()),
+              BottomNavigationBar(
+                currentIndex: currentIndex,
+                onTap: (index) => context.go(mainShellTabs[index].path),
+                items: [
+                  for (var i = 0; i < mainShellTabs.length; i++)
+                    BottomNavigationBarItem(
+                      // R18: the Grupos tab icon carries the pending badge (U-16's
+                      // `VCountBadge` — tiny, accent-scale per §7.2). The badge shows
+                      // only while the user is NOT on the tab (Juega hides its feed
+                      // badge the same way) — the active tab renders `activeIcon`,
+                      // which never carries it.
+                      icon: _tabIcon(context, i, pendingCount),
+                      activeIcon: _tabGlowIcon(mainShellTabs[i].selectedIcon),
+                      label: _tabLabel(l10n, i),
+                    ),
+                ],
+              ),
             ],
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
@@ -159,11 +169,7 @@ class MainShell extends ConsumerWidget {
       clipBehavior: Clip.none,
       children: [
         icon,
-        Positioned(
-          right: -6,
-          top: -6,
-          child: VCountBadge(count: pendingCount),
-        ),
+        Positioned(right: -6, top: -6, child: VCountBadge(count: pendingCount)),
       ],
     );
   }

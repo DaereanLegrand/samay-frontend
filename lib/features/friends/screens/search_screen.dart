@@ -83,6 +83,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       if (status == 'accepted') {
         // R15 (F5): mutual-accept — the addressee had already sent us a
         // request, so the friendship is instant; the dialog says so.
+        ref.invalidate(friendsListProvider);
         await showDialog<void>(
           context: context,
           builder: (_) => AlertDialog(

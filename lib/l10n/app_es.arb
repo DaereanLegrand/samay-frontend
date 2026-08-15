@@ -1505,6 +1505,30 @@
   "@chatLoadOlder": {
     "description": "Button that loads the previous page of older messages"
   },
+  "chatInboxTitle": "Chats",
+  "@chatInboxTitle": {
+    "description": "Inbox / chat list screen title (also the feed button tooltip)"
+  },
+  "chatInboxEmpty": "No hay conversaciones",
+  "@chatInboxEmpty": {
+    "description": "Empty state title when the inbox has no chats"
+  },
+  "chatInboxEmptyBody": "Toca 'Enviar mensaje' en el perfil de alguien para iniciar un chat.",
+  "@chatInboxEmptyBody": {
+    "description": "Empty state body explaining how to start a chat"
+  },
+  "chatInboxLoadError": "No se pudieron cargar los chats",
+  "@chatInboxLoadError": {
+    "description": "Error state when the inbox fails to load"
+  },
+  "chatInboxPreviewOwn": "Tú: ",
+  "@chatInboxPreviewOwn": {
+    "description": "Prefix for the preview of a chat whose last message the user sent"
+  },
+  "commonNow": "ahora",
+  "@commonNow": {
+    "description": "Relative time label for something that just happened"
+  },
   "eventsTypeLabel": "Tipo de evento",
   "@eventsTypeLabel": {
     "description": "Event creation: type selector section label"

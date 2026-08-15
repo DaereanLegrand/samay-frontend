@@ -1129,6 +1129,25 @@ class AppLocalizationsEn extends AppLocalizations {
   String get chatLoadOlder => 'Load older messages';
 
   @override
+  String get chatInboxTitle => 'Chats';
+
+  @override
+  String get chatInboxEmpty => 'No conversations yet';
+
+  @override
+  String get chatInboxEmptyBody =>
+      'Tap \"Send message\" on someone\'s profile to start a chat.';
+
+  @override
+  String get chatInboxLoadError => 'Couldn\'t load chats';
+
+  @override
+  String get chatInboxPreviewOwn => 'You: ';
+
+  @override
+  String get commonNow => 'now';
+
+  @override
   String get eventsTypeLabel => 'Event type';
 
   @override

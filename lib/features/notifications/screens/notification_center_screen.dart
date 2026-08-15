@@ -7,6 +7,7 @@ import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/core/design_tokens/app_gradients.dart';
 import 'package:samay/core/design_tokens/app_icon_sizes.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
+import 'package:samay/core/logging/app_logger.dart';
 import 'package:samay/core/models/notification_item.dart';
 import 'package:samay/core/providers/service_providers.dart';
 import 'package:samay/features/notifications/providers/notifications_providers.dart';
@@ -83,7 +84,8 @@ class _NotificationCenterScreenState
 
   /// Live inserts append to the list (dispose-safe: the channel is
   /// unsubscribed on dispose). Subscription failures are best-effort — the
-  /// history list still loads and pull-to-refresh still works.
+  /// history list still loads and pull-to-refresh still works — but they are
+  /// always logged, never silent.
   Future<void> _subscribeRealtime() async {
     try {
       final channel = await ref
@@ -94,8 +96,9 @@ class _NotificationCenterScreenState
           });
       if (!mounted) return;
       _channel = channel;
-    } catch (_) {
+    } catch (e, st) {
       // Realtime is best-effort by design; the pull-to-refresh path remains.
+      AppLogger.instance.error('notifications realtime subscribe failed: $e', '$st');
     }
   }
 

@@ -86,9 +86,14 @@ class _VInputState extends State<VInput> {
   @override
   Widget build(BuildContext context) {
     final hasError = widget.errorText != null;
+    // ANIM-OFF (2026-08-14): zero-duration under reduced motion — the glass
+    // ring swaps instantly instead of animating.
+    final shellDuration = MediaQuery.disableAnimationsOf(context)
+        ? Duration.zero
+        : VInput.shellDuration;
     return AnimatedContainer(
       key: VInput.glassShellKey,
-      duration: VInput.shellDuration,
+      duration: shellDuration,
       curve: Curves.easeOutCubic,
       decoration: BoxDecoration(
         gradient: LinearGradient(
@@ -109,7 +114,7 @@ class _VInputState extends State<VInput> {
       padding: const EdgeInsets.all(1),
       child: AnimatedContainer(
         key: VInput.glassFillKey,
-        duration: VInput.shellDuration,
+        duration: shellDuration,
         curve: Curves.easeOutCubic,
         decoration: BoxDecoration(
           color: AppColors.surfaceAlt.withValues(alpha: 0.5),

@@ -7,9 +7,11 @@ import 'package:samay/core/design_tokens/app_gradients.dart';
 import 'package:samay/core/design_tokens/app_icon_sizes.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/design_tokens/app_typography.dart';
+import 'package:samay/core/extensions/error_mapper.dart';
 import 'package:samay/core/models/event.dart';
 import 'package:samay/core/router/route_paths.dart';
 import 'package:samay/core/services/minigame_service.dart';
+import 'package:samay/features/chat/providers/chat_providers.dart';
 import 'package:samay/features/events/logic/event_formatters.dart';
 import 'package:samay/features/feed/providers/feed_providers.dart';
 import 'package:samay/features/groups/providers/groups_providers.dart';
@@ -22,6 +24,7 @@ import 'package:samay/shared/widgets/state_views.dart';
 import 'package:samay/shared/widgets/v_aurora.dart';
 import 'package:samay/shared/widgets/v_badge.dart';
 import 'package:samay/shared/widgets/v_chip.dart';
+import 'package:samay/shared/widgets/v_count_badge.dart';
 import 'package:samay/shared/widgets/v_display_text.dart';
 import 'package:samay/shared/widgets/v_disco_divider.dart';
 import 'package:samay/shared/widgets/v_network_image.dart';
@@ -170,7 +173,7 @@ class FeedScreen extends ConsumerWidget {
 /// the 'SAMAY' wordmark in [VDisplayText] (MAYUS enforced, cyan gradient
 /// glyph fill, 3-layer glow-strong pulsing halo). The radius filter and the
 /// honest no-location notice stay below it — functional, unchanged.
-class _FeedHeader extends StatelessWidget {
+class _FeedHeader extends ConsumerWidget {
   final String title;
   final bool showRadiusFilter;
 
@@ -184,9 +187,14 @@ class _FeedHeader extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final radius = RadiusFilterBar(l10n: l10n, family: family);
+    // The chat inbox shortcut (2026-08-15, user request): same placement as
+    // the profile's settings gear (top-right of the hero) but on the home
+    // screen. The badge shows the TOTAL unread messages across chats — kept
+    // fresh by InboxRealtimeListener.
+    final unread = ref.watch(chatUnreadCountProvider);
     return Padding(
       padding: const EdgeInsets.fromLTRB(
         AppSpacing.screenHorizontal,
@@ -197,9 +205,17 @@ class _FeedHeader extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          VDisplayText(
-            text: title,
-            gradient: family,
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: VDisplayText(
+                  text: title,
+                  gradient: family,
+                ),
+              ),
+              _ChatInboxButton(unread: unread, family: family),
+            ],
           ),
           if (showRadiusFilter) ...[
             const SizedBox(height: AppSpacing.lg),
@@ -209,6 +225,36 @@ class _FeedHeader extends StatelessWidget {
           ],
         ],
       ),
+    );
+  }
+}
+
+/// The home-screen chat inbox shortcut — a chat bubble icon (tooltip is its
+/// accessibility name, mirroring the profile gear U-26 contract) carrying the
+/// total-unread [VCountBadge] (hidden at 0). Opens [RoutePaths.chatList].
+class _ChatInboxButton extends StatelessWidget {
+  final int unread;
+  final AppGradient family;
+
+  const _ChatInboxButton({required this.unread, required this.family});
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        IconButton(
+          icon: const Icon(Icons.chat_bubble_outline),
+          tooltip: l10n.chatInboxTitle,
+          onPressed: () => context.push(RoutePaths.chatList),
+        ),
+        Positioned(
+          right: -2,
+          top: -2,
+          child: VCountBadge(count: unread, gradient: family),
+        ),
+      ],
     );
   }
 }
@@ -623,8 +669,14 @@ class _GamesSection extends ConsumerWidget {
     late final List<Map<String, dynamic>> groups;
     try {
       groups = await ref.read(myGroupsProvider.future);
-    } catch (_) {
-      groups = const [];
+    } catch (e) {
+      // No-fallback (2026-08-14): a failed groups fetch must NEVER masquerade
+      // as "no groups yet" — surface the real error.
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.toAppError().message)),
+      );
+      return;
     }
     if (groups.isEmpty) {
       if (!context.mounted) return;
@@ -680,8 +732,9 @@ class _GamesSection extends ConsumerWidget {
 }
 
 /// Home tile for one minigame: icon + localized name, opening the games hub
-/// for the user's group (LUXE: the cyan glass treatment, same family as the
-/// hub's cards — icons are shared via [minigameIcon]).
+/// for the user's group (black button — user directive 2026-08-14: home-page
+/// buttons are black, white-only glass, no cyan; icons are shared via
+/// [minigameIcon]).
 class _HomeGameCard extends StatelessWidget {
   final MinigameType type;
   final VoidCallback onTap;
@@ -696,12 +749,11 @@ class _HomeGameCard extends StatelessWidget {
       child: SizedBox(
         width: 120,
         child: VGlassCard(
-          gradient: AppGradients.cyan,
-          glowAlpha: 0.08,
+          glowAlpha: 0,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(minigameIcon(type), color: AppColors.discoCyan),
+              Icon(minigameIcon(type), color: AppColors.white),
               const Spacer(),
               Text(
                 minigameGameName(l10n, type.value),
@@ -722,7 +774,7 @@ class _HomeGameCard extends StatelessWidget {
 }
 
 /// Home entry card for the Party Finder: discovery of people by interest
-/// tags (PFND — I-60). Cyan glass, one row.
+/// tags (PFND — I-60). Black button (user directive 2026-08-14), one row.
 class _PartyFinderCard extends StatelessWidget {
   final VoidCallback onTap;
 
@@ -734,11 +786,10 @@ class _PartyFinderCard extends StatelessWidget {
     return InkWell(
       onTap: onTap,
       child: VGlassCard(
-        gradient: AppGradients.cyan,
-        glowAlpha: 0.08,
+        glowAlpha: 0,
         child: Row(
           children: [
-            const Icon(Icons.travel_explore, color: AppColors.discoCyan),
+            const Icon(Icons.travel_explore, color: AppColors.white),
             const SizedBox(width: AppSpacing.md),
             Expanded(
               child: Column(

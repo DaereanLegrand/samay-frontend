@@ -8,6 +8,7 @@ import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/extensions/error_mapper.dart';
 import 'package:samay/core/repositories/repository_providers.dart';
 import 'package:samay/core/router/route_paths.dart';
+import 'package:samay/features/friends/providers/friends_providers.dart';
 import 'package:samay/features/party_finder/providers/party_finder_providers.dart';
 import 'package:samay/features/profile/widgets/interests.dart';
 import 'package:samay/l10n/app_localizations.dart';
@@ -67,6 +68,8 @@ class PartyFinderScreen extends ConsumerWidget {
         context,
       ).showSnackBar(SnackBar(content: Text(l10n.profileUserBlocked)));
       ref.invalidate(partyMatchesProvider);
+      // Blocking can remove a friendship — keep the friends list honest.
+      ref.invalidate(friendsListProvider);
     } catch (e) {
       if (!context.mounted) return;
       ScaffoldMessenger.of(

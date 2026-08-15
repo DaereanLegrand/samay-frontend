@@ -11,28 +11,84 @@ extension ObjectX on Object {
     if (this is AuthException) {
       final authErr = this as AuthException;
       final code = authErr.code;
-      final msg = authErr.message.toLowerCase();
-
-      if (code == 'over_request_rate_limit' ||
-          code == 'over_email_send_rate_limit' ||
-          code == 'over_sms_send_rate_limit') {
-        return RateLimitError();
+      // Code-first mapping per
+      // https://supabase.com/docs/guides/auth/debugging/error-codes —
+      // "always use error.code to identify errors, not string matching on
+      // messages". The server `code` is authoritative when present.
+      switch (code) {
+        case 'over_request_rate_limit':
+        case 'over_email_send_rate_limit':
+        case 'over_sms_send_rate_limit':
+          return RateLimitError();
+        case 'invalid_credentials':
+          return ValidationError('credenciales', 'Correo o contraseña inválidos');
+        case 'email_not_confirmed':
+          return ValidationError(
+            'correo',
+            'Correo no confirmado. Revisa tu bandeja de entrada.',
+          );
+        case 'email_address_invalid':
+          return ValidationError('correo', 'Correo electrónico inválido.');
+        case 'email_exists':
+        case 'user_already_exists':
+          return ValidationError(
+            'correo',
+            'Ya existe una cuenta con este correo.',
+          );
+        case 'weak_password':
+          return ValidationError(
+            'contraseña',
+            'La contraseña no cumple los requisitos mínimos.',
+          );
+        case 'same_password':
+          return ValidationError(
+            'contraseña',
+            'Debes elegir una contraseña diferente.',
+          );
+        case 'validation_failed':
+          return ValidationError('datos', 'Datos inválidos. Verifica los campos.');
+        case 'otp_expired':
+          return ValidationError(
+            'código',
+            'El código ha expirado. Solicita uno nuevo.',
+          );
+        case 'otp_disabled':
+          return ValidationError(
+            'código',
+            'El inicio de sesión con código está deshabilitado.',
+          );
+        case 'user_banned':
+          return ValidationError('cuenta', 'Tu cuenta está suspendida.');
+        case 'reauthentication_needed':
+          return ValidationError(
+            'sesión',
+            'Vuelve a autenticarte para continuar.',
+          );
+        case 'request_timeout':
+          return NetworkError();
+        // Session/JWT lifecycle — the user must sign in again.
+        case 'bad_jwt':
+        case 'no_authorization':
+        case 'not_admin':
+        case 'session_expired':
+        case 'session_not_found':
+        case 'refresh_token_not_found':
+        case 'refresh_token_already_used':
+        case 'user_not_found':
+          return UnauthorizedError();
+        case 'unexpected_failure':
+          return ServerError(authErr.message);
+        default:
+          // No server code (client-side AuthException) or an unmapped code:
+          // last-resort message heuristics, then the faithful server message.
+          final msg = authErr.message.toLowerCase();
+          if (msg.contains('jwt') ||
+              msg.contains('token') ||
+              msg.contains('session')) {
+            return UnauthorizedError();
+          }
+          return ServerError(authErr.message);
       }
-      if (code == 'invalid_credentials') {
-        return ValidationError('credenciales', 'Correo o contraseña inválidos');
-      }
-      if (code == 'otp_expired') {
-        return ValidationError(
-          'código',
-          'El código ha expirado. Solicita uno nuevo.',
-        );
-      }
-      if (msg.contains('jwt') ||
-          msg.contains('token') ||
-          msg.contains('session')) {
-        return UnauthorizedError();
-      }
-      return UnauthorizedError();
     }
 
     if (this is PostgrestException) {

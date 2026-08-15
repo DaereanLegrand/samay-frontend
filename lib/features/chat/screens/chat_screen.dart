@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/core/design_tokens/app_gradients.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
+import 'package:samay/core/extensions/error_mapper.dart';
+import 'package:samay/core/logging/app_logger.dart';
 import 'package:samay/core/providers/auth_provider.dart';
 import 'package:samay/core/services/chat_service.dart';
 import 'package:samay/features/chat/providers/chat_providers.dart';
@@ -12,6 +14,7 @@ import 'package:samay/shared/widgets/glass/v_glass.dart';
 import 'package:samay/shared/widgets/state_views.dart';
 import 'package:samay/shared/widgets/v_aurora.dart';
 import 'package:samay/shared/widgets/v_button.dart';
+import 'package:samay/shared/widgets/v_spinner.dart';
 import 'package:samay/shared/widgets/v_input.dart';
 import 'package:samay/shared/widgets/v_thinking_dots.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' show RealtimeChannel;
@@ -60,6 +63,14 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     super.dispose();
   }
 
+  /// The thread opened (or a live message arrived while open) → the user is
+  /// reading it: bump the read watermark so the feed button's unread badge
+  /// drops (RPC `mark_chat_read`, migration 20260815000004). Best-effort —
+  /// the badge re-derives on the next inbox read anyway.
+  void _markRead() {
+    ref.read(chatInboxProvider.notifier).markRead(widget.chatId);
+  }
+
   /// Live inserts append to the thread (dispose-safe: the channel is
   /// unsubscribed on dispose). Rows arrive as raw envelopes and are
   /// decrypted by [ChatService.subscribeToMessages] (via the repository)
@@ -69,6 +80,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       row,
     ) {
       ref.read(chatMessagesProvider(widget.chatId).notifier).addMessage(row);
+      _markRead();
     });
   }
 
@@ -77,13 +89,24 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     if (text.isEmpty || _sending) return;
     _controller.clear();
     setState(() => _sending = true);
+    AppLogger.instance.debug(
+      'chat send start chat=${widget.chatId} chars=${text.length}',
+    );
     try {
       await ref
           .read(chatMessagesProvider(widget.chatId).notifier)
           .send(widget.chatId, text);
-    } catch (_) {
+      AppLogger.instance.debug('chat send ok chat=${widget.chatId}');
+    } catch (e, st) {
       // Send failures surface through the list's error state on refresh;
-      // keep the composer usable.
+      // keep the composer usable. Log the REAL error (never the message
+      // content): runtime type, message, mapped AppError code + stack.
+      final mapped = e.toAppError();
+      AppLogger.instance.error(
+        'chat send failed chat=${widget.chatId} '
+        'type=${e.runtimeType} error=${mapped.code} "${mapped.message}"',
+        '$st',
+      );
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(AppLocalizations.of(context).chatSendError)),
@@ -100,7 +123,13 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   Future<void> _loadOlder() async {
     try {
       await ref.read(chatMessagesProvider(widget.chatId).notifier).loadOlder();
-    } catch (_) {
+    } catch (e, st) {
+      final mapped = e.toAppError();
+      AppLogger.instance.error(
+        'chat loadOlder failed chat=${widget.chatId} '
+        'type=${e.runtimeType} error=${mapped.code} "${mapped.message}"',
+        '$st',
+      );
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(AppLocalizations.of(context).chatLoadError)),
@@ -114,6 +143,12 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     final l10n = AppLocalizations.of(context);
     final messages = ref.watch(chatMessagesProvider(widget.chatId));
     final currentUserId = ref.watch(authStateProvider).valueOrNull?.user?['id'];
+
+    // First successful thread load → the user is reading it: mark the chat
+    // read so the feed badge drops (see [_markRead]).
+    ref.listen(chatMessagesProvider(widget.chatId), (previous, next) {
+      if (next.hasValue && previous?.hasValue != true) _markRead();
+    });
 
     return Scaffold(
       appBar: AppBar(title: Text(l10n.chatTitle)),
@@ -179,13 +214,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     if (state.loadingOlder) {
       return const Padding(
         padding: EdgeInsets.symmetric(vertical: 8),
-        child: Center(
-          child: SizedBox(
-            width: 20,
-            height: 20,
-            child: CircularProgressIndicator(strokeWidth: 2),
-          ),
-        ),
+        child: Center(child: VSpinner(size: 20)),
       );
     }
     return Center(

@@ -28,6 +28,7 @@ implementation differs or went further. **125 unit tests in `test/crypto/`.**
 | **Persisted `last_init_marker`** | `session.dart:247,304,591` — replay marker serialized in session JSON (`$8.3` schema extension) | §8.3 JSON schema lacks the field |
 | **Server-side SPK expiry** | `e2ee_identity_keys.signed_prekey_expires_at` (`20260809000003:33`), enforced client-side by `e2ee_prekey_service.dart:79,122-130` | §5.2 says server "keeps the last 2"; the expiry column is undocumented in §9.1 |
 | **In-app key material wipe on ban** | `session.dart:192-193` wipes sessions/replay markers; account wipe on `deleteAccount` (I-6 acceptance) | — |
+| **Session/insert atomicity + unacknowledged-init heal (2026-08-15)** | `session.dart` — Signal `unacknowledgedPreKeyMessage` semantics: while the peer hasn't acknowledged the init (first decrypted ratchet reply), every outbound message re-initiates with a FRESH init envelope (new ekA — required because our init replay protection drops identical inits); the peer can always (re)establish the session. Plus `chat_service.dart` rolls the session back when an init's INSERT fails. Fixes the live A→B invisible-message bug (ratchets sent into a session the peer never received) | §12.2 assumes the insert always lands; the ack state machine + `envelopeIsInit`/`wipe` contract live on `E2eeMessageCipher` |
 
 ### 0.2 Spec claims NOT shipped (deviations)
 
@@ -112,7 +113,7 @@ Assets, actors and trust boundaries are defined in `docs/security/SECURITY.md` �
 | **Server compromise (active, "malicious server")** | Substitute prekey bundles, drop/reorder/delay messages | Can fail delivery; can MITM *only if users never authenticate identity keys*; cannot read past traffic when one-time prekeys were used (R1 §4.6) | Alice verifies `Sig(IK_sig, Encode(SPKB))` (R1 §3.3); fingerprint compare is the user-level countermeasure (§8.4) |
 | **Network attacker** | Passive TLS interception, Realtime WS sniffing | Metadata only (TLS encrypts); ciphertext if TLS broken | TLS 1.2+ (SECURITY.md §2.9); E2EE is the last line |
 | **Device theft (locked)** | Physical device | Nothing | flutter_secure_storage = Keychain/Keystore, unlocked-device accessibility (R12) |
-| **Device theft (unlocked/rooted)** | Read process memory, storage | Keys are not in plaintext files; ratchet state may be in memory during use | Mitigated: keys wiped on sign-out/delete; no plaintext backups (§9.4); accepted residual risk (S-18 scope) |
+| **Device theft (unlocked/rooted)** | Read process memory, storage | Keys are not in plaintext files; ratchet state may be in memory during use | Mitigated: keys survive sign-out but are wiped on account switch/delete (§7.6); no plaintext backups (§9.4); accepted residual risk (S-18 scope) |
 | **Key compromise (identity)** | Own the identity private key | Impersonate the user going forward | Session keys are per-session; identity key compromise does NOT decrypt old ciphertext unless prekeys also compromised (R1 §4.6); reinstall/re-key procedure (§7.5) |
 | **Key compromise (ratchet state at time T)** | Own RK + chain keys | Messages encrypted before T: safe (FS); after T: readable until next DH ratchet step heals (PCS) | DH ratchet gives break-in recovery within a few messages (R2 §8.2) |
 
@@ -464,10 +465,24 @@ Follows Sesame (R3) semantics reduced to single-device async messaging.
 - Peer behavior (Sesame conditional update, R3 §3.2/§6.1): on bundle fetch, if `IK_dh` differs from the value bound to the stored session → **retire that session** (keep it for decrypting in-flight ciphertext up to 30 days, then delete) and create a fresh session for the new identity.
 - MVP UX: chat shows "El otro usuario reinstaló la app / cambió de dispositivo" once (flag persisted per peer). Fingerprint re-verification UI is post-MVP (S-07/S-20 gate item).
 
-### 7.6 Session wipe on account deletion
+### 7.6 Key material lifecycle (Signal model, revised 2026-08-15)
 
-- `deleteAccount()` (`lib/core/providers/auth_provider.dart:186-190`) and `signOut()` MUST call `E2eeKeyStore.wipeAll()` (identity keys, prekeys, all sessions) after the server call succeeds.
-- Server side needs no key material (it never had any); `hard_delete_expired_users()` cron already anonymizes `messages` (`supabase/migrations/20260510000002_cron.sql:19`).
+- **Sign-out KEEPS the material** (identity, prekeys, sessions) — the keys are
+  bound to the ACCOUNT, not the session, exactly like Signal: a same-account
+  re-sign-in decrypts old chats without re-key. `signOut()` no longer wipes.
+- **Account switch wipes** (`AuthNotifier._ensureE2eeKeysPublished` ownership
+  guard): the key store records `owner_uid` (`samay.e2ee.owner_uid`); when a
+  DIFFERENT account signs in, `E2eeKeyStore.wipeAll()` + session wipe run
+  BEFORE the heal publishes, so keys never cross accounts.
+- **`deleteAccount()` MUST call `E2eeKeyStore.wipeAll()`** (identity keys,
+  prekeys, all sessions) after the server call succeeds.
+- Server side needs no key material (it never had any);
+  `hard_delete_expired_users()` cron already anonymizes `messages`
+  (`supabase/migrations/20260510000002_cron.sql:19`).
+- A regenerated identity (reinstall, delete+re-register) is healed at the
+  next session restore: `handleMissingSession` republishes when the published
+  `identity_key` differs from the local identity (stale-row recovery —
+  peers' inits are addressed to material this device actually holds).
 
 ### 7.7 Session expiry
 
@@ -745,7 +760,7 @@ Two in-memory "clients" (the real `lib/crypto/`) against a fake server implement
 | 1 | Migration `2026XXXXXXXX_e2ee_prekeys.sql` (→ landed as **`20260809000003_e2ee_tables.sql`, single `e2ee_identity_keys` table** — §9.1 errata): prekey tables + RLS + FORCE RLS + REPLICA IDENTITY FULL + realtime publication | pgTAP cases added (I-77 pattern) |
 | 2 | `E2eePrekeyService` wired to the two RPCs; publish on profile creation; rotate SPK on foreground when >7d | opt-003 asserts bundle round-trip + rate limit |
 | 3 | `lib/core/services/chat_service.dart` = `E2eeMessageCipher` + `messages` table ops: `sendMessage` encrypts → stores envelope; `loadMessages` decrypts; `subscribeToMessages` decrypts Realtime envelope | I1–I4 green (fake + real stack) |
-| 4 | Key lifecycle hooks in auth: publish on `createProfile`, `wipeAll()` on `deleteAccount`/`signOut` | I6 green |
+| 4 | Key lifecycle hooks in auth: publish on `createProfile`, wipe on account switch/`deleteAccount` (**landed 2026-08-15** — `AuthNotifier._ensureE2eeKeysPublished`: `createProfile` → `publishAll()`; session restore / `signedIn` → ownership guard (wipe on account switch) + `handleMissingSession()` heal that also republishes on identity mismatch; `signOut` KEEPS material per §7.6 Signal model; `_wipeE2eeMaterial` wipes on switch/delete) | I6 green |
 | 5 | `integration_test/e2ee_flow_test.dart` + `test/opt-003-chat.sh` | I5 green |
 | 6 | Wire `RoutePaths.chat` to the real chat screen (**landed** — ChatScreen live at app_router.dart:414-420, replaces `VComingSoonScreen`) with decrypt path | chat UI shows decrypted text; undecryptable → "Mensaje no disponible" |
 

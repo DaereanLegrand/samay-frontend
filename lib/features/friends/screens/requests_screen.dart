@@ -16,6 +16,7 @@ import 'package:samay/shared/widgets/v_aurora.dart';
 import 'package:samay/shared/widgets/v_button.dart';
 import 'package:samay/shared/widgets/v_count_badge.dart';
 import 'package:samay/shared/widgets/v_refreshable.dart';
+import 'package:samay/shared/widgets/v_spinner.dart';
 
 class RequestsScreen extends ConsumerStatefulWidget {
   const RequestsScreen({super.key});
@@ -73,12 +74,16 @@ class _RequestsScreenState extends ConsumerState<RequestsScreen>
       _run(id, () async {
         await ref.read(friendsRepositoryProvider).acceptFriendRequest(id);
         ref.invalidate(friendRequestsProvider);
+        // The new friend must appear in the list immediately (2026-08-14).
+        ref.invalidate(friendsListProvider);
       });
 
   Future<void> _declineFriend(String id) =>
       _run(id, () async {
         await ref.read(friendsRepositoryProvider).declineFriendRequest(id);
         ref.invalidate(friendRequestsProvider);
+        // A declined request can't leave a stale accepted row behind.
+        ref.invalidate(friendsListProvider);
       });
 
   Future<void> _acceptInvite(String membershipId) =>
@@ -197,7 +202,10 @@ class _RequestsScreenState extends ConsumerState<RequestsScreen>
         separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.sm),
         itemBuilder: (_, i) {
           final r = items[i];
-          final name = names[r['user_id'] as String] ?? l10n.commonUser;
+          // No-fallback (2026-08-14): every request row must resolve its
+          // user's name in the provider — a missing entry is a bug, not a
+          // placeholder to render.
+          final name = names[r['user_id'] as String]!;
           final id = r['friendship_id'] as String;
           return VGlassCard(
             gradient: AppGradients.mint,
@@ -363,15 +371,12 @@ class _BusyButton extends StatelessWidget {
 
 /// The R11 per-row busy spinner: 16px white `CircularProgressIndicator`
 /// (16-20px per the report; the U-04 progressIndicatorTheme is white).
+/// ANIM-OFF (2026-08-14): renders as a static ring under reduced motion.
 class _RowSpinner extends StatelessWidget {
   const _RowSpinner();
 
   @override
   Widget build(BuildContext context) {
-    return const SizedBox(
-      width: 16,
-      height: 16,
-      child: CircularProgressIndicator(strokeWidth: 2),
-    );
+    return const VSpinner(size: 16);
   }
 }

@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:samay/core/logging/app_logger.dart';
 import 'package:samay/core/providers/service_providers.dart';
 import 'package:samay/core/repositories/chat_repository.dart';
 import 'package:samay/core/services/chat_service.dart';
@@ -193,8 +194,21 @@ class ChatMessagesNotifier
   /// encrypts via [ChatService] before insert; the reload path decrypts.
   Future<void> send(String chatId, String text) async {
     if (text.trim().isEmpty) return;
-    await _repo.sendMessage(chatId, text, null);
-    await refresh();
+    final stopwatch = Stopwatch()..start();
+    try {
+      await _repo.sendMessage(chatId, text, null);
+      await refresh();
+      AppLogger.instance.debug(
+        'chat provider send ok chat=$chatId ms=${stopwatch.elapsedMilliseconds}',
+      );
+    } catch (e, st) {
+      AppLogger.instance.error(
+        'chat provider send failed chat=$chatId '
+        'type=${e.runtimeType} ms=${stopwatch.elapsedMilliseconds}',
+        '$st',
+      );
+      rethrow;
+    }
   }
 
   /// Appends a realtime-delivered row, deduplicated by `id` (dispose-safe
@@ -231,8 +245,12 @@ class ChatMessagesNotifier
       state = AsyncData(
         ChatMessagesState.fromPaged(await _loader.loadMore(current._paged)),
       );
-    } catch (_) {
+    } catch (e, st) {
       state = AsyncData(current.copyWith(loadingOlder: false));
+      AppLogger.instance.error(
+        'chat provider loadOlder failed chat=$arg type=${e.runtimeType}',
+        '$st',
+      );
       rethrow;
     }
   }
@@ -242,3 +260,118 @@ class ChatMessagesNotifier
 /// open, older pages via [ChatMessagesNotifier.loadOlder]) + send + refresh.
 final chatMessagesProvider = AsyncNotifierProvider.family<ChatMessagesNotifier,
     ChatMessagesState, String>(ChatMessagesNotifier.new);
+
+/// A chat in the caller's inbox (RPC `get_chat_inbox`, migration
+/// 20260815000004): peer identity, last message (E2EE envelope — the
+/// preview is decrypted client-side via [ChatRepository.decryptInboxRow])
+/// and the unread count (messages from the peer newer than the caller's
+/// read watermark).
+class ChatInboxItem {
+  const ChatInboxItem({
+    required this.chatId,
+    required this.type,
+    this.peerId,
+    this.peerUsername,
+    this.peerAvatarUrl,
+    this.lastMessageId,
+    this.lastMessageSenderId,
+    this.lastMessageContent,
+    this.lastMessageAt,
+    required this.unreadCount,
+    this.decryptFailed = false,
+  });
+
+  final String chatId;
+  final String type;
+  final String? peerId;
+  final String? peerUsername;
+  final String? peerAvatarUrl;
+  final String? lastMessageId;
+  final String? lastMessageSenderId;
+  final String? lastMessageContent;
+  final DateTime? lastMessageAt;
+  final int unreadCount;
+
+  /// Whether the last-message envelope could not be decrypted (the UI
+  /// renders [ChatService.chatUndecryptablePlaceholder] / "Tú: …").
+  final bool decryptFailed;
+
+  factory ChatInboxItem.fromRow(Map<String, dynamic> row) {
+    final lastAt = row['last_message_created_at'];
+    return ChatInboxItem(
+      chatId: row['chat_id'] as String? ?? '',
+      type: row['type'] as String? ?? 'direct',
+      peerId: row['peer_id'] as String?,
+      peerUsername: row['peer_username'] as String?,
+      peerAvatarUrl: row['peer_avatar_url'] as String?,
+      lastMessageId: row['last_message_id'] as String?,
+      lastMessageSenderId: row['last_message_sender_id'] as String?,
+      lastMessageContent: row['last_message_content'] as String?,
+      lastMessageAt: lastAt is String ? DateTime.tryParse(lastAt) : null,
+      unreadCount: (row['unread_count'] as num?)?.toInt() ?? 0,
+      decryptFailed: row['last_message_decrypt_failed'] == true,
+    );
+  }
+
+  ChatInboxItem copyWith({int? unreadCount, bool? decryptFailed}) {
+    return ChatInboxItem(
+      chatId: chatId,
+      type: type,
+      peerId: peerId,
+      peerUsername: peerUsername,
+      peerAvatarUrl: peerAvatarUrl,
+      lastMessageId: lastMessageId,
+      lastMessageSenderId: lastMessageSenderId,
+      lastMessageContent: lastMessageContent,
+      lastMessageAt: lastMessageAt,
+      unreadCount: unreadCount ?? this.unreadCount,
+      decryptFailed: decryptFailed ?? this.decryptFailed,
+    );
+  }
+}
+
+/// The caller's inbox: every chat they participate in, most-recent-first.
+/// Rows carry the E2EE last-message preview decrypted best-effort
+/// ([ChatRepository.decryptInboxRow] — own messages via the outbox, peer
+/// envelopes via the session, undecryptable → placeholder flag).
+class ChatInboxNotifier extends AsyncNotifier<List<ChatInboxItem>> {
+  ChatRepository get _repo => ref.read(chatE2eeRepositoryProvider);
+
+  @override
+  Future<List<ChatInboxItem>> build() async {
+    final rows = await _repo.fetchInbox();
+    final items = <ChatInboxItem>[];
+    for (final row in rows) {
+      final decrypted = await _repo.decryptInboxRow(row);
+      items.add(ChatInboxItem.fromRow(decrypted));
+    }
+    return items;
+  }
+
+  /// Re-reads the inbox (pull-to-refresh, after realtime events, after a
+  /// chat visit).
+  Future<void> refresh() async => ref.invalidateSelf();
+
+  /// Marks [chatId] read server-side and refreshes the badge.
+  Future<void> markRead(String chatId) async {
+    try {
+      await _repo.markChatRead(chatId);
+    } catch (e, st) {
+      AppLogger.instance.error('chat inbox markRead failed chat=$chatId: $e', '$st');
+    }
+    await refresh();
+  }
+}
+
+/// The caller's inbox (autoDispose — a fresh read whenever the list screen
+/// or the feed badge mounts).
+final chatInboxProvider = AsyncNotifierProvider<ChatInboxNotifier,
+    List<ChatInboxItem>>(ChatInboxNotifier.new);
+
+/// Total unread messages across all chats — the feed button's badge number.
+final chatUnreadCountProvider = Provider<int>((ref) {
+  final inbox = ref.watch(chatInboxProvider);
+  final items = inbox.valueOrNull;
+  if (items == null) return 0;
+  return items.fold(0, (sum, item) => sum + item.unreadCount);
+});

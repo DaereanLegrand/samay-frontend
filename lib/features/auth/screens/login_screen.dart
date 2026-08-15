@@ -132,14 +132,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         ),
                       ),
                       const SizedBox(height: 32),
-                      // §5.1 brand moment: the primary CTA is the filled
-                      // glowAccent (cyan-family gradient fill + black text) —
-                      // the only full-strength surface on the screen.
-                      VButton.glowAccent(
+                      // §5.1 brand moment: the primary CTA is BLACK (user
+                      // directive 2026-08-14 — cyan/skyblue is banned on
+                      // buttons): black fill, white text, white hairline.
+                      // No family gradient on the login CTA.
+                      VButton.dark(
                         label: l10n.commonSignIn,
                         loading: auth.isLoading,
-                        filled: true,
-                        gradient: family,
                         onPressed: _login,
                       ),
                       const SizedBox(height: 12),

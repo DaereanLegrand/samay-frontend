@@ -6,9 +6,9 @@ import 'package:samay/core/design_tokens/app_typography.dart';
 /// LUXE v2 display voice (XL-03) — the ONLY sanctioned way to render a
 /// display role (ORCHESTRATION-LUXE directive #6).
 ///
-/// Renders [text] in Playfair Display italic bold, ALWAYS UPPERCASE — the
-/// MAYUS rule is enforced here via `text.toUpperCase()`, never at call
-/// sites.
+/// Renders [text] in Playfair Display bold, ALWAYS UPPERCASE — the MAYUS
+/// rule is enforced here via `text.toUpperCase()`, never at call sites. No
+/// italics (user directive 2026-08-14).
 ///
 /// Two layers, back to front:
 ///
@@ -45,6 +45,12 @@ class VDisplayText extends StatefulWidget {
 
   /// The once-only glyph shimmer sweep.
   static const Duration shimmerDuration = Duration(milliseconds: 900);
+
+  /// Whether [gradient] is banned on glyphs — null and the cyan (skyblue)
+  /// family render WHITE (user directive 2026-08-14); every other family
+  /// keeps its gradient fill.
+  static bool rendersWhite(AppGradient? gradient) =>
+      gradient == null || gradient.name == 'cyan';
 
   const VDisplayText({
     super.key,
@@ -112,15 +118,15 @@ class _VDisplayTextState extends State<VDisplayText>
   }
 
   /// Gradient glyph fill — [AppGradients.textShader] over the text bounds;
-  /// a white→white shader when no family is given.
+  /// a white→white shader when [rendersWhite] (no family, or the banned
+  /// skyblue/cyan family — user directive 2026-08-14).
   Shader _textShader(Rect bounds) {
-    final gradient = widget.gradient;
-    if (gradient == null) {
+    if (VDisplayText.rendersWhite(widget.gradient)) {
       return const LinearGradient(
         colors: [AppColors.white, AppColors.white],
       ).createShader(bounds);
     }
-    return AppGradients.textShader(gradient, bounds);
+    return AppGradients.textShader(widget.gradient!, bounds);
   }
 
   /// Once-only sweep: a soft white band gliding diagonally across the glyphs
@@ -152,9 +158,10 @@ class _VDisplayTextState extends State<VDisplayText>
     );
   }
 
-  /// Playfair Display italic bold at [VDisplayText.size] — the display
-  /// roles when the size matches a §3.3 token, otherwise a same-metric
-  /// custom style. The glyph color is white so the ShaderMask owns the fill.
+  /// Playfair Display bold at [VDisplayText.size] — the display roles when
+  /// the size matches a §3.3 token, otherwise a same-metric custom style
+  /// (no italics — user directive 2026-08-14). The glyph color is white so
+  /// the ShaderMask owns the fill.
   /// Uppercase Playfair keeps neutral tracking — no negative letter-spacing
   /// (the LUXE display voice breathes; cramped tracking reads "old").
   TextStyle _displayStyle() {
@@ -167,7 +174,6 @@ class _VDisplayTextState extends State<VDisplayText>
         fontFamily: AppTypography.playfair,
         fontSize: widget.size,
         fontWeight: FontWeight.w700,
-        fontStyle: FontStyle.italic,
         letterSpacing: 0.0,
         height: 1.0,
       ),

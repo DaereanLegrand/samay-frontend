@@ -4,6 +4,7 @@ import 'package:samay/core/deep_links/deep_link_handler.dart';
 import 'package:samay/core/providers/theme_provider.dart';
 import 'package:samay/core/theme/app_theme.dart';
 import 'package:samay/core/router/app_router.dart';
+import 'package:samay/features/auth/providers/auth_scope_reset.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/connectivity_banner.dart';
 import 'package:samay/shared/widgets/crash_recovery_banner.dart';
@@ -40,16 +41,34 @@ class SamayApp extends ConsumerWidget {
       // EINV (I-66): the deep-link listener mounts below Localizations (so
       // its snackbar copy resolves) but above the Navigator. Inert when
       // deepLinkStreamProvider is null (default — tests).
-      builder: (context, child) => Column(
-        children: [
-          // LOG-03: the recovery banner sits above the offline indicator —
-          // it only appears once (right after a real crash) and collapses on
-          // dismissal.
-          CrashRecoveryBanner(visible: recoveredFromCrash),
-          const ConnectivityBanner(),
-          Expanded(child: Stack(children: [?child, const DeepLinkListener()])),
-        ],
-      ),
+      // ANIM-OFF (2026-08-14): ALL animations are deactivated app-wide —
+      // the MediaQuery override below propagates `disableAnimations: true`
+      // to every route/screen, which every motion widget honors
+      // (`MediaQuery.disableAnimationsOf` → static; zero-duration implicit
+      // animations; static spinners; static page transitions).
+      builder: (context, child) {
+        final mediaQuery = MediaQuery.of(context);
+        return MediaQuery(
+          data: mediaQuery.copyWith(disableAnimations: true),
+          child: Column(
+            children: [
+              // LOGOUT FLUSH (2026-08-14): mounted above the Navigator so
+              // the auth screens are covered too — on logout every
+              // user-scoped provider is invalidated (no stale data survives
+              // an account switch in the same session).
+              const AuthScopeReset(),
+              // LOG-03: the recovery banner sits above the offline indicator —
+              // it only appears once (right after a real crash) and collapses on
+              // dismissal.
+              CrashRecoveryBanner(visible: recoveredFromCrash),
+              const ConnectivityBanner(),
+              Expanded(
+                child: Stack(children: [?child, const DeepLinkListener()]),
+              ),
+            ],
+          ),
+        );
+      },
       routerConfig: router,
       debugShowCheckedModeBanner: false,
     );

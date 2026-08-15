@@ -12,14 +12,30 @@ class UserService {
 
   GoTrueClient get auth => client.auth;
 
+  /// The profile of [userId], or null when the row does not exist.
+  ///
+  /// Own row → the full `users` table (bio, shards, subscription tier —
+  /// own-row-only RLS since `20260520000001` dropped `users_search`).
+  /// ANY OTHER user → the `user_search_view` security barrier
+  /// (id/username/avatar_url/bio, deleted + blocked excluded) — reading the
+  /// `users` table directly for another user returns an empty result (RLS),
+  /// which is what used to surface as the "Usuario" fallback.
   Future<Map<String, dynamic>?> getUserProfile(String userId) async {
-    final res = await client
-        .from('users')
-        .select(
-          'id, username, avatar_url, bio, personal_shards, preshards, subscription_tier',
-        )
-        .eq('id', userId)
-        .maybeSingle();
+    final user = auth.currentUser;
+    final isOwn = user != null && user.id == userId;
+    final res = await (isOwn
+        ? client
+              .from('users')
+              .select(
+                'id, username, avatar_url, bio, personal_shards, preshards, subscription_tier',
+              )
+              .eq('id', userId)
+              .maybeSingle()
+        : client
+              .from('user_search_view')
+              .select('id, username, avatar_url, bio')
+              .eq('id', userId)
+              .maybeSingle());
     if (res == null) return null;
     return Map<String, dynamic>.from(res);
   }

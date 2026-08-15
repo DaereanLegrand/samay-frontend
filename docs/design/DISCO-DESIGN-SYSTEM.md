@@ -122,12 +122,12 @@ Source of truth: `lib/core/design_tokens/app_typography.dart` — `AppTypography
 
 | Font | Role | Source |
 |---|---|---|
-| **Playfair Display** (serif) | **Display/fancy titles ONLY** — italic + bold. See exact usages §3.2. | Google Fonts (bundled by I-18 via `assets/fonts/`, wired by U-02; `google_fonts` fallback permitted) |
+| **Playfair Display** (serif) | **Display/fancy titles ONLY** — bold, NO italics (user directive 2026-08-14). See exact usages §3.2. | Google Fonts (bundled by I-18 via `assets/fonts/`, wired by U-02; `google_fonts` fallback permitted) |
 | **Inter** | Everything else: UI text, body, buttons, inputs, labels, nav, numbers. | Google Fonts / bundled (`fontFamily: AppTypography.inter` in `lib/core/theme/app_theme.dart`; keep it as the default) |
 
 ### 3.2 Playfair Display — exact usages (exhaustive, implemented)
 
-Use italic 700 (600 for the 28px hero role, per the §3.3 table). **Nowhere else.** If a text role isn't in this list, it's Inter. **AppBar titles are Inter utility titles, never Playfair** (U-12 decision, pinned by test — the fancy moment belongs to the ~~"Próximamente" headline and~~ hero titles only).
+Use bold 700 (600 for the 28px hero role, per the §3.3 table). **No italics** (user directive 2026-08-14). **Nowhere else.** If a text role isn't in this list, it's Inter. **AppBar titles are Inter utility titles, never Playfair** (U-12 decision, pinned by test — the fancy moment belongs to the ~~"Próximamente" headline and~~ hero titles only).
 
 > **DEPARTURE (2026-08-13):** VComingSoonScreen deleted — see §5.7 note.
 
@@ -137,6 +137,11 @@ Use italic 700 (600 for the 28px hero role, per the §3.3 table). **Nowhere else
 | Auth flow big headers ("Crea tu cuenta", "¿Cuál es tu fecha de nacimiento?", "Verificar edad", "Restablecer contraseña"…) | `signup_contact_screen.dart`, `age_gate_screen.dart`, `otp_verification_screen.dart`, `privacy_terms_screen.dart`, `forgot_password_screen.dart` — `displayMedium` through `VBreathingGlow` | 40 | U-07/U-14/U-23 |
 | Ban screen title | `banned_screen.dart` — `displayMedium` + `VBreathingGlow` | 40 | U-07/U-23 |
 | Feed hero header ("SAMAY" / "Eventos") | `feed_screen.dart` — `VDisplayText` default (maps to `displayMedium`) | 40 | U-08/U-18 |
+
+> **DIRECTIVE (2026-08-14):** skyblue/similar tones are banned on GLYPHS —
+> `VDisplayText` renders WHITE whenever the family is the cyan family
+> (login/feed/party-finder heroes). Cyan stays legal for ambient (VAurora),
+> dividers, rings, dots and icons — only text glyphs turn white.
 | Event titles — featured/hero cards | `event_detail_screen.dart` (hero) + `my_events_screen.dart` (tab header) — `VDisplayText` default (maps to `displayMedium`) | 40 | U-02/U-25 |
 | Leaderboard podium group names (top 3) | `leaderboard_screen.dart` — `headlineLarge` (top-3 rows only; the rest stay Inter) | 28 | U-11 |
 | Group names on detail hero | `group_detail_screen.dart` AppBar hero name — `headlineLarge` | 28 | U-11 |
@@ -149,8 +154,14 @@ Use italic 700 (600 for the 28px hero role, per the §3.3 table). **Nowhere else
 > quick-access section under the hero — the "GAMES" heading uses the
 > `sectionLabel` token (**Inter**, uppercase — the Playfair list stays
 > exhaustive) and the five minigame cards + Party Finder entry render with
-> existing tokens only (`VGlassCard` cyan, `discoCyan` icons, 13px Inter
+> existing tokens only (white-only `VGlassCard`, white icons, 13px Inter
 > labels). No new type roles introduced; one hero per screen preserved.
+> **DIRECTIVE (2026-08-14):** home-page buttons are BLACK — the games/
+> party-finder cards carry no family gradient and no glow (`glowAlpha: 0`,
+> `gradient: null` → white hairline over the black glass); cyan is gone
+> from these buttons. The **login CTA is `VButton.dark`** (black fill,
+> white text, white hairline) — cyan-family screens never carry a cyan
+> button (see §5.1 directive).
 
 **Do NOT use Playfair for:** button labels, inputs, chips, badges, list tiles, body copy, settings rows, dialogs, tab labels, notification text, numbers, prices, AppBar titles (U-12), donate/checkout headers (U-02).
 
@@ -160,10 +171,10 @@ Implemented in `lib/core/design_tokens/app_typography.dart` (U-02) as const-cons
 
 | Flutter style | Family | Size | Weight | Letter-spacing | Height | Usage |
 |---|---|---|---|---|---|---|
-| `displayLarge` | Playfair Display | 64 | w700 *italic* | -1.9 (~-0.03em) | 1.0 | Welcome wordmark (glow-strong) |
-| `displayMedium` | Playfair Display | 40 | w700 *italic* | -1.2 (~-0.03em) | 1.0 | Auth flow big headers (glow-strong) |
-| `displaySmall` | Playfair Display | 32 | w700 *italic* | -1.0 | 1.05 | Feed hero, ~~coming-soon,~~ section heroes (glow-strong) |
-| `headlineLarge` | Playfair Display | 28 | w600 *italic* | -0.8 | 1.1 | Event titles, podium names, group hero, profile username (glow-soft) |
+| `displayLarge` | Playfair Display | 64 | w700 | -1.9 (~-0.03em) | 1.0 | Welcome wordmark (glow-strong) |
+| `displayMedium` | Playfair Display | 40 | w700 | -1.2 (~-0.03em) | 1.0 | Auth flow big headers (glow-strong) |
+| `displaySmall` | Playfair Display | 32 | w700 | -1.0 | 1.05 | Feed hero, ~~coming-soon,~~ section heroes (glow-strong) |
+| `headlineLarge` | Playfair Display | 28 | w600 | -0.8 | 1.1 | Event titles, podium names, group hero, profile username (glow-soft) |
 | `headlineMedium` | Inter | 24 | w700 | -0.3 | 1.2 | Screen headers |
 | `headlineSmall` | Inter | 20 | w600 | -0.2 | 1.3 | Card titles, empty-state titles |
 | `titleLarge` | Inter | 18 | w600 | 0 | 1.4 | List item titles |
@@ -608,7 +619,7 @@ The exact implemented API surface — future features import from these files; t
 - Flutter text scaling (`MediaQuery.textScalerOf`): https://api.flutter.dev/flutter/widgets/MediaQuery/textScalerOf.html
 - Flutter accessibility docs (the "active interactions" release-checklist rule U-26 applied): https://docs.flutter.dev/ui/accessibility
 - MDN `text-shadow` (offset/blur/color, layered shadows front-to-back): https://developer.mozilla.org/en-US/docs/Web/CSS/text-shadow
-- Google Fonts — Playfair Display (display serif; italic+bold usage): https://fonts.google.com/specimen/Playfair+Display
+- Google Fonts — Playfair Display (display serif; bold-only since 2026-08-14, no italics): https://fonts.google.com/specimen/Playfair+Display
 - Material 3 Color System (color roles; Samay overrides roles per §2): https://m3.material.io/styles/color/system/overview
 - go_router `extraCodec` (the U-29 `RouteExtraCodec` pattern): https://pub.dev/documentation/go_router/latest/go_router/GoRouter-class.html
 

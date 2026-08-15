@@ -5,6 +5,7 @@ import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/error_view.dart';
 import 'package:samay/shared/widgets/v_button.dart';
+import 'package:samay/shared/widgets/v_spinner.dart';
 
 /// Full-area loading state: white spinner + optional `mutedStrong` caption,
 /// centered on black (DISCO-DESIGN-SYSTEM §5.8).
@@ -24,14 +25,7 @@ class VLoadingView extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const SizedBox(
-            width: 24,
-            height: 24,
-            child: CircularProgressIndicator(
-              strokeWidth: 2,
-              color: AppColors.white,
-            ),
-          ),
+          const VSpinner(size: 24),
           if (label != null) ...[
             const SizedBox(height: AppSpacing.lg),
             Text(

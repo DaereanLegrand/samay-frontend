@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
+import 'package:samay/core/logging/app_logger.dart';
 import 'package:samay/crypto/codec.dart';
 import 'package:samay/crypto/constants.dart';
 import 'package:samay/crypto/double_ratchet.dart';
@@ -70,6 +71,15 @@ class E2eeSession implements E2eeMessageCipher {
   /// Initiator-only: false until the init envelope has been produced.
   bool _hasSentInit = false;
 
+  /// Initiator-only, Signal `unacknowledgedPreKeyMessage` semantics
+  /// (2026-08-15): true only after the peer's FIRST successfully decrypted
+  /// ratchet reply acknowledged our init. While false, every outbound
+  /// message is re-sent as a FRESH init envelope — the peer can always
+  /// (re)establish the session, even after app restarts or a lost init.
+  /// Old session JSON (no field) restores as false → stale sessions heal on
+  /// the next send (the live "Mensaje no descifrable" bug).
+  bool _initAcknowledged = false;
+
   /// Initiator-only: X3DH init fields for the one-time init envelope.
   Uint8List? _ekA;
   int? _spkId;
@@ -137,6 +147,23 @@ class E2eeSession implements E2eeMessageCipher {
     final identity = await _identityKeys();
     await _ensureSessionReady(identity);
 
+    // Signal unacknowledged-prekey semantics (2026-08-15): while the peer
+    // has not acknowledged our init (first decrypted ratchet reply), every
+    // outbound message is re-sent as a FRESH init envelope — the peer can
+    // always (re)establish the session, even after an app restart or a lost
+    // init. Fresh X3DH (new ekA) is required because our init replay
+    // protection (I-37) drops IDENTICAL init envelopes, where Signal can
+    // safely reuse the prekey items. Once a ratchet reply decrypts
+    // (`clearUnacknowledgedPreKeyMessage`), ratchet (0x02) resumes.
+    if (_role == 'initiator' && _hasSentInit && !_initAcknowledged) {
+      AppLogger.instance.warn(
+        'e2ee unacknowledged init chat=$chatId peer=$peerUserId — '
+        're-initiating with a fresh init envelope (Signal prekey semantics)',
+      );
+      await wipe();
+      await _ensureSessionReady(identity);
+    }
+
     final ratchet = _ratchet!;
     final (header, ciphertext) = await ratchetEncrypt(
       ratchet,
@@ -164,7 +191,24 @@ class E2eeSession implements E2eeMessageCipher {
       _hasSentInit = true;
     }
     await _persist();
+    AppLogger.instance.debug(
+      'e2ee encrypt chat=$chatId peer=$peerUserId '
+      'type=${initMessage ? "init(0x01)" : "ratchet(0x02)"} '
+      'hasSentInit=$_hasSentInit',
+    );
     return base64UrlNoPadEncode(envelope.encode());
+  }
+
+  /// Whether [envelope] is a type-0x01 init (X3DH first message) — used by
+  /// the chat layer to roll the session back when the init's INSERT failed
+  /// (the peer never received it; retries must re-initiate, not send ratchet
+  /// messages into a session the peer never saw).
+  @override
+  bool envelopeIsInit(String envelope) {
+    final bytes = base64UrlNoPadDecode(envelope);
+    if (bytes == null) return false;
+    final parsed = SamayEnvelope.tryParse(bytes);
+    return parsed?.type == e2eeEnvelopeTypeInit;
   }
 
   /// Decrypts an envelope string. Returns the plaintext, or null when the
@@ -191,16 +235,20 @@ class E2eeSession implements E2eeMessageCipher {
   /// Discards the session: deletes it from the store and zeroes the
   /// in-memory key material (including inactive sessions and the replay
   /// marker). (Account-level wipe of ALL material is
-  /// `E2eeKeyStore.wipeAll()` — §7.6.)
-  void wipe() {
+  /// `E2eeKeyStore.wipeAll()` — §7.6.) The chat layer uses this to roll
+  /// back an initiator session whose init INSERT failed — the next encrypt
+  /// re-initiates fresh X3DH (2026-08-15 session/insert atomicity).
+  @override
+  Future<void> wipe() async {
     _ratchet = null;
     _peerIkDh = null;
     _peerIkSig = null;
     _ekA = null;
     _hasSentInit = false;
+    _initAcknowledged = false;
     _retired.clear();
     _lastInitMarker = null;
-    _sessionStore.deleteSession(chatId);
+    await _sessionStore.deleteSession(chatId);
   }
 
   /// Safety fingerprint (§6.1): first 30 bytes of
@@ -244,6 +292,7 @@ class E2eeSession implements E2eeMessageCipher {
       'peer_ik_dh': base64UrlNoPadEncode(_peerIkDh!),
       'peer_ik_sig': base64UrlNoPadEncode(_peerIkSig!),
       'has_sent_init': _hasSentInit,
+      'init_acknowledged': _initAcknowledged,
       'last_init_marker': _lastInitMarker,
       'retired_sessions': [
         for (final r in _retired)
@@ -271,15 +320,27 @@ class E2eeSession implements E2eeMessageCipher {
     final saved = await _sessionStore.loadSession(chatId);
     if (saved != null) {
       _restore(saved);
+      AppLogger.instance.debug(
+        'e2ee session restored from store chat=$chatId peer=$peerUserId',
+      );
       return;
     }
     // Initiator path: fresh X3DH run with the peer's current bundle (§5.3).
     final bundle = await _prekeyService.fetchBundle(peerUserId);
     if (bundle == null) {
+      AppLogger.instance.error(
+        'e2ee session initiate FAILED chat=$chatId peer=$peerUserId — '
+        'peer has no published prekey bundle (see fetchBundle log)',
+      );
       throw E2eeCryptoException(
         'no prekey bundle for peer $peerUserId — cannot initiate E2EE session',
       );
     }
+    AppLogger.instance.debug(
+      'e2ee session initiating chat=$chatId peer=$peerUserId '
+      'spkId=${bundle.signedPrekeyId} '
+      'opkId=${bundle.oneTimePrekeyId ?? e2eeNoOpkId}',
+    );
     final init = await x3dhInitiate(
       ourIdentityPrivateKey: identity.ikDhPrivate,
       ourIdentityPublicKey: identity.ikDhPublic,
@@ -311,12 +372,24 @@ class E2eeSession implements E2eeMessageCipher {
   ) async {
     if (env.recipientIkDh == null ||
         !constantTimeEquals(env.recipientIkDh!, identity.ikDhPublic)) {
+      AppLogger.instance.warn(
+        'e2ee init envelope DROPPED chat=$chatId — recipient identity does '
+        'not match this device (delivery binding §6.5; the sender initiated '
+        'against a stale published bundle)',
+      );
       return null; // delivery binding (§6.5)
     }
     if (env.ekA == null || env.spkId == null || env.opkId == null) {
+      AppLogger.instance.warn(
+        'e2ee init envelope DROPPED chat=$chatId — missing X3DH header '
+        'fields (ekA/spkId/opkId)',
+      );
       return null;
     }
     if (constantTimeEquals(env.senderIkDh, identity.ikDhPublic)) {
+      AppLogger.instance.warn(
+        'e2ee init envelope DROPPED chat=$chatId — our own init echoed back',
+      );
       return null; // our own init echoed back — never process
     }
 
@@ -334,16 +407,33 @@ class E2eeSession implements E2eeMessageCipher {
       ])),
     );
     if (marker == _lastInitMarker) {
+      AppLogger.instance.warn(
+        'e2ee init envelope DROPPED chat=$chatId — replay (identical marker '
+        'already processed, X3DH §4.2)',
+      );
       return null;
     }
 
     final spkPair = await _keyStore.loadSignedPrekeyPrivate(env.spkId!);
-    if (spkPair == null) return null;
+    if (spkPair == null) {
+      AppLogger.instance.warn(
+        'e2ee init envelope DROPPED chat=$chatId — no local signed-prekey '
+        'private for spkId=${env.spkId} (the published bundle predates the '
+        'local material — stale-row recovery required)',
+      );
+      return null;
+    }
     final needsOpk = env.opkId! != e2eeNoOpkId;
     final opkPair = needsOpk
         ? await _keyStore.loadOneTimePrekeyPrivate(env.opkId!)
         : null;
-    if (needsOpk && opkPair == null) return null;
+    if (needsOpk && opkPair == null) {
+      AppLogger.instance.warn(
+        'e2ee init envelope DROPPED chat=$chatId — no local one-time-prekey '
+        'private for opkId=${env.opkId} (consumed or from stale material)',
+      );
+      return null;
+    }
 
     // Snapshot for the Sesame §3.4 abort path: on failure, restore.
     final prevRatchet = _ratchet;
@@ -416,12 +506,28 @@ class E2eeSession implements E2eeMessageCipher {
   ) async {
     if (_ratchet == null) {
       final saved = await _sessionStore.loadSession(chatId);
-      if (saved == null) return null;
+      if (saved == null) {
+        AppLogger.instance.warn(
+          'e2ee ratchet envelope DROPPED chat=$chatId — no session exists '
+          '(the sender resumed a session whose init envelope never reached '
+          'this device; a fresh init is required)',
+        );
+        return null;
+      }
       _restore(saved);
     }
     final peer = _peerIkDh;
-    if (peer == null) return null;
+    if (peer == null) {
+      AppLogger.instance.warn(
+        'e2ee ratchet envelope DROPPED chat=$chatId — no peer identity bound',
+      );
+      return null;
+    }
     if (!constantTimeEquals(env.senderIkDh, peer)) {
+      AppLogger.instance.warn(
+        'e2ee ratchet envelope DROPPED chat=$chatId — sender identity does '
+        'not match the bound peer (identity binding, §7.1)',
+      );
       return null; // identity binding (§7.1)
     }
     final lastUsed = _ratchet!.lastUsedAt;
@@ -437,6 +543,9 @@ class E2eeSession implements E2eeMessageCipher {
         env,
         identity,
       );
+      // The peer's ratchet reply acknowledges our init (Signal
+      // `clearUnacknowledgedPreKeyMessage`) — later sends resume ratchet.
+      _initAcknowledged = true;
       await _persist();
       return plaintext;
     } on RatchetError {
@@ -588,6 +697,9 @@ class E2eeSession implements E2eeMessageCipher {
     _peerIkDh = base64UrlNoPadDecode(map['peer_ik_dh'] as String);
     _peerIkSig = base64UrlNoPadDecode(map['peer_ik_sig'] as String);
     _hasSentInit = map['has_sent_init'] as bool? ?? true;
+    // Old JSON (pre-2026-08-15) has no field → false → an unacknowledged
+    // init heals on the next send (Signal unacknowledged-prekey semantics).
+    _initAcknowledged = map['init_acknowledged'] as bool? ?? false;
     _lastInitMarker = map['last_init_marker'] as String?;
     _retired.clear();
     final cutoff = _clock().subtract(e2eeRetiredSessionMaxAge);

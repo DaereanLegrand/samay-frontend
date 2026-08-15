@@ -1,4 +1,5 @@
 library;
+import 'package:samay/core/logging/app_logger.dart';
 import 'package:samay/crypto/codec.dart';
 import 'package:samay/crypto/constants.dart';
 import 'package:samay/crypto/interfaces.dart';
@@ -34,14 +35,48 @@ class SupabaseE2eePrekeyService implements E2eePrekeyService {
 
   @override
   Future<PrekeyBundle?> fetchBundle(String peerUserId) async {
-    final res = await _client.rpc(
-      'fetch_prekey_bundle',
-      params: {'p_user_id': peerUserId},
-    );
-    if (res is! Map) return null; // NULL when the peer has no published keys
-    final row = Map<String, dynamic>.from(res);
-    if (row['identity_key'] is! String) return null;
-    return _bundleFromRow(row);
+    final stopwatch = Stopwatch()..start();
+    try {
+      final res = await _client.rpc(
+        'fetch_prekey_bundle',
+        params: {'p_user_id': peerUserId},
+      );
+      if (res is! Map) {
+        AppLogger.instance.warn(
+          'e2ee fetchBundle NULL peer=$peerUserId — peer has NO published '
+          'prekey bundle (ms=${stopwatch.elapsedMilliseconds})',
+        );
+        return null; // NULL when the peer has no published keys
+      }
+      final row = Map<String, dynamic>.from(res);
+      if (row['identity_key'] is! String) {
+        AppLogger.instance.warn(
+          'e2ee fetchBundle malformed peer=$peerUserId '
+          'rowKeys=${row.keys.toList()} ms=${stopwatch.elapsedMilliseconds}',
+        );
+        return null;
+      }
+      AppLogger.instance.debug(
+        'e2ee fetchBundle ok peer=$peerUserId '
+        'hasOpk=${row['one_time_prekey'] is Map} '
+        'ms=${stopwatch.elapsedMilliseconds}',
+      );
+      return _bundleFromRow(row);
+    } catch (e) {
+      if (e is PostgrestException) {
+        AppLogger.instance.error(
+          'e2ee fetchBundle RPC failed peer=$peerUserId '
+          'code=${e.code} message="${e.message}" '
+          'ms=${stopwatch.elapsedMilliseconds}',
+        );
+      } else {
+        AppLogger.instance.error(
+          'e2ee fetchBundle failed peer=$peerUserId type=${e.runtimeType} '
+          'ms=${stopwatch.elapsedMilliseconds}',
+        );
+      }
+      rethrow;
+    }
   }
 
   @override
@@ -51,6 +86,7 @@ class SupabaseE2eePrekeyService implements E2eePrekeyService {
   /// signed prekey (auto-rotating when older than 7 days, §5.2) and a
   /// one-time-prekey top-up back to the 100-batch size (§5.1).
   Future<void> publishIdentityBundle() async {
+    final stopwatch = Stopwatch()..start();
     final user = auth.currentUser;
     if (user == null) throw Exception('No authenticated user');
     final existing = await _fetchOwnRow();
@@ -67,19 +103,42 @@ class SupabaseE2eePrekeyService implements E2eePrekeyService {
         ),
       );
     }
+    AppLogger.instance.debug(
+      'e2ee publish topUp=$topUp existingOpks=${opks.length} '
+      'ms=${stopwatch.elapsedMilliseconds}',
+    );
 
-    await _client.from(tableName).upsert(
-      {
-        'user_id': user.id,
-        'identity_key': base64UrlNoPadEncode(identity.ikDhPublic),
-        'identity_sig_key': base64UrlNoPadEncode(identity.ikSigPublic),
-        'signed_prekey_id': spk.id,
-        'signed_prekey': base64UrlNoPadEncode(spk.keyPair.publicKey),
-        'signed_prekey_sig': base64UrlNoPadEncode(spk.signature),
-        'signed_prekey_expires_at': _spkExpiry(existing, spk),
-        'one_time_prekeys': opks,
-      },
-      onConflict: 'user_id',
+    try {
+      await _client.from(tableName).upsert(
+        {
+          'user_id': user.id,
+          'identity_key': base64UrlNoPadEncode(identity.ikDhPublic),
+          'identity_sig_key': base64UrlNoPadEncode(identity.ikSigPublic),
+          'signed_prekey_id': spk.id,
+          'signed_prekey': base64UrlNoPadEncode(spk.keyPair.publicKey),
+          'signed_prekey_sig': base64UrlNoPadEncode(spk.signature),
+          'signed_prekey_expires_at': _spkExpiry(existing, spk),
+          'one_time_prekeys': opks,
+        },
+        onConflict: 'user_id',
+      );
+    } catch (e) {
+      if (e is PostgrestException) {
+        AppLogger.instance.error(
+          'e2ee publish UPSERT failed '
+          'code=${e.code} message="${e.message}" '
+          'details="${e.details}" ms=${stopwatch.elapsedMilliseconds}',
+        );
+      } else {
+        AppLogger.instance.error(
+          'e2ee publish failed type=${e.runtimeType} '
+          'ms=${stopwatch.elapsedMilliseconds}',
+        );
+      }
+      rethrow;
+    }
+    AppLogger.instance.debug(
+      'e2ee publish done ms=${stopwatch.elapsedMilliseconds}',
     );
   }
 
@@ -89,12 +148,27 @@ class SupabaseE2eePrekeyService implements E2eePrekeyService {
     await publishIdentityBundle();
   }
 
-  /// Lazy first-send bootstrap (§12.2 step 2): ensures the local bundle is
-  /// published before initiating a session with a peer. Idempotent — when
-  /// the own row already exists nothing is rewritten.
+  /// Session-restore heal (§12.2 step 4, Signal model 2026-08-15): ensures
+  /// the published bundle matches the LOCAL identity. Republishes when the
+  /// own row is missing OR its `identity_key` differs from the local
+  /// identity — the server record must always mirror the device material
+  /// (sign-out/in wipes, reinstalls, deleteAccount+re-signup all regenerate
+  /// the identity and would otherwise leave a stale row that peers initiate
+  /// against — the live "Mensaje no descifrable" class).
+  @override
   Future<void> handleMissingSession() async {
     final existing = await _fetchOwnRow();
     if (existing == null) {
+      await publishIdentityBundle();
+      return;
+    }
+    final identity = await _keyStore.loadOrCreateIdentity();
+    if (existing['identity_key'] !=
+        base64UrlNoPadEncode(identity.ikDhPublic)) {
+      AppLogger.instance.warn(
+        'e2ee heal: published identity differs from the local identity — '
+        'republishing the bundle (stale-row recovery)',
+      );
       await publishIdentityBundle();
     }
   }

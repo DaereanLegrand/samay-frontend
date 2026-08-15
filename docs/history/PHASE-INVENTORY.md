@@ -100,7 +100,7 @@ Remaining gaps listed in the rows above (R-4 refresh, 2026-08-13).
 
 | Step | DONE | Cross-ref status | Spec | Notes |
 |------|------|------------------|------|-------|
-| `FRND` | ✅ `FRND.DONE` | ✅ | `FRND-friends-system.md` | 3-tab requests incl. Invitaciones (addition not in spec). Screens: search, requests, friends list, blocked |
+| `FRND` | ✅ `FRND.DONE` | ✅ | `FRND-friends-system.md` | 3-tab requests incl. Invitaciones (addition not in spec). Screens: search, requests, friends list, blocked. Freshness (2026-08-14): every mutation invalidates `friendsListProvider` (accept/decline/send/block) AND a shell-mounted realtime listener (`FriendshipsRealtimeListener`, `friendships` channel) refreshes both sides live |
 | `GROU` | ⚠️ `GROU.DONE` (text: PARTIALLY MET) | ⚠️ | `GROU-groups-core.md` | Missing: promotor transfer UI, co-promotor UI, cosmetics display, group chat (E2EE 1:1-only — chat tab is an explanatory R2 card). Cover upload done (image_picker + Storage); real `CreateEventScreen` route at `/group/:groupId/create-event`; minigames hub button on group detail (flag-gated, 2026-08-13) |
 | `GLIM` | ⚠️ `GLIM.DONE` (text: PARTIALLY MET) | ⚠️ | `GLIM-group-limits-subscription-enforcement.md` | Member limit hardcoded `14` (`group_detail_screen._getMemberLimit`), group-count limit hardcoded `5` (`create_group_screen`), not wired to `app_config`. Freeze banner UI done |
 | `SDON` | ✅ `SDON.DONE` | ✅ | `SDON-shard-donations.md` | Donation RPC (auth-checked C-06), contribution display, top contributors; boost-expiry days display deferred |

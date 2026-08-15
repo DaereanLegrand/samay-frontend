@@ -72,4 +72,19 @@ class ChatRepository {
     void Function(Map<String, dynamic>) onInsert,
   ) =>
       _chat.subscribeToMessages(chatId, onInsert);
+
+  /// The caller's chat inbox (RPC `get_chat_inbox`, migration
+  /// 20260815000004): chats they participate in with peer identity, last
+  /// message (E2EE envelope) and unread count, most-recent-first.
+  Future<List<Map<String, dynamic>>> fetchInbox() => _chat.fetchInbox();
+
+  /// Bumps the caller's read watermark for [chatId] (RPC `mark_chat_read`).
+  Future<void> markChatRead(String chatId) => _chat.markChatRead(chatId);
+
+  /// Best-effort decryption of an inbox row's last message (E2EE path — the
+  /// server only ever sees envelopes). Own messages render from the outbox;
+  /// undecryptable ones become [ChatService.chatUndecryptablePlaceholder]
+  /// with `decryptFailed` on the returned row.
+  Future<Map<String, dynamic>> decryptInboxRow(Map<String, dynamic> row) =>
+      _chat.decryptInboxRow(row);
 }

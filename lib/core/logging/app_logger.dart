@@ -96,11 +96,14 @@ class AppLogger {
     final line =
         '[Samay][${level.label}] ${DateTime.now().toUtc().toIso8601String()} '
         '$message${stack.isNotEmpty ? '\n$stack' : ''}';
+    // Debug/profile only (2026-08-15): the run console must show the logs
+    // too — `flutter run` on devices/waydroid saw nothing because the file
+    // path resolves at startup (main.dart init()) and the old code only
+    // fell back to debugPrint when there was no storage dir. Release builds
+    // stay silent (privacy).
+    debugPrint(line);
     final dir = _dir ?? _storageDir;
-    if (dir == null) {
-      debugPrint(line);
-      return;
-    }
+    if (dir == null) return;
     try {
       final file = File('${dir.path}/$logFileName');
       final raf = file.openSync(mode: FileMode.append);
@@ -110,7 +113,7 @@ class AppLogger {
         raf.closeSync();
       }
     } catch (_) {
-      debugPrint(line);
+      // The console copy above is the fallback sink.
     }
   }
 
