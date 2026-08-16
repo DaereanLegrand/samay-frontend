@@ -40,6 +40,8 @@ abstract final class AppColors {
     'pastelPeach': pastelPeach,
     'mint': mint,
     'peach': peach,
+    'statusGrey': statusGrey,
+    'statusRead': statusRead,
   };
 
   // ── Neutrals (core) — §2.1 ────────────────────────────────────────────────
@@ -134,6 +136,20 @@ abstract final class AppColors {
 
   /// LUXE peach family vivid end (#FF8A65). 9.08:1 — AA/AAA.
   static const Color peach = Color(0xFFFF8A65);
+
+  // ── Chat message status (2026-08-15, WhatsApp-style ticks) ────────────────
+  //
+  // The sent/received/read indicators live INSIDE the own (white) message
+  // bubble, so both colors are verified against white (they must also stay
+  // legible on the black page for any future dark-bubble variant).
+
+  /// Sent/received tick grey (#757575). 4.61:1 on white — AA; 4.55:1 on
+  /// black — AA.
+  static const Color statusGrey = Color(0xFF757575);
+
+  /// Read tick blue — WhatsApp's read color adapted for a white bubble
+  /// (#007AFF, iOS system blue). 4.02:1 on white — AA; 5.23:1 on black — AA.
+  static const Color statusRead = Color(0xFF007AFF);
 
   // ── Semantic aliases — §2 usage roles → canonical tokens ───────────────────
   //

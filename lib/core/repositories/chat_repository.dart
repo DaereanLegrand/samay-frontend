@@ -81,6 +81,58 @@ class ChatRepository {
   /// Bumps the caller's read watermark for [chatId] (RPC `mark_chat_read`).
   Future<void> markChatRead(String chatId) => _chat.markChatRead(chatId);
 
+  /// Stamps `read_at` on the caller's peer's unread messages (RPC
+  /// `mark_messages_read`, migration 20260815000005) — only call when the
+  /// caller's `read_receipts_enabled` is on. E2EE-inert: only `read_at`
+  /// is ever written, never the envelope.
+  Future<void> markMessagesRead(String chatId) => _chat.markMessagesRead(chatId);
+
+  /// The caller's read-receipts privacy switch (`users.read_receipts_enabled`).
+  Future<bool> getReadReceiptsEnabled() => _chat.getReadReceiptsEnabled();
+
+  /// Persists the caller's read-receipts switch (own-row RLS).
+  Future<void> setReadReceiptsEnabled(bool value) =>
+      _chat.setReadReceiptsEnabled(value);
+
+  /// Live `read_at` flips for [chatId] (raw rows — consume only `read_at`).
+  /// Like [subscribe], this must never leak raw envelopes to the UI: the
+  /// channel delivers full rows but the caller only merges the status field.
+  RealtimeChannel subscribeToMessageReads(
+    String chatId,
+    void Function(Map<String, dynamic>) onUpdate,
+  ) =>
+      _chat.subscribeToMessageReads(chatId, onUpdate);
+
+  /// Live hard-delete events for [chatId] (delete-for-everyone from the
+  /// sender, or the undecryptable cleanup) — the open thread removes the row
+  /// live. The row is the pre-delete record (REPLICA IDENTITY FULL).
+  RealtimeChannel subscribeToMessageDeletes(
+    String chatId,
+    void Function(Map<String, dynamic>) onDelete,
+  ) =>
+      _chat.subscribeToMessageDeletes(chatId, onDelete);
+
+  /// Delete-for-everyone: sender-only + a 5-minute window verified with the
+  /// SERVER's clock (`messages.sent_at`, migration 20260815000006). The
+  /// [MessageDeleteOutcome] drives the UI copy (too-old snackbar etc.).
+  Future<MessageDeleteOutcome> deleteMessageForEveryone(String messageId) =>
+      _chat.deleteMessageForEveryone(messageId);
+
+  /// Delete-for-me: hides the message on this device only (in-memory
+  /// tombstone) — the server rows stay for the peer.
+  Future<void> deleteMessageForMe(String chatId, String messageId) =>
+      _chat.deleteMessageForMe(chatId, messageId);
+
+  /// Whether [messageId] was locally deleted for this chat (the provider
+  /// drops it from the thread).
+  bool isLocallyDeleted(String chatId, String messageId) =>
+      _chat.isLocallyDeleted(chatId, messageId);
+
+  /// Whether the peer's published identity differs from the session's bound
+  /// identity (reinstall detection, E2EE §7.5). False without a session.
+  Future<bool> peerNeedsRekey(String chatId) =>
+      _chat.peerNeedsRekey(chatId);
+
   /// Best-effort decryption of an inbox row's last message (E2EE path — the
   /// server only ever sees envelopes). Own messages render from the outbox;
   /// undecryptable ones become [ChatService.chatUndecryptablePlaceholder]

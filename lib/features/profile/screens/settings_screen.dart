@@ -7,6 +7,7 @@ import 'package:samay/core/design_tokens/app_typography.dart';
 import 'package:samay/core/providers/auth_provider.dart';
 import 'package:samay/core/providers/theme_provider.dart';
 import 'package:samay/core/router/route_paths.dart';
+import 'package:samay/features/chat/providers/chat_providers.dart';
 import 'package:samay/features/profile/screens/notification_settings_screen.dart';
 import 'package:samay/features/profile/screens/privacy_info_screen.dart';
 import 'package:samay/l10n/app_localizations.dart';
@@ -88,6 +89,22 @@ class SettingsScreen extends ConsumerWidget {
                           .read(themeModeProvider.notifier)
                           .setThemeMode(mode),
                     ),
+                  ],
+                ),
+              ),
+            ),
+            // Chat group (2026-08-15): the read-receipts privacy switch —
+            // WhatsApp-style ✓/✓✓/read ticks. When off, the reader's device
+            // never stamps `read_at`, so the peer never sees blue checks.
+            _SectionHeader(l10n.settingsSectionChat),
+            VGlassCard(
+              gradient: AppGradients.gold,
+              glowAlpha: 0.18,
+              child: Material(
+                type: MaterialType.transparency,
+                child: Column(
+                  children: [
+                    _ReadReceiptsTile(),
                   ],
                 ),
               ),
@@ -289,6 +306,41 @@ class _ThemeSection extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// The read-receipts privacy switch (2026-08-15): `users.read_receipts_enabled`
+/// via [readReceiptsEnabledProvider]. Optimistic — a persistence failure
+/// rolls the switch back and surfaces a snackbar.
+class _ReadReceiptsTile extends ConsumerWidget {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+    final enabled =
+        ref.watch(readReceiptsEnabledProvider).valueOrNull ?? true;
+    return SwitchListTile(
+      contentPadding: EdgeInsets.zero,
+      secondary: const Icon(Icons.done_all),
+      title: Text(l10n.chatReadReceipts),
+      subtitle: Text(
+        l10n.chatReadReceiptsBody,
+        style: Theme.of(
+          context,
+        ).textTheme.bodySmall?.copyWith(color: AppColors.mutedStrong),
+      ),
+      value: enabled,
+      onChanged: (value) async {
+        try {
+          await ref.read(readReceiptsEnabledProvider.notifier).setEnabled(value);
+        } catch (_) {
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(l10n.chatReadReceiptsSaveError)),
+            );
+          }
+        }
+      },
     );
   }
 }

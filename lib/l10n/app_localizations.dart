@@ -1202,6 +1202,12 @@ abstract class AppLocalizations {
   /// **'Apariencia'**
   String get settingsSectionAppearance;
 
+  /// Settings section header for the chat preferences group (2026-08-15)
+  ///
+  /// In es, this message translates to:
+  /// **'Chat'**
+  String get settingsSectionChat;
+
   /// Settings section header for the account rows group (R6)
   ///
   /// In es, this message translates to:
@@ -2126,6 +2132,36 @@ abstract class AppLocalizations {
   /// **'Mensaje no descifrable'**
   String get chatUndecryptable;
 
+  /// Long-press action: delete the message for everyone (sender only, 5-minute window)
+  ///
+  /// In es, this message translates to:
+  /// **'Eliminar para todos'**
+  String get chatDeleteForEveryone;
+
+  /// Long-press action: hide the message on this device only
+  ///
+  /// In es, this message translates to:
+  /// **'Eliminar para mí'**
+  String get chatDeleteForMe;
+
+  /// Snackbar when delete-for-everyone is attempted past the 5-minute window
+  ///
+  /// In es, this message translates to:
+  /// **'Solo puedes eliminar mensajes enviados hace menos de 5 minutos'**
+  String get chatDeleteTooOld;
+
+  /// Snackbar when a message deletion fails
+  ///
+  /// In es, this message translates to:
+  /// **'No se pudo eliminar el mensaje'**
+  String get chatDeleteFailed;
+
+  /// Notice shown once per peer when their published identity changed (reinstall)
+  ///
+  /// In es, this message translates to:
+  /// **'El otro usuario reinstaló la app o cambió de dispositivo'**
+  String get chatPeerReinstalled;
+
   /// Empty state when a chat has no messages
   ///
   /// In es, this message translates to:
@@ -2185,6 +2221,54 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'ahora'**
   String get commonNow;
+
+  /// Date separator chip label for messages sent today
+  ///
+  /// In es, this message translates to:
+  /// **'Hoy'**
+  String get commonToday;
+
+  /// Date separator chip label for messages sent yesterday
+  ///
+  /// In es, this message translates to:
+  /// **'Ayer'**
+  String get commonYesterday;
+
+  /// Settings row: WhatsApp-style read receipts privacy switch
+  ///
+  /// In es, this message translates to:
+  /// **'Confirmaciones de lectura'**
+  String get chatReadReceipts;
+
+  /// Settings row subtitle explaining the read-receipts switch
+  ///
+  /// In es, this message translates to:
+  /// **'Si está desactivado, tus mensajes nunca se marcan como leídos.'**
+  String get chatReadReceiptsBody;
+
+  /// Snackbar when persisting the read-receipts switch fails
+  ///
+  /// In es, this message translates to:
+  /// **'No se pudo actualizar las confirmaciones de lectura'**
+  String get chatReadReceiptsSaveError;
+
+  /// Semantics label for a message that was sent but not yet confirmed
+  ///
+  /// In es, this message translates to:
+  /// **'Enviado'**
+  String get chatSent;
+
+  /// Semantics label for a message delivered but not yet read
+  ///
+  /// In es, this message translates to:
+  /// **'Recibido'**
+  String get chatReceived;
+
+  /// Semantics label for a message the peer has read
+  ///
+  /// In es, this message translates to:
+  /// **'Leído'**
+  String get chatRead;
 
   /// Event creation: type selector section label
   ///

@@ -618,6 +618,9 @@ class AppLocalizationsEs extends AppLocalizations {
   String get settingsSectionAppearance => 'Apariencia';
 
   @override
+  String get settingsSectionChat => 'Chat';
+
+  @override
   String get settingsSectionAccount => 'Cuenta';
 
   @override
@@ -1119,6 +1122,23 @@ class AppLocalizationsEs extends AppLocalizations {
   String get chatUndecryptable => 'Mensaje no descifrable';
 
   @override
+  String get chatDeleteForEveryone => 'Eliminar para todos';
+
+  @override
+  String get chatDeleteForMe => 'Eliminar para mí';
+
+  @override
+  String get chatDeleteTooOld =>
+      'Solo puedes eliminar mensajes enviados hace menos de 5 minutos';
+
+  @override
+  String get chatDeleteFailed => 'No se pudo eliminar el mensaje';
+
+  @override
+  String get chatPeerReinstalled =>
+      'El otro usuario reinstaló la app o cambió de dispositivo';
+
+  @override
   String get chatEmpty => 'No hay mensajes todavía';
 
   @override
@@ -1148,6 +1168,32 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get commonNow => 'ahora';
+
+  @override
+  String get commonToday => 'Hoy';
+
+  @override
+  String get commonYesterday => 'Ayer';
+
+  @override
+  String get chatReadReceipts => 'Confirmaciones de lectura';
+
+  @override
+  String get chatReadReceiptsBody =>
+      'Si está desactivado, tus mensajes nunca se marcan como leídos.';
+
+  @override
+  String get chatReadReceiptsSaveError =>
+      'No se pudo actualizar las confirmaciones de lectura';
+
+  @override
+  String get chatSent => 'Enviado';
+
+  @override
+  String get chatReceived => 'Recibido';
+
+  @override
+  String get chatRead => 'Leído';
 
   @override
   String get eventsTypeLabel => 'Tipo de evento';

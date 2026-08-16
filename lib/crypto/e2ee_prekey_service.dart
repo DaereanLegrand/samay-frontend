@@ -85,6 +85,16 @@ class SupabaseE2eePrekeyService implements E2eePrekeyService {
   /// Publishes (or refreshes) the full bundle: identity keys, the current
   /// signed prekey (auto-rotating when older than 7 days, §5.2) and a
   /// one-time-prekey top-up back to the 100-batch size (§5.1).
+  ///
+  /// **Identity change = full pool replacement (2026-08-16):** when the
+  /// server row's `identity_key` differs from the local identity (reinstall,
+  /// account switch, sign-out/in wipe), the row's one-time prekeys belong to
+  /// the OLD identity — their private keys no longer exist on this device, so
+  /// any peer that initiates with one produces a session this device can
+  /// never decrypt (the live "Mensaje no descifrable" class). The pool is
+  /// therefore REPLACED with a fresh batch (and the consumed markers reset)
+  /// instead of merged. Same-identity republish (SPK rotation, routine
+  /// top-up) keeps the existing merge behavior.
   Future<void> publishIdentityBundle() async {
     final stopwatch = Stopwatch()..start();
     final user = auth.currentUser;
@@ -93,18 +103,43 @@ class SupabaseE2eePrekeyService implements E2eePrekeyService {
     final identity = await _keyStore.loadOrCreateIdentity();
     final spk = await _keyStore.currentSignedPrekey();
 
-    final opks = _opkListFromRow(existing);
-    final topUp = e2eeOneTimePrekeyBatchSize - opks.length;
-    if (topUp > 0) {
-      final fresh = await _keyStore.generateOneTimePrekeys(topUp);
+    final identityKeyB64 = base64UrlNoPadEncode(identity.ikDhPublic);
+    final identityChanged = existing?['identity_key'] != identityKeyB64;
+    final opks = <Map<String, dynamic>>[];
+    final consumed = <dynamic>[];
+    if (identityChanged) {
+      // Dead-OPK replacement: none of the row's old-identity OPKs may
+      // survive — generate a FULL fresh batch.
+      AppLogger.instance.warn(
+        'e2ee publish identity CHANGED — replacing the one-time-prekey pool '
+        'with a fresh batch (dead-OPK recovery)',
+      );
+      final fresh = await _keyStore.generateOneTimePrekeys(
+        e2eeOneTimePrekeyBatchSize,
+      );
       opks.addAll(
         fresh.map(
           (r) => {'id': r.id, 'key': base64UrlNoPadEncode(r.keyPair.publicKey)},
         ),
       );
+    } else {
+      final existingOpks = _opkListFromRow(existing);
+      final topUp = e2eeOneTimePrekeyBatchSize - existingOpks.length;
+      if (topUp > 0) {
+        final fresh = await _keyStore.generateOneTimePrekeys(topUp);
+        existingOpks.addAll(
+          fresh.map(
+            (r) => {'id': r.id, 'key': base64UrlNoPadEncode(r.keyPair.publicKey)},
+          ),
+        );
+      }
+      opks.addAll(existingOpks);
+      consumed.addAll(existing?['consumed_one_time_prekeys'] is List
+          ? (existing!['consumed_one_time_prekeys'] as List)
+          : const []);
     }
     AppLogger.instance.debug(
-      'e2ee publish topUp=$topUp existingOpks=${opks.length} '
+      'e2ee publish identityChanged=$identityChanged opks=${opks.length} '
       'ms=${stopwatch.elapsedMilliseconds}',
     );
 
@@ -112,13 +147,14 @@ class SupabaseE2eePrekeyService implements E2eePrekeyService {
       await _client.from(tableName).upsert(
         {
           'user_id': user.id,
-          'identity_key': base64UrlNoPadEncode(identity.ikDhPublic),
+          'identity_key': identityKeyB64,
           'identity_sig_key': base64UrlNoPadEncode(identity.ikSigPublic),
           'signed_prekey_id': spk.id,
           'signed_prekey': base64UrlNoPadEncode(spk.keyPair.publicKey),
           'signed_prekey_sig': base64UrlNoPadEncode(spk.signature),
           'signed_prekey_expires_at': _spkExpiry(existing, spk),
           'one_time_prekeys': opks,
+          'consumed_one_time_prekeys': consumed,
         },
         onConflict: 'user_id',
       );

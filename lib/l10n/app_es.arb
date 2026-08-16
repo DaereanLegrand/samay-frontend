@@ -833,6 +833,10 @@
   "@settingsSectionAppearance": {
     "description": "Settings section header for the visual preferences group (R6)"
   },
+  "settingsSectionChat": "Chat",
+  "@settingsSectionChat": {
+    "description": "Settings section header for the chat preferences group (2026-08-15)"
+  },
   "settingsSectionAccount": "Cuenta",
   "@settingsSectionAccount": {
     "description": "Settings section header for the account rows group (R6)"
@@ -1489,6 +1493,26 @@
   "@chatUndecryptable": {
     "description": "Placeholder for a message whose E2EE envelope could not be decrypted"
   },
+  "chatDeleteForEveryone": "Eliminar para todos",
+  "@chatDeleteForEveryone": {
+    "description": "Long-press action: delete the message for everyone (sender only, 5-minute window)"
+  },
+  "chatDeleteForMe": "Eliminar para mí",
+  "@chatDeleteForMe": {
+    "description": "Long-press action: hide the message on this device only"
+  },
+  "chatDeleteTooOld": "Solo puedes eliminar mensajes enviados hace menos de 5 minutos",
+  "@chatDeleteTooOld": {
+    "description": "Snackbar when delete-for-everyone is attempted past the 5-minute window"
+  },
+  "chatDeleteFailed": "No se pudo eliminar el mensaje",
+  "@chatDeleteFailed": {
+    "description": "Snackbar when a message deletion fails"
+  },
+  "chatPeerReinstalled": "El otro usuario reinstaló la app o cambió de dispositivo",
+  "@chatPeerReinstalled": {
+    "description": "Notice shown once per peer when their published identity changed (reinstall)"
+  },
   "chatEmpty": "No hay mensajes todavía",
   "@chatEmpty": {
     "description": "Empty state when a chat has no messages"
@@ -1528,6 +1552,38 @@
   "commonNow": "ahora",
   "@commonNow": {
     "description": "Relative time label for something that just happened"
+  },
+  "commonToday": "Hoy",
+  "@commonToday": {
+    "description": "Date separator chip label for messages sent today"
+  },
+  "commonYesterday": "Ayer",
+  "@commonYesterday": {
+    "description": "Date separator chip label for messages sent yesterday"
+  },
+  "chatReadReceipts": "Confirmaciones de lectura",
+  "@chatReadReceipts": {
+    "description": "Settings row: WhatsApp-style read receipts privacy switch"
+  },
+  "chatReadReceiptsBody": "Si está desactivado, tus mensajes nunca se marcan como leídos.",
+  "@chatReadReceiptsBody": {
+    "description": "Settings row subtitle explaining the read-receipts switch"
+  },
+  "chatReadReceiptsSaveError": "No se pudo actualizar las confirmaciones de lectura",
+  "@chatReadReceiptsSaveError": {
+    "description": "Snackbar when persisting the read-receipts switch fails"
+  },
+  "chatSent": "Enviado",
+  "@chatSent": {
+    "description": "Semantics label for a message that was sent but not yet confirmed"
+  },
+  "chatReceived": "Recibido",
+  "@chatReceived": {
+    "description": "Semantics label for a message delivered but not yet read"
+  },
+  "chatRead": "Leído",
+  "@chatRead": {
+    "description": "Semantics label for a message the peer has read"
   },
   "eventsTypeLabel": "Tipo de evento",
   "@eventsTypeLabel": {

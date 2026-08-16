@@ -70,7 +70,14 @@ help:
 	@echo "    bundle-install           install bundler gems (fastlane)"
 
 APP_NAME := samay_app
-APK := build/app/outputs/flutter-apk/app-release.apk
+# Android dev-build mode (2026-08-15 fix, M-27 preserved): `make build
+# TARGET=android|waydroid` (and the bare `make build`) builds a DEBUG apk.
+# Dev installs never need the §3.3 release keystore (the M-27 fail-fast
+# guard still kills assembleRelease/bundleRelease without it), and the
+# debug-signed apk installs `-r` over the debug apps already on the devices.
+# Real release/AAB packaging goes through fastlane/M-22 — never this target.
+BUILD_MODE ?= debug
+APK := build/app/outputs/flutter-apk/app-$(BUILD_MODE).apk
 GO_BIN := samay
 GO_BIN_LINUX := samay-linux
 IPA_ADHOC := build/ios/ipa/$(APP_NAME)-adhoc.ipa
@@ -281,7 +288,7 @@ build:
 		flutter build ios --simulator $(PUB_FLAG) $(FLUTTER_DEFINES) && \
 		echo "✅  Simulator app: build/ios/iphonesimulator/Runner.app"; \
 	else \
-		flutter build apk $(PUB_FLAG) $(FLUTTER_DEFINES) && \
+		flutter build apk --$(BUILD_MODE) $(PUB_FLAG) $(FLUTTER_DEFINES) && \
 		echo "✅  APK: $(APK)"; \
 	fi
 
@@ -716,7 +723,7 @@ supabase-testing-reset:
 # pattern, read-only reference). Usage:
 #   make tunnel-android                                   # default: <build-host> → flutter run
 #   make tunnel-android TUNNEL_HOST=ci-box TUNNEL_ANDROID_PORT=5565
-#   make tunnel-android TUNNEL_CMD="adb -s localhost:5565 install -r build/app/outputs/flutter-apk/app-release.apk"
+#   make tunnel-android TUNNEL_CMD="adb -s localhost:5565 install -r build/app/outputs/flutter-apk/app-debug.apk"
 tunnel-android:
 	@HOST="$(TUNNEL_HOST)"; [ -n "$$HOST" ] || { echo "TUNNEL_HOST is required"; exit 2; }; \
 		(trap 'kill $$SSH_PID 2>/dev/null; adb disconnect localhost:$(TUNNEL_ANDROID_PORT) 2>/dev/null' EXIT; \

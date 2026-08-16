@@ -618,6 +618,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsSectionAppearance => 'Appearance';
 
   @override
+  String get settingsSectionChat => 'Chat';
+
+  @override
   String get settingsSectionAccount => 'Account';
 
   @override
@@ -1117,6 +1120,23 @@ class AppLocalizationsEn extends AppLocalizations {
   String get chatUndecryptable => 'Message can\'t be decrypted';
 
   @override
+  String get chatDeleteForEveryone => 'Delete for everyone';
+
+  @override
+  String get chatDeleteForMe => 'Delete for me';
+
+  @override
+  String get chatDeleteTooOld =>
+      'You can only delete messages sent less than 5 minutes ago';
+
+  @override
+  String get chatDeleteFailed => 'Couldn\'t delete the message';
+
+  @override
+  String get chatPeerReinstalled =>
+      'The other user reinstalled the app or changed devices';
+
+  @override
   String get chatEmpty => 'No messages yet';
 
   @override
@@ -1146,6 +1166,31 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get commonNow => 'now';
+
+  @override
+  String get commonToday => 'Today';
+
+  @override
+  String get commonYesterday => 'Yesterday';
+
+  @override
+  String get chatReadReceipts => 'Read receipts';
+
+  @override
+  String get chatReadReceiptsBody =>
+      'When off, your messages are never marked as read.';
+
+  @override
+  String get chatReadReceiptsSaveError => 'Couldn\'t update read receipts';
+
+  @override
+  String get chatSent => 'Sent';
+
+  @override
+  String get chatReceived => 'Received';
+
+  @override
+  String get chatRead => 'Read';
 
   @override
   String get eventsTypeLabel => 'Event type';
