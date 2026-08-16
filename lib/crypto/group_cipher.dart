@@ -286,6 +286,75 @@ class GroupE2eeCipher {
     }
   }
 
+  /// True when [plaintext] is a sender-key REQUEST (marker check, 2026-08-17
+  /// retry protocol) — the chat layer routes pairwise plaintexts through
+  /// this BEFORE the bundle check (a request and a bundle are mutually
+  /// exclusive kinds).
+  Future<bool> isSenderKeyRequest(String plaintext) async {
+    try {
+      final decoded = jsonDecode(plaintext);
+      return decoded is Map && decoded['kind'] == e2eeGroupKeyRequestKind;
+    } on FormatException {
+      return false;
+    }
+  }
+
+  /// Builds the distribution REQUEST payload for a member whose device has
+  /// no sender-key record for [missingSenderUserId]'s chain: a JSON string
+  /// with the `samay.group_key_request` marker, the group id, the chat id
+  /// and the id of the member whose chain is missing. The chat layer
+  /// delivers it as the PLAINTEXT of a pairwise ratchet message addressed
+  /// (via `messages.recipient_id`) to exactly that member — the Signal
+  /// retry-request analogue (2026-08-17 missing-chain deadlock heal). The
+  /// requester's identity is the row's RLS-bound `sender_id`, never a
+  /// self-attested field (the K1 lesson).
+  Future<String> senderKeyRequestJson({
+    required String groupChatId,
+    required String groupId,
+    required String missingSenderUserId,
+  }) async {
+    AppLogger.instance.debug(
+      'e2ee group sender-key REQUEST produced group=$groupId chat=$groupChatId '
+      'missingSender=$missingSenderUserId',
+    );
+    return jsonEncode({
+      'v': e2eeGroupKeyRequestVersion,
+      'kind': e2eeGroupKeyRequestKind,
+      'group_id': groupId,
+      'chat_id': groupChatId,
+      'for_sender_user_id': missingSenderUserId,
+    });
+  }
+
+  /// Validates a REQUEST payload against [groupChatId]/[groupId] and returns
+  /// the id of the member whose chain is being requested (the chat layer
+  /// acts on it ONLY when it equals the local user — a request for someone
+  /// else's chain is ignored, the cross-chain confusion guard). Returns
+  /// null for a malformed/foreign request (wrong marker, version, group id,
+  /// chat id, or missing fields) — never throws.
+  Future<String?> senderKeyRequestTarget({
+    required String json,
+    required String groupChatId,
+    required String groupId,
+  }) async {
+    Object? decoded;
+    try {
+      decoded = jsonDecode(json);
+    } on FormatException {
+      return null;
+    }
+    if (decoded is! Map) return null;
+    final map = Map<String, dynamic>.from(decoded);
+    if (map['kind'] != e2eeGroupKeyRequestKind ||
+        map['v'] != e2eeGroupKeyRequestVersion ||
+        map['group_id'] != groupId ||
+        map['chat_id'] != groupChatId) {
+      return null;
+    }
+    final target = map['for_sender_user_id'];
+    return target is String ? target : null;
+  }
+
   /// Validates and persists a distribution bundle for [senderUserId]'s chain
   /// (the chat layer passes the message row's `sender_id` and the group's
   /// uuid). Invalid input is logged and ignored — never thrown to the UI:
@@ -540,7 +609,10 @@ class GroupE2eeCipher {
         'sender=$senderUserId — no sender-key record (bundle never '
         'processed; Signal NoSession semantics)',
       );
-      return const E2eeDecryptResult.dropped();
+      // missingChain: the drop is the requestable class — this device has
+      // no chain material for the sender, so the chat layer asks the sender
+      // to re-distribute (2026-08-17 retry protocol).
+      return const E2eeDecryptResult.dropped(missingChain: true);
     }
     // F4 cross-group chat binding: the record is routed by the envelope's
     // groupId only, but it was distributed in ONE chat. A row carrying this
@@ -563,7 +635,10 @@ class GroupE2eeCipher {
         'sender=$senderUserId — envelope senderIkDh does not match the '
         'stored bundle (identity changed / session reset)',
       );
-      return const E2eeDecryptResult.dropped();
+      // missingChain: the stored record is bound to a stale identity — this
+      // device needs the sender's FRESH chain (reinstall-era bundle), so the
+      // chat layer requests a re-distribution (2026-08-17 retry protocol).
+      return const E2eeDecryptResult.dropped(missingChain: true);
     }
     if (chainIndex <= record.lastSeenN) {
       AppLogger.instance.warn(
@@ -706,6 +781,39 @@ class GroupE2eeCipher {
           senderUserId: merged,
         },
         epoch: registry?.epoch ?? 0,
+      ).toJson(),
+    );
+  }
+
+  /// Removes [memberIds] from [senderUserId]'s distribution target set for
+  /// [groupChatId] — the persistence half of the 2026-08-17 retry protocol:
+  /// a member whose device REQUESTED this sender's chain is un-marked so
+  /// [membersMissingSenderKey] reports them again and the next distribution
+  /// round re-sends the bundle (the deadlock heal — pre-fix a member who
+  /// missed/stale-processed the bundle was marked distributed forever and
+  /// never re-keyed). Members that were never marked are a no-op; an absent
+  /// registry is a no-op too (nothing can be marked yet — a request can only
+  /// arrive for a chain that was actually distributed).
+  Future<void> unmarkSenderKeyDistributed({
+    required String groupChatId,
+    required String senderUserId,
+    required List<String> memberIds,
+  }) async {
+    final registry = await _loadRegistry(groupChatId);
+    if (registry == null) return;
+    final existing = registry.distributedTo[senderUserId] ?? const <String>[];
+    final remaining = existing.where((m) => !memberIds.contains(m)).toList();
+    if (remaining.length == existing.length) return; // nothing to unmark
+    await _sessionStore.saveSession(
+      _registryKey(groupChatId),
+      _GroupRegistry(
+        groupId: registry.groupId,
+        senders: registry.senders,
+        distributedTo: {
+          ...registry.distributedTo,
+          senderUserId: remaining,
+        },
+        epoch: registry.epoch,
       ).toJson(),
     );
   }

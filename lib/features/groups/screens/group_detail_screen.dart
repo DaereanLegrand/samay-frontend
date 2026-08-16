@@ -42,11 +42,42 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen>
 
   late TabController _tabController;
 
+  /// One-shot guard: the screen-open refresh runs once per mount in
+  /// [didChangeDependencies] (ref.invalidate is illegal in initState —
+  /// the element's inherited-widget access is not ready yet).
+  bool _refreshedOnOpen = false;
+
   @override
   void initState() {
     super.initState();
     // ISSUE 3: Info | Chat | Miembros | Eventos — group info is its own tab.
     _tabController = TabController(length: 4, vsync: this);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_refreshedOnOpen) return;
+    _refreshedOnOpen = true;
+    // Screen-open freshness (2026-08-17 user report: the iPhone member list
+    // was STUCK at 4 members): the detail providers are keep-alive family
+    // providers, so a re-opened screen serves the STALE cached state
+    // forever — the realtime listener (GroupMembershipsRealtimeListener,
+    // shell-mounted) only refreshes while the shell is alive AND the channel
+    // delivered the event (missed events never replay; older builds lack
+    // the listener entirely). Every mount invalidates, so a member who
+    // joined/accepted on another device appears on open — no pull, no
+    // restart, no realtime dependency.
+    _refreshOnOpen();
+  }
+
+  /// Invalidates every detail-scoped provider on mount (see
+  /// [didChangeDependencies]).
+  void _refreshOnOpen() {
+    ref.invalidate(groupDetailProvider(widget.groupId));
+    ref.invalidate(groupMembersProvider(widget.groupId));
+    ref.invalidate(contributionsProvider(widget.groupId));
+    ref.invalidate(myMembershipProvider(widget.groupId));
   }
 
   @override
@@ -478,8 +509,13 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen>
   ) {
     final l10n = AppLocalizations.of(context);
     if (members.isEmpty) {
-      return _scrollableTabBody(
-        VEmptyView(icon: Icons.people_outline, title: l10n.groupsNoMembers),
+      // Pull-to-refresh on the empty state too (the scroll physics keep the
+      // gesture alive on short content).
+      return RefreshIndicator(
+        onRefresh: _refreshMembers,
+        child: _scrollableTabBody(
+          VEmptyView(icon: Icons.people_outline, title: l10n.groupsNoMembers),
+        ),
       );
     }
     // R17 (F9 ADAPTED): the members tab rows are admin-gated like the
@@ -523,44 +559,63 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen>
         );
       }),
     ];
-    return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: rows.length,
-      itemBuilder: (_, i) => switch (rows[i]) {
-        _RowHeader(:final text) => Text(
-          text,
-          style: Theme.of(context).textTheme.labelLarge,
-        ),
-        _RowSpacer(:final height) => SizedBox(height: height),
-        _RowContributor(:final username, :final shards) => _ContributorTile(
-          username: username,
-          shards: shards,
-        ),
-        _RowMember(
-          :final userId,
-          :final username,
-          :final role,
-          :final canAct,
-        ) =>
-          _MemberTile(
-            username: username,
-            role: role,
-            onTap: canAct
-                ? () => showMemberActionsSheet(
-                    context,
-                    ref: ref,
-                    groupId: widget.groupId,
-                    member: {
-                      'user_id': userId,
-                      'role': role,
-                      'users': {'username': username},
-                    },
-                    onChanged: _invalidateData,
-                  )
-                : null,
+    // Pull-to-refresh (2026-08-17): the ONLY non-realtime path to fresh
+    // member data — the shell realtime listener misses events when the
+    // channel is down/never replayed, so the gesture refetches members +
+    // contributors unconditionally (invalidate, not the throttled
+    // refresh()).
+    return RefreshIndicator(
+      onRefresh: _refreshMembers,
+      child: ListView.builder(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.all(16),
+        itemCount: rows.length,
+        itemBuilder: (_, i) => switch (rows[i]) {
+          _RowHeader(:final text) => Text(
+            text,
+            style: Theme.of(context).textTheme.labelLarge,
           ),
-      },
+          _RowSpacer(:final height) => SizedBox(height: height),
+          _RowContributor(:final username, :final shards) => _ContributorTile(
+            username: username,
+            shards: shards,
+          ),
+          _RowMember(
+            :final userId,
+            :final username,
+            :final role,
+            :final canAct,
+          ) =>
+            _MemberTile(
+              username: username,
+              role: role,
+              onTap: canAct
+                  ? () => showMemberActionsSheet(
+                      context,
+                      ref: ref,
+                      groupId: widget.groupId,
+                      member: {
+                        'user_id': userId,
+                        'role': role,
+                        'users': {'username': username},
+                      },
+                      onChanged: _invalidateData,
+                    )
+                  : null,
+            ),
+        },
+      ),
     );
+  }
+
+  /// Pull-to-refresh handler for the Miembros tab: refetches the members
+  /// AND contributors providers (the tab renders both). Uses invalidate —
+  /// not the ThrottledRefresh'ed refresh() — so the explicit gesture always
+  /// hits the server (2026-08-17).
+  Future<void> _refreshMembers() async {
+    ref.invalidate(groupMembersProvider(widget.groupId));
+    ref.invalidate(contributionsProvider(widget.groupId));
+    await ref.read(groupMembersProvider(widget.groupId).future);
   }
 
   Widget _buildEventsTab() {

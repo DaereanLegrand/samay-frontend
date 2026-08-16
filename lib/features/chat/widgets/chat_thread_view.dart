@@ -58,6 +58,7 @@ class _ChatThreadViewState extends ConsumerState<ChatThreadView> {
   RealtimeChannel? _channel;
   RealtimeChannel? _readsChannel;
   RealtimeChannel? _deletesChannel;
+  RealtimeChannel? _groupReadsChannel;
 
   /// True while [chatMessagesProvider].send is in flight — drives the
   /// [VThinkingDots] send-button loading state and the optimistic bubble's
@@ -86,7 +87,11 @@ class _ChatThreadViewState extends ConsumerState<ChatThreadView> {
     _subscribeRealtime();
     _subscribeReads();
     _subscribeDeletes();
-    if (widget.groupId == null) {
+    if (widget.groupId != null) {
+      // GROUP mode: per-member read receipts (20260817000006) — the
+      // sender's ticks flip blue the moment the LAST member reads.
+      _subscribeGroupReads();
+    } else {
       // 1:1 only — a group thread has no single peer session to rekey.
       _checkPeerReinstall();
     }
@@ -97,6 +102,7 @@ class _ChatThreadViewState extends ConsumerState<ChatThreadView> {
     _channel?.unsubscribe();
     _readsChannel?.unsubscribe();
     _deletesChannel?.unsubscribe();
+    _groupReadsChannel?.unsubscribe();
     _controller.dispose();
     super.dispose();
   }
@@ -175,6 +181,30 @@ class _ChatThreadViewState extends ConsumerState<ChatThreadView> {
     });
   }
 
+  /// Live per-member read flips in GROUP chats (20260817000006): each
+  /// `message_reads` INSERT carries one (message_id, user_id, read_at)
+  /// receipt — merged into the row's read set so the sender's ticks flip
+  /// blue the moment the LAST other member reads (and never before).
+  void _subscribeGroupReads() {
+    _groupReadsChannel = ref
+        .read(chatE2eeRepositoryProvider)
+        .subscribeToGroupMessageReads(widget.chatId, (row) {
+      final messageId = row['message_id'];
+      final userId = row['user_id'];
+      if (messageId is! String || userId is! String) return;
+      final raw = row['read_at'];
+      final readAt = raw is DateTime
+          ? raw
+          : raw is String
+          ? DateTime.tryParse(raw)
+          : null;
+      if (readAt == null) return;
+      ref
+          .read(chatMessagesProvider(widget.chatId).notifier)
+          .markMessageRead(messageId, userId, readAt);
+    });
+  }
+
   /// E2EE §7.5 reinstall notice (2026-08-16): once per chat, when the peer's
   /// PUBLISHED identity differs from the one bound to the stored session,
   /// inform the user ("El otro usuario reinstaló la app o cambió de
@@ -207,12 +237,15 @@ class _ChatThreadViewState extends ConsumerState<ChatThreadView> {
   /// Long-press message actions (2026-08-16, WhatsApp-style both-options):
   /// a bottom sheet with "Eliminar para todos" (OWN messages only — the
   /// server enforces sender + a 5-minute window with ITS clock) and
-  /// "Eliminar para mí" (any message, any age, this device only).
+  /// "Eliminar para mí" (any message, any age, this device only). Own
+  /// committed messages additionally expose the message-status sheet
+  /// (2026-08-17: sent / read-by-N-of-M for own messages only).
   Future<void> _showMessageActions(Map<String, dynamic> row, bool isOwn) async {
     final l10n = AppLocalizations.of(context);
     final id = row['id'];
     if (id is! String) return;
     final notifier = ref.read(chatMessagesProvider(widget.chatId).notifier);
+    final pending = row['pending'] == true;
 
     // Local UX pre-check for the 5-minute window (server remains the
     // authority): own messages older than 5 min lose the for-everyone option.
@@ -232,6 +265,17 @@ class _ChatThreadViewState extends ConsumerState<ChatThreadView> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            // Own committed messages expose the delivery/read status
+            // ("Enviado / Leído por N de M") — peer messages only offer
+            // deletion (their status is not this device's information).
+            if (isOwn && !pending) ...[
+              ListTile(
+                leading: const Icon(Icons.info_outline),
+                title: Text(l10n.chatMessageInfo),
+                onTap: () => Navigator.pop(context, 'info'),
+              ),
+              const Divider(height: 1),
+            ],
             if (isOwn && withinWindow)
               ListTile(
                 leading: const Icon(Icons.delete_outline),
@@ -250,6 +294,8 @@ class _ChatThreadViewState extends ConsumerState<ChatThreadView> {
     if (action == null || !mounted) return;
 
     switch (action) {
+      case 'info':
+        await _showMessageInfo(row);
       case 'everyone':
         final outcome = await notifier.deleteForEveryone(widget.chatId, id);
         if (!mounted) return;
@@ -266,6 +312,108 @@ class _ChatThreadViewState extends ConsumerState<ChatThreadView> {
         await notifier.deleteForMe(widget.chatId, id);
     }
   }
+
+  /// Message-status sheet (2026-08-17 user request: long-press must show
+  /// sent/arrived/read for OWN messages): "Enviado" with the send time, and
+  /// the read state — per-member "Leído por N de M" (+ names) in GROUP
+  /// chats (20260817000006), "Leído HH:mm" / "No leído" in 1:1.
+  Future<void> _showMessageInfo(Map<String, dynamic> row) async {
+    final l10n = AppLocalizations.of(context);
+    final time = _timeLabelOf(row);
+    final sentLabel = time.isNotEmpty ? time : '—';
+    final Widget readSection;
+    if (widget.groupId != null) {
+      final readers = ChatMessagesState.readersOf(row);
+      final names = <String>[
+        for (final r in readers)
+          if (r['user_id'] is String) ?_memberNameOf(r['user_id'] as String),
+      ];
+      readSection = Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            l10n.chatMessageInfoReadBy(
+              readers.length,
+              otherMembersFor(row),
+            ),
+            style: Theme.of(context).textTheme.bodyMedium,
+          ),
+          if (names.isNotEmpty) ...[
+            const SizedBox(height: 4),
+            Text(
+              names.join(', '),
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: AppColors.mutedStrong,
+              ),
+            ),
+          ],
+        ],
+      );
+    } else {
+      final raw = row['read_at'];
+      final readAt = raw is DateTime
+          ? raw
+          : raw is String
+          ? DateTime.tryParse(raw)
+          : null;
+      readSection = Text(
+        readAt != null
+            ? '${l10n.chatMessageInfoReadAt}: ${_timeOf(readAt)}'
+            : l10n.chatMessageInfoNotRead,
+        style: Theme.of(context).textTheme.bodyMedium,
+      );
+    }
+    await showModalBottomSheet<void>(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(AppSpacing.lg),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                l10n.chatMessageInfo,
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              const SizedBox(height: 12),
+              Text(
+                '${l10n.chatMessageInfoSent}: $sentLabel',
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
+              const SizedBox(height: 8),
+              readSection,
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// The current other-member count for [row]'s group info sheet (the
+  /// CURRENT active roster, minus the caller).
+  int otherMembersFor(Map<String, dynamic> row) {
+    final currentUserId = ref.read(authStateProvider).valueOrNull?.user?['id'];
+    if (widget.groupId == null || currentUserId == null) return 0;
+    return _groupMembers
+        .map((m) => m['user_id'])
+        .whereType<String>()
+        .where((id) => id != currentUserId)
+        .length;
+  }
+
+  static String _timeLabelOf(Map<String, dynamic> row) {
+    final raw = row['created_at'];
+    final created = raw is DateTime
+        ? raw
+        : raw is String
+        ? DateTime.tryParse(raw)
+        : null;
+    if (created == null) return '';
+    return DateFormat('HH:mm').format(created.toLocal());
+  }
+
+  static String _timeOf(DateTime t) => DateFormat('HH:mm').format(t.toLocal());
 
   Future<void> _send() async {
     final text = _controller.text.trim();
@@ -328,23 +476,28 @@ class _ChatThreadViewState extends ConsumerState<ChatThreadView> {
   String? _senderNameOf(Map<String, dynamic> row) {
     final senderId = row['sender_id'];
     if (senderId is! String || senderId.isEmpty) return null;
+    return _memberNameOf(senderId);
+  }
+
+  /// The best-known display name for [userId] (see [_senderNameOf]).
+  String? _memberNameOf(String userId) {
     for (final m in _groupMembers) {
-      if (m['user_id'] == senderId) {
+      if (m['user_id'] == userId) {
         final username = (m['users'] as Map<String, dynamic>?)?['username']
             as String?;
         if (username != null && username.isNotEmpty) return username;
       }
     }
-    final resolved = _resolvedSenders[senderId];
+    final resolved = _resolvedSenders[userId];
     if (resolved != null) return resolved;
     // Not a member row and not resolved yet: kick off the direct lookup
-    // (coalesced to one per sender id) and keep the uid prefix for THIS
+    // (coalesced to one per user id) and keep the uid prefix for THIS
     // frame — the resolved username replaces it once the lookup lands.
-    if (!_senderLookups.containsKey(senderId) &&
-        !_unresolvedSenders.contains(senderId)) {
-      _resolveSenderName(senderId);
+    if (!_senderLookups.containsKey(userId) &&
+        !_unresolvedSenders.contains(userId)) {
+      _resolveSenderName(userId);
     }
-    return senderId.length > 8 ? senderId.substring(0, 8) : senderId;
+    return userId.length > 8 ? userId.substring(0, 8) : userId;
   }
 
   /// USER FIX 2: resolves the sender's username directly (user_search_view
@@ -446,6 +599,20 @@ class _ChatThreadViewState extends ConsumerState<ChatThreadView> {
                   final isOwn =
                       currentUserId != null &&
                       row['sender_id'] == currentUserId;
+                  // GROUP mode: the readers who matter for the sender's
+                  // blue check are the CURRENT other active members —
+                  // verified as a roster-id SET (a departed member's stale
+                  // receipt must never satisfy all-read). Conservative: an
+                  // unknown/empty roster never claims all-read (grey ticks
+                  // — honest under the stale-members class).
+                  final otherMemberIds = widget.groupId != null &&
+                          currentUserId != null
+                      ? _groupMembers
+                            .map((m) => m['user_id'])
+                            .whereType<String>()
+                            .where((id) => id != currentUserId)
+                            .toSet()
+                      : const <String>{};
                   return _MessageBubble(
                     row: row,
                     isOwn: isOwn,
@@ -456,6 +623,8 @@ class _ChatThreadViewState extends ConsumerState<ChatThreadView> {
                         widget.groupId != null && !isOwn
                             ? _senderNameOf(row)
                             : null,
+                    isGroup: widget.groupId != null,
+                    otherMemberIds: otherMemberIds,
                     onLongPress: () => _showMessageActions(row, isOwn),
                   );
                 },
@@ -613,12 +782,22 @@ class _MessageBubble extends StatelessWidget {
   /// bubbles (null in 1:1 threads — the bubble renders exactly as before).
   final String? senderName;
 
+  /// GROUP mode (20260817000006): the sender's ticks flip BLUE only when
+  /// every CURRENT other active member has read the message — the 1:1
+  /// read_at single-column semantics cannot express group reads. The set
+  /// is the CURRENT roster's other-member ids (a departed member's stale
+  /// receipt must never satisfy it).
+  final bool isGroup;
+  final Set<String> otherMemberIds;
+
   final VoidCallback? onLongPress;
 
   const _MessageBubble({
     required this.row,
     required this.isOwn,
     this.senderName,
+    this.isGroup = false,
+    this.otherMemberIds = const {},
     this.onLongPress,
   });
 
@@ -688,6 +867,8 @@ class _MessageBubble extends StatelessWidget {
   /// Own message (2026-08-15): SOLID WHITE bubble (user directive — no peach
   /// fill), black text, and a bottom-right footer with the time + the
   /// WhatsApp-style status ticks (✓ sent / ✓✓ received / blue ✓✓ read).
+  /// GROUP mode (20260817000006): the blue ticks require EVERY other
+  /// member's read (per-member `message_reads` rows), never just the first.
   Widget _ownBubble(
     Object? id,
     String text,
@@ -733,7 +914,14 @@ class _MessageBubble extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 4),
-                _MessageStatus(pending: pending, readAt: readAt, l10n: l10n),
+                _MessageStatus(
+                  pending: pending,
+                  readAt: readAt,
+                  l10n: l10n,
+                  isGroup: isGroup,
+                  otherMemberIds: otherMemberIds,
+                  readers: ChatMessagesState.readersOf(row),
+                ),
               ],
             ),
           ],
@@ -807,16 +995,28 @@ class _MessageBubble extends StatelessWidget {
 /// WhatsApp-style delivery ticks for OWN messages:
 /// - single grey check → sent (optimistic pending row, in flight)
 /// - double grey check → received/delivered (committed, not read)
-/// - double BLUE check → read (`read_at` stamped by the peer's device)
+/// - double BLUE check → read (1:1: `read_at` stamped by the peer's device;
+///   GROUP: every CURRENT other active member's `message_reads` row exists —
+///   20260817000006 — a single reader must NOT turn the ticks blue)
 class _MessageStatus extends StatelessWidget {
   final bool pending;
   final DateTime? readAt;
   final AppLocalizations l10n;
 
+  /// GROUP mode (20260817000006): the per-member read set + the CURRENT
+  /// roster's other-member ids — blue only when ALL of them read (a
+  /// departed member's stale receipt never satisfies the check).
+  final bool isGroup;
+  final Set<String> otherMemberIds;
+  final List<Map<String, dynamic>> readers;
+
   const _MessageStatus({
     required this.pending,
     required this.readAt,
     required this.l10n,
+    this.isGroup = false,
+    this.otherMemberIds = const {},
+    this.readers = const [],
   });
 
   @override
@@ -828,7 +1028,12 @@ class _MessageStatus extends StatelessWidget {
       color = AppColors.statusGrey;
       icon = Icons.check;
       label = l10n.chatSent;
-    } else if (readAt != null) {
+    } else if (isGroup
+        ? ChatMessagesState.isReadByAll(
+            {'message_reads': readers},
+            otherMemberIds,
+          )
+        : readAt != null) {
       color = AppColors.statusRead;
       icon = Icons.done_all;
       label = l10n.chatRead;

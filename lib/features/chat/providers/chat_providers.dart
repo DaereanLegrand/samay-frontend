@@ -236,6 +236,59 @@ class ChatMessagesState {
     return copyWith(messages: updated);
   }
 
+  /// The per-member read receipts of [row] (20260817000006): the embedded
+  /// `message_reads(user_id, read_at)` list, or an empty list when absent
+  /// (1:1 rows, plaintext service, or old servers). Each entry is a
+  /// `{user_id, read_at}` map — readers are OTHER members only (the RPC
+  /// never marks the sender's own messages).
+  static List<Map<String, dynamic>> readersOf(Map<String, dynamic> row) {
+    final raw = row['message_reads'];
+    if (raw is! List) return const [];
+    return raw.whereType<Map>().map((e) => Map<String, dynamic>.from(e)).toList();
+  }
+
+  /// True when EVERY other member of a group has read [row] — the group
+  /// blue-check gate (the ISSUE fix: blue ticks must require all readers,
+  /// not just the first one). [otherMemberIds] is the CURRENT active
+  /// roster's other-member ids: the readers must be a SUPERSET of them —
+  /// a departed member's stale receipt can never satisfy the check (the
+  /// verifier fix, 2026-08-17: reader count alone false-blues when a leaver
+  /// read before leaving). Conservative: an unknown/empty roster never
+  /// claims all-read (grey ticks — honest under stale data).
+  static bool isReadByAll(Map<String, dynamic> row, Set<String> otherMemberIds) {
+    if (otherMemberIds.isEmpty) return false;
+    final reads = readersOf(row);
+    if (reads.isEmpty) return false;
+    final readers = reads.map((r) => r['user_id']).whereType<String>().toSet();
+    return otherMemberIds.every(readers.contains);
+  }
+
+  /// A copy with one reader merged into message [id]'s `message_reads` set —
+  /// the realtime `message-reads` INSERT merge (a member's device just
+  /// marked the chat read). No-op when the message is not present.
+  ChatMessagesState markMessageRead(String id, String userId, DateTime readAt) {
+    final updated = <Map<String, dynamic>>[];
+    for (final m in messages) {
+      if (m['id'] == id) {
+        final existing = readersOf(m);
+        if (existing.any((r) => r['user_id'] == userId)) {
+          updated.add(m);
+          continue;
+        }
+        updated.add({
+          ...m,
+          'message_reads': [
+            ...existing,
+            {'user_id': userId, 'read_at': readAt.toIso8601String()},
+          ],
+        });
+      } else {
+        updated.add(m);
+      }
+    }
+    return copyWith(messages: updated);
+  }
+
   /// A copy without the pending (optimistic) message [id] — used to roll
   /// back a failed send.
   ChatMessagesState removeMessage(String id) {
@@ -367,6 +420,16 @@ class ChatMessagesNotifier
     final current = state.valueOrNull;
     if (current == null) return;
     state = AsyncData(current.markRead(id, readAt));
+  }
+
+  /// Live per-member read flip in a GROUP chat (20260817000006): one
+  /// (message_id, user_id, read_at) receipt from the `message-reads`
+  /// channel is merged into the row's read set — the sender's ticks flip
+  /// blue only when EVERY other member has read.
+  void markMessageRead(String messageId, String userId, DateTime readAt) {
+    final current = state.valueOrNull;
+    if (current == null) return;
+    state = AsyncData(current.markMessageRead(messageId, userId, readAt));
   }
 
   /// Delete-for-everyone (migration 20260815000006): the server verifies the

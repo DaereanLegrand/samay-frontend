@@ -33,6 +33,16 @@ const int e2eeSenderKeyBundleVersion = 3;
 /// (ISSUE 4, Signal sender-key distribution semantics).
 const String e2eeSenderKeyBundleKind = 'samay.group_sender_key';
 
+/// Sender-key REQUEST protocol (2026-08-17 missing-chain deadlock heal —
+/// the Signal retry-request analogue). A member whose device has NO sender-
+/// key record for another member (missed/stale bundle, identity change,
+/// RLS-timing miss at invite-accept) asks the chain owner to re-distribute:
+/// the request JSON rides the plaintext of the ordinary pairwise session,
+/// stored as a `recipient_id`-addressed `messages` row (never a bubble).
+/// `isSenderKeyRequest`/`senderKeyRequestTarget` route on this.
+const int e2eeGroupKeyRequestVersion = 1;
+const String e2eeGroupKeyRequestKind = 'samay.group_key_request';
+
 /// Sender-key record / registry JSON schema version (ISSUE 4). v3 since the
 /// 2026-08-17 rekey-epoch fix: records gain `epoch` (the group epoch the
 /// chain was minted in — [e2eeSenderKeyBundleVersion]'s bundle field) and

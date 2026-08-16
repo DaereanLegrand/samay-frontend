@@ -103,6 +103,17 @@ class ChatRepository {
   ) =>
       _chat.subscribeToMessageReads(chatId, onUpdate);
 
+  /// Live per-member read flips in a GROUP chat (20260817000006): each
+  /// `message_reads` INSERT carries exactly one (message_id, user_id,
+  /// read_at) receipt — the thread merges it into the row's read set (the
+  /// sender's ticks flip blue only when EVERY other member read). E2EE-
+  /// inert: metadata only, never envelope bytes.
+  RealtimeChannel subscribeToGroupMessageReads(
+    String chatId,
+    void Function(Map<String, dynamic>) onInsert,
+  ) =>
+      _chat.subscribeToGroupMessageReads(chatId, onInsert);
+
   /// Live hard-delete events for [chatId] (delete-for-everyone from the
   /// sender, or the undecryptable cleanup) — the open thread removes the row
   /// live. The row is the pre-delete record (REPLICA IDENTITY FULL).

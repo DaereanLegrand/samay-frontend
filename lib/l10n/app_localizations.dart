@@ -3541,6 +3541,36 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'La app se recuperó de un cierre inesperado'**
   String get crashRecoveryBannerTitle;
+
+  /// Long-press action: show the own message's delivery/read status sheet (2026-08-17)
+  ///
+  /// In es, this message translates to:
+  /// **'Información del mensaje'**
+  String get chatMessageInfo;
+
+  /// Message-info sheet: the send timestamp label
+  ///
+  /// In es, this message translates to:
+  /// **'Enviado'**
+  String get chatMessageInfoSent;
+
+  /// Message-info sheet (group): how many of the other members read the message. {count} readers, {total} other members
+  ///
+  /// In es, this message translates to:
+  /// **'Leído por {count} de {total}'**
+  String chatMessageInfoReadBy(int count, int total);
+
+  /// Message-info sheet (1:1): the read timestamp label
+  ///
+  /// In es, this message translates to:
+  /// **'Leído'**
+  String get chatMessageInfoReadAt;
+
+  /// Message-info sheet (1:1): the peer has not read the message yet
+  ///
+  /// In es, this message translates to:
+  /// **'No leído'**
+  String get chatMessageInfoNotRead;
 }
 
 class _AppLocalizationsDelegate

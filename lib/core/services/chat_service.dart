@@ -22,6 +22,25 @@ const String chatUndecryptablePlaceholder = '[Mensaje no descifrable]';
 /// local cache never outgrows what the server may store.
 const int chatMessageCap = 1000;
 
+/// Minimum interval between sender-key REQUEST rows for the same
+/// (chat, sender) on one device (2026-08-17 retry protocol). The request is
+/// the Signal retry-request analogue: when a group message drops because
+/// this device has no chain material for its sender, the device asks the
+/// sender to re-distribute. The throttle keeps a burst of dropped rows from
+/// spamming N requests — one per chat+sender per window is enough (the
+/// sender re-distributes on the first one).
+const Duration groupKeyRequestCooldown = Duration(minutes: 1);
+
+/// How long a fetched group-chat roster is reused before the next send
+/// re-fetches it (2026-08-17 latency fix: every group message used to pay
+/// one extra network round trip for the roster SELECT — the TTL drops it in
+/// steady state). A membership change is noticed at the next TTL boundary
+/// (or via the realtime members listener); the delay is safe: an ADDED
+/// member who misses a message self-heals through the 2026-08-17
+/// key-request protocol, and a REMOVED member's chain copies are useless
+/// the moment the wipe eventually runs.
+const Duration groupRosterTtl = Duration(seconds: 30);
+
 /// Outcome of a delete-for-everyone attempt (migration 20260815000006).
 enum MessageDeleteOutcome {
   /// The row was deleted server-side (audited in `deleted_messages`).
@@ -80,6 +99,10 @@ class ChatService {
   final E2eePrekeyService? _e2eePrekeyService;
   final GroupE2eeCipher? _groupCipher;
 
+  /// Roster cache freshness window (see [groupRosterTtl]). Injectable for
+  /// tests (a zero TTL forces a fetch per send — the pre-TTL behavior).
+  final Duration _groupRosterTtl;
+
   /// Encrypted plaintext store (Signal model, 2026-08-16 — the SQLCipher-
   /// equivalent Hive `message_cache` box on devices, in-memory in tests).
   ///
@@ -99,11 +122,13 @@ class ChatService {
     E2eePrekeyService? e2eePrekeyService,
     MessagePlaintextStore? plaintextStore,
     GroupE2eeCipher? groupCipher,
+    Duration groupRosterTtl = const Duration(seconds: 30),
   }) : _e2eeKeyStore = e2eeKeyStore,
        _e2eeSessionStore = e2eeSessionStore,
        _e2eePrekeyService = e2eePrekeyService,
        _plaintextStore = plaintextStore,
-       _groupCipher = groupCipher;
+       _groupCipher = groupCipher,
+       _groupRosterTtl = groupRosterTtl;
 
   GoTrueClient get auth => client.auth;
 
@@ -128,11 +153,14 @@ class ChatService {
   /// group branch gates on ACTIVE membership).
   final Map<String, Future<_ChatInfo?>> _chatInfoCache = {};
 
-  /// Cached active roster per group chat (ISSUE 4). Compared against the
-  /// freshly fetched roster on every group send: any diff = membership
-  /// change → the group keys are wiped (new epoch) and the sender's chain is
-  /// re-distributed to every remaining active member.
-  final Map<String, Set<String>> _rosterCache = {};
+  /// Cached active roster per group chat (ISSUE 4) + its fetch time
+  /// (2026-08-17 latency fix): re-fetched at most every [_groupRosterTtl] —
+  /// steady-state sends reuse the cache (one fewer network round trip per
+  /// group message). Compared against the fresh roster on each (re)fetch:
+  /// any diff = membership change → the group keys are wiped (new epoch)
+  /// and the sender's chain is re-distributed to every remaining active
+  /// member.
+  final Map<String, _RosterSnapshot> _rosterCache = {};
 
   /// Outbox: own sent envelope → plaintext. The sender cannot decrypt its
   /// own envelopes with the peer-bound session, so sent messages are shown
@@ -168,6 +196,22 @@ class ChatService {
   /// one for the same chat (mirror of [_decryptTail]).
   final Map<String, Future<void>> _sendTail = {};
 
+  /// Last sender-key REQUEST time per (chat, sender) — the retry-protocol
+  /// throttle (2026-08-17): a burst of missing-chain drops fires exactly
+  /// one request per window, never one per row.
+  final Map<String, DateTime> _lastKeyRequestAt = {};
+
+  /// The uid whose bundle was published at least once in THIS process
+  /// (2026-08-17 latency fix): the old guard keyed on the 1:1 session map,
+  /// which group chats NEVER populate (their pairwise sessions live under
+  /// the `g:<chatId>:<peer>` namespace) — so EVERY group message paid a
+  /// publishAll round trip. Once published for the current uid, the
+  /// identity does not change within the process, so the check is the
+  /// correct gate (a failed publish keeps it unset and retries on the next
+  /// send; a DIFFERENT uid — account switch — re-publishes the new
+  /// identity's bundle before the first send).
+  String? _publishedForUser;
+
   Future<List<Map<String, dynamic>>> loadMessages(String chatId, {int limit = 50, int offset = 0}) async {
     final user = auth.currentUser;
     if (user == null) throw Exception('No authenticated user');
@@ -176,7 +220,14 @@ class ChatService {
         .from('messages')
         // `recipient_id` rides along (ISSUE 4): group distribution rows are
         // addressed to exactly one member — non-targets skip them silently.
-        .select('id, sender_id, content, media_url, created_at, read_at, sent_at, recipient_id')
+        // `message_reads(user_id, read_at)` (20260817000006) rides along for
+        // GROUP chats: the per-member read receipts the thread renders as
+        // "read by N of M" (the 1:1 `read_at` column cannot express group
+        // reads — any reader used to stamp it, faking "read by everyone").
+        .select(
+          'id, sender_id, content, media_url, created_at, read_at, sent_at, '
+          'recipient_id, message_reads(user_id, read_at)',
+        )
         .eq('chat_id', chatId)
         // `id` is the deterministic tie-break for equal `created_at` values
         // (both simulators supply client clocks; without it the server order
@@ -250,9 +301,13 @@ class ChatService {
     var wasInit = false;
     if (e2eeEnabled) {
       // Session bootstrap (E2EE §12.2 step 2): ensure our own bundle is
-      // published before the first X3DH initiate of this chat.
-      if (!_sessions.containsKey(chatId)) {
+      // published before the first X3DH initiate of this chat. Once per
+      // (process, uid) — see [_publishedForUser]; the old per-chat guard
+      // never matched group chats and cost every group message a publish
+      // round trip.
+      if (_publishedForUser != user.id) {
         await _e2eePrekeyService!.publishAll();
+        _publishedForUser = user.id;
         AppLogger.instance.debug(
           'chat sendMessage publishAll done chat=$chatId '
           'ms=${stopwatch.elapsedMilliseconds}',
@@ -380,8 +435,17 @@ class ChatService {
     if (groupId == null) {
       throw Exception('Group chat $chatId has no reference_id');
     }
-    final roster = await _fetchRoster(chatId);
-    final previous = _rosterCache[chatId];
+    // Roster with TTL (2026-08-17 latency fix): reuse the cached roster
+    // while it is younger than [_groupRosterTtl] — the per-send SELECT is
+    // the extra round trip this removes. A change is detected at the next
+    // TTL boundary; an added member who misses a message self-heals via the
+    // key-request protocol.
+    final cached = _rosterCache[chatId];
+    final now = DateTime.now();
+    final useCache =
+        cached != null && now.difference(cached.fetchedAt) < _groupRosterTtl;
+    final roster = useCache ? cached.roster : await _fetchRoster(chatId);
+    final previous = cached?.roster;
     if (previous != null && !_sameMembers(previous, roster)) {
       await cipher.wipeGroupKeys(chatId);
       AppLogger.instance.debug(
@@ -389,7 +453,13 @@ class ChatService {
         're-distributing to every active member (new epoch)',
       );
     }
-    _rosterCache[chatId] = roster;
+    if (!useCache) {
+      // The snapshot's fetchedAt measures from the last FETCH, never the
+      // last send (verifier fix 2026-08-17): a busy group sending faster
+      // than the TTL must still re-fetch at every TTL boundary — otherwise
+      // the wipe-on-change rekey would never fire for it.
+      _rosterCache[chatId] = _RosterSnapshot(roster, now);
+    }
 
     final missing = await cipher.membersMissingSenderKey(
       groupChatId: chatId,
@@ -400,41 +470,7 @@ class ChatService {
     // session cannot be established (no published prekey bundle) is
     // SKIPPED, never fatal. Only successfully-inserted members are marked
     // distributed, so a failed member stays missing for the next send.
-    for (final member in missing) {
-      try {
-        final bundleJson = await cipher.senderKeyBundleJson(
-          groupChatId: chatId,
-          senderUserId: senderId,
-          groupId: groupId,
-        );
-        final pair = await _pairwiseCipherFor(chatId, member);
-        final envelope = await pair.encrypt(
-          chatId: _pairwiseSessionKey(chatId, member),
-          peerUserId: member,
-          plaintext: bundleJson,
-        );
-        await client.from('messages').insert({
-          'chat_id': chatId,
-          'sender_id': senderId,
-          'content': envelope,
-          'recipient_id': member,
-          'created_at': DateTime.now().toIso8601String(),
-        });
-        await cipher.markSenderKeyDistributed(
-          groupChatId: chatId,
-          senderUserId: senderId,
-          memberIds: [member],
-        );
-      } catch (e, st) {
-        AppLogger.instance.warn(
-          'chat sendMessage(group) distribution SKIPPED chat=$chatId '
-          'member=$member type=${e.runtimeType} — no pairwise session '
-          '(member has no published prekey bundle); the member stays '
-          'missing and the next send retries',
-          '$st',
-        );
-      }
-    }
+    await _distributeBundleToMissing(chatId, senderId, groupId, missing);
     try {
       // (b) the single sender-key message row — OUTSIDE the per-member
       // loop: a distribution failure must never block the message.
@@ -470,6 +506,191 @@ class ChatService {
       'chat sendMessage(group) ok chat=$chatId distributed=${missing.length} '
       'ms=${stopwatch.elapsedMilliseconds}',
     );
+  }
+
+  /// Sends [senderId]'s sender-key distribution bundle to each member of
+  /// [members] (ISSUE 4 / D3; extracted 2026-08-17 so the retry-request
+  /// handler can re-distribute without sending a message). Per-member
+  /// semantics are the H1 distribution contract: a member with NO published
+  /// prekey bundle is SKIPPED (logged, id only), never fatal, and
+  /// [GroupE2eeCipher.markSenderKeyDistributed] persists the member ONLY
+  /// after a successful insert, so a failed member stays missing for the
+  /// next round.
+  ///
+  /// Latency (2026-08-17): the per-member encrypt+insert phase runs in
+  /// PARALLEL — each member's pairwise session is a distinct object (per-
+  /// member store keys), so the crypto is independent; N serial round trips
+  /// collapse to 1. The bundle itself is built ONCE up front (the own-chain
+  /// record must never be raced by concurrent builds — competing roots
+  /// would desync receivers), and the registry marks stay SERIAL (the
+  /// registry JSON is a read-modify-write document — parallel marks would
+  /// lose updates). The message-row insert always follows this method, so
+  /// every distribution row lands before the message.
+  Future<void> _distributeBundleToMissing(
+    String chatId,
+    String senderId,
+    String groupId,
+    List<String> members,
+  ) async {
+    if (members.isEmpty) return;
+    final cipher = _groupCipher!;
+    final bundleJson = await cipher.senderKeyBundleJson(
+      groupChatId: chatId,
+      senderUserId: senderId,
+      groupId: groupId,
+    );
+    final succeeded = <String>[];
+    await Future.wait([
+      for (final member in members)
+        _distributeEnvelopeTo(
+          chatId,
+          senderId,
+          member,
+          bundleJson,
+          succeeded,
+        ),
+    ]);
+    // Serial mark phase (see the method doc).
+    for (final member in succeeded) {
+      await cipher.markSenderKeyDistributed(
+        groupChatId: chatId,
+        senderUserId: senderId,
+        memberIds: [member],
+      );
+    }
+  }
+
+  /// One member's distribution row (parallel phase of
+  /// [_distributeBundleToMissing]): pairwise-encrypt [bundleJson] and
+  /// INSERT the `recipient_id`-addressed row. Successes are appended to
+  /// [succeeded] (single-threaded event loop — the add is atomic per
+  /// closure); failures are logged (member id only, never key material) and
+  /// skipped — the member stays missing for the next round.
+  Future<void> _distributeEnvelopeTo(
+    String chatId,
+    String senderId,
+    String member,
+    String bundleJson,
+    List<String> succeeded,
+  ) async {
+    try {
+      final pair = await _pairwiseCipherFor(chatId, member);
+      final envelope = await pair.encrypt(
+        chatId: _pairwiseSessionKey(chatId, member),
+        peerUserId: member,
+        plaintext: bundleJson,
+      );
+      await client.from('messages').insert({
+        'chat_id': chatId,
+        'sender_id': senderId,
+        'content': envelope,
+        'recipient_id': member,
+        'created_at': DateTime.now().toIso8601String(),
+      });
+      succeeded.add(member);
+    } catch (e, st) {
+      AppLogger.instance.warn(
+        'chat sendMessage(group) distribution SKIPPED chat=$chatId '
+        'member=$member type=${e.runtimeType} — no pairwise session '
+        '(member has no published prekey bundle); the member stays '
+        'missing and the next send retries',
+        '$st',
+      );
+    }
+  }
+
+  /// The Signal retry-request analogue (2026-08-17 missing-chain deadlock
+  /// heal): when a group 0x03 message drops because THIS device has no
+  /// sender-key record for [missingSenderId] (missed/stale bundle, identity
+  /// change, RLS-timing miss at invite-accept), the device asks the chain
+  /// owner to re-distribute. The request JSON rides the plaintext of the
+  /// ordinary pairwise session and is stored as a `recipient_id`-addressed
+  /// `messages` row — never a bubble on any device, never plaintext to the
+  /// server (E2EE invariant). Throttled per (chat, sender): a burst of
+  /// dropped rows fires ONE request. Best-effort — failures are logged and
+  /// swallowed (the sender's next roster-change rekey still heals).
+  Future<void> _requestGroupSenderKey(
+    String chatId,
+    String missingSenderId,
+    String groupId,
+  ) async {
+    if (!groupE2eeEnabled || missingSenderId.isEmpty || groupId.isEmpty) {
+      return;
+    }
+    final key = '$chatId:$missingSenderId';
+    final last = _lastKeyRequestAt[key];
+    final now = DateTime.now();
+    if (last != null && now.difference(last) < groupKeyRequestCooldown) {
+      return;
+    }
+    _lastKeyRequestAt[key] = now;
+    final user = auth.currentUser;
+    if (user == null) return;
+    try {
+      final requestJson = await _groupCipher!.senderKeyRequestJson(
+        groupChatId: chatId,
+        groupId: groupId,
+        missingSenderUserId: missingSenderId,
+      );
+      final pair = await _pairwiseCipherFor(chatId, missingSenderId);
+      final envelope = await pair.encrypt(
+        chatId: _pairwiseSessionKey(chatId, missingSenderId),
+        peerUserId: missingSenderId,
+        plaintext: requestJson,
+      );
+      await client.from('messages').insert({
+        'chat_id': chatId,
+        'sender_id': user.id,
+        'content': envelope,
+        'recipient_id': missingSenderId,
+        'created_at': now.toIso8601String(),
+      });
+      AppLogger.instance.debug(
+        'chat group key REQUEST sent chat=$chatId missingSender='
+        '$missingSenderId',
+      );
+    } catch (e, st) {
+      AppLogger.instance.warn(
+        'chat group key REQUEST failed chat=$chatId missingSender='
+        '$missingSenderId type=${e.runtimeType}: $e',
+        '$st',
+      );
+    }
+  }
+
+  /// Handles an inbound sender-key REQUEST ([plaintext]) delivered as the
+  /// plaintext of a pairwise row from [requesterId] (2026-08-17 retry
+  /// protocol): the requester's device has no record for MY chain, so I
+  /// un-mark them in my distribution registry and re-distribute my bundle
+  /// to them IMMEDIATELY — the deadlock heal without waiting for a roster
+  /// change. A request for another member's chain, or one whose chat/group
+  /// does not match, is ignored (cross-chain confusion guard). Best-effort:
+  /// a failed re-distribution keeps the member missing for the next send.
+  Future<void> _handleSenderKeyRequest(
+    String chatId,
+    String groupId,
+    Object? requesterId,
+    String plaintext,
+  ) async {
+    final user = auth.currentUser;
+    final requester = requesterId is String ? requesterId : null;
+    if (user == null || requester == null || requester == user.id) return;
+    final target = await _groupCipher?.senderKeyRequestTarget(
+      json: plaintext,
+      groupChatId: chatId,
+      groupId: groupId,
+    );
+    if (target != user.id) return;
+    AppLogger.instance.debug(
+      'chat group key REQUEST received chat=$chatId requester=$requester — '
+      're-distributing my chain',
+    );
+    await _groupCipher?.unmarkSenderKeyDistributed(
+      groupChatId: chatId,
+      senderUserId: user.id,
+      memberIds: [requester],
+    );
+    await _distributeBundleToMissing(chatId, user.id, groupId, [requester]);
   }
 
   /// The active roster of group chat [chatId], from `chat_participants` (the
@@ -595,17 +816,47 @@ class ChatService {
     await client.rpc('mark_chat_read', params: {'p_chat_id': chatId});
   }
 
-  /// Stamps `read_at` on every unread message FROM THE CALLER'S PEER in
-  /// [chatId] (self-only RPC, migration 20260815000005) — the sender's open
-  /// thread flips grey → blue double checks via realtime UPDATE events.
+  /// Stamps the caller's READ on every unread message FROM OTHER senders in
+  /// [chatId], routed by chat type (20260817000006 — the ISSUE fix: in a
+  /// GROUP chat the 1:1 `read_at` column cannot express per-member reads —
+  /// any reader used to stamp it and every sender saw fake "read by
+  /// everyone" blue checks):
   ///
-  /// The client calls this only when the caller's own `read_receipts_enabled`
-  /// is on: with receipts disabled nothing is ever stamped, so the peer never
-  /// sees blue checks (WhatsApp's read-receipts privacy semantics).
+  /// - DIRECT chats → `mark_messages_read` (20260815000005): stamps
+  ///   `messages.read_at` — the 1:1 blue-check path, byte-identical;
+  /// - GROUP chats → `mark_group_messages_read` (20260817000006): inserts a
+  ///   `message_reads` row per (message, reader) — the thread counts them
+  ///   and turns the sender's ticks blue only when EVERY other member read.
+  ///
+  /// The client calls this only when the caller's own
+  /// `read_receipts_enabled` is on (see [getReadReceiptsEnabled]).
   Future<void> markMessagesRead(String chatId) async {
     final user = auth.currentUser;
     if (user == null) throw Exception('No authenticated user');
-    await client.rpc('mark_messages_read', params: {'p_chat_id': chatId});
+    final isGroup = groupE2eeEnabled &&
+        (await _chatInfo(chatId))?.type == 'group';
+    await client.rpc(
+      isGroup ? 'mark_group_messages_read' : 'mark_messages_read',
+      params: {'p_chat_id': chatId},
+    );
+  }
+
+  /// Live per-member read flips in a GROUP chat (20260817000006): the
+  /// `message_reads` INSERT channel — each event is one (message_id,
+  /// user_id, read_at) receipt; the thread merges it into the row's read
+  /// set so the sender's ticks flip blue the moment the LAST member reads
+  /// (RLS `message_reads_select_participant` gates delivery to
+  /// participants). Returns the channel so callers can unsubscribe.
+  RealtimeChannel subscribeToGroupMessageReads(
+    String chatId,
+    void Function(Map<String, dynamic>) onInsert,
+  ) {
+    return realtime.subscribeToChannel(
+      'message-reads:$chatId',
+      PostgresChangeEvent.insert,
+      'message_reads',
+      onInsert,
+    );
   }
 
   /// The caller's read-receipts privacy switch (`users.read_receipts_enabled`,
@@ -1064,7 +1315,17 @@ class ChatService {
         return row;
       }
       if (result.dropped) {
-        // Signal semantics: replay/duplicate/no-chain — silent, hidden.
+        // Signal semantics: replay/duplicate/no-chain — silent, hidden. A
+        // MISSING-CHAIN drop (no record / stale identity for the sender)
+        // additionally fires the retry-protocol request: this device asks
+        // the sender to re-distribute so the NEXT message decrypts
+        // (2026-08-17 deadlock heal).
+        if (result.missingChain) {
+          final senderId = row['sender_id'];
+          if (senderId is String && groupId != null) {
+            await _requestGroupSenderKey(chatId, senderId, groupId);
+          }
+        }
         row['decryptDropped'] = true;
         return row;
       }
@@ -1096,6 +1357,22 @@ class ChatService {
         );
         final plaintext = result.plaintext;
         if (plaintext != null &&
+            await _groupCipher.isSenderKeyRequest(plaintext)) {
+          // A sender-key REQUEST (2026-08-17 retry protocol): the requester
+          // (the row's RLS-bound sender) has no record for one of my chains.
+          // Handled before the bundle check — the kinds are mutually
+          // exclusive; the row is hidden either way.
+          await _handleSenderKeyRequest(
+            chatId,
+            groupId,
+            senderId,
+            plaintext,
+          );
+          AppLogger.instance.debug(
+            'chat group distribution row handled chat=$chatId '
+            'sender=$senderId msg=$messageId (key request)',
+          );
+        } else if (plaintext != null &&
             await _groupCipher.isSenderKeyBundle(plaintext)) {
           await _groupCipher.processSenderKeyBundle(
             groupChatId: chatId,
@@ -1211,4 +1488,14 @@ class _ChatInfo {
 
   final String type;
   final String? referenceId;
+}
+
+/// A fetched group-chat roster + its fetch time (2026-08-17 latency fix —
+/// the per-send roster SELECT is dropped while the snapshot is younger than
+/// `ChatService`'s `groupRosterTtl`).
+class _RosterSnapshot {
+  const _RosterSnapshot(this.roster, this.fetchedAt);
+
+  final Set<String> roster;
+  final DateTime fetchedAt;
 }

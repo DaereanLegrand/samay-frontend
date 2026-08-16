@@ -1901,4 +1901,21 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get crashRecoveryBannerTitle =>
       'The app recovered from an unexpected shutdown';
+
+  @override
+  String get chatMessageInfo => 'Message info';
+
+  @override
+  String get chatMessageInfoSent => 'Sent';
+
+  @override
+  String chatMessageInfoReadBy(int count, int total) {
+    return 'Read by $count of $total';
+  }
+
+  @override
+  String get chatMessageInfoReadAt => 'Read';
+
+  @override
+  String get chatMessageInfoNotRead => 'Not read';
 }

@@ -146,9 +146,19 @@ abstract class E2eeSessionStore {
 class E2eeDecryptResult {
   const E2eeDecryptResult.plaintext(this.plaintext)
       : dropped = false,
-        failed = false;
+        failed = false,
+        missingChain = false;
 
-  const E2eeDecryptResult.dropped()
+  /// [missingChain] marks a SILENT drop whose root cause is the ABSENCE of
+  /// the sender's chain material on this device (group sender keys,
+  /// 2026-08-17): no sender-key record for the envelope's sender, or the
+  /// stored record's identity no longer matches the envelope's (stale
+  /// pre-reinstall record). The chat layer reacts by requesting the sender
+  /// to RE-DISTRIBUTE its chain (the Signal retry-request analogue) instead
+  /// of waiting forever for a rekey that never comes. All other drop
+  /// reasons (replay, out-of-order, gap beyond MAX_SKIP) are left false —
+  /// they heal by themselves and must not spam requests.
+  const E2eeDecryptResult.dropped({this.missingChain = false})
       : plaintext = null,
         dropped = true,
         failed = false;
@@ -156,7 +166,8 @@ class E2eeDecryptResult {
   const E2eeDecryptResult.failed()
       : plaintext = null,
         dropped = false,
-        failed = true;
+        failed = true,
+        missingChain = false;
 
   /// The decrypted plaintext; null unless [dropped]/[failed] is false.
   final String? plaintext;
@@ -169,6 +180,10 @@ class E2eeDecryptResult {
   /// True when the message is genuinely undecryptable (tampering / ratchet
   /// mismatch against an existing session) — the UI's bubble.
   final bool failed;
+
+  /// True when [dropped] is the missing-chain class (see the [dropped]
+  /// constructor doc) — the requestable drop.
+  final bool missingChain;
 }
 
 /// The chat-facing cipher contract. The concrete orchestrator is

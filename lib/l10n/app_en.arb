@@ -2520,5 +2520,33 @@
   "crashRecoveryBannerTitle": "The app recovered from an unexpected shutdown",
   "@crashRecoveryBannerTitle": {
     "description": "Dismissible banner shown after the app recovered from a previous crash (LOG-03)"
+  },
+  "chatMessageInfo": "Message info",
+  "@chatMessageInfo": {
+    "description": "Long-press action: show the own message's delivery/read status sheet (2026-08-17)"
+  },
+  "chatMessageInfoSent": "Sent",
+  "@chatMessageInfoSent": {
+    "description": "Message-info sheet: the send timestamp label"
+  },
+  "chatMessageInfoReadBy": "Read by {count} of {total}",
+  "@chatMessageInfoReadBy": {
+    "description": "Message-info sheet (group): how many of the other members read the message. {count} readers, {total} other members",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "chatMessageInfoReadAt": "Read",
+  "@chatMessageInfoReadAt": {
+    "description": "Message-info sheet (1:1): the read timestamp label"
+  },
+  "chatMessageInfoNotRead": "Not read",
+  "@chatMessageInfoNotRead": {
+    "description": "Message-info sheet (1:1): the peer has not read the message yet"
   }
 }
