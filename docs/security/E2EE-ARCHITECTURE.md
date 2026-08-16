@@ -461,9 +461,19 @@ Follows Sesame (R3) semantics reduced to single-device async messaging.
 
 ### 7.5 Re-key on device reinstall
 
-- Reinstall ⇒ new identity keypairs ⇒ server `user_devices` row replaced (upsert).
-- Peer behavior (Sesame conditional update, R3 §3.2/§6.1): on bundle fetch, if `IK_dh` differs from the value bound to the stored session → **retire that session** (keep it for decrypting in-flight ciphertext up to 30 days, then delete) and create a fresh session for the new identity.
-- MVP UX: chat shows "El otro usuario reinstaló la app / cambió de dispositivo" once (flag persisted per peer). Fingerprint re-verification UI is post-MVP (S-07/S-20 gate item).
+- Reinstall ⇒ new identity keypairs ⇒ the `e2ee_identity_keys` row is replaced on the next heal (auth-restore `handleMissingSession` republishes on identity mismatch — 2026-08-15) **and the one-time-prekey pool is REPLACED with a fresh batch** (2026-08-16: the stale row's OPKs belong to the old identity — their private keys are gone, so any peer initiating with them can never be decrypted; see §9.3).
+- **Reinstall history = silently absent (Signal semantics, 2026-08-16).** Rows that fail decryption with NO local session are the pre-reinstall class — permanently undecryptable by anyone (the keys are gone). The client HIDES them (the thread starts fresh — Signal shows no history after a fresh install, and its server holds none) and **deletes them server-side** (`delete_undecryptable_messages`, migration 20260815000006 — participant-gated, audited in `deleted_messages`): the server never stores bytes nobody can ever read again (offload). The "Mensaje no descifrable" bubble survives ONLY for failures against an EXISTING session (tamper / skip-gap — the case Signal itself error-bubbles).
+- **Peer behavior** (Sesame conditional update, R3 §3.2/§6.1): on bundle fetch, if `IK_dh` differs from the value bound to the stored session → **retire that session** (keep it for decrypting in-flight ciphertext up to 30 days, then delete) and create a fresh session for the new identity. Detection is wired at chat open (`E2eeSession.peerIdentityChanged` restores the session from the store first — 2026-08-16) and surfaces **once per peer**: "El otro usuario reinstaló la app o cambió de dispositivo" (flag persisted in the Hive config box). Informational — the conversation heals automatically on this device's next send (unacknowledged-init semantics, §7.8/§0.2). Fingerprint re-verification UI is post-MVP (S-07/S-20 gate item).
+- **Platform nuance:** on iOS the Keychain survives an app uninstall, so a reinstall keeps the identity + sessions and old history stays decryptable; on Android (Keystore wiped) the Signal semantics above apply. Updates never touch key material (secure storage survives updates on both platforms).
+
+### 7.5a Message deletion (2026-08-16, migration 20260815000006)
+
+WhatsApp-style two-option long-press deletion, plus the automatic cleanup above:
+
+- **"Eliminar para todos"** — sender-only, within a **5-minute window anchored on the SERVER clock** (`messages.sent_at`, default `now()` at insert; existing rows backfilled from `created_at`). `delete_message_for_everyone` enforces sender + age inside Postgres — the client can never extend the window by lying (client `created_at` is untrusted for this). Verdicts surface as `MESSAGE_TOO_OLD` / `NOT_THE_SENDER` / `MESSAGE_NOT_FOUND` → l10n. Rows are hard-deleted + audited in `deleted_messages`; the peer's open thread removes them **live** via the realtime DELETE channel (REPLICA IDENTITY FULL, 20260809000003).
+- **"Eliminar para mí"** — any participant, any age: client-local tombstone only; server rows stay (the peer keeps them). MVP tombstone is in-memory.
+- Realtime DELETE events (PostgresChangeEvent.delete) deliver hard deletes to open threads.
+- Trust surface (documented): the server cannot verify "undecryptable" (no keys), so `delete_undecryptable_messages` is participant-gated and every deletion lands in `deleted_messages` (audit; a prune cron can trim old rows).
 
 ### 7.6 Key material lifecycle (Signal model, revised 2026-08-15)
 
@@ -551,7 +561,32 @@ The existing `SecureStorageService` (`lib/core/services/storage_service.dart:4-1
 - **NO plaintext backups. No cloud sync of key material. No export.**
 - Android: `android:allowBackup="false"` in `AndroidManifest.xml` (R12 requires it; otherwise Keystore-wrapped SharedPreferences break after restore AND key material can be exfiltrated via adb backup). I-28/M-27 owns manifest changes.
 - iOS: Keychain items are NOT included in iTunes/iCloud device backups by default with `first_unlock` accessibility; verify entitlements (`keychain-access-groups`, R12) and do NOT enable iCloud Keychain sync for app keys.
-- Hive (`storage_service.dart:20-44`, `message_cache`) must NEVER store keys or plaintext messages — E2EE messages live only in memory or as the encrypted envelope in Postgres. (I-26's Hive encryption is orthogonal defense-in-depth.)
+
+> **ERRATA (2026-08-16 — Signal plaintext store):** the pre-2026-08-16
+> "plaintext is memory-only" rule was a design contradiction: the server
+> stores only E2EE envelopes and the Double Ratchet is stateful and
+> irreversible, so an already-consumed message can NEVER be re-decrypted
+> after the chain advanced — meaning readable history after an app restart /
+> update was impossible (the live "Mensaje no descifrable" bug). Signal
+> solves this by persisting DECRYPTED plaintext locally (SQLCipher). Samay
+> now does the same: the Hive `message_cache` box
+> (`storage_service.dart`, opened at startup) stores decrypted history,
+> AES-256-encrypted at rest with the key in the platform
+> Keystore/Keychain (`samay.hive.key`, §8.2 namespace) — the SQLCipher
+> equivalent. The envelope remains the ONLY content that ever reaches
+> Postgres; the plaintext store is device-local, keyed per
+> `(chatId, messageId)`, bounded at `chat.message_cap` (1000) per chat,
+> wiped together with the key material on account deletion/switch (§7.6),
+> and its key-loss degradation re-creates it empty (SEC-10 — the thread
+> then re-decrypts fresh, or hides rows per §12.2 step 6). Server-side
+> invariants in §9.2 are unchanged: the server never sees plaintext.
+> The protocol companion fixes landed with it (2026-08-16):
+> unacknowledged inits RE-WRAP the same baseKey instead of re-running fresh
+> X3DH (`SessionCipher.encrypt` getPreKeyMessage), the recipient reuses a
+> session bound to a baseKey instead of re-processing an init
+> (`SessionBuilder.processV3` hasSessionState), and protocol-level drops
+> are SILENT (Signal DuplicateMessageException) — only genuine tampering
+> bubbles.
 
 ### 8.5 Ephemeral key hygiene
 
@@ -598,6 +633,11 @@ The existing `SecureStorageService` (`lib/core/services/storage_service.dart:4-1
   4. `SELECT ... FROM one_time_prekeys WHERE user_id = p_peer_id AND used_at IS NULL ORDER BY opk_id LIMIT 1 FOR UPDATE SKIP LOCKED` → mark `used_at = now()`
   5. return JSON bundle (§5.3)
 - `publish_prekeys(p_ik_dh, p_ik_sig, p_registration_id, p_spk_id, p_spk_pub, p_spk_sig, p_opks jsonb)` — upserts own device row + prekeys in one transaction.
+- **OPK pool replacement on identity change (2026-08-16):** `publishIdentityBundle` compares the row's `identity_key` with the local identity; when they differ (reinstall, account switch) the one-time-prekey pool is REPLACED with a fresh batch and `consumed_one_time_prekeys` resets — the old identity's OPKs are dead (private keys gone) and must never be served to peers. Same-identity republish (SPK rotation / top-up) keeps the merge behavior.
+- **Message deletion RPCs (2026-08-16, migration `20260815000006`):**
+  - `delete_message_for_everyone(p_message_id uuid)` — SECURITY DEFINER, sender-only, `now() - sent_at <= 5 minutes` (server clock; `messages.sent_at` defaults `now()` — backdated client `created_at` can never extend the window). Errors: `MESSAGE_TOO_OLD` / `NOT_THE_SENDER` / `MESSAGE_NOT_FOUND`.
+  - `delete_undecryptable_messages(p_chat_id uuid, p_message_ids uuid[])` — SECURITY DEFINER, participant-gated (the `messages_read_participant` set: direct/group/event); deletes the given ids in that chat, returns the deleted count.
+  - `deleted_messages` — audit table (message_id, chat_id, deleted_by, reason ∈ delete_for_everyone | undecryptable_cleanup, deleted_at).
 - All new tables: `ENABLE ROW LEVEL SECURITY` + `FORCE ROW LEVEL SECURITY` (I-31 pattern).
 - `ALTER TABLE messages REPLICA IDENTITY FULL;` + `ALTER PUBLICATION supabase_realtime ADD TABLE messages;` (Realtime full-row delivery, R13).
 
@@ -762,7 +802,7 @@ Two in-memory "clients" (the real `lib/crypto/`) against a fake server implement
 | 3 | `lib/core/services/chat_service.dart` = `E2eeMessageCipher` + `messages` table ops: `sendMessage` encrypts → stores envelope; `loadMessages` decrypts; `subscribeToMessages` decrypts Realtime envelope | I1–I4 green (fake + real stack) |
 | 4 | Key lifecycle hooks in auth: publish on `createProfile`, wipe on account switch/`deleteAccount` (**landed 2026-08-15** — `AuthNotifier._ensureE2eeKeysPublished`: `createProfile` → `publishAll()`; session restore / `signedIn` → ownership guard (wipe on account switch) + `handleMissingSession()` heal that also republishes on identity mismatch; `signOut` KEEPS material per §7.6 Signal model; `_wipeE2eeMaterial` wipes on switch/delete) | I6 green |
 | 5 | `integration_test/e2ee_flow_test.dart` + `test/opt-003-chat.sh` | I5 green |
-| 6 | Wire `RoutePaths.chat` to the real chat screen (**landed** — ChatScreen live at app_router.dart:414-420, replaces `VComingSoonScreen`) with decrypt path | chat UI shows decrypted text; undecryptable → "Mensaje no disponible" |
+| 6 | Wire `RoutePaths.chat` to the real chat screen (**landed** — ChatScreen live at app_router.dart:414-420, replaces `VComingSoonScreen`) with decrypt path | chat UI shows decrypted text; session-present failures → "Mensaje no descifrable"; no-session failures (reinstall history) are hidden + auto-deleted (§7.5, 2026-08-16) |
 
 **I-38 done =** two clients exchange E2EE messages end-to-end through the stack; server DB dump of `messages` contains only envelopes; opt-003 + integration test green; S-07 audit opened.
 

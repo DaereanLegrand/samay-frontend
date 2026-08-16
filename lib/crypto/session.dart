@@ -115,21 +115,36 @@ class E2eeSession implements E2eeMessageCipher {
   }
 
   @override
-  Future<String?> decrypt({
+  Future<E2eeDecryptResult> decrypt({
     required String chatId,
     required String peerUserId,
     required String envelope,
   }) {
     assert(chatId == this.chatId && peerUserId == this.peerUserId,
         'E2eeSession is bound to ($this->chatId, $this->peerUserId)');
-    return decryptEnvelope(envelope);
+    return decryptEnvelopeDetailed(envelope);
   }
 
   @override
   Future<bool> peerIdentityChanged(String peerUserId) async {
+    var peer = _peerIkDh;
+    // A freshly created cipher instance has no session in memory — the
+    // bound peer identity lives in the store. Restore it so the comparison
+    // works before any send/decrypt touched the session (2026-08-16 —
+    // §7.5 detection must fire on the first chat open after a restart).
+    if (peer == null) {
+      final saved = await _sessionStore.loadSession(chatId);
+      if (saved != null) {
+        _restore(saved);
+        peer = _peerIkDh;
+      }
+    }
+    // No session bound — nothing to compare against. Returning early ALSO
+    // avoids burning one of the peer's one-time prekeys (fetchBundle is the
+    // only read path and consumes one per call).
+    if (peer == null) return false;
     final bundle = await _prekeyService.fetchBundle(peerUserId);
-    final peer = _peerIkDh;
-    if (bundle == null || peer == null) return false;
+    if (bundle == null) return false;
     return !constantTimeEquals(bundle.identityKey, peer);
   }
 
@@ -147,18 +162,30 @@ class E2eeSession implements E2eeMessageCipher {
     final identity = await _identityKeys();
     await _ensureSessionReady(identity);
 
-    // Signal unacknowledged-prekey semantics (2026-08-15): while the peer
-    // has not acknowledged our init (first decrypted ratchet reply), every
-    // outbound message is re-sent as a FRESH init envelope — the peer can
-    // always (re)establish the session, even after an app restart or a lost
-    // init. Fresh X3DH (new ekA) is required because our init replay
-    // protection (I-37) drops IDENTICAL init envelopes, where Signal can
-    // safely reuse the prekey items. Once a ratchet reply decrypts
-    // (`clearUnacknowledgedPreKeyMessage`), ratchet (0x02) resumes.
-    if (_role == 'initiator' && _hasSentInit && !_initAcknowledged) {
+    // Signal unacknowledged-prekey semantics (2026-08-16, getPreKeyMessage):
+    // while the peer has not acknowledged our init, every outbound message
+    // is RE-WRAPPED as a type-0x01 init envelope with the SAME baseKey and
+    // prekey ids persisted on the session — the peer reuses its existing
+    // session (baseKey lookup), so nothing is re-fetched and no one-time
+    // prekey is ever consumed twice. The pre-fix design re-ran fresh X3DH
+    // per send (new ekA + bundle fetch per message), which burned OPKs and
+    // made re-processed history permanently undecryptable.
+    //
+    // Two cases still heal with ONE fresh X3DH:
+    //  - a restored LEGACY session JSON without the persisted init fields;
+    //  - an idle session past the 90-day expiry (the peer-side session is
+    //    gone, so a re-wrapped init could never decrypt there either).
+    if (_role == 'initiator' &&
+        _hasSentInit &&
+        !_initAcknowledged &&
+        (_ekA == null ||
+            _spkId == null ||
+            _opkId == null ||
+            _clock().difference(_ratchet!.lastUsedAt) > e2eeSessionMaxAge)) {
       AppLogger.instance.warn(
         'e2ee unacknowledged init chat=$chatId peer=$peerUserId — '
-        're-initiating with a fresh init envelope (Signal prekey semantics)',
+        're-initiating with a fresh X3DH (legacy session or idle past '
+        'e2eeSessionMaxAge)',
       );
       await wipe();
       await _ensureSessionReady(identity);
@@ -173,7 +200,10 @@ class E2eeSession implements E2eeMessageCipher {
     ratchet.pruneSkippedKeys(_clock());
     ratchet.lastUsedAt = _clock();
 
-    final initMessage = _role == 'initiator' && !_hasSentInit;
+    // An init envelope is sent while our init is unacknowledged — including
+    // re-wraps of subsequent messages (Signal getPreKeyMessage); once the
+    // peer's reply decrypts (`_initAcknowledged`), ratchet (0x02) resumes.
+    final initMessage = _role == 'initiator' && !_initAcknowledged;
     final envelope = SamayEnvelope(
       type: initMessage ? e2eeEnvelopeTypeInit : e2eeEnvelopeTypeRatchet,
       senderIkDh: identity.ikDhPublic,
@@ -215,12 +245,24 @@ class E2eeSession implements E2eeMessageCipher {
   /// message must be dropped: malformed/unknown envelope, wrong recipient,
   /// unknown session, expired session, or authentication failure.
   /// On failure the session state is preserved (§4.5).
-  Future<String?> decryptEnvelope(String envelope) async {
+  ///
+  /// Compatibility view over [decryptEnvelopeDetailed] — the chat layer
+  /// uses the tri-state [decrypt] so protocol-level drops never render as
+  /// the undecryptable bubble.
+  Future<String?> decryptEnvelope(String envelope) async =>
+      (await decryptEnvelopeDetailed(envelope)).plaintext;
+
+  /// The tri-state decrypt ([E2eeDecryptResult]): plaintext, a SILENT drop
+  /// (duplicate/replay, stale identity, missing prekey material, no
+  /// session — Signal's DuplicateMessage/NoSession classes) or a GENUINE
+  /// failure (tampering / ratchet mismatch against an existing session —
+  /// the only case that may render the undecryptable bubble).
+  Future<E2eeDecryptResult> decryptEnvelopeDetailed(String envelope) async {
     final identity = await _identityKeys();
     final bytes = base64UrlNoPadDecode(envelope);
-    if (bytes == null) return null;
+    if (bytes == null) return const E2eeDecryptResult.dropped();
     final parsed = SamayEnvelope.tryParse(bytes);
-    if (parsed == null) return null;
+    if (parsed == null) return const E2eeDecryptResult.dropped();
 
     switch (parsed.type) {
       case e2eeEnvelopeTypeInit:
@@ -228,7 +270,7 @@ class E2eeSession implements E2eeMessageCipher {
       case e2eeEnvelopeTypeRatchet:
         return _handleRatchetEnvelope(parsed, identity);
       default:
-        return null;
+        return const E2eeDecryptResult.dropped();
     }
   }
 
@@ -294,12 +336,22 @@ class E2eeSession implements E2eeMessageCipher {
       'has_sent_init': _hasSentInit,
       'init_acknowledged': _initAcknowledged,
       'last_init_marker': _lastInitMarker,
+      // Init fields (2026-08-16): the baseKey + prekey ids the session was
+      // built around — the initiator re-wraps unacknowledged sends with them
+      // (Signal getPreKeyMessage), the responder matches re-sent inits by
+      // them. Null on legacy JSON.
+      'ek_a': _ekA == null ? null : base64UrlNoPadEncode(_ekA!),
+      'spk_id': _spkId,
+      'opk_id': _opkId,
       'retired_sessions': [
         for (final r in _retired)
           {
             'ratchet': r.ratchet.toJson(),
             'peer_ik_dh': base64UrlNoPadEncode(r.peerIkDh),
             'peer_ik_sig': base64UrlNoPadEncode(r.peerIkSig),
+            'ek_a': r.aliceBaseKey.isEmpty
+                ? null
+                : base64UrlNoPadEncode(r.aliceBaseKey),
             'retired_at': r.retiredAt.toIso8601String(),
           },
       ],
@@ -361,12 +413,15 @@ class E2eeSession implements E2eeMessageCipher {
 
   /// Type 0x01: X3DH responder flow (§5.4). A NEW init envelope replaces
   /// any existing session (last-processed-wins, §7.2 / D-11) and moves the
-  /// displaced session to the inactive list (Sesame §3.2); a REPLAYED init
-  /// envelope (identical marker) is dropped without touching the session
+  /// displaced session to the inactive list (Sesame §3.2); a RE-SENT init
+  /// (same baseKey — Signal's unacknowledged-prekey re-wrap) is decrypted
+  /// via the EXISTING session, never re-running X3DH and never touching a
+  /// one-time prekey (SessionBuilder.processV3 `hasSessionState(baseKey)`
+  /// — 2026-08-16); a REPLAYED init is dropped without touching the session
   /// (X3DH §4.2). On auth failure all state changes are discarded and the
   /// previous session is restored (Sesame §3.4) — an attacker cannot clobber
   /// a healthy session with a forged init.
-  Future<String?> _handleInitEnvelope(
+  Future<E2eeDecryptResult> _handleInitEnvelope(
     SamayEnvelope env,
     E2eeIdentityKeys identity,
   ) async {
@@ -377,21 +432,32 @@ class E2eeSession implements E2eeMessageCipher {
         'not match this device (delivery binding §6.5; the sender initiated '
         'against a stale published bundle)',
       );
-      return null; // delivery binding (§6.5)
+      return const E2eeDecryptResult.dropped(); // delivery binding (§6.5)
     }
     if (env.ekA == null || env.spkId == null || env.opkId == null) {
       AppLogger.instance.warn(
         'e2ee init envelope DROPPED chat=$chatId — missing X3DH header '
         'fields (ekA/spkId/opkId)',
       );
-      return null;
+      return const E2eeDecryptResult.dropped();
     }
     if (constantTimeEquals(env.senderIkDh, identity.ikDhPublic)) {
       AppLogger.instance.warn(
         'e2ee init envelope DROPPED chat=$chatId — our own init echoed back',
       );
-      return null; // our own init echoed back — never process
+      return const E2eeDecryptResult.dropped(); // our own init echoed back
     }
+
+    // Signal `SessionBuilder.processV3`: an init whose baseKey already has a
+    // session (active OR inactive) is a RE-SEND of an unacknowledged init —
+    // decrypt via the existing session's ratchet (the chain advanced, so the
+    // message decrypts like any other). No X3DH, no OPK load/delete, no
+    // archive: this is what makes the initiator's re-wrapped prekey messages
+    // decryptable even after the one-time prekey was consumed (the pre-fix
+    // fresh-X3DH design burned an OPK per send and made re-processed history
+    // permanently undecryptable — the live "Mensaje no descifrable" class).
+    final reused = await _decryptWithBaseKeySession(env, identity);
+    if (reused != null) return reused;
 
     // Replay blacklist (X3DH §4.2): the marker fingerprints the full init
     // header. Identical bytes → same marker → the message was already
@@ -411,7 +477,7 @@ class E2eeSession implements E2eeMessageCipher {
         'e2ee init envelope DROPPED chat=$chatId — replay (identical marker '
         'already processed, X3DH §4.2)',
       );
-      return null;
+      return const E2eeDecryptResult.dropped();
     }
 
     final spkPair = await _keyStore.loadSignedPrekeyPrivate(env.spkId!);
@@ -421,7 +487,7 @@ class E2eeSession implements E2eeMessageCipher {
         'private for spkId=${env.spkId} (the published bundle predates the '
         'local material — stale-row recovery required)',
       );
-      return null;
+      return const E2eeDecryptResult.dropped();
     }
     final needsOpk = env.opkId! != e2eeNoOpkId;
     final opkPair = needsOpk
@@ -432,13 +498,16 @@ class E2eeSession implements E2eeMessageCipher {
         'e2ee init envelope DROPPED chat=$chatId — no local one-time-prekey '
         'private for opkId=${env.opkId} (consumed or from stale material)',
       );
-      return null;
+      return const E2eeDecryptResult.dropped();
     }
 
     // Snapshot for the Sesame §3.4 abort path: on failure, restore.
     final prevRatchet = _ratchet;
     final prevPeerIkDh = _peerIkDh;
     final prevPeerIkSig = _peerIkSig;
+    final prevEkA = _ekA;
+    final prevSpkId = _spkId;
+    final prevOpkId = _opkId;
     final prevRetired = List<_RetiredSession>.from(_retired);
 
     final sharedSecret = await x3dhRespond(
@@ -456,11 +525,15 @@ class E2eeSession implements E2eeMessageCipher {
     );
 
     // Sesame §3.2 "insert then activate": the displaced active session moves
-    // to the head of the inactive list (bounded, age-pruned).
+    // to the head of the inactive list (bounded, age-pruned). Retire FIRST —
+    // the retired entry captures the previous session's own baseKey.
     _retireCurrentSession();
     _ratchet = responder;
     _peerIkDh = Uint8List.fromList(env.senderIkDh);
     _peerIkSig = Uint8List.fromList(env.senderIkSig);
+    _ekA = Uint8List.fromList(env.ekA!);
+    _spkId = env.spkId;
+    _opkId = env.opkId;
     _hasSentInit = true; // responders never send an init envelope
 
     try {
@@ -476,22 +549,114 @@ class E2eeSession implements E2eeMessageCipher {
         await _keyStore.deleteOneTimePrekey(env.opkId!);
       }
       _lastInitMarker = marker;
+      // Signal `clearUnacknowledgedPreKeyMessage` runs on ANY successful
+      // decrypt (2026-08-16): processing the peer's init acknowledges our
+      // own — the simultaneous-initiation loop converges instead of
+      // re-initiating forever.
+      _initAcknowledged = true;
       await _persist();
-      return plaintext;
+      return E2eeDecryptResult.plaintext(plaintext);
     } on RatchetError {
       // Abort and restore everything (R1 §3.4 / §5.4 step 6 + Sesame §3.4:
       // a failed init must not destroy the established session).
       _ratchet = prevRatchet;
       _peerIkDh = prevPeerIkDh;
       _peerIkSig = prevPeerIkSig;
+      _ekA = prevEkA;
+      _spkId = prevSpkId;
+      _opkId = prevOpkId;
       _retired
         ..clear()
         ..addAll(prevRetired);
       if (needsOpk) {
         await _keyStore.deleteOneTimePrekey(env.opkId!);
       }
-      return null;
+      // The init was addressed to us and ALL key material existed — an AEAD
+      // failure here means tampering: a genuine undecryptable failure.
+      return const E2eeDecryptResult.failed();
     }
+  }
+
+  /// Signal `SessionBuilder.processV3` `hasSessionState(version, baseKey)`:
+  /// looks up a session (active or inactive) already bound to
+  /// `(env.senderIkDh, env.ekA)` and decrypts the re-sent init via its
+  /// ratchet. On success a retired match is ACTIVATED (Sesame §3.4) and the
+  /// previous active session becomes inactive. Returns null when no session
+  /// is bound to this baseKey (a genuinely new init falls through to full
+  /// X3DH); an AEAD failure against a matching session is a duplicate →
+  /// SILENT drop, never a bubble.
+  Future<E2eeDecryptResult?> _decryptWithBaseKeySession(
+    SamayEnvelope env,
+    E2eeIdentityKeys identity,
+  ) async {
+    if (_ratchet == null) {
+      final saved = await _sessionStore.loadSession(chatId);
+      if (saved == null) return null;
+      _restore(saved);
+    }
+    final baseKey = _ekA;
+    if (baseKey != null &&
+        _peerIkDh != null &&
+        constantTimeEquals(env.ekA!, baseKey) &&
+        constantTimeEquals(env.senderIkDh, _peerIkDh!)) {
+      try {
+        final plaintext = await _decryptWith(
+          _ratchet!,
+          _peerIkDh!,
+          _peerIkSig!,
+          env,
+          identity,
+        );
+        _initAcknowledged = true;
+        await _persist();
+        return E2eeDecryptResult.plaintext(plaintext);
+      } on RatchetError {
+        return const E2eeDecryptResult.dropped();
+      }
+    }
+    for (var i = 0; i < _retired.length; i++) {
+      final retired = _retired[i];
+      if (!constantTimeEquals(env.ekA!, retired.aliceBaseKey)) continue;
+      if (!constantTimeEquals(env.senderIkDh, retired.peerIkDh)) continue;
+      if (_clock().difference(retired.ratchet.lastUsedAt) > e2eeSessionMaxAge) {
+        continue;
+      }
+      try {
+        final plaintext = await _decryptWith(
+          retired.ratchet,
+          retired.peerIkDh,
+          retired.peerIkSig,
+          env,
+          identity,
+        );
+        // Activate (Sesame §3.4): swap active ↔ inactive.
+        _retired.removeAt(i);
+        final active = _ratchet;
+        final peerDh = _peerIkDh;
+        final peerSig = _peerIkSig;
+        _ratchet = retired.ratchet;
+        _peerIkDh = retired.peerIkDh;
+        _peerIkSig = retired.peerIkSig;
+        if (active != null && peerDh != null) {
+          _retired.insert(
+            0,
+            _RetiredSession(
+              ratchet: active,
+              peerIkDh: peerDh,
+              peerIkSig: peerSig ?? Uint8List(0),
+              aliceBaseKey: baseKey ?? Uint8List(0),
+              retiredAt: _clock(),
+            ),
+          );
+        }
+        _initAcknowledged = true;
+        await _persist();
+        return E2eeDecryptResult.plaintext(plaintext);
+      } on RatchetError {
+        // Not this session — try the next one.
+      }
+    }
+    return null;
   }
 
   /// Type 0x02: existing-session decrypt. Never creates sessions from
@@ -500,7 +665,7 @@ class E2eeSession implements E2eeMessageCipher {
   /// match is activated and the previous active session becomes inactive
   /// (Sesame §3.4 — session convergence on simultaneous initiation).
   /// Sessions idle past 90 days are refused even when still in memory (§7.7).
-  Future<String?> _handleRatchetEnvelope(
+  Future<E2eeDecryptResult> _handleRatchetEnvelope(
     SamayEnvelope env,
     E2eeIdentityKeys identity,
   ) async {
@@ -512,7 +677,7 @@ class E2eeSession implements E2eeMessageCipher {
           '(the sender resumed a session whose init envelope never reached '
           'this device; a fresh init is required)',
         );
-        return null;
+        return const E2eeDecryptResult.dropped();
       }
       _restore(saved);
     }
@@ -521,19 +686,19 @@ class E2eeSession implements E2eeMessageCipher {
       AppLogger.instance.warn(
         'e2ee ratchet envelope DROPPED chat=$chatId — no peer identity bound',
       );
-      return null;
+      return const E2eeDecryptResult.dropped();
     }
     if (!constantTimeEquals(env.senderIkDh, peer)) {
       AppLogger.instance.warn(
         'e2ee ratchet envelope DROPPED chat=$chatId — sender identity does '
         'not match the bound peer (identity binding, §7.1)',
       );
-      return null; // identity binding (§7.1)
+      return const E2eeDecryptResult.dropped(); // identity binding (§7.1)
     }
     final lastUsed = _ratchet!.lastUsedAt;
     if (_clock().difference(lastUsed) > e2eeSessionMaxAge) {
       await _sessionStore.deleteSession(chatId);
-      return null; // idle too long — session retired (§7.7)
+      return const E2eeDecryptResult.dropped(); // idle too long (§7.7)
     }
     try {
       final plaintext = await _decryptWith(
@@ -547,10 +712,14 @@ class E2eeSession implements E2eeMessageCipher {
       // `clearUnacknowledgedPreKeyMessage`) — later sends resume ratchet.
       _initAcknowledged = true;
       await _persist();
-      return plaintext;
+      return E2eeDecryptResult.plaintext(plaintext);
     } on RatchetError {
       // Active session could not decrypt — try the inactive sessions.
-      return _decryptWithRetired(env, identity);
+      final retired = await _decryptWithRetired(env, identity);
+      if (retired != null) return E2eeDecryptResult.plaintext(retired);
+      // An existing session was bound to this sender but NOTHING decrypts:
+      // genuine undecryptable (tampering / skip-gap) — the bubble.
+      return const E2eeDecryptResult.failed();
     }
   }
 
@@ -593,6 +762,7 @@ class E2eeSession implements E2eeMessageCipher {
               ratchet: active,
               peerIkDh: peerDh,
               peerIkSig: peerSig ?? Uint8List(0),
+              aliceBaseKey: _ekA ?? Uint8List(0),
               retiredAt: _clock(),
             ),
           );
@@ -608,7 +778,9 @@ class E2eeSession implements E2eeMessageCipher {
 
   /// Sesame §3.2: moves the current active session to the head of the
   /// inactive list (bounded at [e2eeMaxInactiveSessions], entries older than
-  /// [e2eeRetiredSessionMaxAge] pruned — Sesame §6.4/§6.5).
+  /// [e2eeRetiredSessionMaxAge] pruned — Sesame §6.4/§6.5). The retired
+  /// entry keeps the session's OWN baseKey (`ek_a`) so a re-sent init can be
+  /// matched to it (Signal `hasSessionState(version, baseKey)`).
   void _retireCurrentSession() {
     final ratchet = _ratchet;
     final peerDh = _peerIkDh;
@@ -620,6 +792,7 @@ class E2eeSession implements E2eeMessageCipher {
         ratchet: ratchet,
         peerIkDh: peerDh,
         peerIkSig: _peerIkSig ?? Uint8List(0),
+        aliceBaseKey: _ekA ?? Uint8List(0),
         retiredAt: _clock(),
       ),
     );
@@ -701,6 +874,15 @@ class E2eeSession implements E2eeMessageCipher {
     // init heals on the next send (Signal unacknowledged-prekey semantics).
     _initAcknowledged = map['init_acknowledged'] as bool? ?? false;
     _lastInitMarker = map['last_init_marker'] as String?;
+    // Init fields (2026-08-16, Signal getPreKeyMessage): the initiator's
+    // baseKey + prekey ids, persisted so an unacknowledged init RE-WRAPS
+    // instead of re-running fresh X3DH. On the responder they record the
+    // init this session was built from (baseKey matching for re-sent inits).
+    // Absent on legacy JSON → the initiator heals with one fresh X3DH.
+    final ekA = map['ek_a'];
+    _ekA = ekA is String ? base64UrlNoPadDecode(ekA) : null;
+    _spkId = map['spk_id'] as int?;
+    _opkId = map['opk_id'] as int?;
     _retired.clear();
     final cutoff = _clock().subtract(e2eeRetiredSessionMaxAge);
     for (final entry in map['retired_sessions'] as List<dynamic>? ?? const []) {
@@ -710,10 +892,14 @@ class E2eeSession implements E2eeMessageCipher {
       final peerSig = base64UrlNoPadDecode(r['peer_ik_sig'] as String);
       if (retiredAt == null || peerDh == null || peerSig == null) continue;
       if (retiredAt.isBefore(cutoff)) continue; // retention window passed
+      final retiredEkA = r['ek_a'];
       _retired.add(_RetiredSession(
         ratchet: RatchetState.fromJson(Map<String, dynamic>.from(r['ratchet'] as Map)),
         peerIkDh: peerDh,
         peerIkSig: peerSig,
+        aliceBaseKey: retiredEkA is String
+            ? base64UrlNoPadDecode(retiredEkA) ?? Uint8List(0)
+            : Uint8List(0),
         retiredAt: retiredAt,
       ));
     }
@@ -730,17 +916,21 @@ class E2eeSession implements E2eeMessageCipher {
 /// A session displaced by a newer init envelope (Sesame §3.2 inactive
 /// list). Kept for [e2eeRetiredSessionMaxAge] so in-flight ciphertext from
 /// the old session still decrypts; deleted once the retention window passes
-/// (Sesame §6.4/§6.5).
+/// (Sesame §6.4/§6.5). [aliceBaseKey] is the baseKey (`ek_a`) this session
+/// was built around — re-sent inits are matched to it (Signal
+/// `hasSessionState(version, baseKey)`, 2026-08-16).
 class _RetiredSession {
   _RetiredSession({
     required this.ratchet,
     required this.peerIkDh,
     required this.peerIkSig,
+    required this.aliceBaseKey,
     required this.retiredAt,
   });
 
   final RatchetState ratchet;
   final Uint8List peerIkDh;
   final Uint8List peerIkSig;
+  final Uint8List aliceBaseKey;
   final DateTime retiredAt;
 }

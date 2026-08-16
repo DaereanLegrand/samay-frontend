@@ -134,6 +134,43 @@ abstract class E2eeSessionStore {
   Future<void> wipeAll();
 }
 
+/// Decrypt outcome tri-state (Signal semantics, 2026-08-16).
+///
+/// The chat layer must distinguish a protocol-level SILENT drop (replay,
+/// stale identity, missing prekey material, no session — Signal's
+/// `DuplicateMessageException` / `NoSessionException` cases, which are
+/// dropped without any user-visible error) from a GENUINE undecryptable
+/// failure (tampered ciphertext / ratchet mismatch — the "Mensaje no
+/// descifrable" bubble). The pre-fix `String?` contract conflated the two,
+/// which turned replays and re-processed history into bubbles.
+class E2eeDecryptResult {
+  const E2eeDecryptResult.plaintext(this.plaintext)
+      : dropped = false,
+        failed = false;
+
+  const E2eeDecryptResult.dropped()
+      : plaintext = null,
+        dropped = true,
+        failed = false;
+
+  const E2eeDecryptResult.failed()
+      : plaintext = null,
+        dropped = false,
+        failed = true;
+
+  /// The decrypted plaintext; null unless [dropped]/[failed] is false.
+  final String? plaintext;
+
+  /// True when the message must be silently dropped (duplicate/replay,
+  /// stale identity, missing prekey, no session). Never bubbles, never
+  /// deletes server-side rows.
+  final bool dropped;
+
+  /// True when the message is genuinely undecryptable (tampering / ratchet
+  /// mismatch against an existing session) — the UI's bubble.
+  final bool failed;
+}
+
 /// The chat-facing cipher contract. The concrete orchestrator is
 /// `E2eeSession` (`lib/crypto/session.dart`).
 abstract class E2eeMessageCipher {
@@ -147,9 +184,10 @@ abstract class E2eeMessageCipher {
     required String plaintext,
   });
 
-  /// Decrypts an envelope. Returns null when the message is undecryptable
-  /// (garbage, tampered, unknown session, expired) — the caller drops it.
-  Future<String?> decrypt({
+  /// Decrypts an envelope into a tri-state result: plaintext, a SILENT drop
+  /// (duplicate/stale/missing-material — Signal drops these without any UI
+  /// error), or a genuine failure (tampering — the undecryptable bubble).
+  Future<E2eeDecryptResult> decrypt({
     required String chatId,
     required String peerUserId,
     required String envelope,

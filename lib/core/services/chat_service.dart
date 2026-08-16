@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:samay/core/logging/app_logger.dart';
+import 'package:samay/core/services/message_plaintext_store.dart';
 import 'package:samay/core/services/realtime_service.dart';
 import 'package:samay/core/utils/input_sanitizer.dart';
 import 'package:samay/crypto/interfaces.dart';
@@ -12,6 +13,32 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 /// "Mensaje no descifrable" via l10n when the row carries
 /// `decryptFailed: true` (E2EE-ARCHITECTURE.md §12.2 step 6).
 const String chatUndecryptablePlaceholder = '[Mensaje no descifrable]';
+
+/// Mirror of the `chat.message_cap` app_config key (default 1000) enforced
+/// server-side by the `enforce_message_cap` trigger (TRIG spec / migration
+/// 20260809000001) — the plaintext store is pruned to this per chat so the
+/// local cache never outgrows what the server may store.
+const int chatMessageCap = 1000;
+
+/// Outcome of a delete-for-everyone attempt (migration 20260815000006).
+enum MessageDeleteOutcome {
+  /// The row was deleted server-side (audited in `deleted_messages`).
+  deleted,
+
+  /// The message is older than the 5-minute window (the SERVER clock's
+  /// verdict via `messages.sent_at` — never the client's claim).
+  tooOld,
+
+  /// The caller is not the sender (server verdict; the UI restricts the
+  /// option to own messages, so this is defensive only).
+  notSender,
+
+  /// The message row no longer exists.
+  notFound,
+
+  /// Transport/other failure — retry later.
+  failed,
+}
 
 /// Chat messages: history, sending and realtime delivery.
 ///
@@ -35,15 +62,28 @@ class ChatService {
   final E2eeSessionStore? _e2eeSessionStore;
   final E2eePrekeyService? _e2eePrekeyService;
 
+  /// Encrypted plaintext store (Signal model, 2026-08-16 — the SQLCipher-
+  /// equivalent Hive `message_cache` box on devices, in-memory in tests).
+  ///
+  /// The Double Ratchet is stateful and irreversible: an already-consumed
+  /// message can NEVER be re-decrypted after the chain advanced. The server
+  /// stores only envelopes, so history re-rendering after an app restart /
+  /// update MUST come from this store — the pre-fix in-memory-only cache
+  /// (`_decryptedByMessage`) turned every restart into a thread of
+  /// "Mensaje no descifrable" bubbles.
+  final MessagePlaintextStore? _plaintextStore;
+
   ChatService({
     required this.client,
     required this.realtime,
     E2eeKeyStore? e2eeKeyStore,
     E2eeSessionStore? e2eeSessionStore,
     E2eePrekeyService? e2eePrekeyService,
+    MessagePlaintextStore? plaintextStore,
   }) : _e2eeKeyStore = e2eeKeyStore,
        _e2eeSessionStore = e2eeSessionStore,
-       _e2eePrekeyService = e2eePrekeyService;
+       _e2eePrekeyService = e2eePrekeyService,
+       _plaintextStore = plaintextStore;
 
   GoTrueClient get auth => client.auth;
 
@@ -64,11 +104,16 @@ class ChatService {
   /// [chatUndecryptablePlaceholder], a documented MVP limitation).
   final Map<String, String> _outbox = {};
 
-  /// chatId → messageId → decrypted plaintext. Decrypted history is cached
-  /// so re-loading a chat does not re-run the ratchet over already-consumed
-  /// messages (an out-of-order replay would fail its AEAD binding and mark
-  /// good messages as undecryptable). Memory-only (§8.4).
+  /// Decrypted history is cached so re-loading a chat does not re-run the
+  /// ratchet over already-consumed messages (an out-of-order replay would
+  /// fail its AEAD binding and mark good messages as undecryptable).
+  /// Memory-only (§8.4).
   final Map<String, Map<String, String>> _decryptedByMessage = {};
+
+  /// Locally deleted messages (delete-for-me, 2026-08-16): chatId →
+  /// messageIds. In-memory MVP tombstone — the server rows stay (the peer
+  /// keeps them), only this device's thread hides them.
+  final Map<String, Set<String>> _locallyDeleted = {};
 
   /// Per-chat serial executor for decryption: the ratchet session is
   /// stateful and must never process two envelopes concurrently (realtime
@@ -82,13 +127,29 @@ class ChatService {
     final stopwatch = Stopwatch()..start();
     final res = await client
         .from('messages')
-        .select('id, sender_id, content, media_url, created_at')
+        .select('id, sender_id, content, media_url, created_at, read_at, sent_at')
         .eq('chat_id', chatId)
+        // `id` is the deterministic tie-break for equal `created_at` values
+        // (both simulators supply client clocks; without it the server order
+        // — and therefore the E2EE decrypt order — is non-deterministic for
+        // same-timestamp rows).
         .order('created_at', ascending: false)
+        .order('id', ascending: false)
         .range(offset, offset + limit - 1);
     final rows = (res as List).reversed.map((e) => Map<String, dynamic>.from(e)).toList();
     if (!e2eeEnabled) return rows;
     final decrypted = [for (final row in rows) await _decryptMessage(chatId, row)];
+    // Bounded plaintext store (2026-08-16): keep at most the message cap per
+    // chat. Best-effort.
+    try {
+      await _plaintextStore?.prune(chatId, chatMessageCap);
+    } catch (e, st) {
+      AppLogger.instance.warn('chat plaintext prune failed chat=$chatId: $e', '$st');
+    }
+    // Server offload (2026-08-16): rows that are permanently undecryptable
+    // (no local session — pre-reinstall history) are deleted server-side so
+    // the server never stores bytes nobody can ever read. Best-effort.
+    await _deleteUndecryptable(chatId, decrypted);
     AppLogger.instance.debug(
       'chat loadMessages chat=$chatId offset=$offset rows=${rows.length} '
       'ms=${stopwatch.elapsedMilliseconds}',
@@ -229,6 +290,61 @@ class ChatService {
     await client.rpc('mark_chat_read', params: {'p_chat_id': chatId});
   }
 
+  /// Stamps `read_at` on every unread message FROM THE CALLER'S PEER in
+  /// [chatId] (self-only RPC, migration 20260815000005) — the sender's open
+  /// thread flips grey → blue double checks via realtime UPDATE events.
+  ///
+  /// The client calls this only when the caller's own `read_receipts_enabled`
+  /// is on: with receipts disabled nothing is ever stamped, so the peer never
+  /// sees blue checks (WhatsApp's read-receipts privacy semantics).
+  Future<void> markMessagesRead(String chatId) async {
+    final user = auth.currentUser;
+    if (user == null) throw Exception('No authenticated user');
+    await client.rpc('mark_messages_read', params: {'p_chat_id': chatId});
+  }
+
+  /// The caller's read-receipts privacy switch (`users.read_receipts_enabled`,
+  /// default true). When OFF the client must not call [markMessagesRead] —
+  /// no read receipts are sent to peers.
+  Future<bool> getReadReceiptsEnabled() async {
+    final user = auth.currentUser;
+    if (user == null) return true;
+    final res = await client
+        .from('users')
+        .select('read_receipts_enabled')
+        .eq('id', user.id)
+        .maybeSingle();
+    return res?['read_receipts_enabled'] != false;
+  }
+
+  /// Persists the caller's read-receipts switch (own-row only — the
+  /// `users_update_own` RLS policy; same seam as `discovery_opt_in`).
+  Future<void> setReadReceiptsEnabled(bool value) async {
+    final user = auth.currentUser;
+    if (user == null) throw Exception('No authenticated user');
+    await client
+        .from('users')
+        .update({'read_receipts_enabled': value})
+        .eq('id', user.id);
+  }
+
+  /// Subscribes to `read_at` flips for [chatId]'s messages (realtime UPDATE
+  /// events on `messages` — RLS restricts delivery to participants). Rows
+  /// arrive as raw envelopes and MUST only be used for their `read_at`:
+  /// the content field is never touched on this path (no decryption — the
+  /// sender already holds the plaintext).
+  RealtimeChannel subscribeToMessageReads(
+    String chatId,
+    void Function(Map<String, dynamic>) onUpdate,
+  ) {
+    return realtime.subscribeToChannel(
+      'messages:reads:$chatId',
+      PostgresChangeEvent.update,
+      'messages',
+      onUpdate,
+    );
+  }
+
   /// Best-effort decryption of an inbox row's last-message envelope — the
   /// same path as the thread ([_decryptMessage]): own messages render from
   /// the outbox, peer envelopes decrypt via the per-chat session,
@@ -250,28 +366,188 @@ class ChatService {
       'content': row['last_message_content'],
     };
     final decrypted = await _decryptMessage(chatId, last);
+    if (decrypted['needsSession'] == true) {
+      await _deleteUndecryptable(chatId, [decrypted]);
+    }
+    if (decrypted['decryptDropped'] == true) {
+      // Signal semantics: a protocol-level drop (duplicate/stale) renders
+      // NO preview — never the envelope, never the bubble flag.
+      return {
+        ...row,
+        'last_message_content': null,
+        'last_message_decrypt_failed': false,
+      };
+    }
     return {
       ...row,
       'last_message_content': decrypted['content'],
       'last_message_decrypt_failed': decrypted['decryptFailed'] == true,
+      'last_message_needs_session': decrypted['needsSession'] == true,
     };
+  }
+
+  /// Best-effort server-side cleanup of permanently undecryptable rows
+  /// (no-session class, 2026-08-16): after a reinstall/identity change these
+  /// rows can never be decrypted by anyone — delete them to offload the
+  /// server (`delete_undecryptable_messages`, migration 20260815000006,
+  /// participant-gated, audited in `deleted_messages`). Missing-RPC (old
+  /// server) or RLS errors are logged and ignored: the rows stay hidden on
+  /// this device and the next load retries.
+  Future<void> _deleteUndecryptable(
+    String chatId,
+    List<Map<String, dynamic>> rows,
+  ) async {
+    final ids = <String>[
+      for (final r in rows)
+        if (r['needsSession'] == true && r['id'] is String) r['id'] as String,
+    ];
+    if (ids.isEmpty) return;
+    try {
+      final res = await client.rpc(
+        'delete_undecryptable_messages',
+        params: {'p_chat_id': chatId, 'p_message_ids': ids},
+      );
+      AppLogger.instance.debug(
+        'chat undecryptable cleanup chat=$chatId ids=${ids.length} '
+        'deleted=$res',
+      );
+    } catch (e, st) {
+      if (e is PostgrestException) {
+        AppLogger.instance.warn(
+          'chat undecryptable cleanup SKIPPED chat=$chatId '
+          'code=${e.code} message="${e.message}" — rows stay hidden, '
+          'next load retries',
+        );
+      } else {
+        AppLogger.instance.warn(
+          'chat undecryptable cleanup failed chat=$chatId: $e',
+          '$st',
+        );
+      }
+    }
   }
 
   /// Subscribes to live inserts for [chatId]. Rows arrive as raw envelopes
   /// and are decrypted before [onInsert] sees them (E2EE §9.4: realtime
-  /// carries ciphertext only). Returns the channel so callers can
-  /// unsubscribe on dispose.
+  /// carries ciphertext only). Rows that fail with no session (needsSession)
+  /// never reach the UI — they are deleted server-side instead. Returns the
+  /// channel so callers can unsubscribe on dispose.
   RealtimeChannel subscribeToMessages(
     String chatId,
     void Function(Map<String, dynamic>) onInsert,
   ) {
     return realtime.subscribeToMessages(chatId, (row) async {
       if (e2eeEnabled) {
-        onInsert(await _decryptMessage(chatId, row));
+        final decrypted = await _decryptMessage(chatId, row);
+        if (decrypted['needsSession'] == true) {
+          await _deleteUndecryptable(chatId, [decrypted]);
+          return;
+        }
+        if (decrypted['decryptDropped'] == true) {
+          // Signal semantics: silently dropped duplicates/stale rows never
+          // reach the UI.
+          return;
+        }
+        onInsert(decrypted);
       } else {
         onInsert(row);
       }
     });
+  }
+
+  /// Subscribes to live DELETEs for [chatId] (hard deletes — delete-for-
+  /// everyone from the sender's device, or the undecryptable cleanup). The
+  /// peer's open thread removes the row live (REPLICA IDENTITY FULL delivers
+  /// the old record). Returns the channel so callers can unsubscribe.
+  RealtimeChannel subscribeToMessageDeletes(
+    String chatId,
+    void Function(Map<String, dynamic>) onDelete,
+  ) {
+    return realtime.subscribeToChannel(
+      'messages:deletes:$chatId',
+      PostgresChangeEvent.delete,
+      'messages',
+      onDelete,
+    );
+  }
+
+  /// Delete-for-everyone (migration 20260815000006): sender-only + a 5-minute
+  /// window verified with the SERVER's clock (`messages.sent_at` — the
+  /// client can never extend it). The outcome drives the UI copy.
+  Future<MessageDeleteOutcome> deleteMessageForEveryone(String messageId) async {
+    try {
+      await client.rpc(
+        'delete_message_for_everyone',
+        params: {'p_message_id': messageId},
+      );
+      AppLogger.instance.debug(
+        'chat delete-for-everyone ok msg=$messageId',
+      );
+      return MessageDeleteOutcome.deleted;
+    } on PostgrestException catch (e) {
+      final msg = e.message;
+      if (msg.contains('MESSAGE_TOO_OLD')) return MessageDeleteOutcome.tooOld;
+      if (msg.contains('NOT_THE_SENDER')) return MessageDeleteOutcome.notSender;
+      if (msg.contains('MESSAGE_NOT_FOUND')) return MessageDeleteOutcome.notFound;
+      AppLogger.instance.warn(
+        'chat delete-for-everyone FAILED msg=$messageId '
+        'code=${e.code} message="$msg"',
+      );
+      return MessageDeleteOutcome.failed;
+    } catch (e, st) {
+      AppLogger.instance.warn(
+        'chat delete-for-everyone FAILED msg=$messageId '
+        'type=${e.runtimeType}',
+        '$st',
+      );
+      return MessageDeleteOutcome.failed;
+    }
+  }
+
+  /// Delete-for-me (2026-08-16): hides the message on THIS device only —
+  /// the server rows stay (the peer keeps them). In-memory MVP tombstone,
+  /// plus the encrypted plaintext-store entry is removed (a tombstoned
+  /// message must not resurface from the cache).
+  Future<void> deleteMessageForMe(String chatId, String messageId) async {
+    (_locallyDeleted[chatId] ??= {}).add(messageId);
+    _decryptedByMessage[chatId]?.remove(messageId);
+    try {
+      await _plaintextStore?.delete(chatId, messageId);
+    } catch (e, st) {
+      AppLogger.instance.warn(
+        'chat plaintext cache delete failed chat=$chatId msg=$messageId: $e',
+        '$st',
+      );
+    }
+    AppLogger.instance.debug(
+      'chat delete-for-me chat=$chatId msg=$messageId',
+    );
+  }
+
+  /// Whether [messageId] was locally deleted for this chat (delete-for-me
+  /// tombstone — the provider drops it from the thread).
+  bool isLocallyDeleted(String chatId, String messageId) =>
+      _locallyDeleted[chatId]?.contains(messageId) ?? false;
+
+  /// Whether the peer's published identity differs from the one bound to the
+  /// stored session (E2EE §7.5 reinstall detection). False when there is no
+  /// session yet (nothing bound to compare against). Note: `fetch_prekey_bundle`
+  /// is the only read path and consumes one of the peer's one-time prekeys
+  /// server-side — called once per chat open, never per message.
+  Future<bool> peerNeedsRekey(String chatId) async {
+    if (!e2eeEnabled) return false;
+    try {
+      final cipher = await _cipherFor(chatId);
+      return await cipher.peerIdentityChanged(
+        await _resolvePeerUserId(chatId),
+      );
+    } catch (e, st) {
+      AppLogger.instance.warn(
+        'chat peerNeedsRekey failed chat=$chatId: $e',
+        '$st',
+      );
+      return false;
+    }
   }
 
   /// Decrypts [row]'s envelope in place. Never throws (E2EE §12.2 step 6):
@@ -312,6 +588,17 @@ class ChatService {
         row['decryptFailed'] = false;
         return row;
       }
+      // Signal plaintext-store (2026-08-16): history re-rendered after an
+      // app restart must come from the encrypted cache — the ratchet chain
+      // has already advanced past these messages and can never re-decrypt
+      // them. Serve the cache BEFORE any crypto.
+      final persisted = await _plaintextStore?.get(chatId, messageId);
+      if (persisted != null) {
+        (_decryptedByMessage[chatId] ??= {})[messageId] = persisted;
+        row['content'] = persisted;
+        row['decryptFailed'] = false;
+        return row;
+      }
     }
     final userId = auth.currentUser?.id;
     if (userId != null && row['sender_id'] == userId) {
@@ -321,23 +608,42 @@ class ChatService {
         row['decryptFailed'] = false;
         if (messageId is String) {
           (_decryptedByMessage[chatId] ??= {})[messageId] = plaintext;
+          await _cachePlaintext(chatId, messageId, plaintext);
         }
         return row;
       }
     }
     try {
       final cipher = await _cipherFor(chatId);
-      final plaintext = await cipher.decrypt(
+      final result = await cipher.decrypt(
         chatId: chatId,
         peerUserId: await _resolvePeerUserId(chatId),
         envelope: envelope,
       );
+      final plaintext = result.plaintext;
       if (plaintext != null) {
         row['content'] = plaintext;
         row['decryptFailed'] = false;
         if (messageId is String) {
           (_decryptedByMessage[chatId] ??= {})[messageId] = plaintext;
+          await _cachePlaintext(chatId, messageId, plaintext);
         }
+        return row;
+      }
+      if (result.dropped) {
+        // Signal semantics (2026-08-16): a protocol-level drop — replay/
+        // duplicate, stale identity, missing prekey material — is SILENT:
+        // the row never renders and is never bubble-marked. Against an
+        // EXISTING session the server row stays (a later fresh init may
+        // still re-establish); with NO session the row is the pre-reinstall
+        // class → needsSession (hidden + server-side offload below).
+        if (!await _sessionExistsFor(chatId)) {
+          row['needsSession'] = true;
+          row['decryptFailed'] = false;
+          return row;
+        }
+        row['decryptDropped'] = true;
+        row['decryptFailed'] = false;
         return row;
       }
     } catch (e, st) {
@@ -347,13 +653,60 @@ class ChatService {
         '$st',
       );
     }
+    // No-session class (2026-08-16, Signal reinstall semantics): when NO
+    // session exists for the chat, the failure means pre-reinstall history —
+    // the old identity/ratchet keys are gone forever, so the message is
+    // never decryptable by ANYONE. The UI hides these rows (pure Signal:
+    // after a reinstall the thread starts fresh) and the service deletes
+    // them server-side (offload). The placeholder bubble survives ONLY for
+    // failures against an EXISTING session (tamper / skip-gap — the case
+    // Signal itself error-bubbles).
+    if (!await _sessionExistsFor(chatId)) {
+      row['needsSession'] = true;
+      row['decryptFailed'] = false;
+      return row;
+    }
     AppLogger.instance.warn(
       'chat decrypt failed chat=$chatId msg=$messageId — undecryptable '
-      '(null decrypt or throw; see above)',
+      '(genuine failure; see above)',
     );
     row['content'] = chatUndecryptablePlaceholder;
     row['decryptFailed'] = true;
     return row;
+  }
+
+  /// Best-effort probe: does a persisted session exist for [chatId]?
+  /// (Drives the Signal reinstall classification — no session ⇒ the row is
+  /// pre-reinstall history, hidden + server-deleted.)
+  Future<bool> _sessionExistsFor(String chatId) async {
+    if (!e2eeEnabled) return true;
+    try {
+      return await _e2eeSessionStore!.loadSession(chatId) != null;
+    } catch (e, st) {
+      AppLogger.instance.warn(
+        'chat session-exists probe failed chat=$chatId: $e',
+        '$st',
+      );
+      return true;
+    }
+  }
+
+  /// Write-through into the encrypted plaintext store (best-effort — a
+  /// store failure must never break the message path; the message stays
+  /// served from the memory cache until the next restart).
+  Future<void> _cachePlaintext(
+    String chatId,
+    String messageId,
+    String plaintext,
+  ) async {
+    try {
+      await _plaintextStore?.cache(chatId, messageId, plaintext);
+    } catch (e, st) {
+      AppLogger.instance.warn(
+        'chat plaintext cache write failed chat=$chatId msg=$messageId: $e',
+        '$st',
+      );
+    }
   }
 
   Future<E2eeMessageCipher> _cipherFor(String chatId) {

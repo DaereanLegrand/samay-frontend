@@ -180,4 +180,83 @@ class HiveService {
     if (box.isEmpty) return null;
     return box.toMap().map((k, v) => MapEntry(k, v));
   }
+
+  // ---------------------------------------------------------------------------
+  // Message plaintext cache (Signal plaintext-store backend, 2026-08-16 —
+  // companion: lib/core/services/message_plaintext_store.dart)
+  // ---------------------------------------------------------------------------
+  // The Double Ratchet is stateful and irreversible: after the chain
+  // advanced, an already-decrypted envelope can never be decrypted again.
+  // The server stores only envelopes, so history re-rendering after a
+  // restart MUST come from this cache (AES-256 at rest, key in the platform
+  // Keystore/Keychain — the SQLCipher-equivalent). Keys are
+  // `chatId::messageId`; values are `{"t": <iso8601>, "p": <plaintext>}` so
+  // pruning is deterministic by cache time.
+
+  /// Stores the decrypted [plaintext] of message [messageId] in chat
+  /// [chatId] (write-through on every successful decrypt/send).
+  Future<void> cacheMessage(
+    String chatId,
+    String messageId,
+    String plaintext,
+  ) async {
+    final box = _hive.box<String>(messageBoxName);
+    await box.put(
+      '$chatId::$messageId',
+      jsonEncode({
+        't': DateTime.now().toIso8601String(),
+        'p': plaintext,
+      }),
+    );
+  }
+
+  /// The stored plaintext of message [messageId] in chat [chatId], or null
+  /// when not cached.
+  String? getCachedMessage(String chatId, String messageId) {
+    final box = _hive.box<String>(messageBoxName);
+    final raw = box.get('$chatId::$messageId');
+    if (raw == null) return null;
+    try {
+      return (jsonDecode(raw) as Map)['p'] as String?;
+    } on FormatException {
+      return null;
+    }
+  }
+
+  /// Removes the cached entry of message [messageId] in chat [chatId]
+  /// (delete-for-me must not leave the tombstoned plaintext behind).
+  Future<void> deleteCachedMessage(String chatId, String messageId) async {
+    final box = _hive.box<String>(messageBoxName);
+    await box.delete('$chatId::$messageId');
+  }
+
+  /// Drops the OLDEST entries of chat [chatId] until at most [maxPerChat]
+  /// remain (bounded storage, aligned with the server message cap).
+  Future<void> pruneCachedMessages(String chatId, int maxPerChat) async {
+    final box = _hive.box<String>(messageBoxName);
+    final prefix = '$chatId::';
+    final entries = box.toMap().entries
+        .where((e) => e.key.startsWith(prefix))
+        .toList();
+    final excess = entries.length - maxPerChat;
+    if (excess <= 0) return;
+    entries.sort((a, b) {
+      final ta = _cacheTimestamp(a.value);
+      final tb = _cacheTimestamp(b.value);
+      if (ta == null || tb == null) return 0;
+      return ta.compareTo(tb);
+    });
+    for (final entry in entries.take(excess)) {
+      await box.delete(entry.key);
+    }
+  }
+
+  static DateTime? _cacheTimestamp(String raw) {
+    try {
+      final t = (jsonDecode(raw) as Map)['t'];
+      return t is String ? DateTime.tryParse(t) : null;
+    } on FormatException {
+      return null;
+    }
+  }
 }
