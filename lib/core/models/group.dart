@@ -16,6 +16,9 @@ abstract class Group with _$Group {
     String? rankBracket,
     DateTime? frozenAt,
     String? myRole,
+    /// ISSUE 2: the caller's own membership status (`active`/`invited`),
+    /// attached by `GroupService.getMyGroups` alongside `my_role`.
+    String? myStatus,
   }) = _Group;
 
   factory Group.fromJson(Map<String, dynamic> json) => _$GroupFromJson(json);

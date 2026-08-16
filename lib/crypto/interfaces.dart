@@ -210,6 +210,22 @@ abstract class E2eeMessageCipher {
   /// True when the peer's published identity key differs from the one bound
   /// to the stored session (reinstall / device change, E2EE §7.5).
   Future<bool> peerIdentityChanged(String peerUserId);
+
+  /// The peer's X25519 identity public key BOUND to the session — the
+  /// identity the pairwise session authenticates the peer as (E2EE §7.1),
+  /// not a self-attested claim. Restores the session from the store when
+  /// only persisted JSON state exists (like [peerIdentityChanged]); the
+  /// 0x01 responder flow records the initiator's `ik_dh` at session
+  /// creation and the stored session JSON carries it as `peer_ik_dh`.
+  ///
+  /// The group distribution decrypt path (K1 re-audit, 2026-08-16) uses it
+  /// to cross-check a sender-key bundle's SELF-ATTESTED `sender_ik_dh`:
+  /// a bundle minted with a LEARNED foreign key is rejected unless it
+  /// matches the key bound to the pairwise session that delivered it.
+  ///
+  /// Null when no session is bound (unknown peer) — callers keep their
+  /// historical best-effort behavior. Implementers may return null.
+  Future<Uint8List?> boundPeerIkDh();
 }
 
 /// Server prekey RPCs (§9.3 — `fetch_prekey_bundle`, `publish_prekeys`).

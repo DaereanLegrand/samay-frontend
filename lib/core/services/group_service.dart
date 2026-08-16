@@ -90,10 +90,35 @@ class GroupService {
     return Map<String, dynamic>.from(res);
   }
 
+  /// The chat id of [groupId]'s group chat — the `chats` row with
+  /// `type = 'group'` and `reference_id = [groupId]` — or null when the chat
+  /// row does not exist. Active members can read the group chat row
+  /// (`chats_read_participant`, migration 20260817000002 — the group branch
+  /// gates on `group_members.status = 'active'`), so the lookup is
+  /// participant-gated server-side. Consumed by the UI agent to open a
+  /// group's E2EE chat (`ChatService` takes the chat id).
+  Future<String?> getGroupChatId(String groupId) async {
+    final res = await client
+        .from('chats')
+        .select('id')
+        .eq('type', 'group')
+        .eq('reference_id', groupId)
+        .maybeSingle();
+    return res == null ? null : res['id'] as String?;
+  }
+
   Future<List<Map<String, dynamic>>> getGroupMembers(String groupId) async {
     final res = await client
         .from('group_members')
-        .select('id, user_id, role, joined_at, status, users!inner(username)')
+        // OPT-009: `group_id` is required by the freezed GroupMember model
+        // (its absence TypeError'd group-detail into "Error del servidor").
+        // The join aliases the security-barrier user_search_view as `users` —
+        // the raw `users` join is own-row-only under RLS, which dropped every
+        // co-member's username (member lists showed a single row).
+        .select(
+          'id, group_id, user_id, role, joined_at, status, '
+          'users:user_search_view!inner(username)',
+        )
         .eq('group_id', groupId)
         .eq('status', 'active');
     return res.map((e) => Map<String, dynamic>.from(e)).toList();
@@ -130,20 +155,20 @@ class GroupService {
         .eq('user_id', userId);
   }
 
+  /// Transfers promotor leadership to [newPromotorId].
+  ///
+  /// OPT-009: routed through the `transfer_promotor` SECURITY DEFINER RPC —
+  /// a single transaction (demote self to co_promotor + promote the new
+  /// promotor), so a partially-applied transfer can never leave a group with
+  /// two promotors or none, and the role-hierarchy RLS (only a promotor may
+  /// create a promotor) cannot be interleaved by a concurrent request.
   Future<void> transferPromotor(String groupId, String newPromotorId) async {
     final user = auth.currentUser;
     if (user == null) throw Exception('No authenticated user');
-    await client
-        .from('group_members')
-        .update({'role': 'co_promotor'})
-        .eq('group_id', groupId)
-        .eq('user_id', user.id)
-        .eq('role', 'promotor');
-    await client
-        .from('group_members')
-        .update({'role': 'promotor'})
-        .eq('group_id', groupId)
-        .eq('user_id', newPromotorId);
+    await client.rpc('transfer_promotor', params: {
+      'p_group_id': groupId,
+      'p_new_promotor_id': newPromotorId,
+    });
   }
 
   Future<void> setMemberRole(String groupId, String userId, String role) async {
@@ -168,9 +193,11 @@ class GroupService {
   Future<List<Map<String, dynamic>>> getMyGroups() async {
     final user = auth.currentUser;
     if (user == null) throw Exception('No authenticated user');
+    // ISSUE 2: `status` rides along so invited memberships keep their pending
+    // marker in the groups list (the detail screen also gates on it).
     final memberships = await client
         .from('group_members')
-        .select('group_id, role')
+        .select('group_id, role, status')
         .eq('user_id', user.id);
     if (memberships.isEmpty) return [];
     final groupIds = memberships.map((m) => m['group_id'] as String).toList();
@@ -181,8 +208,23 @@ class GroupService {
     for (final g in groups) {
       final m = memberships.firstWhere((m) => m['group_id'] == g['id']);
       g['my_role'] = m['role'];
+      g['my_status'] = m['status'];
     }
     return groups.map((e) => Map<String, dynamic>.from(e)).toList();
+  }
+
+  /// The current user's own membership row for [groupId], or null when there
+  /// is none. ISSUE 2: the detail screen gates the invited state on `status`.
+  Future<Map<String, dynamic>?> getMyMembership(String groupId) async {
+    final user = auth.currentUser;
+    if (user == null) throw Exception('No authenticated user');
+    final res = await client
+        .from('group_members')
+        .select('id, group_id, role, status')
+        .eq('group_id', groupId)
+        .eq('user_id', user.id)
+        .maybeSingle();
+    return res == null ? null : Map<String, dynamic>.from(res);
   }
 
   /// Invites [userIds] to [groupId] as pending `invited` members.

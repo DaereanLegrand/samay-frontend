@@ -95,9 +95,12 @@ class EventService {
   Future<List<Map<String, dynamic>>> getEventPromotores(String eventId) async {
     final res = await client
         .from('event_promotores')
+        // OPT-009: join through the security-barrier user_search_view — the
+        // raw `users` join is own-row-only under RLS (co-promotores' rows
+        // silently vanished).
         .select(
           'id, event_id, user_id, role, preshards_contributed, added_at, '
-          'users!inner(username)',
+          'users:user_search_view!inner(username)',
         )
         .eq('event_id', eventId);
     return res.map((e) => Map<String, dynamic>.from(e)).toList();

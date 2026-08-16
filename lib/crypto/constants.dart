@@ -14,12 +14,51 @@ const int e2eeEnvelopeTypeInit = 0x01;
 /// Envelope type 0x02: Double Ratchet message.
 const int e2eeEnvelopeTypeRatchet = 0x02;
 
+/// Envelope type 0x03: sender-key message (E2EE group chat — Signal sender
+/// keys, ISSUE 4). Encrypted ONCE with a key derived from the sender's chain;
+/// every member holding the sender's chain can decrypt (E2EE §9.6 follow-up).
+const int e2eeEnvelopeTypeSenderKey = 0x03;
+
+/// Group-id field length in the 0x03 envelope header: a UUID as 16 raw bytes.
+const int e2eeEnvelopeGroupIdLength = 16;
+
+/// Sender-key distribution bundle JSON version (ISSUE 4). The bundle is the
+/// PLAINTEXT of an ordinary pairwise ratchet message; `kind` is its marker.
+/// v3 since the 2026-08-17 rekey-epoch fix: the bundle carries the sender's
+/// record `epoch`, so receivers can distinguish a GENUINE rekey (fresh
+/// epoch) from a same-epoch stale/duplicate bundle.
+const int e2eeSenderKeyBundleVersion = 3;
+
+/// Distribution bundle `kind` marker — `isSenderKeyBundle` routes on this
+/// (ISSUE 4, Signal sender-key distribution semantics).
+const String e2eeSenderKeyBundleKind = 'samay.group_sender_key';
+
+/// Sender-key record / registry JSON schema version (ISSUE 4). v3 since the
+/// 2026-08-17 rekey-epoch fix: records gain `epoch` (the group epoch the
+/// chain was minted in — [e2eeSenderKeyBundleVersion]'s bundle field) and
+/// the registry gains the group-level `epoch` counter (owned by the
+/// registry, which is NEVER deleted on wipe). v2 state (no epoch, 2026-08-16
+/// audit shape) is treated as ABSENT by `fromJson` (returns null) — no
+/// on-device migration needed: the member is re-distributed once and a v3
+/// record replaces the old one.
+const int e2eeSenderKeyRecordVersion = 3;
+const int e2eeSenderKeyRegistryVersion = 3;
+
 /// `opk_id` value meaning "no one-time prekey was used" (§6.3).
 const int e2eeNoOpkId = 0xFFFFFFFF;
 
 /// Maximum number of message keys that may be skipped per chain (R2 §8.4,
 /// decision D-7: 2000).
 const int e2eeMaxSkip = 2000;
+
+/// Maximum chain gap the 0x03 sender-key decrypt walk will derive through
+/// (2026-08-16 audit fix F1 — the header's `chain_index` is
+/// attacker-controlled and an unbounded walk is a remote CPU DoS: a row
+/// with chain_index = 0xFFFFFFFF would force ~4.29e9 HKDF steps before the
+/// AEAD check, re-run on every reload/redelivery). Mirrors
+/// [e2eeMaxSkip]/double_ratchet's MAX_SKIP: gaps beyond this are dropped
+/// without deriving anything and without advancing the record.
+const int e2eeSenderKeyMaxSkip = 2000;
 
 /// HKDF `info` strings — MUST be distinct per use (§3.1 domain separation).
 const String e2eeX3dhInfo = 'samay.e2ee.x3dh.v1';

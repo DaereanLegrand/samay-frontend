@@ -884,23 +884,47 @@ abstract class AppLocalizations {
   /// **'Donar'**
   String get groupsDonate;
 
-  /// Group detail tab label
+  /// Etiqueta de la pestaña Información del detalle de grupo
+  ///
+  /// In es, this message translates to:
+  /// **'Información'**
+  String get groupsTabInfo;
+
+  /// Etiqueta de pestaña del detalle de grupo
   ///
   /// In es, this message translates to:
   /// **'Chat'**
   String get groupsTabChat;
 
-  /// Group detail tab label
+  /// Etiqueta de pestaña del detalle de grupo
   ///
   /// In es, this message translates to:
   /// **'Miembros'**
   String get groupsTabMembers;
 
-  /// Group detail tab label
+  /// Etiqueta de pestaña del detalle de grupo
   ///
   /// In es, this message translates to:
   /// **'Eventos'**
   String get groupsTabEvents;
+
+  /// Insignia en la fila de un grupo cuya membresía es una invitación sin aceptar
+  ///
+  /// In es, this message translates to:
+  /// **'Invitación pendiente'**
+  String get groupsInvitePending;
+
+  /// Título del estado de usuario invitado en el detalle de grupo
+  ///
+  /// In es, this message translates to:
+  /// **'Invitación de grupo'**
+  String get groupsInvitePendingTitle;
+
+  /// Cuerpo del estado de usuario invitado en el detalle de grupo
+  ///
+  /// In es, this message translates to:
+  /// **'Has sido invitado a este grupo. Acepta para unirte.'**
+  String get groupsInvitePendingBody;
 
   /// Menu item marking a frozen group
   ///

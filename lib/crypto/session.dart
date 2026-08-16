@@ -148,6 +148,26 @@ class E2eeSession implements E2eeMessageCipher {
     return !constantTimeEquals(bundle.identityKey, peer);
   }
 
+  /// The peer's X25519 identity public key bound to the session (K1
+  /// re-audit, 2026-08-16): the in-memory key when the session is loaded,
+  /// otherwise restored from the persisted session JSON (`peer_ik_dh`,
+  /// §8.3 — set by the 0x01 responder flow from the initiator's
+  /// `sender_ik_dh` and by the initiator from the fetched bundle). Null
+  /// when no session exists — the group distribution decrypt path then
+  /// falls back to the historical best-effort behavior (no expected key).
+  @override
+  Future<Uint8List?> boundPeerIkDh() async {
+    var peer = _peerIkDh;
+    if (peer == null) {
+      final saved = await _sessionStore.loadSession(chatId);
+      if (saved != null) {
+        _restore(saved);
+        peer = _peerIkDh;
+      }
+    }
+    return peer == null ? null : Uint8List.fromList(peer);
+  }
+
   // ---------------------------------------------------------------------------
   // Core operations
   // ---------------------------------------------------------------------------
@@ -867,8 +887,13 @@ class E2eeSession implements E2eeMessageCipher {
   void _restore(String json) {
     final map = jsonDecode(json) as Map<String, dynamic>;
     _ratchet = RatchetState.fromJson(map);
-    _peerIkDh = base64UrlNoPadDecode(map['peer_ik_dh'] as String);
-    _peerIkSig = base64UrlNoPadDecode(map['peer_ik_sig'] as String);
+    // Null-tolerant (K1 re-audit nit): a session JSON missing/corrupt in
+    // these fields must never throw — the identity fields degrade to null
+    // (the no-session guards in the encrypt/decrypt paths take over).
+    final peerIkDhRaw = map['peer_ik_dh'];
+    _peerIkDh = peerIkDhRaw is String ? base64UrlNoPadDecode(peerIkDhRaw) : null;
+    final peerIkSigRaw = map['peer_ik_sig'];
+    _peerIkSig = peerIkSigRaw is String ? base64UrlNoPadDecode(peerIkSigRaw) : null;
     _hasSentInit = map['has_sent_init'] as bool? ?? true;
     // Old JSON (pre-2026-08-15) has no field → false → an unacknowledged
     // init heals on the next send (Signal unacknowledged-prekey semantics).
@@ -888,8 +913,12 @@ class E2eeSession implements E2eeMessageCipher {
     for (final entry in map['retired_sessions'] as List<dynamic>? ?? const []) {
       final r = Map<String, dynamic>.from(entry as Map);
       final retiredAt = DateTime.tryParse(r['retired_at'] as String? ?? '');
-      final peerDh = base64UrlNoPadDecode(r['peer_ik_dh'] as String);
-      final peerSig = base64UrlNoPadDecode(r['peer_ik_sig'] as String);
+      final retiredDhRaw = r['peer_ik_dh'];
+      final retiredSigRaw = r['peer_ik_sig'];
+      final peerDh =
+          retiredDhRaw is String ? base64UrlNoPadDecode(retiredDhRaw) : null;
+      final peerSig =
+          retiredSigRaw is String ? base64UrlNoPadDecode(retiredSigRaw) : null;
       if (retiredAt == null || peerDh == null || peerSig == null) continue;
       if (retiredAt.isBefore(cutoff)) continue; // retention window passed
       final retiredEkA = r['ek_a'];

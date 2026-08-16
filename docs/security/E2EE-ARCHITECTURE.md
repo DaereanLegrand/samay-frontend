@@ -1,6 +1,6 @@
 # Samay — E2EE Chat Architecture (X3DH + Double Ratchet)
 
-**Owner:** D-07 (E2EE architecture doc) · **Reviewed:** 2026-08-13 · **Status:** authoritative design spec — implementation landed (I-37/81722ef); deviations recorded as errata below
+**Owner:** D-07 (E2EE architecture doc) · **Reviewed:** 2026-08-13 (group-chat §9.6 rewritten 2026-08-15..17, ISSUE 4) · **Status:** authoritative design spec — implementation landed (I-37/81722ef, ISSUE 4 group sender-key); deviations recorded as errata below
 **Drives:** `I-37` (crypto core — `lib/crypto/**`) and `I-38` (chat integration — `lib/features/chat/**`, `chat_service`, prekey server migration)
 
 > Companion docs: `docs/security/SECURITY.md` (D-06 — threat model, crypto policy §3, gap G-09),
@@ -16,7 +16,9 @@ I-37/I-38 landed (commits `81722ef`, `e0eab3c`; 2026-08-09..13). `lib/crypto/` s
 modules (codec, constants, x3dh, double_ratchet, envelope, session, e2ee_key_store,
 e2ee_primitives, e2ee_prekey_service, interfaces); chat is live with E2EE. The spec
 sections below remain authoritative for the *design*; this block records where the
-implementation differs or went further. **125 unit tests in `test/crypto/`.**
+implementation differs or went further. **179 unit tests in `test/crypto/`.**
+Group chat E2EE (Signal sender keys, ISSUE 4) shipped 2026-08-15..17 — §9.6 below is
+rewritten to document the implementation (errata row in §0.1).
 
 ### 0.1 Implemented beyond the spec (add to the design)
 
@@ -29,6 +31,9 @@ implementation differs or went further. **125 unit tests in `test/crypto/`.**
 | **Server-side SPK expiry** | `e2ee_identity_keys.signed_prekey_expires_at` (`20260809000003:33`), enforced client-side by `e2ee_prekey_service.dart:79,122-130` | §5.2 says server "keeps the last 2"; the expiry column is undocumented in §9.1 |
 | **In-app key material wipe on ban** | `session.dart:192-193` wipes sessions/replay markers; account wipe on `deleteAccount` (I-6 acceptance) | — |
 | **Session/insert atomicity + unacknowledged-init heal (2026-08-15)** | `session.dart` — Signal `unacknowledgedPreKeyMessage` semantics: while the peer hasn't acknowledged the init (first decrypted ratchet reply), every outbound message re-initiates with a FRESH init envelope (new ekA — required because our init replay protection drops identical inits); the peer can always (re)establish the session. Plus `chat_service.dart` rolls the session back when an init's INSERT fails. Fixes the live A→B invisible-message bug (ratchets sent into a session the peer never received) | §12.2 assumes the insert always lands; the ack state machine + `envelopeIsInit`/`wipe` contract live on `E2eeMessageCipher` |
+| **Group chat E2EE — Signal sender keys (ISSUE 4, 2026-08-15..17)** | `lib/crypto/group_cipher.dart` (`GroupE2eeCipher` + `GroupSenderKeyRecord`), envelope type 0x03 (62-byte header, `lib/crypto/envelope.dart`), group send/distribution/rekey in `chat_service.dart`, migrations `20260817000001..04`, `test/opt-010-groups-chat.sh`, `integration_test/group_chat_flow_test.dart` | §9.6 specified per-recipient fan-out as a *later step*; group chat SHIPPED with the Signal sender-key model (one 0x03 row per group message + pairwise-X3DH distribution bundles addressed by `messages.recipient_id`). §9.6 rewritten to document the implementation |
+| **Rekey epochs + distribution contract (H1, 2026-08-17 — bundle/record/registry v3)** | `lib/crypto/group_cipher.dart` + `lib/crypto/constants.dart` — epoch-aware rekey acceptance (`processSenderKeyBundle`: higher-epoch bundle ACCEPTED as a genuine rekey, overriding `chain_index <= lastSeenN`; lower/same-epoch stale ignored; stored epoch = bundle epoch), `decrypt` with no epoch check (the record IS the epoch), `wipeGroupKeys` deleting records but NEVER the registry (clears `senders`/`distributed_to`, bumps the persisted epoch; registry created at epoch 1 when absent), the distribution-contract split (PURE `membersMissingSenderKey` + `markSenderKeyDistributed` persisting AFTER each successful insert; per-member try/catch in `chat_service.dart` `_sendGroupMessage`), migrations `20260817000004`, test/crypto/group_cipher_test.dart rekey-epoch group (3 tests) | §9.6's no-regress guard (F2c) predated group epochs and swallowed the legitimate rekey bundle — message #2 of every rekeyed chain was dropped while the row showed as read; the epoch scheme is the fix (daily log `docs/history/phase-07-chat/2026-08-17_H1-rekey-epoch.md`) |
+| **Reinstall heal + bundle-identity binding (J1/K1, 2026-08-17)** | `group_cipher.dart` `processSenderKeyBundle` — an identity-CHANGED bundle (reinstall/device change: `constantTimeEquals` mismatch vs the stored record's `ik_dh`) is ACCEPTED regardless of epoch (supersedes the epoch guard — the pairwise session that delivered it authenticates the sender's new keys), gated by the K1 `expectedSenderIkDh` check (the pairwise session's bound peer identity, `E2eeMessageCipher.boundPeerIkDh()`); plus the per-chat send mutex `_sendTail` in `chat_service.dart` (1:1 + group — no AEAD key/nonce reuse on concurrent sends); `deleted_messages` RLS/FORCE/no-access (migration `20260817000005`) | §7.5 reinstall semantics applied to the sender-key path; §9.6 identity-binding bullet extended with the K1 bundle binding + the first-init-envelope best-effort residual window (see §9.6) |
 
 ### 0.2 Spec claims NOT shipped (deviations)
 
@@ -40,7 +45,7 @@ implementation differs or went further. **125 unit tests in `test/crypto/`.**
 
 ### 0.3 Verification notes (re-run 2026-08-13)
 
-- `test/crypto/` = 125 `test(` (x3dh 10, prekey 10, session 23, primitives 25, key_store 21, envelope 13, ratchet 23).
+- `test/crypto/` = 179 `test(` (x3dh 10, group_cipher 39, session 30, primitives 25, key_store 21, envelope 18, ratchet 23, prekey 13).
 - `rg "plaintext" lib/crypto/` → zero persistence of plaintext; only envelope bytes reach `messages.content` (opt-003 asserts non-plaintext).
 - All §10.4 interfaces implemented in `lib/crypto/interfaces.dart`; chat UI depends only on the interfaces (V-06 verified).
 
@@ -77,7 +82,7 @@ implementation differs or went further. **125 unit tests in `test/crypto/`.**
 
 ### 1.2 Scope
 
-- 1:1 direct chats and group/event chats share the same wire format. MVP ratchet design targets **1:1 sessions**; group chat is implemented as a per-{sender→recipient} session fan-out in a later step (§9.6) — the envelope is identical either way.
+- 1:1 direct chats and group/event chats share the same wire format family. 1:1 sessions use the X3DH + Double Ratchet envelopes (types 0x01/0x02); **group chat is E2EE with Signal sender keys** (type 0x03, §9.6) — implemented, not a later step.
 - Text messages E2EE. Media (images/videos in Supabase Storage) is **NOT** E2EE at MVP — explicit limitation (§9.7).
 - Single device per user at MVP (no multi-device session fan-out). Session management follows the parts of Sesame (R3) that apply to single-device async messaging: active session per chat, identity-change detection on reinstall, stale-session deletion.
 
@@ -367,7 +372,7 @@ header_bytes = dh_pub(32) ‖ pn(4) ‖ n(4)                                    
 |-------|------|-------|
 | magic | 4 B | `0x53 0x4D 0x45 0x32` ("SME2") |
 | version | 1 B | `0x01` |
-| type | 1 B | `0x01` init (X3DH) · `0x02` ratchet |
+| type | 1 B | `0x01` init (X3DH) · `0x02` ratchet · `0x03` sender-key (group chat, ISSUE 4 — §9.6) |
 | sender_ik_dh | 32 B | sender X25519 identity public key |
 | sender_ik_sig | 32 B | sender Ed25519 signing public key (init only; type 0x02 → 32 zero bytes) |
 
@@ -429,7 +434,8 @@ The full envelope (magic…ciphertext) is **base64url-encoded (no padding)** and
 
 ### 6.7 Reserved upgrade paths
 
-- `version = 0x02`: XEdDSA identity unification and/or header encryption (R2 §4). Header encryption turns `header_bytes` into `HENCRYPT(...)` output and adds `HKs/NHKs` state; `AD_msg` changes accordingly. New `type 0x03` = ratchet-with-encrypted-header.
+- `version = 0x02`: XEdDSA identity unification and/or header encryption (R2 §4). Header encryption turns `header_bytes` into `HENCRYPT(...)` output and adds `HKs/NHKs` state; `AD_msg` changes accordingly.
+- **`type 0x03` is taken by the group sender-key envelope** (ISSUE 4, §9.6 — fixed 62-byte header, no `sender_ik_sig`, no ratchet header). A future ratchet-with-encrypted-header needs a new type (e.g. `0x04`; `0x04` is also reserved for media-key transfer, §9.7).
 - `version = 0x03`: Triple Ratchet hybrid (R2 §6). Framing gains a second header section.
 
 ---
@@ -652,9 +658,168 @@ The existing `SecureStorageService` (`lib/core/services/storage_service.dart:4-1
 
 The server knows: who talks to whom (chat_participants + sender_id/chat_id on every message), timestamps, message sizes, message counts, envelope public keys. Signal's own servers see equivalent delivery metadata (R3 §6.3; Signal's published metadata-minimization stance) — Signal protects *contents*, not *graph*, and so does Samay. Sealed Sender (hiding the sender from the server) is post-MVP. This is a **documented, accepted** exposure — no anonymity claims.
 
-### 9.6 Group/event chat fan-out (later step, same wire format)
+### 9.6 Group/event chat — Signal sender-key E2EE (IMPLEMENTED, ISSUE 4)
 
-Group and event chats reuse the identical 1:1 envelope: the sender encrypts once per recipient and inserts N rows (one per member) into `messages` with the same chat_id. No protocol change; only fan-out logic in `chat_service` plus a per-recipient `messages` row. The `messages.sender_id`/`chat_id` schema, RLS, and message_cap trigger are untouched. (Not MVP: MVP ships 1:1 only; group fan-out is I-38 follow-up work.)
+> **ERRATA (2026-08-15..17, ISSUE 4):** the original §9.6 ("Group/event chat fan-out,
+> later step, same wire format" — per-recipient fan-out) is replaced by this section.
+> **Group chat shipped with the Signal sender-key model instead.** Event chats (type
+> `event`) still have no E2EE path at MVP (§9.7 caveat applies to the whole group/event
+> family).
+
+The group chat E2EE model follows Signal's sender-key ("sender-key message")
+architecture (`lib/crypto/group_cipher.dart`, `GroupE2eeCipher`):
+
+**Wire format — envelope type `0x03`** (ISSUE 4; `lib/crypto/envelope.dart`).
+Fixed 62-byte header: `magic(4) ‖ version(1) ‖ type(1) ‖ sender_ik_dh(32) ‖
+group_id(16) ‖ chain_index(4) ‖ ct_len(4)`, then `ciphertext ‖ tag`. The
+`sender_ik_dh` (the sender's X25519 identity public key) is the per-sender
+routing key; `group_id` is the group UUID as 16 raw bytes — the crypto group
+the chain binds to. There is **no** `sender_ik_sig` on 0x03 and no ratchet
+header (§6.2 family; `senderKeyHeaderSize` in code).
+
+**One row per message.** Each group message is encrypted ONCE with a key
+derived from the sender's chain and stored as **one** `messages` row (a
+base64url type-0x03 envelope in `content`, `recipient_id` NULL) — every member
+holding that sender's chain decrypts it. This is the fan-out economy of sender
+keys vs. the per-recipient fan-out: one row, N decryptions, no protocol change
+per member.
+
+**Sender-key distribution.** Each member mints a random 32-byte chain ROOT for
+the group and distributes it to every active member as a JSON
+`senderKeyBundleJson` bundle (`samay.group_sender_key` marker: `group_id`,
+`chat_id`, `sender_user_id`, `sender_ik_dh`, `chain_root`,
+`chain_index = last_sent_n` — the position of the LAST message the receiver
+has seen, so the stored invariant `root == C_{lastSeenN+1}` holds on both
+sides; the bundle must NOT carry a hardcoded 0 — see the 2026-08-17 F2
+hardening). Bundles
+travel as the PLAINTEXT of ordinary pairwise Double Ratchet envelopes
+(types 0x01/0x02, X3DH — the distributor is the initiator, the target the
+responder) stored in the group's `messages` rows, **addressed to exactly one
+member via `messages.recipient_id`** (migration `20260817000003`; column added
+2026-08-17, no RLS change). Receivers route inbound rows by envelope type
+before the pairwise path:
+  - `recipient_id = <me>` → decrypt with the pairwise session bound to the
+    row's `sender_id`, detect the bundle (`isSenderKeyBundle`), persist it
+    (`processSenderKeyBundle`), hide the row — never a bubble;
+  - `recipient_id = <other>` → **silent skip** (no decrypt attempt, no bubble;
+    the envelope + client-side skip, not RLS, provide distribution privacy);
+  - `recipient_id` NULL + type 0x03 → a real group message.
+
+**Chain semantics** (Signal sender-key chain, §4.1 `KDF_CK` analogue —
+`deriveMessageKey(ck) → (ck′, mk)`, HKDF-SHA256):
+  - the sender advances its chain per send and discards the old chain key
+    (forward secrecy: consumed keys are zeroed in memory before persisting the
+    next chain key);
+  - AEAD is AES-256-GCM with associated data `utf8(chatId) ‖ groupId(16 raw
+    bytes)` — the group binding is in BOTH the envelope header and the AAD, so
+    a header tamper (incl. cross-group replay) fails authentication;
+  - receivers hold the distributed root and derive forward per message;
+    `chainIndex <= lastSeenN` is a replay/duplicate/out-of-order and is
+    **dropped**; gaps derive through and discard the skipped message keys
+    **up to a bounded cap** (`e2eeSenderKeyMaxSkip = 2000`, mirroring the 1:1
+    ratchet's MAX_SKIP — a gap beyond the cap is **dropped without deriving**,
+    so a forged `chainIndex = 0xFFFFFFFF` cannot drive an unbounded CPU walk
+    on any member's device; the F1 DoS hardening, 2026-08-17); distribution
+    bundle acceptance is **epoch-aware** (F2c + the H1 rekey-epoch guard,
+    2026-08-17): `bundle.epoch > record.epoch` is **accepted** — a GENUINE
+    rekey (the roster-change wipe minted a fresh chain whose index restarts
+    at 0), which overrides the `chain_index <= lastSeenN` no-regress guard;
+    `bundle.epoch < record.epoch` is ignored (a stale bundle from an old
+    epoch replaying after the rekey); same epoch + `chain_index <= lastSeenN`
+    is ignored (the F2c stale/duplicate); same epoch + higher `chain_index`
+    is accepted (gap heal — the receiver is behind on the same chain). The
+    stored record takes the bundle's epoch and `lastSeenN = chain_index - 1`
+    (the invariant `root == C_{lastSeenN+1}` holds unchanged); decrypt does
+    NOT check epochs — the record IS the epoch. The chain is one-way — not
+    even the sender can re-decrypt its own consumed history (own sent
+    messages render from the outbox);
+  - identity binding: the envelope's `sender_ik_dh` must equal the stored
+    bundle's `ik_dh` (reinstall / identity-change protection — the Signal
+    session-reset analogue); a mismatch is a protocol drop;
+  - **bundle-identity binding (K1 hardening, 2026-08-17):** `processSenderKeyBundle`
+    additionally takes `expectedSenderIkDh` — the pairwise session's BOUND peer
+    identity (`E2eeMessageCipher.boundPeerIkDh()`, restored from the stored
+    session JSON `peer_ik_dh`, never burns an OPK) — and constant-time-verifies
+    the bundle's claimed `sender_ik_dh` against it BEFORE the record-load
+    guard, on every acceptance path (fresh record, identity-change heal, epoch
+    rekey, gap heal). Mismatch → the bundle is IGNORED: a member cannot
+    self-attest another member's key into a record. The documented residual is
+    the VERY FIRST distribution envelope of a pairwise session (no bound key
+    yet → best-effort, no expected key); every subsequent bundle is checked.
+    The reinstall heal still works — when the pairwise session bound the
+    sender's NEW identity, the new-identity bundle matches and supersedes the
+    old record;
+  - chat binding: `GroupSenderKeyRecord` stores the `chat_id` the chain was
+    created under; decrypt rejects a record whose `chat_id` differs from the
+    chat the row arrived in (a G2-chain row posted into chat G1 is a protocol
+    drop — the F4 hardening, 2026-08-17).
+
+**Storage** (E2EE §8.2 namespace family, via `E2eeSessionStore` — effective
+secure-storage prefix `samay.e2ee.session.`):
+  - `group_sender_key:<groupId>:<senderUserId>` — `GroupSenderKeyRecord` JSON
+    (schema **v3**: chain root, `last_sent_n`, `last_seen_n`, sender `ik_dh`,
+    `chat_id`, `epoch`), one per (group, sender) per device;
+  - `group_sender_key_registry:<chatId>` — `{version: 3, group_id, epoch,
+    senders[], distributed_to{}}` bridging the chat layer's `chat_id` to the
+    crypto `group_id` and enumerating records for rekey (the store has no
+    key-listing method); it also OWNS the group-level `epoch` counter.
+    Written AFTER every record save, so a crash in between leaves an orphan
+    record that is simply re-distributed — never a member stranded without a
+    chain;
+  - **schema v3 is the migration** (H1, 2026-08-17): `epoch` was added to
+    both JSON schemas; a v1/v2 record or registry fails `fromJson` and is
+    treated as ABSENT — decrypt drops (NoSession semantics), the sender
+    re-distributes once, and v3 state replaces the old — no manual
+    migration step.
+
+**Roster / rekey.** The active roster is fetched from `chat_participants` (the
+trigger-maintained mirror of ACTIVE `group_members` — migration
+`20260817000002`, D1b/D1c; RLS `cp_read_participant`) and compared to the
+cached roster before every group send:
+  - **any membership change** (member added OR removed) → `wipeGroupKeys`
+    (H1, 2026-08-17) deletes EVERY sender-key record of the group (own and
+    received chains, enumerated through the registry) so the next send mints
+    a FRESH chain root and re-distributes it to every remaining active member
+    (hard rekey — a removed member's chain copies are useless going forward).
+    The registry is **NEVER deleted**: `wipeGroupKeys` clears its `senders`
+    and `distributed_to` sets and bumps the PERSISTED group `epoch` (creating
+    the registry at epoch 1 when absent). Records minted afterwards stamp the
+    CURRENT registry epoch, so receivers holding an old-epoch record ACCEPT
+    the fresh distribution bundle. This path is **never limited** (no cap on
+    rekeys);
+  - no change → lazy heal: `membersMissingSenderKey` (a PURE computation —
+    active roster minus the sender minus the persisted `distributed_to`
+    targets; it NEVER persists) drives distribution to exactly the members
+    still missing the sender's chain; the mesh heals as bundles arrive.
+
+**Distribution contract** (H1, 2026-08-17 — split in `chat_service.dart`
+`_sendGroupMessage`): the chat layer sends each missing member's bundle in
+its own try/catch — a member whose pairwise session cannot be established
+(no published prekey bundle) or whose distribution-row insert fails is
+SKIPPED, never fatal. `markSenderKeyDistributed` persists the member into
+the sender's `distributed_to` set ONLY AFTER that member's distribution-row
+insert succeeds, so a failed member stays missing and is retried on the next
+send. The single type-0x03 message row is inserted OUTSIDE the per-member
+loop — a distribution failure must never block the message.
+
+**Documented Signal limitation.** Sender keys authenticate possession of the
+chain, not the user: there are no per-message sender signatures, so any member
+holding a chain root can send as that member (impersonation within a chain is
+inherent to the sender-key model — Signal accepts the same). The server sees
+only ciphertext; confidentiality matches the 1:1 path. The write surface is
+additionally gated by the active-only RLS policy (migration `20260817000002`,
+D1e): only ACTIVE members may read or insert group-chat rows.
+
+**Server side.** Migrations `20260817000001` (`group_members` joins the
+`supabase_realtime` publication, REPLICA IDENTITY FULL — the client's
+`GroupMembershipsRealtimeListener`), `20260817000002` (participant-sync
+triggers D1a–D1c, inbox group branch D1d, active-only RLS D1e, publication
+guard D1f), `20260817000003` (`messages.recipient_id`). The
+`messages.sender_id`/`chat_id` schema, message_cap trigger and Realtime
+publication are untouched — distribution rows are transparent to all of them.
+Integration: `test/opt-010-groups-chat.sh` (DB-layer contract) +
+`integration_test/group_chat_flow_test.dart` (client flow); UI: group rows in
+the inbox + `ChatThreadView` in the group-detail Chat tab (D4).
 
 ### 9.7 Media (non-E2EE at MVP — explicit limitation)
 
@@ -825,7 +990,7 @@ Two in-memory "clients" (the real `lib/crypto/`) against a fake server implement
 | D5 | `messages.content` | Repurposed as the opaque envelope (no schema churn) | RLS/trigger/Realtime/reporting untouched |
 | D6 | Prekey storage on server | Public keys in 3 new tables, consumed via SECURITY DEFINER RPC | R1 §4.7 rate limits; I-31 pattern |
 | D7 | MAX_SKIP | 2000 | R2 §8.4 "~1000" suggestion ×2 margin; message_cap=1000 bounds real gaps |
-| D8 | Group chat | Same envelope, per-recipient fan-out (post-MVP) | no protocol change |
+| D8 | Group chat | **Signal sender keys — envelope type 0x03 (IMPLEMENTED, ISSUE 4)** | one message row + N decryptions beats per-recipient fan-out; per-pairwise X3DH distribution bundles addressed by `messages.recipient_id`; hard rekey on roster change (§9.6) |
 | D9 | Media | NOT E2EE at MVP (explicit) | scoped; reserved type 0x04 |
 | D10 | Metadata | Accepted exposure, Signal stance | documented, no anonymity claims |
 | D11 | Simultaneous init | Last-processed-wins | MVP single-device; Sesame convergence equivalent |

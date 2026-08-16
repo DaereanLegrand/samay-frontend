@@ -9,31 +9,21 @@ import 'package:samay/core/extensions/error_mapper.dart';
 import 'package:samay/core/providers/service_providers.dart';
 import 'package:samay/core/repositories/repository_providers.dart';
 import 'package:samay/core/router/route_paths.dart';
+import 'package:samay/features/chat/widgets/chat_thread_view.dart';
 import 'package:samay/features/groups/providers/groups_providers.dart';
 import 'package:samay/features/groups/widgets/group_events_tab.dart';
 import 'package:samay/features/groups/widgets/member_actions_sheet.dart';
 import 'package:samay/features/profile/widgets/profile_avatar.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/error_view.dart';
-import 'package:samay/shared/widgets/glass/v_glass.dart';
 import 'package:samay/shared/widgets/rank_badge.dart';
 import 'package:samay/shared/widgets/skeletons.dart';
 import 'package:samay/shared/widgets/state_views.dart';
 import 'package:samay/shared/widgets/v_aurora.dart';
 import 'package:samay/shared/widgets/v_badge.dart';
 import 'package:samay/shared/widgets/v_button.dart';
-import 'package:samay/shared/widgets/v_display_text.dart';
 import 'package:samay/shared/widgets/v_network_image.dart';
 import 'package:samay/shared/widgets/v_shard_icon.dart';
-
-/// XL-17 (Gemma round 2, 09_groups): violet is the family but at one accent
-/// per screen — the hero card's ring rides the watered run at a whisper glow,
-/// the display voice keeps the vivid shader, and the member rows are plain
-/// hairlines (no card + divider + glow).
-final AppGradient _watered = AppGradients.wateredFamily(
-  AppGradients.violet,
-  mix: 0.4,
-);
 
 class GroupDetailScreen extends ConsumerStatefulWidget {
   final String groupId;
@@ -45,10 +35,9 @@ class GroupDetailScreen extends ConsumerStatefulWidget {
 
 class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen>
     with SingleTickerProviderStateMixin {
-  /// U-19 (§7.3): the minimum area the TabBarView keeps when the hero header
-  /// is taller than the body at large text scales (~two member rows). The
-  /// header's scroll view caps itself at `bodyHeight - _minTabArea`, so the
-  /// tabs are never squeezed to nothing.
+  /// U-19 (§7.3): the minimum area the tab bodies keep at large text scales.
+  /// The hero header is gone (USER FIX 4), so the constant now floors the
+  /// scrollable tab bodies directly instead of capping a header.
   static const double _minTabArea = 120;
 
   late TabController _tabController;
@@ -56,7 +45,8 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    // ISSUE 3: Info | Chat | Miembros | Eventos — group info is its own tab.
+    _tabController = TabController(length: 4, vsync: this);
   }
 
   @override
@@ -71,9 +61,16 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen>
     ref.invalidate(contributionsProvider(widget.groupId));
   }
 
-  Widget _scaffold(Widget body) {
+  /// USER FIX 4: the loading/error/invited frames share the same scaffold —
+  /// [title] renders the group name next to the back arrow (the only place a
+  /// group name may appear).
+  Widget _scaffold(Widget body, {String? title}) {
     return Scaffold(
-      appBar: AppBar(),
+      appBar: AppBar(
+        title: title == null
+            ? null
+            : Text(title, maxLines: 1, overflow: TextOverflow.ellipsis),
+      ),
       body: VAurora(gradients: const [AppGradients.violet], child: body),
     );
   }
@@ -84,14 +81,14 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen>
     final groupAsync = ref.watch(groupDetailProvider(widget.groupId));
     final membersAsync = ref.watch(groupMembersProvider(widget.groupId));
     final contributionsAsync = ref.watch(contributionsProvider(widget.groupId));
+    final membershipAsync = ref.watch(myMembershipProvider(widget.groupId));
 
     return groupAsync.when(
       // U-24 (§5.8): the detail is the heaviest screen in the feature (three
       // stacked fetches — group, members, contributions), so the nothing-on-
       // screen frame shows the cover+lines skeleton (U-22's handoff named
       // group_detail) instead of the bare spinner. `VSkeletonDetail(rows: 1)`
-      // is the closest existing skeleton to the hero geometry (cover block +
-      // title/meta lines).
+      // mirrors the cover+title/meta shape of the loaded Info tab.
       loading: () => _scaffold(const VSkeletonDetail(rows: 1)),
       error: (e, _) => _scaffold(
         ErrorView(
@@ -127,12 +124,90 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen>
                     ref.invalidate(contributionsProvider(widget.groupId)),
               ),
             ),
-            data: (contributions) =>
-                _buildDetail(group, members, contributions),
+            data: (contributions) => membershipAsync.when(
+              loading: () => _scaffold(const VSkeletonDetail(rows: 1)),
+              error: (e, _) => _scaffold(
+                ErrorView(
+                  message: e.toAppError().message,
+                  onRetry: () =>
+                      ref.invalidate(myMembershipProvider(widget.groupId)),
+                ),
+              ),
+              data: (membership) {
+                // ISSUE 2: an invited user has not joined the group — a
+                // single Aceptar/Rechazar panel, nothing else. A missing
+                // membership row (null) falls through to the active state.
+                if (membership?['status'] == 'invited') {
+                  return _buildInvitedPanel(group, membership!);
+                }
+                return _buildDetail(group, members, contributions);
+              },
+            ),
           ),
         );
       },
     );
+  }
+
+  /// ISSUE 2: the invited (pending) state — the group name (AppBar title
+  /// only, USER FIX 4), an explanation and a single Aceptar primary button
+  /// plus a Rechazar text button. No tabs, no hero CTAs, no leave: the user
+  /// has not joined the group yet.
+  Widget _buildInvitedPanel(
+    Map<String, dynamic> g,
+    Map<String, dynamic> membership,
+  ) {
+    final l10n = AppLocalizations.of(context);
+    final membershipId = membership['id'] as String;
+    return _scaffold(
+      Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                l10n.groupsInvitePendingBody,
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.bodyLarge,
+              ),
+              const SizedBox(height: 24),
+              VButton.glowAccent(
+                filled: true,
+                gradient: AppGradients.violet,
+                label: l10n.commonAccept,
+                onPressed: () => _acceptInvite(membershipId),
+              ),
+              const SizedBox(height: 8),
+              TextButton(
+                onPressed: () => _declineInvite(membershipId),
+                child: Text(l10n.commonReject),
+              ),
+            ],
+          ),
+        ),
+      ),
+      title: g['name'] as String? ?? l10n.commonGroup,
+    );
+  }
+
+  /// ISSUE 2: accepting a pending invitation flips the membership to active —
+  /// every detail-scoped provider reloads so the screen re-renders the normal
+  /// state (and the lists drop the pending badge).
+  Future<void> _acceptInvite(String membershipId) async {
+    await ref.read(groupsRepositoryProvider).acceptInvite(membershipId);
+    _invalidateData();
+    ref.invalidate(groupInvitesProvider);
+    ref.invalidate(myGroupsProvider);
+    ref.invalidate(myMembershipProvider(widget.groupId));
+  }
+
+  /// ISSUE 2: declining a pending invitation deletes the membership and pops
+  /// back to the groups list.
+  Future<void> _declineInvite(String membershipId) async {
+    await ref.read(groupsRepositoryProvider).declineInvite(membershipId);
+    if (!mounted) return;
+    context.pop();
   }
 
   Widget _buildDetail(
@@ -141,16 +216,24 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen>
     GroupContributionsData contributions,
   ) {
     final l10n = AppLocalizations.of(context);
-    final memberLimit = int.tryParse(_getMemberLimit(members)) ?? 0;
     final isFrozen = g['frozen_at'] != null;
 
     return Scaffold(
-      // LUXE: the group name lives in the hero VDisplayText below — the
-      // AppBar owns only the tabs and the frozen marker (no duplicate title).
+      // USER FIX 4: the group name lives ONLY in the AppBar title, next to
+      // the back arrow (maxLines 1 + ellipsis) — there is no hero banner
+      // above the tabs. The AppBar also owns the tabs and the frozen marker.
       appBar: AppBar(
+        title: Text(
+          g['name'] as String? ?? l10n.commonGroup,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+        // ISSUE 3: group info is its own tab — Info | Chat | Miembros |
+        // Eventos.
         bottom: TabBar(
           controller: _tabController,
           tabs: [
+            Tab(text: l10n.groupsTabInfo),
             Tab(text: l10n.groupsTabChat),
             Tab(text: l10n.groupsTabMembers),
             Tab(text: l10n.groupsTabEvents),
@@ -178,201 +261,183 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen>
       ),
       body: VAurora(
         gradients: const [AppGradients.violet],
-        child: LayoutBuilder(
-          builder: (context, constraints) => Column(
-            children: [
-              if (isFrozen)
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(8),
-                  // §5.2: never raw red on black — the frozen banner is an
-                  // error *fill* (glowPinkDeep); white text on it is 5.87:1
-                  // (AA).
-                  color: AppColors.errorFill,
+        child: Column(
+          children: [
+            // USER FIX 4: the hero banner block is gone — the TabBarView
+            // takes the full body. The frozen errorFill strip stays above it.
+            if (isFrozen)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(8),
+                // §5.2: never raw red on black — the frozen banner is an
+                // error *fill* (glowPinkDeep); white text on it is 5.87:1
+                // (AA).
+                color: AppColors.errorFill,
+                child: Text(
+                  l10n.groupsFrozenBanner,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: AppColors.white,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            Expanded(
+              child: TabBarView(
+                controller: _tabController,
+                children: [
+                  _buildInfoTab(g, members, contributions),
+                  _buildChatTab(),
+                  _buildMembersTab(members, contributions.contributors),
+                  _buildEventsTab(),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// ISSUE 3: the group-information tab — the content that used to live in
+  /// the detail hero (description, tier/rank badges, shards, member count,
+  /// the leave row, my contribution and the Donar/Crear/Invitar/Juegos CTA
+  /// row) now lives here.
+  Widget _buildInfoTab(
+    Map<String, dynamic> g,
+    List<Map<String, dynamic>> members,
+    GroupContributionsData contributions,
+  ) {
+    final l10n = AppLocalizations.of(context);
+    final memberLimit = int.tryParse(_getMemberLimit(members)) ?? 0;
+    return _scrollableTabBody(
+      Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // USER FIX 4: the hero banner is gone — the cover moves here as
+            // the Info tab's first block (the name lives in the AppBar only).
+            if (g['cover_url'] != null) ...[
+              VNetworkImage(
+                imageUrl: g['cover_url'] as String,
+                height: 120,
+                fit: BoxFit.cover,
+              ),
+              const SizedBox(height: 16),
+            ],
+            if (g['description'] != null) ...[
+              Text(
+                g['description'] as String,
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
+            ],
+            const SizedBox(height: 12),
+            // U-19: `Wrap` instead of a `Row` — the tier badge + rank badge
+            // overflowed 320px-wide screens at 1.5× (§7.3: the badges flow to
+            // a second line instead of clipping).
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                if (g['size_tier'] != null)
+                  VBadge(label: g['size_tier'] as String),
+                if (g['rank_bracket'] != null)
+                  RankBadge(bracket: g['rank_bracket'] as String),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                const VShardIcon(),
+                const SizedBox(width: 8),
+                // U-19: `Flexible` — "42 shards de grupo" at 1.5× wraps
+                // instead of overflowing the Row (§7.3).
+                Flexible(
                   child: Text(
-                    l10n.groupsFrozenBanner,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: AppColors.white,
+                    l10n.groupsShardsCount(
+                      (g['group_shards'] as num?)?.toInt() ?? 0,
                     ),
-                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.bodyLarge,
                   ),
                 ),
-              // U-19 (§7.3): the hero header scrolls internally when it would
-              // otherwise crush the tabs — it may take at most the body height
-              // minus a minimum tab area (`_minTabArea` ≈ two member rows), so
-              // the TabBarView is never squeezed to nothing at large text
-              // scales. When the header fits (the normal case), this renders
-              // exactly like the pre-U-19 layout (natural height, no scroll).
-              ConstrainedBox(
-                constraints: BoxConstraints(
-                  maxHeight: (constraints.maxHeight - _minTabArea).clamp(
-                    0.0,
-                    double.infinity,
+              ],
+            ),
+            const SizedBox(height: 4),
+            Text(
+              l10n.groupsMemberCount(members.length, memberLimit),
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+            // R16 (F8 ADAPTED): the leave trigger is an inline danger row
+            // beside the member count (Juega's inline leave; the confirm
+            // dialog stays Samay-shaped). Error semantic per §5.2 — glowPink
+            // 6.00:1 AA, never raw red.
+            TextButton.icon(
+              onPressed: _leaveGroup,
+              icon: const Icon(Icons.logout, size: 18),
+              label: Text(l10n.groupsLeave),
+              style: TextButton.styleFrom(
+                foregroundColor: AppColors.error,
+              ),
+            ),
+            if (contributions.myContribution > 0) ...[
+              const SizedBox(height: 4),
+              Text(
+                l10n.groupsMyContribution(contributions.myContribution),
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
+            ],
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                // §5.1 LUXE: the donate CTA is the detail screen's one brand
+                // moment — the violet glow accent (family gradient fill, black
+                // text 6.00:1); the secondary actions stay outlined.
+                Expanded(
+                  child: VButton.glowAccent(
+                    filled: true,
+                    gradient: AppGradients.violet,
+                    label: l10n.groupsDonateTitle,
+                    onPressed: () async {
+                      await context.push(
+                        RoutePaths.donateToGroup(widget.groupId),
+                      );
+                      _invalidateData();
+                    },
                   ),
                 ),
-                child: SingleChildScrollView(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    // LUXE hero: one glass card with the violet gradient ring
-                    // + glow owns the group identity — the Playfair MAYUS name
-                    // (VDisplayText), cover, meta badges and the CTA row.
-                    child: VGlassCard(
-                      gradient: _watered,
-                      glowAlpha: 0.12,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          VDisplayText(
-                            text: g['name'] as String? ?? l10n.commonGroup,
-                            size: 28,
-                            gradient: AppGradients.violet,
-                          ),
-                          if (g['cover_url'] != null) ...[
-                            const SizedBox(height: 12),
-                            VNetworkImage(
-                              imageUrl: g['cover_url'] as String,
-                              height: 120,
-                              fit: BoxFit.cover,
-                            ),
-                          ],
-                          if (g['description'] != null) ...[
-                            const SizedBox(height: 8),
-                            Text(
-                              g['description'] as String,
-                              style: Theme.of(context).textTheme.bodyMedium,
-                            ),
-                          ],
-                          const SizedBox(height: 12),
-                          // U-19: `Wrap` instead of a `Row` — the tier badge +
-                          // rank badge overflowed 320px-wide screens at 1.5×
-                          // (§7.3: the badges flow to a second line instead of
-                          // clipping).
-                          Wrap(
-                            spacing: 8,
-                            runSpacing: 8,
-                            children: [
-                              if (g['size_tier'] != null)
-                                VBadge(label: g['size_tier'] as String),
-                              if (g['rank_bracket'] != null)
-                                RankBadge(bracket: g['rank_bracket'] as String),
-                            ],
-                          ),
-                          const SizedBox(height: 8),
-                          Row(
-                            children: [
-                              const VShardIcon(),
-                              const SizedBox(width: 8),
-                              // U-19: `Flexible` — "42 shards de grupo" at
-                              // 1.5× wraps instead of overflowing the Row
-                              // (§7.3).
-                              Flexible(
-                                child: Text(
-                                  l10n.groupsShardsCount(
-                                    (g['group_shards'] as num?)?.toInt() ?? 0,
-                                  ),
-                                  style: Theme.of(context).textTheme.bodyLarge,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            l10n.groupsMemberCount(members.length, memberLimit),
-                            style: Theme.of(context).textTheme.bodyMedium,
-                          ),
-                          // R16 (F8 ADAPTED): the leave trigger is an inline
-                          // danger row beside the member count (Juega's inline
-                          // leave; the confirm dialog stays Samay-shaped).
-                          // Error semantic per §5.2 — glowPink 6.00:1 AA,
-                          // never raw red.
-                          TextButton.icon(
-                            onPressed: _leaveGroup,
-                            icon: const Icon(Icons.logout, size: 18),
-                            label: Text(l10n.groupsLeave),
-                            style: TextButton.styleFrom(
-                              foregroundColor: AppColors.error,
-                            ),
-                          ),
-                          if (contributions.myContribution > 0) ...[
-                            const SizedBox(height: 4),
-                            Text(
-                              l10n.groupsMyContribution(
-                                contributions.myContribution,
-                              ),
-                              style: Theme.of(context).textTheme.bodyMedium,
-                            ),
-                          ],
-                          const SizedBox(height: 16),
-                          Row(
-                            children: [
-                              // §5.1 LUXE: the donate CTA is the detail
-                              // screen's one brand moment — the violet glow
-                              // accent (family gradient fill, black text
-                              // 6.00:1); the secondary actions stay outlined.
-                              Expanded(
-                                child: VButton.glowAccent(
-                                  filled: true,
-                                  gradient: AppGradients.violet,
-                                  label: l10n.groupsDonateTitle,
-                                  onPressed: () async {
-                                    await context.push(
-                                      RoutePaths.donateToGroup(widget.groupId),
-                                    );
-                                    _invalidateData();
-                                  },
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: VButton(
-                                  label: l10n.groupsCreateEvent,
-                                  onPressed: () => context.push(
-                                    RoutePaths.createGroupEvent(widget.groupId),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: VButton(
-                                  label: l10n.commonInvite,
-                                  onPressed: () => context.push(
-                                    RoutePaths.inviteToGroup(widget.groupId),
-                                  ),
-                                ),
-                              ),
-                              if (ref.isEnabled(AppFeatureFlag.minigames)) ...[
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: VButton(
-                                    label: l10n.minigamesTitle,
-                                    onPressed: () => context.push(
-                                      RoutePaths.minigames(widget.groupId),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ],
-                          ),
-                        ],
+                const SizedBox(width: 8),
+                Expanded(
+                  child: VButton(
+                    label: l10n.groupsCreateEvent,
+                    onPressed: () => context.push(
+                      RoutePaths.createGroupEvent(widget.groupId),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: VButton(
+                    label: l10n.commonInvite,
+                    onPressed: () => context.push(
+                      RoutePaths.inviteToGroup(widget.groupId),
+                    ),
+                  ),
+                ),
+                if (ref.isEnabled(AppFeatureFlag.minigames)) ...[
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: VButton(
+                      label: l10n.minigamesTitle,
+                      onPressed: () => context.push(
+                        RoutePaths.minigames(widget.groupId),
                       ),
                     ),
                   ),
-                ),
-              ),
-              const Divider(height: 1),
-              Expanded(
-                child: TabBarView(
-                  controller: _tabController,
-                  children: [
-                    _buildChatTab(),
-                    _buildMembersTab(members, contributions.contributors),
-                    _buildEventsTab(),
-                  ],
-                ),
-              ),
-            ],
-          ),
+                ],
+              ],
+            ),
+          ],
         ),
       ),
     );
@@ -380,16 +445,30 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen>
 
   Widget _buildChatTab() {
     final l10n = AppLocalizations.of(context);
-    // R2: group chat is not a dead-end — E2EE is 1:1-only for now
-    // (chat_service.dart: group fan-out is a later step, E2EE §9.6), so the
-    // tab explains where group chats will come from instead of promising
-    // nothing.
-    return _scrollableTabBody(
-      VEmptyView(
-        icon: Icons.chat_bubble_outline,
-        title: l10n.groupsChatOneToOneTitle,
-        description: l10n.groupsChatOneToOneBody,
+    // ISSUE 4: the tab hosts the SAME E2EE thread as the 1:1 chat screen
+    // (ChatThreadView) — the group's chat row is resolved via
+    // groupChatIdProvider, and group mode labels senders on peer bubbles.
+    final chatIdAsync = ref.watch(groupChatIdProvider(widget.groupId));
+    return chatIdAsync.when(
+      loading: () => const VLoadingView(),
+      error: (_, _) => ErrorView(
+        message: l10n.chatLoadError,
+        onRetry: () => ref.invalidate(groupChatIdProvider(widget.groupId)),
       ),
+      data: (chatId) {
+        if (chatId == null) {
+          // The group's chat row does not exist yet — keep the honest
+          // placeholder instead of a dead thread.
+          return _scrollableTabBody(
+            VEmptyView(
+              icon: Icons.chat_bubble_outline,
+              title: l10n.groupsChatOneToOneTitle,
+              description: l10n.groupsChatOneToOneBody,
+            ),
+          );
+        }
+        return ChatThreadView(chatId: chatId, groupId: widget.groupId);
+      },
     );
   }
 
@@ -490,15 +569,21 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen>
     return GroupEventsTab(groupId: widget.groupId);
   }
 
-  /// U-19 (§7.3): the tab area keeps a 120px minimum (`_minTabArea`) when the
-  /// hero header is tall at large text scales — wrap the §5.9 empty states so
-  /// they scroll instead of overflowing the squeezed viewport.
+  /// U-19 (§7.3): the tab bodies keep at least `_minTabArea` of height at
+  /// large text scales — wrap the §5.9 empty states so they scroll instead of
+  /// overflowing the squeezed viewport. With the hero banner gone (USER FIX
+  /// 4), the floor applies directly to the scrollable instead of capping a
+  /// header.
   Widget _scrollableTabBody(Widget child) {
     return LayoutBuilder(
       builder: (context, constraints) => SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
         child: ConstrainedBox(
-          constraints: BoxConstraints(minHeight: constraints.maxHeight),
+          constraints: BoxConstraints(
+            minHeight: constraints.maxHeight > _minTabArea
+                ? constraints.maxHeight
+                : _minTabArea,
+          ),
           child: child,
         ),
       ),

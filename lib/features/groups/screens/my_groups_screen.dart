@@ -160,6 +160,10 @@ class MyGroupsScreen extends ConsumerWidget {
                             // the tile with a null cast TypeError (U-22's
                             // report); the member default renders no badge.
                             final myRole = g['my_role'] as String?;
+                            // ISSUE 2: an invited membership carries
+                            // `my_status` — the pending badge leads the
+                            // subtitle wrap (the role badge follows).
+                            final myStatus = g['my_status'] as String?;
                             // XL-17: one hairline per row — the glass card
                             // and its glow are gone; the subtitle keeps role
                             // + shards only (the rank badge belongs to the
@@ -178,8 +182,13 @@ class MyGroupsScreen extends ConsumerWidget {
                               subtitle: Wrap(
                                 spacing: 4,
                                 runSpacing: 4,
-                                crossAxisAlignment: WrapCrossAlignment.center,
+                                crossAxisAlignment:
+                                    WrapCrossAlignment.center,
                                 children: [
+                                  if (myStatus == 'invited') ...[
+                                    VBadge(label: l10n.groupsInvitePending),
+                                    const SizedBox(width: 4),
+                                  ],
                                   if (myRole != null &&
                                       myRole != 'member') ...[
                                     VBadge(label: myRole),

@@ -437,6 +437,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get groupsDonate => 'Donate';
 
   @override
+  String get groupsTabInfo => 'Info';
+
+  @override
   String get groupsTabChat => 'Chat';
 
   @override
@@ -444,6 +447,16 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get groupsTabEvents => 'Events';
+
+  @override
+  String get groupsInvitePending => 'Pending invite';
+
+  @override
+  String get groupsInvitePendingTitle => 'Group invitation';
+
+  @override
+  String get groupsInvitePendingBody =>
+      'You have been invited to this group. Accept to join it.';
 
   @override
   String get groupsFrozenBadge => 'Frozen group';

@@ -38,6 +38,12 @@ class GroupsRepository {
     return res == null ? null : Group.fromJson(res);
   }
 
+  /// The chat id of [groupId]'s group chat (type='group', reference_id), or
+  /// null when the chat row does not exist — the UI opens the group's E2EE
+  /// chat with this id (ISSUE 4 / D3d).
+  Future<String?> getGroupChatId(String groupId) =>
+      _groups.getGroupChatId(groupId);
+
   /// Active members of a group (each [GroupMember] carries the `users` join
   /// → [GroupMember.username]).
   Future<List<GroupMember>> getGroupMembers(String groupId) async {
@@ -50,6 +56,12 @@ class GroupsRepository {
   /// Map passthrough.
   Future<List<Map<String, dynamic>>> getGroupInvites() =>
       _groups.getGroupInvites();
+
+  /// The current user's own membership row for [groupId] (id/role/status),
+  /// or null when there is none — Map passthrough (ISSUE 2: the detail
+  /// screen gates the invited state on it).
+  Future<Map<String, dynamic>?> getMyMembership(String groupId) =>
+      _groups.getMyMembership(groupId);
 
   Future<void> acceptInvite(String membershipId) =>
       _groups.acceptGroupInvite(membershipId);

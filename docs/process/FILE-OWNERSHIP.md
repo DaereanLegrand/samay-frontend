@@ -226,3 +226,40 @@ DESIGN-SYSTEM.md`, `docs/specs/steps/phase-05..15/*.md` step files,
 | V-08 | Agent registry + orchestration docs accuracy |
 | V-09 | README/onboarding/docs/process/DEVELOPMENT-WORKFLOW correctness |
 | V-10 | Final gate: full validation matrix + gate report `docs/audit/GATE-REPORT.md` |
+
+## Phase-04.6 appendix — ISSUE 4 Group Chat & E2EE workstream (2026-08-15..17)
+
+Group-chat E2EE (Signal sender keys) + realtime group invites, delivered by a
+parallel agent campaign. New files and hot paths from that campaign — the
+per-file owners below OVERRIDE the Phase 4.2 I-rows for these paths (I-37
+owns `lib/crypto/**` at large, but the group sender-key code is D2's).
+
+| Path | Owner |
+|---|---|
+| `supabase/migrations/20260817000001_group_members_realtime.sql` (+ `supabase-testing/` mirror) | A-realtime-invites ✅ |
+| `lib/core/services/realtime_service.dart` — `subscribeToGroupMemberships` | A-realtime-invites ✅ ⚙️ I-52 |
+| `lib/features/groups/providers/group_memberships_realtime_listener.dart` (new `GroupMembershipsRealtimeListener`) | A-realtime-invites ✅ |
+| `lib/core/router/main_shell.dart` — listener mount (A4) | A-realtime-invites ✅ ⚙️ I-04 |
+| `lib/features/groups/screens/group_detail_screen.dart` — invited/Info-tab state (B-invited-state) + Chat-tab `ChatThreadView` (D4) | B-invited-state ✅ ⚙️ D4-chat-ui |
+| `lib/features/friends/screens/search_screen.dart` + `requests_screen.dart` — friend-request accept path (C-search-accept) | C-search-accept ✅ ⚙️ I-10/I-15 |
+| `supabase/migrations/20260817000002_group_chat_support.sql` (+ `supabase-testing/` mirror) | D1-groupchat-db ✅ |
+| `test/opt-010-groups-chat.sh` | D1-groupchat-db ✅ (created) ⚙️ D3-chat-service (check 10, `recipient_id`) |
+| `lib/crypto/group_cipher.dart` (new `GroupE2eeCipher` + `GroupSenderKeyRecord`) | D2-group-e2ee ✅ |
+| `lib/crypto/envelope.dart` — type 0x03 sender-key frame + `groupIdToBytes`/`groupIdFromBytes` | D2-group-e2ee ✅ ⚙️ I-37 |
+| `lib/crypto/constants.dart` — 0x03 / sender-key-bundle constants | D2-group-e2ee ✅ ⚙️ I-37 |
+| `test/crypto/group_cipher_test.dart` (new) + `test/crypto/envelope_test.dart` 0x03 cases | D2-group-e2ee ✅ ⚙️ I-37 |
+| `lib/core/services/chat_service.dart` — group send/distribution/rekey paths (D3) | D3-chat-service ✅ ⚙️ I-38 |
+| `supabase/migrations/20260817000003_group_chat_distribution.sql` (+ `supabase-testing/` mirror) | D3-chat-service ✅ |
+| `test/services/chat_service_test.dart` — group routing cases | D3-chat-service ✅ ⚙️ I-44 |
+| `lib/features/chat/widgets/chat_thread_view.dart` (new `ChatThreadView`) | D4-chat-ui ✅ |
+| `lib/features/chat/screens/chat_screen.dart` — thin screen + group AppBar title | D4-chat-ui ✅ ⚙️ I-56 |
+| `lib/features/chat/screens/chat_list_screen.dart` — group rows in the inbox (D4d) | D4-chat-ui ✅ ⚙️ I-38 |
+| `lib/features/chat/providers/chat_providers.dart` — `ChatInboxItem.referenceId` (D4c) | D4-chat-ui ✅ ⚙️ I-38/I-12 |
+| `lib/features/groups/providers/groups_providers.dart` — `groupChatIdProvider` (D4e) | D4-chat-ui ✅ ⚙️ I-12 |
+| `integration_test/group_chat_flow_test.dart` (new) | D4-chat-ui ✅ ⚙️ I-01 (suite owner adds cases) |
+| FixA1..FixA4 — ISSUE 4 docs↔code audit fixes (2026-08-16..17) | FixA1..A4 ✅ — scope per their daily logs (`docs/history/phase-04-friends-groups/`, `docs/history/phase-07-chat/`); docs-only fix work (E2EE-ARCHITECTURE.md §9.6/§0.1, cross-references.md, FILE-OWNERSHIP.md appendix) by FixA4-docs |
+| Fix-round agents (2026-08-17) — `lib/crypto/group_cipher.dart` + `lib/crypto/constants.dart` + `test/crypto/group_cipher_test.dart` (FixA1b: F1/F2/F4 hardening), `test/features/chat/chat_inbox_test.dart` (FixA3: null-aware element), E2EE-ARCHITECTURE.md §9.6/§1/§6/D8/§0.1 rewrite + cross-references GROU/CHAT rows (FixA4), E2EE-ARCHITECTURE.md §0/§0.3 + cross-references I-37 test-count reconciliation + fix-round logs (FixB1/B2/B3) | FixA1b ✅ ⚙️ FixA2/A3/A4/B1/B2/B3 — scope per their daily logs (`docs/history/phase-07-chat/2026-08-17_FixA1b-crypto-audit.md`, `2026-08-17_FixA3-lint.md`, `docs/history/phase-04-friends-groups/2026-08-17_FixA4-docs.md`, `2026-08-16_FixB2-authz-friendship-guards.md`; FixB1 test-only + FixB3 doc-only work is captured in the D1-groupchat-db fix-round section); doc counts (E2EE-ARCHITECTURE.md §0/§0.3, cross-references I-37) reconciled to 169 by FixB3-docs2 + orchestrator (FixB2's v1-record test, group_cipher 29) — **superseded 2026-08-17 by H1 (rekey-epoch fix, `docs/history/phase-07-chat/2026-08-17_H1-rekey-epoch.md`): 172, group_cipher 32; then by J1: 175, group_cipher 35 (reinstall-heal ×2 + v2-record ×1); then by K1: 179, group_cipher 39 (bundle-identity binding ×4)** |
+
+> **Lock rule reminder:** all paths above are under `tools/agent_lock.sh` — the
+> docs listed in the FixA4-docs row are owned per this appendix and were
+> edited under FixA4-docs locks.

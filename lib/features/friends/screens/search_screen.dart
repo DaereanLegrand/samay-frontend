@@ -109,6 +109,29 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     }
   }
 
+  /// ISSUE 5: accepts an INBOUND pending request straight from the search
+  /// row (the enriched result carries the friendship id) and refreshes every
+  /// friendship surface, mirroring `_sendFriendRequest`'s error pattern.
+  Future<void> _acceptFriendRequest(Map<String, dynamic> user) async {
+    final friendshipId = user['friendship_id'] as String;
+    final l10n = AppLocalizations.of(context);
+    try {
+      await ref
+          .read(friendsRepositoryProvider)
+          .acceptFriendRequest(friendshipId);
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.profileRequestAccepted)));
+      ref.invalidate(searchResultsProvider(_query));
+      ref.invalidate(friendRequestsProvider);
+      ref.invalidate(friendsListProvider);
+    } catch (e, st) {
+      AppLogger.instance.error('acceptFriendRequest error: $e', '$st');
+      if (mounted) showErrorSnackBar(context, e);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final query = _query;
@@ -213,6 +236,19 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       );
     }
     if (status == 'pending') {
+      // ISSUE 5: an INBOUND pending request accepts right from the row;
+      // outbound (sent) — or a directionless legacy row — keeps the static
+      // status badge.
+      if (user['friendship_direction'] == 'received') {
+        return SizedBox(
+          width: 104,
+          child: VButton.outlined(
+            label: l10n.commonAccept,
+            gradient: AppGradients.mint,
+            onPressed: () => _acceptFriendRequest(user),
+          ),
+        );
+      }
       // LUXE v2: the pending readout is the row's mint accent (status badge).
       return VBadge.accent(
         label: l10n.friendsStatusPending,

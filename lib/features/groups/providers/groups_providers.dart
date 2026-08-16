@@ -69,6 +69,57 @@ class GroupMembersNotifier
 final groupMembersProvider = AsyncNotifierProvider.family<GroupMembersNotifier,
     List<Map<String, dynamic>>, String>(GroupMembersNotifier.new);
 
+class GroupChatIdNotifier extends FamilyAsyncNotifier<String?, String>
+    with ThrottledRefresh {
+  @override
+  Future<String?> build(String arg) async {
+    final chatId = await ref.read(groupsRepositoryProvider).getGroupChatId(arg);
+    markFetched();
+    return chatId;
+  }
+
+  /// Re-runs [build] after a group chat row is created (ISSUE 4 — the group
+  /// detail Chat tab retries on demand). R20: skipped while the last fetch
+  /// is younger than [refreshThrottle].
+  Future<void> refresh() async {
+    if (!shouldRefetch()) return;
+    ref.invalidateSelf();
+  }
+}
+
+/// The chat id of [groupId]'s group chat (`chats` row with
+/// `type = 'group'` + `reference_id = [groupId]`), or null while the row
+/// does not exist yet. ISSUE 4: the group detail Chat tab hosts
+/// [ChatThreadView] with the resolved chat id.
+final groupChatIdProvider = AsyncNotifierProvider.family<GroupChatIdNotifier,
+    String?, String>(GroupChatIdNotifier.new);
+
+class MyMembershipNotifier
+    extends FamilyAsyncNotifier<Map<String, dynamic>?, String>
+    with ThrottledRefresh {
+  @override
+  Future<Map<String, dynamic>?> build(String arg) async {
+    final membership =
+        await ref.read(groupsRepositoryProvider).getMyMembership(arg);
+    markFetched();
+    return membership;
+  }
+
+  /// Re-runs [build] after accepting/declining an invitation (ISSUE 2 — the
+  /// detail screen flips between the invited and active states). R20: skipped
+  /// while the last fetch is younger than [refreshThrottle].
+  Future<void> refresh() async {
+    if (!shouldRefetch()) return;
+    ref.invalidateSelf();
+  }
+}
+
+/// The current user's own group_members row for a group (id/role/status), or
+/// null when they are not a member. ISSUE 2: the detail screen gates the
+/// invited (pending) state on it.
+final myMembershipProvider = AsyncNotifierProvider.family<MyMembershipNotifier,
+    Map<String, dynamic>?, String>(MyMembershipNotifier.new);
+
 /// Aggregated per-user contributions plus the current user's own active
 /// total, for a group.
 class GroupContributionsData {

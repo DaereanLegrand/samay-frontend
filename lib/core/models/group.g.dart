@@ -18,6 +18,7 @@ _Group _$GroupFromJson(Map<String, dynamic> json) => _Group(
       ? null
       : DateTime.parse(json['frozen_at'] as String),
   myRole: json['my_role'] as String?,
+  myStatus: json['my_status'] as String?,
 );
 
 Map<String, dynamic> _$GroupToJson(_Group instance) => <String, dynamic>{
@@ -30,4 +31,5 @@ Map<String, dynamic> _$GroupToJson(_Group instance) => <String, dynamic>{
   'rank_bracket': instance.rankBracket,
   'frozen_at': instance.frozenAt?.toIso8601String(),
   'my_role': instance.myRole,
+  'my_status': instance.myStatus,
 };

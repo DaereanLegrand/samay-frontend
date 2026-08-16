@@ -9,6 +9,7 @@ import 'package:samay/core/router/route_paths.dart';
 import 'package:samay/features/chat/providers/inbox_realtime_listener.dart';
 import 'package:samay/features/friends/providers/friends_providers.dart';
 import 'package:samay/features/friends/providers/friendships_realtime_listener.dart';
+import 'package:samay/features/groups/providers/group_memberships_realtime_listener.dart';
 import 'package:samay/features/groups/providers/groups_providers.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/v_count_badge.dart';
@@ -109,6 +110,7 @@ class MainShell extends ConsumerWidget {
       children: [
         const FriendshipsRealtimeListener(),
         const InboxRealtimeListener(),
+        const GroupMembershipsRealtimeListener(),
         Scaffold(
           body: body,
           // LUXE v2 (XL-06): the shell bar is a LIQUID GLASS strip — a

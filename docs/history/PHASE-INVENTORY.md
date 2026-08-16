@@ -101,7 +101,7 @@ Remaining gaps listed in the rows above (R-4 refresh, 2026-08-13).
 | Step | DONE | Cross-ref status | Spec | Notes |
 |------|------|------------------|------|-------|
 | `FRND` | ✅ `FRND.DONE` | ✅ | `FRND-friends-system.md` | 3-tab requests incl. Invitaciones (addition not in spec). Screens: search, requests, friends list, blocked. Freshness (2026-08-14): every mutation invalidates `friendsListProvider` (accept/decline/send/block) AND a shell-mounted realtime listener (`FriendshipsRealtimeListener`, `friendships` channel) refreshes both sides live |
-| `GROU` | ⚠️ `GROU.DONE` (text: PARTIALLY MET) | ⚠️ | `GROU-groups-core.md` | Missing: promotor transfer UI, co-promotor UI, cosmetics display, group chat (E2EE 1:1-only — chat tab is an explanatory R2 card). Cover upload done (image_picker + Storage); real `CreateEventScreen` route at `/group/:groupId/create-event`; minigames hub button on group detail (flag-gated, 2026-08-13) |
+| `GROU` | ⚠️ `GROU.DONE` (text: PARTIALLY MET) | ⚠️ | `GROU-groups-core.md` | Missing: promotor transfer UI, co-promotor UI, cosmetics display. Group chat E2EE shipped (ISSUE 4 — sender keys, migrations 20260817000001..04, Chat tab = ChatThreadView). Cover upload done (image_picker + Storage); real `CreateEventScreen` route at `/group/:groupId/create-event`; minigames hub button on group detail (flag-gated, 2026-08-13) |
 | `GLIM` | ⚠️ `GLIM.DONE` (text: PARTIALLY MET) | ⚠️ | `GLIM-group-limits-subscription-enforcement.md` | Member limit hardcoded `14` (`group_detail_screen._getMemberLimit`), group-count limit hardcoded `5` (`create_group_screen`), not wired to `app_config`. Freeze banner UI done |
 | `SDON` | ✅ `SDON.DONE` | ✅ | `SDON-shard-donations.md` | Donation RPC (auth-checked C-06), contribution display, top contributors; boost-expiry days display deferred |
 | `RANK` | ✅ `RANK.DONE` | ✅ (UI only) | `RANK-group-rank-display.md` | Leaderboard + RankBadge complete; **data empty until Phase 11 `GRCK` cron** |
@@ -143,10 +143,10 @@ server-side pending; EEDG blocked (no `supabase/functions/`).
 | Step | DONE | Cross-ref status | Spec | Reality |
 |------|------|------------------|------|---------|
 | `CHAT` | ⚠️ no marker | ⚠️ core landed (I-37/I-38/I-56) | `CHAT-chat-system-core.md` | E2EE core `lib/crypto/` (x3dh, double ratchet, key store, envelope) + `chat_screen.dart` + pagination (load 50 + `loadOlder()`, `chat.message_cap` rolling window); `/chat/:chatId` → real screen; direct-chat entry from the public profile "Enviar mensaje" button (`createDirectChat`, flag-gated, 2026-08-13) |
-| `CHPT` | ❌ | ❌ No code | `CHPT-chat-participation-access-rules.md` | No code |
-| `CHMC` | ❌ | ❌ No code | `CHMC-message-cap-reporting.md` | Trigger exists (TRIG #3); client reporting flow absent |
+| `CHPT` | ❌ no marker | ✅ shipped | `CHPT-chat-participation-access-rules.md` | Participation RLS + `create_direct_chat` RPC (migration `20260814000001_chat_direct_rls.sql`) |
+| `CHMC` | ❌ no marker | ✅ shipped | `CHMC-message-cap-reporting.md` | Message cap + pagination: trigger (TRIG #3), client rolling window + `loadOlder()` (50-page loads) in `chat_screen.dart` |
 
-**Phase 07 status:** ⚠️ CHAT core landed (E2EE + pagination, profile "Enviar mensaje" entry 2026-08-13); CHPT/CHMC pending.
+**Phase 07 status:** ⚠️ CHAT core landed (E2EE + pagination, profile "Enviar mensaje" entry 2026-08-13); CHPT/CHMC shipped (20260814000001 RLS/RPC + cap/pagination).
 
 ---
 

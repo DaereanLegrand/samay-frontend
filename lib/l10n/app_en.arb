@@ -570,6 +570,10 @@
   "@groupsDonate": {
     "description": "Donate button label"
   },
+  "groupsTabInfo": "Info",
+  "@groupsTabInfo": {
+    "description": "Group detail tab label for the group-information tab"
+  },
   "groupsTabChat": "Chat",
   "@groupsTabChat": {
     "description": "Group detail tab label"
@@ -581,6 +585,18 @@
   "groupsTabEvents": "Events",
   "@groupsTabEvents": {
     "description": "Group detail tab label"
+  },
+  "groupsInvitePending": "Pending invite",
+  "@groupsInvitePending": {
+    "description": "Badge on a group row whose membership is still an unaccepted invitation"
+  },
+  "groupsInvitePendingTitle": "Group invitation",
+  "@groupsInvitePendingTitle": {
+    "description": "Title of the invited-user state on the group detail screen"
+  },
+  "groupsInvitePendingBody": "You have been invited to this group. Accept to join it.",
+  "@groupsInvitePendingBody": {
+    "description": "Body of the invited-user state on the group detail screen"
   },
   "groupsFrozenBadge": "Frozen group",
   "@groupsFrozenBadge": {

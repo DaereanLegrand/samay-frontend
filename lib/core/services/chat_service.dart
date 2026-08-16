@@ -4,6 +4,8 @@ import 'package:samay/core/logging/app_logger.dart';
 import 'package:samay/core/services/message_plaintext_store.dart';
 import 'package:samay/core/services/realtime_service.dart';
 import 'package:samay/core/utils/input_sanitizer.dart';
+import 'package:samay/crypto/codec.dart';
+import 'package:samay/crypto/group_cipher.dart';
 import 'package:samay/crypto/interfaces.dart';
 import 'package:samay/crypto/session.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -55,12 +57,28 @@ enum MessageDeleteOutcome {
 ///
 /// Without the dependencies the service behaves exactly as before (plaintext
 /// path, used by non-E2EE call sites and tests).
+///
+/// ## Group chat E2EE (ISSUE 4 / D3)
+///
+/// When [GroupE2eeCipher] is additionally injected (`groupE2eeEnabled`),
+/// group chats (`chats.type = 'group'`) route through the Signal sender-key
+/// stack: `sendMessage` distributes the sender's chain bundle to every
+/// member missing it (per-pairwise X3DH envelope rows addressed with
+/// `recipient_id`, inserted BEFORE the single type-0x03 message row) and
+/// `loadMessages`/`subscribeToMessages`/`decryptInboxRow` route inbound rows
+/// by envelope type (0x03 → the group cipher; 0x01/0x02 → the pairwise
+/// session, processing the bundle and hiding the row; `recipient_id` ≠ me →
+/// silent skip). The roster is cached per chat and compared on every send:
+/// any membership change wipes the group keys (fresh epoch) and
+/// re-distributes the sender's chain to every remaining active member.
+/// Without the dependency every pre-existing 1:1 path is byte-identical.
 class ChatService {
   final SupabaseClient client;
   final RealtimeService realtime;
   final E2eeKeyStore? _e2eeKeyStore;
   final E2eeSessionStore? _e2eeSessionStore;
   final E2eePrekeyService? _e2eePrekeyService;
+  final GroupE2eeCipher? _groupCipher;
 
   /// Encrypted plaintext store (Signal model, 2026-08-16 — the SQLCipher-
   /// equivalent Hive `message_cache` box on devices, in-memory in tests).
@@ -80,10 +98,12 @@ class ChatService {
     E2eeSessionStore? e2eeSessionStore,
     E2eePrekeyService? e2eePrekeyService,
     MessagePlaintextStore? plaintextStore,
+    GroupE2eeCipher? groupCipher,
   }) : _e2eeKeyStore = e2eeKeyStore,
        _e2eeSessionStore = e2eeSessionStore,
        _e2eePrekeyService = e2eePrekeyService,
-       _plaintextStore = plaintextStore;
+       _plaintextStore = plaintextStore,
+       _groupCipher = groupCipher;
 
   GoTrueClient get auth => client.auth;
 
@@ -91,11 +111,28 @@ class ChatService {
   bool get e2eeEnabled =>
       _e2eeKeyStore != null && _e2eeSessionStore != null && _e2eePrekeyService != null;
 
+  /// Whether the group E2EE stack (Signal sender keys) is wired. Group chat
+  /// routing activates ONLY when this is true — without it every path behaves
+  /// exactly like the 1:1 service (backward compatible).
+  bool get groupE2eeEnabled => _groupCipher != null;
+
   /// In-memory per-chat cipher instances (each bound to (chatId, peerUserId)).
   /// The map holds the creation Future so concurrent decrypt/send paths can
   /// never race two sessions into existence for the same chat (I-38).
   final Map<String, Future<E2eeMessageCipher>> _sessions = {};
   final Map<String, String> _peerCache = {};
+
+  /// Cached `chats` row metadata per chat: type + reference_id (ISSUE 4).
+  /// Group routing resolves the chat type exactly once per chat per process
+  /// — the row is participant-readable (RLS `chats_read_participant`, whose
+  /// group branch gates on ACTIVE membership).
+  final Map<String, Future<_ChatInfo?>> _chatInfoCache = {};
+
+  /// Cached active roster per group chat (ISSUE 4). Compared against the
+  /// freshly fetched roster on every group send: any diff = membership
+  /// change → the group keys are wiped (new epoch) and the sender's chain is
+  /// re-distributed to every remaining active member.
+  final Map<String, Set<String>> _rosterCache = {};
 
   /// Outbox: own sent envelope → plaintext. The sender cannot decrypt its
   /// own envelopes with the peer-bound session, so sent messages are shown
@@ -121,13 +158,25 @@ class ChatService {
   /// one for the same chat (I-38).
   final Map<String, Future<void>> _decryptTail = {};
 
+  /// Per-chat serial executor for SENDING (2026-08-16 re-audit, J1): the
+  /// cipher state advances on EVERY encrypt — the 1:1 ratchet AND the group
+  /// sender-key chain — so two in-flight [sendMessage] calls for the same
+  /// chat must never run concurrently. Without serialization both calls
+  /// load the same chain position and derive the same AEAD (key, nonce)
+  /// (GCM nonce reuse), and the second message also drops as a replay on
+  /// receivers. Each call chains the ENTIRE send body behind the previous
+  /// one for the same chat (mirror of [_decryptTail]).
+  final Map<String, Future<void>> _sendTail = {};
+
   Future<List<Map<String, dynamic>>> loadMessages(String chatId, {int limit = 50, int offset = 0}) async {
     final user = auth.currentUser;
     if (user == null) throw Exception('No authenticated user');
     final stopwatch = Stopwatch()..start();
     final res = await client
         .from('messages')
-        .select('id, sender_id, content, media_url, created_at, read_at, sent_at')
+        // `recipient_id` rides along (ISSUE 4): group distribution rows are
+        // addressed to exactly one member — non-targets skip them silently.
+        .select('id, sender_id, content, media_url, created_at, read_at, sent_at, recipient_id')
         .eq('chat_id', chatId)
         // `id` is the deterministic tie-break for equal `created_at` values
         // (both simulators supply client clocks; without it the server order
@@ -157,7 +206,36 @@ class ChatService {
     return decrypted;
   }
 
-  Future<void> sendMessage(String chatId, String content, String? mediaUrl) async {
+  /// Sends a message: sanitizes [content], encrypts it (when E2EE is wired)
+  /// and inserts the row.
+  ///
+  /// Serialized per chat on [_sendTail] (2026-08-16 re-audit, J1): the
+  /// cipher state advances on every encrypt, so two in-flight sends for the
+  /// same chat must run one after the other — both the 1:1 ratchet and the
+  /// group sender-key chain would otherwise derive two envelopes from the
+  /// same chain position (identical AEAD key + nonce = GCM nonce reuse; the
+  /// second message also drops as a replay on receivers). The chained
+  /// future completes with the SAME errors as the direct call (each caller
+  /// observes its own exception).
+  Future<void> sendMessage(String chatId, String content, String? mediaUrl) {
+    final completer = Completer<void>();
+    final tail = _sendTail[chatId] ?? Future<void>.value();
+    _sendTail[chatId] = tail.then((_) async {
+      try {
+        await _sendMessageNow(chatId, content, mediaUrl);
+        completer.complete();
+      } catch (error, stack) {
+        completer.completeError(error, stack);
+      }
+    });
+    return completer.future;
+  }
+
+  Future<void> _sendMessageNow(
+    String chatId,
+    String content,
+    String? mediaUrl,
+  ) async {
     final stopwatch = Stopwatch()..start();
     final user = auth.currentUser;
     if (user == null) throw Exception('No authenticated user');
@@ -179,6 +257,12 @@ class ChatService {
           'chat sendMessage publishAll done chat=$chatId '
           'ms=${stopwatch.elapsedMilliseconds}',
         );
+      }
+      // Group chats (ISSUE 4 / D3): Signal sender keys. The 1:1 branch below
+      // is NEVER taken for a group chat — _resolvePeerUserId is 1:1-only.
+      if (groupE2eeEnabled && (await _chatInfo(chatId))?.type == 'group') {
+        await _sendGroupMessage(chatId, sanitized, user.id, stopwatch);
+        return;
       }
       sentCipher = await _cipherFor(chatId);
       final envelope = await sentCipher.encrypt(
@@ -238,6 +322,227 @@ class ChatService {
     AppLogger.instance.debug(
       'chat sendMessage ok chat=$chatId ms=${stopwatch.elapsedMilliseconds}',
     );
+  }
+
+  /// Group-chat send (ISSUE 4 / D3, Signal sender keys).
+  ///
+  /// Row order on the wire (realtime delivers in channel order, so receivers
+  /// process bundles BEFORE the message):
+  ///
+  /// (a) one distribution row per member missing the sender's chain —
+  ///     `recipient_id` = the target member, `content` = the
+  ///     per-pairwise-session envelope (X3DH: the distributor is the
+  ///     initiator, the target is the responder) of the bundle JSON;
+  /// (b) the single type-0x03 sender-key message row (`recipient_id` NULL).
+  ///
+  /// Resilient distribution (2026-08-17 live finding: "send does not
+  /// allow"): each member's distribution is wrapped in its own try/catch —
+  /// a member with NO published prekey bundle (never ran the app / fresh
+  /// install) fails the pairwise X3DH `fetchBundle`; pre-fix that ONE
+  /// failure threw the whole send. Now the member is logged (id only, never
+  /// key material) and SKIPPED — the reachable members still get their
+  /// distribution and the message row always lands. The distribution target
+  /// is persisted via [GroupE2eeCipher.markSenderKeyDistributed] only AFTER
+  /// a successful insert, so a failed member stays missing for the next
+  /// send (it is never permanently dropped). The message-row insert sits
+  /// OUTSIDE the per-member loop — a distribution failure must never block
+  /// the message.
+  ///
+  /// Roster/epoch management (HARD REQUIREMENT): the active roster is
+  /// fetched from `chat_participants` before every send (D1's triggers keep
+  /// it equal to the ACTIVE `group_members`; readable via RLS
+  /// `cp_read_participant` — the documented roster source) and compared to
+  /// the cached roster:
+  ///
+  /// - any change (member added OR removed) → `wipeGroupKeys` (fresh epoch —
+  ///   a removed member's chain copies are useless going forward), which
+  ///   bumps the group epoch and clears the registry's distribution sets,
+  ///   so `membersMissingSenderKey` reports every other active member and
+  ///   the OWN chain is minted fresh + re-distributed to all of them
+  ///   (receivers holding the old-epoch record accept the fresh bundle —
+  ///   epoch-based rekey);
+  /// - no change → lazy heal: distribute to `membersMissingSenderKey(...)`
+  ///   only.
+  ///
+  /// A chat with only the sender distributes to zero members → just the
+  /// message row.
+  Future<void> _sendGroupMessage(
+    String chatId,
+    String sanitized,
+    String senderId,
+    Stopwatch stopwatch,
+  ) async {
+    // This method is only reachable when groupE2eeEnabled; the local makes
+    // the non-null cipher explicit for the whole body.
+    final cipher = _groupCipher!;
+    final info = await _chatInfo(chatId);
+    final groupId = info?.referenceId;
+    if (groupId == null) {
+      throw Exception('Group chat $chatId has no reference_id');
+    }
+    final roster = await _fetchRoster(chatId);
+    final previous = _rosterCache[chatId];
+    if (previous != null && !_sameMembers(previous, roster)) {
+      await cipher.wipeGroupKeys(chatId);
+      AppLogger.instance.debug(
+        'chat group roster CHANGED chat=$chatId — wiped sender keys, '
+        're-distributing to every active member (new epoch)',
+      );
+    }
+    _rosterCache[chatId] = roster;
+
+    final missing = await cipher.membersMissingSenderKey(
+      groupChatId: chatId,
+      senderUserId: senderId,
+      activeMemberIds: (roster.toList()..sort()),
+    );
+    // (a) distribution rows first — per-member: a member whose pairwise
+    // session cannot be established (no published prekey bundle) is
+    // SKIPPED, never fatal. Only successfully-inserted members are marked
+    // distributed, so a failed member stays missing for the next send.
+    for (final member in missing) {
+      try {
+        final bundleJson = await cipher.senderKeyBundleJson(
+          groupChatId: chatId,
+          senderUserId: senderId,
+          groupId: groupId,
+        );
+        final pair = await _pairwiseCipherFor(chatId, member);
+        final envelope = await pair.encrypt(
+          chatId: _pairwiseSessionKey(chatId, member),
+          peerUserId: member,
+          plaintext: bundleJson,
+        );
+        await client.from('messages').insert({
+          'chat_id': chatId,
+          'sender_id': senderId,
+          'content': envelope,
+          'recipient_id': member,
+          'created_at': DateTime.now().toIso8601String(),
+        });
+        await cipher.markSenderKeyDistributed(
+          groupChatId: chatId,
+          senderUserId: senderId,
+          memberIds: [member],
+        );
+      } catch (e, st) {
+        AppLogger.instance.warn(
+          'chat sendMessage(group) distribution SKIPPED chat=$chatId '
+          'member=$member type=${e.runtimeType} — no pairwise session '
+          '(member has no published prekey bundle); the member stays '
+          'missing and the next send retries',
+          '$st',
+        );
+      }
+    }
+    try {
+      // (b) the single sender-key message row — OUTSIDE the per-member
+      // loop: a distribution failure must never block the message.
+      final envelope = await cipher.encrypt(
+        groupChatId: chatId,
+        senderUserId: senderId,
+        groupId: groupId,
+        plaintext: sanitized,
+      );
+      _outbox[envelope] = sanitized;
+      await client.from('messages').insert({
+        'chat_id': chatId,
+        'sender_id': senderId,
+        'content': envelope,
+        'created_at': DateTime.now().toIso8601String(),
+      });
+    } catch (e) {
+      if (e is PostgrestException) {
+        AppLogger.instance.error(
+          'chat sendMessage(group) INSERT failed chat=$chatId '
+          'code=${e.code} message="${e.message}" details="${e.details}" '
+          'hint="${e.hint}" ms=${stopwatch.elapsedMilliseconds}',
+        );
+      } else {
+        AppLogger.instance.error(
+          'chat sendMessage(group) failed chat=$chatId '
+          'type=${e.runtimeType} ms=${stopwatch.elapsedMilliseconds}',
+        );
+      }
+      rethrow;
+    }
+    AppLogger.instance.debug(
+      'chat sendMessage(group) ok chat=$chatId distributed=${missing.length} '
+      'ms=${stopwatch.elapsedMilliseconds}',
+    );
+  }
+
+  /// The active roster of group chat [chatId], from `chat_participants` (the
+  /// trigger-maintained mirror of ACTIVE `group_members` — migration
+  /// 20260817000002; RLS `cp_read_participant`). Includes the caller — the
+  /// cipher subtracts the sender itself when computing missing members.
+  Future<Set<String>> _fetchRoster(String chatId) async {
+    final user = auth.currentUser;
+    if (user == null) throw Exception('No authenticated user');
+    final res = await client
+        .from('chat_participants')
+        .select('user_id')
+        .eq('chat_id', chatId);
+    return (res as List)
+        .whereType<Map>()
+        .map((e) => e['user_id'] as String)
+        .toSet();
+  }
+
+  static bool _sameMembers(Set<String> a, Set<String> b) =>
+      a.length == b.length && a.containsAll(b);
+
+  /// Pairwise session for group DISTRIBUTION only (ISSUE 4 / D3): the
+  /// synthetic store key `g:<chatId>:<peerUserId>` lives inside the existing
+  /// [E2eeSessionStore] (the store is key-agnostic; `sessionIndex` has no
+  /// consumers). The recipient resolves the session by the row's sender_id.
+  /// NEVER keyed by the real chatId — that is the 1:1 namespace.
+  Future<E2eeMessageCipher> _pairwiseCipherFor(
+    String groupChatId,
+    String peerUserId,
+  ) {
+    final key = _pairwiseSessionKey(groupChatId, peerUserId);
+    return _sessions.putIfAbsent(key, () async {
+      return E2eeSession(
+        chatId: key,
+        peerUserId: peerUserId,
+        keyStore: _e2eeKeyStore!,
+        sessionStore: _e2eeSessionStore!,
+        prekeyService: _e2eePrekeyService!,
+      );
+    });
+  }
+
+  /// The synthetic pairwise-session namespace key for group distribution.
+  static String _pairwiseSessionKey(String groupChatId, String peerUserId) =>
+      'g:$groupChatId:$peerUserId';
+
+  /// Resolves and caches the `chats` row metadata for [chatId]
+  /// (`type`, `reference_id`). Group routing guards on `type == 'group'`.
+  /// The row is participant-readable (RLS `chats_read_participant` — the
+  /// group branch gates on ACTIVE membership, migration 20260817000002).
+  Future<_ChatInfo?> _chatInfo(String chatId) {
+    return _chatInfoCache.putIfAbsent(chatId, () async {
+      final res = await client
+          .from('chats')
+          .select('type, reference_id')
+          .eq('id', chatId)
+          .maybeSingle();
+      if (res == null) return null;
+      return _ChatInfo(
+        type: res['type'] as String? ?? 'direct',
+        referenceId: res['reference_id'] as String?,
+      );
+    });
+  }
+
+  /// The `reference_id` of chat [chatId] (the group id for group chats), or
+  /// null when the chat row is unreadable/absent. Consumed by callers that
+  /// need the domain id behind a chat — e.g. navigating from a group into
+  /// its E2EE chat. Group routing resolves this internally (cached).
+  Future<String?> getChatReferenceId(String chatId) async {
+    final info = await _chatInfo(chatId);
+    return info?.referenceId;
   }
 
   /// Creates (or reuses) a direct chat with [peerUserId] and returns its id.
@@ -360,6 +665,19 @@ class ChatService {
     if (!e2eeEnabled) {
       return {...row, 'last_message_decrypt_failed': false};
     }
+    // Group distribution rows (ISSUE 4 / D3, fix round 20260817000004):
+    // the inbox carries the last message's recipient_id, so a row addressed
+    // to ANOTHER member is skipped BEFORE any decrypt attempt — silently,
+    // never a bubble (the per-pairwise envelope is not ours to open).
+    final userId = auth.currentUser?.id;
+    final recipientId = row['last_message_recipient_id'];
+    if (row['type'] == 'group' && recipientId is String && recipientId != userId) {
+      return {
+        ...row,
+        'last_message_content': null,
+        'last_message_decrypt_failed': false,
+      };
+    }
     final last = {
       'id': row['last_message_id'],
       'sender_id': row['last_message_sender_id'],
@@ -397,6 +715,11 @@ class ChatService {
     String chatId,
     List<Map<String, dynamic>> rows,
   ) async {
+    // Group chats never carry the no-session class (ISSUE 4 / D3): for
+    // groups, undecryptable rows STAY — the roster-change rekey heals them.
+    if (groupE2eeEnabled && (await _chatInfo(chatId))?.type == 'group') {
+      return;
+    }
     final ids = <String>[
       for (final r in rows)
         if (r['needsSession'] == true && r['id'] is String) r['id'] as String,
@@ -536,6 +859,12 @@ class ChatService {
   /// server-side — called once per chat open, never per message.
   Future<bool> peerNeedsRekey(String chatId) async {
     if (!e2eeEnabled) return false;
+    // Groups have no pairwise peer (ISSUE 4): the group rekey machinery is
+    // the roster-change wipe in _sendGroupMessage, never the 1:1 identity
+    // comparison.
+    if (groupE2eeEnabled && (await _chatInfo(chatId))?.type == 'group') {
+      return false;
+    }
     try {
       final cipher = await _cipherFor(chatId);
       return await cipher.peerIdentityChanged(
@@ -613,6 +942,17 @@ class ChatService {
         return row;
       }
     }
+    // Group chat routing (ISSUE 4 / D3): type-0x03 envelopes decrypt via the
+    // group cipher; 0x01/0x02 envelopes are pairwise DISTRIBUTION rows
+    // (process the bundle, hide the row); rows addressed to another member
+    // are skipped silently. The 1:1 cipher path below is never taken for
+    // group rows (it would resolve a "peer" and mis-route the row).
+    if (groupE2eeEnabled) {
+      final info = await _chatInfo(chatId);
+      if (info?.type == 'group') {
+        return _decryptGroupRow(chatId, row, info!.referenceId);
+      }
+    }
     try {
       final cipher = await _cipherFor(chatId);
       final result = await cipher.decrypt(
@@ -672,6 +1012,114 @@ class ChatService {
     );
     row['content'] = chatUndecryptablePlaceholder;
     row['decryptFailed'] = true;
+    return row;
+  }
+
+  /// Decrypts one group-chat row (ISSUE 4 / D3). Never throws.
+  ///
+  /// - `recipient_id` set and != me → silent skip: no decrypt attempt, no
+  ///   bubble (the distribution envelope is addressed to ONE member).
+  /// - type 0x03 (sender-key message) → [GroupE2eeCipher.decrypt]:
+  ///   plaintext → bubble AND cached into the plaintext store (the encrypted
+  ///   Hive cache must serve group history across restarts, same as 1:1);
+  ///   dropped → hidden row; failed → the [chatUndecryptablePlaceholder]
+  ///   bubble ("Mensaje no descifrable").
+  /// - type 0x01/0x02 (distribution) → the pairwise session with the row's
+  ///   sender; a bundle plaintext → [GroupE2eeCipher.processSenderKeyBundle],
+  ///   then the row is hidden (never a bubble). Any pairwise failure →
+  ///   hidden + logged (the next send re-distributes).
+  ///
+  /// The no-session class does not apply to groups: undecryptable rows STAY
+  /// — the roster-change rekey heals them.
+  Future<Map<String, dynamic>> _decryptGroupRow(
+    String chatId,
+    Map<String, dynamic> row,
+    String? groupId,
+  ) async {
+    // Only reachable when groupE2eeEnabled (see the routing guard); the
+    // local makes the non-null cipher explicit for the whole body.
+    final cipher = _groupCipher!;
+    final userId = auth.currentUser?.id;
+    final recipientId = row['recipient_id'];
+    if (userId != null && recipientId is String && recipientId != userId) {
+      row['decryptDropped'] = true;
+      return row;
+    }
+    final envelope = row['content'];
+    final messageId = row['id'];
+    if (await cipher.isSenderKeyEnvelope(envelope)) {
+      final result = await cipher.decrypt(
+        groupChatId: chatId,
+        senderUserId: row['sender_id'] as String? ?? '',
+        envelope: envelope,
+      );
+      final plaintext = result.plaintext;
+      if (plaintext != null) {
+        row['content'] = plaintext;
+        row['decryptFailed'] = false;
+        if (messageId is String) {
+          (_decryptedByMessage[chatId] ??= {})[messageId] = plaintext;
+          await _cachePlaintext(chatId, messageId, plaintext);
+        }
+        return row;
+      }
+      if (result.dropped) {
+        // Signal semantics: replay/duplicate/no-chain — silent, hidden.
+        row['decryptDropped'] = true;
+        return row;
+      }
+      AppLogger.instance.warn(
+        'chat group decrypt failed chat=$chatId msg=$messageId — '
+        'undecryptable (tampering)',
+      );
+      row['content'] = chatUndecryptablePlaceholder;
+      row['decryptFailed'] = true;
+      return row;
+    }
+    // Type 0x01/0x02: a per-pairwise DISTRIBUTION row. Never a bubble.
+    final senderId = row['sender_id'];
+    if (senderId is String && groupId != null) {
+      try {
+        final pair = await _pairwiseCipherFor(chatId, senderId);
+        // K1 identity binding (2026-08-16 re-audit): the bundle's
+        // `sender_ik_dh` is self-attested, so the bundle is only accepted
+        // when it matches the identity the pairwise session BOUND to the
+        // sender (X3DH, possession-based) — a bundle minted with a learned
+        // foreign ik_dh is rejected by GroupE2eeCipher.processSenderKeyBundle.
+        // Null (no pairwise session yet — e.g. the very first init envelope
+        // establishes it in the decrypt below) keeps the best-effort path.
+        final bound = await pair.boundPeerIkDh();
+        final result = await pair.decrypt(
+          chatId: _pairwiseSessionKey(chatId, senderId),
+          peerUserId: senderId,
+          envelope: envelope,
+        );
+        final plaintext = result.plaintext;
+        if (plaintext != null &&
+            await _groupCipher.isSenderKeyBundle(plaintext)) {
+          await _groupCipher.processSenderKeyBundle(
+            groupChatId: chatId,
+            senderUserId: senderId,
+            groupId: groupId,
+            bundleJson: plaintext,
+            expectedSenderIkDh:
+                bound == null ? null : base64UrlNoPadEncode(bound),
+          );
+          AppLogger.instance.debug(
+            'chat group distribution processed chat=$chatId sender=$senderId '
+            'msg=$messageId',
+          );
+        }
+      } catch (e, st) {
+        AppLogger.instance.warn(
+          'chat group distribution row undecryptable chat=$chatId '
+          'msg=$messageId sender=$senderId — hidden; the next send '
+          're-distributes: $e',
+          '$st',
+        );
+      }
+    }
+    row['decryptDropped'] = true;
     return row;
   }
 
@@ -753,4 +1201,14 @@ class ChatService {
     _peerCache[chatId] = peer;
     return peer;
   }
+}
+
+/// Cached `chats` row metadata used by the group routing (ISSUE 4 / D3):
+/// the chat type (group vs direct) and the `reference_id` (the group id —
+/// the crypto group the sender-key chains bind to).
+class _ChatInfo {
+  const _ChatInfo({required this.type, this.referenceId});
+
+  final String type;
+  final String? referenceId;
 }

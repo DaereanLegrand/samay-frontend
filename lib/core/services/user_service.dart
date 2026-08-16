@@ -177,14 +177,16 @@ class UserService {
   ///   returns 'accepted' the same way).
   ///
   /// Throws when the current user already has a friendship/request in the
-  /// forward direction (or is blocked).
+  /// forward direction, or when an existing BLOCK row is in play (either
+  /// direction): a block can only be lifted by the blocker via
+  /// [unblockUser] — never by the blocked party "accepting" it.
   Future<String> sendFriendRequest(String userId) async {
     final user = auth.currentUser;
     if (user == null) throw Exception('No authenticated user');
 
     final asRequester = await client
         .from('friendships')
-        .select('id')
+        .select('id, status')
         .eq('requester_id', user.id)
         .eq('addressee_id', userId)
         .limit(1)
@@ -192,7 +194,7 @@ class UserService {
     final asAddressee = asRequester == null
         ? await client
               .from('friendships')
-              .select('id')
+              .select('id, status')
               .eq('requester_id', userId)
               .eq('addressee_id', user.id)
               .limit(1)
@@ -202,10 +204,20 @@ class UserService {
       throw Exception('Ya existe una solicitud o amistad con este usuario');
     }
     if (asAddressee != null) {
+      // FixB2-authz (LOW): the addressee of a BLOCKED row must never flip it
+      // into an accepted friendship — the mutual-accept shortcut below is
+      // additionally guarded by `status = 'pending'` (a blocked row fails
+      // the UPDATE filter and no-ops), but the honest outcome for the
+      // blocked party is an explicit error, mirroring the forward-direction
+      // guard's message shape.
+      if (asAddressee['status'] == 'blocked') {
+        throw Exception('No puedes enviar una solicitud: estás bloqueado');
+      }
       await client
           .from('friendships')
           .update({'status': 'accepted'})
-          .eq('id', asAddressee['id'] as String);
+          .eq('id', asAddressee['id'] as String)
+          .eq('status', 'pending');
       return 'accepted';
     }
     await client.from('friendships').insert({
@@ -216,15 +228,28 @@ class UserService {
     return 'pending';
   }
 
+  /// Accepts the incoming friend request [friendshipId] via the
+  /// `accept_friend_request` SECURITY DEFINER RPC (migration 20260817000004):
+  /// the server verifies auth.uid() is the ADDressee of a 'pending' row and
+  /// flips it to 'accepted' — the direct UPDATE was client-guarded only
+  /// (friendships_update_own covers requester OR addressee, so the requester
+  /// could accept their own outbound request).
   Future<void> acceptFriendRequest(String friendshipId) async {
-    await client
-        .from('friendships')
-        .update({'status': 'accepted'})
-        .eq('id', friendshipId);
+    await client.rpc('accept_friend_request', params: {
+      'p_friendship_id': friendshipId,
+    });
   }
 
+  /// Declines the incoming friend request [friendshipId] by deleting the row.
+  /// Scoped to `status = 'pending'` (FixB2-authz): the addressee of a
+  /// BLOCKED row can never delete the block through this path — only the
+  /// blocker lifts it via [unblockUser].
   Future<void> declineFriendRequest(String friendshipId) async {
-    await client.from('friendships').delete().eq('id', friendshipId);
+    await client
+        .from('friendships')
+        .delete()
+        .eq('id', friendshipId)
+        .eq('status', 'pending');
   }
 
   Future<void> blockUser(String userId) async {
@@ -295,12 +320,12 @@ class UserService {
     final ids = results.map((r) => r['id'] as String).toList();
     final asRequester = await client
         .from('friendships')
-        .select('requester_id, addressee_id, status')
+        .select('id, requester_id, addressee_id, status')
         .eq('requester_id', user.id)
         .inFilter('addressee_id', ids);
     final asAddressee = await client
         .from('friendships')
-        .select('requester_id, addressee_id, status')
+        .select('id, requester_id, addressee_id, status')
         .eq('addressee_id', user.id)
         .inFilter('requester_id', ids);
     final frRows = [...asRequester, ...asAddressee];
@@ -308,13 +333,23 @@ class UserService {
     final blockedByMe = <String>{};
     final blockedByThem = <String>{};
     final statusByUser = <String, String>{};
+    // ISSUE 5: pending rows also carry the friendship id + direction so the
+    // search UI can accept an inbound request (`received`) or show the
+    // static pending badge for an outbound one (`sent`).
+    final pendingIds = <String, String>{};
+    final pendingDirections = <String, String>{};
     for (final row in frRows) {
       final otherId = row['requester_id'] == user.id
           ? row['addressee_id'] as String
           : row['requester_id'] as String;
       final status = row['status'] as String;
       statusByUser[otherId] = status;
-      if (status == 'blocked') {
+      if (status == 'pending') {
+        pendingIds[otherId] = row['id'] as String;
+        pendingDirections[otherId] = row['requester_id'] == user.id
+            ? 'sent'
+            : 'received';
+      } else if (status == 'blocked') {
         if (row['requester_id'] == user.id) {
           blockedByMe.add(otherId);
         } else {
@@ -330,6 +365,10 @@ class UserService {
           final frStatus = statusByUser[uid];
           if (frStatus != null) {
             r['friendship_status'] = frStatus;
+          }
+          if (frStatus == 'pending') {
+            r['friendship_id'] = pendingIds[uid];
+            r['friendship_direction'] = pendingDirections[uid];
           }
           if (blockedByThem.contains(uid)) {
             r['hidden'] = true;

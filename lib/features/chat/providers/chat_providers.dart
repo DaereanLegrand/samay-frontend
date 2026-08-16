@@ -8,6 +8,7 @@ import 'package:samay/core/services/message_plaintext_store.dart';
 import 'package:samay/core/utils/pagination.dart';
 import 'package:samay/crypto/e2ee_key_store.dart';
 import 'package:samay/crypto/e2ee_prekey_service.dart';
+import 'package:samay/crypto/group_cipher.dart';
 import 'package:samay/crypto/interfaces.dart';
 
 /// Compile-time switch for E2EE key/session storage:
@@ -47,7 +48,9 @@ final e2eePrekeyServiceProvider = Provider<E2eePrekeyService>((ref) {
 /// decrypts on load and on realtime delivery (E2EE §12.2 step 3). Decrypted
 /// history is persisted in the encrypted Hive `message_cache` box (Signal
 /// plaintext-store semantics, 2026-08-16) so a restart/update never turns
-/// readable history into "Mensaje no descifrable" bubbles.
+/// readable history into "Mensaje no descifrable" bubbles. The
+/// [GroupE2eeCipher] (Signal sender keys, ISSUE 4 / D3) rides the same
+/// key/session stores and enables the group-chat routing in the service.
 final chatE2eeServiceProvider = Provider<ChatService>((ref) {
   return ChatService(
     client: ref.watch(supabaseClientProvider),
@@ -56,6 +59,10 @@ final chatE2eeServiceProvider = Provider<ChatService>((ref) {
     e2eeSessionStore: ref.watch(e2eeSessionStoreProvider),
     e2eePrekeyService: ref.watch(e2eePrekeyServiceProvider),
     plaintextStore: HiveMessagePlaintextStore(ref.watch(hiveServiceProvider)),
+    groupCipher: GroupE2eeCipher(
+      keyStore: ref.watch(e2eeKeyStoreProvider),
+      sessionStore: ref.watch(e2eeSessionStoreProvider),
+    ),
   );
 });
 
@@ -445,6 +452,7 @@ class ChatInboxItem {
   const ChatInboxItem({
     required this.chatId,
     required this.type,
+    this.referenceId,
     this.peerId,
     this.peerUsername,
     this.peerAvatarUrl,
@@ -458,6 +466,11 @@ class ChatInboxItem {
 
   final String chatId;
   final String type;
+
+  /// The RPC row's `reference_id` — the group id for group chats (ISSUE 4:
+  /// the chat screen uses it to open a group thread with sender labels).
+  final String? referenceId;
+
   final String? peerId;
   final String? peerUsername;
   final String? peerAvatarUrl;
@@ -480,6 +493,7 @@ class ChatInboxItem {
     return ChatInboxItem(
       chatId: row['chat_id'] as String? ?? '',
       type: row['type'] as String? ?? 'direct',
+      referenceId: row['reference_id'] as String?,
       peerId: row['peer_id'] as String?,
       peerUsername: row['peer_username'] as String?,
       peerAvatarUrl: row['peer_avatar_url'] as String?,
@@ -498,6 +512,7 @@ class ChatInboxItem {
     return ChatInboxItem(
       chatId: chatId,
       type: type,
+      referenceId: referenceId,
       peerId: peerId,
       peerUsername: peerUsername,
       peerAvatarUrl: peerAvatarUrl,

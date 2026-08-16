@@ -7,5 +7,5 @@
 - Promotor transfer UI: backend exists, no screen
 - Add co-promotor UI: backend exists, no screen
 - Invite screen: done (debounced username search + multi-select + bulk invite)
-- Group chat: placeholder
+- Group chat: done (E2EE sender keys, ISSUE 4)
 - Group cosmetics display: deferred

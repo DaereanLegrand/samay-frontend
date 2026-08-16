@@ -86,16 +86,32 @@ class _RequestsScreenState extends ConsumerState<RequestsScreen>
         ref.invalidate(friendsListProvider);
       });
 
-  Future<void> _acceptInvite(String membershipId) =>
+  Future<void> _acceptInvite(String membershipId, String groupId) =>
       _run(membershipId, () async {
         await ref.read(groupsRepositoryProvider).acceptInvite(membershipId);
         ref.invalidate(groupInvitesProvider);
+        // ISSUE 2 (B7): an accepted group must appear in the user's groups
+        // list immediately.
+        ref.invalidate(myGroupsProvider);
+        // USER FIX 2: while the user was INVITED, RLS denied the group member
+        // list and groupMembersProvider cached an empty list (keepAlive
+        // family + ThrottledRefresh) — the chat thread's sender labels and
+        // the members tab would stay empty after the accept. Invalidate the
+        // membership-dependent providers so they re-fetch as an active member.
+        if (groupId.isNotEmpty) {
+          ref.invalidate(groupMembersProvider(groupId));
+          ref.invalidate(groupDetailProvider(groupId));
+          ref.invalidate(contributionsProvider(groupId));
+        }
       });
 
   Future<void> _declineInvite(String membershipId) =>
       _run(membershipId, () async {
         await ref.read(groupsRepositoryProvider).declineInvite(membershipId);
         ref.invalidate(groupInvitesProvider);
+        // ISSUE 2 (B7): a declined invite must disappear from the groups list
+        // (it was listed as pending).
+        ref.invalidate(myGroupsProvider);
       });
 
   @override
@@ -261,6 +277,7 @@ class _RequestsScreenState extends ConsumerState<RequestsScreen>
         itemBuilder: (_, i) {
           final invite = invites[i];
           final id = invite['id'] as String;
+          final groupId = invite['group_id'] as String? ?? '';
           final groupName =
               (invite['groups'] as Map<String, dynamic>?)?['name']
                       as String? ??
@@ -273,7 +290,7 @@ class _RequestsScreenState extends ConsumerState<RequestsScreen>
               subtitle: Text(invite['role'] as String? ?? 'member'),
               trailing: _ActionPair(
                 busy: _processing.contains(id),
-                onAccept: () => _acceptInvite(id),
+                onAccept: () => _acceptInvite(id, groupId),
                 onDecline: () => _declineInvite(id),
               ),
             ),

@@ -570,17 +570,33 @@
   "@groupsDonate": {
     "description": "Donate button label"
   },
+  "groupsTabInfo": "Información",
+  "@groupsTabInfo": {
+    "description": "Etiqueta de la pestaña Información del detalle de grupo"
+  },
   "groupsTabChat": "Chat",
   "@groupsTabChat": {
-    "description": "Group detail tab label"
+    "description": "Etiqueta de pestaña del detalle de grupo"
   },
   "groupsTabMembers": "Miembros",
   "@groupsTabMembers": {
-    "description": "Group detail tab label"
+    "description": "Etiqueta de pestaña del detalle de grupo"
   },
   "groupsTabEvents": "Eventos",
   "@groupsTabEvents": {
-    "description": "Group detail tab label"
+    "description": "Etiqueta de pestaña del detalle de grupo"
+  },
+  "groupsInvitePending": "Invitación pendiente",
+  "@groupsInvitePending": {
+    "description": "Insignia en la fila de un grupo cuya membresía es una invitación sin aceptar"
+  },
+  "groupsInvitePendingTitle": "Invitación de grupo",
+  "@groupsInvitePendingTitle": {
+    "description": "Título del estado de usuario invitado en el detalle de grupo"
+  },
+  "groupsInvitePendingBody": "Has sido invitado a este grupo. Acepta para unirte.",
+  "@groupsInvitePendingBody": {
+    "description": "Cuerpo del estado de usuario invitado en el detalle de grupo"
   },
   "groupsFrozenBadge": "Grupo congelado",
   "@groupsFrozenBadge": {

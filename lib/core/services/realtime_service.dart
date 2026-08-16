@@ -128,6 +128,32 @@ class RealtimeService {
     channel.subscribe();
   }
 
+  /// Group memberships involving the current user — any insert/update/delete.
+  ///
+  /// postgres_changes cannot OR two columns, so the whole `group_members`
+  /// stream is subscribed and [onChange] fires only when the row belongs to
+  /// the current user (member rows carry `user_id`). The consumer invalidates
+  /// the invites/my-groups providers — the remote-side fix for group
+  /// invitations only appearing after an app restart (2026-08-17). Requires
+  /// the table in `supabase_realtime` + REPLICA IDENTITY FULL for full-row
+  /// DELETE payloads (migration 20260817000001).
+  Future<RealtimeChannel> subscribeToGroupMemberships(
+    void Function(Map<String, dynamic>) onChange,
+  ) async {
+    final user = auth.currentUser;
+    if (user == null) throw Exception('No authenticated user');
+    return subscribeToChannel(
+      'group-members:${user.id}',
+      PostgresChangeEvent.all,
+      'group_members',
+      (row) {
+        if (row['user_id'] == user.id) {
+          onChange(row);
+        }
+      },
+    );
+  }
+
   /// Friendships involving the current user — any insert/update/delete.
   ///
   /// postgres_changes cannot OR two columns, so the whole `friendships`

@@ -157,8 +157,9 @@ class _ChatListTile extends StatelessWidget {
           padding: const EdgeInsets.all(AppSpacing.lg),
           child: Row(
             children: [
-              // Peer avatar placeholder — a rounded square with the initial
-              // (avatars live in Storage; the identity row is enough for now).
+              // Avatar placeholder — a rounded square: the initial for 1:1
+              // chats, the group icon for group rows (ISSUE 4; avatars live
+              // in Storage, the identity row is enough for now).
               Container(
                 width: 44,
                 height: 44,
@@ -167,14 +168,20 @@ class _ChatListTile extends StatelessWidget {
                   color: _family.colors.last.withValues(alpha: 0.18),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Text(
-                  (item.peerUsername?.isNotEmpty ?? false)
-                      ? item.peerUsername![0].toUpperCase()
-                      : '?',
-                  style: AppTypography.titleMedium.copyWith(
-                    color: _family.colors.last,
-                  ),
-                ),
+                child: item.type == 'group'
+                    ? Icon(
+                        Icons.group,
+                        size: 22,
+                        color: _family.colors.last,
+                      )
+                    : Text(
+                        (item.peerUsername?.isNotEmpty ?? false)
+                            ? item.peerUsername![0].toUpperCase()
+                            : '?',
+                        style: AppTypography.titleMedium.copyWith(
+                          color: _family.colors.last,
+                        ),
+                      ),
               ),
               const SizedBox(width: AppSpacing.md),
               Expanded(

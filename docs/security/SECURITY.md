@@ -53,7 +53,7 @@ Industry standards this document is aligned with (all claims below cite these):
 | Anonymous (`anon` role) | Reads public catalog (app_config, cosmetics, leaderboard), public events, `user_search_view`; calls `check_signup_email` RPC; sends OTP | Untrusted — RLS + GoTrue rate limits only |
 | Authenticated user | Full client surface via PostgREST/Realtime with own JWT | Semi-trusted — scoped by RLS policies |
 | Malicious authenticated user | Attempts: cross-user reads (RLS blocks), own-row mass assignment, OTP abuse, search enumeration, QR replay, shard manipulation | Primary adversary |
-| Compromised backend role | service_role / table owner / `postgres` credentials theft (CLI machine, leaked `.env`) | **Defense:** FORCE RLS on all 33 RLS-enabled tables closes the table-owner bypass (I-31 → 20260809000001) |
+| Compromised backend role | service_role / table owner / `postgres` credentials theft (CLI machine, leaked `.env`) | **Defense:** FORCE RLS on all 34 RLS-enabled tables closes the table-owner bypass (I-31 → 20260809000001; K1 → 20260817000005) |
 | Network attacker | Passive TLS interception / MITM, Realtime WS sniffing | Mitigated by HTTPS (Kong 54443); no cert pinning yet |
 | Insider admin | Full service_role access via CLI; audit-logged | Mitigated by `admin_audit_log` (A8) + least-privilege roles |
 
@@ -68,7 +68,7 @@ Industry standards this document is aligned with (all claims below cite these):
 | **I — Information disclosure** | `user_search_view` (security barrier, id/username/avatar_url only — 20260520000001:217-222); `users` read-own (full_schema.sql); messages/events/group policies | ✅ scoped; `.env.example` anon key rotated to placeholder (I-34/H-21) | I-34 ✅ |
 | **I — Information disclosure (E2EE)** | Chat `messages.content` | ✅ ciphertext in Postgres — X3DH + Double Ratchet landed (I-37/81722ef: replay protection, session convergence, SPK expiry); keys client-only → E2EE-ARCHITECTURE.md | I-37, I-38 ✅ |
 | **D — Denial of service** | OTP sending (GoTrue `email_sent = 2` config.toml:65); search `.ilike` prefix enumeration; RPC `donate_shards_to_group` (no rate limit); Realtime channels; photo upload 50 MiB (config.toml:42) | ⚠️ auth-level limits exist + client OTP cooldown/attempt caps (I-29); no Kong rate-limit plugin, no server-side RPC limiting (FLMT blocked on Edge Functions — EEDG ❌) | I-29 ✅, S-10, M-09 |
-| **E — Elevation of privilege** | RLS bypass: table owner bypasses RLS without FORCE (R8) | ✅ FORCE RLS on all 33 RLS-enabled tables (`20260809000001` ×31 + `20260724000001` + `20260809000003` e2ee_identity_keys) | I-31 ✅ |
+| **E — Elevation of privilege** | RLS bypass: table owner bypasses RLS without FORCE (R8) | ✅ FORCE RLS on all 34 RLS-enabled tables (`20260809000001` ×31 + `20260724000001` + `20260809000003` e2ee_identity_keys + `20260817000005` deleted_messages) | I-31 ✅ |
 
 ---
 
@@ -82,9 +82,9 @@ Industry standards this document is aligned with (all claims below cite these):
 
 | Claim | Evidence | Status |
 |-------|----------|--------|
-| RLS enabled on all 33 base + post-gate tables | `supabase/migrations/20260510000001_full_schema.sql:578-607` (30× `ENABLE ROW LEVEL SECURITY`) + `20260513000002` (signup_tracker) + `20260810000007` (storage-era) + `20260809000003` (e2ee_identity_keys) | ✅ 33 |
+| RLS enabled on all 34 base + post-gate tables | `supabase/migrations/20260510000001_full_schema.sql:578-607` (30× `ENABLE ROW LEVEL SECURITY`) + `20260513000002` (signup_tracker) + `20260810000007` (storage-era) + `20260809000003` (e2ee_identity_keys) + `20260817000005` (deleted_messages) | ✅ 34 |
 | RLS enabled on `signup_tracker` | `supabase/migrations/20260513000002_fix_signup_tracker.sql:13` | ✅ |
-| **FORCE RLS on every RLS-enabled table** | `20260809000001_harden_rls_search_path.sql:39-69` (31× `ALTER TABLE ... FORCE ROW LEVEL SECURITY`) + `20260724000001_fix_signup_tracker_rls.sql:73` + `20260809000003_e2ee_tables.sql:62` → **33 FORCE statements** (was 1/31 pre-I-31) | ✅ 33/33 |
+| **FORCE RLS on every RLS-enabled table** | `20260809000001_harden_rls_search_path.sql:39-69` (31× `ALTER TABLE ... FORCE ROW LEVEL SECURITY`) + `20260724000001_fix_signup_tracker_rls.sql:73` + `20260809000003_e2ee_tables.sql:62` + `20260817000005_deleted_messages_rls.sql:30-31` → **34 FORCE statements** (was 1/31 pre-I-31; +1 K1 2026-08-16) | ✅ 34/34 |
 | signup_tracker policies email-scoped (own-email only) | `20260724000001_fix_signup_tracker_rls.sql:57-68` (`email = auth.jwt() ->> 'email'`) — replaces the original wide-open `USING (true)` policies (`20260513000002:15-30`) | ✅ (C-01, commit b02090e) |
 | Pre-auth email check via hardened RPC | `check_signup_email` — `SECURITY DEFINER`, `SET search_path = ''`, explicit `REVOKE/GRANT` (`20260724000001:15-44`) | ✅ pattern reference |
 | RLS recursion bugs fixed post-hoc | `20260512000006_fix_group_members_rls_recursion.sql`, `20260512000008_fix_events_rls_recursion.sql` (42P17) | ✅ history |
@@ -318,7 +318,7 @@ Hard delete (daily 03:00):                    supabase/migrations/20260510000002
 
 | # | Gap | Severity | Owner agent(s) | Reference |
 |---|-----|----------|----------------|-----------|
-| G-01 | `FORCE RLS` on 30/31 tables (only signup_tracker) | ✅ (I-31, 2026-08-09 — migration `20260809000001`: 31× `FORCE ROW LEVEL SECURITY`; `20260809000003` adds e2ee_identity_keys → **33 FORCE total**; pgTAP §15/37 assert them) | I-31 | SUP-02, H-19/H-25, SEC-13 |
+| G-01 | `FORCE RLS` on 30/31 tables (only signup_tracker) | ✅ (I-31, 2026-08-09 — migration `20260809000001`: 31× `FORCE ROW LEVEL SECURITY`; `20260809000003` adds e2ee_identity_keys → **33 FORCE total**; `20260817000005` adds deleted_messages → **34 FORCE total** (K1, 2026-08-16); pgTAP §15/37/56e assert them) | I-31 | SUP-02, H-19/H-25, SEC-13 |
 | G-02 | `SET search_path = ''` missing on 11 SECURITY DEFINER functions | ✅ (I-31, 2026-08-09 — `20260809000001` redefines all 12 with `SET search_path = ''`; every post-gate SD function follows) | I-31 | SUP-03, H-20/H-26, SEC-14 |
 | G-03 | `users_update_own` allows mass-assignment of economy/subscription columns (self-elevation) | ✅ (I-32, 2026-08-09 — migration `20260809000002`: `REVOKE UPDATE` on the 7 protected columns from authenticated/anon + `assert_safe_user_update()` BEFORE INSERT OR UPDATE trigger (SECURITY INVOKER, one-way `deleted_at` soft-delete preserved); pgTAP §39a/39b) | I-32 | API3:2023 (R3) |
 | G-04 | Token refresh never invoked; no PKCE on init; tokens not in SecureStorage | ✅ (I-30 + I-25, 2026-08-09 — `authFlowType: AuthFlowType.pkce` pinned in `lib/main.dart`; `tokenRefreshed` null-session handling + `AuthNotifier.refreshSession()` wired through `AuthService.refreshSession()`; session + PKCE code verifier persisted in flutter_secure_storage via `SecureSessionStorage`/`SecurePkceStorage` (SEC-04/SEC-11 closed, H-22) | I-30, I-25 | SEC-04, SEC-11, H-22 |
@@ -350,9 +350,9 @@ Hard delete (daily 03:00):                    supabase/migrations/20260510000002
 
 Original ledger verified **2026-08-09** (pre-I-31 state); re-verified **2026-08-13** against HEAD `18b8c8b`:
 
-- `rg "FORCE ROW LEVEL SECURITY"` across `supabase/migrations/` → **33 statements**: 31× in `20260809000001_harden_rls_search_path.sql:39-69`, signup_tracker in `20260724000001:73`, `e2ee_identity_keys` in `20260809000003:62`. (2026-08-09 ledger: 1.)
+- `rg "FORCE ROW LEVEL SECURITY"` across `supabase/migrations/` → **34 statements**: 31× in `20260809000001_harden_rls_search_path.sql:39-69`, signup_tracker in `20260724000001:73`, `e2ee_identity_keys` in `20260809000003:62`, `deleted_messages` in `20260817000005:30-31`. (2026-08-09 ledger: 1.)
 - `rg "SECURITY DEFINER"` across `supabase/migrations/` → 22 files define SD functions; **every live SD function carries `SET search_path = ''`** (verified per migration; zero unhardened). (2026-08-09 ledger: 11 unhardened.)
-- `rg "ENABLE ROW LEVEL SECURITY"` → 33 RLS-enabled tables (30 base + signup_tracker + storage-era + e2ee_identity_keys).
+- `rg "ENABLE ROW LEVEL SECURITY"` → 34 RLS-enabled tables (30 base + signup_tracker + storage-era + e2ee_identity_keys + deleted_messages).
 - `refreshSession` callers: definition `lib/core/services/auth_service.dart`, invoked from `auth_provider.dart` `tokenRefreshed` handler (2026-08-09 ledger: zero callers).
 - `AuthFlowType.pkce` present at `lib/main.dart:118`; `flutter_secure_storage` used by `SecureSessionStorage`/`SecurePkceStorage`/`HiveService`/E2EE key store.
 - Input sanitizer: `lib/core/utils/input_sanitizer.dart`, 29 unit tests (2026-08-09 ledger: none).
