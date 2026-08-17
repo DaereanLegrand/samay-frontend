@@ -14,7 +14,6 @@ import 'package:samay/features/chat/providers/chat_providers.dart';
 import 'package:samay/features/groups/providers/groups_providers.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/error_view.dart';
-import 'package:samay/shared/widgets/glass/v_glass.dart';
 import 'package:samay/shared/widgets/state_views.dart';
 import 'package:samay/shared/widgets/v_button.dart';
 import 'package:samay/shared/widgets/v_spinner.dart';
@@ -804,17 +803,30 @@ class _MessageBubble extends StatelessWidget {
   /// Liquid corners — the chat bubbles are the liquid island of the sharp
   /// design language.
   static const BorderRadius _bubbleRadius = BorderRadius.all(
-    Radius.circular(16),
+    Radius.circular(8),
   );
 
   static const EdgeInsets _bubblePadding = EdgeInsets.symmetric(
-    horizontal: 14,
-    vertical: 10,
+    horizontal: 10,
+    vertical: 8,
   );
 
   /// Bubbles cap at 320 logical px so the thread reads as ONE conversation
   /// surface.
   static const double _maxBubbleWidth = 320;
+
+  static const List<Color> _senderColors = [
+    AppColors.pastelRose,
+    AppColors.pastelViolet,
+    AppColors.pastelCyan,
+    AppColors.pastelGold,
+    AppColors.pastelMint,
+    AppColors.pastelPeach,
+  ];
+
+  static Color _colorForSender(String senderId) {
+    return _senderColors[senderId.hashCode.abs() % _senderColors.length];
+  }
 
   /// In-bubble clock: 24h local time of `created_at`.
   static String _timeLabel(Map<String, dynamic> row) {
@@ -887,6 +899,7 @@ class _MessageBubble extends StatelessWidget {
       child: Padding(
         padding: _bubblePadding,
         child: Column(
+          mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
             Text(
@@ -899,6 +912,9 @@ class _MessageBubble extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 2),
+            // The hour + the delivery checks stay on ONE footer row at the
+            // bottom-right of the bubble (checks at the hour's right — the
+            // classic WhatsApp shape).
             Row(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -942,51 +958,80 @@ class _MessageBubble extends StatelessWidget {
   ) {
     final time = _timeLabel(row);
     final senderName = this.senderName;
-    return VGlass(
+    final senderColor = senderName != null
+        ? _colorForSender(row['sender_id'] as String? ?? '')
+        : AppColors.mutedStrong;
+    final msgStyle = TextStyle(
+      color: decryptFailed ? AppColors.mutedStrong : AppColors.white,
+      fontStyle: decryptFailed ? FontStyle.italic : FontStyle.normal,
+    );
+    final timeStyle = const TextStyle(
+      color: AppColors.mutedStrong,
+      fontSize: 11,
+    );
+    return DecoratedBox(
       key: ValueKey('chatBubblePeer-$id'),
-      gradient: null,
-      radius: _bubbleRadius,
-      glowAlpha: 0.0,
-      padding: _bubblePadding,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: [
-          if (senderName != null && senderName.isNotEmpty) ...[
-            // Group sender label — mutedStrong informational text (AA).
-            Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                senderName,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color: AppColors.mutedStrong,
-                ),
-              ),
-            ),
-            const SizedBox(height: 2),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            AppColors.muted,
+            AppColors.border,
           ],
-          Text(
-            text,
-            style: TextStyle(
-              color: decryptFailed ? AppColors.mutedStrong : AppColors.white,
-              fontStyle: decryptFailed ? FontStyle.italic : FontStyle.normal,
-            ),
+        ),
+        borderRadius: _bubbleRadius,
+        boxShadow: [
+          BoxShadow(
+            color: senderColor.withValues(alpha: 0.25),
+            blurRadius: 10,
+            spreadRadius: -2,
           ),
-          if (time.isNotEmpty) ...[
-            const SizedBox(height: 2),
-            // Decorative clock (see the own-bubble footer note).
-            ExcludeSemantics(
-              child: Text(
-                time,
-                style: const TextStyle(
-                  color: AppColors.mutedStrong,
-                  fontSize: 11,
+        ],
+      ),
+      child: Padding(
+        padding: _bubblePadding,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (senderName != null && senderName.isNotEmpty) ...[
+              // The name must NOT expand the bubble: `Align` (used before)
+              // fills all available space and pinned every group bubble at
+              // the 320px max. A ConstrainedBox caps long names (ellipsis
+              // still applies) and shrink-wraps short ones.
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 200),
+                child: Text(
+                  senderName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    color: senderColor,
+                  ),
                 ),
               ),
+              const SizedBox(height: 2),
+            ],
+            // Message + hour in their own right-aligned column so the hour
+            // always sits at the BOTTOM-RIGHT of the bubble (the classic
+            // WhatsApp shape) while the sender name above stays left.
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(text, style: msgStyle),
+                if (time.isNotEmpty) ...[
+                  const SizedBox(height: 2),
+                  // Decorative clock (see the own-bubble footer note).
+                  ExcludeSemantics(
+                    child: Text(time, style: timeStyle),
+                  ),
+                ],
+              ],
             ),
           ],
-        ],
+        ),
       ),
     );
   }
