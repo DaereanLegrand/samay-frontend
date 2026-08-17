@@ -43,9 +43,9 @@ final discoveryOptInProvider =
 class PartyMatchesNotifier extends AsyncNotifier<List<Map<String, dynamic>>> {
   @override
   Future<List<Map<String, dynamic>>> build() async {
-    final service = ref.read(userServiceProvider);
-    final myTags = await service.getMyInterestTags();
-    return service.findMatches(myTags);
+    final userService = ref.read(userServiceProvider);
+    final myTags = await userService.getMyInterestTags();
+    return ref.read(discoveryServiceProvider).findMatches(myTags);
   }
 
   /// Re-runs [build] after the opt-in, tags or blocks change (finding SM-09).

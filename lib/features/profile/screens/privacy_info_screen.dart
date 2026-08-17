@@ -4,7 +4,6 @@ import 'package:samay/core/design_tokens/app_gradients.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/glass/v_glass.dart';
-import 'package:samay/shared/widgets/v_aurora.dart';
 
 /// Static privacy/terms info (R2 — wires the settings Privacidad row).
 ///
@@ -20,10 +19,7 @@ class PrivacyInfoScreen extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     return Scaffold(
       appBar: AppBar(title: Text(l10n.profilePrivacy)),
-      body: VAurora(
-        gradients: const [AppGradients.gold],
-        opacity: 0.05,
-        child: ListView(
+      body: ListView(
           padding: const EdgeInsets.all(AppSpacing.lg),
           children: [
             _Section(
@@ -41,7 +37,6 @@ class PrivacyInfoScreen extends StatelessWidget {
             ),
           ],
         ),
-      ),
     );
   }
 }

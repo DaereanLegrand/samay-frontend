@@ -5,7 +5,7 @@ import 'package:samay/core/design_tokens/app_gradients.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/logging/app_logger.dart';
 import 'package:samay/core/repositories/repository_providers.dart';
-import 'package:samay/features/profile/widgets/profile_avatar.dart';
+import 'package:samay/shared/widgets/profile_avatar.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/glass/v_glass.dart';
 import 'package:samay/shared/widgets/show_app_error.dart';

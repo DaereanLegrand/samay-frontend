@@ -125,8 +125,9 @@ class EventFormData {
       locationName: locationName ?? this.locationName,
       visibility: visibility ?? this.visibility,
       groupId: identical(groupId, _unset) ? this.groupId : groupId as String?,
-      joinMode:
-          identical(joinMode, _unset) ? this.joinMode : joinMode as EventJoinMode?,
+      joinMode: identical(joinMode, _unset)
+          ? this.joinMode
+          : joinMode as EventJoinMode?,
       preshardsPool: preshardsPool ?? this.preshardsPool,
       preshardsCapPerUser: identical(preshardsCapPerUser, _unset)
           ? this.preshardsCapPerUser
@@ -144,10 +145,14 @@ class EventFormData {
   EventFormData sanitized() {
     return copyWith(
       name: InputSanitizer.sanitize(name, maxLength: nameMaxLength),
-      description: InputSanitizer.sanitize(description,
-          maxLength: descriptionMaxLength),
-      locationName:
-          InputSanitizer.sanitize(locationName, maxLength: locationMaxLength),
+      description: InputSanitizer.sanitize(
+        description,
+        maxLength: descriptionMaxLength,
+      ),
+      locationName: InputSanitizer.sanitize(
+        locationName,
+        maxLength: locationMaxLength,
+      ),
     );
   }
 
@@ -189,8 +194,7 @@ class EventFormData {
     final groupScoped = visibility == EventVisibility.group;
     return {
       'name': name.trim(),
-      'description':
-          description.trim().isEmpty ? null : description.trim(),
+      'description': description.trim().isEmpty ? null : description.trim(),
       'type': type.wire,
       'starts_at': startsAt.toUtc().toIso8601String(),
       'ends_at': endsAt.toUtc().toIso8601String(),

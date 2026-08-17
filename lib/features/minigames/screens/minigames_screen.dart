@@ -12,7 +12,6 @@ import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/error_view.dart';
 import 'package:samay/shared/widgets/glass/v_glass.dart';
 import 'package:samay/shared/widgets/state_views.dart';
-import 'package:samay/shared/widgets/v_aurora.dart';
 import 'package:samay/shared/widgets/v_button.dart';
 import 'package:samay/shared/widgets/v_chip.dart';
 import 'package:samay/shared/widgets/v_display_text.dart';
@@ -116,10 +115,7 @@ class _MinigamesScreenState extends ConsumerState<MinigamesScreen> {
       body: Column(
         children: [
           Expanded(
-            child: VAurora(
-              gradients: const [AppGradients.peach],
-              opacity: 0.06,
-              child: Column(
+            child: Column(
                 children: [
                   _buildGamePicker(l10n),
                   const Divider(
@@ -130,7 +126,6 @@ class _MinigamesScreenState extends ConsumerState<MinigamesScreen> {
                   Expanded(child: _buildSessions(l10n, sessions)),
                 ],
               ),
-            ),
           ),
         ],
       ),

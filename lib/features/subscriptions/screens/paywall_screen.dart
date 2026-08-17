@@ -12,7 +12,6 @@ import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/error_view.dart';
 import 'package:samay/shared/widgets/glass/v_glass.dart';
 import 'package:samay/shared/widgets/state_views.dart';
-import 'package:samay/shared/widgets/v_aurora.dart';
 import 'package:samay/shared/widgets/v_badge.dart';
 import 'package:samay/shared/widgets/v_button.dart';
 import 'package:samay/shared/widgets/v_display_text.dart';
@@ -220,10 +219,7 @@ class PaywallScreen extends ConsumerWidget {
         ),
         data: (appConfig) {
           final currentTier = currentTierFromAuth(authState.valueOrNull ?? const AuthState());
-          return VAurora(
-            gradients: const [AppGradients.gold],
-            opacity: 0.07,
-            child: ListView(
+          return ListView(
               padding: const EdgeInsets.all(AppSpacing.xl),
               children: [
                 // The single display hero (LUXE directive #8): the AppBar
@@ -258,8 +254,7 @@ class PaywallScreen extends ConsumerWidget {
                   ),
                 ),
               ],
-            ),
-          );
+            );
         },
       ),
     );

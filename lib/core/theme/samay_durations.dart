@@ -43,7 +43,8 @@ class SamayDurations {
   /// half — the campaign's "glow must slowly pulsate (3.6–4s)" range.
   static const glowPulse = Duration(milliseconds: 3800);
 
-  /// [VAurora] ambient drift: one full orbit of the pastel blobs.
+  /// Slow periodic drift period for ambient light-motion accents. Kept as a
+  /// stable duration token; its value is locked by `samay_durations_test`.
   static const auroraDrift = Duration(milliseconds: 10000);
 
   /// [VThinkingDots] per-dot pulse period (up-down alternate, staggered).

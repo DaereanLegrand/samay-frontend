@@ -1,5 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:samay/core/errors/app_error.dart';
+import 'package:samay/core/models/friend_request_summary.dart';
+import 'package:samay/core/models/user_profile.dart';
+import 'package:samay/core/models/user_search_result.dart';
 import 'package:samay/core/repositories/repository_providers.dart';
 import 'package:samay/core/utils/throttled_refresh.dart';
 
@@ -13,19 +16,19 @@ import 'package:samay/core/utils/throttled_refresh.dart';
 /// an ERROR, never a placeholder name — [build] throws and the screens
 /// render the ErrorView + retry.
 class FriendRequestsData {
-  final List<Map<String, dynamic>> requests;
+  final List<FriendRequestSummary> requests;
   final Map<String, String> names;
 
   const FriendRequestsData({required this.requests, required this.names});
 }
 
-class FriendsListNotifier extends AsyncNotifier<List<Map<String, dynamic>>>
+class FriendsListNotifier extends AsyncNotifier<List<UserProfile>>
     with ThrottledRefresh {
   @override
-  Future<List<Map<String, dynamic>>> build() async {
+  Future<List<UserProfile>> build() async {
     final repo = ref.read(friendsRepositoryProvider);
     final res = await repo.getFriends();
-    final profiles = <Map<String, dynamic>>[];
+    final profiles = <UserProfile>[];
     for (final f in res) {
       // No-fallback (2026-08-14): a friend with an unresolvable profile is
       // an ERROR — never silently dropped from the list.
@@ -33,7 +36,7 @@ class FriendsListNotifier extends AsyncNotifier<List<Map<String, dynamic>>>
       if (profile == null) {
         throw ProfileResolutionError(f.userId);
       }
-      profiles.add(profile.toJson());
+      profiles.add(profile);
     }
     markFetched();
     return profiles;
@@ -49,7 +52,7 @@ class FriendsListNotifier extends AsyncNotifier<List<Map<String, dynamic>>>
 
 /// Friends of the current user, as full user profiles.
 final friendsListProvider = AsyncNotifierProvider<FriendsListNotifier,
-    List<Map<String, dynamic>>>(FriendsListNotifier.new);
+    List<UserProfile>>(FriendsListNotifier.new);
 
 class FriendRequestsNotifier extends AsyncNotifier<FriendRequestsData>
     with ThrottledRefresh {
@@ -59,7 +62,7 @@ class FriendRequestsNotifier extends AsyncNotifier<FriendRequestsData>
     final requests = await repo.getFriendRequests();
     final names = <String, String>{};
     for (final r in requests) {
-      final userId = r['user_id'] as String;
+      final userId = r.userId;
       if (names.containsKey(userId)) continue;
       // No-fallback (2026-08-14): an unresolvable or username-less profile is
       // an ERROR — never the "Usuario" placeholder.
@@ -85,20 +88,20 @@ class FriendRequestsNotifier extends AsyncNotifier<FriendRequestsData>
 final friendRequestsProvider = AsyncNotifierProvider<FriendRequestsNotifier,
     FriendRequestsData>(FriendRequestsNotifier.new);
 
-class BlockedUsersNotifier extends AsyncNotifier<List<Map<String, dynamic>>>
+class BlockedUsersNotifier extends AsyncNotifier<List<UserProfile>>
     with ThrottledRefresh {
   @override
-  Future<List<Map<String, dynamic>>> build() async {
+  Future<List<UserProfile>> build() async {
     final repo = ref.read(friendsRepositoryProvider);
     final res = await repo.getBlockedUsers();
-    final profiles = <Map<String, dynamic>>[];
+    final profiles = <UserProfile>[];
     for (final b in res) {
       final uid = b['blocked_user_id'] as String;
       // No-fallback (2026-08-14): an unresolvable blocked-user profile is an
       // ERROR — never a truncated-uid placeholder.
       final profile = await repo.getUserProfile(uid);
       if (profile == null) throw ProfileResolutionError(uid);
-      profiles.add(profile.toJson());
+      profiles.add(profile);
     }
     markFetched();
     return profiles;
@@ -114,13 +117,13 @@ class BlockedUsersNotifier extends AsyncNotifier<List<Map<String, dynamic>>>
 
 /// Users blocked by the current user (profiles with username fallback).
 final blockedUsersProvider = AsyncNotifierProvider<BlockedUsersNotifier,
-    List<Map<String, dynamic>>>(BlockedUsersNotifier.new);
+    List<UserProfile>>(BlockedUsersNotifier.new);
 
 class SearchResultsNotifier
-    extends FamilyAsyncNotifier<List<Map<String, dynamic>>, String>
+    extends FamilyAsyncNotifier<List<UserSearchResult>, String>
     with ThrottledRefresh {
   @override
-  Future<List<Map<String, dynamic>>> build(String arg) async {
+  Future<List<UserSearchResult>> build(String arg) async {
     final results = await ref.read(friendsRepositoryProvider).searchUsers(arg);
     markFetched();
     return results;
@@ -139,4 +142,4 @@ class SearchResultsNotifier
 /// Consumers must not watch this provider with an empty query — the search
 /// service would query with an empty prefix.
 final searchResultsProvider = AsyncNotifierProvider.family<SearchResultsNotifier,
-    List<Map<String, dynamic>>, String>(SearchResultsNotifier.new);
+    List<UserSearchResult>, String>(SearchResultsNotifier.new);

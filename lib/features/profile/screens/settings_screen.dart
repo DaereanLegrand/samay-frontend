@@ -12,7 +12,6 @@ import 'package:samay/features/profile/screens/notification_settings_screen.dart
 import 'package:samay/features/profile/screens/privacy_info_screen.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/glass/v_glass.dart';
-import 'package:samay/shared/widgets/v_aurora.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -60,11 +59,8 @@ class SettingsScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(title: Text(l10n.profileSettingsTitle)),
       // LUXE v2 (XL-08): settings is a flat utility screen — no hero; the
-      // gold ambient stays a whisper (α0.06) behind the glass groups.
-      body: VAurora(
-        gradients: const [AppGradients.gold],
-        opacity: 0.06,
-        child: ListView(
+      // flat glass groups carry the gold family.
+      body: ListView(
           children: [
             // U-15 R6 (F18 ADAPTED): Juega's grouped settings (VISUAL/ACCOUNT/
             // LEGAL cards) → Samay's flat section headers (uppercase
@@ -187,15 +183,14 @@ class SettingsScreen extends ConsumerWidget {
                 l10n.profileVersion,
                 // §2.4: the version string is informational text below the
                 // muted threshold — mutedStrong (7.37:1 AA).
-                style: Theme.of(
-                  context,
-                ).textTheme.bodyMedium?.copyWith(color: AppColors.mutedStrong),
-                textAlign: TextAlign.center,
-              ),
+                    style: Theme.of(
+                      context,
+                    ).textTheme.bodyMedium?.copyWith(color: AppColors.mutedStrong),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
-      ),
     );
   }
 }

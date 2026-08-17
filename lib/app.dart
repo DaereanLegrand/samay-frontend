@@ -50,21 +50,36 @@ class SamayApp extends ConsumerWidget {
         final mediaQuery = MediaQuery.of(context);
         return MediaQuery(
           data: mediaQuery.copyWith(disableAnimations: true),
-          child: Column(
+          child: Stack(
             children: [
+              // Main content fills the screen — no margin push from banners.
+              Positioned.fill(
+                child: Stack(children: [?child, const DeepLinkListener()]),
+              ),
               // LOGOUT FLUSH (2026-08-14): mounted above the Navigator so
               // the auth screens are covered too — on logout every
               // user-scoped provider is invalidated (no stale data survives
               // an account switch in the same session).
               const AuthScopeReset(),
-              // LOG-03: the recovery banner sits above the offline indicator —
-              // it only appears once (right after a real crash) and collapses on
-              // dismissal.
-              CrashRecoveryBanner(visible: recoveredFromCrash),
-              const ConnectivityBanner(),
-              Expanded(
-                child: Stack(children: [?child, const DeepLinkListener()]),
+              // I-67: the connectivity banner overlays the top of the screen.
+              const Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                child: ConnectivityBanner(),
               ),
+              // LOG-03: the recovery banner sits above the bottom nav bar,
+              // fully reachable regardless of the OS status bar or Dynamic
+              // Island. Positioned with safe-area inset so it never hides
+              // behind the gesture bar on iOS/home-indicator devices.
+              if (recoveredFromCrash)
+                Positioned(
+                  bottom:
+                      kBottomNavigationBarHeight + mediaQuery.padding.bottom,
+                  left: 0,
+                  right: 0,
+                  child: const CrashRecoveryBanner(visible: true),
+                ),
             ],
           ),
         );

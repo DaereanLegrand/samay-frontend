@@ -7,7 +7,6 @@ import 'package:samay/features/profile/providers/notification_prefs_provider.dar
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/glass/v_glass.dart';
 import 'package:samay/shared/widgets/state_views.dart';
-import 'package:samay/shared/widgets/v_aurora.dart';
 
 /// Notification preferences (R2 — wires the settings Notificaciones row).
 ///
@@ -48,10 +47,7 @@ class NotificationSettingsScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(title: Text(l10n.notificationSettingsTitle)),
-      body: VAurora(
-        gradients: const [AppGradients.gold],
-        opacity: 0.05,
-        child: prefs.when(
+      body: prefs.when(
           loading: () => const VLoadingView(),
           error: (_, _) => VEmptyView(
             icon: Icons.notifications_off_outlined,
@@ -96,7 +92,6 @@ class NotificationSettingsScreen extends ConsumerWidget {
             ],
           ),
         ),
-      ),
     );
   }
 }

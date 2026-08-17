@@ -4,6 +4,7 @@ import 'package:samay/core/design_tokens/app_gradients.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/extensions/error_mapper.dart';
 import 'package:samay/core/logging/app_logger.dart';
+import 'package:samay/core/models/friend_request_summary.dart';
 import 'package:samay/core/repositories/repository_providers.dart';
 import 'package:samay/features/friends/providers/friends_providers.dart';
 import 'package:samay/features/groups/providers/groups_providers.dart';
@@ -12,7 +13,6 @@ import 'package:samay/shared/widgets/error_view.dart';
 import 'package:samay/shared/widgets/glass/glass.dart';
 import 'package:samay/shared/widgets/show_app_error.dart';
 import 'package:samay/shared/widgets/state_views.dart';
-import 'package:samay/shared/widgets/v_aurora.dart';
 import 'package:samay/shared/widgets/v_button.dart';
 import 'package:samay/shared/widgets/v_count_badge.dart';
 import 'package:samay/shared/widgets/v_refreshable.dart';
@@ -27,14 +27,6 @@ class RequestsScreen extends ConsumerStatefulWidget {
 
 class _RequestsScreenState extends ConsumerState<RequestsScreen>
     with SingleTickerProviderStateMixin {
-  /// LUXE v2 mint ambient (ORCHESTRATION-LUXE: friends = mint family; the
-  /// family's 3 anchor blobs keep the 2–3 blob geometry single-family).
-  static const List<AppGradient> _aurora = [
-    AppGradients.mint,
-    AppGradients.mint,
-    AppGradients.mint,
-  ];
-
   late TabController _tabController;
 
   /// Row ids whose accept/decline/cancel action is in flight (R11, F4): the
@@ -123,7 +115,7 @@ class _RequestsScreenState extends ConsumerState<RequestsScreen>
     // from the already-loaded providers; zero renders nothing (VCountBadge).
     final receivedCount =
         requestsAsync.valueOrNull?.requests
-            .where((r) => r['type'] == 'received')
+            .where((r) => r.type == 'received')
             .length ??
         0;
     final invitesCount = invitesAsync.valueOrNull?.length ?? 0;
@@ -149,44 +141,40 @@ class _RequestsScreenState extends ConsumerState<RequestsScreen>
           ],
         ),
       ),
-      body: VAurora(
-        gradients: _aurora,
-        opacity: 0.08,
-        child: requestsAsync.when(
+      body: requestsAsync.when(
+        loading: () => const VLoadingView(),
+        error: (e, _) => ErrorView(
+          message: e.toAppError().message,
+          onRetry: () => ref.invalidate(friendRequestsProvider),
+        ),
+        data: (data) => invitesAsync.when(
           loading: () => const VLoadingView(),
           error: (e, _) => ErrorView(
             message: e.toAppError().message,
-            onRetry: () => ref.invalidate(friendRequestsProvider),
+            onRetry: () => ref.invalidate(groupInvitesProvider),
           ),
-          data: (data) => invitesAsync.when(
-            loading: () => const VLoadingView(),
-            error: (e, _) => ErrorView(
-              message: e.toAppError().message,
-              onRetry: () => ref.invalidate(groupInvitesProvider),
-            ),
-            data: (invites) {
-              final received =
-                  data.requests.where((r) => r['type'] == 'received').toList();
-              final sent = data.requests
-                  .where((r) => r['type'] == 'sent')
-                  .toList();
-              return TabBarView(
-                controller: _tabController,
-                children: [
-                  _buildRequests(received, data.names, isReceived: true),
-                  _buildRequests(sent, data.names, isReceived: false),
-                  _buildInvites(invites),
-                ],
-              );
-            },
-          ),
+          data: (invites) {
+            final received =
+                data.requests.where((r) => r.type == 'received').toList();
+            final sent = data.requests
+                .where((r) => r.type == 'sent')
+                .toList();
+            return TabBarView(
+              controller: _tabController,
+              children: [
+                _buildRequests(received, data.names, isReceived: true),
+                _buildRequests(sent, data.names, isReceived: false),
+                _buildInvites(invites),
+              ],
+            );
+          },
         ),
       ),
     );
   }
 
   Widget _buildRequests(
-    List<Map<String, dynamic>> items,
+    List<FriendRequestSummary> items,
     Map<String, String> names, {
     required bool isReceived,
   }) {
@@ -221,8 +209,8 @@ class _RequestsScreenState extends ConsumerState<RequestsScreen>
           // No-fallback (2026-08-14): every request row must resolve its
           // user's name in the provider — a missing entry is a bug, not a
           // placeholder to render.
-          final name = names[r['user_id'] as String]!;
-          final id = r['friendship_id'] as String;
+          final name = names[r.userId]!;
+          final id = r.friendshipId;
           return VGlassCard(
             gradient: AppGradients.mint,
             glowAlpha: 0.10,

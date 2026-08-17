@@ -19,7 +19,6 @@ import 'package:samay/shared/widgets/glass/v_glass.dart';
 import 'package:samay/shared/widgets/show_app_error.dart';
 import 'package:samay/shared/widgets/v_spinner.dart';
 import 'package:samay/shared/widgets/state_views.dart';
-import 'package:samay/shared/widgets/v_aurora.dart';
 import 'package:samay/shared/widgets/v_network_image.dart';
 
 /// Gallery-picking seam for tests: `image_picker` is a platform plugin that
@@ -135,10 +134,7 @@ class _PhotoGalleryScreenState extends ConsumerState<PhotoGalleryScreen> {
     final config = ref.watch(appConfigProvider).valueOrNull ?? const {};
     final uploadState = ref.watch(uploadPhotoProvider).valueOrNull;
     final windowHours = photoUploadWindowHours(config);
-    final endsAt = switch (eventAsync.valueOrNull?['ends_at']) {
-      final String raw => DateTime.tryParse(raw),
-      _ => null,
-    };
+    final endsAt = eventAsync.valueOrNull?.endsAt;
     final windowOpen = _uploadWindowOpen(endsAt, windowHours);
     final uploading = uploadState?.isUploading ?? false;
 
@@ -200,10 +196,7 @@ class _PhotoGalleryScreenState extends ConsumerState<PhotoGalleryScreen> {
               ),
             ),
           Expanded(
-            child: VAurora(
-              gradients: const [AppGradients.mint],
-              opacity: 0.05,
-              child: photosAsync.when(
+            child: photosAsync.when(
                 loading: () => const VLoadingView(),
                 error: (e, _) => ErrorView(
                   message: e.toAppError().message,
@@ -224,7 +217,6 @@ class _PhotoGalleryScreenState extends ConsumerState<PhotoGalleryScreen> {
                         onLongPress: _report,
                       ),
               ),
-            ),
           ),
         ],
       ),

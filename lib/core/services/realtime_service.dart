@@ -1,3 +1,4 @@
+import 'package:samay/core/errors/app_error.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 /// Supabase Realtime: channel lifecycle and Postgres-change subscriptions.
@@ -68,7 +69,7 @@ class RealtimeService {
     void Function(Map<String, dynamic>) onInsert,
   ) async {
     final user = auth.currentUser;
-    if (user == null) throw Exception('No authenticated user');
+    if (user == null) throw const UnauthorizedError();
     return subscribeToChannel(
       'messages:inbox:${user.id}',
       PostgresChangeEvent.insert,
@@ -89,7 +90,7 @@ class RealtimeService {
     void Function(Map<String, dynamic>) onInsert,
   ) async {
     final user = auth.currentUser;
-    if (user == null) throw Exception('No authenticated user');
+    if (user == null) throw const UnauthorizedError();
     return subscribeToChannel(
       'notifications:${user.id}',
       PostgresChangeEvent.insert,
@@ -114,7 +115,7 @@ class RealtimeService {
 
   Future<void> subscribeToQRToken(String eventId, void Function(String) onUpdate) async {
     final user = auth.currentUser;
-    if (user == null) throw Exception('No authenticated user');
+    if (user == null) throw const UnauthorizedError();
     final channel = client.channel('qr-token:$eventId:${user.id}');
     channel.onPostgresChanges(
       event: PostgresChangeEvent.update,
@@ -141,7 +142,7 @@ class RealtimeService {
     void Function(Map<String, dynamic>) onChange,
   ) async {
     final user = auth.currentUser;
-    if (user == null) throw Exception('No authenticated user');
+    if (user == null) throw const UnauthorizedError();
     return subscribeToChannel(
       'group-members:${user.id}',
       PostgresChangeEvent.all,
@@ -165,7 +166,7 @@ class RealtimeService {
     void Function(Map<String, dynamic>) onChange,
   ) async {
     final user = auth.currentUser;
-    if (user == null) throw Exception('No authenticated user');
+    if (user == null) throw const UnauthorizedError();
     return subscribeToChannel(
       'friendships:${user.id}',
       PostgresChangeEvent.all,

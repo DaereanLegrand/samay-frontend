@@ -140,7 +140,7 @@ Use bold 700 (600 for the 28px hero role, per the §3.3 table). **No italics** (
 
 > **DIRECTIVE (2026-08-14):** skyblue/similar tones are banned on GLYPHS —
 > `VDisplayText` renders WHITE whenever the family is the cyan family
-> (login/feed/party-finder heroes). Cyan stays legal for ambient (VAurora),
+> (login/feed/party-finder heroes). Cyan stays legal for ambient accents/washes,
 > dividers, rings, dots and icons — only text glyphs turn white.
 | Event titles — featured/hero cards | `event_detail_screen.dart` (hero) + `my_events_screen.dart` (tab header) — `VDisplayText` default (maps to `displayMedium`) | 40 | U-02/U-25 |
 | Leaderboard podium group names (top 3) | `leaderboard_screen.dart` — `headlineLarge` (top-3 rows only; the rest stay Inter) | 28 | U-11 |
@@ -227,7 +227,27 @@ Rendered via Flutter `TextStyle.shadows` (equivalent to the user's CSS `text-sha
 
 `none` 0 · `xs` 2 (unused) · `sm` 4 (unused) · `md` 8 (unused) · `lg` 12 (unused) · `full` 999 (circles only). Aliases: `radiusZero` = `none` (explicit at call sites), `sharp` = `BorderRadius.zero`, `avatarCircle` = `full` (avatar geometry).
 
-**Every UI component radius = `0`.** Buttons, cards, chips, inputs, dialogs, sheets, badges, chat bubbles (U-25 FIX 5), count badges (U-24 FIX 5 — `VCountBadge` was the last pill, now `AppRadius.sharp`). Exceptions (only these): avatars `full` (circle), live/online dots (circle), `BottomSheet` top corners 0 (flush), progress spinners (natively round). `#333333` hairline borders carry the geometry; no rounded pastel anywhere. **Avatar initials font = `size × 0.25`** (`ProfileAvatar`, U-10 — 96px header → 24px, 40px tile → 10px).
+**Every UI component radius = `0`.** Buttons, cards, chips, inputs, dialogs, sheets, badges, count badges (U-24 FIX 5 — `VCountBadge` was the last pill, now `AppRadius.sharp`). Exceptions (only these): avatars `full` (circle), live/online dots (circle), `BottomSheet` top corners 0 (flush), progress spinners (natively round), **chat bubbles radius 8** (below). `#333333` hairline borders carry the geometry; no rounded pastel anywhere. **Avatar initials font = `size × 0.25`** (`ProfileAvatar`, U-10 — 96px header → 24px, 40px tile → 10px).
+
+> **DEPARTURE (2026-08-15..16):** chat bubbles are the liquid island of the sharp
+> language — U-25 FIX 5 pinned them at radius 0, the 2026-08-15 chat UI/UX
+> overhaul shipped radius 16, and the 2026-08-16 compact pass settled at **8**
+> (`chat_thread_view.dart`, `_MessageBubble`). Bubble contract today:
+>
+> - Radius **8** · padding **10/8** · cap at **320 logical px** (`_maxBubbleWidth`
+>   — bubbles shrink-wrap; short messages never fill the cap).
+> - Own bubbles: **solid white fill, black text** — no gradient, glow, or hairline.
+>   Peer bubbles: white-only glass. The peach gradient is banned from chat controls.
+> - Group threads: sender name shown above peer bubbles, tinted from the six
+>   pastel tokens (`pastelRose/Violet/Cyan/Gold/Mint/Peach`, LUXE §2.1), 1:1
+>   threads show no name.
+> - Footer: `HH:mm` **bottom-right** (peer rows right-aligned under the bubble;
+>   own rows show the delivery ticks **right of the hour**: ✓ sent, ✓✓ received,
+>   ✓✓ blue = read). Date separator chips ("Hoy"/"Ayer"/`dd/MM/yyyy`) between day
+>   groups. Footer time is `ExcludeSemantics` (a11y 4.1.2).
+> - Source: `lib/features/chat/widgets/chat_thread_view.dart` (extracted from
+>   `chat_screen.dart` 2026-08-17, ISSUE 4); history: `2026-08-15_chat-ui-ux-overhaul.md`,
+>   `2026-08-16_compact-bubbles` daily logs.
 
 ### 4.3 Elevation — `app_elevation.dart` (flat)
 
@@ -559,6 +579,7 @@ The exact implemented API surface — future features import from these files; t
 | `AppRadius` | `lib/core/design_tokens/app_radius.dart` | `none`/`xs`/`sm`/`md`/`lg`/`full`, `sharp`, `avatarCircle` (§4.2) |
 | `AppElevation` | `lib/core/design_tokens/app_elevation.dart` | `none`, `card`, `glowPink`, `glowCyan` stacks (§4.3) |
 | `AppIconSizes` | `lib/core/design_tokens/app_icon_sizes.dart` | `xs`…`xxl` + `avatar`/`avatarLarge` (§4.4) |
+| `AppGradients` | `lib/core/design_tokens/app_gradients.dart` | 6 pastel families (rose/violet/cyan/gold/mint/peach), `glowShadows()`, `watered()`/`wateredFamily()` helpers (LUXE XL-01) |
 | `SamayDurations` | `lib/core/theme/samay_durations.dart` | `fast`/`standard`/`slow`/`defaultCurve`/`glowBreath`/`shimmer`/`liveDotPulse`/`motionCycleRest` (§4.5) |
 | `SamayTheme.dark` | `lib/core/theme/app_theme.dart` | the full `ThemeData` (P1 black, textTheme, 14 component themes, `extensions`) |
 

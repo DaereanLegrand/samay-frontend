@@ -12,14 +12,13 @@ import 'package:samay/core/utils/debouncer.dart';
 import 'package:samay/core/utils/input_sanitizer.dart';
 import 'package:samay/features/friends/providers/friends_providers.dart';
 import 'package:samay/features/groups/providers/groups_providers.dart';
-import 'package:samay/features/profile/widgets/profile_avatar.dart';
+import 'package:samay/shared/widgets/profile_avatar.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/error_view.dart';
 import 'package:samay/shared/widgets/glass/v_gradient_border.dart';
 import 'package:samay/shared/widgets/glass/v_glass.dart';
 import 'package:samay/shared/widgets/state_views.dart';
 import 'package:samay/shared/widgets/show_app_error.dart';
-import 'package:samay/shared/widgets/v_aurora.dart';
 import 'package:samay/shared/widgets/v_spinner.dart';
 
 class InviteScreen extends ConsumerStatefulWidget {
@@ -97,7 +96,7 @@ class _InviteScreenState extends ConsumerState<InviteScreen> {
     final l10n = AppLocalizations.of(context);
     final membersAsync = ref.watch(groupMembersProvider(widget.groupId));
     final memberIds =
-        membersAsync.valueOrNull?.map((m) => m['user_id'] as String).toSet() ??
+        membersAsync.valueOrNull?.map((m) => m.userId).toSet() ??
         const <String>{};
 
     return Scaffold(
@@ -113,112 +112,106 @@ class _InviteScreenState extends ConsumerState<InviteScreen> {
             ),
         ],
       ),
-      body: VAurora(
-        gradients: const [AppGradients.violet],
-        child: membersAsync.when(
-          loading: () => const VLoadingView(),
-          error: (e, _) => ErrorView(
-            message: e.toAppError().message,
-            onRetry: () => ref.invalidate(groupMembersProvider(widget.groupId)),
-          ),
-          data: (_) => Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.all(16),
-                // LUXE: no underline field and no raw OutlineInputBorder — the
-                // search sits in a liquid-glass ring (violet gradient border,
-                // radius 16) with a muted interior fill.
-                child: VGradientBorder(
-                  gradient: AppGradients.violet.linear(),
-                  width: 1,
-                  radius: const BorderRadius.all(Radius.circular(16)),
-                  color: AppColors.surfaceAlt.withValues(alpha: 0.5),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.lg,
-                    vertical: 4,
-                  ),
-                  child: TextField(
-                    controller: _searchController,
-                    decoration: InputDecoration(
-                      hintText: l10n.groupsSearchUsersHint,
-                      prefixIcon: const Icon(Icons.search),
-                      border: InputBorder.none,
-                    ),
+      body: membersAsync.when(
+        loading: () => const VLoadingView(),
+        error: (e, _) => ErrorView(
+          message: e.toAppError().message,
+          onRetry: () => ref.invalidate(groupMembersProvider(widget.groupId)),
+        ),
+        data: (_) => Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(16),
+              // LUXE: no underline field and no raw OutlineInputBorder — the
+              // search sits in a liquid-glass ring (violet gradient border,
+              // radius 16) with a muted interior fill.
+              child: VGradientBorder(
+                gradient: AppGradients.violet.linear(),
+                width: 1,
+                radius: const BorderRadius.all(Radius.circular(16)),
+                color: AppColors.surfaceAlt.withValues(alpha: 0.5),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.lg,
+                  vertical: 4,
+                ),
+                child: TextField(
+                  controller: _searchController,
+                  decoration: InputDecoration(
+                    hintText: l10n.groupsSearchUsersHint,
+                    prefixIcon: const Icon(Icons.search),
+                    border: InputBorder.none,
                   ),
                 ),
               ),
-              if (query.length < 2)
-                Expanded(
-                  child: Center(
-                    child: Text(
-                      l10n.groupsMinCharsHint,
-                      style: Theme.of(context).textTheme.bodyMedium,
-                    ),
+            ),
+            if (query.length < 2)
+              Expanded(
+                child: Center(
+                  child: Text(
+                    l10n.groupsMinCharsHint,
+                    style: Theme.of(context).textTheme.bodyMedium,
                   ),
-                )
-              else
-                Expanded(
-                  child: ref
-                      .watch(searchResultsProvider(query))
-                      .when(
-                        loading: () => const VLoadingView(),
-                        error: (e, _) => ErrorView(
-                          message: e.toAppError().message,
-                          onRetry: () =>
-                              ref.invalidate(searchResultsProvider(query)),
-                        ),
-                        data: (users) {
-                          final results = users
-                              .where(
-                                (u) => !memberIds.contains(u['id'] as String),
-                              )
-                              .toList();
-                          if (results.isEmpty) {
-                            return Center(
-                              child: Text(
-                                l10n.groupsNoResults,
-                                style: Theme.of(context).textTheme.bodyMedium,
+                ),
+              )
+            else
+              Expanded(
+                child: ref
+                    .watch(searchResultsProvider(query))
+                    .when(
+                      loading: () => const VLoadingView(),
+                      error: (e, _) => ErrorView(
+                        message: e.toAppError().message,
+                        onRetry: () =>
+                            ref.invalidate(searchResultsProvider(query)),
+                      ),
+                      data: (users) {
+                        final results = users
+                            .where((u) => !memberIds.contains(u.id))
+                            .toList();
+                        if (results.isEmpty) {
+                          return Center(
+                            child: Text(
+                              l10n.groupsNoResults,
+                              style: Theme.of(context).textTheme.bodyMedium,
+                            ),
+                          );
+                        }
+                        return ListView.separated(
+                          itemCount: results.length,
+                          separatorBuilder: (_, _) => const Divider(height: 1),
+                          itemBuilder: (_, i) {
+                            final u = results[i];
+                            final uid = u.id;
+                            final selected = _selectedIds.contains(uid);
+                            final username = u.username;
+                            // U-26 (U-24 F3): an empty (non-null) username
+                            // would RangeError on substring — '?' fallback.
+                            final initial = username.isEmpty
+                                ? '?'
+                                : username.substring(0, 1);
+                            return VGlassCard(
+                              gradient: AppGradients.violet,
+                              glowAlpha: 0.10,
+                              child: ListTile(
+                                leading: ProfileAvatar(
+                                  size: AppSpacing.avatar,
+                                  initials: initial,
+                                  imageUrl: u.avatarUrl,
+                                ),
+                                title: Text('@${u.username}'),
+                                trailing: Checkbox(
+                                  value: selected,
+                                  onChanged: (_) => _toggle(uid),
+                                ),
+                                onTap: () => _toggle(uid),
                               ),
                             );
-                          }
-                          return ListView.separated(
-                            itemCount: results.length,
-                            separatorBuilder: (_, _) =>
-                                const Divider(height: 1),
-                            itemBuilder: (_, i) {
-                              final u = results[i];
-                              final uid = u['id'] as String;
-                              final selected = _selectedIds.contains(uid);
-                              final username = u['username'] as String? ?? '';
-                              // U-26 (U-24 F3): an empty (non-null) username
-                              // would RangeError on substring — '?' fallback.
-                              final initial = username.isEmpty
-                                  ? '?'
-                                  : username.substring(0, 1);
-                              return VGlassCard(
-                                gradient: AppGradients.violet,
-                                glowAlpha: 0.10,
-                                child: ListTile(
-                                  leading: ProfileAvatar(
-                                    size: AppSpacing.avatar,
-                                    initials: initial,
-                                    imageUrl: u['avatar_url'] as String?,
-                                  ),
-                                  title: Text('@${u['username']}'),
-                                  trailing: Checkbox(
-                                    value: selected,
-                                    onChanged: (_) => _toggle(uid),
-                                  ),
-                                  onTap: () => _toggle(uid),
-                                ),
-                              );
-                            },
-                          );
-                        },
-                      ),
-                ),
-            ],
-          ),
+                          },
+                        );
+                      },
+                    ),
+              ),
+          ],
         ),
       ),
     );

@@ -6,6 +6,7 @@ import 'package:samay/core/design_tokens/app_gradients.dart';
 import 'package:samay/core/design_tokens/app_icon_sizes.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/extensions/error_mapper.dart';
+import 'package:samay/core/models/event.dart';
 import 'package:samay/core/router/route_paths.dart';
 import 'package:samay/features/events/logic/event_formatters.dart';
 import 'package:samay/features/events/providers/events_providers.dart';
@@ -14,7 +15,6 @@ import 'package:samay/shared/widgets/error_view.dart';
 import 'package:samay/shared/widgets/glass/glass.dart';
 import 'package:samay/shared/widgets/skeletons.dart';
 import 'package:samay/shared/widgets/state_views.dart';
-import 'package:samay/shared/widgets/v_aurora.dart';
 import 'package:samay/shared/widgets/v_badge.dart';
 import 'package:samay/shared/widgets/v_button.dart';
 import 'package:samay/shared/widgets/v_display_text.dart';
@@ -24,8 +24,8 @@ import 'package:samay/shared/widgets/v_network_image.dart';
 /// with a create CTA that routes to the groups tab (an event is always
 /// created inside a group).
 ///
-/// LUXE v2: the events family is **peach** — [AppGradients.peach] aurora +
-/// hero + CTA. The list cards are neutral white-only glass (XL-17: the
+/// LUXE v2: the events family is **peach** — [AppGradients.peach] as the
+/// hero/CTA accent. The list cards are neutral white-only glass (XL-17: the
 /// family is spent on the hero and the primary CTA, never a color spray).
 class MyEventsScreen extends ConsumerStatefulWidget {
   const MyEventsScreen({super.key});
@@ -43,8 +43,8 @@ class _MyEventsScreenState extends ConsumerState<MyEventsScreen> {
   /// groups tab where the user picks one.
   void _openGroupsTab() => context.go(RoutePaths.mainGroups);
 
-  void _openEvent(Map<String, dynamic> event) {
-    context.push(RoutePaths.eventDetail(event['id'] as String));
+  void _openEvent(Event event) {
+    context.push(RoutePaths.eventDetail(event.id));
   }
 
   @override
@@ -56,52 +56,46 @@ class _MyEventsScreenState extends ConsumerState<MyEventsScreen> {
       // LUXE directive #1: black background always — even outside the theme.
       backgroundColor: AppColors.discoBlack,
       body: SafeArea(
-        child: VAurora(
-          // The events ambient: black + a faint peach aurora (the family
-          // alpha-capped so content stays the hero).
-          gradients: const [AppGradients.peach],
-          opacity: 0.08,
-          child: eventsAsync.when(
-            // U-22 (§5.8): the first load shows the list skeleton instead of
-            // the bare spinner; pull-to-refresh keeps the list visible.
-            skipLoadingOnRefresh: true,
-            loading: () => const VSkeletonList(rows: 4),
-            error: (e, _) =>
-                ErrorView(message: e.toAppError().message, onRetry: _refresh),
-            data: (events) {
-              return RefreshIndicator(
-                onRefresh: _refresh,
-                child: CustomScrollView(
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  slivers: [
-                    SliverToBoxAdapter(
-                      child: _EventsHeader(
-                        title: l10n.eventsTabTitle,
-                        onCreate: _openGroupsTab,
+        child: eventsAsync.when(
+          // U-22 (§5.8): the first load shows the list skeleton instead of
+          // the bare spinner; pull-to-refresh keeps the list visible.
+          skipLoadingOnRefresh: true,
+          loading: () => const VSkeletonList(rows: 4),
+          error: (e, _) =>
+              ErrorView(message: e.toAppError().message, onRetry: _refresh),
+          data: (events) {
+            return RefreshIndicator(
+              onRefresh: _refresh,
+              child: CustomScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                slivers: [
+                  SliverToBoxAdapter(
+                    child: _EventsHeader(
+                      title: l10n.eventsTabTitle,
+                      onCreate: _openGroupsTab,
+                    ),
+                  ),
+                  if (events.isEmpty)
+                    SliverFillRemaining(
+                      hasScrollBody: false,
+                      child: VEmptyView(
+                        icon: Icons.event_outlined,
+                        title: l10n.eventsEmpty,
+                        description: l10n.eventsEmptyBody,
+                      ),
+                    )
+                  else
+                    SliverList.builder(
+                      itemCount: events.length,
+                      itemBuilder: (context, index) => _MyEventCard(
+                        event: events[index],
+                        onTap: () => _openEvent(events[index]),
                       ),
                     ),
-                    if (events.isEmpty)
-                      SliverFillRemaining(
-                        hasScrollBody: false,
-                        child: VEmptyView(
-                          icon: Icons.event_outlined,
-                          title: l10n.eventsEmpty,
-                          description: l10n.eventsEmptyBody,
-                        ),
-                      )
-                    else
-                      SliverList.builder(
-                        itemCount: events.length,
-                        itemBuilder: (context, index) => _MyEventCard(
-                          event: events[index],
-                          onTap: () => _openEvent(events[index]),
-                        ),
-                      ),
-                  ],
-                ),
-              );
-            },
-          ),
+                ],
+              ),
+            );
+          },
         ),
       ),
     );
@@ -152,7 +146,7 @@ class _EventsHeader extends StatelessWidget {
 /// Regular event row: sharp hairline glass (glow reserved for CTAs), cover,
 /// name, type + status badges, date range and location. Tap → event detail.
 class _MyEventCard extends StatelessWidget {
-  final Map<String, dynamic> event;
+  final Event event;
   final VoidCallback onTap;
 
   const _MyEventCard({required this.event, required this.onTap});
@@ -160,14 +154,6 @@ class _MyEventCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final id = event['id'] as String;
-    final coverUrl = event['cover_url'] as String?;
-    final location = event['location_name'] as String?;
-    final startsAt =
-        DateTime.tryParse(event['starts_at'] as String? ?? '') ??
-        DateTime.now();
-    final endsAt =
-        DateTime.tryParse(event['ends_at'] as String? ?? '') ?? DateTime.now();
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(
@@ -177,22 +163,22 @@ class _MyEventCard extends StatelessWidget {
         AppSpacing.md,
       ),
       child: InkWell(
-        key: ValueKey('my-event-card-$id'),
+        key: ValueKey('my-event-card-${event.id}'),
         onTap: onTap,
         child: VGlassCard(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              if (coverUrl != null && coverUrl.isNotEmpty) ...[
+              if (event.coverUrl != null && event.coverUrl!.isNotEmpty) ...[
                 VNetworkImage(
-                  imageUrl: coverUrl,
+                  imageUrl: event.coverUrl!,
                   height: 140,
                   fit: BoxFit.cover,
                 ),
                 const SizedBox(height: AppSpacing.md),
               ],
               Text(
-                event['name'] as String? ?? l10n.eventDetailTitle,
+                event.name,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: Theme.of(context).textTheme.titleLarge,
@@ -202,19 +188,9 @@ class _MyEventCard extends StatelessWidget {
                 spacing: AppSpacing.sm,
                 runSpacing: AppSpacing.sm,
                 children: [
-                  VBadge(
-                    label: _typeLabel(
-                      l10n,
-                      event['type'] as String? ?? 'casual',
-                    ),
-                  ),
-                  VBadge(
-                    label: _statusLabel(
-                      l10n,
-                      event['status'] as String? ?? 'upcoming',
-                    ),
-                  ),
-                  if (event['group_id'] != null)
+                  VBadge(label: _typeLabel(l10n, event.type)),
+                  VBadge(label: _statusLabel(l10n, event.status)),
+                  if (event.groupId != null)
                     VBadge(label: l10n.eventGroupScoped),
                 ],
               ),
@@ -230,8 +206,8 @@ class _MyEventCard extends StatelessWidget {
                   Expanded(
                     child: Text(
                       formatEventDateRange(
-                        startsAt,
-                        endsAt,
+                        event.startsAt,
+                        event.endsAt,
                         Localizations.localeOf(context).languageCode,
                       ),
                       maxLines: 1,
@@ -255,7 +231,7 @@ class _MyEventCard extends StatelessWidget {
                   const SizedBox(width: AppSpacing.xs),
                   Expanded(
                     child: Text(
-                      location ?? l10n.eventNoLocation,
+                      event.locationName ?? l10n.eventNoLocation,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(

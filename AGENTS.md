@@ -113,7 +113,7 @@ flutter test
 
 # Supabase
 supabase db test    # pgTAP
-supabase functions serve --debug
+supabase functions serve --debug    # Edge Functions not yet implemented — boot stub only
 ```
 
 ## Validation Gate

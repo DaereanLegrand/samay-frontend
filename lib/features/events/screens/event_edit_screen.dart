@@ -5,13 +5,13 @@ import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/core/design_tokens/app_gradients.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/extensions/error_mapper.dart';
+import 'package:samay/core/models/event.dart';
 import 'package:samay/features/events/providers/events_providers.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/error_view.dart';
 import 'package:samay/shared/widgets/glass/glass.dart';
 import 'package:samay/shared/widgets/show_app_error.dart';
 import 'package:samay/shared/widgets/state_views.dart';
-import 'package:samay/shared/widgets/v_aurora.dart';
 import 'package:samay/shared/widgets/v_button.dart';
 import 'package:samay/shared/widgets/v_input.dart';
 
@@ -52,22 +52,19 @@ class _EventEditScreenState extends ConsumerState<EventEditScreen> {
     super.dispose();
   }
 
-  void _seedFrom(Map<String, dynamic> event) {
+  void _seedFrom(Event event) {
     if (_initialized) return;
     _initialized = true;
-    _nameController.text = event['name'] as String? ?? '';
-    _descriptionController.text = event['description'] as String? ?? '';
-    _locationController.text = event['location_name'] as String? ?? '';
-    final pool = (event['preshards_pool'] as num?)?.toInt() ?? 0;
+    _nameController.text = event.name;
+    _descriptionController.text = event.description ?? '';
+    _locationController.text = event.locationName ?? '';
+    final pool = event.preshardsPool;
     _poolController.text = pool > 0 ? '$pool' : '';
-    final cap = event['preshards_cap_per_user'] as num?;
-    _capController.text = cap != null ? '${cap.toInt()}' : '';
-    _remainderAction =
-        event['preshards_remainder_action'] as String? ?? 'return';
-    _startsAt =
-        DateTime.tryParse(event['starts_at'] as String? ?? '') ??
-        DateTime.now();
-    _endsAt = DateTime.tryParse(event['ends_at'] as String? ?? '') ?? _startsAt;
+    final cap = event.preshardsCapPerUser;
+    _capController.text = cap != null ? '$cap' : '';
+    _remainderAction = event.preshardsRemainderAction ?? 'return';
+    _startsAt = event.startsAt;
+    _endsAt = event.endsAt;
   }
 
   bool get _poolEditable {
@@ -153,20 +150,16 @@ class _EventEditScreenState extends ConsumerState<EventEditScreen> {
 
     return Scaffold(
       appBar: AppBar(title: Text(l10n.eventEditTitle)),
-      body: VAurora(
-        gradients: const [AppGradients.peach],
-        opacity: 0.08,
-        child: detailAsync.when(
-          loading: () => const VLoadingView(),
-          error: (e, _) => ErrorView(
-            message: e.toAppError().message,
-            onRetry: () => ref.invalidate(eventDetailProvider(widget.eventId)),
-          ),
-          data: (event) {
-            final type = event['type'] as String? ?? 'casual';
-            return _buildForm(l10n, type);
-          },
+      body: detailAsync.when(
+        loading: () => const VLoadingView(),
+        error: (e, _) => ErrorView(
+          message: e.toAppError().message,
+          onRetry: () => ref.invalidate(eventDetailProvider(widget.eventId)),
         ),
+        data: (event) {
+          final type = event.type;
+          return _buildForm(l10n, type);
+        },
       ),
     );
   }

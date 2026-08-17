@@ -1,15 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:samay/core/design_tokens/app_gradients.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/logging/app_logger.dart';
 import 'package:samay/core/providers/service_providers.dart';
 import 'package:samay/core/repositories/repository_providers.dart';
 import 'package:samay/features/groups/widgets/member_actions_sheet.dart';
-import 'package:samay/features/profile/widgets/profile_avatar.dart';
+import 'package:samay/shared/widgets/profile_avatar.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/state_views.dart';
-import 'package:samay/shared/widgets/v_aurora.dart';
 import 'package:samay/shared/widgets/v_badge.dart';
 
 class GroupMembersScreen extends ConsumerStatefulWidget {
@@ -76,63 +74,57 @@ class _GroupMembersScreenState extends ConsumerState<GroupMembersScreen> {
     final myRole = myRow?['role'] as String? ?? 'member';
     return Scaffold(
       appBar: AppBar(title: Text(l10n.groupsMembersTitle)),
-      body: VAurora(
-        gradients: const [AppGradients.violet],
-        child: _loading
-            ? const VLoadingView()
-            : _members.isEmpty
-            ? VEmptyView(
-                icon: Icons.people_outline,
-                title: l10n.groupsNoMembers,
-              )
-            : ListView.separated(
-                padding: const EdgeInsets.all(16),
-                itemCount: _members.length,
-                separatorBuilder: (_, _) => const Divider(height: 1),
-                itemBuilder: (context, index) {
-                  final m = _members[index];
-                  final user = m['users'] as Map<String, dynamic>?;
-                  final rawUsername = user?['username'] as String?;
-                  final userId = m['user_id']?.toString() ?? '';
-                  final username = (rawUsername == null || rawUsername.isEmpty)
-                      ? (userId.isEmpty
-                            ? l10n.commonUser
-                            : userId.substring(
-                                0,
-                                userId.length < 8 ? userId.length : 8,
-                              ))
-                      : rawUsername;
-                  final initials = username.substring(0, 1).toUpperCase();
-                  final role = m['role'] as String? ?? 'member';
-                  final tappable = _canAct(myRole, userId, role);
-                  // XL-17 (09_groups): one hairline per row — the violet
-                  // glass card is gone, the violet stays on the detail hero.
-                  return ListTile(
-                    dense: true,
-                    leading: ProfileAvatar(
-                      size: AppSpacing.avatar,
-                      initials: initials,
-                    ),
-                    title: Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            username,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
+      body: _loading
+          ? const VLoadingView()
+          : _members.isEmpty
+          ? VEmptyView(icon: Icons.people_outline, title: l10n.groupsNoMembers)
+          : ListView.separated(
+              padding: const EdgeInsets.all(16),
+              itemCount: _members.length,
+              separatorBuilder: (_, _) => const Divider(height: 1),
+              itemBuilder: (context, index) {
+                final m = _members[index];
+                final user = m['users'] as Map<String, dynamic>?;
+                final rawUsername = user?['username'] as String?;
+                final userId = m['user_id']?.toString() ?? '';
+                final username = (rawUsername == null || rawUsername.isEmpty)
+                    ? (userId.isEmpty
+                          ? l10n.commonUser
+                          : userId.substring(
+                              0,
+                              userId.length < 8 ? userId.length : 8,
+                            ))
+                    : rawUsername;
+                final initials = username.substring(0, 1).toUpperCase();
+                final role = m['role'] as String? ?? 'member';
+                final tappable = _canAct(myRole, userId, role);
+                // XL-17 (09_groups): one hairline per row — the violet
+                // glass card is gone, the violet stays on the detail hero.
+                return ListTile(
+                  dense: true,
+                  leading: ProfileAvatar(
+                    size: AppSpacing.avatar,
+                    initials: initials,
+                  ),
+                  title: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          username,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                        VBadge(label: role),
-                      ],
-                    ),
-                    trailing: tappable
-                        ? const Icon(Icons.more_horiz, size: 20)
-                        : null,
-                    onTap: tappable ? () => _openActions(m) : null,
-                  );
-                },
-              ),
-      ),
+                      ),
+                      VBadge(label: role),
+                    ],
+                  ),
+                  trailing: tappable
+                      ? const Icon(Icons.more_horiz, size: 20)
+                      : null,
+                  onTap: tappable ? () => _openActions(m) : null,
+                );
+              },
+            ),
     );
   }
 }

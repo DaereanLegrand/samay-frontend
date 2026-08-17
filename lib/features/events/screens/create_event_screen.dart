@@ -15,7 +15,6 @@ import 'package:samay/core/services/permission_service.dart';
 import 'package:samay/features/events/logic/event_form_data.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/show_app_error.dart';
-import 'package:samay/shared/widgets/v_aurora.dart';
 import 'package:samay/shared/widgets/v_button.dart';
 import 'package:samay/shared/widgets/v_chip.dart';
 import 'package:samay/shared/widgets/v_input.dart';
@@ -339,212 +338,207 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
       // copy, and the section labels orient the form (LUXE directive #8 —
       // one title max, the form already has sectionLabel eyebrows).
       appBar: AppBar(),
-      body: VAurora(
-        gradients: const [AppGradients.peach],
-        opacity: 0.08,
-        child: ListView(
-          padding: const EdgeInsets.all(24),
-          children: [
-            GestureDetector(
-              onTap: _pickImage,
-              child: Container(
-                height: 160,
-                decoration: BoxDecoration(
-                  // §5.8 skeleton-base surface for the empty cover slot + the
-                  // §2.1 interactive-outline token (never raw greys — U-21
-                  // flagged the Colors.grey[900] mix; create_group precedent).
-                  color: AppColors.surfaceAlt,
-                  border: Border.all(color: AppColors.border),
-                ),
-                child: _coverImage != null
-                    ? ClipRect(
-                        child: Image.file(
-                          File(_coverImage!.path),
-                          fit: BoxFit.cover,
-                          width: double.infinity,
-                          height: 160,
-                        ),
-                      )
-                    : Center(
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(
-                              Icons.camera_alt,
-                              size: 40,
-                              color: AppColors.muted,
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              l10n.groupsAddCover,
-                              style: const TextStyle(
-                                color: AppColors.mutedStrong,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
+      body: ListView(
+        padding: const EdgeInsets.all(24),
+        children: [
+          GestureDetector(
+            onTap: _pickImage,
+            child: Container(
+              height: 160,
+              decoration: BoxDecoration(
+                // §5.8 skeleton-base surface for the empty cover slot + the
+                // §2.1 interactive-outline token (never raw greys — U-21
+                // flagged the Colors.grey[900] mix; create_group precedent).
+                color: AppColors.surfaceAlt,
+                border: Border.all(color: AppColors.border),
               ),
+              child: _coverImage != null
+                  ? ClipRect(
+                      child: Image.file(
+                        File(_coverImage!.path),
+                        fit: BoxFit.cover,
+                        width: double.infinity,
+                        height: 160,
+                      ),
+                    )
+                  : Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(
+                            Icons.camera_alt,
+                            size: 40,
+                            color: AppColors.muted,
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            l10n.groupsAddCover,
+                            style: const TextStyle(
+                              color: AppColors.mutedStrong,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
             ),
-            const SizedBox(height: 24),
-            VInput(controller: _nameController, label: l10n.eventsNameLabel),
+          ),
+          const SizedBox(height: 24),
+          VInput(controller: _nameController, label: l10n.eventsNameLabel),
+          const SizedBox(height: 16),
+          VInput(
+            controller: _descriptionController,
+            label: l10n.eventsDescriptionOptional,
+            maxLines: 3,
+          ),
+          const SizedBox(height: 24),
+          _sectionLabel(l10n.eventsTypeLabel),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              for (final type in EventType.values)
+                VChip.accent(
+                  label: switch (type) {
+                    EventType.casual => l10n.eventsTypeCasual,
+                    EventType.juerga => l10n.eventsTypeJuerga,
+                    EventType.tono => l10n.eventsTypeTono,
+                  },
+                  selected: _form.type == type,
+                  onSelected: () => _selectType(type),
+                  gradient: AppGradients.peach,
+                ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            _typeDescription(l10n),
+            style: const TextStyle(color: AppColors.mutedStrong),
+          ),
+          const SizedBox(height: 24),
+          _dateRow(context, starts: true),
+          const SizedBox(height: 8),
+          _dateRow(context, starts: false),
+          const SizedBox(height: 16),
+          VInput(
+            controller: _locationController,
+            label: l10n.eventsLocationLabel,
+          ),
+          const SizedBox(height: 24),
+          _sectionLabel(l10n.eventsVisibilityLabel),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            children: [
+              VChip(
+                label: l10n.eventsVisibilityPublic,
+                selected: _form.visibility == EventVisibility.public,
+                onSelected: () => _setVisibility(EventVisibility.public),
+              ),
+              VChip(
+                label: l10n.eventsVisibilityGroup,
+                selected: _form.visibility == EventVisibility.group,
+                onSelected: () => _setVisibility(EventVisibility.group),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          if (_form.visibility == EventVisibility.group) ...[
+            _buildGroupSelector(context),
             const SizedBox(height: 16),
-            VInput(
-              controller: _descriptionController,
-              label: l10n.eventsDescriptionOptional,
-              maxLines: 3,
-            ),
-            const SizedBox(height: 24),
-            _sectionLabel(l10n.eventsTypeLabel),
+          ] else ...[
+            _sectionLabel(l10n.eventsJoinModeLabel),
             const SizedBox(height: 8),
             Wrap(
               spacing: 8,
-              runSpacing: 8,
               children: [
-                for (final type in EventType.values)
-                  VChip.accent(
-                    label: switch (type) {
-                      EventType.casual => l10n.eventsTypeCasual,
-                      EventType.juerga => l10n.eventsTypeJuerga,
-                      EventType.tono => l10n.eventsTypeTono,
-                    },
-                    selected: _form.type == type,
-                    onSelected: () => _selectType(type),
-                    gradient: AppGradients.peach,
+                VChip(
+                  label: l10n.eventsJoinModeOpen,
+                  selected: _form.joinMode == EventJoinMode.open,
+                  onSelected: () => setState(
+                    () => _form = _form.copyWith(joinMode: EventJoinMode.open),
                   ),
+                ),
+                VChip(
+                  label: l10n.eventsJoinModeApproval,
+                  selected: _form.joinMode == EventJoinMode.approval,
+                  onSelected: () => setState(
+                    () => _form = _form.copyWith(
+                      joinMode: EventJoinMode.approval,
+                    ),
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: 8),
             Text(
-              _typeDescription(l10n),
+              _form.joinMode == EventJoinMode.approval
+                  ? l10n.eventsJoinModeApprovalDescription
+                  : l10n.eventsJoinModeOpenDescription,
               style: const TextStyle(color: AppColors.mutedStrong),
             ),
-            const SizedBox(height: 24),
-            _dateRow(context, starts: true),
+            const SizedBox(height: 16),
+          ],
+          if (_form.preshardsEnabled) ...[
+            _sectionLabel(l10n.eventsPreshardsLabel),
             const SizedBox(height: 8),
-            _dateRow(context, starts: false),
+            VInput(
+              controller: _poolController,
+              label: l10n.eventsPreshardsPoolLabel,
+              keyboardType: TextInputType.number,
+            ),
             const SizedBox(height: 16),
             VInput(
-              controller: _locationController,
-              label: l10n.eventsLocationLabel,
+              controller: _capController,
+              label: l10n.eventsPreshardsCapLabel,
+              keyboardType: TextInputType.number,
             ),
-            const SizedBox(height: 24),
-            _sectionLabel(l10n.eventsVisibilityLabel),
+            const SizedBox(height: 16),
+            _sectionLabel(l10n.eventsRemainderLabel),
             const SizedBox(height: 8),
             Wrap(
               spacing: 8,
               children: [
                 VChip(
-                  label: l10n.eventsVisibilityPublic,
-                  selected: _form.visibility == EventVisibility.public,
-                  onSelected: () => _setVisibility(EventVisibility.public),
+                  label: l10n.eventsRemainderReturn,
+                  selected:
+                      _form.remainderAction ==
+                      EventRemainderAction.returnToContributors,
+                  onSelected: () => setState(
+                    () => _form = _form.copyWith(
+                      remainderAction:
+                          EventRemainderAction.returnToContributors,
+                    ),
+                  ),
                 ),
                 VChip(
-                  label: l10n.eventsVisibilityGroup,
-                  selected: _form.visibility == EventVisibility.group,
-                  onSelected: () => _setVisibility(EventVisibility.group),
+                  label: l10n.eventsRemainderRedistribute,
+                  selected:
+                      _form.remainderAction ==
+                      EventRemainderAction.redistribute,
+                  onSelected: () => setState(
+                    () => _form = _form.copyWith(
+                      remainderAction: EventRemainderAction.redistribute,
+                    ),
+                  ),
                 ),
               ],
             ),
-            const SizedBox(height: 16),
-            if (_form.visibility == EventVisibility.group) ...[
-              _buildGroupSelector(context),
-              const SizedBox(height: 16),
-            ] else ...[
-              _sectionLabel(l10n.eventsJoinModeLabel),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                children: [
-                  VChip(
-                    label: l10n.eventsJoinModeOpen,
-                    selected: _form.joinMode == EventJoinMode.open,
-                    onSelected: () => setState(
-                      () =>
-                          _form = _form.copyWith(joinMode: EventJoinMode.open),
-                    ),
-                  ),
-                  VChip(
-                    label: l10n.eventsJoinModeApproval,
-                    selected: _form.joinMode == EventJoinMode.approval,
-                    onSelected: () => setState(
-                      () => _form = _form.copyWith(
-                        joinMode: EventJoinMode.approval,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Text(
-                _form.joinMode == EventJoinMode.approval
-                    ? l10n.eventsJoinModeApprovalDescription
-                    : l10n.eventsJoinModeOpenDescription,
-                style: const TextStyle(color: AppColors.mutedStrong),
-              ),
-              const SizedBox(height: 16),
-            ],
-            if (_form.preshardsEnabled) ...[
-              _sectionLabel(l10n.eventsPreshardsLabel),
-              const SizedBox(height: 8),
-              VInput(
-                controller: _poolController,
-                label: l10n.eventsPreshardsPoolLabel,
-                keyboardType: TextInputType.number,
-              ),
-              const SizedBox(height: 16),
-              VInput(
-                controller: _capController,
-                label: l10n.eventsPreshardsCapLabel,
-                keyboardType: TextInputType.number,
-              ),
-              const SizedBox(height: 16),
-              _sectionLabel(l10n.eventsRemainderLabel),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                children: [
-                  VChip(
-                    label: l10n.eventsRemainderReturn,
-                    selected:
-                        _form.remainderAction ==
-                        EventRemainderAction.returnToContributors,
-                    onSelected: () => setState(
-                      () => _form = _form.copyWith(
-                        remainderAction:
-                            EventRemainderAction.returnToContributors,
-                      ),
-                    ),
-                  ),
-                  VChip(
-                    label: l10n.eventsRemainderRedistribute,
-                    selected:
-                        _form.remainderAction ==
-                        EventRemainderAction.redistribute,
-                    onSelected: () => setState(
-                      () => _form = _form.copyWith(
-                        remainderAction: EventRemainderAction.redistribute,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Text(
-                l10n.eventsDynamicQrHint,
-                style: const TextStyle(color: AppColors.mutedStrong),
-              ),
-              const SizedBox(height: 16),
-            ],
             const SizedBox(height: 8),
-            VButton.glowAccent(
-              label: l10n.groupsCreateEvent,
-              gradient: AppGradients.peach,
-              loading: _loading,
-              onPressed: _submit,
+            Text(
+              l10n.eventsDynamicQrHint,
+              style: const TextStyle(color: AppColors.mutedStrong),
             ),
+            const SizedBox(height: 16),
           ],
-        ),
+          const SizedBox(height: 8),
+          VButton.glowAccent(
+            label: l10n.groupsCreateEvent,
+            gradient: AppGradients.peach,
+            loading: _loading,
+            onPressed: _submit,
+          ),
+        ],
       ),
     );
   }

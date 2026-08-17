@@ -11,10 +11,9 @@ import 'package:samay/core/services/permission_service.dart';
 import 'package:samay/core/utils/input_sanitizer.dart';
 import 'package:samay/core/design_tokens/app_gradients.dart';
 import 'package:samay/features/profile/providers/profile_providers.dart';
-import 'package:samay/features/profile/widgets/profile_avatar.dart';
+import 'package:samay/shared/widgets/profile_avatar.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/skeletons.dart';
-import 'package:samay/shared/widgets/v_aurora.dart';
 import 'package:samay/shared/widgets/v_button.dart';
 import 'package:samay/shared/widgets/v_input.dart';
 import 'package:samay/shared/widgets/v_spinner.dart';
@@ -187,12 +186,9 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     final l10n = AppLocalizations.of(context);
     return Scaffold(
       appBar: AppBar(title: Text(l10n.profileEditTitle)),
-      // LUXE v2 (XL-08): faint gold ambient behind the editor — the form is
-      // informational, the save CTA carries the gold moment.
-      body: VAurora(
-        gradients: const [AppGradients.gold],
-        opacity: 0.06,
-        child: _loading
+      // LUXE v2 (XL-08): the form is informational — the save CTA carries
+      // the gold moment.
+      body: _loading
             // U-22 handoff (U-23): the edit screen mirrors the profile hero —
             // `VSkeletonProfile` (§5.8) stands in during the first load.
             ? const VSkeletonProfile()
@@ -253,7 +249,6 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                   ),
                 ],
               ),
-      ),
     );
   }
 }

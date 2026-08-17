@@ -4,7 +4,6 @@ import 'package:samay/core/design_tokens/app_gradients.dart';
 import 'package:samay/core/router/route_extras.dart';
 import 'package:samay/core/router/route_paths.dart';
 import 'package:samay/l10n/app_localizations.dart';
-import 'package:samay/shared/widgets/v_aurora.dart';
 import 'package:samay/shared/widgets/v_button.dart';
 import 'package:samay/shared/widgets/v_display_text.dart';
 
@@ -43,69 +42,64 @@ class _PrivacyTermsScreenState extends State<PrivacyTermsScreen> {
       // sliver pattern and the OTP `IntrinsicHeight + Spacer` variant
       // (U-19 finding; plain Texts measure exactly).
       // XL-16 (06_privacy_terms — "a trivial display of over-complication"):
-      // whisper aurora; the glass card panel is gone — black bg + the two
-      // consent rows is the cleaner surface (the hero gradient and the CTA
-      // own the only glow on screen).
-      // XL-19 (06_privacy_terms — "over-complication"): the aurora drops to
-      // α0.03 (floor of the whisper range); the rows keep their section
-      // labels with NO extra instruction text — exactly hero, 2 consent
-      // rows, CTA.
-      body: VAurora(
-        gradients: [family],
-        opacity: 0.03,
-        child: CustomScrollView(
-          slivers: [
-            SliverFillRemaining(
-              hasScrollBody: false,
-              child: Padding(
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const SizedBox(height: 32),
-                    // §3.2 auth big header — LUXE v2: mint-family
-                    // VDisplayText (gradient fill + slowly pulsing glow).
-                    VDisplayText(
-                      text: l10n.authAcceptTermsToContinue,
-                      gradient: family,
-                    ),
-                    const SizedBox(height: 24),
-                    _ConsentRow(
-                      title: l10n.authPrivacyPolicy,
-                      subtitle: l10n.authPrivacyPolicySubtitle,
-                      value: _privacyAccepted,
-                      onChanged: (v) => setState(() => _privacyAccepted = v),
-                    ),
-                    const SizedBox(height: 20),
-                    _ConsentRow(
-                      title: l10n.authServiceTerms,
-                      subtitle: l10n.authServiceTermsSubtitle,
-                      value: _termsAccepted,
-                      onChanged: (v) => setState(() => _termsAccepted = v),
-                    ),
-                    const Spacer(),
-                    // §5.1 brand moment: the primary CTA is emphasized with
-                    // the mint-family gradient fill + black text.
-                    VButton.emphasized(
-                      label: l10n.commonCreateAccount,
-                      gradient: family,
-                      onPressed: _allAccepted
-                          ? () => context.push(
-                              RoutePaths.profileSetup,
-                              extra: ProfileSetupExtra(
-                                email: widget.email,
-                                dateOfBirth: widget.dateOfBirth,
-                              ),
-                            )
-                          : null,
-                    ),
-                    const SizedBox(height: 32),
-                  ],
-                ),
+      // the glass card panel is gone — black bg + the two consent rows is
+      // the cleaner surface (the hero gradient and the CTA own the only
+      // glow on screen).
+      // XL-19 (06_privacy_terms — "over-complication"): the rows keep their
+      // section labels with NO extra instruction text — exactly hero, 2
+      // consent rows, CTA.
+      body: CustomScrollView(
+        slivers: [
+          SliverFillRemaining(
+            hasScrollBody: false,
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 32),
+                  // §3.2 auth big header — LUXE v2: mint-family
+                  // VDisplayText (gradient fill + slowly pulsing glow).
+                  VDisplayText(
+                    text: l10n.authAcceptTermsToContinue,
+                    gradient: family,
+                  ),
+                  const SizedBox(height: 24),
+                  _ConsentRow(
+                    title: l10n.authPrivacyPolicy,
+                    subtitle: l10n.authPrivacyPolicySubtitle,
+                    value: _privacyAccepted,
+                    onChanged: (v) => setState(() => _privacyAccepted = v),
+                  ),
+                  const SizedBox(height: 20),
+                  _ConsentRow(
+                    title: l10n.authServiceTerms,
+                    subtitle: l10n.authServiceTermsSubtitle,
+                    value: _termsAccepted,
+                    onChanged: (v) => setState(() => _termsAccepted = v),
+                  ),
+                  const Spacer(),
+                  // §5.1 brand moment: the primary CTA is emphasized with
+                  // the mint-family gradient fill + black text.
+                  VButton.emphasized(
+                    label: l10n.commonCreateAccount,
+                    gradient: family,
+                    onPressed: _allAccepted
+                        ? () => context.push(
+                            RoutePaths.profileSetup,
+                            extra: ProfileSetupExtra(
+                              email: widget.email,
+                              dateOfBirth: widget.dateOfBirth,
+                            ),
+                          )
+                        : null,
+                  ),
+                  const SizedBox(height: 32),
+                ],
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

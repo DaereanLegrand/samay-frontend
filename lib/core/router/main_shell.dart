@@ -80,7 +80,7 @@ final pendingCountsProvider = Provider<int>((ref) {
           .watch(friendRequestsProvider)
           .valueOrNull
           ?.requests
-          .where((r) => r['type'] == 'received')
+          .where((r) => r.type == 'received')
           .length ??
       0;
   final invites = ref.watch(groupInvitesProvider).valueOrNull?.length ?? 0;

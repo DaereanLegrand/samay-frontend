@@ -2,18 +2,25 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:samay/core/models/event.dart';
 import 'package:samay/core/providers/service_providers.dart';
 import 'package:samay/core/services/event_service.dart';
+import 'package:samay/core/utils/throttled_refresh.dart';
 
-class EventDetailNotifier
-    extends FamilyAsyncNotifier<Map<String, dynamic>, String> {
+class EventDetailNotifier extends FamilyAsyncNotifier<Event, String>
+    with ThrottledRefresh {
   EventService get _service => ref.read(eventServiceProvider);
 
   @override
-  Future<Map<String, dynamic>> build(String eventId) async {
-    return _service.getEvent(eventId);
+  Future<Event> build(String eventId) async {
+    final event = await _service.getEvent(eventId);
+    markFetched();
+    return event;
   }
 
-  /// Re-runs [build] after any mutation (edit, cancel, status change).
-  Future<void> refresh() async => ref.invalidateSelf();
+  /// Re-runs [build] after any mutation (edit, cancel, status change). R20:
+  /// skipped while the last fetch is younger than [refreshThrottle].
+  Future<void> refresh() async {
+    if (!shouldRefetch()) return;
+    ref.invalidateSelf();
+  }
 
   /// Patches the event row and reloads the detail.
   Future<void> patch(Map<String, dynamic> patch) async {
@@ -24,11 +31,9 @@ class EventDetailNotifier
 
 /// A single event row by id.
 final eventDetailProvider =
-    AsyncNotifierProvider.family<
-      EventDetailNotifier,
-      Map<String, dynamic>,
-      String
-    >(EventDetailNotifier.new);
+    AsyncNotifierProvider.family<EventDetailNotifier, Event, String>(
+      EventDetailNotifier.new,
+    );
 
 class EventByInviteTokenNotifier extends FamilyAsyncNotifier<Event?, String> {
   EventService get _service => ref.read(eventServiceProvider);
@@ -47,16 +52,23 @@ final eventByInviteTokenProvider =
     );
 
 class EventPromotoresNotifier
-    extends FamilyAsyncNotifier<List<Map<String, dynamic>>, String> {
+    extends FamilyAsyncNotifier<List<Map<String, dynamic>>, String>
+    with ThrottledRefresh {
   EventService get _service => ref.read(eventServiceProvider);
 
   @override
   Future<List<Map<String, dynamic>>> build(String eventId) async {
-    return _service.getEventPromotores(eventId);
+    final promotores = await _service.getEventPromotores(eventId);
+    markFetched();
+    return promotores;
   }
 
-  /// Re-runs [build] after promotor-list changes.
-  Future<void> refresh() async => ref.invalidateSelf();
+  /// Re-runs [build] after promotor-list changes. R20: skipped while the
+  /// last fetch is younger than [refreshThrottle].
+  Future<void> refresh() async {
+    if (!shouldRefetch()) return;
+    ref.invalidateSelf();
+  }
 }
 
 /// Promotores of an event (rows enriched with `users.username`).
@@ -68,16 +80,23 @@ final eventPromotoresProvider =
     >(EventPromotoresNotifier.new);
 
 class MyEventInviteNotifier
-    extends FamilyAsyncNotifier<Map<String, dynamic>?, String> {
+    extends FamilyAsyncNotifier<Map<String, dynamic>?, String>
+    with ThrottledRefresh {
   EventService get _service => ref.read(eventServiceProvider);
 
   @override
   Future<Map<String, dynamic>?> build(String eventId) async {
-    return _service.getMyEventInvite(eventId);
+    final invite = await _service.getMyEventInvite(eventId);
+    markFetched();
+    return invite;
   }
 
-  /// Re-runs [build] after accepting/declining an invite.
-  Future<void> refresh() async => ref.invalidateSelf();
+  /// Re-runs [build] after accepting/declining an invite. R20: skipped
+  /// while the last fetch is younger than [refreshThrottle].
+  Future<void> refresh() async {
+    if (!shouldRefetch()) return;
+    ref.invalidateSelf();
+  }
 }
 
 /// The current user's invite row for an event (null when not invited).
@@ -88,23 +107,29 @@ final myEventInviteProvider =
       String
     >(MyEventInviteNotifier.new);
 
-class MyEventsNotifier extends AsyncNotifier<List<Map<String, dynamic>>> {
+class MyEventsNotifier extends AsyncNotifier<List<Event>>
+    with ThrottledRefresh {
   EventService get _service => ref.read(eventServiceProvider);
 
   /// The events tab list (R1 events sweep): every event visible to the
   /// session, ordered by `starts_at` ASC (the service's ordering).
   @override
-  Future<List<Map<String, dynamic>>> build() async {
-    return _service.listEvents();
+  Future<List<Event>> build() async {
+    final events = await _service.listEvents();
+    markFetched();
+    return events;
   }
 
-  /// Re-runs [build] (pull-to-refresh).
-  Future<void> refresh() async => ref.invalidateSelf();
+  /// Re-runs [build] (pull-to-refresh). R20: skipped while the last fetch
+  /// is younger than [refreshThrottle].
+  Future<void> refresh() async {
+    if (!shouldRefetch()) return;
+    ref.invalidateSelf();
+  }
 }
 
 /// The events tab list — every event the current session can see, earliest
 /// first.
-final myEventsProvider =
-    AsyncNotifierProvider<MyEventsNotifier, List<Map<String, dynamic>>>(
-      MyEventsNotifier.new,
-    );
+final myEventsProvider = AsyncNotifierProvider<MyEventsNotifier, List<Event>>(
+  MyEventsNotifier.new,
+);

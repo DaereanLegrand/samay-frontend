@@ -20,7 +20,11 @@ import 'package:samay/core/repositories/profile_repository.dart';
 /// chat feature wires its own E2EE repository (`chatE2eeRepositoryProvider`,
 /// `lib/features/chat/chat_providers.dart`); see `chat_repository.dart`.
 final friendsRepositoryProvider = Provider<FriendsRepository>((ref) {
-  return FriendsRepository(users: ref.watch(userServiceProvider));
+  return FriendsRepository(
+    users: ref.watch(userServiceProvider),
+    friendships: ref.watch(friendshipServiceProvider),
+    discovery: ref.watch(discoveryServiceProvider),
+  );
 });
 
 final groupsRepositoryProvider = Provider<GroupsRepository>((ref) {

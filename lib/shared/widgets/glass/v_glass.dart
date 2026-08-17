@@ -20,7 +20,7 @@ import 'package:samay/shared/widgets/glass/v_gradient_border.dart';
 ///
 /// IMPORTANT: BackdropFilter over pure black is invisible — the glass reads
 /// through its white fill + border + glow; the blur only matters over content
-/// (VAurora blobs, images, other glass). Over flat black it degrades to a
+/// (images, other glass). Over flat black it degrades to a
 /// subtle white-tinted surface, which is exactly the design intent.
 ///
 /// [gradient] is the screen's `AppGradient` family (rose/violet/cyan/...);

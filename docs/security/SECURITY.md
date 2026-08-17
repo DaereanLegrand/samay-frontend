@@ -358,8 +358,8 @@ Original ledger verified **2026-08-09** (pre-I-31 state); re-verified **2026-08-
 - Input sanitizer: `lib/core/utils/input_sanitizer.dart`, 29 unit tests (2026-08-09 ledger: none).
 - `.env.example:18` is the `your_supabase_anon_key_here` placeholder; pubspec.yaml has no `assets:` block (2026-08-09 ledger: real key at :5, `.env` asset at pubspec :38-39).
 - Compose port map vs AGENTS.md: `tools/check_ports.sh --strict` → **PASS** (19 mappings / 221 refs / 0 violations); no 5432/54321 host mappings (2026-08-09 ledger: `5432:5432` + `54321:8000` conflicts).
-- pgTAP: `plan(385) == 385` both stacks; Sections 6/15/37 assert email-scoped policies + FORCE (2026-08-09 ledger: "Anyone can …" assertions present).
+- pgTAP: `plan(494) == 494` both stacks; Sections 6/15/37 assert email-scoped policies + FORCE (2026-08-09 ledger: "Anyone can …" assertions present).
 
 ---
 
-*Samay Security Architecture — v1.1 (D-06) · 2026-08-13 refresh · Next review: after FLMT/rate-limiting and before Alpha release checklist (§12 of MVP spec).*
+*Samay Security Architecture — v1.1 (D-06) · 2026-08-13 refresh (pgTAP count re-verified 2026-08-16) · Next review: after FLMT/rate-limiting and before Alpha release checklist (§12 of MVP spec).*

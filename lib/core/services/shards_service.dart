@@ -1,3 +1,4 @@
+import 'package:samay/core/errors/app_error.dart';
 import 'package:samay/core/models/ledger_entry.dart';
 import 'package:samay/core/services/config_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -43,7 +44,7 @@ class ShardsService {
 
   Future<void> donateToGroup(String groupId, int amount) async {
     final user = auth.currentUser;
-    if (user == null) throw Exception('No authenticated user');
+    if (user == null) throw const UnauthorizedError();
 
     final userRes = await client
         .from('users')
@@ -51,7 +52,12 @@ class ShardsService {
         .eq('id', user.id)
         .single();
     final currentShards = userRes['personal_shards'] as int;
-    if (currentShards < amount) throw Exception('No tienes suficientes shards');
+    if (currentShards < amount) {
+      throw ConflictError(
+        'No tienes suficientes shards',
+        code: 'insufficient_shards',
+      );
+    }
 
     final appConfig = await config.fetchAppConfig();
     final boostDays = int.parse(
@@ -92,7 +98,7 @@ class ShardsService {
   /// display projection, never written back.
   Future<List<LedgerEntry>> getShardLedger({int limit = 100}) async {
     final user = auth.currentUser;
-    if (user == null) throw Exception('No authenticated user');
+    if (user == null) throw const UnauthorizedError();
 
     final res = await client
         .from('shard_ledger')
@@ -108,7 +114,7 @@ class ShardsService {
   /// never convert to `personal_shards` (economy firewall).
   Future<List<LedgerEntry>> getPreshardLedger({int limit = 100}) async {
     final user = auth.currentUser;
-    if (user == null) throw Exception('No authenticated user');
+    if (user == null) throw const UnauthorizedError();
 
     final res = await client
         .from('preshard_ledger')
@@ -121,7 +127,7 @@ class ShardsService {
 
   Future<int> getUserContributionToGroup(String groupId) async {
     final user = auth.currentUser;
-    if (user == null) throw Exception('No authenticated user');
+    if (user == null) throw const UnauthorizedError();
     final res = await client
         .from('group_shard_contributions')
         .select('shards_contributed')
@@ -137,7 +143,7 @@ class ShardsService {
 
   Future<void> purchaseCosmetic(String cosmeticId) async {
     final user = auth.currentUser;
-    if (user == null) throw Exception('No authenticated user');
+    if (user == null) throw const UnauthorizedError();
 
     final cosmetic = await client
         .from('cosmetics')
@@ -191,7 +197,7 @@ class ShardsService {
   /// render owned/equipped state without a second lookup).
   Future<List<Map<String, dynamic>>> getMyCosmetics() async {
     final user = auth.currentUser;
-    if (user == null) throw Exception('No authenticated user');
+    if (user == null) throw const UnauthorizedError();
 
     final res = await client
         .from('user_cosmetics')
@@ -210,7 +216,7 @@ class ShardsService {
   /// same type (COSM spec "one equipped per type").
   Future<void> setCosmeticEquipped(String userCosmeticId, bool equipped) async {
     final user = auth.currentUser;
-    if (user == null) throw Exception('No authenticated user');
+    if (user == null) throw const UnauthorizedError();
 
     if (equipped) {
       final target = await client

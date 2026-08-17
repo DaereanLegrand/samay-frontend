@@ -6,6 +6,7 @@ import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/extensions/error_mapper.dart';
 import 'package:samay/core/logging/app_logger.dart';
 import 'package:samay/core/models/user_profile.dart';
+import 'package:samay/core/models/group_member.dart';
 import 'package:samay/core/providers/auth_provider.dart';
 import 'package:samay/core/providers/service_providers.dart';
 import 'package:samay/core/repositories/repository_providers.dart';
@@ -395,8 +396,7 @@ class _ChatThreadViewState extends ConsumerState<ChatThreadView> {
     final currentUserId = ref.read(authStateProvider).valueOrNull?.user?['id'];
     if (widget.groupId == null || currentUserId == null) return 0;
     return _groupMembers
-        .map((m) => m['user_id'])
-        .whereType<String>()
+        .map((m) => m.userId)
         .where((id) => id != currentUserId)
         .length;
   }
@@ -481,9 +481,8 @@ class _ChatThreadViewState extends ConsumerState<ChatThreadView> {
   /// The best-known display name for [userId] (see [_senderNameOf]).
   String? _memberNameOf(String userId) {
     for (final m in _groupMembers) {
-      if (m['user_id'] == userId) {
-        final username = (m['users'] as Map<String, dynamic>?)?['username']
-            as String?;
+      if (m.userId == userId) {
+        final username = m.username;
         if (username != null && username.isNotEmpty) return username;
       }
     }
@@ -540,13 +539,13 @@ class _ChatThreadViewState extends ConsumerState<ChatThreadView> {
 
   /// GROUP mode: the group's member rows (resolved lazily — loading/error
   /// degrade to the uid-prefix fallback, never crash).
-  List<Map<String, dynamic>> get _groupMembers {
+  List<GroupMember> get _groupMembers {
     final groupId = widget.groupId;
     if (groupId == null) return const [];
     return ref
         .watch(groupMembersProvider(groupId))
         .valueOrNull ??
-        const <Map<String, dynamic>>[];
+        const <GroupMember>[];
   }
 
   @override
@@ -607,8 +606,7 @@ class _ChatThreadViewState extends ConsumerState<ChatThreadView> {
                   final otherMemberIds = widget.groupId != null &&
                           currentUserId != null
                       ? _groupMembers
-                            .map((m) => m['user_id'])
-                            .whereType<String>()
+                            .map((m) => m.userId)
                             .where((id) => id != currentUserId)
                             .toSet()
                       : const <String>{};

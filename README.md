@@ -139,7 +139,7 @@ internal/db/                  PostgREST HTTP client (service_role) + Go models
 internal/format/              Table/JSON output formatters
 
 supabase/                     Self-hosted stack: config.toml, docker-compose*.yml,
-                              migrations/ (33 files, mirrored 33/33 in testing),
+                              migrations/ (46 files, mirrored 46/46 in testing),
                               seed.sql, run.sh, reset.sh, migrate.sh,
                               tests/schema_test.sql (pgTAP), volumes/
 supabase-testing/             Isolated testing stack (same layout, mailpit, separate volumes)
@@ -148,7 +148,7 @@ test/                         Flutter unit/widget tests + backend curl opt-tests
   opt-NNN-*.sh                curl integration tests (self-contained, exit 0/1)
   run_all_backend.sh          Runs every opt test against http://127.0.0.1:54386
   README.md                   Full testing guide
-integration_test/             Hermetic modular Flutter integration suite — 18 registered flows incl. ui_smoke (I-01..U-29, runner.sh)
+integration_test/             Hermetic modular Flutter integration suite — 19 registered flows incl. ui_smoke (I-01..U-29, runner.sh)
 test_runner.sh                gum-based MANUAL end-user QA runner (55 cases, phases 00–04)
 
 docs/
@@ -217,11 +217,11 @@ tools/agent_lock.sh run lib/core/router/app_router.dart --owner my-name -- \
 
 | Layer | Command | Notes |
 |-------|---------|-------|
-| Flutter unit/widget | `make flutter-test` | `test/` — mirrors `lib/` layout. Full suite green — **2209/2209** (re-verified 2026-08-13) |
-| Flutter modular integration | `bash integration_test/runner.sh` (hermetic) / `-d <device>` | `integration_test/` — **18 registered (17 flows + `ui_smoke_test.dart`)**: auth, ban, error, profile, theme, cosmetics, events, photos, chat, QR, realtime, notifications, feed, party finder, subscriptions, minigames, telemetry (I-01 + per-feature agents, U-29); hermetic by default (`support/fake_supabase.dart`), each file runs standalone (`luxe_screenshots_test.dart` intentionally unregistered) |
+| Flutter unit/widget | `make flutter-test` | `test/` — mirrors `lib/` layout. Full suite green — **2440/2440** (re-verified 2026-08-16) |
+| Flutter modular integration | `bash integration_test/runner.sh` (hermetic) / `-d <device>` | `integration_test/` — **19 registered (18 flows + `ui_smoke_test.dart`)**: auth, ban, error, profile, theme, cosmetics, events, photos, chat, group chat, QR, realtime, notifications, feed, party finder, subscriptions, minigames, telemetry (I-01 + per-feature agents, U-29); hermetic by default (`support/fake_supabase.dart`), each file runs standalone (`luxe_screenshots_test.dart` intentionally unregistered) |
 | Backend (curl) | `bash test/run_all_backend.sh` | Runs every `test/opt-*.sh` against Kong at `http://127.0.0.1:54386`; requires the stack up + `make supabase-docker-reset` |
-| Go | `go test ./...` | 182 tests, 5 packages (re-verified 2026-08-13; CLI flag/validation tests + ops business logic with `httptest` mocks) |
-| SQL (pgTAP) | `supabase db test` | `supabase/tests/schema_test.sql` — **385 assertions** (plan 385, I-77/S-03 + 20260814 migrations): extensions, enums, tables, triggers, RPCs, RLS policies, seed data |
+| Go | `go test ./...` | 182 tests, 5 packages (re-verified 2026-08-16; CLI flag/validation tests + ops business logic with `httptest` mocks) |
+| SQL (pgTAP) | `supabase db test` | `supabase/tests/schema_test.sql` — **494 assertions** (plan 494, through 20260817000006): extensions, enums, tables, triggers, RPCs, RLS policies, seed data |
 | Manual end-user QA | `bash test_runner.sh` | gum-based manual runner (55 cases, auth → leaderboard), writes a timestamped results markdown |
 
 See [`test/README.md`](test/README.md) for the full test matrix and the curl

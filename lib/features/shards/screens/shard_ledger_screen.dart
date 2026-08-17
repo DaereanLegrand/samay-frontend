@@ -13,7 +13,6 @@ import 'package:samay/shared/widgets/error_view.dart';
 import 'package:samay/shared/widgets/glass/v_glass.dart';
 import 'package:samay/shared/widgets/skeletons.dart';
 import 'package:samay/shared/widgets/state_views.dart';
-import 'package:samay/shared/widgets/v_aurora.dart';
 import 'package:samay/shared/widgets/v_shard_icon.dart';
 
 /// Localized label for a `shard_reason` enum value (SLED display mapping
@@ -154,10 +153,7 @@ class _ShardLedgerScreenState extends ConsumerState<ShardLedgerScreen>
             ],
           ),
           Expanded(
-            child: VAurora(
-              gradients: const [AppGradients.gold],
-              opacity: 0.06,
-              child: ledgerAsync.when(
+            child: ledgerAsync.when(
                 // U-25 (§5.8): the ledger is a list-y first load with nothing
                 // on screen, so the row skeleton stands in (U-22's handoff
                 // named shard_ledger → VSkeletonList). Pull-to-refresh keeps
@@ -172,7 +168,6 @@ class _ShardLedgerScreenState extends ConsumerState<ShardLedgerScreen>
                 ),
                 data: (ledger) => _buildLedger(l10n, ledger),
               ),
-            ),
           ),
         ],
       ),

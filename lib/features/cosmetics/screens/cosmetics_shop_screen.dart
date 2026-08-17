@@ -10,7 +10,6 @@ import 'package:samay/shared/widgets/error_view.dart';
 import 'package:samay/shared/widgets/glass/v_glass.dart';
 import 'package:samay/shared/widgets/skeletons.dart';
 import 'package:samay/shared/widgets/state_views.dart';
-import 'package:samay/shared/widgets/v_aurora.dart';
 import 'package:samay/shared/widgets/v_badge.dart';
 import 'package:samay/shared/widgets/v_button.dart';
 import 'package:samay/shared/widgets/v_shard_icon.dart';
@@ -190,10 +189,7 @@ class _CosmeticsShopScreenState extends ConsumerState<CosmeticsShopScreen>
             ],
           ),
           Expanded(
-            child: VAurora(
-              gradients: const [AppGradients.violet],
-              opacity: 0.06,
-              child: catalogAsync.when(
+            child: catalogAsync.when(
                 // U-25 (§5.8): the shop is a grid first load with nothing on
                 // screen — the §5.3 card-grid skeleton stands in (U-22's
                 // handoff suggested VSkeletonList, but the shop renders a
@@ -257,7 +253,6 @@ class _CosmeticsShopScreenState extends ConsumerState<CosmeticsShopScreen>
                   );
                 },
               ),
-            ),
           ),
         ],
       ),

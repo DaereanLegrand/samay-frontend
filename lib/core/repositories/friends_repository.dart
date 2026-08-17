@@ -1,8 +1,14 @@
+import 'package:samay/core/models/friend_request_summary.dart';
 import 'package:samay/core/models/friendship.dart';
 import 'package:samay/core/models/user_profile.dart';
+import 'package:samay/core/models/user_search_result.dart';
+import 'package:samay/core/services/discovery_service.dart';
+import 'package:samay/core/services/friendship_service.dart';
 import 'package:samay/core/services/user_service.dart';
 
-/// Friends domain repository (I-50): thin, typed facade over [UserService].
+/// Friends domain repository (I-50): thin, typed facade over
+/// [FriendshipService] (friendship lifecycle) and [UserService] (profile
+/// lookups for friend tiles).
 ///
 /// Dependency direction doctrine (DEVELOPMENT-WORKFLOW §5): providers depend
 /// on repositories, repositories on services, services on the Supabase client.
@@ -17,9 +23,17 @@ import 'package:samay/core/services/user_service.dart';
 /// discriminates `received`/`sent`; `getFriendshipDetail` carries
 /// `requester_id`; `getBlockedUsers` maps `blocked_user_id`).
 class FriendsRepository {
-  FriendsRepository({required UserService users}) : _users = users;
+  FriendsRepository({
+    required UserService users,
+    required FriendshipService friendships,
+    required DiscoveryService discovery,
+  })  : _users = users,
+        _friendships = friendships,
+        _discovery = discovery;
 
   final UserService _users;
+  final FriendshipService _friendships;
+  final DiscoveryService _discovery;
 
   /// The full profile of [userId], or null when the row does not exist.
   Future<UserProfile?> getUserProfile(String userId) async {
@@ -29,56 +43,61 @@ class FriendsRepository {
 
   /// Accepted friendships of the current user.
   Future<List<FriendshipSummary>> getFriends() async {
-    final res = await _users.getFriends();
+    final res = await _friendships.getFriends();
     return [for (final f in res) FriendshipSummary.fromJson(f)];
   }
 
   /// Search results for [query], carrying the service's `friendship_status`
-  /// / `hidden` enrichment (not modeled — Map passthrough).
-  Future<List<Map<String, dynamic>>> searchUsers(String query) =>
-      _users.searchUsers(query);
+  /// / `friendship_id` / `friendship_direction` enrichment.
+  Future<List<UserSearchResult>> searchUsers(String query) async {
+    final res = await _discovery.searchUsers(query);
+    return [for (final r in res) UserSearchResult.fromJson(r)];
+  }
 
-  /// Received + sent friend requests (rows carry `type`/`friendship_id`/
-  /// `user_id`/`created_at` — Map passthrough).
-  Future<List<Map<String, dynamic>>> getFriendRequests() =>
-      _users.getFriendRequests();
+  /// Received + sent friend requests (typed with `type`/`friendship_id`/
+  /// `user_id`/`created_at`).
+  Future<List<FriendRequestSummary>> getFriendRequests() async {
+    final res = await _friendships.getFriendRequests();
+    return [for (final r in res) FriendRequestSummary.fromJson(r)];
+  }
 
   /// Users blocked by the current user (`blocked_user_id` rows).
   Future<List<Map<String, dynamic>>> getBlockedUsers() =>
-      _users.getBlockedUsers();
+      _friendships.getBlockedUsers();
 
   /// Whether the current user has an active block against [userId].
-  Future<bool> getBlockStatus(String userId) => _users.getBlockStatus(userId);
+  Future<bool> getBlockStatus(String userId) =>
+      _friendships.getBlockStatus(userId);
 
   /// The friendship status against [userId] (`pending`/`accepted`/`blocked`)
   /// or null when no friendship row exists.
   Future<String?> getFriendshipStatus(String userId) =>
-      _users.getFriendshipStatus(userId);
+      _friendships.getFriendshipStatus(userId);
 
   Future<String?> getFriendshipIdForUser(String userId) =>
-      _users.getFriendshipIdForUser(userId);
+      _friendships.getFriendshipIdForUser(userId);
 
   /// The latest friendship row against [userId] (`id`/`status`/
   /// `requester_id` — Map passthrough; `requester_id` is not modeled).
   Future<Map<String, dynamic>?> getFriendshipDetail(String userId) =>
-      _users.getFriendshipDetail(userId);
+      _friendships.getFriendshipDetail(userId);
 
   /// Sends a friend request to [userId], returning `pending` (new request)
   /// or `accepted` (the addressee already had a pending request against the
   /// current user — instant mutual accept, R15).
   Future<String> sendFriendRequest(String userId) =>
-      _users.sendFriendRequest(userId);
+      _friendships.sendFriendRequest(userId);
 
   Future<void> acceptFriendRequest(String friendshipId) =>
-      _users.acceptFriendRequest(friendshipId);
+      _friendships.acceptFriendRequest(friendshipId);
 
   Future<void> declineFriendRequest(String friendshipId) =>
-      _users.declineFriendRequest(friendshipId);
+      _friendships.declineFriendRequest(friendshipId);
 
-  Future<void> blockUser(String userId) => _users.blockUser(userId);
+  Future<void> blockUser(String userId) => _friendships.blockUser(userId);
 
-  Future<void> unblockUser(String userId) => _users.unblockUser(userId);
+  Future<void> unblockUser(String userId) => _friendships.unblockUser(userId);
 
   Future<void> removeFriend(String friendshipId) =>
-      _users.removeFriend(friendshipId);
+      _friendships.removeFriend(friendshipId);
 }

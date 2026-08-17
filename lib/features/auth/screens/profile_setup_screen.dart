@@ -8,7 +8,6 @@ import 'package:samay/core/providers/auth_provider.dart';
 import 'package:samay/core/router/route_paths.dart';
 import 'package:samay/core/utils/input_sanitizer.dart';
 import 'package:samay/l10n/app_localizations.dart';
-import 'package:samay/shared/widgets/v_aurora.dart';
 import 'package:samay/shared/widgets/v_button.dart';
 import 'package:samay/shared/widgets/v_display_text.dart';
 import 'package:samay/shared/widgets/v_input.dart';
@@ -67,54 +66,50 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
       // §7.3: scroll-safe body (the OTP pattern, U-07) — the fixed Column
       // overflows at ≥1.5× text scale on small phones; pins the CTA when
       // the content fits and scrolls when it doesn't. Never clip.
-      body: VAurora(
-        gradients: [family],
-        opacity: 0.05,
-        child: LayoutBuilder(
-          builder: (context, constraints) => SingleChildScrollView(
-            child: ConstrainedBox(
-              constraints: BoxConstraints(minHeight: constraints.maxHeight),
-              child: IntrinsicHeight(
-                child: Padding(
-                  padding: const EdgeInsets.all(24),
-                  child: Column(
-                    children: [
-                      const SizedBox(height: 32),
-                      // §3.2 auth big header — LUXE v2: violet-family
-                      // VDisplayText (gradient fill + slowly pulsing glow).
-                      VDisplayText(
-                        text: l10n.authCompleteProfile,
-                        gradient: family,
+      body: LayoutBuilder(
+        builder: (context, constraints) => SingleChildScrollView(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minHeight: constraints.maxHeight),
+            child: IntrinsicHeight(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  children: [
+                    const SizedBox(height: 32),
+                    // §3.2 auth big header — LUXE v2: violet-family
+                    // VDisplayText (gradient fill + slowly pulsing glow).
+                    VDisplayText(
+                      text: l10n.authCompleteProfile,
+                      gradient: family,
+                    ),
+                    const SizedBox(height: 40),
+                    VInput(
+                      controller: _usernameController,
+                      label: l10n.commonUsername,
+                      // §5.2: the server error rides the username field as
+                      // `errorText` (glowPink — never raw red on black).
+                      errorText: auth.hasError ? auth.errorMessage : null,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      l10n.authUsernameImmutable,
+                      // §2.4/§3.3: informational caption = bodySmall in
+                      // mutedStrong (7.37:1 AA — was grey[500]).
+                      style: AppTypography.bodySmall.copyWith(
+                        color: AppColors.mutedStrong,
                       ),
-                      const SizedBox(height: 40),
-                      VInput(
-                        controller: _usernameController,
-                        label: l10n.commonUsername,
-                        // §5.2: the server error rides the username field as
-                        // `errorText` (glowPink — never raw red on black).
-                        errorText: auth.hasError ? auth.errorMessage : null,
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        l10n.authUsernameImmutable,
-                        // §2.4/§3.3: informational caption = bodySmall in
-                        // mutedStrong (7.37:1 AA — was grey[500]).
-                        style: AppTypography.bodySmall.copyWith(
-                          color: AppColors.mutedStrong,
-                        ),
-                      ),
-                      const Spacer(),
-                      // §5.1 brand moment: the primary CTA is emphasized
-                      // with the violet-family gradient fill + black text.
-                      VButton.emphasized(
-                        label: l10n.commonSave,
-                        loading: _saving || auth.isLoading,
-                        gradient: family,
-                        onPressed: _save,
-                      ),
-                      const SizedBox(height: 32),
-                    ],
-                  ),
+                    ),
+                    const Spacer(),
+                    // §5.1 brand moment: the primary CTA is emphasized
+                    // with the violet-family gradient fill + black text.
+                    VButton.emphasized(
+                      label: l10n.commonSave,
+                      loading: _saving || auth.isLoading,
+                      gradient: family,
+                      onPressed: _save,
+                    ),
+                    const SizedBox(height: 32),
+                  ],
                 ),
               ),
             ),

@@ -16,7 +16,6 @@ import 'package:samay/shared/widgets/error_view.dart';
 import 'package:samay/shared/widgets/glass/v_glass.dart';
 import 'package:samay/shared/widgets/skeletons.dart';
 import 'package:samay/shared/widgets/state_views.dart';
-import 'package:samay/shared/widgets/v_aurora.dart';
 import 'package:samay/shared/widgets/v_chip.dart';
 import 'package:samay/shared/widgets/v_network_image.dart';
 
@@ -106,11 +105,7 @@ class PartyFinderScreen extends ConsumerWidget {
           ),
           const Divider(height: 1, thickness: 1, color: AppColors.hairline),
           Expanded(
-            child: VAurora(
-              gradients: const [AppGradients.cyan],
-              opacity: 0.06,
-              child: _body(context, ref, l10n, optIn),
-            ),
+            child: _body(context, ref, l10n, optIn),
           ),
         ],
       ),

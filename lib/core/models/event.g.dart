@@ -13,11 +13,17 @@ _Event _$EventFromJson(Map<String, dynamic> json) => _Event(
   status: json['status'] as String,
   startsAt: DateTime.parse(json['starts_at'] as String),
   endsAt: DateTime.parse(json['ends_at'] as String),
+  description: json['description'] as String?,
   groupId: json['group_id'] as String?,
   locationName: json['location_name'] as String?,
   coverUrl: json['cover_url'] as String?,
+  createdByUserId: json['created_by_user_id'] as String?,
+  joinMode: json['join_mode'] as String?,
   featured: json['featured'] as bool? ?? false,
+  preshardsDistributed: json['preshards_distributed'] as bool? ?? false,
   preshardsPool: (json['preshards_pool'] as num?)?.toInt() ?? 0,
+  preshardsCapPerUser: (json['preshards_cap_per_user'] as num?)?.toInt(),
+  preshardsRemainderAction: json['preshards_remainder_action'] as String?,
 );
 
 Map<String, dynamic> _$EventToJson(_Event instance) => <String, dynamic>{
@@ -27,9 +33,15 @@ Map<String, dynamic> _$EventToJson(_Event instance) => <String, dynamic>{
   'status': instance.status,
   'starts_at': instance.startsAt.toIso8601String(),
   'ends_at': instance.endsAt.toIso8601String(),
+  'description': instance.description,
   'group_id': instance.groupId,
   'location_name': instance.locationName,
   'cover_url': instance.coverUrl,
+  'created_by_user_id': instance.createdByUserId,
+  'join_mode': instance.joinMode,
   'featured': instance.featured,
+  'preshards_distributed': instance.preshardsDistributed,
   'preshards_pool': instance.preshardsPool,
+  'preshards_cap_per_user': instance.preshardsCapPerUser,
+  'preshards_remainder_action': instance.preshardsRemainderAction,
 };

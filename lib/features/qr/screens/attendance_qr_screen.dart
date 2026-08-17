@@ -15,7 +15,6 @@ import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/error_view.dart';
 import 'package:samay/shared/widgets/glass/v_glass.dart';
 import 'package:samay/shared/widgets/state_views.dart';
-import 'package:samay/shared/widgets/v_aurora.dart';
 import 'package:samay/shared/widgets/v_button.dart';
 
 /// Activation-window minutes (`qr.activation_minutes_before`, seed 30) — the
@@ -153,7 +152,7 @@ class _AttendanceQrScreenState extends ConsumerState<AttendanceQrScreen> {
           onRetry: () => ref.invalidate(eventDetailProvider(widget.eventId)),
         ),
       ),
-      data: (event) => tokenAsync.when(
+        data: (event) => tokenAsync.when(
         loading: () => _scaffold(l10n, const VLoadingView()),
         error: (e, _) => _scaffold(
           l10n,
@@ -164,22 +163,22 @@ class _AttendanceQrScreenState extends ConsumerState<AttendanceQrScreen> {
         ),
         data: (token) {
           final now = DateTime.now();
-          final status = event['status'] as String? ?? 'upcoming';
-          final startsAt = DateTime.tryParse(event['starts_at'] as String? ?? '');
-          final endsAt = DateTime.tryParse(event['ends_at'] as String? ?? '');
+          final status = event.status;
+          final startsAt = event.startsAt;
+          final endsAt = event.endsAt;
           final expiresAt = DateTime.tryParse(token?['expires_at'] as String? ?? '');
 
-          if (status == 'ended' || (endsAt != null && now.isAfter(endsAt))) {
+          if (status == 'ended' || now.isAfter(endsAt)) {
             return _scaffold(l10n, _MessageState(
               icon: Icons.event_available,
               message: l10n.qrEventEnded,
             ));
           }
           if (token == null) {
-            final activationAt = startsAt?.subtract(
+            final activationAt = startsAt.subtract(
               const Duration(minutes: _activationMinutes),
             );
-            if (activationAt != null && now.isBefore(activationAt)) {
+            if (now.isBefore(activationAt)) {
               final minutes = math.max(
                 1,
                 (activationAt.difference(now).inMinutes),
@@ -246,11 +245,7 @@ class _AttendanceQrScreenState extends ConsumerState<AttendanceQrScreen> {
     return Scaffold(
       appBar: AppBar(title: Text(l10n.qrAttendanceTitle)),
       body: SafeArea(
-        child: VAurora(
-          gradients: const [AppGradients.cyan],
-          opacity: 0.06,
-          child: body,
-        ),
+        child: body,
       ),
     );
   }

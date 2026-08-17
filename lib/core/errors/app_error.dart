@@ -1,4 +1,6 @@
-sealed class AppError {
+sealed class AppError implements Exception {
+  const AppError();
+
   String get message;
 
   /// Stable machine-readable code surfaced to the user alongside [message].
@@ -17,6 +19,8 @@ class NetworkError extends AppError {
 }
 
 class UnauthorizedError extends AppError {
+  const UnauthorizedError();
+
   @override
   String get code => 'AUTH_UNAUTHORIZED';
 
@@ -27,7 +31,7 @@ class UnauthorizedError extends AppError {
 class ServerError extends AppError {
   final String detail;
   final Object? original;
-  ServerError([this.detail = '', this.original]);
+  const ServerError([this.detail = '', this.original]);
 
   @override
   String get code => 'SERVER_ERROR';
@@ -72,7 +76,7 @@ class RateLimitError extends AppError {
 
 class NotFoundError extends AppError {
   final String resource;
-  NotFoundError([this.resource = '']);
+  const NotFoundError([this.resource = '']);
 
   @override
   String get code => 'NOT_FOUND';
@@ -82,6 +86,24 @@ class NotFoundError extends AppError {
     if (resource.isNotEmpty) return '$resource no encontrado.';
     return 'No encontrado.';
   }
+}
+
+/// Thrown when a business operation conflicts with existing state.
+class ConflictError extends AppError {
+  ConflictError(this.detail, {String? code})
+      : _code = code ?? 'CONFLICT';
+
+  final String detail;
+  final String _code;
+
+  @override
+  String get code => _code;
+
+  @override
+  String get message => detail;
+
+  @override
+  String toString() => 'ConflictError($detail)';
 }
 
 /// Raised by purchase flows when RevenueCat is not configured (stub mode —

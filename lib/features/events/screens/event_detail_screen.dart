@@ -6,6 +6,7 @@ import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/core/design_tokens/app_gradients.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/extensions/error_mapper.dart';
+import 'package:samay/core/models/event.dart';
 import 'package:samay/core/providers/auth_provider.dart';
 import 'package:samay/core/router/route_paths.dart';
 import 'package:samay/features/events/logic/event_formatters.dart';
@@ -15,7 +16,6 @@ import 'package:samay/shared/widgets/error_view.dart';
 import 'package:samay/shared/widgets/glass/glass.dart';
 import 'package:samay/shared/widgets/show_app_error.dart';
 import 'package:samay/shared/widgets/skeletons.dart';
-import 'package:samay/shared/widgets/v_aurora.dart';
 import 'package:samay/shared/widgets/v_badge.dart';
 import 'package:samay/shared/widgets/v_button.dart';
 import 'package:samay/shared/widgets/v_display_text.dart';
@@ -91,18 +91,7 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
       appBar: AppBar(
         title: Text(AppLocalizations.of(context).eventDetailTitle),
       ),
-      body: _ambient(body),
-    );
-  }
-
-  /// The events ambient background (LUXE v2): black + a faint peach aurora
-  /// (ORCHESTRATION-LUXE §"Gradient family → screen map" — events own the
-  /// peach family). One aurora per screen, reduce-motion → static.
-  Widget _ambient(Widget child) {
-    return VAurora(
-      gradients: const [AppGradients.peach],
-      opacity: 0.08,
-      child: child,
+      body: body,
     );
   }
 
@@ -135,137 +124,127 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
   }
 
   Widget _buildDetail(
-    Map<String, dynamic> event,
+    Event event,
     AsyncValue<List<Map<String, dynamic>>> promotoresAsync,
     AsyncValue<Map<String, dynamic>?> inviteAsync,
   ) {
     final l10n = AppLocalizations.of(context);
     final uid =
         ref.watch(authStateProvider).valueOrNull?.user?['id'] as String?;
-    final status = event['status'] as String? ?? 'draft';
-    final type = event['type'] as String? ?? 'casual';
 
     return Scaffold(
       // The event name lives in the VDisplayText hero — no AppBar duplicate
       // (LUXE directive #8: no title in both AppBar and hero).
       appBar: AppBar(),
-      body: _ambient(
-        ListView(
-          padding: const EdgeInsets.all(AppSpacing.screenHorizontal),
-          children: [
-            if (event['cover_url'] != null) ...[
-              VNetworkImage(
-                imageUrl: event['cover_url'] as String,
-                height: 200,
-                fit: BoxFit.cover,
-              ),
-              const SizedBox(height: AppSpacing.lg),
-            ],
-            VDisplayText(
-              text: event['name'] as String? ?? l10n.eventDetailTitle,
-              gradient: AppGradients.peach,
-              maxLines: 2,
+      body: ListView(
+        padding: const EdgeInsets.all(AppSpacing.screenHorizontal),
+        children: [
+          if (event.coverUrl != null) ...[
+            VNetworkImage(
+              imageUrl: event.coverUrl!,
+              height: 200,
+              fit: BoxFit.cover,
             ),
-            const SizedBox(height: AppSpacing.sm),
-            // XL-17 (Gemma round 2, 10_events: "overly saturated colors...
-            // cheap"): the peach family is spent on the hero shader + the CTA
-            // only — badges drop to the neutral glass treatment (white text,
-            // status carried by the label, never a color spray).
-            Wrap(
-              spacing: AppSpacing.sm,
-              runSpacing: AppSpacing.sm,
-              children: [
-                VBadge(label: _typeLabel(l10n, type)),
-                VBadge(label: _statusLabel(l10n, status)),
-                if (event['group_id'] != null)
-                  VBadge(label: l10n.eventGroupScoped),
-              ],
-            ),
-            if (event['description'] != null) ...[
-              const SizedBox(height: AppSpacing.md),
-              Text(
-                event['description'] as String,
-                style: Theme.of(context).textTheme.bodyLarge,
-              ),
+            const SizedBox(height: AppSpacing.lg),
+          ],
+          VDisplayText(
+            text: event.name,
+            gradient: AppGradients.peach,
+            maxLines: 2,
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          // XL-17 (Gemma round 2, 10_events: "overly saturated colors...
+          // cheap"): the peach family is spent on the hero shader + the CTA
+          // only — badges drop to the neutral glass treatment (white text,
+          // status carried by the label, never a color spray).
+          Wrap(
+            spacing: AppSpacing.sm,
+            runSpacing: AppSpacing.sm,
+            children: [
+              VBadge(label: _typeLabel(l10n, event.type)),
+              VBadge(label: _statusLabel(l10n, event.status)),
+              if (event.groupId != null) VBadge(label: l10n.eventGroupScoped),
             ],
+          ),
+          if (event.description != null) ...[
             const SizedBox(height: AppSpacing.md),
-            // XL-17: neutral white-only glass (no family border, no glow) —
-            // the peach ring was part of the saturated spray.
-            VGlassCard(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _InfoRow(
-                    icon: Icons.schedule,
-                    text: formatEventDateRange(
-                      DateTime.tryParse(event['starts_at'] as String? ?? '') ??
-                          DateTime.now(),
-                      DateTime.tryParse(event['ends_at'] as String? ?? '') ??
-                          DateTime.now(),
-                      Localizations.localeOf(context).languageCode,
-                    ),
-                  ),
-                  _InfoRow(
-                    icon: Icons.place_outlined,
-                    text:
-                        event['location_name'] as String? ??
-                        l10n.eventNoLocation,
-                  ),
-                  if (event['group_id'] != null) ...[
-                    const SizedBox(height: AppSpacing.sm),
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: TextButton.icon(
-                        onPressed: () => context.push(
-                          RoutePaths.groupDetail(event['group_id'] as String),
-                        ),
-                        icon: const Icon(Icons.group_outlined, size: 18),
-                        label: Text(l10n.eventViewGroup),
-                      ),
-                    ),
-                  ],
-                ],
-              ),
+            Text(
+              event.description!,
+              style: Theme.of(context).textTheme.bodyLarge,
             ),
-            const SizedBox(height: AppSpacing.xl),
-            _buildPoolSection(event),
-            const SizedBox(height: AppSpacing.xl),
-            _buildPromotoresSection(promotoresAsync),
-            if (inviteAsync.valueOrNull case final invite?
-                when invite.isNotEmpty) ...[
-              const SizedBox(height: AppSpacing.lg),
-              _InfoRow(
-                icon: Icons.mail_outline,
-                text: l10n.eventInviteStatus(
-                  _inviteStatusLabel(
-                    l10n,
-                    invite['status'] as String? ?? 'pending',
+          ],
+          const SizedBox(height: AppSpacing.md),
+          // XL-17: neutral white-only glass (no family border, no glow) —
+          // the peach ring was part of the saturated spray.
+          VGlassCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _InfoRow(
+                  icon: Icons.schedule,
+                  text: formatEventDateRange(
+                    event.startsAt,
+                    event.endsAt,
+                    Localizations.localeOf(context).languageCode,
                   ),
                 ),
+                _InfoRow(
+                  icon: Icons.place_outlined,
+                  text: event.locationName ?? l10n.eventNoLocation,
+                ),
+                if (event.groupId != null) ...[
+                  const SizedBox(height: AppSpacing.sm),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: TextButton.icon(
+                      onPressed: () =>
+                          context.push(RoutePaths.groupDetail(event.groupId!)),
+                      icon: const Icon(Icons.group_outlined, size: 18),
+                      label: Text(l10n.eventViewGroup),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          const SizedBox(height: AppSpacing.xl),
+          _buildPoolSection(event),
+          const SizedBox(height: AppSpacing.xl),
+          _buildPromotoresSection(promotoresAsync),
+          if (inviteAsync.valueOrNull case final invite?
+              when invite.isNotEmpty) ...[
+            const SizedBox(height: AppSpacing.lg),
+            _InfoRow(
+              icon: Icons.mail_outline,
+              text: l10n.eventInviteStatus(
+                _inviteStatusLabel(
+                  l10n,
+                  invite['status'] as String? ?? 'pending',
+                ),
               ),
-            ],
-            if (_canEdit(uid, status, promotoresAsync.valueOrNull)) ...[
-              const SizedBox(height: AppSpacing.xxl),
-              VButton.glowAccent(
-                label: l10n.eventEditButton,
-                gradient: AppGradients.peach,
-                onPressed: () =>
-                    context.push(RoutePaths.eventEdit(widget.eventId)),
-              ),
-            ],
-            if (_canCancel(uid, status, promotoresAsync.valueOrNull)) ...[
-              const SizedBox(height: AppSpacing.sm),
-              VButton.outlined(
-                label: l10n.eventCancelButton,
-                loading: _cancelling,
-                onPressed: _cancelling ? null : _cancelEvent,
-              ),
-            ],
-            if (!_isClosed(status))
-              _buildLiveActions(promotoresAsync.valueOrNull, uid),
-            const SizedBox(height: AppSpacing.xl),
+            ),
           ],
-        ),
+          if (_canEdit(uid, event.status, promotoresAsync.valueOrNull)) ...[
+            const SizedBox(height: AppSpacing.xxl),
+            VButton.glowAccent(
+              label: l10n.eventEditButton,
+              gradient: AppGradients.peach,
+              onPressed: () =>
+                  context.push(RoutePaths.eventEdit(widget.eventId)),
+            ),
+          ],
+          if (_canCancel(uid, event.status, promotoresAsync.valueOrNull)) ...[
+            const SizedBox(height: AppSpacing.sm),
+            VButton.outlined(
+              label: l10n.eventCancelButton,
+              loading: _cancelling,
+              onPressed: _cancelling ? null : _cancelEvent,
+            ),
+          ],
+          if (!_isClosed(event.status))
+            _buildLiveActions(promotoresAsync.valueOrNull, uid),
+          const SizedBox(height: AppSpacing.xl),
+        ],
       ),
     );
   }
@@ -278,7 +257,8 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
     String? uid,
   ) {
     final l10n = AppLocalizations.of(context);
-    final isPromotor = uid != null &&
+    final isPromotor =
+        uid != null &&
         promotores != null &&
         promotores.any((p) => p['user_id'] == uid && p['role'] == 'promotor');
     final showQr = ref.isEnabled(AppFeatureFlag.qr);
@@ -303,8 +283,8 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
                 Expanded(
                   child: VButton.outlined(
                     label: l10n.qrScannerTitle,
-                    onPressed: () => context
-                        .push(RoutePaths.scanner(widget.eventId)),
+                    onPressed: () =>
+                        context.push(RoutePaths.scanner(widget.eventId)),
                   ),
                 ),
               ],
@@ -347,12 +327,12 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
     return _canEdit(uid, status, promotores);
   }
 
-  Widget _buildPoolSection(Map<String, dynamic> event) {
+  Widget _buildPoolSection(Event event) {
     final l10n = AppLocalizations.of(context);
-    final pool = (event['preshards_pool'] as num?)?.toInt() ?? 0;
-    final distributed = event['preshards_distributed'] == true;
-    final cap = event['preshards_cap_per_user'] as num?;
-    final remainder = event['preshards_remainder_action'] as String?;
+    final pool = event.preshardsPool;
+    final distributed = event.preshardsDistributed;
+    final cap = event.preshardsCapPerUser;
+    final remainder = event.preshardsRemainderAction;
 
     return VGlassCard(
       child: Column(
@@ -389,7 +369,7 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
             if (cap != null) ...[
               const SizedBox(height: AppSpacing.xs),
               Text(
-                l10n.eventCapPerUser(cap.toInt()),
+                l10n.eventCapPerUser(cap),
                 style: Theme.of(context).textTheme.bodyMedium,
               ),
             ],

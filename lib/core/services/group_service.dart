@@ -1,3 +1,4 @@
+import 'package:samay/core/errors/app_error.dart';
 import 'package:samay/core/utils/input_sanitizer.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
@@ -15,7 +16,7 @@ class GroupService {
 
   Future<Map<String, dynamic>> createGroup(Map<String, dynamic> data) async {
     final user = auth.currentUser;
-    if (user == null) throw Exception('No authenticated user');
+    if (user == null) throw const UnauthorizedError();
 
     final name = InputSanitizer.sanitize(
       data['name'] as String? ?? '',
@@ -57,7 +58,7 @@ class GroupService {
 
   Future<void> joinGroup(String groupId) async {
     final user = auth.currentUser;
-    if (user == null) throw Exception('No authenticated user');
+    if (user == null) throw const UnauthorizedError();
     await client.from('group_members').insert({
       'group_id': groupId,
       'user_id': user.id,
@@ -67,7 +68,7 @@ class GroupService {
 
   Future<void> leaveGroup(String groupId) async {
     final user = auth.currentUser;
-    if (user == null) throw Exception('No authenticated user');
+    if (user == null) throw const UnauthorizedError();
     await client
         .from('group_members')
         .delete()
@@ -126,7 +127,7 @@ class GroupService {
 
   Future<List<Map<String, dynamic>>> getGroupInvites() async {
     final user = auth.currentUser;
-    if (user == null) throw Exception('No authenticated user');
+    if (user == null) throw const UnauthorizedError();
     final res = await client
         .from('group_members')
         .select('id, group_id, role, joined_at, groups!inner(name)')
@@ -164,7 +165,7 @@ class GroupService {
   /// create a promotor) cannot be interleaved by a concurrent request.
   Future<void> transferPromotor(String groupId, String newPromotorId) async {
     final user = auth.currentUser;
-    if (user == null) throw Exception('No authenticated user');
+    if (user == null) throw const UnauthorizedError();
     await client.rpc('transfer_promotor', params: {
       'p_group_id': groupId,
       'p_new_promotor_id': newPromotorId,
@@ -181,7 +182,7 @@ class GroupService {
 
   Future<int> getUserGroupCount() async {
     final user = auth.currentUser;
-    if (user == null) throw Exception('No authenticated user');
+    if (user == null) throw const UnauthorizedError();
     final res = await client
         .from('group_members')
         .select('id')
@@ -192,7 +193,7 @@ class GroupService {
 
   Future<List<Map<String, dynamic>>> getMyGroups() async {
     final user = auth.currentUser;
-    if (user == null) throw Exception('No authenticated user');
+    if (user == null) throw const UnauthorizedError();
     // ISSUE 2: `status` rides along so invited memberships keep their pending
     // marker in the groups list (the detail screen also gates on it).
     final memberships = await client
@@ -217,7 +218,7 @@ class GroupService {
   /// is none. ISSUE 2: the detail screen gates the invited state on `status`.
   Future<Map<String, dynamic>?> getMyMembership(String groupId) async {
     final user = auth.currentUser;
-    if (user == null) throw Exception('No authenticated user');
+    if (user == null) throw const UnauthorizedError();
     final res = await client
         .from('group_members')
         .select('id, group_id, role, status')

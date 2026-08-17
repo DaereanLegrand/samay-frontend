@@ -3,7 +3,9 @@ import 'package:samay/core/services/auth_service.dart';
 import 'package:samay/core/services/ban_service.dart';
 import 'package:samay/core/services/chat_service.dart';
 import 'package:samay/core/services/config_service.dart';
+import 'package:samay/core/services/discovery_service.dart';
 import 'package:samay/core/services/event_service.dart';
+import 'package:samay/core/services/friendship_service.dart';
 import 'package:samay/core/services/group_service.dart';
 import 'package:samay/core/services/media_service.dart';
 import 'package:samay/core/services/minigame_service.dart';
@@ -57,6 +59,14 @@ final banServiceProvider = Provider<BanService>((ref) {
 
 final userServiceProvider = Provider<UserService>((ref) {
   return UserService(client: ref.watch(supabaseClientProvider));
+});
+
+final friendshipServiceProvider = Provider<FriendshipService>((ref) {
+  return FriendshipService(client: ref.watch(supabaseClientProvider));
+});
+
+final discoveryServiceProvider = Provider<DiscoveryService>((ref) {
+  return DiscoveryService(client: ref.watch(supabaseClientProvider));
 });
 
 final groupServiceProvider = Provider<GroupService>((ref) {

@@ -11,7 +11,6 @@ import 'package:samay/core/router/route_extras.dart';
 import 'package:samay/core/router/route_paths.dart';
 import 'package:samay/core/utils/otp_format.dart';
 import 'package:samay/l10n/app_localizations.dart';
-import 'package:samay/shared/widgets/v_aurora.dart';
 import 'package:samay/shared/widgets/v_button.dart';
 import 'package:samay/shared/widgets/v_display_text.dart';
 
@@ -264,120 +263,111 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
 
     return Scaffold(
       appBar: AppBar(),
-      body: VAurora(
-        gradients: [family],
-        // XL-16 (02_login/OTP hierarchy critique): whisper aurora on the
-        // input surface — the CTA's halo is the only glow that matters.
-        opacity: 0.05,
-        // §7.3: the displayMedium header + otpInputText field grew the column —
-        // pin the CTA to the bottom when the content fits, scroll when it
-        // doesn't (larger text scales / small screens must never clip).
-        child: LayoutBuilder(
-          builder: (context, constraints) => SingleChildScrollView(
-            child: ConstrainedBox(
-              constraints: BoxConstraints(minHeight: constraints.maxHeight),
-              child: IntrinsicHeight(
-                child: Padding(
-                  padding: const EdgeInsets.all(24),
-                  child: Column(
-                    children: [
-                      const SizedBox(height: 32),
-                      // §3.2 auth big header — LUXE v2: gold-family
-                      // VDisplayText (gradient fill + slowly pulsing glow).
-                      VDisplayText(
-                        text: l10n.authEnterVerificationCode,
-                        gradient: family,
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        l10n.authOtpSentTo(widget.email),
-                        style: Theme.of(context).textTheme.bodyMedium,
-                      ),
-                      // XL-16 (03_signup density verdict): hint → field
-                      // breathes at 40.
-                      const SizedBox(height: 40),
-                      // LUXE v2 (XL-18, Gemma 04_otp "utterly pedestrian
-                      // digital form"): the 6-digit code field is the star —
-                      // a liquid-glass slab (directive #7: no underline
-                      // inputs) whose 1px border ring turns the **gold
-                      // family gradient** on focus, with the family's soft
-                      // halo underneath. The digits keep the §3.3
-                      // otpInputText voice (30/w800/ls8, white).
-                      _codeField(family),
-                      if (auth.hasError)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 20),
-                          child: Text(
-                            auth.errorMessage!,
-                            // §5.2: glowPink — never raw red on black.
-                            style: const TextStyle(color: AppColors.error),
-                          ),
-                        ),
-                      // U-14 R2: surface I-29's wrong-attempt budget. XL-18
-                      // (Gemma 04_otp "pedestrian form" — remove helper
-                      // duplication): the counter appears ONLY near the limit
-                      // (remaining ≤ 2) — early failures read through the
-                      // error text alone; the blocked state owns the last
-                      // word. Shifts to the error color at the last attempt.
-                      if (_failedAttempts > 0 &&
-                          _remainingAttempts <= 2 &&
-                          _remainingAttempts > 0)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 20),
-                          child: Text(
-                            l10n.authOtpAttemptsRemaining(_remainingAttempts),
-                            // §2.4 AA text (mutedStrong) normally; §5.2
-                            // glowPink at ≤ 1 attempt left.
-                            style: TextStyle(
-                              color: _remainingAttempts <= 1
-                                  ? AppColors.error
-                                  : AppColors.mutedStrong,
-                            ),
-                          ),
-                        ),
-                      if (_attemptBlocked)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 20),
-                          child: Text(
-                            l10n.authOtpTooManyAttempts,
-                            style: const TextStyle(color: AppColors.error),
-                          ),
-                        ),
-                      const Spacer(),
-                      // §5.1 brand moment: the primary CTA is the filled
-                      // glowAccent (gold-family gradient fill + black text).
-                      VButton.glowAccent(
-                        label: l10n.authVerify,
-                        loading: auth.isLoading,
-                        filled: true,
-                        gradient: family,
-                        onPressed: _attemptBlocked ? null : _verify,
-                      ),
-                      const SizedBox(height: 8),
-                      // XL-16: secondary links are plain + muted so the CTA
-                      // dominates the bottom edge.
-                      TextButton(
-                        onPressed: canResend ? _resend : null,
+      body: LayoutBuilder(
+        builder: (context, constraints) => SingleChildScrollView(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minHeight: constraints.maxHeight),
+            child: IntrinsicHeight(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  children: [
+                    const SizedBox(height: 32),
+                    // §3.2 auth big header — LUXE v2: gold-family
+                    // VDisplayText (gradient fill + slowly pulsing glow).
+                    VDisplayText(
+                      text: l10n.authEnterVerificationCode,
+                      gradient: family,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      l10n.authOtpSentTo(widget.email),
+                      style: Theme.of(context).textTheme.bodyMedium,
+                    ),
+                    // XL-16 (03_signup density verdict): hint → field
+                    // breathes at 40.
+                    const SizedBox(height: 40),
+                    // LUXE v2 (XL-18, Gemma 04_otp "utterly pedestrian
+                    // digital form"): the 6-digit code field is the star —
+                    // a liquid-glass slab (directive #7: no underline
+                    // inputs) whose 1px border ring turns the **gold
+                    // family gradient** on focus, with the family's soft
+                    // halo underneath. The digits keep the §3.3
+                    // otpInputText voice (30/w800/ls8, white).
+                    _codeField(family),
+                    if (auth.hasError)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 20),
                         child: Text(
-                          _resendSeconds > 0
-                              ? l10n.authResendCodeIn(_resendSeconds)
-                              : l10n.authResendCode,
-                          style: const TextStyle(color: AppColors.mutedStrong),
+                          auth.errorMessage!,
+                          // §5.2: glowPink — never raw red on black.
+                          style: const TextStyle(color: AppColors.error),
                         ),
                       ),
-                      // U-14 R1: the funnel's escape hatch — sign out and
-                      // return to login (Juega `verify_email_screen.dart:305-308`).
-                      const SizedBox(height: 8),
-                      TextButton(
-                        onPressed: _backToLogin,
+                    // U-14 R2: surface I-29's wrong-attempt budget. XL-18
+                    // (Gemma 04_otp "pedestrian form" — remove helper
+                    // duplication): the counter appears ONLY near the limit
+                    // (remaining ≤ 2) — early failures read through the
+                    // error text alone; the blocked state owns the last
+                    // word. Shifts to the error color at the last attempt.
+                    if (_failedAttempts > 0 &&
+                        _remainingAttempts <= 2 &&
+                        _remainingAttempts > 0)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 20),
                         child: Text(
-                          l10n.authBackToLogin,
-                          style: const TextStyle(color: AppColors.mutedStrong),
+                          l10n.authOtpAttemptsRemaining(_remainingAttempts),
+                          // §2.4 AA text (mutedStrong) normally; §5.2
+                          // glowPink at ≤ 1 attempt left.
+                          style: TextStyle(
+                            color: _remainingAttempts <= 1
+                                ? AppColors.error
+                                : AppColors.mutedStrong,
+                          ),
                         ),
                       ),
-                      const SizedBox(height: 32),
-                    ],
-                  ),
+                    if (_attemptBlocked)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 20),
+                        child: Text(
+                          l10n.authOtpTooManyAttempts,
+                          style: const TextStyle(color: AppColors.error),
+                        ),
+                      ),
+                    const Spacer(),
+                    // §5.1 brand moment: the primary CTA is the filled
+                    // glowAccent (gold-family gradient fill + black text).
+                    VButton.glowAccent(
+                      label: l10n.authVerify,
+                      loading: auth.isLoading,
+                      filled: true,
+                      gradient: family,
+                      onPressed: _attemptBlocked ? null : _verify,
+                    ),
+                    const SizedBox(height: 8),
+                    // XL-16: secondary links are plain + muted so the CTA
+                    // dominates the bottom edge.
+                    TextButton(
+                      onPressed: canResend ? _resend : null,
+                      child: Text(
+                        _resendSeconds > 0
+                            ? l10n.authResendCodeIn(_resendSeconds)
+                            : l10n.authResendCode,
+                        style: const TextStyle(color: AppColors.mutedStrong),
+                      ),
+                    ),
+                    // U-14 R1: the funnel's escape hatch — sign out and
+                    // return to login (Juega `verify_email_screen.dart:305-308`).
+                    const SizedBox(height: 8),
+                    TextButton(
+                      onPressed: _backToLogin,
+                      child: Text(
+                        l10n.authBackToLogin,
+                        style: const TextStyle(color: AppColors.mutedStrong),
+                      ),
+                    ),
+                    const SizedBox(height: 32),
+                  ],
                 ),
               ),
             ),

@@ -10,13 +10,12 @@ import 'package:samay/core/extensions/error_mapper.dart';
 import 'package:samay/core/providers/auth_provider.dart';
 import 'package:samay/core/router/route_paths.dart';
 import 'package:samay/features/profile/providers/profile_providers.dart';
-import 'package:samay/features/profile/widgets/profile_avatar.dart';
+import 'package:samay/shared/widgets/profile_avatar.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/error_view.dart';
 import 'package:samay/shared/widgets/glass/v_glass.dart';
 import 'package:samay/shared/widgets/skeletons.dart';
 import 'package:samay/shared/widgets/state_views.dart';
-import 'package:samay/shared/widgets/v_aurora.dart';
 import 'package:samay/shared/widgets/v_display_text.dart';
 import 'package:samay/shared/widgets/v_shard_icon.dart';
 
@@ -75,12 +74,9 @@ class ProfileScreen extends ConsumerWidget {
           ),
         ],
       ),
-      // LUXE v2 (XL-08): the profile is informational — the gold ambient
-      // stays a whisper (α0.06), the hero username carries the brand moment.
-      body: VAurora(
-        gradients: const [AppGradients.gold],
-        opacity: 0.06,
-        child: showLoading
+      // LUXE v2 (XL-08): the profile is informational — the hero username
+      // carries the brand moment.
+      body: showLoading
             // U-22 handoff (U-23): the profile hero loads with the
             // `VSkeletonProfile` skeleton (avatar circle + name/handle/body
             // lines, §5.8/§6.3) instead of the bare spinner — the screen has
@@ -205,7 +201,6 @@ class ProfileScreen extends ConsumerWidget {
                   ],
                 ),
               ),
-      ),
     );
   }
 }

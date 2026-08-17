@@ -36,13 +36,6 @@ class AppGradient {
   }) {
     return LinearGradient(begin: begin, end: end, colors: colors, stops: stops);
   }
-
-  /// Radial fill gradient for aurora blobs ([VAurora] anchors) and
-  /// spotlight glows. Defaults to [Alignment.center]; pass [center] to
-  /// anchor a blob off-center.
-  RadialGradient radial({AlignmentGeometry center = Alignment.center}) {
-    return RadialGradient(center: center, colors: colors, stops: stops);
-  }
 }
 
 /// The LUXE gradient token layer — the single source of truth for every
@@ -146,8 +139,9 @@ abstract final class AppGradients {
   ///
   /// **NO PINK MAINS (2026-08-12 user directive):** rose is NOT assigned to
   /// any screen — it exists in the palette only as a possible micro-accent
-  /// inside ambient multi-color auroras, never as a screen's hero/display/
-  /// CTA gradient. Unknown keys fall back to [violet], the LUXE default.
+  /// inside ambient multi-color background washes, never as a screen's
+  /// hero/display/CTA gradient. Unknown keys fall back to [violet], the LUXE
+  /// default.
   static AppGradient familyOf(String screenKey) {
     return switch (screenKey) {
       'welcome' || 'signup' || 'profile_setup' || 'qr' => violet,

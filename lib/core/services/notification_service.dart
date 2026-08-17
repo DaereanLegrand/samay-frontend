@@ -1,3 +1,4 @@
+import 'package:samay/core/errors/app_error.dart';
 import 'package:samay/core/services/realtime_service.dart';
 import 'package:samay/core/services/rest_client.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -22,7 +23,7 @@ class NotificationService {
 
   Future<List<Map<String, dynamic>>> getNotifications() async {
     final user = auth.currentUser;
-    if (user == null) throw Exception('No authenticated user');
+    if (user == null) throw const UnauthorizedError();
     return rest.list<Map<String, dynamic>>(
       'notifications',
       fromJson: (row) => row,

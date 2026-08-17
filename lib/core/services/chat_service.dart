@@ -1,5 +1,7 @@
 import 'dart:async';
 
+import 'package:samay/core/config/chat_constants.dart';
+import 'package:samay/core/errors/app_error.dart';
 import 'package:samay/core/logging/app_logger.dart';
 import 'package:samay/core/services/message_plaintext_store.dart';
 import 'package:samay/core/services/realtime_service.dart';
@@ -15,12 +17,6 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 /// "Mensaje no descifrable" via l10n when the row carries
 /// `decryptFailed: true` (E2EE-ARCHITECTURE.md §12.2 step 6).
 const String chatUndecryptablePlaceholder = '[Mensaje no descifrable]';
-
-/// Mirror of the `chat.message_cap` app_config key (default 1000) enforced
-/// server-side by the `enforce_message_cap` trigger (TRIG spec / migration
-/// 20260809000001) — the plaintext store is pruned to this per chat so the
-/// local cache never outgrows what the server may store.
-const int chatMessageCap = 1000;
 
 /// Minimum interval between sender-key REQUEST rows for the same
 /// (chat, sender) on one device (2026-08-17 retry protocol). The request is
@@ -214,7 +210,7 @@ class ChatService {
 
   Future<List<Map<String, dynamic>>> loadMessages(String chatId, {int limit = 50, int offset = 0}) async {
     final user = auth.currentUser;
-    if (user == null) throw Exception('No authenticated user');
+    if (user == null) throw const UnauthorizedError();
     final stopwatch = Stopwatch()..start();
     final res = await client
         .from('messages')
@@ -289,7 +285,7 @@ class ChatService {
   ) async {
     final stopwatch = Stopwatch()..start();
     final user = auth.currentUser;
-    if (user == null) throw Exception('No authenticated user');
+    if (user == null) throw const UnauthorizedError();
     AppLogger.instance.debug(
       'chat sendMessage start chat=$chatId e2ee=$e2eeEnabled chars=${content.length}',
     );
@@ -433,7 +429,7 @@ class ChatService {
     final info = await _chatInfo(chatId);
     final groupId = info?.referenceId;
     if (groupId == null) {
-      throw Exception('Group chat $chatId has no reference_id');
+      throw const NotFoundError('Group chat');
     }
     // Roster with TTL (2026-08-17 latency fix): reuse the cached roster
     // while it is younger than [_groupRosterTtl] — the per-send SELECT is
@@ -699,7 +695,7 @@ class ChatService {
   /// cipher subtracts the sender itself when computing missing members.
   Future<Set<String>> _fetchRoster(String chatId) async {
     final user = auth.currentUser;
-    if (user == null) throw Exception('No authenticated user');
+    if (user == null) throw const UnauthorizedError();
     final res = await client
         .from('chat_participants')
         .select('user_id')
@@ -784,7 +780,7 @@ class ChatService {
     final data = Map<String, dynamic>.from(res as Map);
     final chatId = data['chatId'];
     if (chatId is! String) {
-      throw Exception('create_direct_chat returned no chatId');
+      throw const ServerError('create_direct_chat returned no chatId');
     }
     return chatId;
   }
@@ -799,7 +795,7 @@ class ChatService {
   /// the same per-chat cipher path as the thread).
   Future<List<Map<String, dynamic>>> fetchInbox() async {
     final user = auth.currentUser;
-    if (user == null) throw Exception('No authenticated user');
+    if (user == null) throw const UnauthorizedError();
     final res = await client.rpc('get_chat_inbox');
     return (res as List)
         .whereType<Map>()
@@ -812,7 +808,7 @@ class ChatService {
   /// first-page load of the thread.
   Future<void> markChatRead(String chatId) async {
     final user = auth.currentUser;
-    if (user == null) throw Exception('No authenticated user');
+    if (user == null) throw const UnauthorizedError();
     await client.rpc('mark_chat_read', params: {'p_chat_id': chatId});
   }
 
@@ -832,7 +828,7 @@ class ChatService {
   /// `read_receipts_enabled` is on (see [getReadReceiptsEnabled]).
   Future<void> markMessagesRead(String chatId) async {
     final user = auth.currentUser;
-    if (user == null) throw Exception('No authenticated user');
+    if (user == null) throw const UnauthorizedError();
     final isGroup = groupE2eeEnabled &&
         (await _chatInfo(chatId))?.type == 'group';
     await client.rpc(
@@ -877,7 +873,7 @@ class ChatService {
   /// `users_update_own` RLS policy; same seam as `discovery_opt_in`).
   Future<void> setReadReceiptsEnabled(bool value) async {
     final user = auth.currentUser;
-    if (user == null) throw Exception('No authenticated user');
+    if (user == null) throw const UnauthorizedError();
     await client
         .from('users')
         .update({'read_receipts_enabled': value})
@@ -1453,7 +1449,7 @@ class ChatService {
     final cached = _peerCache[chatId];
     if (cached != null) return cached;
     final user = auth.currentUser;
-    if (user == null) throw Exception('No authenticated user');
+    if (user == null) throw const UnauthorizedError();
     final res = await client
         .from('chat_participants')
         .select('user_id')
@@ -1472,7 +1468,7 @@ class ChatService {
         'chat resolvePeer FAILED chat=$chatId — no peer participant '
         '(RLS cp_read_participant / is_chat_participant mismatch?)',
       );
-      throw Exception('No peer participant in chat $chatId');
+      throw const NotFoundError('Chat peer');
     }
     final peer = peers.first;
     _peerCache[chatId] = peer;

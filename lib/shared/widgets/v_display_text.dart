@@ -21,7 +21,7 @@ import 'package:samay/core/design_tokens/app_typography.dart';
 ///
 /// NO EXTERNAL GLOW (user directive 2026-08-12: "glowing pulsation outside
 /// letters must be deleted") — there is deliberately no halo/boxShadow
-/// behind the text; the ambient glow lives in the screen's [VAurora] and
+/// behind the text; the ambient glow lives in the screen's background and
 /// the glass/button halos, never around the glyphs.
 ///
 /// Reduced motion (`MediaQuery.disableAnimationsOf(context)`) → static

@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:samay/core/design_tokens/app_gradients.dart';
 import 'package:samay/core/design_tokens/app_icon_sizes.dart';
 import 'package:samay/core/extensions/error_mapper.dart';
+import 'package:samay/core/models/event.dart';
 import 'package:samay/core/providers/service_providers.dart';
 import 'package:samay/core/router/route_paths.dart';
 import 'package:samay/features/events/logic/event_formatters.dart';
@@ -29,7 +30,7 @@ class GroupEventsTab extends ConsumerStatefulWidget {
 class _GroupEventsTabState extends ConsumerState<GroupEventsTab> {
   bool _loading = true;
   Object? _error;
-  List<Map<String, dynamic>> _events = const [];
+  List<Event> _events = const [];
 
   @override
   void initState() {
@@ -44,7 +45,7 @@ class _GroupEventsTabState extends ConsumerState<GroupEventsTab> {
     });
     try {
       final all = await ref.read(eventServiceProvider).listEvents();
-      final mine = all.where((e) => e['group_id'] == widget.groupId).toList();
+      final mine = all.where((e) => e.groupId == widget.groupId).toList();
       if (!mounted) return;
       setState(() {
         _events = mine;
@@ -101,27 +102,20 @@ class _GroupEventsTabState extends ConsumerState<GroupEventsTab> {
 /// One group-event row (hairline style, mirroring the members tab rows):
 /// name, date range and location; tap → event detail.
 class _EventRow extends StatelessWidget {
-  final Map<String, dynamic> event;
+  final Event event;
 
   const _EventRow({required this.event});
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    final name = event['name'] as String? ?? l10n.commonGroup;
-    final locationName = event['location_name'] as String?;
-    final startsAt = DateTime.tryParse(event['starts_at'] as String? ?? '');
-    final endsAt = DateTime.tryParse(event['ends_at'] as String? ?? '');
-    final dateText = startsAt != null && endsAt != null
-        ? formatEventDateRange(
-            startsAt,
-            endsAt,
-            Localizations.localeOf(context).languageCode,
-          )
-        : null;
+    final dateText = formatEventDateRange(
+      event.startsAt,
+      event.endsAt,
+      Localizations.localeOf(context).languageCode,
+    );
 
     return InkWell(
-      onTap: () => context.push(RoutePaths.eventDetail(event['id'] as String)),
+      onTap: () => context.push(RoutePaths.eventDetail(event.id)),
       child: Column(
         children: [
           ListTile(
@@ -131,13 +125,13 @@ class _EventRow extends StatelessWidget {
               size: AppIconSizes.md,
               color: AppGradients.violet.colors.first,
             ),
-            title: Text(name, maxLines: 1, overflow: TextOverflow.ellipsis),
+            title: Text(event.name, maxLines: 1, overflow: TextOverflow.ellipsis),
             subtitle: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                if (dateText != null) Text(dateText),
-                if (locationName != null && locationName.isNotEmpty)
-                  Text(locationName),
+                Text(dateText),
+                if (event.locationName != null && event.locationName!.isNotEmpty)
+                  Text(event.locationName!),
               ],
             ),
             trailing: const Icon(Icons.chevron_right, size: 20),

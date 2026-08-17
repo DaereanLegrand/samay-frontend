@@ -12,7 +12,6 @@ import 'package:samay/core/router/route_paths.dart';
 import 'package:samay/features/auth/logic/password_policy.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/show_app_error.dart';
-import 'package:samay/shared/widgets/v_aurora.dart';
 import 'package:samay/shared/widgets/v_button.dart';
 import 'package:samay/shared/widgets/v_display_text.dart';
 import 'package:samay/shared/widgets/v_input.dart';
@@ -124,80 +123,71 @@ class _SignupContactScreenState extends ConsumerState<SignupContactScreen> {
       // the hero owns the headline; the AppBar stays title-less for the back
       // affordance only.
       appBar: AppBar(),
-      body: VAurora(
-        gradients: [family],
-        // XL-16 (03_signup — density 3/10, minimalism 2/10): the aurora is a
-        // whisper on input surfaces; the glow lives in the hero + CTA only.
-        opacity: 0.05,
-        // §7.3: scroll-safe body (the OTP pattern, U-07) — the fixed Column
-        // overflows at ≥1.5× text scale on small phones; pins the CTA when
-        // the content fits and scrolls when it doesn't. Never clip.
-        child: LayoutBuilder(
-          builder: (context, constraints) => SingleChildScrollView(
-            child: ConstrainedBox(
-              constraints: BoxConstraints(minHeight: constraints.maxHeight),
-              child: IntrinsicHeight(
-                child: Padding(
-                  padding: const EdgeInsets.all(24),
-                  child: Column(
-                    children: [
-                      const SizedBox(height: 32),
-                      // §3.2 auth big header — LUXE v2: the VDisplayText
-                      // hero is the multi-color violet-family gradient
-                      // (pastel → vivid) with the slowly pulsating glow and
-                      // the once-only shimmer sweep — NOT pink (user
-                      // directive 2026-08-12); reduced-motion → static
-                      // mid-α halo.
-                      VDisplayText(
-                        text: l10n.authCreateYourAccount,
-                        gradient: family,
-                      ),
-                      // XL-19 (03_signup — still "dense", luxury 3/10): the
-                      // hero → fields rhythm tightens to 32 and the field
-                      // group reads at 16 — the 3 fields + CTA are ONE quiet
-                      // column, nothing else.
-                      const SizedBox(height: 32),
-                      VInput(
-                        controller: _emailController,
-                        label: l10n.commonEmail,
-                        keyboardType: TextInputType.emailAddress,
-                      ),
-                      const SizedBox(height: 16),
-                      VInput(
-                        controller: _passwordController,
-                        label: l10n.authPasswordWithRequirements,
-                        obscureText: true,
-                        // §5.2: validation errors ride the fields as
-                        // `errorText` (glowPink — never raw red on black).
-                        errorText: _passwordError,
-                      ),
-                      const SizedBox(height: 16),
-                      VInput(
-                        controller: _confirmController,
-                        label: l10n.commonConfirmPassword,
-                        obscureText: true,
-                        errorText: _confirmError,
-                      ),
-                      if (auth.hasError)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 16),
-                          child: Text(
-                            auth.errorMessage!,
-                            style: const TextStyle(color: AppColors.error),
-                          ),
+      body: LayoutBuilder(
+        builder: (context, constraints) => SingleChildScrollView(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minHeight: constraints.maxHeight),
+            child: IntrinsicHeight(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  children: [
+                    const SizedBox(height: 32),
+                    // §3.2 auth big header — LUXE v2: the VDisplayText
+                    // hero is the multi-color violet-family gradient
+                    // (pastel → vivid) with the slowly pulsating glow and
+                    // the once-only shimmer sweep — NOT pink (user
+                    // directive 2026-08-12); reduced-motion → static
+                    // mid-α halo.
+                    VDisplayText(
+                      text: l10n.authCreateYourAccount,
+                      gradient: family,
+                    ),
+                    // XL-19 (03_signup — still "dense", luxury 3/10): the
+                    // hero → fields rhythm tightens to 32 and the field
+                    // group reads at 16 — the 3 fields + CTA are ONE quiet
+                    // column, nothing else.
+                    const SizedBox(height: 32),
+                    VInput(
+                      controller: _emailController,
+                      label: l10n.commonEmail,
+                      keyboardType: TextInputType.emailAddress,
+                    ),
+                    const SizedBox(height: 16),
+                    VInput(
+                      controller: _passwordController,
+                      label: l10n.authPasswordWithRequirements,
+                      obscureText: true,
+                      // §5.2: validation errors ride the fields as
+                      // `errorText` (glowPink — never raw red on black).
+                      errorText: _passwordError,
+                    ),
+                    const SizedBox(height: 16),
+                    VInput(
+                      controller: _confirmController,
+                      label: l10n.commonConfirmPassword,
+                      obscureText: true,
+                      errorText: _confirmError,
+                    ),
+                    if (auth.hasError)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 16),
+                        child: Text(
+                          auth.errorMessage!,
+                          style: const TextStyle(color: AppColors.error),
                         ),
-                      const Spacer(),
-                      // §5.1 brand moment: the primary CTA is emphasized
-                      // with the violet-family gradient fill + black text.
-                      VButton.emphasized(
-                        label: l10n.commonCreateAccount,
-                        loading: auth.isLoading || _submitting,
-                        gradient: family,
-                        onPressed: _signup,
                       ),
-                      const SizedBox(height: 32),
-                    ],
-                  ),
+                    const Spacer(),
+                    // §5.1 brand moment: the primary CTA is emphasized
+                    // with the violet-family gradient fill + black text.
+                    VButton.emphasized(
+                      label: l10n.commonCreateAccount,
+                      loading: auth.isLoading || _submitting,
+                      gradient: family,
+                      onPressed: _signup,
+                    ),
+                    const SizedBox(height: 32),
+                  ],
                 ),
               ),
             ),

@@ -113,23 +113,23 @@ abstract final class AppColors {
   // black. They are meant for gradient layers / glow tints — decorative
   // fills at low alpha — never for body text roles (use `white`/`mutedStrong`).
 
-  /// LUXE rose family light end (#FFD6E8). 16.04:1 — AAA.
-  static const Color pastelRose = Color(0xFFFFD6E8);
+  /// LUXE rose family light end (#FF8CBE). 9.75:1 — AAA.
+  static const Color pastelRose = Color(0xFFFF8CBE);
 
-  /// LUXE violet family light end (#E3D9FF). 15.64:1 — AAA.
-  static const Color pastelViolet = Color(0xFFE3D9FF);
+  /// LUXE violet family light end (#BFA5FA). 9.98:1 — AAA.
+  static const Color pastelViolet = Color(0xFFBFA5FA);
 
-  /// LUXE cyan family light end (#D6F7FF). 18.61:1 — AAA.
-  static const Color pastelCyan = Color(0xFFD6F7FF);
+  /// LUXE cyan family light end (#73F1FF). 15.75:1 — AAA.
+  static const Color pastelCyan = Color(0xFF73F1FF);
 
-  /// LUXE gold family light end (#FFF3D6). 19.04:1 — AAA.
-  static const Color pastelGold = Color(0xFFFFF3D6);
+  /// LUXE gold family light end (#FFE19D). 16.51:1 — AAA.
+  static const Color pastelGold = Color(0xFFFFE19D);
 
-  /// LUXE mint family light end (#D8FFEE). 19.46:1 — AAA.
-  static const Color pastelMint = Color(0xFFD8FFEE);
+  /// LUXE mint family light end (#91F1CD). 15.66:1 — AAA.
+  static const Color pastelMint = Color(0xFF91F1CD);
 
-  /// LUXE peach family light end (#FFE6D9). 17.57:1 — AAA.
-  static const Color pastelPeach = Color(0xFFFFE6D9);
+  /// LUXE peach family light end (#FFCCBB). 14.60:1 — AAA.
+  static const Color pastelPeach = Color(0xFFFFCCBB);
 
   /// LUXE mint family vivid end (#37E6A5). 13.02:1 — AAA.
   static const Color mint = Color(0xFF37E6A5);

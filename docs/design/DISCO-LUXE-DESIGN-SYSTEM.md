@@ -29,7 +29,7 @@ gradient map), `docs/design/DISCO-DESIGN-SYSTEM.md` (v1.1 — superseded where n
 |---|--------|------|
 | L1 | **Black always** | `scaffoldBackgroundColor` is `#000000` in every screen, sheet, dialog (inherited from v1.1 P1 — unchanged). No light mode, no gray page background. |
 | L2 | **Pastel gradients, watered with white** | Every accent is a *gradient* — text, borders, buttons, glows. Never a flat single-color accent (directive #2). Colors are pastels mixed toward white; vivid hues appear only at low alpha inside glow/gradient layers or as the display-text shader (directive #3). |
-| L3 | **NO PINK MAINS** | `rose` is NOT a main color anywhere (user directive 2026-08-12). Rose survives only as a possible micro-accent inside ambient multi-color auroras (low alpha), never as a screen's hero, display, or CTA gradient. `AppGradients.familyOf` default = **violet**, and every shared widget's accent default (VButton.glowAccent, VBadge.accent, VChip.accent, VCountBadge) is violet. Pink remains only in error semantics (`AppColors.error`/`errorFill` — the documented exception). Gemma critiques MUST flag pink dominance as a critical defect (see §7). |
+| L3 | **NO PINK MAINS** | `rose` is NOT a main color anywhere (user directive 2026-08-12). Rose survives only as a possible micro-accent inside ambient multi-color background washes (low alpha), never as a screen's hero, display, or CTA gradient. `AppGradients.familyOf` default = **violet**, and every shared widget's accent default (VButton.glowAccent, VBadge.accent, VChip.accent, VCountBadge) is violet. Pink remains only in error semantics (`AppColors.error`/`errorFill` — the documented exception). Gemma critiques MUST flag pink dominance as a critical defect (see §7). |
 | L4 | **Glow pulsates slowly** | Ambient halos breathe on a **3.8s** ease-in-out α ramp (non-negotiable 5: 3.6–4s), reduced-motion → static at a fixed α. See §5. |
 | L5 | **Playfair ONLY uppercase** | Playfair Display **bold** (no italics — user directive 2026-08-14) is the display voice and renders **MAYUS** — enforced by the shared `VDisplayText` widget (`text.toUpperCase()`), never at call sites (directive #6). Everything else is Inter. |
 | L6 | **Inputs are glass, never underline** | NO underline inputs (directive #7). All fields are liquid-glass slabs: radius-16 shell, 1px gradient ring, `surfaceAlt` α0.5 fill, floating label, focus glow. |
@@ -56,24 +56,24 @@ token layer. Stops are always `[0.0, 0.5, 1.0]`.
 
 | Family | Stops `[0.0, 0.5, 1.0]` (pastel → mid → vivid) | Vivid end aliases |
 |---|---|---|
-| `violet` | `#E3D9FF` → `#B79CFF` → `#8B5CF6` | `AppColors.discoViolet` |
-| `cyan` | `#D6F7FF` → `#7FE9FF` → `#00E5FF` | `AppColors.discoCyan` |
-| `gold` | `#FFF3D6` → `#FFDF99` → `#FFC94D` | `AppColors.discoGold` |
-| `mint` | `#D8FFEE` → `#8BFFD9` → `#37E6A5` | `AppColors.mint` (new) |
-| `peach` | `#FFE6D9` → `#FFC09E` → `#FF8A65` | `AppColors.peach` (new) |
-| `rose` | `#FFD6E8` → `#FF8AC2` → `#FF2E88` | `AppColors.glowPink` — **micro-accent only (L3)** |
+| `violet` | `#BFA5FA` → `#B79CFF` → `#8B5CF6` | `AppColors.discoViolet` |
+| `cyan` | `#73F1FF` → `#7FE9FF` → `#00E5FF` | `AppColors.discoCyan` |
+| `gold` | `#FFE19D` → `#FFDF99` → `#FFC94D` | `AppColors.discoGold` |
+| `mint` | `#91F1CD` → `#8BFFD9` → `#37E6A5` | `AppColors.mint` (new) |
+| `peach` | `#FFCCBB` → `#FFC09E` → `#FF8A65` | `AppColors.peach` (new) |
+| `rose` | `#FF8CBE` → `#FF8AC2` → `#FF2E88` | `AppColors.glowPink` — **micro-accent only (L3)** |
 
 The 6 light ends + the 2 new vivid ends are canonical tokens (contrast vs black, computed with the
 `AppColors.contrastRatio` formula):
 
 | Token | Hex | Contrast vs `#000000` |
 |---|---|---|
-| `pastelRose` | `#FFD6E8` | 16.04:1 — AAA |
-| `pastelViolet` | `#E3D9FF` | 15.64:1 — AAA |
-| `pastelCyan` | `#D6F7FF` | 18.61:1 — AAA |
-| `pastelGold` | `#FFF3D6` | 19.04:1 — AAA |
-| `pastelMint` | `#D8FFEE` | 19.46:1 — AAA |
-| `pastelPeach` | `#FFE6D9` | 17.57:1 — AAA |
+| `pastelRose` | `#FF8CBE` | 9.75:1 — AAA |
+| `pastelViolet` | `#BFA5FA` | 9.98:1 — AAA |
+| `pastelCyan` | `#73F1FF` | 15.75:1 — AAA |
+| `pastelGold` | `#FFE19D` | 16.51:1 — AAA |
+| `pastelMint` | `#91F1CD` | 15.66:1 — AAA |
+| `pastelPeach` | `#FFCCBB` | 14.60:1 — AAA |
 | `mint` | `#37E6A5` | 13.02:1 — AAA |
 | `peach` | `#FF8A65` | 9.08:1 — AA/AAA |
 
@@ -121,7 +121,14 @@ Rules:
 
 | Surface type | Recipe | Where |
 |---|---|---|
-| Fills & borders (glass chrome, cards, buttons, badges) | **watered ≤ 0.5 mix** (canonical: 0.4; chat bubbles 0.45; unread dot 0.45; party-finder chips 0.35) | §4 |
+| Fills & borders (glass chrome, cards, buttons, badges) | **watered ≤ 0.5 mix** (canonical: 0.4; unread dot 0.45; party-finder chips 0.35) | §4 |
+
+> **Chat bubbles are the exception (since 2026-08-15):** the chat UI/UX overhaul
+> made own bubbles **solid white** (black text, no gradient/glow/hairline) and
+> peer bubbles **white-only glass** — neither rides a watered family fill. The
+> family survives in chat only as the group sender-name tint (pastel tokens,
+> §2.1). Full bubble spec: DISCO-DESIGN-SYSTEM §4.2 (radius) + the 2026-08-15
+> overhaul log (`docs/history/phase-07-chat/2026-08-15_chat-ui-ux-overhaul.md`).
 | Display-text shader (`VDisplayText`) | **raw family** — the vivid end's only major home | §3 |
 | 1px accents & tiny dots | raw family mid/vivid at low α, or watered mid tones | §2.2 usage, §4 |
 
@@ -129,17 +136,16 @@ So: saturated color survives ONLY in the display shader, the 1px ring accents, a
 everywhere else rides the watered run. Uniform across families (0.4 chosen because it lands the vivid
 end far enough toward white to read "pastel chrome" while the α0.18 border ring keeps a visible hue).
 
-### 2.5 Aurora rules (`VAurora`)
+### 2.5 Ambient background — REMOVED (`VAurora` deleted 2026-08-17)
 
-- **One per screen, max.** 2–3 huge radial blobs, diameter ≈ 1.5× the long edge, anchored mostly
-  off-screen (top-left / top-right / bottom-center).
-- Blob alpha **0.03–0.10** (the whisper range). Form screens: **0.03–0.05** (inputs are surfaces, not
-  brand moments). Default component α = 0.10.
-- Default blob family set = **`[cyan, violet, mint]`** — rose is NOT in the default set (L3; rose may
-  appear only as an explicit micro-accent override).
-- Drift: one shared 10s orbit (`auroraDrift`), per-blob sin/cos phases, ±12px — "barely there"
-  motion. Reduced motion → static base positions, zero tickers.
-- Auras may double as the screen's brand wash (welcome: `[violet, cyan]`).
+The `VAurora` widget (2–3 huge drifting radial pastel blobs at α0.03–0.10, one per screen)
+was **deleted entirely** on 2026-08-17 (user directive — the "rounded blueish glow"
+artifact on pure black). Applied: `lib/shared/widgets/v_aurora.dart` removed, `.radial()`
+dropped from `AppGradient`, and all 46 screens were unwrapped. There is no ambient
+background component today. Instead, screens render directly on the always-black Scaffold
+(L1) and let their family supply the color moments — the `VDisplayText` shader, the primary
+`glowAccent` CTA halo, and the 1px ring / micro-accent layer (§2.4). No new ambient widget
+is planned.
 
 ---
 
@@ -160,7 +166,8 @@ role (v1.1 §3.2's exhaustive Playfair list is hereby routed through it):
   t=1, never restarts, reduced-motion → none.
 - **NO EXTERNAL GLOW — the halo was deleted (2026-08-12 user directive: "glowing pulsation outside
   letters must be deleted").** There is deliberately no boxShadow/halo behind display glyphs. The
-  ambient glow lives in the screen's `VAurora` and the glass/button halos — never around the text.
+  ambient glow lives in the glass/button halos — never around the text (the former `VAurora`
+  ambient layer was removed 2026-08-17, §2.5).
 - Sizes map to the v1.1 roles: 64 `displayLarge`, 40 `displayMedium` (default), 32 `displaySmall`,
   28 `headlineLarge`; ~~neutral tracking (no negative letter-spacing — the LUXE display voice
   breathes)~~.
@@ -216,7 +223,7 @@ Geometry: radius **0** for cards (brutalism) / **16–20** for chips, inputs, sh
 | Surface | glowAlpha ceiling |
 |---|---|
 | Cards (`VGlassCard` default) | **≤ 0.18** |
-| Data screens (ledger header 0.10, balance card 0.12, group hero 0.12, podium 0.12) | **≤ 0.12** |
+| Data screens (ledger header 0.10, balance card 0.12, podium 0.12) | **≤ 0.12** |
 | Hero/id moments | 0.12–0.22 (OTP field halo 0.22/blur 24 is the top end) |
 | Buttons (`VButton.glowAccent`) | 0.35 (the one brand-moment halo) |
 
@@ -273,7 +280,6 @@ used by `VGlass`, `VButton`, chips, inputs, sheets).
 
 | Widget | Spec |
 |---|---|
-| `VAurora` | §2.5. One per screen. |
 | `VGlowPulse` | generic halo pulse: `glowShadows` α **0.35 ↔ 0.7**, `glowPulse` 3800ms easeInOut alternate + 300ms static settle; reduced → static α0.55. |
 | `VThinkingDots` | 3 dots, staggered α0.4 ↔ 1.0 wave, 900ms; `mutedStrong` default (accents stay minimal — luxury = restraint); reduced → static α1.0. Used in the chat composer. |
 | `VDisplayText` | §3.1. |
@@ -309,7 +315,7 @@ Error surfaces keep `glowPink` via the semantic `error` alias — the documented
 | `liveDotPulse` | 1500ms | live-dot α pulse |
 | `motionCycleRest` | 300ms | idle-safe static settle between every glow/pulse cycle (test-deterministic engine) |
 | **`glowPulse`** | **3800ms** | `VGlowPulse` halo alternate (the campaign's 3.6–4s directive) |
-| **`auroraDrift`** | **10000ms** | `VAurora` blob orbit |
+| **`auroraDrift`** | **10000ms** | legacy/locked — no active consumers after the `VAurora` removal (2026-08-17) |
 | **`thinkingDot`** | **900ms** | `VThinkingDots` staggered pulse |
 | **`glassHover`** | **150ms** | glass hover/focus accent transition (chips, glass controls) |
 | **`displaySweep`** | **900ms** | once-only shimmer sweep on hero text (`VDisplayText`) |
@@ -322,14 +328,13 @@ Error surfaces keep `glowPink` via the semantic `error` alias — the documented
 
 ### 5.2 Motion contract
 
-- Ambient motion set (per component): `VGlowPulse` α0.35↔0.7 on 3800ms; `VAurora` 10s drift;
-  `VThinkingDots` 900ms wave; `VDisplayText` once-only 900ms sweep; v1.1 set unchanged (glowBreath,
+- Ambient motion set (per component): `VGlowPulse` α0.35↔0.7 on 3800ms; `VThinkingDots` 900ms wave; `VDisplayText` once-only 900ms sweep; v1.1 set unchanged (glowBreath,
   shimmer, liveDotPulse).
 - Idle-safe engine (inherited D-7/U-18): each cycle = alternate + **300ms static settle**
   (`motionCycleRest`) so `pumpAndSettle`-based tests land deterministically; `isAnimating` guard
   absorbs late timer ticks.
 - **Reduced-motion contract** (`MediaQuery.disableAnimationsOf(context)`): every ambient animation
-  freezes at a static value — `VGlowPulse` α0.55, `VAurora` base positions, `VThinkingDots` α1.0,
+  freezes at a static value — `VGlowPulse` α0.55, `VThinkingDots` α1.0,
   `VDisplayText` no sweep, `VBreathingGlow`/`VStatusDot` α1.0, `VShimmer` static blocks, `VTabFade`
   static. Zero tickers (`transientCallbackCount == 0` pinned in the XL-04 suites).
 - No scale, bounce, elastic, rotation, flash, or hue rotation anywhere (inherited v1.1 §6.1).
@@ -357,8 +362,7 @@ Post-`gemma_critique` fixes (rounds 1–3, XL-16..XL-19) distilled into the cano
    watered run (§2.4). One accent surface per screen; a second full-strength accent is spray.
 6. **No duplicate titles** (no AppBar title duplicating the hero), no redundant hints echoing labels,
    no decorative avatars/ornaments (`CircleAvatar` placeholder removed from profile-setup).
-7. **Aurora whisper on forms:** α0.03–0.05 (age-gate even drops to a single blob).
-8. **Status lives in the label, not the color** (v1.1 §2.5 rule 5): event badges went neutral —
+7. **Status lives in the label, not the color** (v1.1 §2.5 rule 5): event badges went neutral —
    peach stays only on the hero + CTA; the unread dot is watered gold, never saturated.
 
 ---
@@ -410,7 +414,7 @@ Per-round results and fixes were tracked in `docs/history/phase-04-luxe/GEMMA-RO
 | §4.1 glass | `lib/shared/widgets/glass/` (v_glass, v_gradient_border, glass barrel) | XL-02 (glow discipline XL-17) | DONE |
 | §4.2 buttons | `lib/shared/widgets/v_button.dart` | XL-14 | DONE |
 | §4.3 inputs + theme | `v_input.dart`, `app_theme.dart` | XL-03 (OTP gold slab XL-18) | DONE |
-| §4.4 ambient/AI widgets | `v_aurora.dart`, `v_glow_pulse.dart`, `v_thinking_dots.dart`, `main_shell.dart` | XL-04, XL-06 | DONE |
+| §4.4 ambient/AI widgets | `v_glow_pulse.dart`, `v_thinking_dots.dart`, `main_shell.dart` (~~`v_aurora.dart`~~ deleted 2026-08-17, §2.5) | XL-04, XL-06 | DONE |
 | §4.5 gradient-capable sweep | `v_badge.dart`, `v_chip.dart`, `v_count_badge.dart`, `v_glow_text.dart`, `v_breathing_glow.dart`, `v_disco_divider.dart` | XL-14 | DONE |
 | §5 motion tokens | `lib/core/theme/samay_durations.dart` | U-18, XL-04 | DONE |
 | §6 decluttered screens (auth) | 9 auth screens | XL-05 (declutter XL-16, polish XL-19) | DONE |
@@ -425,7 +429,7 @@ Per-round results and fixes were tracked in `docs/history/phase-04-luxe/GEMMA-RO
    the `AppGradient` const + `all`/`familyOf` entries in `app_gradients.dart`, add a row to §2.1/§2.2
    — never ad-hoc gradients in features.
 2. **New screen:** resolve the family via `AppGradients.familyOf(key)` (extend the map if new),
-   one `VAurora` (α0.03–0.10, no rose), one `VDisplayText` hero, one `glowAccent` primary, glass
+   one `VDisplayText` hero, one `glowAccent` primary, glass
    inputs, hairline data rows; check the §6 checklist.
 3. **New component:** compose from tokens + shared widgets; default accent family violet; ship a
    widget test + reduced-motion pin.
@@ -450,4 +454,6 @@ Per-round results and fixes were tracked in `docs/history/phase-04-luxe/GEMMA-RO
 
 | Date | Change |
 |---|---|
+| 2026-08-17 | `VAurora` ambient background deleted (user directive — the "rounded blueish glow" artifact on pure black): `v_aurora.dart` removed, `.radial()` dropped from `AppGradient`, all 46 screens unwrapped. §2.5 rewritten to record the removal; §4.4 row, §5.2 motion contract, §6 rule 7, and §8 screen-assembly cleaned. `auroraDrift` token stays (locked, no consumers). |
+| 2026-08-16 | Pastel light ends re-saturated for the UI/UX pass (`#FFD6E8`→`#FF8CBE` 9.75:1, `#E3D9FF`→`#BFA5FA` 9.98:1, `#D6F7FF`→`#73F1FF` 15.75:1, `#FFF3D6`→`#FFE19D` 16.51:1, `#D8FFEE`→`#91F1CD` 15.66:1, `#FFE6D9`→`#FFCCBB` 14.60:1 — all still AAA vs black; §2.1 tables updated). Chat-bubble watering row removed — own bubbles solid white, peer bubbles white glass since 2026-08-15 (§2.4 note). "group hero 0.12" glow row dropped — group-detail hero banner deleted (G4/USER FIX 4, 2026-08-16). |
 | 2026-08-12 | v2.0 authored by XL-21 — the LUXE delta spec, reconciled against the code post-XL-19 (gradients XL-01, glass XL-02, typography/inputs/theme XL-03, motion XL-04, screens XL-05..XL-13, widget sweep XL-14, harness XL-15, declutter rounds XL-16..XL-19). |

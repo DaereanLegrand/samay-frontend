@@ -79,8 +79,8 @@ missing, not because the harness is broken.
   Go suites. The validation gate is: `make test` (now `test-all`: flutter unit/widget + Go +
   backend static gates opt-005/opt-007 + hermetic integration suite) and `make check`
   (`dart analyze` + `flutter analyze` + `go vet` + `tools/check_ports.sh --strict`).
-- Compare against the documented baseline (§3.6): **2209 pass / 0 failures** (Flutter),
-  `go test ./...` green (182 tests), **`dart analyze` 0 issues** (re-verified 2026-08-13). If you see *new*
+- Compare against the documented baseline (§3.6): **2440 pass / 0 failures** (Flutter),
+  `go test ./...` green (182 tests), **`dart analyze` 0 issues** (re-verified 2026-08-16). If you see *new*
   failures or *new* analyze issues, they are yours — fix them before moving on.
 - Verify against the spec docs (the PLAN checklist).
 - Update `docs/specs/steps/cross-references.md` if dependencies changed (D-02 owns the file
@@ -207,7 +207,7 @@ are. Always pass `--owner`.
 
 - **One file per module/feature**: `integration_test/auth_flow_test.dart`,
   `integration_test/events_flow_test.dart`, `integration_test/chat_flow_test.dart`, …
-  (18 registered flows in `runner.sh`; ghost entries removed with an in-file note)
+  (19 registered flows in `runner.sh`; ghost entries removed with an in-file note)
 - **`integration_test/README.md`** — philosophy, prerequisites, per-file and
   whole-suite run instructions, and the template for new flow files.
 - **`integration_test/runner.sh`** — whole-suite orchestrator: runs every
@@ -250,10 +250,11 @@ bash integration_test/runner.sh -d <device-id>               # whole suite, on d
 
 ### 3.3 Backend curl opt-tests — `test/opt-NNN-*.sh`
 
-- **Naming**: `test/opt-NNN-description.sh` (e.g. `opt-001-rls-security.sh`). **opt-001..008
-  exist** (I-76/I-77/8a2f82d): live suite = 001 (RLS/security), 002 (events), 003 (chat/E2EE),
-  004 (photos), 006 (minigames/QR); static gates = 005 (seed-dev), 007 (compose/parity),
-  008 (Makefile). `test/run_all_backend.sh` globs every `opt-*.sh`.
+- **Naming**: `test/opt-NNN-description.sh` (e.g. `opt-001-rls-security.sh`). **opt-001..011
+  exist** (I-76/I-77/8a2f82d + ISSUE 4 group work): live suite = 001 (RLS/security), 002 (events),
+  003 (chat/E2EE), 004 (photos), 006 (minigames/QR), 009 (groups chain), 010 (groups chat), 011
+  (groups reads); static gates = 005 (seed-dev), 007 (compose/parity), 008 (Makefile).
+  `test/run_all_backend.sh` globs every `opt-*.sh`.
 - **Self-contained**: create their own test users via the admin auth API, seed via
   `service_role`, run assertions as anon/authenticated, clean up on exit (`trap`).
 - **Exit contract**: `exit 0` on success, `exit 1` on failure. Each file runs standalone:
@@ -272,7 +273,7 @@ bash integration_test/runner.sh -d <device-id>               # whole suite, on d
 
 ### 3.4 Go tests — `*_test.go`
 
-- Standard `go test ./...` (182 tests as of 2026-08-13 — 82 at the campaign baseline).
+- Standard `go test ./...` (182 tests as of 2026-08-16 — 82 at the campaign baseline).
 - CLI flag/validation behavior tested in `cmd/samay-admin/*_test.go`; business logic in
   `internal/ops/*_test.go` against `net/http/httptest` servers (see
   `internal/ops/users_test.go` — `newTestClientWithLog` returns a fake PostgREST server and a
@@ -287,7 +288,8 @@ bash integration_test/runner.sh -d <device-id>               # whole suite, on d
 - **`plan(N)` must equal the actual number of test SELECTs.** Count rule: `SELECT` lines in
   the file minus the `plan(...)`, minus `finish()`, minus any *nested* SELECTs inside
   `ok(NOT EXISTS (...))`-style expressions. (D-04 verified 129 after the signup_tracker sync;
-  the suite grew to plan 385 with I-77/S-03 + the 20260814 migration set.)
+  the suite grew to plan 385 with I-77/S-03 + the 20260814 migration set, then to **plan 494**
+  with the 20260815..17 chat/read-receipt/group-chat migration sets.)
   When you add assertions, update the plan count — a mismatched plan makes pgTAP fail loudly.
 - Run: `supabase db test` (requires the stack + CLI; use `make supabase-db-test` for the
   self-hosted stack with `--db-url`, or the psql fallback in the Makefile — ports are live, §4.1).
@@ -298,14 +300,14 @@ bash integration_test/runner.sh -d <device-id>               # whole suite, on d
 
 | Suite | Command | Baseline |
 |---|---|---|
-| Flutter unit/widget | `make flutter-test` | **2209 pass / 0 failures** (re-verified 2026-08-13) |
+| Flutter unit/widget | `make flutter-test` | **2440 pass / 0 failures** (re-verified 2026-08-16) |
 | Go | `go test ./...` | green (182 tests, 5 packages) |
 | Static analysis | `make flutter-analyze` | **0 issues** |
-| Backend curl | `bash test/run_all_backend.sh` | **8/8 opt-tests** (needs the stack up + migrated) |
-| pgTAP | `supabase db test` | **385 assertions** (needs the stack up; psql fallback documented in the Makefile) |
+| Backend curl | `bash test/run_all_backend.sh` | **11/11 opt-tests** (needs the stack up + migrated) |
+| pgTAP | `supabase db test` | **494 assertions** (needs the stack up; psql fallback documented in the Makefile) |
 
 No pre-existing failures remain (I-47 fixed the 23; the pgTAP plan-consistency guard tests
-were updated for the 385-assertion suite in 2026-08-13).
+were updated for the 494-assertion suite in 2026-08-16).
 
 **Rule:** any new failure, new analyze error, or changed failure *set* must be explained and
 fixed by the agent/human who introduced it. "Matches the baseline" means *exactly* the same
@@ -437,7 +439,7 @@ tools/agent_lock.sh acquire <path> --owner "$AGENT_NAME"
 tools/agent_lock.sh release <path> --owner "$AGENT_NAME"
 tools/agent_lock.sh run <path> --owner "$AGENT_NAME" -- <cmd>
 
-flutter test                                     # unit/widget (2209 pass / 0 fail)
+flutter test                                     # unit/widget (2440 pass / 0 fail)
 dart analyze                                     # 0 issues
 go test ./...                                    # 182 pass
 make test                                        # make test-all: unit + go + static gates + integration

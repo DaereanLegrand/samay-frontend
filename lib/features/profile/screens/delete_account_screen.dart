@@ -8,7 +8,6 @@ import 'package:samay/core/providers/auth_provider.dart';
 import 'package:samay/core/providers/service_providers.dart';
 import 'package:samay/core/router/route_paths.dart';
 import 'package:samay/l10n/app_localizations.dart';
-import 'package:samay/shared/widgets/v_aurora.dart';
 import 'package:samay/shared/widgets/v_button.dart';
 import 'package:samay/shared/widgets/v_input.dart';
 
@@ -93,15 +92,12 @@ class _DeleteAccountScreenState extends ConsumerState<DeleteAccountScreen> {
 
     return Scaffold(
       appBar: AppBar(title: Text(l10n.profileDeleteTitle)),
-      // LUXE v2 (XL-08): faint gold ambient — the delete screen owns the gold
-      // family; the danger stays in the semantic error, never the family.
-      body: VAurora(
-        gradients: const [AppGradients.gold],
-        opacity: 0.06,
-        // §7.3: scroll-safe body (the OTP pattern, U-07) — the fixed Column
-        // overflows at ≥1.5× text scale on small phones; pins the CTA when
-        // the content fits and scrolls when it doesn't. Never clip.
-        child: LayoutBuilder(
+      // LUXE v2 (XL-08): the delete screen owns the gold family; the danger
+      // stays in the semantic error, never the family.
+      // §7.3: scroll-safe body (the OTP pattern, U-07) — the fixed Column
+      // overflows at ≥1.5× text scale on small phones; pins the CTA when
+      // the content fits and scrolls when it doesn't. Never clip.
+      body: LayoutBuilder(
           builder: (context, constraints) => SingleChildScrollView(
             child: ConstrainedBox(
               constraints: BoxConstraints(minHeight: constraints.maxHeight),
@@ -146,7 +142,6 @@ class _DeleteAccountScreenState extends ConsumerState<DeleteAccountScreen> {
             ),
           ),
         ),
-      ),
     );
   }
 }

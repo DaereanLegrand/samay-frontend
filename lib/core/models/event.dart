@@ -16,11 +16,17 @@ abstract class Event with _$Event {
     required String status,
     required DateTime startsAt,
     required DateTime endsAt,
+    String? description,
     String? groupId,
     String? locationName,
     String? coverUrl,
+    String? createdByUserId,
+    String? joinMode,
     @Default(false) bool featured,
+    @Default(false) bool preshardsDistributed,
     @Default(0) int preshardsPool,
+    int? preshardsCapPerUser,
+    String? preshardsRemainderAction,
   }) = _Event;
 
   factory Event.fromJson(Map<String, dynamic> json) => _$EventFromJson(json);

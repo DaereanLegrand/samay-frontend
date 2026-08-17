@@ -128,7 +128,7 @@ TUNNEL_WAYDROID_CMD ?= flutter run $(PUB_FLAG) $(FLUTTER_DEFINES) -d localhost:$
 define tunnel-android
   HOST="$(TUNNEL_HOST)"; [ -n "$$HOST" ] || { echo "TUNNEL_HOST is required"; exit 2; }; \
   (trap 'kill $$SSH_PID 2>/dev/null; adb disconnect localhost:$(TUNNEL_ANDROID_PORT) 2>/dev/null' EXIT; \
-   ssh -N -L $(TUNNEL_ANDROID_PORT):127.0.0.1:5555 "$$HOST" & SSH_PID=$$!; sleep 1; \
+   ssh -N -L $(TUNNEL_ANDROID_PORT):127.0.0.1:5555 "$$HOST" & SSH_PID=$$!; sleep 3; \
    adb connect localhost:$(TUNNEL_ANDROID_PORT); \
    $(1))
 endef
@@ -137,7 +137,7 @@ define tunnel-waydroid
   HOST="$(TUNNEL_HOST)"; [ -n "$$HOST" ] || { echo "TUNNEL_HOST is required"; exit 2; }; \
   WIP=$$(ssh "$$HOST" "waydroid status | awk '/IP address/ {print \$$3}'"); \
   (trap 'kill $$SSH_PID 2>/dev/null; adb disconnect localhost:$(TUNNEL_WAYDROID_PORT) 2>/dev/null' EXIT; \
-   ssh -N -L $(TUNNEL_WAYDROID_PORT):$$WIP:5555 "$$HOST" & SSH_PID=$$!; sleep 1; \
+   ssh -N -L $(TUNNEL_WAYDROID_PORT):$$WIP:5555 "$$HOST" & SSH_PID=$$!; sleep 3; \
    adb connect localhost:$(TUNNEL_WAYDROID_PORT); \
    $(1))
 endef
@@ -316,11 +316,16 @@ dev:
 			flutter run $(PUB_FLAG) $(FLUTTER_DEFINES); \
 		fi; \
 	elif [ "$(TARGET)" = "simulator" ]; then \
-		DEV=$$(xcrun simctl list devices booted | awk -F '[()]' '/Booted/ {print $$2}' | head -1); \
-		if [ -z "$$DEV" ]; then \
+		DEVS=$$(xcrun simctl list devices booted | awk -F '[()]' '/Booted/ {print $$2}'); \
+		if [ -z "$$DEVS" ]; then \
 			DEV=$$(xcrun simctl list devices available | awk -F '[()]' '/iPhone/ {print $$2; exit}'); \
 			xcrun simctl boot "$$DEV"; \
 			open -a Simulator; \
+		elif [ $$(echo "$$DEVS" | wc -l | tr -d ' ') -eq 1 ]; then \
+			DEV=$$DEVS; \
+		else \
+			echo "$$DEVS" | gum choose --header "Pick a simulator:" > /tmp/_sim_pick && \
+			DEV=$$(cat /tmp/_sim_pick); \
 		fi; \
 		flutter run $(PUB_FLAG) $(FLUTTER_DEFINES) -d "$$DEV"; \
 	elif [ "$(TARGET)" = "ios" ]; then \
@@ -410,11 +415,16 @@ install:
 			echo "❌  Simulator app not found at $$APP. Run 'make build TARGET=simulator' first."; \
 			exit 1; \
 		fi; \
-		DEV=$$(xcrun simctl list devices booted | awk -F '[()]' '/Booted/ {print $$2}' | head -1); \
-		if [ -z "$$DEV" ]; then \
+		DEVS=$$(xcrun simctl list devices booted | awk -F '[()]' '/Booted/ {print $$2}'); \
+		if [ -z "$$DEVS" ]; then \
 			DEV=$$(xcrun simctl list devices available | awk -F '[()]' '/iPhone/ {print $$2; exit}'); \
 			xcrun simctl boot "$$DEV"; \
 			open -a Simulator; \
+		elif [ $$(echo "$$DEVS" | wc -l | tr -d ' ') -eq 1 ]; then \
+			DEV=$$DEVS; \
+		else \
+			echo "$$DEVS" | gum choose --header "Pick a simulator:" > /tmp/_sim_pick && \
+			DEV=$$(cat /tmp/_sim_pick); \
 		fi; \
 		echo "📱  Installing $$APP to simulator: $$DEV"; \
 		xcrun simctl install "$$DEV" "$$APP" && \
@@ -506,15 +516,23 @@ uninstall:
 			echo "✅  Uninstalled $(APP_ID) from device $$DEVICE"; \
 		fi; \
 	elif [ "$(TARGET)" = "simulator" ]; then \
-		DEV=$$(xcrun simctl list devices booted | awk -F '[()]' '/Booted/ {print $$2}' | head -1); \
-		if [ -z "$$DEV" ]; then \
+		DEVS=$$(xcrun simctl list devices booted | awk -F '[()]' '/Booted/ {print $$2}'); \
+		if [ -z "$$DEVS" ]; then \
 			echo "⚠️  no booted simulator — skipped."; \
-		elif ! xcrun simctl get_app_container "$$DEV" "$(APP_ID)" >/dev/null 2>&1; then \
-			echo "⚠️  $(APP_ID) not installed on simulator — nothing to do."; \
 		else \
-			echo "📱  Uninstalling $(APP_ID) from simulator: $$DEV"; \
-			xcrun simctl uninstall "$$DEV" "$(APP_ID)" && \
-			echo "✅  Uninstalled $(APP_ID) from simulator $$DEV"; \
+			if [ $$(echo "$$DEVS" | wc -l | tr -d ' ') -eq 1 ]; then \
+				DEV=$$DEVS; \
+			else \
+				echo "$$DEVS" | gum choose --header "Pick a simulator:" > /tmp/_sim_pick && \
+				DEV=$$(cat /tmp/_sim_pick); \
+			fi; \
+			if ! xcrun simctl get_app_container "$$DEV" "$(APP_ID)" >/dev/null 2>&1; then \
+				echo "⚠️  $(APP_ID) not installed on simulator — nothing to do."; \
+			else \
+				echo "📱  Uninstalling $(APP_ID) from simulator: $$DEV"; \
+				xcrun simctl uninstall "$$DEV" "$(APP_ID)" && \
+				echo "✅  Uninstalled $(APP_ID) from simulator $$DEV"; \
+			fi; \
 		fi; \
 	else \
 		echo "❌  TARGET=$(TARGET) unknown for uninstall. Use: all, android, waydroid, ios, ios-adhoc, simulator."; \
@@ -596,7 +614,7 @@ check: secrets-check
 	tools/check_ports.sh --strict
 
 lint: flutter-analyze
-	go vet ./... && golangci-lint run ./... || echo "golangci-lint not installed, using go vet only"
+	@command -v golangci-lint >/dev/null 2>&1 && golangci-lint run ./... || go vet ./...
 
 # Migration hygiene gate (MKE-07 CI parity, M-15). Logic lives in
 # tools/check_migrations.sh (so test/opt-008-makefile-static.sh can RED-probe
@@ -663,7 +681,7 @@ supabase-docker-status:
 # covers a fresh clone where the volume doesn't exist yet) → fresh stack up.
 supabase-docker-reset:
 	$(load-env)
-	cd supabase && docker compose down && rm -rf volumes/storage && (docker volume rm samay_db-data samay_minio-data 2>/dev/null || true) && docker compose up -d --wait
+	cd supabase && docker compose down && rm -rf volumes/storage && (docker volume rm samay_db-data samay_minio-data 2>/dev/null || true) && docker compose up -d --wait && echo "Running migrations..." && for f in migrations/*.sql; do echo "  Applying $$(basename "$$f")..."; PGPASSWORD=postgres psql -h localhost -p 54382 -U postgres -d postgres -v ON_ERROR_STOP=1 -f "$$f"; done && echo "Applying seed data..." && PGPASSWORD=postgres psql -h localhost -p 54382 -U postgres -d postgres -v ON_ERROR_STOP=1 -f seed.sql
 
 # Apply DEMO/dev seed data (supabase/seed-dev.sql, agent I-75) to a running
 # stack. Demo-only — NOT applied by default (production seed stays clean).
@@ -672,7 +690,7 @@ supabase-docker-reset:
 supabase-seed-dev:
 	cd supabase && PGPASSWORD=postgres psql -h localhost -p 54382 -U postgres -d postgres -f seed-dev.sql
 
-# pgTAP schema tests (385 assertions, supabase/tests/schema_test.sql) against
+# pgTAP schema tests (494 assertions, supabase/tests/schema_test.sql) against
 # the SELF-HOSTED stack — `supabase db test --db-url` connects to the running
 # compose DB on the approved port (verified: CLI v2.113.0 enables pgtap, then
 # runs pg_prove via the supabase/pg_prove:3.36 docker image; first run pulls
@@ -716,7 +734,7 @@ supabase-testing-status:
 
 supabase-testing-reset:
 	$(load-env)
-	cd supabase-testing && docker compose down && rm -rf volumes/storage && (docker volume rm samay-testing_db-data samay-testing_minio-data 2>/dev/null || true) && docker compose up -d --wait
+	cd supabase-testing && docker compose down && rm -rf volumes/storage && (docker volume rm samay-testing_db-data samay-testing_minio-data 2>/dev/null || true) && docker compose up -d --wait && echo "Running migrations..." && for f in migrations/*.sql; do echo "  Applying $$(basename "$$f")..."; PGPASSWORD=postgres psql -h localhost -p 54382 -U postgres -d postgres -v ON_ERROR_STOP=1 -f "$$f"; done && echo "Applying seed data..." && PGPASSWORD=postgres psql -h localhost -p 54382 -U postgres -d postgres -v ON_ERROR_STOP=1 -f seed.sql
 
 # ── Remote-device tunnel (MKE-08 / M-13) ─────────────────────────────────────
 # SSH-forward adb from a remote host that has a device attached (Juega

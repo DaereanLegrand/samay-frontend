@@ -11,7 +11,6 @@ import 'package:samay/features/photos/providers/photos_providers.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/error_view.dart';
 import 'package:samay/shared/widgets/state_views.dart';
-import 'package:samay/shared/widgets/v_aurora.dart';
 import 'package:samay/shared/widgets/v_display_text.dart';
 import 'package:samay/shared/widgets/v_network_image.dart';
 
@@ -19,7 +18,7 @@ import 'package:samay/shared/widgets/v_network_image.dart';
 /// the event (the [eventPhotosProvider] signed-URL gallery) in a tight grid
 /// with the event title overlaid on the wall.
 ///
-/// LUXE v2: photos own the **mint** family — a faint mint aurora + the mint
+/// LUXE v2: photos own the **mint** family — a faint mint wash + the mint
 /// display voice in the title overlay; the wall itself stays pure photo.
 class EventCollageScreen extends ConsumerWidget {
   const EventCollageScreen({super.key, required this.eventId});
@@ -30,28 +29,23 @@ class EventCollageScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final photosAsync = ref.watch(eventPhotosProvider(eventId));
-    final title =
-        ref.watch(eventDetailProvider(eventId)).valueOrNull?['name'] as String?;
+    final title = ref.watch(eventDetailProvider(eventId)).valueOrNull?.name;
 
     return Scaffold(
       appBar: AppBar(title: Text(l10n.collageTitle)),
-      body: VAurora(
-        gradients: const [AppGradients.mint],
-        opacity: 0.05,
-        child: photosAsync.when(
-          loading: () => const VLoadingView(),
-          error: (e, _) => ErrorView(
-            message: e.toAppError().message,
-            onRetry: () => ref.invalidate(eventPhotosProvider(eventId)),
-          ),
-          data: (photos) => photos.isEmpty
-              ? VEmptyView(
-                  icon: Icons.photo_library_outlined,
-                  title: l10n.collageEmpty,
-                  description: l10n.collageEmptyBody,
-                )
-              : _CollageWall(photos: photos, title: title ?? l10n.collageTitle),
+      body: photosAsync.when(
+        loading: () => const VLoadingView(),
+        error: (e, _) => ErrorView(
+          message: e.toAppError().message,
+          onRetry: () => ref.invalidate(eventPhotosProvider(eventId)),
         ),
+        data: (photos) => photos.isEmpty
+            ? VEmptyView(
+                icon: Icons.photo_library_outlined,
+                title: l10n.collageEmpty,
+                description: l10n.collageEmptyBody,
+              )
+            : _CollageWall(photos: photos, title: title ?? l10n.collageTitle),
       ),
     );
   }

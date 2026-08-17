@@ -1,3 +1,4 @@
+import 'package:samay/core/errors/app_error.dart';
 import 'package:samay/core/models/event.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
@@ -18,7 +19,7 @@ class EventService {
   Future<Map<String, dynamic>> createEvent(Map<String, dynamic> data) async {
     final eventId = const Uuid().v4();
     final user = auth.currentUser;
-    if (user == null) throw Exception('No authenticated user');
+    if (user == null) throw const UnauthorizedError();
 
     final inviteToken = const Uuid().v4();
     final now = DateTime.now().toIso8601String();
@@ -64,17 +65,19 @@ class EventService {
     return {'id': eventId, 'invite_token': inviteToken};
   }
 
-  Future<List<Map<String, dynamic>>> listEvents([String? status, String? type]) async {
+  Future<List<Event>> listEvents([String? status, String? type]) async {
     var query = client.from('events').select();
     if (status != null) query = query.eq('status', status);
     if (type != null) query = query.eq('type', type);
     final res = await query.order('starts_at', ascending: true);
-    return (res as List).map((e) => Map<String, dynamic>.from(e)).toList();
+    return (res as List)
+        .map((e) => Event.fromJson(Map<String, dynamic>.from(e)))
+        .toList();
   }
 
-  Future<Map<String, dynamic>> getEvent(String id) async {
+  Future<Event> getEvent(String id) async {
     final res = await client.from('events').select().eq('id', id).single();
-    return Map<String, dynamic>.from(res);
+    return Event.fromJson(Map<String, dynamic>.from(res));
   }
 
   /// Resolves an invite token to its event (EINV deep links —
@@ -130,7 +133,7 @@ class EventService {
 
   Future<void> likePhoto(String photoId) async {
     final user = auth.currentUser;
-    if (user == null) throw Exception('No authenticated user');
+    if (user == null) throw const UnauthorizedError();
 
     final existing = await client
         .from('event_photo_likes')
@@ -157,7 +160,7 @@ class EventService {
   /// a nonexistent row is a no-op, so unlike-after-expiry is safe.
   Future<void> unlikePhoto(String photoId) async {
     final user = auth.currentUser;
-    if (user == null) throw Exception('No authenticated user');
+    if (user == null) throw const UnauthorizedError();
 
     await client
         .from('event_photo_likes')
@@ -192,7 +195,7 @@ class EventService {
   /// whether a rotation happened (I-57 foundation decision).
   Future<Map<String, dynamic>?> getMyQrToken(String eventId) async {
     final user = auth.currentUser;
-    if (user == null) throw Exception('No authenticated user');
+    if (user == null) throw const UnauthorizedError();
 
     final res = await client
         .from('event_qr_tokens')

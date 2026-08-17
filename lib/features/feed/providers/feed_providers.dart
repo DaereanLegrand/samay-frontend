@@ -40,7 +40,7 @@ class FeedNotifier extends AsyncNotifier<List<Event>> {
   @override
   Future<List<Event>> build() async {
     final rows = await _service.listEvents('upcoming');
-    final public = rows.map(Event.fromJson).where((e) => e.groupId == null);
+    final public = rows.where((e) => e.groupId == null);
     final events = public.toList()
       ..sort((a, b) {
         if (a.featured != b.featured) return a.featured ? -1 : 1;

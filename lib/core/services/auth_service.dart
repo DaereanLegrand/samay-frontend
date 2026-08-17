@@ -1,4 +1,6 @@
+import 'package:samay/core/errors/app_error.dart';
 import 'package:samay/core/logging/app_logger.dart';
+import 'package:samay/core/models/user_profile.dart';
 import 'package:samay/core/services/config_service.dart';
 import 'package:samay/core/utils/input_sanitizer.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -70,6 +72,24 @@ class AuthService {
     return user.toJson();
   }
 
+  /// The current user's app profile from the `users` table, parsed into a
+  /// typed [UserProfile]. Returns null when no session is active or the
+  /// profile row does not exist (pre-profile state after signup).
+  Future<UserProfile?> getCurrentUserProfile() async {
+    final user = auth.currentUser;
+    if (user == null) return null;
+    final res = await client
+        .from('users')
+        .select(
+          'id, username, avatar_url, bio, personal_shards, preshards, '
+          'subscription_tier, deleted_at, date_of_birth',
+        )
+        .eq('id', user.id)
+        .maybeSingle();
+    if (res == null) return null;
+    return UserProfile.fromJson(Map<String, dynamic>.from(res));
+  }
+
   Future<Map<String, dynamic>?> refreshSession() async {
     try {
       final response = await auth.refreshSession();
@@ -92,7 +112,7 @@ class AuthService {
 
   Future<void> softDeleteUser() async {
     final user = auth.currentUser;
-    if (user == null) throw Exception('No authenticated user');
+    if (user == null) throw const UnauthorizedError();
     await client
         .from('users')
         .update({
@@ -125,7 +145,7 @@ class AuthService {
     String? dateOfBirth,
   }) async {
     final user = auth.currentUser;
-    if (user == null) throw Exception('No authenticated user');
+    if (user == null) throw const UnauthorizedError();
 
     final shards = await config.getSignupShardGrant();
     final now = DateTime.now().toIso8601String();

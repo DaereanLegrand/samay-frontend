@@ -1,15 +1,17 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:samay/core/models/group.dart';
+import 'package:samay/core/models/group_member.dart';
 import 'package:samay/core/repositories/repository_providers.dart';
 import 'package:samay/core/utils/shard_math.dart';
 import 'package:samay/core/utils/throttled_refresh.dart';
 
-class MyGroupsNotifier extends AsyncNotifier<List<Map<String, dynamic>>>
+class MyGroupsNotifier extends AsyncNotifier<List<Group>>
     with ThrottledRefresh {
   @override
-  Future<List<Map<String, dynamic>>> build() async {
+  Future<List<Group>> build() async {
     final groups = await ref.read(groupsRepositoryProvider).getMyGroups();
     markFetched();
-    return groups.map((g) => g.toJson()).toList();
+    return groups;
   }
 
   /// Re-runs [build] after creating/joining/leaving a group (finding SM-09).
@@ -21,17 +23,17 @@ class MyGroupsNotifier extends AsyncNotifier<List<Map<String, dynamic>>>
 }
 
 /// Groups the current user belongs to (each row carries `my_role`).
-final myGroupsProvider = AsyncNotifierProvider<MyGroupsNotifier,
-    List<Map<String, dynamic>>>(MyGroupsNotifier.new);
+final myGroupsProvider =
+    AsyncNotifierProvider<MyGroupsNotifier, List<Group>>(MyGroupsNotifier.new);
 
 class GroupDetailNotifier
-    extends FamilyAsyncNotifier<Map<String, dynamic>?, String>
+    extends FamilyAsyncNotifier<Group?, String>
     with ThrottledRefresh {
   @override
-  Future<Map<String, dynamic>?> build(String arg) async {
+  Future<Group?> build(String arg) async {
     final group = await ref.read(groupsRepositoryProvider).getGroup(arg);
     markFetched();
-    return group?.toJson();
+    return group;
   }
 
   /// Re-runs [build] after group mutations (donations, transfers…). R20:
@@ -44,17 +46,17 @@ class GroupDetailNotifier
 
 /// A single group row by id (null when the group does not exist).
 final groupDetailProvider = AsyncNotifierProvider.family<GroupDetailNotifier,
-    Map<String, dynamic>?, String>(GroupDetailNotifier.new);
+    Group?, String>(GroupDetailNotifier.new);
 
 class GroupMembersNotifier
-    extends FamilyAsyncNotifier<List<Map<String, dynamic>>, String>
+    extends FamilyAsyncNotifier<List<GroupMember>, String>
     with ThrottledRefresh {
   @override
-  Future<List<Map<String, dynamic>>> build(String arg) async {
+  Future<List<GroupMember>> build(String arg) async {
     final members =
         await ref.read(groupsRepositoryProvider).getGroupMembers(arg);
     markFetched();
-    return members.map((m) => m.toJson()).toList();
+    return members;
   }
 
   /// Re-runs [build] after membership changes. R20: skipped while the last
@@ -67,7 +69,7 @@ class GroupMembersNotifier
 
 /// Active members of a group (rows join `users` → `users.username`).
 final groupMembersProvider = AsyncNotifierProvider.family<GroupMembersNotifier,
-    List<Map<String, dynamic>>, String>(GroupMembersNotifier.new);
+    List<GroupMember>, String>(GroupMembersNotifier.new);
 
 class GroupChatIdNotifier extends FamilyAsyncNotifier<String?, String>
     with ThrottledRefresh {
@@ -163,6 +165,59 @@ final contributionsProvider = AsyncNotifierProvider.family<
   GroupContributionsNotifier.new,
 );
 
+/// Combined group-detail data: all four providers fetched in parallel,
+/// returned as a record. Replaces the 4-level nested when() in
+/// GroupDetailScreen (Batch 5b M5).
+class GroupDetailData {
+  final Group? group;
+  final List<GroupMember> members;
+  final GroupContributionsData contributions;
+  final Map<String, dynamic>? membership;
+
+  const GroupDetailData({
+    required this.group,
+    required this.members,
+    required this.contributions,
+    required this.membership,
+  });
+}
+
+class GroupDetailCombinedNotifier
+    extends FamilyAsyncNotifier<GroupDetailData, String> {
+  @override
+  Future<GroupDetailData> build(String groupId) async {
+    final repo = ref.read(groupsRepositoryProvider);
+    // Fetch all four in parallel via Future.wait.
+    final results = await Future.wait([
+      repo.getGroup(groupId),
+      repo.getGroupMembers(groupId),
+      Future(() async {
+        final raw = await repo.getGroupContributions(groupId);
+        final contributors = aggregateContributions(raw);
+        final myContribution = await repo.getUserContributionToGroup(groupId);
+        return GroupContributionsData(
+          contributors: contributors,
+          myContribution: myContribution,
+        );
+      }),
+      repo.getMyMembership(groupId),
+    ]);
+    return GroupDetailData(
+      group: results[0] as Group?,
+      members: results[1] as List<GroupMember>,
+      contributions: results[2] as GroupContributionsData,
+      membership: results[3] as Map<String, dynamic>?,
+    );
+  }
+}
+
+/// All group-detail data in one fetch — parallel Future.wait replaces
+/// the 4-level nested when() in the detail screen (M5).
+final groupDetailCombinedProvider = AsyncNotifierProvider.family<
+    GroupDetailCombinedNotifier, GroupDetailData, String>(
+  GroupDetailCombinedNotifier.new,
+);
+
 class GroupInvitesNotifier extends AsyncNotifier<List<Map<String, dynamic>>>
     with ThrottledRefresh {
   @override
@@ -185,26 +240,44 @@ class GroupInvitesNotifier extends AsyncNotifier<List<Map<String, dynamic>>>
 final groupInvitesProvider = AsyncNotifierProvider<GroupInvitesNotifier,
     List<Map<String, dynamic>>>(GroupInvitesNotifier.new);
 
+/// A leaderboard entry: a [Group] enriched with ranking data.
+class LeaderboardEntry {
+  final Group group;
+  final int rankPosition;
+  final int score;
+  final int memberCount;
+
+  const LeaderboardEntry({
+    required this.group,
+    required this.rankPosition,
+    required this.score,
+    required this.memberCount,
+  });
+}
+
 class LeaderboardNotifier
-    extends FamilyAsyncNotifier<List<Map<String, dynamic>>, String>
+    extends FamilyAsyncNotifier<List<LeaderboardEntry>, String>
     with ThrottledRefresh {
   @override
-  Future<List<Map<String, dynamic>>> build(String sizeTier) async {
+  Future<List<LeaderboardEntry>> build(String sizeTier) async {
     final repo = ref.read(groupsRepositoryProvider);
     final res = await repo.getLeaderboard(sizeTier);
-    final groups = <Map<String, dynamic>>[];
+    final entries = <LeaderboardEntry>[];
     for (final r in res) {
       final g = await repo.getGroup(r['group_id'] as String);
       if (g != null) {
-        final row = g.toJson();
-        row['rank_position'] = r['rank_position'];
-        row['score'] = r['score'];
-        row['member_count'] = r['member_count'];
-        groups.add(row);
+        entries.add(
+          LeaderboardEntry(
+            group: g,
+            rankPosition: (r['rank_position'] as num?)?.toInt() ?? 0,
+            score: (r['score'] as num?)?.toInt() ?? 0,
+            memberCount: (r['member_count'] as num?)?.toInt() ?? 0,
+          ),
+        );
       }
     }
     markFetched();
-    return groups;
+    return entries;
   }
 
   /// Re-runs [build] (pull-to-refresh, finding SM-09). R20: skipped while the
@@ -218,4 +291,4 @@ class LeaderboardNotifier
 /// Group rankings for a size tier (`micro`/`small`/`medium`/`large`),
 /// enriched with group details.
 final leaderboardProvider = AsyncNotifierProvider.family<LeaderboardNotifier,
-    List<Map<String, dynamic>>, String>(LeaderboardNotifier.new);
+    List<LeaderboardEntry>, String>(LeaderboardNotifier.new);

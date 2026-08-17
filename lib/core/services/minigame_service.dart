@@ -1,3 +1,4 @@
+import 'package:samay/core/errors/app_error.dart';
 import 'package:samay/core/services/realtime_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -112,7 +113,7 @@ class MinigameService {
     int wager,
   ) async {
     final user = auth.currentUser;
-    if (user == null) throw Exception('No authenticated user');
+    if (user == null) throw const UnauthorizedError();
 
     final res = await client.rpc(
       'create_minigame_session',
@@ -144,7 +145,7 @@ class MinigameService {
       'insufficient_shards' => throw const MinigameSessionRejectedException(
         MinigameSessionRejection.insufficientShards,
       ),
-      _ => throw Exception('Unexpected create_minigame_session response: $res'),
+      _ => throw const ServerError('Unexpected create_minigame_session response'),
     };
   }
 
@@ -159,7 +160,7 @@ class MinigameService {
   /// (I-57 contract).
   Future<void> joinSession(String id) async {
     final user = auth.currentUser;
-    if (user == null) throw Exception('No authenticated user');
+    if (user == null) throw const UnauthorizedError();
 
     final res = await client.rpc(
       'join_minigame_session',
@@ -186,11 +187,11 @@ class MinigameService {
           MinigameSessionRejection.insufficientShards,
         );
       case 'session_not_found':
-        throw Exception('Session not found');
+        throw const NotFoundError('Session');
       case 'session_not_active':
-        throw Exception('Session is not active');
+        throw ConflictError('Session is not active', code: 'session_not_active');
       default:
-        throw Exception('Unexpected join_minigame_session response: $res');
+        throw const ServerError('Unexpected join_minigame_session response');
     }
   }
 
@@ -210,9 +211,10 @@ class MinigameService {
   /// server contract and is rejected.
   Future<void> updateStatus(String id, MinigameStatus status) async {
     if (status != MinigameStatus.finished) {
-      throw Exception(
+      throw ConflictError(
         'Only MinigameStatus.finished has a server contract '
         '(finish_minigame_session); reactivation is not supported',
+        code: 'reactivation_not_supported',
       );
     }
 
@@ -238,11 +240,11 @@ class MinigameService {
           MinigameSessionRejection.notMember,
         );
       case 'session_not_found':
-        throw Exception('Session not found');
+        throw const NotFoundError('Session');
       case 'invalid_winner':
-        throw Exception('Invalid winner');
+        throw ConflictError('Invalid winner', code: 'invalid_winner');
       default:
-        throw Exception('Unexpected finish_minigame_session response: $res');
+        throw const ServerError('Unexpected finish_minigame_session response');
     }
   }
 

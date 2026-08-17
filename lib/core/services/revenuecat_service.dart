@@ -61,7 +61,7 @@ class PurchasesDriver implements RevenueCatDriver {
   Future<void> purchase(String productId) async {
     final products = await rc.Purchases.getProducts([productId]);
     if (products.isEmpty) {
-      throw Exception('RevenueCat product not found: $productId');
+      throw const NotFoundError('RevenueCat product');
     }
     final result = await rc.Purchases.purchase(
       rc.PurchaseParams.storeProduct(products.first),

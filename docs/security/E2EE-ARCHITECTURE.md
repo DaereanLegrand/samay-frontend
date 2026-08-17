@@ -16,7 +16,7 @@ I-37/I-38 landed (commits `81722ef`, `e0eab3c`; 2026-08-09..13). `lib/crypto/` s
 modules (codec, constants, x3dh, double_ratchet, envelope, session, e2ee_key_store,
 e2ee_primitives, e2ee_prekey_service, interfaces); chat is live with E2EE. The spec
 sections below remain authoritative for the *design*; this block records where the
-implementation differs or went further. **179 unit tests in `test/crypto/`.**
+implementation differs or went further. **182 unit tests in `test/crypto/`.**
 Group chat E2EE (Signal sender keys, ISSUE 4) shipped 2026-08-15..17 — §9.6 below is
 rewritten to document the implementation (errata row in §0.1).
 
@@ -44,9 +44,9 @@ rewritten to document the implementation (errata row in §0.1).
 | §9.1/§9.3/§12.2: three-table server model (`user_devices`, `signed_prekeys`, `one_time_prekeys`) + migration `2026XXXXXXXX_e2ee_prekeys.sql` | **Merged into ONE table** `e2ee_identity_keys` (public keys, SPK + its Ed25519 signature + expiry, OPK batch consumed in a transaction), migration `20260809000003_e2ee_tables.sql` — deviation documented in the migration header | §9.1 corrected inline below |
 | §8.1/§12.1: bump `flutter_secure_storage` to `^11.0.0` | **Open follow-up** — still `^9.2.4` (`pubspec.yaml:17`); I-37 accepted the existing version | §8.1 note below |
 
-### 0.3 Verification notes (re-run 2026-08-13)
+### 0.3 Verification notes (re-run 2026-08-16)
 
-- `test/crypto/` = 179 `test(` (x3dh 10, group_cipher 39, session 30, primitives 25, key_store 21, envelope 18, ratchet 23, prekey 13).
+- `test/crypto/` = 182 `test(` (x3dh 10, group_cipher 42, session 30, primitives 25, key_store 21, envelope 18, ratchet 23, prekey 13).
 - `rg "plaintext" lib/crypto/` → zero persistence of plaintext; only envelope bytes reach `messages.content` (opt-003 asserts non-plaintext).
 - All §10.4 interfaces implemented in `lib/crypto/interfaces.dart`; chat UI depends only on the interfaces (V-06 verified).
 

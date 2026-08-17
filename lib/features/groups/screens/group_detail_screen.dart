@@ -6,6 +6,8 @@ import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/core/design_tokens/app_gradients.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/extensions/error_mapper.dart';
+import 'package:samay/core/models/group.dart';
+import 'package:samay/core/models/group_member.dart';
 import 'package:samay/core/providers/service_providers.dart';
 import 'package:samay/core/repositories/repository_providers.dart';
 import 'package:samay/core/router/route_paths.dart';
@@ -13,13 +15,12 @@ import 'package:samay/features/chat/widgets/chat_thread_view.dart';
 import 'package:samay/features/groups/providers/groups_providers.dart';
 import 'package:samay/features/groups/widgets/group_events_tab.dart';
 import 'package:samay/features/groups/widgets/member_actions_sheet.dart';
-import 'package:samay/features/profile/widgets/profile_avatar.dart';
+import 'package:samay/shared/widgets/profile_avatar.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/error_view.dart';
 import 'package:samay/shared/widgets/rank_badge.dart';
 import 'package:samay/shared/widgets/skeletons.dart';
 import 'package:samay/shared/widgets/state_views.dart';
-import 'package:samay/shared/widgets/v_aurora.dart';
 import 'package:samay/shared/widgets/v_badge.dart';
 import 'package:samay/shared/widgets/v_button.dart';
 import 'package:samay/shared/widgets/v_network_image.dart';
@@ -74,10 +75,7 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen>
   /// Invalidates every detail-scoped provider on mount (see
   /// [didChangeDependencies]).
   void _refreshOnOpen() {
-    ref.invalidate(groupDetailProvider(widget.groupId));
-    ref.invalidate(groupMembersProvider(widget.groupId));
-    ref.invalidate(contributionsProvider(widget.groupId));
-    ref.invalidate(myMembershipProvider(widget.groupId));
+    ref.invalidate(groupDetailCombinedProvider(widget.groupId));
   }
 
   @override
@@ -87,9 +85,7 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen>
   }
 
   void _invalidateData() {
-    ref.invalidate(groupDetailProvider(widget.groupId));
-    ref.invalidate(groupMembersProvider(widget.groupId));
-    ref.invalidate(contributionsProvider(widget.groupId));
+    ref.invalidate(groupDetailCombinedProvider(widget.groupId));
   }
 
   /// USER FIX 4: the loading/error/invited frames share the same scaffold —
@@ -102,80 +98,41 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen>
             ? null
             : Text(title, maxLines: 1, overflow: TextOverflow.ellipsis),
       ),
-      body: VAurora(gradients: const [AppGradients.violet], child: body),
+      body: body,
     );
   }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final groupAsync = ref.watch(groupDetailProvider(widget.groupId));
-    final membersAsync = ref.watch(groupMembersProvider(widget.groupId));
-    final contributionsAsync = ref.watch(contributionsProvider(widget.groupId));
-    final membershipAsync = ref.watch(myMembershipProvider(widget.groupId));
+    final detailAsync = ref.watch(groupDetailCombinedProvider(widget.groupId));
 
-    return groupAsync.when(
-      // U-24 (§5.8): the detail is the heaviest screen in the feature (three
-      // stacked fetches — group, members, contributions), so the nothing-on-
-      // screen frame shows the cover+lines skeleton (U-22's handoff named
-      // group_detail) instead of the bare spinner. `VSkeletonDetail(rows: 1)`
-      // mirrors the cover+title/meta shape of the loaded Info tab.
+    return detailAsync.when(
       loading: () => _scaffold(const VSkeletonDetail(rows: 1)),
       error: (e, _) => _scaffold(
         ErrorView(
           message: e.toAppError().message,
-          onRetry: () => ref.invalidate(groupDetailProvider(widget.groupId)),
+          onRetry: () =>
+              ref.invalidate(groupDetailCombinedProvider(widget.groupId)),
         ),
       ),
-      data: (group) {
-        if (group == null) {
+      data: (data) {
+        if (data.group == null) {
           return _scaffold(
             ErrorView(
               message: l10n.groupsNotFound,
               onRetry: () =>
-                  ref.invalidate(groupDetailProvider(widget.groupId)),
+                  ref.invalidate(groupDetailCombinedProvider(widget.groupId)),
             ),
           );
         }
-        return membersAsync.when(
-          loading: () => _scaffold(const VSkeletonDetail(rows: 1)),
-          error: (e, _) => _scaffold(
-            ErrorView(
-              message: e.toAppError().message,
-              onRetry: () =>
-                  ref.invalidate(groupMembersProvider(widget.groupId)),
-            ),
-          ),
-          data: (members) => contributionsAsync.when(
-            loading: () => _scaffold(const VSkeletonDetail(rows: 1)),
-            error: (e, _) => _scaffold(
-              ErrorView(
-                message: e.toAppError().message,
-                onRetry: () =>
-                    ref.invalidate(contributionsProvider(widget.groupId)),
-              ),
-            ),
-            data: (contributions) => membershipAsync.when(
-              loading: () => _scaffold(const VSkeletonDetail(rows: 1)),
-              error: (e, _) => _scaffold(
-                ErrorView(
-                  message: e.toAppError().message,
-                  onRetry: () =>
-                      ref.invalidate(myMembershipProvider(widget.groupId)),
-                ),
-              ),
-              data: (membership) {
-                // ISSUE 2: an invited user has not joined the group — a
-                // single Aceptar/Rechazar panel, nothing else. A missing
-                // membership row (null) falls through to the active state.
-                if (membership?['status'] == 'invited') {
-                  return _buildInvitedPanel(group, membership!);
-                }
-                return _buildDetail(group, members, contributions);
-              },
-            ),
-          ),
-        );
+        // ISSUE 2: an invited user has not joined the group — a
+        // single Aceptar/Rechazar panel, nothing else. A missing
+        // membership row (null) falls through to the active state.
+        if (data.membership?['status'] == 'invited') {
+          return _buildInvitedPanel(data.group!, data.membership!);
+        }
+        return _buildDetail(data.group!, data.members, data.contributions);
       },
     );
   }
@@ -184,10 +141,7 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen>
   /// only, USER FIX 4), an explanation and a single Aceptar primary button
   /// plus a Rechazar text button. No tabs, no hero CTAs, no leave: the user
   /// has not joined the group yet.
-  Widget _buildInvitedPanel(
-    Map<String, dynamic> g,
-    Map<String, dynamic> membership,
-  ) {
+  Widget _buildInvitedPanel(Group g, Map<String, dynamic> membership) {
     final l10n = AppLocalizations.of(context);
     final membershipId = membership['id'] as String;
     return _scaffold(
@@ -218,7 +172,7 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen>
           ),
         ),
       ),
-      title: g['name'] as String? ?? l10n.commonGroup,
+      title: g.name,
     );
   }
 
@@ -230,7 +184,6 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen>
     _invalidateData();
     ref.invalidate(groupInvitesProvider);
     ref.invalidate(myGroupsProvider);
-    ref.invalidate(myMembershipProvider(widget.groupId));
   }
 
   /// ISSUE 2: declining a pending invitation deletes the membership and pops
@@ -242,12 +195,12 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen>
   }
 
   Widget _buildDetail(
-    Map<String, dynamic> g,
-    List<Map<String, dynamic>> members,
+    Group g,
+    List<GroupMember> members,
     GroupContributionsData contributions,
   ) {
     final l10n = AppLocalizations.of(context);
-    final isFrozen = g['frozen_at'] != null;
+    final isFrozen = g.frozenAt != null;
 
     return Scaffold(
       // USER FIX 4: the group name lives ONLY in the AppBar title, next to
@@ -255,7 +208,7 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen>
       // above the tabs. The AppBar also owns the tabs and the frozen marker.
       appBar: AppBar(
         title: Text(
-          g['name'] as String? ?? l10n.commonGroup,
+          g.name.isEmpty ? l10n.commonGroup : g.name,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
         ),
@@ -290,42 +243,36 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen>
             ),
         ],
       ),
-      body: VAurora(
-        gradients: const [AppGradients.violet],
-        child: Column(
-          children: [
-            // USER FIX 4: the hero banner block is gone — the TabBarView
-            // takes the full body. The frozen errorFill strip stays above it.
-            if (isFrozen)
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(8),
-                // §5.2: never raw red on black — the frozen banner is an
-                // error *fill* (glowPinkDeep); white text on it is 5.87:1
-                // (AA).
-                color: AppColors.errorFill,
-                child: Text(
-                  l10n.groupsFrozenBanner,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: AppColors.white,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-              ),
-            Expanded(
-              child: TabBarView(
-                controller: _tabController,
-                children: [
-                  _buildInfoTab(g, members, contributions),
-                  _buildChatTab(),
-                  _buildMembersTab(members, contributions.contributors),
-                  _buildEventsTab(),
-                ],
+      body: Column(
+        children: [
+          // USER FIX 4: the hero banner block is gone — the TabBarView
+          // takes the full body. The frozen errorFill strip stays above it.
+          if (isFrozen)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(8),
+              // §5.2: never raw red on black — the frozen banner is an
+              // error *fill* (glowPinkDeep); white text on it is 5.87:1
+              // (AA).
+              color: AppColors.errorFill,
+              child: Text(
+                l10n.groupsFrozenBanner,
+                style: const TextStyle(fontSize: 12, color: AppColors.white),
+                textAlign: TextAlign.center,
               ),
             ),
-          ],
-        ),
+          Expanded(
+            child: TabBarView(
+              controller: _tabController,
+              children: [
+                _buildInfoTab(g, members, contributions),
+                _buildChatTab(),
+                _buildMembersTab(members, contributions.contributors),
+                _buildEventsTab(),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -335,8 +282,8 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen>
   /// the leave row, my contribution and the Donar/Crear/Invitar/Juegos CTA
   /// row) now lives here.
   Widget _buildInfoTab(
-    Map<String, dynamic> g,
-    List<Map<String, dynamic>> members,
+    Group g,
+    List<GroupMember> members,
     GroupContributionsData contributions,
   ) {
     final l10n = AppLocalizations.of(context);
@@ -349,17 +296,17 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen>
           children: [
             // USER FIX 4: the hero banner is gone — the cover moves here as
             // the Info tab's first block (the name lives in the AppBar only).
-            if (g['cover_url'] != null) ...[
+            if (g.coverUrl != null) ...[
               VNetworkImage(
-                imageUrl: g['cover_url'] as String,
+                imageUrl: g.coverUrl!,
                 height: 120,
                 fit: BoxFit.cover,
               ),
               const SizedBox(height: 16),
             ],
-            if (g['description'] != null) ...[
+            if (g.description != null) ...[
               Text(
-                g['description'] as String,
+                g.description!,
                 style: Theme.of(context).textTheme.bodyMedium,
               ),
             ],
@@ -371,10 +318,8 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen>
               spacing: 8,
               runSpacing: 8,
               children: [
-                if (g['size_tier'] != null)
-                  VBadge(label: g['size_tier'] as String),
-                if (g['rank_bracket'] != null)
-                  RankBadge(bracket: g['rank_bracket'] as String),
+                if (g.sizeTier != null) VBadge(label: g.sizeTier!),
+                if (g.rankBracket != null) RankBadge(bracket: g.rankBracket!),
               ],
             ),
             const SizedBox(height: 8),
@@ -386,9 +331,7 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen>
                 // instead of overflowing the Row (§7.3).
                 Flexible(
                   child: Text(
-                    l10n.groupsShardsCount(
-                      (g['group_shards'] as num?)?.toInt() ?? 0,
-                    ),
+                    l10n.groupsShardsCount(g.groupShards),
                     style: Theme.of(context).textTheme.bodyLarge,
                   ),
                 ),
@@ -407,9 +350,7 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen>
               onPressed: _leaveGroup,
               icon: const Icon(Icons.logout, size: 18),
               label: Text(l10n.groupsLeave),
-              style: TextButton.styleFrom(
-                foregroundColor: AppColors.error,
-              ),
+              style: TextButton.styleFrom(foregroundColor: AppColors.error),
             ),
             if (contributions.myContribution > 0) ...[
               const SizedBox(height: 4),
@@ -450,9 +391,8 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen>
                 Expanded(
                   child: VButton(
                     label: l10n.commonInvite,
-                    onPressed: () => context.push(
-                      RoutePaths.inviteToGroup(widget.groupId),
-                    ),
+                    onPressed: () =>
+                        context.push(RoutePaths.inviteToGroup(widget.groupId)),
                   ),
                 ),
                 if (ref.isEnabled(AppFeatureFlag.minigames)) ...[
@@ -460,9 +400,8 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen>
                   Expanded(
                     child: VButton(
                       label: l10n.minigamesTitle,
-                      onPressed: () => context.push(
-                        RoutePaths.minigames(widget.groupId),
-                      ),
+                      onPressed: () =>
+                          context.push(RoutePaths.minigames(widget.groupId)),
                     ),
                   ),
                 ],
@@ -504,7 +443,7 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen>
   }
 
   Widget _buildMembersTab(
-    List<Map<String, dynamic>> members,
+    List<GroupMember> members,
     List<Map<String, dynamic>> contributors,
   ) {
     final l10n = AppLocalizations.of(context);
@@ -524,9 +463,7 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen>
     final myId = ref.read(authServiceProvider).auth.currentUser?.id;
     final myRole = myId == null
         ? 'member'
-        : members.where((m) => m['user_id'] == myId).firstOrNull?['role']
-                  as String? ??
-              'member';
+        : members.where((m) => m.userId == myId).firstOrNull?.role ?? 'member';
     final isAdmin = myRole == 'promotor' || myRole == 'co_promotor';
     // Descriptor rows: only row *data* is materialized here; widgets are
     // created lazily per visible row by the builder (PERF-01).
@@ -548,14 +485,12 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen>
       _RowHeader(l10n.groupsMembersCount(members.length)),
       const _RowSpacer(8),
       ...members.map((m) {
-        final user = m['users'] as Map<String, dynamic>?;
-        final role = m['role'] as String? ?? 'member';
+        final role = m.role;
         return _RowMember(
-          userId: m['user_id'] as String,
-          username:
-              user?['username'] as String? ?? '${m['user_id']}'.substring(0, 8),
+          userId: m.userId,
+          username: m.username ?? m.userId.substring(0, 8),
           role: role,
-          canAct: isAdmin && m['user_id'] != myId && role != 'promotor',
+          canAct: isAdmin && m.userId != myId && role != 'promotor',
         );
       }),
     ];
@@ -613,9 +548,8 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen>
   /// not the ThrottledRefresh'ed refresh() — so the explicit gesture always
   /// hits the server (2026-08-17).
   Future<void> _refreshMembers() async {
-    ref.invalidate(groupMembersProvider(widget.groupId));
-    ref.invalidate(contributionsProvider(widget.groupId));
-    await ref.read(groupMembersProvider(widget.groupId).future);
+    ref.invalidate(groupDetailCombinedProvider(widget.groupId));
+    await ref.read(groupDetailCombinedProvider(widget.groupId).future);
   }
 
   Widget _buildEventsTab() {
@@ -645,7 +579,7 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen>
     );
   }
 
-  String _getMemberLimit(List<Map<String, dynamic>> members) {
+  String _getMemberLimit(List<GroupMember> members) {
     if (members.isEmpty) return '0';
     return '14';
   }

@@ -1,4 +1,6 @@
 import 'dart:io';
+
+import 'package:samay/core/errors/app_error.dart';
 import 'dart:typed_data';
 
 import 'package:samay/core/utils/image_processor.dart';
@@ -84,7 +86,7 @@ class MediaService {
   /// (`eph_insert_own`) to exist.
   Future<void> uploadEventPhotoBytes(String eventId, Uint8List bytes) async {
     final user = auth.currentUser;
-    if (user == null) throw Exception('No authenticated user');
+    if (user == null) throw const UnauthorizedError();
 
     final processed = await ImageProcessor.compressBytes(bytes);
     final storagePath = '$eventId/photos/${const Uuid().v4()}.png';

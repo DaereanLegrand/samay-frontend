@@ -269,7 +269,7 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen> {
     final l10n = AppLocalizations.of(context);
     final eventAsync = ref.watch(eventDetailProvider(widget.eventId));
     final eventName =
-        eventAsync.valueOrNull?['name'] as String? ?? l10n.qrScanEventFallback;
+        eventAsync.valueOrNull?.name ?? l10n.qrScanEventFallback;
 
     return Scaffold(
       backgroundColor: AppColors.discoBlack,

@@ -1,4 +1,4 @@
-# Phase Inventory — Phases 00–15 (last verified 2026-08-13)
+# Phase Inventory — Phases 00–15 (last verified 2026-08-16)
 
 **Agent:** D-12 (Phase 4.1 — documentation) · **Date:** 2026-08-09 · **Branch:** `fixes`
 **R-3 refresh (2026-08-13):** status column refreshed for the phase-05+ foundations
@@ -9,6 +9,10 @@ business function code; QR/rank/notify mechanics shipped as SQL RPCs + pg_cron).
 **R-4 refresh (2026-08-13):** baselines re-verified (`flutter test` 2209/2209,
 `go test` 182, pgTAP plan 385), AUTH/PRFL remaining-gap lists updated, migration
 counts 33/33, `ranks.update_cron` scheduled (20260814000003).
+**R-5 refresh (2026-08-16):** baselines re-verified after the ISSUE-4 group-chat /
+chat UI/UX workstream (`flutter test` **2440/2440**, `go test` 182, pgTAP plan
+**494** both stacks, migrations **46/46**), opt-tests 001..011, integration flows 19,
+crypto suite 182 (group_cipher 42); pastel design tokens re-saturated (DISCO-LUXE §2.1).
 
 This inventory verifies every phase 00–15 against three sources of truth:
 `docs/history/**/*.DONE` markers, `docs/specs/steps/cross-references.md`
@@ -25,7 +29,7 @@ Status key (same as cross-references.md): ✅ implemented · ⚠️ partially im
 |------|-------------|------------------|---------------------|----------|--------------------------|
 | `REPO` | ✅ `REPO.DONE` | ✅ | `REPO-repository-setup.md` | 2 logs | Go module `github.com/samay-app/samay`, repo layout intact |
 | `INFR` | ✅ `INFR.DONE` | ✅ (Edge Functions not deployed) | `INFR-supabase-deployment.md` | 2 logs | Self-hosted compose + `config.toml` exist; `supabase/functions/` = M-07 boot stub only |
-| `DATA` | ✅ `DATA.DONE` | ✅ | `DATA-database-schema.md` | 2 logs | 33 migrations in both `supabase/` and `supabase-testing/`; 30+ tables, 21 enums |
+| `DATA` | ✅ `DATA.DONE` | ✅ | `DATA-database-schema.md` | 2 logs | 46 migrations in both `supabase/` and `supabase-testing/`; 30+ tables, 21 enums |
 | `SECU` | ✅ `SECU.DONE` | ✅ (signup_tracker fixed, C-01) | `SECU-rls-policies.md` | 2 logs | Migrations `20260724000001`/`20260724000002` present |
 | `TRIG` | ✅ `TRIG.DONE` | ✅ (9 base triggers; `shard_distribution_dispatch_trigger` = `RAISE LOG` placeholder) | `TRIG-database-triggers.md` | 2 logs | 20 total: 9 base in `20260510000001_full_schema.sql` + 3 `assert_safe_*` (`assert_safe_user_update_trigger` 20260809000002:143; `assert_safe_group_update_trigger` + `assert_safe_event_update_trigger` 20260811000001:168,208) + 8 notification triggers in `20260814000005` |
 | `CRON` | ✅ `CRON.DONE` | ✅ (status-poll, end-events, hard-delete scheduled) | `CRON-postgres-cron-jobs.md` | 2 logs | `20260510000002_cron.sql` schedules 3 jobs; `ranks.update_cron` scheduled 2026-08-13 (`20260814000003`, with decay); `override-reconciler` pending |
@@ -60,7 +64,7 @@ specs exist for all 14. Dev logs: `2026-05-10_CLI-full-implementation.md`,
 | `AUDT` | ✅ | ✅ | `internal/ops/audit.go` (`LogAction`) — every mutation calls it |
 | `BLD1` | ✅ | ✅ | `make build-cli`/`build-linux` produce `samay`/`samay-linux` binaries (present at repo root) |
 
-**Phase 01 status:** COMPLETE (14/14 steps done). `go test ./...` = 182 pass (re-verified 2026-08-13, 5 packages).
+**Phase 01 status:** COMPLETE (14/14 steps done). `go test ./...` = 182 pass (re-verified 2026-08-16, 5 packages).
 
 ---
 

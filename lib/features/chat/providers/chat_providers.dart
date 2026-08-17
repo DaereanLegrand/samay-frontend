@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:samay/core/config/chat_constants.dart';
 import 'package:samay/core/logging/app_logger.dart';
 import 'package:samay/core/providers/auth_provider.dart';
 import 'package:samay/core/providers/service_providers.dart';
@@ -80,17 +81,6 @@ final chatE2eeRepositoryProvider = Provider<ChatRepository>((ref) {
     realtime: ref.watch(realtimeServiceProvider),
   );
 });
-
-/// History page size (CHAT spec: "load last 50 messages on open, scroll up →
-/// paginate older messages").
-const int chatPageSize = 50;
-
-/// Mirror of the `chat.message_cap` app_config key (default 1000) enforced
-/// server-side by the `enforce_message_cap` trigger (TRIG spec / migration
-/// 20260809000001). The DB rolling window never stores more than this many
-/// messages per chat, so the client must not paginate past it — [PageLoader]
-/// flips `hasMore` false at the cap (see [ChatMessagesNotifier]).
-const int chatMessageCap = 1000;
 
 /// The chat thread state (I-56 public API preserved): decrypted messages
 /// (oldest first) plus the pagination flags the screen renders.

@@ -1,3 +1,4 @@
+import 'package:samay/core/errors/app_error.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 /// Content moderation: user reports against content.
@@ -13,7 +14,7 @@ class ModerationService {
 
   Future<void> reportContent(String targetType, String targetId, String reason) async {
     final user = auth.currentUser;
-    if (user == null) throw Exception('No authenticated user');
+    if (user == null) throw const UnauthorizedError();
     await client.from('reports').insert({
       'reporter_id': user.id,
       'target_type': targetType,

@@ -9,6 +9,7 @@ import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/design_tokens/app_typography.dart';
 import 'package:samay/core/extensions/error_mapper.dart';
 import 'package:samay/core/models/event.dart';
+import 'package:samay/core/models/group.dart';
 import 'package:samay/core/router/route_paths.dart';
 import 'package:samay/core/services/minigame_service.dart';
 import 'package:samay/features/chat/providers/chat_providers.dart';
@@ -21,7 +22,6 @@ import 'package:samay/shared/widgets/error_view.dart';
 import 'package:samay/shared/widgets/glass/glass.dart';
 import 'package:samay/shared/widgets/skeletons.dart';
 import 'package:samay/shared/widgets/state_views.dart';
-import 'package:samay/shared/widgets/v_aurora.dart';
 import 'package:samay/shared/widgets/v_badge.dart';
 import 'package:samay/shared/widgets/v_chip.dart';
 import 'package:samay/shared/widgets/v_count_badge.dart';
@@ -33,9 +33,9 @@ import 'package:samay/shared/widgets/v_network_image.dart';
 ///
 /// LUXE v2 (XL-07): the feed owns the **cyan** gradient family
 /// (`AppGradients.familyOf('feed')` — ORCHESTRATION-LUXE §"Gradient family →
-/// screen map"; NO PINK MAINS). The screen is always-black with ONE cyan
-/// [VAurora] ambient; the 'SAMAY' hero is a [VDisplayText] (uppercase
-/// Playfair, cyan gradient fill, pulsing halo — directive #6/#8, one hero);
+/// screen map"; NO PINK MAINS). The screen is always-black; the 'SAMAY' hero
+/// is a [VDisplayText] (uppercase Playfair, cyan gradient fill, pulsing halo
+/// — directive #6/#8, one hero);
 /// featured cards are liquid glass ([VGlass], cyan ring + soft glow);
 /// upcoming cards are sharp hairline [VGlassCard]s; the featured badge is
 /// the cyan `VBadge.accent` family variant; radius chips are `VChip.accent`
@@ -67,102 +67,97 @@ class FeedScreen extends ConsumerWidget {
       // LUXE directive #1: black background always — even outside the theme.
       backgroundColor: AppColors.discoBlack,
       body: SafeArea(
-        child: VAurora(
-          // One cyan ambient per screen (directive #4/#10): the feed's own
-          // family, alpha-capped so content stays the hero.
-          gradients: const [AppGradients.cyan],
-          child: feed.when(
-            // U-22 (§5.8): the first load shows the event-card skeleton
-            // instead of the bare spinner; pull-to-refresh keeps the list
-            // visible (skipLoadingOnRefresh — the skeleton only ever stands
-            // in when there is nothing on screen).
-            skipLoadingOnRefresh: true,
-            loading: () => const VSkeletonDetail(),
-            error: (_, _) => ErrorView(
-              message: l10n.feedLoadError,
-              onRetry: () => ref.read(feedProvider.notifier).refresh(),
-            ),
-            data: (events) {
-              final featured = events.where((e) => e.featured).toList();
-              final upcoming = events.where((e) => !e.featured).toList();
-              return RefreshIndicator(
-                onRefresh: () => ref.read(feedProvider.notifier).refresh(),
-                child: CustomScrollView(
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  slivers: [
+        child: feed.when(
+          // U-22 (§5.8): the first load shows the event-card skeleton
+          // instead of the bare spinner; pull-to-refresh keeps the list
+          // visible (skipLoadingOnRefresh — the skeleton only ever stands
+          // in when there is nothing on screen).
+          skipLoadingOnRefresh: true,
+          loading: () => const VSkeletonDetail(),
+          error: (_, _) => ErrorView(
+            message: l10n.feedLoadError,
+            onRetry: () => ref.read(feedProvider.notifier).refresh(),
+          ),
+          data: (events) {
+            final featured = events.where((e) => e.featured).toList();
+            final upcoming = events.where((e) => !e.featured).toList();
+            return RefreshIndicator(
+              onRefresh: () => ref.read(feedProvider.notifier).refresh(),
+              child: CustomScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                slivers: [
+                  SliverToBoxAdapter(
+                    child: _FeedHeader(
+                      title: l10n.feedBrand,
+                      showRadiusFilter: events.isNotEmpty,
+                      family: family,
+                    ),
+                  ),
+                  // Plugged home (2026-08-13): the games quick-access
+                  // section sits ON TOP of the feed content, right under
+                  // the brand hero — five minigame cards + the Party
+                  // Finder entry, flag-gated.
+                  const SliverToBoxAdapter(child: _GamesSection()),
+                  // The hairline + cyan-accent section separator (U-06
+                  // divider, LUXE cyan tint) between the header and the
+                  // content — and again between the featured carousel and
+                  // the upcoming list.
+                  if (events.isNotEmpty)
                     SliverToBoxAdapter(
-                      child: _FeedHeader(
-                        title: l10n.feedBrand,
-                        showRadiusFilter: events.isNotEmpty,
+                      child: Padding(
+                        padding: const EdgeInsets.only(
+                          top: AppSpacing.xl,
+                          bottom: AppSpacing.xl,
+                          left: AppSpacing.screenHorizontal,
+                          right: AppSpacing.screenHorizontal,
+                        ),
+                        child: VDiscoDivider(
+                          accentColor: FeedScreen._dividerAccent,
+                        ),
+                      ),
+                    ),
+                  if (featured.isNotEmpty) ...[
+                    SliverToBoxAdapter(
+                      child: _FeaturedSection(
+                        events: featured,
+                        sectionLabel: l10n.feedFeatured,
+                        badgeLabel: l10n.feedFeaturedBadge,
                         family: family,
                       ),
                     ),
-                    // Plugged home (2026-08-13): the games quick-access
-                    // section sits ON TOP of the feed content, right under
-                    // the brand hero — five minigame cards + the Party
-                    // Finder entry, flag-gated.
-                    const SliverToBoxAdapter(child: _GamesSection()),
-                    // The hairline + cyan-accent section separator (U-06
-                    // divider, LUXE cyan tint) between the header and the
-                    // content — and again between the featured carousel and
-                    // the upcoming list.
-                    if (events.isNotEmpty)
+                    if (upcoming.isNotEmpty)
                       SliverToBoxAdapter(
                         child: Padding(
-                          padding: const EdgeInsets.only(
-                            top: AppSpacing.xl,
-                            bottom: AppSpacing.xl,
-                            left: AppSpacing.screenHorizontal,
-                            right: AppSpacing.screenHorizontal,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: AppSpacing.screenHorizontal,
                           ),
                           child: VDiscoDivider(
                             accentColor: FeedScreen._dividerAccent,
                           ),
                         ),
                       ),
-                    if (featured.isNotEmpty) ...[
-                      SliverToBoxAdapter(
-                        child: _FeaturedSection(
-                          events: featured,
-                          sectionLabel: l10n.feedFeatured,
-                          badgeLabel: l10n.feedFeaturedBadge,
-                          family: family,
-                        ),
-                      ),
-                      if (upcoming.isNotEmpty)
-                        SliverToBoxAdapter(
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: AppSpacing.screenHorizontal,
-                            ),
-                            child: VDiscoDivider(
-                              accentColor: FeedScreen._dividerAccent,
-                            ),
-                          ),
-                        ),
-                    ],
-                    if (upcoming.isNotEmpty)
-                      SliverList.builder(
-                        itemCount: upcoming.length,
-                        itemBuilder: (context, index) => _EventCard(
-                          event: upcoming[index],
-                          family: family,
-                        ),
-                      )
-                    else
-                      SliverFillRemaining(
-                        hasScrollBody: false,
-                        child: VEmptyView(
-                          icon: Icons.explore_outlined,
-                          title: l10n.feedNoEvents,
-                          description: l10n.feedNoEventsBody,
-                        ),
-                      ),
                   ],
-                ),
-              );
-            },
-          ),
+                  if (upcoming.isNotEmpty)
+                    SliverList.builder(
+                      itemCount: upcoming.length,
+                      itemBuilder: (context, index) => _EventCard(
+                        event: upcoming[index],
+                        family: family,
+                      ),
+                    )
+                  else
+                    SliverFillRemaining(
+                      hasScrollBody: false,
+                      child: VEmptyView(
+                        icon: Icons.explore_outlined,
+                        title: l10n.feedNoEvents,
+                        description: l10n.feedNoEventsBody,
+                      ),
+                    ),
+                ],
+              ),
+            );
+          },
         ),
       ),
     );
@@ -666,7 +661,7 @@ class _GamesSection extends ConsumerWidget {
   /// null/loading).
   Future<void> _openMinigames(BuildContext context, WidgetRef ref) async {
     final l10n = AppLocalizations.of(context);
-    late final List<Map<String, dynamic>> groups;
+    late final List<Group> groups;
     try {
       groups = await ref.read(myGroupsProvider.future);
     } catch (e) {
@@ -692,7 +687,7 @@ class _GamesSection extends ConsumerWidget {
 
     String? groupId;
     if (groups.length == 1) {
-      groupId = groups.first['id'] as String?;
+      groupId = groups.first.id;
     } else {
       if (!context.mounted) return;
       groupId = await showModalBottomSheet<String>(
@@ -713,9 +708,9 @@ class _GamesSection extends ConsumerWidget {
               for (final group in groups)
                 ListTile(
                   leading: const Icon(Icons.group_outlined),
-                  title: Text(group['name'] as String? ?? ''),
+                  title: Text(group.name),
                   onTap: () => Navigator.of(sheetContext).pop(
-                    group['id'] as String?,
+                    group.id,
                   ),
                 ),
               const SizedBox(height: AppSpacing.sm),

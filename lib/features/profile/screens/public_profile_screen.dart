@@ -11,11 +11,10 @@ import 'package:samay/core/providers/service_providers.dart';
 import 'package:samay/core/repositories/repository_providers.dart';
 import 'package:samay/core/router/route_paths.dart';
 import 'package:samay/features/friends/providers/friends_providers.dart';
-import 'package:samay/features/profile/widgets/profile_avatar.dart';
+import 'package:samay/shared/widgets/profile_avatar.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/show_app_error.dart';
 import 'package:samay/shared/widgets/skeletons.dart';
-import 'package:samay/shared/widgets/v_aurora.dart';
 import 'package:samay/shared/widgets/v_button.dart';
 import 'package:samay/shared/widgets/v_display_text.dart';
 
@@ -203,12 +202,9 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
           ),
         ],
       ),
-      // LUXE v2 (XL-08): faint gold ambient — the public profile is
-      // informational, the hero carries the gold moment (α0.06).
-      body: VAurora(
-        gradients: const [AppGradients.gold],
-        opacity: 0.06,
-        child: ListView(
+      // LUXE v2 (XL-08): the public profile is informational — the hero
+      // carries the gold moment.
+      body: ListView(
           padding: const EdgeInsets.all(24),
           children: [
             Center(child: ProfileAvatar(initials: initials)),
@@ -292,7 +288,6 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
             ),
           ],
         ),
-      ),
     );
   }
 
