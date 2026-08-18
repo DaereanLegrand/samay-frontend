@@ -207,7 +207,12 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
       body: ListView(
           padding: const EdgeInsets.all(24),
           children: [
-            Center(child: ProfileAvatar(initials: initials)),
+            Center(
+              child: ProfileAvatar(
+                initials: initials,
+                imageUrl: p?['avatar_url'] as String?,
+              ),
+            ),
             const SizedBox(height: 16),
             Center(
               child: VDisplayText(

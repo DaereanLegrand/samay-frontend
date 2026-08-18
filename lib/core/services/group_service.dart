@@ -115,10 +115,12 @@ class GroupService {
         // (its absence TypeError'd group-detail into "Error del servidor").
         // The join aliases the security-barrier user_search_view as `users` —
         // the raw `users` join is own-row-only under RLS, which dropped every
-        // co-member's username (member lists showed a single row).
+        // co-member's username (member lists showed a single row). The join
+        // carries `avatar_url` too (20260815000001): the member-list screens
+        // render the co-member's photo through that barrier.
         .select(
           'id, group_id, user_id, role, joined_at, status, '
-          'users:user_search_view!inner(username)',
+          'users:user_search_view!inner(username, avatar_url)',
         )
         .eq('group_id', groupId)
         .eq('status', 'active');

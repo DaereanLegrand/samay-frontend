@@ -37,6 +37,7 @@ Future<void> showMemberActionsSheet(
   final user = member['users'] as Map<String, dynamic>?;
   final username =
       user?['username'] as String? ?? '${member['user_id']}'.substring(0, 8);
+  final avatarUrl = user?['avatar_url'] as String?;
   final userId = member['user_id'] as String;
   final role = member['role'] as String? ?? 'member';
 
@@ -58,6 +59,7 @@ Future<void> showMemberActionsSheet(
               leading: ProfileAvatar(
                 size: AppSpacing.avatar,
                 initials: username.substring(0, 1).toUpperCase(),
+                imageUrl: avatarUrl,
               ),
               title: Text(username),
               subtitle: Text(

@@ -75,7 +75,7 @@ extension ObjectX on Object {
         case 'refresh_token_not_found':
         case 'refresh_token_already_used':
         case 'user_not_found':
-          return UnauthorizedError();
+          return const UnauthorizedError();
         case 'unexpected_failure':
           return ServerError(authErr.message);
         default:
@@ -85,7 +85,7 @@ extension ObjectX on Object {
           if (msg.contains('jwt') ||
               msg.contains('token') ||
               msg.contains('session')) {
-            return UnauthorizedError();
+            return const UnauthorizedError();
           }
           return ServerError(authErr.message);
       }
@@ -94,7 +94,7 @@ extension ObjectX on Object {
     if (this is PostgrestException) {
       final e = this as PostgrestException;
       final code = e.code ?? '';
-      if (code == 'PGRST301') return UnauthorizedError();
+      if (code == 'PGRST301') return const UnauthorizedError();
       if (code == '23503') {
         return ValidationError('data', 'Referencia inválida');
       }
@@ -103,6 +103,39 @@ extension ObjectX on Object {
       if (code == 'P0001') return ServerError(e.message);
       if (code.startsWith('28')) return NetworkError();
       if (code.startsWith('42')) return ServerError(e.message);
+      return ServerError(e.message);
+    }
+
+    if (this is StorageException) {
+      final e = this as StorageException;
+      final status = e.statusCode;
+      final error = e.error?.toLowerCase() ?? '';
+      final msg = e.message.toLowerCase();
+
+      // Auth failures: HTTP 401 or a JWT/token/session code or message.
+      if (status == '401' ||
+          error.contains('jwt') ||
+          error.contains('token') ||
+          error.contains('session') ||
+          msg.contains('jwt') ||
+          msg.contains('token') ||
+          msg.contains('session')) {
+        return const UnauthorizedError();
+      }
+      // Permission failures: HTTP 403, the Postgres RLS denial code (42501),
+      // or the storage server's AccessDenied / InvalidKey codes.
+      if (status == '403' ||
+          status == '42501' ||
+          error == 'accessdenied' ||
+          error == 'invalidkey') {
+        return PermissionError();
+      }
+      // Missing objects: HTTP 404 or the ObjectNotFound storage code.
+      if (status == '404' || error == 'objectnotfound') {
+        return const NotFoundError();
+      }
+      // Anything else keeps the storage message (already user-safe), never
+      // the generic fallback.
       return ServerError(e.message);
     }
 

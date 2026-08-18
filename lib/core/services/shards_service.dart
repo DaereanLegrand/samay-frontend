@@ -84,8 +84,11 @@ class ShardsService {
         // OPT-009: join through the security-barrier user_search_view — the
         // raw `users` join is own-row-only under RLS, so contributor rows of
         // co-members silently vanished from the leaderboard/contributors.
+        // `avatar_url` rides along (20260815000001) so the contributors
+        // section renders the co-member's photo.
         .select(
-          'id, user_id, shards_contributed, users:user_search_view!inner(username)',
+          'id, user_id, shards_contributed, '
+          'users:user_search_view!inner(username, avatar_url)',
         )
         .eq('group_id', groupId)
         .gt('expires_at', DateTime.now().toIso8601String())

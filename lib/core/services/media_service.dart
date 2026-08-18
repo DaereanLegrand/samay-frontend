@@ -65,12 +65,15 @@ class MediaService {
   /// Mirrors [uploadGroupCover]: the payload is downscaled client-side first
   /// ([ImageProcessor.compressBytes]), the stored object is always a PNG, and
   /// the path is namespaced per user so one bucket serves every avatar
-  /// (`avatars/<userId>/<timestamp>.png`). Requires the `avatars` storage
-  /// bucket to exist (creation is out of scope for the app layer — see the
-  /// I-36 daily log).
+  /// (`<userId>/<timestamp>.png`). The path is relative to the bucket — no
+  /// `avatars/` prefix — because the storage RLS INSERT policy
+  /// (`storage_objects_insert_own`, migration 20260810000007) requires the
+  /// first path segment to equal `auth.jwt()->>'sub'`. Requires the `avatars`
+  /// storage bucket to exist (creation is out of scope for the app layer —
+  /// see the I-36 daily log).
   Future<String> uploadUserAvatar(String userId, Uint8List bytes) async {
     final processed = await ImageProcessor.compressBytes(bytes);
-    final path = 'avatars/$userId/${DateTime.now().millisecondsSinceEpoch}.png';
+    final path = '$userId/${DateTime.now().millisecondsSinceEpoch}.png';
     await client.storage.from('avatars').uploadBinary(path, processed);
     return client.storage.from('avatars').getPublicUrl(path);
   }

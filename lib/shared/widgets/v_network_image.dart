@@ -1,6 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
+import 'package:samay/core/config/env_config.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/core/design_tokens/app_icon_sizes.dart';
 import 'package:samay/core/theme/samay_durations.dart';
@@ -22,6 +23,7 @@ class VNetworkImage extends StatelessWidget {
   final BorderRadius? borderRadius;
   final CacheManager? cacheManager;
   final Duration fadeInDuration;
+  final Map<String, String>? httpHeaders;
 
   const VNetworkImage({
     super.key,
@@ -32,7 +34,21 @@ class VNetworkImage extends StatelessWidget {
     this.borderRadius,
     this.cacheManager,
     this.fadeInDuration = SamayDurations.standard,
+    this.httpHeaders,
   });
+
+  /// Headers for Supabase storage image reads in this self-hosted stack: Kong
+  /// enforces key-auth on every `/storage/v1/` route (`apikey` header), so a
+  /// bare public URL is a 401. Returns `{'apikey': ...}` only when [apiKey] is
+  /// non-empty AND [url] is a storage URL (covers public and signed-URL reads);
+  /// null otherwise (non-storage hosts and keyless/test environments keep
+  /// today's behavior exactly).
+  static Map<String, String>? storageHeadersFor(String url, String apiKey) {
+    if (apiKey.isEmpty || !url.contains('/storage/v1/')) {
+      return null;
+    }
+    return {'apikey': apiKey};
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -43,6 +59,12 @@ class VNetworkImage extends StatelessWidget {
       fit: fit,
       cacheManager: cacheManager,
       fadeInDuration: fadeInDuration,
+      httpHeaders:
+          httpHeaders ??
+          VNetworkImage.storageHeadersFor(
+            imageUrl,
+            EnvConfig.supabaseAnonKeyRaw,
+          ),
       placeholder: (_, _) => const _Surface(
         color: AppColors.surfaceAlt,
         icon: Icons.photo_outlined,

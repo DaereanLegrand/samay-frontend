@@ -690,6 +690,13 @@ supabase-docker-reset:
 supabase-seed-dev:
 	cd supabase && PGPASSWORD=postgres psql -h localhost -p 54382 -U postgres -d postgres -f seed-dev.sql
 
+# Drop into a psql REPL against the running stack's DB (approved port map:
+# host port POSTGRES_PORT, default 54382). Guards that the stack is up.
+in-db:
+	$(load-env)
+	@bash -c 'nc -z 127.0.0.1 $${POSTGRES_PORT:-54382} 2>/dev/null' || { echo "❌  PostgreSQL not reachable on $${POSTGRES_PORT:-54382} — start the stack first: make supabase-docker-start"; exit 1; }
+	PGPASSWORD=postgres psql -h localhost -p $${POSTGRES_PORT:-54382} -U postgres -d postgres
+
 # pgTAP schema tests (494 assertions, supabase/tests/schema_test.sql) against
 # the SELF-HOSTED stack — `supabase db test --db-url` connects to the running
 # compose DB on the approved port (verified: CLI v2.113.0 enables pgtap, then

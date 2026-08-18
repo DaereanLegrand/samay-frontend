@@ -102,11 +102,14 @@ class ProfileScreen extends ConsumerWidget {
                     Center(
                       child: Tooltip(
                         message: l10n.profileEditTitle,
-                        child: InkWell(
-                          customBorder: const CircleBorder(),
-                          onTap: () => context.push(RoutePaths.profileEdit),
-                          child: ProfileAvatar(initials: initials),
+child: InkWell(
+                        customBorder: const CircleBorder(),
+                        onTap: () => context.push(RoutePaths.profileEdit),
+                        child: ProfileAvatar(
+                          initials: initials,
+                          imageUrl: profile?['avatar_url'] as String?,
                         ),
+                      ),
                       ),
                     ),
                     const SizedBox(height: 16),

@@ -476,6 +476,7 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen>
             (c) => _RowContributor(
               username:
                   c['users']?['username'] ?? '${c['user_id']}'.substring(0, 8),
+              avatarUrl: c['users']?['avatar_url'] as String?,
               shards: l10n.groupsShardsCountShort(
                 (c['shards_contributed'] as num?)?.toInt() ?? 0,
               ),
@@ -490,6 +491,7 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen>
           userId: m.userId,
           username: m.username ?? m.userId.substring(0, 8),
           role: role,
+          avatarUrl: m.users?['avatar_url'] as String?,
           canAct: isAdmin && m.userId != myId && role != 'promotor',
         );
       }),
@@ -511,20 +513,25 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen>
             style: Theme.of(context).textTheme.labelLarge,
           ),
           _RowSpacer(:final height) => SizedBox(height: height),
-          _RowContributor(:final username, :final shards) => _ContributorTile(
-            username: username,
-            shards: shards,
-          ),
+          _RowContributor(:final username, :final avatarUrl, :final shards) =>
+              _ContributorTile(
+                username: username,
+                avatarUrl: avatarUrl,
+                shards: shards,
+              ),
           _RowMember(
             :final userId,
             :final username,
             :final role,
             :final canAct,
+            :final avatarUrl,
           ) =>
             _MemberTile(
+              userId: userId,
               username: username,
               role: role,
-              onTap: canAct
+              avatarUrl: avatarUrl,
+              onActions: canAct
                   ? () => showMemberActionsSheet(
                       context,
                       ref: ref,
@@ -532,7 +539,10 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen>
                       member: {
                         'user_id': userId,
                         'role': role,
-                        'users': {'username': username},
+                        'users': {
+                          'username': username,
+                          'avatar_url': avatarUrl,
+                        },
                       },
                       onChanged: _invalidateData,
                     )
@@ -636,9 +646,17 @@ final class _RowSpacer extends _MembersRow {
 }
 
 final class _RowContributor extends _MembersRow {
-  const _RowContributor({required this.username, required this.shards});
+  const _RowContributor({
+    required this.username,
+    required this.shards,
+    this.avatarUrl,
+  });
+
   final String username;
   final String shards;
+
+  /// The contributor's public avatar photo (from the `user_search_view` join).
+  final String? avatarUrl;
 }
 
 final class _RowMember extends _MembersRow {
@@ -647,11 +665,15 @@ final class _RowMember extends _MembersRow {
     required this.username,
     required this.role,
     required this.canAct,
+    this.avatarUrl,
   });
 
   final String userId;
   final String username;
   final String role;
+
+  /// The member's public avatar photo (from the `user_search_view` join).
+  final String? avatarUrl;
 
   /// R17: the current user is an admin and this row is an actionable target.
   final bool canAct;
@@ -664,8 +686,13 @@ final class _RowMember extends _MembersRow {
 class _ContributorTile extends StatelessWidget {
   final String username;
   final String shards;
+  final String? avatarUrl;
 
-  const _ContributorTile({required this.username, required this.shards});
+  const _ContributorTile({
+    required this.username,
+    required this.shards,
+    this.avatarUrl,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -680,6 +707,7 @@ class _ContributorTile extends StatelessWidget {
             initials: username.isEmpty
                 ? '?'
                 : username.substring(0, 1).toUpperCase(),
+            imageUrl: avatarUrl,
           ),
           title: Text(username),
           trailing: Text(shards),
@@ -693,13 +721,22 @@ class _ContributorTile extends StatelessWidget {
 /// Dense member row (PERF-08: same shape as [_ContributorTile] but with the
 /// role rendered as a §5.5 `VBadge` beside the name; R17: admin rows gain
 /// the actions affordance; XL-17: hairline rows — the LUXE glass card is
-/// gone).
+/// gone). 2026-08-17: the row itself navigates to the member's public
+/// profile; the trailing ellipsis (admin rows only) opens the manage sheet.
 class _MemberTile extends StatelessWidget {
+  final String userId;
   final String username;
   final String role;
-  final VoidCallback? onTap;
+  final String? avatarUrl;
+  final VoidCallback? onActions;
 
-  const _MemberTile({required this.username, required this.role, this.onTap});
+  const _MemberTile({
+    required this.userId,
+    required this.username,
+    required this.role,
+    this.avatarUrl,
+    this.onActions,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -714,6 +751,7 @@ class _MemberTile extends StatelessWidget {
             initials: username.isEmpty
                 ? '?'
                 : username.substring(0, 1).toUpperCase(),
+            imageUrl: avatarUrl,
           ),
           title: Row(
             children: [
@@ -727,10 +765,15 @@ class _MemberTile extends StatelessWidget {
               VBadge(label: role),
             ],
           ),
-          trailing: onTap != null
-              ? const Icon(Icons.more_horiz, size: 20)
+          trailing: onActions != null
+              ? IconButton(
+                  visualDensity: VisualDensity.compact,
+                  icon: const Icon(Icons.more_horiz, size: 20),
+                  tooltip: AppLocalizations.of(context).commonMoreOptions,
+                  onPressed: onActions,
+                )
               : null,
-          onTap: onTap,
+          onTap: () => context.push(RoutePaths.userProfile(userId)),
         ),
         const Divider(height: 1),
       ],

@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/logging/app_logger.dart';
 import 'package:samay/core/providers/service_providers.dart';
 import 'package:samay/core/repositories/repository_providers.dart';
+import 'package:samay/core/router/route_paths.dart';
 import 'package:samay/features/groups/widgets/member_actions_sheet.dart';
 import 'package:samay/shared/widgets/profile_avatar.dart';
 import 'package:samay/l10n/app_localizations.dart';
@@ -98,13 +100,16 @@ class _GroupMembersScreenState extends ConsumerState<GroupMembersScreen> {
                 final initials = username.substring(0, 1).toUpperCase();
                 final role = m['role'] as String? ?? 'member';
                 final tappable = _canAct(myRole, userId, role);
-                // XL-17 (09_groups): one hairline per row — the violet
-                // glass card is gone, the violet stays on the detail hero.
+                // 2026-08-17: the row itself is the navigation affordance —
+                // every member tile opens the member's public profile. The
+                // trailing ellipsis (admin rows only) opens the manage sheet
+                // (R17).
                 return ListTile(
                   dense: true,
                   leading: ProfileAvatar(
                     size: AppSpacing.avatar,
                     initials: initials,
+                    imageUrl: user?['avatar_url'] as String?,
                   ),
                   title: Row(
                     children: [
@@ -119,9 +124,14 @@ class _GroupMembersScreenState extends ConsumerState<GroupMembersScreen> {
                     ],
                   ),
                   trailing: tappable
-                      ? const Icon(Icons.more_horiz, size: 20)
+                      ? IconButton(
+                          visualDensity: VisualDensity.compact,
+                          icon: const Icon(Icons.more_horiz, size: 20),
+                          tooltip: l10n.commonMoreOptions,
+                          onPressed: () => _openActions(m),
+                        )
                       : null,
-                  onTap: tappable ? () => _openActions(m) : null,
+                  onTap: () => context.push(RoutePaths.userProfile(userId)),
                 );
               },
             ),
