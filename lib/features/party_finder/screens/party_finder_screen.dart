@@ -13,8 +13,8 @@ import 'package:samay/features/party_finder/providers/party_finder_providers.dar
 import 'package:samay/features/profile/widgets/interests.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/error_view.dart';
-import 'package:samay/shared/widgets/glass/v_glass.dart';
 import 'package:samay/shared/widgets/skeletons.dart';
+import 'package:samay/shared/widgets/v_card.dart';
 import 'package:samay/shared/widgets/state_views.dart';
 import 'package:samay/shared/widgets/v_chip.dart';
 import 'package:samay/shared/widgets/v_network_image.dart';
@@ -93,13 +93,14 @@ class PartyFinderScreen extends ConsumerWidget {
               AppSpacing.lg,
               AppSpacing.sm,
             ),
-            child: VGlassCard(
-              gradient: _family,
-              glowAlpha: 0.14,
-              child: SwitchListTile(
-                title: Text(l10n.partyFinderOptInLabel),
-                value: optIn.valueOrNull ?? false,
-                onChanged: (value) => _setOptIn(ref, value),
+            child: VCard(
+              child: Material(
+                type: MaterialType.transparency,
+                child: SwitchListTile(
+                  title: Text(l10n.partyFinderOptInLabel),
+                  value: optIn.valueOrNull ?? false,
+                  onChanged: (value) => _setOptIn(ref, value),
+                ),
               ),
             ),
           ),
@@ -210,9 +211,7 @@ class _MatchCard extends StatelessWidget {
           horizontal: AppSpacing.lg,
           vertical: AppSpacing.xs,
         ),
-        child: VGlassCard(
-          gradient: _family,
-          glowAlpha: 0.1,
+        child: VCard(
           child: Row(
             children: [
               _MatchAvatar(avatarUrl: avatarUrl, username: username),

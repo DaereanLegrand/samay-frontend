@@ -10,8 +10,8 @@ import 'package:samay/core/providers/config_provider.dart';
 import 'package:samay/core/services/revenuecat_service.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/error_view.dart';
-import 'package:samay/shared/widgets/glass/v_glass.dart';
 import 'package:samay/shared/widgets/state_views.dart';
+import 'package:samay/shared/widgets/v_card.dart';
 import 'package:samay/shared/widgets/v_badge.dart';
 import 'package:samay/shared/widgets/v_button.dart';
 import 'package:samay/shared/widgets/v_display_text.dart';
@@ -280,16 +280,13 @@ class _TierCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isVip = tier.id == 'vip';
     final monthly = paywallMonthlyPrice(tier.id, config);
     final annual = paywallAnnualPrice(tier.id, config);
 
     // LUXE brand moment: glass price cards with gold gradient borders +
     // glow; VIP carries the stronger halo. The legacy violet VIP accent is
     // gone — the paywall family is gold (ORCHESTRATION map).
-    return VGlassCard(
-      gradient: _family,
-      glowAlpha: isVip ? 0.4 : (isCurrent ? 0.28 : 0.16),
+    return VCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

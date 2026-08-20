@@ -3,10 +3,8 @@
 ///
 /// Export surface: the glow text (signature titles), the disco divider
 /// (hairline + pink accent), and the shimmer/skeleton primitives (U-22).
-/// Also re-exports the LUXE v2 liquid-glass primitives (XL-02).
 library;
 
-export 'glass/glass.dart';
 export 'v_disco_divider.dart';
 export 'v_glow_text.dart';
 export 'v_shimmer.dart';

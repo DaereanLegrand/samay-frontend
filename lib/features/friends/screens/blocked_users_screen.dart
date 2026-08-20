@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:samay/core/design_tokens/app_gradients.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/extensions/error_mapper.dart';
 import 'package:samay/core/models/user_profile.dart';
@@ -8,8 +7,8 @@ import 'package:samay/core/repositories/repository_providers.dart';
 import 'package:samay/features/friends/providers/friends_providers.dart';
 import 'package:samay/shared/widgets/profile_avatar.dart';
 import 'package:samay/l10n/app_localizations.dart';
-import 'package:samay/shared/widgets/glass/glass.dart';
 import 'package:samay/shared/widgets/state_views.dart';
+import 'package:samay/shared/widgets/v_card.dart';
 import 'package:samay/shared/widgets/v_refreshable.dart';
 
 class BlockedUsersScreen extends ConsumerWidget {
@@ -61,24 +60,25 @@ class BlockedUsersScreen extends ConsumerWidget {
                       const SizedBox(height: AppSpacing.sm),
                   itemBuilder: (_, i) {
                     final u = blocked[i];
-                    return VGlassCard(
-                      gradient: AppGradients.mint,
-                      glowAlpha: 0.10,
-                      child: ListTile(
-                        leading: ProfileAvatar(
-                          size: AppSpacing.avatar,
-                          initials: _initials(u),
-                          imageUrl: u.avatarUrl,
-                        ),
-                        title: Text('@${u.username}'),
-                        trailing: TextButton(
-                          onPressed: () async {
-                            await ref
-                                .read(friendsRepositoryProvider)
-                                .unblockUser(u.id);
-                            ref.invalidate(blockedUsersProvider);
-                          },
-                          child: Text(l10n.friendsUnblock),
+                    return VCard(
+                      child: Material(
+                        type: MaterialType.transparency,
+                        child: ListTile(
+                          leading: ProfileAvatar(
+                            size: AppSpacing.avatar,
+                            initials: _initials(u),
+                            imageUrl: u.avatarUrl,
+                          ),
+                          title: Text('@${u.username}'),
+                          trailing: TextButton(
+                            onPressed: () async {
+                              await ref
+                                  .read(friendsRepositoryProvider)
+                                  .unblockUser(u.id);
+                              ref.invalidate(blockedUsersProvider);
+                            },
+                            child: Text(l10n.friendsUnblock),
+                          ),
                         ),
                       ),
                     );

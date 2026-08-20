@@ -18,6 +18,7 @@ abstract final class RoutePaths {
   static const mainProfile = '/main/profile';
   static const groupCreate = '/group/create';
   static const groupsLeaderboard = '/groups/leaderboard';
+  static const userRanking = '/ranking/users';
   static const userSearch = '/user/search';
   static const friendsRequests = '/friends/requests';
   static const friendsList = '/friends/list';

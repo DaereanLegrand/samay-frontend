@@ -45,8 +45,9 @@ import 'package:samay/features/groups/screens/donate_shards_screen.dart';
 import 'package:samay/features/groups/screens/group_detail_screen.dart';
 import 'package:samay/features/groups/screens/invite_screen.dart';
 import 'package:samay/features/groups/screens/leaderboard_screen.dart';
-import 'package:samay/features/groups/screens/my_groups_screen.dart';
 import 'package:samay/features/groups/screens/group_members_screen.dart';
+import 'package:samay/features/social/screens/social_screen.dart';
+import 'package:samay/features/social/screens/user_ranking_screen.dart';
 import 'package:samay/features/minigames/screens/minigames_screen.dart';
 import 'package:samay/features/notifications/screens/notification_center_screen.dart';
 import 'package:samay/features/party_finder/screens/party_finder_screen.dart';
@@ -233,7 +234,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: RoutePaths.mainGroups,
             pageBuilder: (context, state) =>
-                _tabPage(state, const MyGroupsScreen()),
+                _tabPage(state, const SocialScreen()),
           ),
           GoRoute(
             // I-69: the events tab is LIVE (R1 events sweep) but the flag
@@ -407,6 +408,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: RoutePaths.groupsLeaderboard,
         builder: (_, _) => const LeaderboardScreen(),
+      ),
+      GoRoute(
+        path: RoutePaths.userRanking,
+        builder: (_, _) => const UserRankingScreen(),
       ),
       GoRoute(
         // I-69: chat is LIVE (I-38 E2EE) but the flag stays wired as the

@@ -12,8 +12,8 @@ import 'package:samay/features/events/logic/event_formatters.dart';
 import 'package:samay/features/events/providers/events_providers.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/error_view.dart';
-import 'package:samay/shared/widgets/glass/glass.dart';
 import 'package:samay/shared/widgets/skeletons.dart';
+import 'package:samay/shared/widgets/v_card.dart';
 import 'package:samay/shared/widgets/state_views.dart';
 import 'package:samay/shared/widgets/v_badge.dart';
 import 'package:samay/shared/widgets/v_button.dart';
@@ -165,7 +165,7 @@ class _MyEventCard extends StatelessWidget {
       child: InkWell(
         key: ValueKey('my-event-card-${event.id}'),
         onTap: onTap,
-        child: VGlassCard(
+        child: VCard(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [

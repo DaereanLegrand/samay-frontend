@@ -15,8 +15,8 @@ import 'package:samay/features/friends/providers/friends_providers.dart';
 import 'package:samay/shared/widgets/profile_avatar.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/error_view.dart';
-import 'package:samay/shared/widgets/glass/glass.dart';
 import 'package:samay/shared/widgets/show_app_error.dart';
+import 'package:samay/shared/widgets/v_card.dart';
 import 'package:samay/shared/widgets/state_views.dart';
 import 'package:samay/shared/widgets/v_badge.dart';
 import 'package:samay/shared/widgets/v_button.dart';
@@ -188,20 +188,21 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                             const SizedBox(height: AppSpacing.sm),
                         itemBuilder: (_, i) {
                           final u = results[i];
-                          return VGlassCard(
-                            gradient: AppGradients.mint,
-                            glowAlpha: 0.10,
-                            child: ListTile(
-                              leading: ProfileAvatar(
-                                size: AppSpacing.avatar,
-                                initials: _initials(u),
-                                imageUrl: u.avatarUrl,
+                          return VCard(
+                            child: Material(
+                              type: MaterialType.transparency,
+                              child: ListTile(
+                                leading: ProfileAvatar(
+                                  size: AppSpacing.avatar,
+                                  initials: _initials(u),
+                                  imageUrl: u.avatarUrl,
+                                ),
+                                title: Text('@${u.username}'),
+                                onTap: () => context.push(
+                                  RoutePaths.userProfile(u.id),
+                                ),
+                                trailing: _buildButton(u),
                               ),
-                              title: Text('@${u.username}'),
-                              onTap: () => context.push(
-                                RoutePaths.userProfile(u.id),
-                              ),
-                              trailing: _buildButton(u),
                             ),
                           );
                         },

@@ -13,8 +13,8 @@ import 'package:samay/features/events/logic/event_formatters.dart';
 import 'package:samay/features/events/providers/events_providers.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/error_view.dart';
-import 'package:samay/shared/widgets/glass/glass.dart';
 import 'package:samay/shared/widgets/show_app_error.dart';
+import 'package:samay/shared/widgets/v_card.dart';
 import 'package:samay/shared/widgets/skeletons.dart';
 import 'package:samay/shared/widgets/v_badge.dart';
 import 'package:samay/shared/widgets/v_button.dart';
@@ -176,7 +176,7 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
           const SizedBox(height: AppSpacing.md),
           // XL-17: neutral white-only glass (no family border, no glow) —
           // the peach ring was part of the saturated spray.
-          VGlassCard(
+          VCard(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -334,7 +334,7 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
     final cap = event.preshardsCapPerUser;
     final remainder = event.preshardsRemainderAction;
 
-    return VGlassCard(
+    return VCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -392,7 +392,7 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
 
   Widget _buildPromotoresSection(AsyncValue<List<Map<String, dynamic>>> async) {
     final l10n = AppLocalizations.of(context);
-    return VGlassCard(
+    return VCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

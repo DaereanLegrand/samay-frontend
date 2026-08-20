@@ -13,8 +13,8 @@ import 'package:samay/features/profile/providers/profile_providers.dart';
 import 'package:samay/shared/widgets/profile_avatar.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/error_view.dart';
-import 'package:samay/shared/widgets/glass/v_glass.dart';
 import 'package:samay/shared/widgets/skeletons.dart';
+import 'package:samay/shared/widgets/v_card.dart';
 import 'package:samay/shared/widgets/state_views.dart';
 import 'package:samay/shared/widgets/v_display_text.dart';
 import 'package:samay/shared/widgets/v_shard_icon.dart';
@@ -252,18 +252,11 @@ class _BalanceCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    // XL-17 (Gemma round 2, 12_profile: "cluttered", "information density"):
-    // the balance card's gold ring/glow ride the watered run (mix 0.4) and
-    // the halo drops to a whisper (≤0.15) — the vivid gold survives only in
-    // the username hero shader and the shard diamond.
-    final watered = AppGradients.wateredFamily(AppGradients.gold, mix: 0.4);
     // LUXE v2 (XL-08): the balance card is liquid glass — gold gradient
     // hairline ring + soft gold glow (`AppGradients.glowShadows`), white
     // numbers, gold diamond (the currency token, §5.6). The transparent
     // Material lets the InkWell paint its ink above the glass face.
-    return VGlassCard(
-      gradient: watered,
-      glowAlpha: 0.12,
+    return VCard(
       child: Material(
         type: MaterialType.transparency,
         child: InkWell(

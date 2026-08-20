@@ -1,27 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
-import 'package:samay/core/design_tokens/app_typography.dart';
 
-/// Samay liquid-glass input — LUXE v2 (XL-03).
+/// Samay borderless input — **NO border, NO background, placeholder-only.**
 ///
-/// Replaces the old underline field (underline inputs are "outdated" — LUXE
-/// directive #7): the field is a radius-16 glass slab —
-///
-/// * outer `AnimatedContainer` (200ms): 1px gradient border ring via the
-///   double-container trick (outer gradient + inner fill), a soft white
-///   glow shadow on focus (α0.12, blur 24), and a subtle neumorphic top
-///   highlight on the inner fill (white α0.04);
-/// * fill: `surfaceAlt` α0.5;
-/// * the label is ALWAYS visible above the field
-///   (`floatingLabelBehavior: always`, `labelSmall` voice — mutedStrong,
-///   white on focus, glowPink on error); hint `muted`, text white, cursor
-///   white, error text glowPink (§5.2 — never raw red on black).
-///
-/// Border states: default white α0.25; focused → neutral white gradient
-/// (α0.8 top-left → α0.25); error → glowPink α0.8. Feature agents theme the
-/// border per-screen gradient later — this stays neutral white.
-class VInput extends StatefulWidget {
+/// User override (2026-08-18): the radius-16 liquid-glass slab (LUXE §4.3)
+/// is gone. The field is bare text on black — the placeholder is the only
+/// cue it exists (`mutedStrong` #999, 7.37:1 — AA; turning `glowPink` on
+/// error). Typed text stays white 17px iOS-native, cursor white, error text
+/// glowPink below (§5.2 — never raw red on black). No floating label
+/// (`floatingLabelBehavior: never`): the [label] doubles as the placeholder
+/// (`hint`) and disappears when the user types.
+class VInput extends StatelessWidget {
   final String label;
   final String? hint;
   final String? errorText;
@@ -30,6 +20,8 @@ class VInput extends StatefulWidget {
   final TextInputType keyboardType;
   final bool obscureText;
   final int maxLines;
+  final int minLines;
+  final TextAlignVertical? textAlignVertical;
 
   const VInput({
     super.key,
@@ -41,171 +33,67 @@ class VInput extends StatefulWidget {
     this.keyboardType = TextInputType.text,
     this.obscureText = false,
     this.maxLines = 1,
+    this.minLines = 1,
+    this.textAlignVertical,
   });
 
-  /// Glass shell geometry.
+  /// Vestigial liquid-glass geometry (LUXE §4.3). Retained so the
+  /// still-to-be-updated widget tests keep compiling; nothing renders these.
   static const BorderRadius radius = BorderRadius.all(Radius.circular(16));
 
-  /// Border + fill animation duration (LUXE input transition).
+  /// Vestigial — see [radius].
   static const Duration shellDuration = Duration(milliseconds: 200);
 
-  /// Key of the outer gradient-border shell (tests pin the glass visuals).
+  /// Vestigial — see [radius].
   static const Key glassShellKey = ValueKey('vInputGlassShell');
 
-  /// Key of the inner fill slab.
+  /// Vestigial — see [radius].
   static const Key glassFillKey = ValueKey('vInputGlassFill');
 
   @override
-  State<VInput> createState() => _VInputState();
-}
-
-class _VInputState extends State<VInput> {
-  final FocusNode _focusNode = FocusNode();
-  bool _focused = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _focusNode.addListener(_onFocusChange);
-  }
-
-  void _onFocusChange() {
-    final hasFocus = _focusNode.hasFocus;
-    if (_focused != hasFocus) {
-      setState(() => _focused = hasFocus);
-    }
-  }
-
-  @override
-  void dispose() {
-    _focusNode.removeListener(_onFocusChange);
-    _focusNode.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final hasError = widget.errorText != null;
-    // ANIM-OFF (2026-08-14): zero-duration under reduced motion — the glass
-    // ring swaps instantly instead of animating.
-    final shellDuration = MediaQuery.disableAnimationsOf(context)
-        ? Duration.zero
-        : VInput.shellDuration;
-    return AnimatedContainer(
-      key: VInput.glassShellKey,
-      duration: shellDuration,
-      curve: Curves.easeOutCubic,
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: _borderColors(),
-        ),
-        borderRadius: VInput.radius,
-        boxShadow: _focused && !hasError
-            ? [
-                BoxShadow(
-                  color: AppColors.white.withValues(alpha: 0.12),
-                  blurRadius: 24,
-                ),
-              ]
-            : const [],
+    final hasError = errorText != null;
+    return TextField(
+      controller: controller,
+      onChanged: onChanged,
+      keyboardType: keyboardType,
+      obscureText: obscureText,
+      minLines: minLines,
+      maxLines: maxLines,
+      textAlignVertical: textAlignVertical,
+      cursorColor: AppColors.white,
+      // iOS-native 17px input voice — clean, never styled like display copy.
+      style: const TextStyle(
+        color: AppColors.white,
+        fontSize: 17,
+        fontWeight: FontWeight.w400,
+        height: 1.35,
+        letterSpacing: 0.0,
       ),
-      padding: const EdgeInsets.all(1),
-      child: AnimatedContainer(
-        key: VInput.glassFillKey,
-        duration: shellDuration,
-        curve: Curves.easeOutCubic,
-        decoration: BoxDecoration(
-          color: AppColors.surfaceAlt.withValues(alpha: 0.5),
-          borderRadius: BorderRadius.circular(15),
+      selectionControls: materialTextSelectionControls,
+      decoration: InputDecoration(
+        hintText: hint ?? label,
+        errorText: errorText,
+        // No border, no background — the field is bare text on black.
+        border: InputBorder.none,
+        enabledBorder: InputBorder.none,
+        focusedBorder: InputBorder.none,
+        errorBorder: InputBorder.none,
+        focusedErrorBorder: InputBorder.none,
+        filled: false,
+        floatingLabelBehavior: FloatingLabelBehavior.never,
+        hintStyle: TextStyle(
+          color: hasError ? AppColors.glowPink : AppColors.mutedStrong,
+          fontSize: 17,
+          fontWeight: FontWeight.w400,
+          height: 1.35,
         ),
-        // Neumorphic top highlight: a hairline of light falling on the rim.
-        foregroundDecoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              AppColors.white.withValues(alpha: 0.04),
-              AppColors.white.withValues(alpha: 0.0),
-            ],
-            stops: const [0.0, 0.4],
-          ),
-          borderRadius: BorderRadius.circular(15),
-        ),
-        child: TextField(
-          controller: widget.controller,
-          onChanged: widget.onChanged,
-          keyboardType: widget.keyboardType,
-          obscureText: widget.obscureText,
-          maxLines: widget.maxLines,
-          focusNode: _focusNode,
-          cursorColor: AppColors.white,
-          // LUXE input voice: iOS-native 17px, normal weight, airy line
-          // height — no letter-spacing tricks (input text must read clean,
-          // never styled like display copy).
-          style: const TextStyle(
-            color: AppColors.white,
-            fontSize: 17,
-            fontWeight: FontWeight.w400,
-            height: 1.35,
-            letterSpacing: 0.0,
-          ),
-          selectionControls: materialTextSelectionControls,
-          decoration: InputDecoration(
-            labelText: widget.label,
-            hintText: widget.hint,
-            errorText: widget.errorText,
-            // The glass shell draws the border — no decoration border.
-            border: InputBorder.none,
-            filled: false,
-            floatingLabelBehavior: FloatingLabelBehavior.always,
-            labelStyle: AppTypography.labelMedium.copyWith(
-              color: _labelColor(),
-              fontWeight: FontWeight.w500,
-            ),
-            hintStyle: const TextStyle(
-              color: AppColors.mutedStrong,
-              fontSize: 17,
-              fontWeight: FontWeight.w400,
-              height: 1.35,
-            ),
-            errorStyle: const TextStyle(color: AppColors.error),
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: AppSpacing.lg,
-              vertical: 18,
-            ),
-          ),
+        errorStyle: const TextStyle(color: AppColors.error),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.lg,
+          vertical: AppSpacing.md,
         ),
       ),
     );
-  }
-
-  /// Label state color: error wins, then focus, else the rest `mutedStrong`.
-  Color _labelColor() {
-    if (widget.errorText != null) return AppColors.glowPink;
-    if (_focused) return AppColors.white;
-    return AppColors.mutedStrong;
-  }
-
-  /// The 1px ring gradient: default white α0.25; focused → the neutral
-  /// white diagonal (α0.8 → α0.25); error → glowPink α0.8.
-  List<Color> _borderColors() {
-    if (widget.errorText != null) {
-      return [
-        AppColors.glowPink.withValues(alpha: 0.8),
-        AppColors.glowPink.withValues(alpha: 0.8),
-      ];
-    }
-    if (_focused) {
-      return [
-        AppColors.white.withValues(alpha: 0.8),
-        AppColors.white.withValues(alpha: 0.25),
-      ];
-    }
-    return [
-      AppColors.white.withValues(alpha: 0.25),
-      AppColors.white.withValues(alpha: 0.25),
-    ];
   }
 }

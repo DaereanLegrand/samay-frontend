@@ -13,9 +13,9 @@ import 'package:samay/core/providers/service_providers.dart';
 import 'package:samay/features/notifications/providers/notifications_providers.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/error_view.dart';
-import 'package:samay/shared/widgets/glass/v_glass.dart';
 import 'package:samay/shared/widgets/skeletons.dart';
 import 'package:samay/shared/widgets/state_views.dart';
+import 'package:samay/shared/widgets/v_card.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' show RealtimeChannel;
 
 /// Icon per notification type (NOTI spec table, 16 rows). The title/body
@@ -42,10 +42,6 @@ IconData notificationIconForType(String type) {
     _ => Icons.notifications,
   };
 }
-
-/// LUXE v2 family for this screen — **gold** (ORCHESTRATION-LUXE map:
-/// notifications → gold).
-final AppGradient _family = AppGradients.familyOf('notifications');
 
 /// In-app notification center (NOTI spec): newest-first list from the
 /// `notifications` table, live inserts via Realtime, tap → deep link + mark
@@ -199,9 +195,7 @@ class _NotificationTile extends StatelessWidget {
           horizontal: AppSpacing.lg,
           vertical: AppSpacing.xs,
         ),
-        child: VGlassCard(
-          gradient: unread ? _family : null,
-          glowAlpha: unread ? 0.18 : 0.0,
+        child: VCard(
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [

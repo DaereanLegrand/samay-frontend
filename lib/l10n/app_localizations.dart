@@ -578,6 +578,12 @@ abstract class AppLocalizations {
   /// **'Grupos'**
   String get shellGroups;
 
+  /// Bottom navigation tab label (Social tab — groups + friends)
+  ///
+  /// In es, this message translates to:
+  /// **'Social'**
+  String get shellSocial;
+
   /// Bottom navigation tab label
   ///
   /// In es, this message translates to:
@@ -793,6 +799,66 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'Solicitudes'**
   String get groupsRequests;
+
+  /// Social tab screen app bar title
+  ///
+  /// In es, this message translates to:
+  /// **'Social'**
+  String get socialTitle;
+
+  /// Social screen inner pill tab label (groups sub-tab)
+  ///
+  /// In es, this message translates to:
+  /// **'Grupos'**
+  String get socialTabGroups;
+
+  /// Social screen inner pill tab label (friends sub-tab)
+  ///
+  /// In es, this message translates to:
+  /// **'Amigos'**
+  String get socialTabFriends;
+
+  /// Tooltip for the magnifier (search) icon button in the Amigos sub-tab
+  ///
+  /// In es, this message translates to:
+  /// **'Buscar usuarios'**
+  String get socialSearchTooltip;
+
+  /// Amigos sub-tab entry that opens the global user ranking
+  ///
+  /// In es, this message translates to:
+  /// **'Ranking'**
+  String get socialRankingEntry;
+
+  /// Global user ranking screen app bar title
+  ///
+  /// In es, this message translates to:
+  /// **'Ranking de usuarios'**
+  String get socialRankingTitle;
+
+  /// Empty state when the user ranking has no entries
+  ///
+  /// In es, this message translates to:
+  /// **'Aún no hay datos de ranking'**
+  String get socialRankingEmpty;
+
+  /// Neutral placeholder name on the global ranking when the profile is private and anonymize_names is on
+  ///
+  /// In es, this message translates to:
+  /// **'Usuario'**
+  String get socialCensoredName;
+
+  /// Settings toggle label — lets the name/photo appear on the global user ranking
+  ///
+  /// In es, this message translates to:
+  /// **'Perfil público'**
+  String get socialPublicProfileLabel;
+
+  /// Settings toggle helper text for the public-profile switch
+  ///
+  /// In es, this message translates to:
+  /// **'Permite que tu nombre y foto aparezcan en el ranking global de usuarios'**
+  String get socialPublicProfileBody;
 
   /// Empty state heading when the user belongs to no group
   ///

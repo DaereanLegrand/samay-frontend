@@ -557,6 +557,9 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
           // §5.2/§2.4: field labels are mutedStrong (#999999 AA); `muted`
           // #666666 fails 1.4.3 at normal size (hints keep `muted`).
           labelStyle: const TextStyle(color: AppColors.mutedStrong),
+          // Pinned: this is a display row, not a text input — the label
+          // keeps floating above (theme default is `never`).
+          floatingLabelBehavior: FloatingLabelBehavior.always,
           enabledBorder: const UnderlineInputBorder(
             borderSide: BorderSide(color: AppColors.white),
           ),
@@ -598,6 +601,8 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
             labelText: l10n.eventsGroupSelectorLabel,
             // §5.2/§2.4: label mutedStrong (see the date-row comment).
             labelStyle: const TextStyle(color: AppColors.mutedStrong),
+            // Pinned: dropdown row, not a text input (theme default `never`).
+            floatingLabelBehavior: FloatingLabelBehavior.always,
             enabledBorder: const UnderlineInputBorder(
               borderSide: BorderSide(color: AppColors.white),
             ),

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/core/design_tokens/app_gradients.dart';
 import 'package:samay/core/design_tokens/app_radius.dart';
-import 'package:samay/shared/widgets/glass/v_gradient_border.dart';
 import 'package:samay/shared/widgets/v_spinner.dart';
 
 enum VButtonVariant { outlined, emphasized, glow, dark }
@@ -329,7 +328,7 @@ class VButton extends StatelessWidget {
       ),
     );
 
-    final Widget ring = VGradientBorder(
+    final Widget ring = _GradientBorder(
       gradient: ringGradient,
       width: 1,
       radius: AppRadius.sharp,
@@ -376,5 +375,37 @@ class VButton extends StatelessWidget {
                       )
                     : null,
               );
+  }
+}
+
+class _GradientBorder extends StatelessWidget {
+  final LinearGradient gradient;
+  final double width;
+  final BorderRadius radius;
+  final Color color;
+  final Widget child;
+
+  const _GradientBorder({
+    required this.gradient,
+    this.width = 1.0,
+    this.radius = BorderRadius.zero,
+    this.color = AppColors.surface,
+    required this.child,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.all(width),
+      decoration: BoxDecoration(gradient: gradient, borderRadius: radius),
+      child: Container(
+        clipBehavior: Clip.antiAlias,
+        decoration: BoxDecoration(
+          color: color,
+          borderRadius: radius.subtract(BorderRadius.all(Radius.circular(width))),
+        ),
+        child: child,
+      ),
+    );
   }
 }

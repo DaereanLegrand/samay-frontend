@@ -37,7 +37,7 @@ const mainShellTabs = <TabItem>[
     path: RoutePaths.mainFeed,
   ),
   TabItem(
-    label: 'Grupos',
+    label: 'Social',
     icon: Icons.group_outlined,
     selectedIcon: Icons.group,
     path: RoutePaths.mainGroups,
@@ -182,7 +182,7 @@ class MainShell extends ConsumerWidget {
   static String _tabLabel(AppLocalizations l10n, int index) {
     return switch (index) {
       0 => l10n.shellFeed,
-      1 => l10n.shellGroups,
+      1 => l10n.shellSocial,
       2 => l10n.shellEvents,
       3 => l10n.shellNotifications,
       4 => l10n.shellProfile,

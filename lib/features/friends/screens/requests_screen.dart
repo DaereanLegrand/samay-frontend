@@ -10,8 +10,8 @@ import 'package:samay/features/friends/providers/friends_providers.dart';
 import 'package:samay/features/groups/providers/groups_providers.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/error_view.dart';
-import 'package:samay/shared/widgets/glass/glass.dart';
 import 'package:samay/shared/widgets/show_app_error.dart';
+import 'package:samay/shared/widgets/v_card.dart';
 import 'package:samay/shared/widgets/state_views.dart';
 import 'package:samay/shared/widgets/v_button.dart';
 import 'package:samay/shared/widgets/v_count_badge.dart';
@@ -211,25 +211,26 @@ class _RequestsScreenState extends ConsumerState<RequestsScreen>
           // placeholder to render.
           final name = names[r.userId]!;
           final id = r.friendshipId;
-          return VGlassCard(
-            gradient: AppGradients.mint,
-            glowAlpha: 0.10,
-            child: ListTile(
-              title: Text(name),
-              subtitle: Text(
-                isReceived ? l10n.friendsSentYouRequest : l10n.friendsRequestSent,
+          return VCard(
+            child: Material(
+              type: MaterialType.transparency,
+              child: ListTile(
+                title: Text(name),
+                subtitle: Text(
+                  isReceived ? l10n.friendsSentYouRequest : l10n.friendsRequestSent,
+                ),
+                trailing: isReceived
+                    ? _ActionPair(
+                        busy: _processing.contains(id),
+                        onAccept: () => _acceptFriend(id),
+                        onDecline: () => _declineFriend(id),
+                      )
+                    : _BusyButton(
+                        busy: _processing.contains(id),
+                        onPressed: () => _declineFriend(id),
+                        label: l10n.commonCancel,
+                      ),
               ),
-              trailing: isReceived
-                  ? _ActionPair(
-                      busy: _processing.contains(id),
-                      onAccept: () => _acceptFriend(id),
-                      onDecline: () => _declineFriend(id),
-                    )
-                  : _BusyButton(
-                      busy: _processing.contains(id),
-                      onPressed: () => _declineFriend(id),
-                      label: l10n.commonCancel,
-                    ),
             ),
           );
         },
@@ -270,16 +271,17 @@ class _RequestsScreenState extends ConsumerState<RequestsScreen>
               (invite['groups'] as Map<String, dynamic>?)?['name']
                       as String? ??
                   l10n.commonGroup;
-          return VGlassCard(
-            gradient: AppGradients.mint,
-            glowAlpha: 0.10,
-            child: ListTile(
-              title: Text(groupName),
-              subtitle: Text(invite['role'] as String? ?? 'member'),
-              trailing: _ActionPair(
-                busy: _processing.contains(id),
-                onAccept: () => _acceptInvite(id, groupId),
-                onDecline: () => _declineInvite(id),
+          return VCard(
+            child: Material(
+              type: MaterialType.transparency,
+              child: ListTile(
+                title: Text(groupName),
+                subtitle: Text(invite['role'] as String? ?? 'member'),
+                trailing: _ActionPair(
+                  busy: _processing.contains(id),
+                  onAccept: () => _acceptInvite(id, groupId),
+                  onDecline: () => _declineInvite(id),
+                ),
               ),
             ),
           );

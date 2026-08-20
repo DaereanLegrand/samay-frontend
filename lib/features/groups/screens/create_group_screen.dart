@@ -12,9 +12,9 @@ import 'package:samay/core/services/permission_service.dart';
 import 'package:samay/core/utils/form_validators.dart';
 import 'package:samay/core/utils/input_sanitizer.dart';
 import 'package:samay/l10n/app_localizations.dart';
-import 'package:samay/shared/widgets/glass/v_glass.dart';
 import 'package:samay/shared/widgets/show_app_error.dart';
 import 'package:samay/shared/widgets/v_button.dart';
+import 'package:samay/shared/widgets/v_card.dart';
 import 'package:samay/shared/widgets/v_input.dart';
 
 /// Gallery-picking seam for tests: `image_picker` is a platform plugin that
@@ -137,9 +137,7 @@ class _CreateGroupScreenState extends ConsumerState<CreateGroupScreen> {
       body: ListView(
         padding: const EdgeInsets.all(24),
         children: [
-          VGlassCard(
-            gradient: AppGradients.violet,
-            glowAlpha: 0.20,
+          VCard(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [

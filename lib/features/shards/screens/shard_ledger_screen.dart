@@ -10,8 +10,8 @@ import 'package:samay/features/shards/logic/shard_ledger_formatters.dart';
 import 'package:samay/features/shards/providers/shard_ledger_providers.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/error_view.dart';
-import 'package:samay/shared/widgets/glass/v_glass.dart';
 import 'package:samay/shared/widgets/skeletons.dart';
+import 'package:samay/shared/widgets/v_card.dart';
 import 'package:samay/shared/widgets/state_views.dart';
 import 'package:samay/shared/widgets/v_shard_icon.dart';
 
@@ -240,9 +240,7 @@ class _BalanceHeader extends StatelessWidget {
         AppSpacing.xl,
         AppSpacing.md,
       ),
-      child: VGlassCard(
-        gradient: _watered,
-        glowAlpha: 0.10,
+      child: VCard(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [

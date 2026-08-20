@@ -1,13 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
-import 'package:samay/core/design_tokens/app_gradients.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/logging/app_logger.dart';
 import 'package:samay/core/repositories/repository_providers.dart';
 import 'package:samay/shared/widgets/profile_avatar.dart';
 import 'package:samay/l10n/app_localizations.dart';
-import 'package:samay/shared/widgets/glass/v_glass.dart';
 import 'package:samay/shared/widgets/show_app_error.dart';
 
 /// R17 (F9 ADAPTED): the admin member-actions bottom sheet.
@@ -48,73 +46,88 @@ Future<void> showMemberActionsSheet(
     // owns the liquid corners (LUXE).
     shape: const RoundedRectangleBorder(),
     builder: (sheetContext) => SafeArea(
-      child: VGlass(
-        gradient: AppGradients.violet,
-        radius: const BorderRadius.all(Radius.circular(20)),
-        glowAlpha: 0.25,
+      child: Container(
+        padding: EdgeInsets.zero,
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          border: Border.all(color: AppColors.hairline),
+          borderRadius: const BorderRadius.all(Radius.circular(20)),
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            ListTile(
-              leading: ProfileAvatar(
-                size: AppSpacing.avatar,
-                initials: username.substring(0, 1).toUpperCase(),
-                imageUrl: avatarUrl,
-              ),
-              title: Text(username),
-              subtitle: Text(
-                role.toUpperCase(),
-                style: const TextStyle(
-                  fontSize: 12,
-                  color: AppColors.mutedStrong,
+            Material(
+              type: MaterialType.transparency,
+              child: ListTile(
+                leading: ProfileAvatar(
+                  size: AppSpacing.avatar,
+                  initials: username.substring(0, 1).toUpperCase(),
+                  imageUrl: avatarUrl,
+                ),
+                title: Text(username),
+                subtitle: Text(
+                  role.toUpperCase(),
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: AppColors.mutedStrong,
+                  ),
                 ),
               ),
             ),
             const Divider(height: 1),
             if (role == 'member')
-              ListTile(
-                leading: const Icon(Icons.arrow_upward, size: 20),
-                title: Text(l10n.groupsPromoteCoPromotor),
-                onTap: () => _runRoleChange(
-                  sheetContext,
-                  ref: ref,
-                  groupId: groupId,
-                  userId: userId,
-                  role: 'co_promotor',
-                  onChanged: onChanged,
+              Material(
+                type: MaterialType.transparency,
+                child: ListTile(
+                  leading: const Icon(Icons.arrow_upward, size: 20),
+                  title: Text(l10n.groupsPromoteCoPromotor),
+                  onTap: () => _runRoleChange(
+                    sheetContext,
+                    ref: ref,
+                    groupId: groupId,
+                    userId: userId,
+                    role: 'co_promotor',
+                    onChanged: onChanged,
+                  ),
                 ),
               )
             else
-              ListTile(
-                leading: const Icon(Icons.arrow_downward, size: 20),
-                title: Text(l10n.groupsDemoteMember),
-                onTap: () => _runRoleChange(
-                  sheetContext,
-                  ref: ref,
-                  groupId: groupId,
-                  userId: userId,
-                  role: 'member',
-                  onChanged: onChanged,
+              Material(
+                type: MaterialType.transparency,
+                child: ListTile(
+                  leading: const Icon(Icons.arrow_downward, size: 20),
+                  title: Text(l10n.groupsDemoteMember),
+                  onTap: () => _runRoleChange(
+                    sheetContext,
+                    ref: ref,
+                    groupId: groupId,
+                    userId: userId,
+                    role: 'member',
+                    onChanged: onChanged,
+                  ),
                 ),
               ),
             const Divider(height: 1),
-            ListTile(
-              leading: const Icon(
-                Icons.person_remove_outlined,
-                size: 20,
-                color: AppColors.error,
-              ),
-              title: Text(
-                l10n.groupsKickMember,
-                style: const TextStyle(color: AppColors.error),
-              ),
-              onTap: () => _kickMember(
-                sheetContext,
-                ref,
-                groupId,
-                userId,
-                username,
-                onChanged,
+            Material(
+              type: MaterialType.transparency,
+              child: ListTile(
+                leading: const Icon(
+                  Icons.person_remove_outlined,
+                  size: 20,
+                  color: AppColors.error,
+                ),
+                title: Text(
+                  l10n.groupsKickMember,
+                  style: const TextStyle(color: AppColors.error),
+                ),
+                onTap: () => _kickMember(
+                  sheetContext,
+                  ref,
+                  groupId,
+                  userId,
+                  username,
+                  onChanged,
+                ),
               ),
             ),
           ],

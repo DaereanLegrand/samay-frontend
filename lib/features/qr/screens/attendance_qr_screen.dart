@@ -13,7 +13,6 @@ import 'package:samay/features/events/providers/events_providers.dart';
 import 'package:samay/features/qr/providers/qr_providers.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/error_view.dart';
-import 'package:samay/shared/widgets/glass/v_glass.dart';
 import 'package:samay/shared/widgets/state_views.dart';
 import 'package:samay/shared/widgets/v_button.dart';
 
@@ -282,11 +281,13 @@ class _ActiveQr extends StatelessWidget {
       color: AppColors.discoBlack,
       alignment: Alignment.center,
       padding: const EdgeInsets.all(AppSpacing.lg),
-      child: VGlass(
-        gradient: _family,
-        radius: BorderRadius.circular(20),
-        glowAlpha: 0.3,
+      child: Container(
         padding: const EdgeInsets.all(AppSpacing.xl),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          border: Border.all(color: AppColors.hairline),
+          borderRadius: BorderRadius.circular(20),
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -450,11 +451,13 @@ class _MessageState extends StatelessWidget {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(AppSpacing.xl),
-        child: VGlass(
-          gradient: _family,
-          radius: BorderRadius.circular(16),
-          glowAlpha: 0.2,
+        child: Container(
           padding: const EdgeInsets.all(AppSpacing.xl),
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            border: Border.all(color: AppColors.hairline),
+            borderRadius: BorderRadius.circular(16),
+          ),
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 420),
             child: Column(

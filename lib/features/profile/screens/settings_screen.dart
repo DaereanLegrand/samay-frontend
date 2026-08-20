@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
-import 'package:samay/core/design_tokens/app_gradients.dart';
 import 'package:samay/core/design_tokens/app_typography.dart';
 import 'package:samay/core/providers/auth_provider.dart';
 import 'package:samay/core/providers/theme_provider.dart';
@@ -10,8 +9,9 @@ import 'package:samay/core/router/route_paths.dart';
 import 'package:samay/features/chat/providers/chat_providers.dart';
 import 'package:samay/features/profile/screens/notification_settings_screen.dart';
 import 'package:samay/features/profile/screens/privacy_info_screen.dart';
+import 'package:samay/features/social/providers/social_providers.dart';
 import 'package:samay/l10n/app_localizations.dart';
-import 'package:samay/shared/widgets/glass/v_glass.dart';
+import 'package:samay/shared/widgets/v_card.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -68,9 +68,7 @@ class SettingsScreen extends ConsumerWidget {
             // glass groups with hairline row dividers (LUXE v2: the U-15
             // grouping structure now wears liquid glass).
             _SectionHeader(l10n.settingsSectionAppearance),
-            VGlassCard(
-              gradient: AppGradients.gold,
-              glowAlpha: 0.18,
+            VCard(
               // The transparent Material lets the ListTiles paint their ink
               // splashes above the glass face (the framework asserts when a
               // ListTile sits under a colored DecoratedBox without one).
@@ -93,9 +91,7 @@ class SettingsScreen extends ConsumerWidget {
             // WhatsApp-style ✓/✓✓/read ticks. When off, the reader's device
             // never stamps `read_at`, so the peer never sees blue checks.
             _SectionHeader(l10n.settingsSectionChat),
-            VGlassCard(
-              gradient: AppGradients.gold,
-              glowAlpha: 0.18,
+            VCard(
               child: Material(
                 type: MaterialType.transparency,
                 child: Column(
@@ -106,9 +102,7 @@ class SettingsScreen extends ConsumerWidget {
               ),
             ),
             _SectionHeader(l10n.settingsSectionAccount),
-            VGlassCard(
-              gradient: AppGradients.gold,
-              glowAlpha: 0.18,
+            VCard(
               child: Material(
                 type: MaterialType.transparency,
                 child: Column(
@@ -137,6 +131,12 @@ class SettingsScreen extends ConsumerWidget {
                       label: l10n.profileEditTitle,
                       onTap: () => context.push(RoutePaths.profileEdit),
                     ),
+                    const Divider(),
+                    // C-social (2026-08-18): the public-profile privacy
+                    // switch — when ON the name/photo appear on the global
+                    // user ranking (Social tab). Bound to users.profile_public
+                    // via profilePublicProvider.
+                    _PublicProfileTile(),
                     const Divider(),
                     // R2: the privacy row opens the static privacy/terms info
                     // screen (the signup-funnel consent gate cannot render
@@ -208,6 +208,42 @@ class _SectionHeader extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
       child: Text(label.toUpperCase(), style: AppTypography.sectionLabel),
+    );
+  }
+}
+
+/// The public-profile privacy switch (C-social, 2026-08-18):
+/// `users.profile_public` via [profilePublicProvider]. When ON the name and
+/// photo appear on the global user ranking. Optimistic — a persistence
+/// failure rolls the switch back and surfaces a snackbar.
+class _PublicProfileTile extends ConsumerWidget {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+    final enabled =
+        ref.watch(profilePublicProvider).valueOrNull ?? false;
+    return SwitchListTile(
+      contentPadding: EdgeInsets.zero,
+      secondary: const Icon(Icons.public),
+      title: Text(l10n.socialPublicProfileLabel),
+      subtitle: Text(
+        l10n.socialPublicProfileBody,
+        style: Theme.of(
+          context,
+        ).textTheme.bodySmall?.copyWith(color: AppColors.mutedStrong),
+      ),
+      value: enabled,
+      onChanged: (value) async {
+        try {
+          await ref.read(profilePublicProvider.notifier).setEnabled(value);
+        } catch (_) {
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(l10n.chatReadReceiptsSaveError)),
+            );
+          }
+        }
+      },
     );
   }
 }

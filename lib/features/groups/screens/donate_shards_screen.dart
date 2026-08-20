@@ -7,8 +7,8 @@ import 'package:samay/core/repositories/repository_providers.dart';
 import 'package:samay/core/utils/form_validators.dart';
 import 'package:samay/core/utils/input_sanitizer.dart';
 import 'package:samay/l10n/app_localizations.dart';
-import 'package:samay/shared/widgets/glass/v_glass.dart';
 import 'package:samay/shared/widgets/v_button.dart';
+import 'package:samay/shared/widgets/v_card.dart';
 import 'package:samay/shared/widgets/v_input.dart';
 
 class DonateShardsScreen extends ConsumerStatefulWidget {
@@ -81,9 +81,7 @@ class _DonateShardsScreenState extends ConsumerState<DonateShardsScreen> {
       body: ListView(
         padding: const EdgeInsets.all(24),
         children: [
-          VGlassCard(
-            gradient: AppGradients.violet,
-            glowAlpha: 0.20,
+          VCard(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [

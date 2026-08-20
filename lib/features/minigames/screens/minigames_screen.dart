@@ -10,8 +10,8 @@ import 'package:samay/features/minigames/logic/minigame_meta.dart';
 import 'package:samay/features/minigames/providers/minigames_providers.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/error_view.dart';
-import 'package:samay/shared/widgets/glass/v_glass.dart';
 import 'package:samay/shared/widgets/state_views.dart';
+import 'package:samay/shared/widgets/v_card.dart';
 import 'package:samay/shared/widgets/v_button.dart';
 import 'package:samay/shared/widgets/v_chip.dart';
 import 'package:samay/shared/widgets/v_display_text.dart';
@@ -270,9 +270,7 @@ class _GameCard extends StatelessWidget {
       onTap: onTap,
       child: SizedBox(
         width: 170,
-        child: VGlassCard(
-          gradient: _family,
-          glowAlpha: selected ? 0.28 : 0.08,
+        child: VCard(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -328,9 +326,7 @@ class _SessionCard extends StatelessWidget {
           horizontal: AppSpacing.lg,
           vertical: AppSpacing.xs,
         ),
-        child: VGlassCard(
-          gradient: _family,
-          glowAlpha: 0.08,
+        child: VCard(
           child: Row(
             children: [
               Expanded(

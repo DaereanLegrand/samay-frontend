@@ -14,7 +14,6 @@ import 'package:samay/core/theme/samay_durations.dart';
 import 'package:samay/features/events/providers/events_providers.dart';
 import 'package:samay/features/qr/providers/qr_providers.dart';
 import 'package:samay/l10n/app_localizations.dart';
-import 'package:samay/shared/widgets/glass/v_glass.dart';
 import 'package:samay/shared/widgets/state_views.dart';
 import 'package:samay/shared/widgets/v_button.dart';
 import 'package:samay/shared/widgets/v_spinner.dart';
@@ -371,11 +370,13 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen> {
       right: AppSpacing.lg,
       bottom: AppSpacing.xxxl,
       child: switch (result) {
-        _Processing() => VGlass(
-            gradient: _family,
-            radius: BorderRadius.circular(16),
-            glowAlpha: 0.15,
+        _Processing() => Container(
             padding: const EdgeInsets.all(AppSpacing.md),
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              border: Border.all(color: AppColors.hairline),
+              borderRadius: BorderRadius.circular(16),
+            ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -388,11 +389,13 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen> {
               ],
             ),
           ),
-        _Confirmed(attendeeName: final name) => VGlass(
-            gradient: _family,
-            radius: BorderRadius.circular(16),
-            glowAlpha: 0.25,
+        _Confirmed(attendeeName: final name) => Container(
             padding: const EdgeInsets.all(AppSpacing.lg),
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              border: Border.all(color: AppColors.hairline),
+              borderRadius: BorderRadius.circular(16),
+            ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -426,11 +429,13 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen> {
             ),
           ),
         _ScanError(message: final message, retryable: final retryable) =>
-          VGlass(
-            gradient: _family,
-            radius: BorderRadius.circular(16),
-            glowAlpha: 0.15,
+          Container(
             padding: const EdgeInsets.all(AppSpacing.lg),
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              border: Border.all(color: AppColors.hairline),
+              borderRadius: BorderRadius.circular(16),
+            ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [

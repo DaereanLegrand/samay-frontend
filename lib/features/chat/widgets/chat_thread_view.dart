@@ -11,12 +11,12 @@ import 'package:samay/core/providers/auth_provider.dart';
 import 'package:samay/core/providers/service_providers.dart';
 import 'package:samay/core/repositories/repository_providers.dart';
 import 'package:samay/core/services/chat_service.dart';
+import 'package:samay/core/theme/samay_durations.dart';
 import 'package:samay/features/chat/providers/chat_providers.dart';
 import 'package:samay/features/groups/providers/groups_providers.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/error_view.dart';
 import 'package:samay/shared/widgets/state_views.dart';
-import 'package:samay/shared/widgets/v_button.dart';
 import 'package:samay/shared/widgets/v_spinner.dart';
 import 'package:samay/shared/widgets/v_input.dart';
 import 'package:samay/shared/widgets/v_thinking_dots.dart';
@@ -27,7 +27,8 @@ import 'package:supabase_flutter/supabase_flutter.dart' show RealtimeChannel;
 /// thread shows decrypted history, WhatsApp-style message statuses (✓ sent /
 /// ✓✓ received / blue ✓✓ read via `messages.read_at`), per-message time +
 /// day separators and a WHITE design voice — own bubbles are solid white
-/// with black text, the send button is a flat white [VButton.emphasized].
+/// with black text, the send button is a flat white circular up-arrow
+/// control (user directive 2026-08-18).
 ///
 /// [groupId] switches the thread into GROUP mode: peer bubbles label their
 /// SENDER (the username resolved from [groupMembersProvider] — member rows
@@ -55,6 +56,26 @@ class ChatThreadView extends ConsumerStatefulWidget {
 
 class _ChatThreadViewState extends ConsumerState<ChatThreadView> {
   final TextEditingController _controller = TextEditingController();
+
+  /// Drives the thread's [ListView]: auto-scroll to the newest message on
+  /// first load and on arrivals while the user is at the bottom (B-chat-
+  /// autoscroll). Verified against the Flutter API docs: controllers live
+  /// in [State] members, [hasClients] guards the un-attached period,
+  /// [animateTo]/[jumpTo] move the position (api.flutter.dev — Scroll-
+  /// Controller class).
+  final ScrollController _scrollController = ScrollController();
+
+  /// Distance (px) from the newest message that still counts as "at the
+  /// bottom" — arrivals auto-scroll only inside this trigger zone (60 px ≈
+  /// one short bubble), so a reader just a couple of messages up is never
+  /// yanked down.
+  static const double _bottomThreshold = 60;
+
+  /// True while the viewport is within [_bottomThreshold] of the newest
+  /// message. Updated by the scroll listener; only read by the auto-scroll
+  /// decision (never rendered), so no rebuild is needed.
+  bool _isAtBottom = false;
+
   RealtimeChannel? _channel;
   RealtimeChannel? _readsChannel;
   RealtimeChannel? _deletesChannel;
@@ -64,6 +85,12 @@ class _ChatThreadViewState extends ConsumerState<ChatThreadView> {
   /// [VThinkingDots] send-button loading state and the optimistic bubble's
   /// single-check status.
   bool _sending = false;
+
+  /// Diameter of the circular send button. The composer's single-line input
+  /// is forced to this height so field and button align (user directive
+  /// 2026-08-18); the button keeps this fixed height while the input grows
+  /// on wrap.
+  static const double _sendButtonSize = 44;
 
   /// USER FIX 2: per-thread username cache for group senders with NO row in
   /// [groupMembersProvider] (an invited-then-accepted user's member list can
@@ -84,6 +111,7 @@ class _ChatThreadViewState extends ConsumerState<ChatThreadView> {
   @override
   void initState() {
     super.initState();
+    _scrollController.addListener(_onScroll);
     _subscribeRealtime();
     _subscribeReads();
     _subscribeDeletes();
@@ -104,7 +132,73 @@ class _ChatThreadViewState extends ConsumerState<ChatThreadView> {
     _deletesChannel?.unsubscribe();
     _groupReadsChannel?.unsubscribe();
     _controller.dispose();
+    _scrollController.dispose();
     super.dispose();
+  }
+
+  /// Tracks "at the bottom" while the user scrolls: the thread auto-scrolls
+  /// on new arrivals ONLY inside the [_bottomThreshold] trigger zone.
+  void _onScroll() {
+    if (!_scrollController.hasClients) return;
+    final position = _scrollController.position;
+    _isAtBottom =
+        position.pixels >= position.maxScrollExtent - _bottomThreshold;
+  }
+
+  /// True while the scroll-to-bottom loop is in flight. New arrivals during
+  /// it COALESCE onto the running loop (each step re-targets the newest
+  /// extent), so concurrent chains can never cancel each other's animations
+  /// mid-flight (the ping-pong that made pumpAndSettle spin forever).
+  bool _scrollingToBottom = false;
+
+  /// Scrolls the thread to the newest message (max scroll extent). Runs in a
+  /// post-frame callback so the item that just arrived (or the just-built
+  /// list on first load) is laid out first — [maxScrollExtent] is only known
+  /// after layout.
+  void _scrollToBottom() {
+    if (_scrollingToBottom) return;
+    _scrollingToBottom = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !_scrollController.hasClients) {
+        _scrollingToBottom = false;
+        return;
+      }
+      _animateToNewest(_scrollController.position);
+    });
+  }
+
+  /// Animates (or jumps, under reduced motion) the thread to the newest
+  /// message, REPEATING until the position truly reaches the extent. The
+  /// lazy list's [ScrollMetrics.maxScrollExtent] is an ESTIMATE that refines
+  /// as the bottom items build during the scroll (api.flutter.dev —
+  /// ScrollMetrics), so one scroll can stop short of the real bottom; each
+  /// post-frame re-check converges once every item is laid out.
+  Future<void> _animateToNewest(ScrollPosition position) async {
+    final target = position.maxScrollExtent;
+    if (position.pixels >= target - 1) {
+      _scrollingToBottom = false;
+      return;
+    }
+    if (MediaQuery.disableAnimationsOf(context)) {
+      position.jumpTo(target);
+    } else {
+      await position.animateTo(
+        target,
+        duration: SamayDurations.fast,
+        curve: SamayDurations.defaultCurve,
+      );
+    }
+    if (!mounted || !_scrollController.hasClients) {
+      _scrollingToBottom = false;
+      return;
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !_scrollController.hasClients) {
+        _scrollingToBottom = false;
+        return;
+      }
+      _animateToNewest(_scrollController.position);
+    });
   }
 
   /// The thread opened (or a live message arrived while open) → bump the
@@ -555,11 +649,28 @@ class _ChatThreadViewState extends ConsumerState<ChatThreadView> {
     final currentUserId = ref.watch(authStateProvider).valueOrNull?.user?['id'];
 
     // First successful thread load → the user is reading it: mark the chat
-    // read so the feed badge drops (see [_markRead]) and stamp read receipts.
+    // read so the feed badge drops (see [_markRead]), stamp read receipts,
+    // and open the thread AT the newest message (standard chat UX).
+    // Afterwards, a NEW tail message (realtime arrival, the optimistic send
+    // row, the send-confirm refresh) auto-scrolls ONLY while the user is at
+    // the bottom — a reader scrolled up into history is never yanked down.
     ref.listen(chatMessagesProvider(widget.chatId), (previous, next) {
       if (next.hasValue && previous?.hasValue != true) {
         _markRead();
         _markMessagesRead();
+        _scrollToBottom();
+        return;
+      }
+      if (next.hasValue && previous?.hasValue == true) {
+        final prev = previous?.valueOrNull;
+        final curr = next.valueOrNull;
+        if (prev != null && curr != null) {
+          final newTail =
+              curr.messages.isNotEmpty &&
+              (prev.messages.isEmpty ||
+                  curr.messages.last['id'] != prev.messages.last['id']);
+          if (newTail && _isAtBottom) _scrollToBottom();
+        }
       }
     });
 
@@ -583,6 +694,7 @@ class _ChatThreadViewState extends ConsumerState<ChatThreadView> {
               final showHeader = state.hasMore || state.loadingOlder;
               final entries = _buildThreadEntries(state.messages);
               return ListView.builder(
+                controller: _scrollController,
                 padding: const EdgeInsets.all(AppSpacing.lg),
                 itemCount: entries.length + (showHeader ? 1 : 0),
                 itemBuilder: (context, index) {
@@ -681,36 +793,78 @@ class _ChatThreadViewState extends ConsumerState<ChatThreadView> {
   /// no peach gradient on the chat controls). While a send is in flight the
   /// button drops its label and pulses [VThinkingDots] (black on white).
   Widget _composer(AppLocalizations l10n) {
-    return SafeArea(
-      top: false,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(
-          AppSpacing.lg,
-          AppSpacing.sm,
-          AppSpacing.lg,
-          AppSpacing.sm,
+    // User override (2026-08-18): the input is borderless/backgroundless, so
+    // the composer docks as a bar — surface fill + hairline top edge divide
+    // it from the thread. The send control is a circular white up-arrow
+    // button (user directive 2026-08-18 — replaces the labeled rect).
+    return Container(
+      decoration: const BoxDecoration(
+        color: AppColors.surface,
+        border: Border(top: BorderSide(color: AppColors.hairline)),
+      ),
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.lg,
+            AppSpacing.sm,
+            AppSpacing.lg,
+            AppSpacing.sm,
+          ),
+          // The button pins to the bottom (end) at a fixed size while the
+          // input grows upward as text wraps.
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Expanded(
+                // minHeight == the button's diameter so an empty/single-line
+                // field is exactly the button's height; maxLines 3 caps the
+                // vertical growth. textAlignVertical centers the single-line
+                // text inside that forced height.
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(
+                    minHeight: _sendButtonSize,
+                  ),
+                  child: VInput(
+                    label: l10n.chatInputHint,
+                    controller: _controller,
+                    maxLines: 3,
+                    textAlignVertical: TextAlignVertical.center,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              _sendButton(l10n),
+            ],
+          ),
         ),
-        child: Row(
-          children: [
-            Expanded(
-              child: VInput(
-                label: l10n.chatInputHint,
-                controller: _controller,
-                maxLines: 3,
-              ),
-            ),
-            const SizedBox(width: 12),
-            SizedBox(
-              width: 96,
-              child: VButton.emphasized(
-                label: l10n.chatSend,
-                onPressed: _sending ? null : _send,
-                child: _sending
-                    ? const VThinkingDots(color: AppColors.discoBlack)
-                    : null,
-              ),
-            ),
-          ],
+      ),
+    );
+  }
+
+  /// Circular white send button — black up arrow; [VThinkingDots] (black)
+  /// while a send is in flight. Stays at its fixed diameter regardless of
+  /// the input's height.
+  Widget _sendButton(AppLocalizations l10n) {
+    final Widget content = Center(
+      child: _sending
+          ? const VThinkingDots(color: AppColors.discoBlack)
+          : const Icon(Icons.arrow_upward, color: AppColors.discoBlack),
+    );
+    return SizedBox(
+      key: const ValueKey('chatSendButton'),
+      width: _sendButtonSize,
+      height: _sendButtonSize,
+      child: Tooltip(
+        message: l10n.chatSend,
+        child: Material(
+          color: AppColors.white,
+          shape: const CircleBorder(),
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            onTap: _sending ? null : _send,
+            child: content,
+          ),
         ),
       ),
     );

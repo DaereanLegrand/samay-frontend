@@ -361,6 +361,10 @@
   "@shellGroups": {
     "description": "Bottom navigation tab label"
   },
+  "shellSocial": "Social",
+  "@shellSocial": {
+    "description": "Bottom navigation tab label (Social tab — groups + friends)"
+  },
   "shellEvents": "Events",
   "@shellEvents": {
     "description": "Bottom navigation tab label"
@@ -504,6 +508,46 @@
   "groupsRequests": "Requests",
   "@groupsRequests": {
     "description": "Friend-requests shortcut button label"
+  },
+  "socialTitle": "Social",
+  "@socialTitle": {
+    "description": "Social tab screen app bar title"
+  },
+  "socialTabGroups": "Groups",
+  "@socialTabGroups": {
+    "description": "Social screen inner pill tab label (groups sub-tab)"
+  },
+  "socialTabFriends": "Friends",
+  "@socialTabFriends": {
+    "description": "Social screen inner pill tab label (friends sub-tab)"
+  },
+  "socialSearchTooltip": "Search users",
+  "@socialSearchTooltip": {
+    "description": "Tooltip for the magnifier (search) icon button in the Amigos sub-tab"
+  },
+  "socialRankingEntry": "Ranking",
+  "@socialRankingEntry": {
+    "description": "Amigos sub-tab entry that opens the global user ranking"
+  },
+  "socialRankingTitle": "User ranking",
+  "@socialRankingTitle": {
+    "description": "Global user ranking screen app bar title"
+  },
+  "socialRankingEmpty": "No ranking data yet",
+  "@socialRankingEmpty": {
+    "description": "Empty state when the user ranking has no entries"
+  },
+  "socialCensoredName": "User",
+  "@socialCensoredName": {
+    "description": "Neutral placeholder name on the global ranking when the profile is private and anonymize_names is on"
+  },
+  "socialPublicProfileLabel": "Public profile",
+  "@socialPublicProfileLabel": {
+    "description": "Settings toggle label — lets the name/photo appear on the global user ranking"
+  },
+  "socialPublicProfileBody": "Let your name and photo appear in the global user ranking",
+  "@socialPublicProfileBody": {
+    "description": "Settings toggle helper text for the public-profile switch"
   },
   "groupsNoneYet": "You don't belong to any group",
   "@groupsNoneYet": {

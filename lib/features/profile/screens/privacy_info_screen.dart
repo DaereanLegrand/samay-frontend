@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
-import 'package:samay/core/design_tokens/app_gradients.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/l10n/app_localizations.dart';
-import 'package:samay/shared/widgets/glass/v_glass.dart';
+import 'package:samay/shared/widgets/v_card.dart';
 
 /// Static privacy/terms info (R2 — wires the settings Privacidad row).
 ///
@@ -56,9 +55,7 @@ class _Section extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return VGlassCard(
-      gradient: AppGradients.gold,
-      glowAlpha: 0.12,
+    return VCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

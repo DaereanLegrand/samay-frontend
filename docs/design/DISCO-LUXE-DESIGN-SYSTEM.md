@@ -411,7 +411,7 @@ Per-round results and fixes were tracked in `docs/history/phase-04-luxe/GEMMA-RO
 | §1 pillars (black/glass/swipe-back/one-hero) | `lib/core/theme/app_theme.dart` (pageTransitionsTheme, inputDecorationTheme), `lib/core/router/main_shell.dart` | XL-03, XL-06 | DONE |
 | §2 gradients + pastel tokens | `lib/core/design_tokens/app_gradients.dart`, `app_colors.dart` (8 new tokens) | XL-01 (wateredFamily: XL-17) | DONE |
 | §3 typography (VDisplayText, sectionLabel, 17px inputs) | `lib/shared/widgets/v_display_text.dart`, `app_typography.dart`, `v_input.dart` | XL-03 (no-halo directive 2026-08-12) | DONE |
-| §4.1 glass | `lib/shared/widgets/glass/` (v_glass, v_gradient_border, glass barrel) | XL-02 (glow discipline XL-17) | DONE |
+| §4.1 REMOVED | REMOVED | REMOVED | REMOVED |
 | §4.2 buttons | `lib/shared/widgets/v_button.dart` | XL-14 | DONE |
 | §4.3 inputs + theme | `v_input.dart`, `app_theme.dart` | XL-03 (OTP gold slab XL-18) | DONE |
 | §4.4 ambient/AI widgets | `v_glow_pulse.dart`, `v_thinking_dots.dart`, `main_shell.dart` (~~`v_aurora.dart`~~ deleted 2026-08-17, §2.5) | XL-04, XL-06 | DONE |

@@ -6,8 +6,8 @@ import 'package:samay/core/design_tokens/app_icon_sizes.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/providers/auth_provider.dart';
 import 'package:samay/l10n/app_localizations.dart';
-import 'package:samay/shared/widgets/glass/v_glass.dart';
 import 'package:samay/shared/widgets/v_button.dart';
+import 'package:samay/shared/widgets/v_card.dart';
 import 'package:samay/shared/widgets/v_display_text.dart';
 
 /// Terminal screen for suspended accounts (AUTH spec: ban enforcement, I-35).
@@ -68,8 +68,7 @@ class BannedScreen extends ConsumerWidget {
                       // (mint-family ring + soft glow).
                       ConstrainedBox(
                         constraints: const BoxConstraints(maxWidth: 320),
-                        child: VGlassCard(
-                          gradient: family,
+                        child: VCard(
                           child: VButton.outlined(
                             label: l10n.profileSignOut,
                             onPressed: () => ref

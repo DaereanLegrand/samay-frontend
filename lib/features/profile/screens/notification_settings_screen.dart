@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
-import 'package:samay/core/design_tokens/app_gradients.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/features/profile/providers/notification_prefs_provider.dart';
 import 'package:samay/l10n/app_localizations.dart';
-import 'package:samay/shared/widgets/glass/v_glass.dart';
 import 'package:samay/shared/widgets/state_views.dart';
+import 'package:samay/shared/widgets/v_card.dart';
 
 /// Notification preferences (R2 — wires the settings Notificaciones row).
 ///
@@ -56,9 +55,7 @@ class NotificationSettingsScreen extends ConsumerWidget {
           data: (values) => ListView(
             padding: const EdgeInsets.all(AppSpacing.lg),
             children: [
-              VGlassCard(
-                gradient: AppGradients.gold,
-                glowAlpha: 0.12,
+              VCard(
                 child: Material(
                   type: MaterialType.transparency,
                   child: Column(

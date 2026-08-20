@@ -13,7 +13,6 @@ import 'package:samay/core/router/route_paths.dart';
 import 'package:samay/core/services/chat_service.dart';
 import 'package:samay/features/chat/providers/chat_providers.dart';import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/error_view.dart';
-import 'package:samay/shared/widgets/glass/v_glass.dart';
 import 'package:samay/shared/widgets/state_views.dart';
 import 'package:samay/shared/widgets/v_count_badge.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' show RealtimeChannel;
@@ -144,8 +143,7 @@ class _ChatListTile extends StatelessWidget {
     }
     final timeLabel = _relativeTime(item.lastMessageAt, l10n);
 
-    return VGlass(
-      child: InkWell(
+    return InkWell(
         onTap: () => onTap(item.chatId),
         borderRadius: BorderRadius.circular(16),
         child: Padding(
@@ -160,7 +158,7 @@ class _ChatListTile extends StatelessWidget {
                 height: 44,
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
-                  color: _family.colors.last.withValues(alpha: 0.18),
+                  color: Colors.grey,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: item.type == 'group'
@@ -217,8 +215,7 @@ class _ChatListTile extends StatelessWidget {
             ],
           ),
         ),
-      ),
-    );
+      );
   }
 
   /// Compact relative time ("ahora", "hace 5 m", "hace 3 h", else the date).

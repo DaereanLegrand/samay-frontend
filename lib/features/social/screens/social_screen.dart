@@ -1,0 +1,153 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:samay/core/design_tokens/app_colors.dart';
+import 'package:samay/core/router/main_shell.dart';
+import 'package:samay/core/router/route_paths.dart';
+import 'package:samay/features/groups/screens/groups_tab_screen.dart';
+import 'package:samay/features/social/screens/amigos_tab_screen.dart';
+import 'package:samay/l10n/app_localizations.dart';
+import 'package:samay/shared/widgets/v_count_badge.dart';
+
+/// The Social tab root (C-social, 2026-08-18): a Juega-style inner PILL
+/// TabBar with two sub-tabs — "Grupos" (create-group + ranking + my groups)
+/// and "Amigos" (friends + solicitudes + ranking + the top-right lupa).
+///
+/// White-only: the pill is a neutral `surfaceAlt` track with a white rounded
+/// indicator; no violet accent anywhere in the Social/ranking surfaces. The
+/// shell's Grupos pending badge (friend requests + group invites) rides the
+/// Amigos pill tab while the user is elsewhere. The lupa (user search) is a
+/// top-right AppBar action on BOTH sub-tabs (D-social-density).
+class SocialScreen extends ConsumerStatefulWidget {
+  const SocialScreen({super.key});
+
+  @override
+  ConsumerState<SocialScreen> createState() => _SocialScreenState();
+}
+
+class _SocialScreenState extends ConsumerState<SocialScreen>
+    with SingleTickerProviderStateMixin {
+  late final TabController _tabController;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 2, vsync: this);
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final pendingCount = ref.watch(pendingCountsProvider);
+    return Scaffold(
+      // A plain titled AppBar (title + the lupa, present on both sub-tabs) —
+      // identical top treatment to Perfil/Notificaciones, so the title clears
+      // the OS status bar / dynamic island on both Android and iOS. The pill
+      // sub-tab bar lives in the BODY (below the AppBar), never in the
+      // AppBar `bottom` — an AppBar bottom pushes the sub-tab content up
+      // behind the status bar on some devices.
+      appBar: AppBar(
+        title: Text(l10n.socialTitle),
+        // The top-right element of the Social tab: the lupa (user search),
+        // available from both sub-tabs (D-social-density).
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.search),
+            tooltip: l10n.socialSearchTooltip,
+            onPressed: () => context.push(RoutePaths.userSearch),
+          ),
+        ],
+      ),
+      body: Column(
+        children: [
+          _PillTabBar(
+            controller: _tabController,
+            pendingCount: pendingCount,
+            l10n: l10n,
+          ),
+          Expanded(
+            child: TabBarView(
+              controller: _tabController,
+              children: const [GroupsTab(), AmigosTab()],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// The Juega-style pill TabBar: a rounded `surfaceAlt` track wrapping a
+/// TabBar whose indicator is a white pill (selected label flips to black).
+/// The Amigos tab carries the shell's pending-count badge (R18) while the
+/// user is elsewhere. Lives in the body (below the titled AppBar), never in
+/// the AppBar `bottom` — so the sub-tab content clears the OS status bar.
+///
+/// D-social-density (2026-08-18): slimmed to ~half its old height — margin
+/// `fromLTRB(12,2,12,6)` + padding `all(2)` + a TabBar whose `Tab`s carry an
+/// explicit `height: 18` (this Flutter's TabBar has no `height` param; the
+/// Tab `height` shrinks the bar, otherwise each tab falls back to `kTabHeight`
+/// 46 and the footprint can't shrink), `labelMedium` labels and tight
+/// `labelPadding`. The outer container (incl. margins) measures ≤ 34px; tests
+/// pin it via the `socialPillTabBar` key.
+class _PillTabBar extends StatelessWidget {
+  final TabController controller;
+  final int pendingCount;
+  final AppLocalizations l10n;
+
+  const _PillTabBar({
+    required this.controller,
+    required this.pendingCount,
+    required this.l10n,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      key: const ValueKey('socialPillTabBar'),
+      margin: const EdgeInsets.fromLTRB(12, 2, 12, 2),
+      height: 40,
+      decoration: BoxDecoration(
+        color: AppColors.surfaceAlt,
+        borderRadius: BorderRadius.circular(24),
+      ),
+      child: TabBar(
+        controller: controller,
+        indicator: BoxDecoration(
+          color: AppColors.white,
+          borderRadius: BorderRadius.circular(10),
+        ),
+        indicatorSize: TabBarIndicatorSize.tab,
+        dividerColor: Colors.transparent,
+        labelColor: AppColors.discoBlack,
+        unselectedLabelColor: AppColors.white,
+        labelStyle: Theme.of(context).textTheme.labelMedium,
+        padding: EdgeInsets.zero,
+        labelPadding: EdgeInsets.zero,
+        tabs: [
+          Tab(text: l10n.socialTabGroups),
+          Tab(
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Text(l10n.socialTabFriends, softWrap: false),
+                if (pendingCount > 0 && controller.index != 1)
+                  Positioned(
+                    right: -10,
+                    top: -2,
+                    child: VCountBadge(count: pendingCount),
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}

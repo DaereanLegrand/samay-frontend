@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:samay/core/design_tokens/app_colors.dart';
-import 'package:samay/core/design_tokens/app_gradients.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/extensions/error_mapper.dart';
 import 'package:samay/core/logging/app_logger.dart';
@@ -15,9 +13,8 @@ import 'package:samay/features/groups/providers/groups_providers.dart';
 import 'package:samay/shared/widgets/profile_avatar.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/error_view.dart';
-import 'package:samay/shared/widgets/glass/v_gradient_border.dart';
-import 'package:samay/shared/widgets/glass/v_glass.dart';
 import 'package:samay/shared/widgets/state_views.dart';
+import 'package:samay/shared/widgets/v_card.dart';
 import 'package:samay/shared/widgets/show_app_error.dart';
 import 'package:samay/shared/widgets/v_spinner.dart';
 
@@ -122,25 +119,17 @@ class _InviteScreenState extends ConsumerState<InviteScreen> {
           children: [
             Padding(
               padding: const EdgeInsets.all(16),
-              // LUXE: no underline field and no raw OutlineInputBorder — the
-              // search sits in a liquid-glass ring (violet gradient border,
-              // radius 16) with a muted interior fill.
-              child: VGradientBorder(
-                gradient: AppGradients.violet.linear(),
-                width: 1,
-                radius: const BorderRadius.all(Radius.circular(16)),
-                color: AppColors.surfaceAlt.withValues(alpha: 0.5),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.lg,
-                  vertical: 4,
-                ),
-                child: TextField(
-                  controller: _searchController,
-                  decoration: InputDecoration(
-                    hintText: l10n.groupsSearchUsersHint,
-                    prefixIcon: const Icon(Icons.search),
-                    border: InputBorder.none,
-                  ),
+              // User override (2026-08-18): no glass ring, no background —
+              // the search is a bare borderless field (theme
+              // inputDecorationTheme).
+              child: TextField(
+                controller: _searchController,
+                decoration: InputDecoration(
+                  hintText: l10n.groupsSearchUsersHint,
+                  prefixIcon: const Icon(Icons.search),
+                  border: InputBorder.none,
+                  filled: false,
+                  floatingLabelBehavior: FloatingLabelBehavior.never,
                 ),
               ),
             ),
@@ -189,21 +178,22 @@ class _InviteScreenState extends ConsumerState<InviteScreen> {
                             final initial = username.isEmpty
                                 ? '?'
                                 : username.substring(0, 1);
-                            return VGlassCard(
-                              gradient: AppGradients.violet,
-                              glowAlpha: 0.10,
-                              child: ListTile(
-                                leading: ProfileAvatar(
-                                  size: AppSpacing.avatar,
-                                  initials: initial,
-                                  imageUrl: u.avatarUrl,
+                            return VCard(
+                              child: Material(
+                                type: MaterialType.transparency,
+                                child: ListTile(
+                                  leading: ProfileAvatar(
+                                    size: AppSpacing.avatar,
+                                    initials: initial,
+                                    imageUrl: u.avatarUrl,
+                                  ),
+                                  title: Text('@${u.username}'),
+                                  trailing: Checkbox(
+                                    value: selected,
+                                    onChanged: (_) => _toggle(uid),
+                                  ),
+                                  onTap: () => _toggle(uid),
                                 ),
-                                title: Text('@${u.username}'),
-                                trailing: Checkbox(
-                                  value: selected,
-                                  onChanged: (_) => _toggle(uid),
-                                ),
-                                onTap: () => _toggle(uid),
                               ),
                             );
                           },

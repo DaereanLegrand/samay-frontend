@@ -19,8 +19,8 @@ import 'package:samay/features/groups/providers/groups_providers.dart';
 import 'package:samay/features/minigames/logic/minigame_meta.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/error_view.dart';
-import 'package:samay/shared/widgets/glass/glass.dart';
 import 'package:samay/shared/widgets/skeletons.dart';
+import 'package:samay/shared/widgets/v_card.dart';
 import 'package:samay/shared/widgets/state_views.dart';
 import 'package:samay/shared/widgets/v_badge.dart';
 import 'package:samay/shared/widgets/v_chip.dart';
@@ -397,14 +397,13 @@ class _FeaturedCard extends StatelessWidget {
       width: 280,
       child: InkWell(
         onTap: () => context.push(RoutePaths.eventDetail(event.id)),
-        child: VGlass(
-          // The featured card keeps its full-bleed cover, so it uses the
-          // VGlass primitive with zero padding (VGlassCard's fixed 16px
-          // padding would inset the cover) — same sharp glass, cyan ring
-          // and the soft pastel glow of the LUXE "event of the night".
-          gradient: family,
-          glowAlpha: 0.18,
+        child: Container(
           padding: EdgeInsets.zero,
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            border: Border.all(color: AppColors.hairline),
+            borderRadius: BorderRadius.zero,
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -500,9 +499,7 @@ class _EventCard extends StatelessWidget {
       ),
       child: InkWell(
         onTap: () => context.push(RoutePaths.eventDetail(event.id)),
-        child: VGlassCard(
-          gradient: family,
-          glowAlpha: 0,
+        child: VCard(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -743,8 +740,7 @@ class _HomeGameCard extends StatelessWidget {
       onTap: onTap,
       child: SizedBox(
         width: 120,
-        child: VGlassCard(
-          glowAlpha: 0,
+        child: VCard(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -780,8 +776,7 @@ class _PartyFinderCard extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     return InkWell(
       onTap: onTap,
-      child: VGlassCard(
-        glowAlpha: 0,
+      child: VCard(
         child: Row(
           children: [
             const Icon(Icons.travel_explore, color: AppColors.white),

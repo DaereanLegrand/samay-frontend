@@ -279,6 +279,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get shellGroups => 'Groups';
 
   @override
+  String get shellSocial => 'Social';
+
+  @override
   String get shellEvents => 'Events';
 
   @override
@@ -386,6 +389,37 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get groupsRequests => 'Requests';
+
+  @override
+  String get socialTitle => 'Social';
+
+  @override
+  String get socialTabGroups => 'Groups';
+
+  @override
+  String get socialTabFriends => 'Friends';
+
+  @override
+  String get socialSearchTooltip => 'Search users';
+
+  @override
+  String get socialRankingEntry => 'Ranking';
+
+  @override
+  String get socialRankingTitle => 'User ranking';
+
+  @override
+  String get socialRankingEmpty => 'No ranking data yet';
+
+  @override
+  String get socialCensoredName => 'User';
+
+  @override
+  String get socialPublicProfileLabel => 'Public profile';
+
+  @override
+  String get socialPublicProfileBody =>
+      'Let your name and photo appear in the global user ranking';
 
   @override
   String get groupsNoneYet => 'You don\'t belong to any group';

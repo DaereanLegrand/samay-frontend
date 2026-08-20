@@ -15,7 +15,6 @@ import 'package:samay/features/events/providers/events_providers.dart';
 import 'package:samay/features/photos/providers/photos_providers.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/error_view.dart';
-import 'package:samay/shared/widgets/glass/v_glass.dart';
 import 'package:samay/shared/widgets/show_app_error.dart';
 import 'package:samay/shared/widgets/v_spinner.dart';
 import 'package:samay/shared/widgets/state_views.dart';
@@ -177,13 +176,15 @@ class _PhotoGalleryScreenState extends ConsumerState<PhotoGalleryScreen> {
                 AppSpacing.lg,
                 0,
               ),
-              child: VGlass(
-                gradient: _family,
-                radius: BorderRadius.circular(12),
-                glowAlpha: 0.1,
+              child: Container(
                 padding: const EdgeInsets.symmetric(
                   horizontal: AppSpacing.md,
                   vertical: AppSpacing.sm,
+                ),
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  border: Border.all(color: AppColors.hairline),
+                  borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
                   l10n.photosUploadWindowClosed,
@@ -272,25 +273,14 @@ class _ReportDialogState extends State<_ReportDialog> {
               autofocus: true,
               maxLength: 500,
               style: const TextStyle(color: AppColors.white),
-              // LUXE directive #7: no underline inputs — a filled
-              // liquid-glass field with a hairline border + focus glow.
+              // User override (2026-08-18): no border, no background — a
+              // bare borderless field.
               decoration: InputDecoration(
                 hintText: l10n.photosReportHint,
                 hintStyle: const TextStyle(color: AppColors.muted),
-                filled: true,
-                fillColor: AppColors.surfaceAlt,
-                border: const OutlineInputBorder(
-                  borderSide: BorderSide(color: AppColors.border),
-                  borderRadius: BorderRadius.all(Radius.circular(8)),
-                ),
-                enabledBorder: const OutlineInputBorder(
-                  borderSide: BorderSide(color: AppColors.border),
-                  borderRadius: BorderRadius.all(Radius.circular(8)),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderSide: BorderSide(color: _family.colors[1]),
-                  borderRadius: const BorderRadius.all(Radius.circular(8)),
-                ),
+                border: InputBorder.none,
+                filled: false,
+                floatingLabelBehavior: FloatingLabelBehavior.never,
               ),
             ),
           ],

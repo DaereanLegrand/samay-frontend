@@ -9,8 +9,8 @@ import 'package:samay/core/models/event.dart';
 import 'package:samay/features/events/providers/events_providers.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/error_view.dart';
-import 'package:samay/shared/widgets/glass/glass.dart';
 import 'package:samay/shared/widgets/show_app_error.dart';
+import 'package:samay/shared/widgets/v_card.dart';
 import 'package:samay/shared/widgets/state_views.dart';
 import 'package:samay/shared/widgets/v_button.dart';
 import 'package:samay/shared/widgets/v_input.dart';
@@ -218,7 +218,7 @@ class _EventEditScreenState extends ConsumerState<EventEditScreen> {
             const SizedBox(height: AppSpacing.xl),
             // XL-17 (10_events): the pool editor rides neutral white-only
             // glass — the peach stays on the save CTA.
-            VGlassCard(
+            VCard(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -252,6 +252,9 @@ class _EventEditScreenState extends ConsumerState<EventEditScreen> {
                     decoration: InputDecoration(
                       labelText: l10n.eventsRemainderLabel,
                       labelStyle: const TextStyle(color: AppColors.mutedStrong),
+                      // Pinned: dropdown row, not a text input (theme
+                      // default `never`).
+                      floatingLabelBehavior: FloatingLabelBehavior.always,
                     ),
                     items: [
                       DropdownMenuItem(

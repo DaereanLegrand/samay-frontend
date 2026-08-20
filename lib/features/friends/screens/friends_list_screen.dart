@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:samay/core/design_tokens/app_gradients.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/extensions/error_mapper.dart';
 import 'package:samay/core/models/user_profile.dart';
@@ -10,8 +9,8 @@ import 'package:samay/features/friends/providers/friends_providers.dart';
 import 'package:samay/shared/widgets/profile_avatar.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/error_view.dart';
-import 'package:samay/shared/widgets/glass/glass.dart';
 import 'package:samay/shared/widgets/state_views.dart';
+import 'package:samay/shared/widgets/v_card.dart';
 import 'package:samay/shared/widgets/v_refreshable.dart';
 import 'package:samay/shared/widgets/v_status_dot.dart';
 
@@ -112,24 +111,25 @@ class _FriendsListScreenState extends ConsumerState<FriendsListScreen> {
                             const SizedBox(height: AppSpacing.sm),
                         itemBuilder: (_, i) {
                           final u = filtered[i];
-                          return VGlassCard(
-                            gradient: AppGradients.mint,
-                            glowAlpha: 0.10,
-                            child: ListTile(
-                              leading: ProfileAvatar(
-                                size: AppSpacing.avatar,
-                                initials: _initials(u),
-                                imageUrl: u.avatarUrl,
-                              ),
-                              title: Text('@${u.username}'),
-                              // §5.5 presence dot + §6.3 α pulse (U-18's
-                              // `VStatusDot` — the pulse is gated by reduced
-                              // motion; the dot itself stays the 8px
-                              // statusOnline circle U-10 restyled). Cyan is
-                              // semantic (presence), not a screen accent.
-                              trailing: const VStatusDot(),
-                              onTap: () => context.push(
-                                RoutePaths.userProfile(u.id),
+                          return VCard(
+                            child: Material(
+                              type: MaterialType.transparency,
+                              child: ListTile(
+                                leading: ProfileAvatar(
+                                  size: AppSpacing.avatar,
+                                  initials: _initials(u),
+                                  imageUrl: u.avatarUrl,
+                                ),
+                                title: Text('@${u.username}'),
+                                // §5.5 presence dot + §6.3 α pulse (U-18's
+                                // `VStatusDot` — the pulse is gated by reduced
+                                // motion; the dot itself stays the 8px
+                                // statusOnline circle U-10 restyled). Cyan is
+                                // semantic (presence), not a screen accent.
+                                trailing: const VStatusDot(),
+                                onTap: () => context.push(
+                                  RoutePaths.userProfile(u.id),
+                                ),
                               ),
                             ),
                           );

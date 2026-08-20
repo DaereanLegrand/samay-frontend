@@ -7,8 +7,8 @@ import 'package:samay/features/cosmetics/providers/cosmetics_providers.dart';
 import 'package:samay/features/profile/providers/profile_providers.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/error_view.dart';
-import 'package:samay/shared/widgets/glass/v_glass.dart';
 import 'package:samay/shared/widgets/skeletons.dart';
+import 'package:samay/shared/widgets/v_card.dart';
 import 'package:samay/shared/widgets/state_views.dart';
 import 'package:samay/shared/widgets/v_badge.dart';
 import 'package:samay/shared/widgets/v_button.dart';
@@ -273,9 +273,7 @@ class _BalanceBar extends StatelessWidget {
     return Container(
       width: double.infinity,
       margin: const EdgeInsets.fromLTRB(24, 4, 24, 12),
-      child: VGlassCard(
-        gradient: _family,
-        glowAlpha: 0.2,
+      child: VCard(
         child: Row(
           children: [
             const VShardIcon(),
@@ -325,11 +323,7 @@ class _CosmeticCard extends StatelessWidget {
     final hasTierRequirement =
         (item['tier_requirement']?.toString() ?? 'free') != 'free';
 
-    return VGlassCard(
-      gradient: _family,
-      // The equipped state carries the stronger violet glow (the LUXE
-      // "selected" signal — border + glow + accent badge).
-      glowAlpha: _equipped ? 0.32 : (locked ? 0.06 : 0.14),
+    return VCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

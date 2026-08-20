@@ -100,43 +100,19 @@ class SamayTheme {
           TargetPlatform.fuchsia: StaticPageTransitionsBuilder(),
         },
       ),
-      // ── LUXE v2 (XL-03): liquid-glass inputs — NO underline (§5.2 → LUXE
-      // directive #7). Defaults for raw Material TextFields: radius-16
-      // `OutlineInputBorder`, `surfaceAlt` α0.5 fill, label always floating
-      // above the field; focused border white α0.8 1.5px, error border
-      // glowPink α0.8. `withValues` is not const → this block drops `const`.
-      inputDecorationTheme: InputDecorationThemeData(
-        filled: true,
-        fillColor: AppColors.surfaceAlt.withValues(alpha: 0.5),
-        floatingLabelBehavior: FloatingLabelBehavior.always,
-        labelStyle: const TextStyle(color: AppColors.mutedStrong),
-        hintStyle: const TextStyle(color: AppColors.muted),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(
-            color: AppColors.white.withValues(alpha: 0.25),
-          ),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(
-            color: AppColors.white.withValues(alpha: 0.8),
-            width: 1.5,
-          ),
-        ),
-        errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(
-            color: AppColors.glowPink.withValues(alpha: 0.8),
-          ),
-        ),
-        focusedErrorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(
-            color: AppColors.glowPink.withValues(alpha: 0.8),
-          ),
-        ),
-        errorStyle: const TextStyle(color: AppColors.error),
+      // ── User override (2026-08-18): borderless inputs — NO border, NO
+      // background, placeholder-only. Raw Material TextFields inherit this;
+      // `VInput` hardcodes the same treatment (`v_input.dart`).
+      inputDecorationTheme: const InputDecorationThemeData(
+        filled: false,
+        floatingLabelBehavior: FloatingLabelBehavior.never,
+        hintStyle: TextStyle(color: AppColors.muted),
+        border: InputBorder.none,
+        enabledBorder: InputBorder.none,
+        focusedBorder: InputBorder.none,
+        errorBorder: InputBorder.none,
+        focusedErrorBorder: InputBorder.none,
+        errorStyle: TextStyle(color: AppColors.error),
       ),
       // §5.3 cards: `surface` fill over black, hairline 1px border, sharp.
       cardTheme: const CardThemeData(
