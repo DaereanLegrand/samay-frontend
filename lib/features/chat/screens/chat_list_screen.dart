@@ -165,14 +165,14 @@ class _ChatListTile extends StatelessWidget {
                     ? Icon(
                         Icons.group,
                         size: 22,
-                        color: _family.colors.last,
+                        color: Colors.white,
                       )
                     : Text(
                         (item.peerUsername?.isNotEmpty ?? false)
                             ? item.peerUsername![0].toUpperCase()
                             : '?',
                         style: AppTypography.titleMedium.copyWith(
-                          color: _family.colors.last,
+                          color: Colors.white,
                         ),
                       ),
               ),
