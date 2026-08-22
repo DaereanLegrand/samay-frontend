@@ -3,10 +3,11 @@
         flutter-test flutter-analyze define-env secrets-check tunnel-android tunnel-waydroid \
         ios-signing-restore \
         install-hooks \
-        supabase-start supabase-stop supabase-status supabase-reset \
+        supabase-start supabase-stop supabase-status supabase-reset supabase-init \
         supabase-docker-start supabase-docker-stop supabase-docker-status supabase-docker-reset \
         supabase-db-test supabase-backend-tests supabase-stack-check \
         supabase-testing-start supabase-testing-stop supabase-testing-status supabase-testing-reset \
+        supabase-testing-init \
         supabase-seed-dev \
         migrate-check \
         ios-beta ios-release android-alpha android-release \
@@ -55,8 +56,10 @@ help:
 	@echo ""
 	@echo "  SUPABASE STACKS (ports 54382/54386/54381/54384/54443 — never Juega's)"
 	@echo "    supabase-start/stop/status/reset      prod stack lifecycle (reset = fresh DB + migrate)"
+	@echo "    supabase-init            start prod stack + apply migrations + seed (fresh DB)"
 	@echo "    supabase-docker-*        same, explicit docker compose lifecycle"
 	@echo "    supabase-testing-*       testing stack lifecycle (mutually exclusive with prod)"
+	@echo "    supabase-testing-init    testing stack + MAILPIT + migrations + seed (fresh DB)"
 	@echo "    supabase-db-test         pgTAP schema tests"
 	@echo "    supabase-backend-tests   backend opt-test suite (needs the stack up)"
 	@echo "    supabase-stack-check     stack health/port check"
@@ -142,6 +145,15 @@ define tunnel-waydroid
    $(1))
 endef
 
+# Direct (non-Darwin) waydroid preflight — `waydroid status` is the oracle:
+# CLI installed → container RUNNING → session IP resolved (the IP line only
+# appears once the Android session has a network address). Echoes "<ip>" on
+# success so callers can do `IP=$$($(call waydroid-preflight)); ...`. Single
+# physical line: it is substituted INLINE into recipe shell lines.
+define waydroid-preflight
+command -v waydroid >/dev/null 2>&1 || { echo "❌  waydroid CLI not found on this machine — install Waydroid or use TARGET=android."; exit 1; }; WS=$$(waydroid status 2>/dev/null || true); echo "$$WS" | grep -Eq 'Container:[[:space:]]*RUNNING' || { echo "❌  Waydroid container not RUNNING — start it first ('waydroid show-full-ui'), then retry. status:"; echo "$$WS"; exit 1; }; WIP=$$(echo "$$WS" | awk '/IP address:/ {print $$3}'); [ -n "$$WIP" ] || { echo "❌  Waydroid RUNNING but no session IP yet — open the Waydroid UI once so the session gets an address, then retry."; exit 1; }; echo "$$WIP"
+endef
+
 NO_PUB ?= true
 TARGET ?=
 
@@ -173,6 +185,14 @@ else
 FLUTTER_DEFINES := --dart-define-from-file=.env
 endif
 
+# Host address an Android AVD guest uses to reach THIS machine's API gateway
+# (Kong 54386). On Linux the emulator's LAN-IP hairpin is unreliable (wlan0
+# power-save/roaming silently drops SYNs — 2026-08-22 session: healthy stack,
+# intermittent errno-110 from `make dev TARGET=android`), and 127.0.0.1 inside
+# the guest is the GUEST itself; 10.0.2.2 is the emulator's canonical alias for
+# host loopback (sub-ms, wlan-independent). macOS keeps 127.0.0.1 semantics.
+ANDROID_GATEWAY_HOST := $(if $(findstring Linux,$(shell uname -s)),10.0.2.2,127.0.0.1)
+
 # Test targets are intentionally define-FREE by default (I-34 proved
 # `--dart-define` flips exactly the two env-dependent cases in
 # test/core/env_config_test.dart, which assert the empty-default behavior).
@@ -198,11 +218,19 @@ ifeq ($(strip $(TESTING_JWT_SECRET)),)
 $(error TESTING=true needs the local stack signing secret: JWT_SECRET in supabase/.env (or exported))
 endif
 TESTING_ANON_KEY := $(shell JWT_SECRET='$(TESTING_JWT_SECRET)' python3 tools/gen_testing_anon_key.py)
-FLUTTER_DEFINES += --dart-define=SUPABASE_URL=http://127.0.0.1:54386 --dart-define=SUPABASE_ANON_KEY=$(TESTING_ANON_KEY)
+FLUTTER_DEFINES += --dart-define=SUPABASE_URL=http://$(ANDROID_GATEWAY_HOST):54386 --dart-define=SUPABASE_ANON_KEY=$(TESTING_ANON_KEY)
 build: | testing-kong-register
 dev: | testing-kong-register
 install: | testing-kong-register
 tunnel-android: | testing-kong-register
+endif
+
+# TARGET=android always pins the guest-reachable gateway host (see
+# ANDROID_GATEWAY_HOST above) — .env's LAN URL is for phones/desktop, never
+# for the AVD. Same value the TESTING lane emits, so duplicate flags (when
+# TESTING=true too) are identical, never conflicting.
+ifeq ($(TARGET),android)
+FLUTTER_DEFINES += --dart-define=SUPABASE_URL=http://$(ANDROID_GATEWAY_HOST):54386
 endif
 
 # ── fastlane lane env (ios-adhoc builds) ─────────────────────────────────────
@@ -305,7 +333,7 @@ dev:
 	elif [ "$$UNAME" = "Darwin" ] && [ "$(TARGET)" = "waydroid" ]; then \
 		$(call tunnel-waydroid, flutter run $(PUB_FLAG) $(FLUTTER_DEFINES) -d localhost:$(TUNNEL_WAYDROID_PORT)); \
 	elif [ "$(TARGET)" = "waydroid" ]; then \
-		IP=$$(waydroid status | awk '/IP address:/ {print $$3}'); \
+		IP=$$($(call waydroid-preflight)); \
 		adb connect "$$IP:5555"; \
 		flutter run $(PUB_FLAG) $(FLUTTER_DEFINES) -d "$$IP:5555"; \
 	elif [ "$(TARGET)" = "android" ]; then \
@@ -430,7 +458,7 @@ install:
 		xcrun simctl install "$$DEV" "$$APP" && \
 		echo "✅  Installed to simulator $$DEV"; \
 	elif [ "$(TARGET)" = "waydroid" ]; then \
-		IP=$$(waydroid status | awk '/IP address:/ {print $$3}'); \
+		IP=$$($(call waydroid-preflight)); \
 		adb connect "$$IP:5555" && adb -s "$$IP:5555" install -r $(APK); \
 	elif [ "$(TARGET)" = "android" ]; then \
 		DEV=$$(adb devices | grep -o 'emulator-[0-9]*' | head -1); \
@@ -451,7 +479,7 @@ clear-storage:
 	elif [ "$$UNAME" = "Darwin" ] && [ "$(TARGET)" = "waydroid" ]; then \
 		$(call tunnel-waydroid, adb -s localhost:$(TUNNEL_WAYDROID_PORT) shell pm clear $(APP_ID)); \
 	elif [ "$(TARGET)" = "waydroid" ]; then \
-		IP=$$(waydroid status | awk '/IP address:/ {print $$3}'); \
+		IP=$$($(call waydroid-preflight)); \
 		adb connect "$$IP:5555" && adb -s "$$IP:5555" shell pm clear $(APP_ID); \
 	elif [ "$(TARGET)" = "android" ]; then \
 		DEV=$$(adb devices | grep -o 'emulator-[0-9]*' | head -1); \
@@ -655,6 +683,15 @@ supabase-reset:
 	docker compose up -d --wait && \
 	sh migrate.sh
 
+# First-run bootstrap: start the stack NON-destructively, apply every migration
+# in filename order, then seed. Safe on a fresh/empty volume — this is the
+# target to run after a manual `docker compose down -v` wipe. NOT a no-op on an
+# already-migrated DB (migrations carry no ledger; re-applying fails at the
+# first non-idempotent statement) — use supabase-start for that.
+supabase-init:
+	$(load-env)
+	cd supabase && docker compose $(OVERRIDES) up -d --wait && echo "Running migrations..." && for f in migrations/*.sql; do echo "  Applying $$(basename "$$f")..."; PGPASSWORD=postgres psql -h localhost -p 54382 -U postgres -d postgres -v ON_ERROR_STOP=1 -f "$$f"; done && echo "Applying seed data..." && PGPASSWORD=postgres psql -h localhost -p 54382 -U postgres -d postgres -v ON_ERROR_STOP=1 -f seed.sql
+
 # ── Docker / Self-hosted Supabase ──────────────────────────
 # Canonical dev stack (SELFHOSTING.md). Each stack dir's .env sets
 # COMPOSE_FILE (the override layering incl. docker-compose.s3.yml → MinIO);
@@ -742,6 +779,15 @@ supabase-testing-status:
 supabase-testing-reset:
 	$(load-env)
 	cd supabase-testing && docker compose down && rm -rf volumes/storage && (docker volume rm samay-testing_db-data samay-testing_minio-data 2>/dev/null || true) && docker compose up -d --wait && echo "Running migrations..." && for f in migrations/*.sql; do echo "  Applying $$(basename "$$f")..."; PGPASSWORD=postgres psql -h localhost -p 54382 -U postgres -d postgres -v ON_ERROR_STOP=1 -f "$$f"; done && echo "Applying seed data..." && PGPASSWORD=postgres psql -h localhost -p 54382 -U postgres -d postgres -v ON_ERROR_STOP=1 -f seed.sql
+
+# Testing-stack bootstrap: start NON-destructively WITH the Mailpit overlay
+# (the base compose has NO mailpit service by design — M-10 parity gate — but
+# GoTrue SMTPs to mailpit:1025, so a plain start makes EVERY OTP send 500 and
+# burn the 2-per-hour email budget; 2026-08-22 session), apply all migrations,
+# seed. Same fresh-volume semantics as supabase-init.
+supabase-testing-init:
+	$(load-env)
+	cd supabase-testing && docker compose -f docker-compose.yml -f docker-compose.mailpit.yml $(OVERRIDES) up -d --wait && echo "Running migrations..." && for f in migrations/*.sql; do echo "  Applying $$(basename "$$f")..."; PGPASSWORD=postgres psql -h localhost -p 54382 -U postgres -d postgres -v ON_ERROR_STOP=1 -f "$$f"; done && echo "Applying seed data..." && PGPASSWORD=postgres psql -h localhost -p 54382 -U postgres -d postgres -v ON_ERROR_STOP=1 -f seed.sql
 
 # ── Remote-device tunnel (MKE-08 / M-13) ─────────────────────────────────────
 # SSH-forward adb from a remote host that has a device attached (Juega
