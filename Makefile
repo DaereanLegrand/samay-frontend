@@ -8,7 +8,8 @@
         supabase-db-test supabase-backend-tests supabase-stack-check \
         supabase-testing-start supabase-testing-stop supabase-testing-status supabase-testing-reset \
         supabase-testing-init \
-        supabase-seed-dev \
+        supabase-seed-config \
+        supabase-seed-test \
         migrate-check \
         ios-beta ios-release android-alpha android-release \
         deploy-api deploy-dashboard deploy-venue bundle-install
@@ -55,15 +56,16 @@ help:
 	@echo "    build-api                build ./samay-api-server (Gin API server)"
 	@echo ""
 	@echo "  SUPABASE STACKS (ports 54382/54386/54381/54384/54443 — never Juega's)"
-	@echo "    supabase-start/stop/status/reset      prod stack lifecycle (reset = fresh DB + migrate)"
-	@echo "    supabase-init            start prod stack + apply migrations + seed (fresh DB)"
+	@echo "    supabase-start/stop/status/reset      prod stack lifecycle (reset = fresh schema + config, no user data)"
+	@echo "    supabase-init            start prod stack + migrations + seed-config (fresh DB)"
 	@echo "    supabase-docker-*        same, explicit docker compose lifecycle"
 	@echo "    supabase-testing-*       testing stack lifecycle (mutually exclusive with prod)"
-	@echo "    supabase-testing-init    testing stack + MAILPIT + migrations + seed (fresh DB)"
+	@echo "    supabase-testing-init    testing stack + MAILPIT + migrations + seed-config"
 	@echo "    supabase-db-test         pgTAP schema tests"
 	@echo "    supabase-backend-tests   backend opt-test suite (needs the stack up)"
 	@echo "    supabase-stack-check     stack health/port check"
-	@echo "    supabase-seed-dev        apply dev demo seed (SEED_DEV data)"
+	@echo "    supabase-seed-config     idempotent re-apply of required app config"
+	@echo "    supabase-seed-test       apply @tester test-data snapshot (explicit only)"
 	@echo "    migrate-check            migration drift check"
 	@echo ""
 	@echo "  RELEASE / DEPLOY"
@@ -587,7 +589,7 @@ build-api:
 
 # ── Tests ─────────────────────────────────────────────────────────────────────
 # MKE-06 (M-11): separated targets. `make test` (= test-all) is the full local
-# gate: Flutter unit/widget + Go + the backend STATIC gates (opt-005 seed-dev,
+# gate: Flutter unit/widget + Go + the backend STATIC gates (opt-005 seeds,
 # opt-007 compose — no stack needed) + the hermetic integration suite.
 # The LIVE backend opt-tests (001/002/003/004/006) need the stack up
 # (`make supabase-docker-start`) and run via `bash test/run_all_backend.sh`.
@@ -624,7 +626,7 @@ test-integration:
 	fi
 
 test-backend-static:
-	bash test/opt-005-seed-dev-static.sh
+	bash test/opt-005-seeds-static.sh
 	bash test/opt-007-compose-static.sh
 
 test-go:
@@ -685,14 +687,14 @@ supabase-reset:
 	docker compose up -d --wait && \
 	sh migrate.sh
 
-# First-run bootstrap: start the stack NON-destructively, apply every migration
-# in filename order, then seed. Safe on a fresh/empty volume — this is the
-# target to run after a manual `docker compose down -v` wipe. NOT a no-op on an
-# already-migrated DB (migrations carry no ledger; re-applying fails at the
-# first non-idempotent statement) — use supabase-start for that.
+# First-run bootstrap: start the stack NON-destructively, apply the baseline
+# tree (two-tier via tools/apply_migrations.sh) + required seed-config. Safe on a
+# fresh/empty volume — this is the target to run after a manual
+# `docker compose down -v` wipe. NOT a no-op on an already-migrated DB
+# (migrations carry no ledger) — use supabase-start for that.
 supabase-init:
 	$(load-env)
-	cd supabase && docker compose $(OVERRIDES) up -d --wait && echo "Running migrations..." && for f in migrations/*.sql; do echo "  Applying $$(basename "$$f")..."; PGPASSWORD=postgres psql -h localhost -p 54382 -U postgres -d postgres -v ON_ERROR_STOP=1 -f "$$f"; done && echo "Applying seed data..." && PGPASSWORD=postgres psql -h localhost -p 54382 -U postgres -d postgres -v ON_ERROR_STOP=1 -f seed.sql
+	cd supabase && docker compose $(OVERRIDES) up -d --wait && echo "Running migrations..." && bash ../tools/apply_migrations.sh supabase && echo "Applying required seed-config..." && PGPASSWORD=postgres psql -h localhost -p 54382 -U postgres -d postgres -v ON_ERROR_STOP=1 -f seed-config.sql
 
 # ── Docker / Self-hosted Supabase ──────────────────────────
 # Canonical dev stack (SELFHOSTING.md). Each stack dir's .env sets
@@ -720,14 +722,17 @@ supabase-docker-status:
 # covers a fresh clone where the volume doesn't exist yet) → fresh stack up.
 supabase-docker-reset:
 	$(load-env)
-	cd supabase && docker compose down && rm -rf volumes/storage && (docker volume rm samay_db-data samay_minio-data 2>/dev/null || true) && docker compose up -d --wait && echo "Running migrations..." && for f in migrations/*.sql; do echo "  Applying $$(basename "$$f")..."; PGPASSWORD=postgres psql -h localhost -p 54382 -U postgres -d postgres -v ON_ERROR_STOP=1 -f "$$f"; done && echo "Applying seed data..." && PGPASSWORD=postgres psql -h localhost -p 54382 -U postgres -d postgres -v ON_ERROR_STOP=1 -f seed.sql
+	cd supabase && docker compose down && rm -rf volumes/storage && (docker volume rm samay_db-data samay_minio-data 2>/dev/null || true) && docker compose up -d --wait && echo "Running migrations..." && bash ../tools/apply_migrations.sh supabase && echo "Applying required seed-config..." && PGPASSWORD=postgres psql -h localhost -p 54382 -U postgres -d postgres -v ON_ERROR_STOP=1 -f seed-config.sql
 
-# Apply DEMO/dev seed data (supabase/seed-dev.sql, agent I-75) to a running
-# stack. Demo-only — NOT applied by default (production seed stays clean).
-# psql invocation mirrors supabase/reset.sh (host port 54382 = the approved
-# POSTGRES_PORT default; pinned by test/opt-005-seed-dev-static.sh §8).
-supabase-seed-dev:
-	cd supabase && PGPASSWORD=postgres psql -h localhost -p 54382 -U postgres -d postgres -f seed-dev.sql
+# Explicit seeding — seed-config is ALREADY auto-applied by init/reset/
+# migrate (fundamental app config); this target exists for idempotent re-runs.
+supabase-seed-config:
+	cd supabase && PGPASSWORD=postgres psql -h localhost -p 54382 -U postgres -d postgres -v ON_ERROR_STOP=1 -f seed-config.sql
+
+# Test data (@tester universe) — EXPLICIT ONLY, never automatic. Note: the
+# 4 storage-object rows dangle until the MinIO blob backup is restored.
+supabase-seed-test:
+	cd supabase && PGPASSWORD=postgres psql -h localhost -p 54382 -U postgres -d postgres -v ON_ERROR_STOP=1 -f seed-test.sql
 
 # Drop into a psql REPL against the running stack's DB (approved port map:
 # host port POSTGRES_PORT, default 54382). Guards that the stack is up.
@@ -759,10 +764,10 @@ supabase-backend-tests:
 	@bash -c 'nc -z 127.0.0.1 54386 2>/dev/null' || { echo "❌  Kong not reachable on 54386 — start + reset the stack first: make supabase-docker-start && make supabase-docker-reset"; exit 1; }
 	bash test/run_all_backend.sh
 
-# Static stack gates (no stack needed): opt-005 (seed-dev) + opt-007 (compose
+# Static stack gates (no stack needed): opt-005 (seeds) + opt-007 (compose
 # parse/parity) + the repo-wide port-map gate (AGENTS.md Port Convention).
 supabase-stack-check:
-	bash test/opt-005-seed-dev-static.sh
+	bash test/opt-005-seeds-static.sh
 	bash test/opt-007-compose-static.sh
 	tools/check_ports.sh --strict
 
@@ -780,7 +785,7 @@ supabase-testing-status:
 
 supabase-testing-reset:
 	$(load-env)
-	cd supabase-testing && docker compose down && rm -rf volumes/storage && (docker volume rm samay-testing_db-data samay-testing_minio-data 2>/dev/null || true) && docker compose up -d --wait && echo "Running migrations..." && for f in migrations/*.sql; do echo "  Applying $$(basename "$$f")..."; PGPASSWORD=postgres psql -h localhost -p 54382 -U postgres -d postgres -v ON_ERROR_STOP=1 -f "$$f"; done && echo "Applying seed data..." && PGPASSWORD=postgres psql -h localhost -p 54382 -U postgres -d postgres -v ON_ERROR_STOP=1 -f seed.sql
+	cd supabase-testing && docker compose down && rm -rf volumes/storage && (docker volume rm samay-testing_db-data samay-testing_minio-data 2>/dev/null || true) && docker compose up -d --wait && echo "Running migrations..." && bash ../tools/apply_migrations.sh supabase-testing && echo "Applying required seed-config..." && PGPASSWORD=postgres psql -h localhost -p 54382 -U postgres -d postgres -v ON_ERROR_STOP=1 -f seed-config.sql
 
 # Testing-stack bootstrap: start NON-destructively, apply all migrations, seed.
 # Mailpit is part of the BASE compose (2026-08-22 merge — the overlay caused
@@ -789,7 +794,7 @@ supabase-testing-reset:
 # fresh-volume semantics as supabase-init (NOT idempotent on a migrated DB).
 supabase-testing-init:
 	$(load-env)
-	cd supabase-testing && docker compose $(OVERRIDES) up -d --wait && echo "Running migrations..." && for f in migrations/*.sql; do echo "  Applying $$(basename "$$f")..."; PGPASSWORD=postgres psql -h localhost -p 54382 -U postgres -d postgres -v ON_ERROR_STOP=1 -f "$$f"; done && echo "Applying seed data..." && PGPASSWORD=postgres psql -h localhost -p 54382 -U postgres -d postgres -v ON_ERROR_STOP=1 -f seed.sql
+	cd supabase-testing && docker compose $(OVERRIDES) up -d --wait && echo "Running migrations..." && bash ../tools/apply_migrations.sh supabase-testing && echo "Applying required seed-config..." && PGPASSWORD=postgres psql -h localhost -p 54382 -U postgres -d postgres -v ON_ERROR_STOP=1 -f seed-config.sql
 
 # ── Remote-device tunnel (MKE-08 / M-13) ─────────────────────────────────────
 # SSH-forward adb from a remote host that has a device attached (Juega
