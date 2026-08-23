@@ -780,14 +780,14 @@ supabase-testing-reset:
 	$(load-env)
 	cd supabase-testing && docker compose down && rm -rf volumes/storage && (docker volume rm samay-testing_db-data samay-testing_minio-data 2>/dev/null || true) && docker compose up -d --wait && echo "Running migrations..." && for f in migrations/*.sql; do echo "  Applying $$(basename "$$f")..."; PGPASSWORD=postgres psql -h localhost -p 54382 -U postgres -d postgres -v ON_ERROR_STOP=1 -f "$$f"; done && echo "Applying seed data..." && PGPASSWORD=postgres psql -h localhost -p 54382 -U postgres -d postgres -v ON_ERROR_STOP=1 -f seed.sql
 
-# Testing-stack bootstrap: start NON-destructively WITH the Mailpit overlay
-# (the base compose has NO mailpit service by design — M-10 parity gate — but
-# GoTrue SMTPs to mailpit:1025, so a plain start makes EVERY OTP send 500 and
-# burn the 2-per-hour email budget; 2026-08-22 session), apply all migrations,
-# seed. Same fresh-volume semantics as supabase-init.
+# Testing-stack bootstrap: start NON-destructively, apply all migrations, seed.
+# Mailpit is part of the BASE compose (2026-08-22 merge — the overlay caused
+# split-brain up/down), so a plain start brings the dev-mail sink too; without
+# it GoTrue's OTP sends 500 and burns the 2-per-hour email budget. Same
+# fresh-volume semantics as supabase-init (NOT idempotent on a migrated DB).
 supabase-testing-init:
 	$(load-env)
-	cd supabase-testing && docker compose -f docker-compose.yml -f docker-compose.mailpit.yml $(OVERRIDES) up -d --wait && echo "Running migrations..." && for f in migrations/*.sql; do echo "  Applying $$(basename "$$f")..."; PGPASSWORD=postgres psql -h localhost -p 54382 -U postgres -d postgres -v ON_ERROR_STOP=1 -f "$$f"; done && echo "Applying seed data..." && PGPASSWORD=postgres psql -h localhost -p 54382 -U postgres -d postgres -v ON_ERROR_STOP=1 -f seed.sql
+	cd supabase-testing && docker compose $(OVERRIDES) up -d --wait && echo "Running migrations..." && for f in migrations/*.sql; do echo "  Applying $$(basename "$$f")..."; PGPASSWORD=postgres psql -h localhost -p 54382 -U postgres -d postgres -v ON_ERROR_STOP=1 -f "$$f"; done && echo "Applying seed data..." && PGPASSWORD=postgres psql -h localhost -p 54382 -U postgres -d postgres -v ON_ERROR_STOP=1 -f seed.sql
 
 # ── Remote-device tunnel (MKE-08 / M-13) ─────────────────────────────────────
 # SSH-forward adb from a remote host that has a device attached (Juega
