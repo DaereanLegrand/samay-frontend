@@ -4,7 +4,7 @@ import 'package:samay/core/design_tokens/app_gradients.dart';
 import 'package:samay/core/design_tokens/app_typography.dart';
 
 /// LUXE v2 display voice (XL-03) — the ONLY sanctioned way to render a
-/// display role (ORCHESTRATION-LUXE directive #6).
+/// display role (the LUXE restyle pass (historical) directive #6).
 ///
 /// Renders [text] in Playfair Display bold, ALWAYS UPPERCASE — the MAYUS
 /// rule is enforced here via `text.toUpperCase()`, never at call sites. No

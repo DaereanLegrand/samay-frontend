@@ -5,10 +5,10 @@ import 'package:samay/core/design_tokens/app_radius.dart';
 import 'package:samay/core/design_tokens/app_typography.dart';
 
 /// Samay disco theme — phase 1 (I-17) rebuilt on the I-16 design tokens,
-/// finalized by U-04 with the full component-theme set (DISCO-DESIGN-SYSTEM
+/// finalized by U-04 with the full component-theme set (DESIGN.md
 /// §5/§6).
 ///
-/// Contract: `docs/design/DISCO-DESIGN-SYSTEM.md` (D-11, §1–§4). Palette and
+/// Contract: `docs/design/DESIGN.md` (D-11, §1–§4). Palette and
 /// ThemeExtension live in `lib/core/design_tokens/app_colors.dart`
 /// ([AppColors] + [SamayThemeExtension]) — the single source for
 /// U-01..U-05. Typography (roles + glow) lives in

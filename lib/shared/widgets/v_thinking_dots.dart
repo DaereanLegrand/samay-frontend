@@ -5,14 +5,14 @@ import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/theme/samay_durations.dart';
 
-/// LUXE v2 AI-thinking typing indicator (ORCHESTRATION-LUXE.md component
+/// LUXE v2 AI-thinking typing indicator (the LUXE restyle pass (historical) component
 /// vocabulary — owned by XL-04): 3 small dots with a staggered pulse,
 /// α0.4↔1.0 easeInOut, for the chat input.
 ///
 /// Cycle shape: one shared `thinkingDot` (900ms) alternate — each dot
 /// completes one full up-down pulse (450ms up + 450ms down) per direction
 /// of the alternate, offset by a third of the period, so a soft wave rolls
-/// through the dots — followed by the [VBreathingGlow] idle-safe static
+/// through the dots — followed by the idle-safe static
 /// settle ([SamayDurations.motionCycleRest]) before the next cycle, so
 /// `pumpAndSettle`-based tests land deterministically.
 ///

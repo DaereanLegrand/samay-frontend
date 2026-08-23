@@ -5,8 +5,8 @@ import 'package:samay/core/design_tokens/app_radius.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/design_tokens/app_typography.dart';
 
-/// Samay badge — DISCO-DESIGN-SYSTEM.md §5.5 (U-05), LUXE v2 gradient-
-/// capable (ORCHESTRATION-LUXE.md "NO PINK MAINS", 2026-08-12).
+/// Samay badge — DESIGN.md §5.5 (U-05), LUXE v2 gradient-
+/// capable (the LUXE restyle pass (historical) "NO PINK MAINS", 2026-08-12).
 ///
 /// Default: sharp, `border #333333` fill + white `labelSmall` text (the
 /// shape+fill+text identify the badge — the text carries the info). Variants:

@@ -6,7 +6,7 @@ import 'package:samay/l10n/app_localizations.dart';
 
 /// Inline error banner: accent icon + message + optional retry / close.
 ///
-/// Themed per DISCO-DESIGN-SYSTEM.md: black surface, hairline border,
+/// Themed per DESIGN.md: black surface, hairline border,
 /// white/gray text, accent icon in the **error** role — [AppColors.error],
 /// the semantic alias of the glowPink token (6.00:1 — AA). Error is the one
 /// place pink may appear (LUXE directive 2026-08-12: pink is not a main

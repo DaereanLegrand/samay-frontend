@@ -9,12 +9,14 @@ Samay is built in **16 phases** (00–15). Each phase follows a strict TDD + doc
 ## Per-Phase Workflow
 
 ```
-1. PLAN  → Review docs/specs/product/ and docs/specs/steps/ for this phase
+1. PLAN  → Review docs/specs/steps/ for pending-work specs of this phase
             Read cross-references.md to identify dependencies
-            Break phase into steps
+            Read <private-ops-repo>/DATABASE.md + <private-ops-repo>/BACKEND.md for as-is references
+            Break the work into steps
 
-2. PREP  → Create docs/history/phase-XX/ directory
-            Create daily log file for current date
+2. PREP  → If the session is worth a record, create
+           docs/history/phase-XX/YYYY-MM-DD_<slug>.md (the dir may not exist
+           yet — create it; history starts empty and grows as needed)
 
 3. RED   → Write tests that define the expected behavior
             Tests must be runnable and fail initially
@@ -25,32 +27,34 @@ Samay is built in **16 phases** (00–15). Each phase follows a strict TDD + doc
 5. REFACTOR → Clean up, follow Go/Flutter conventions
                Ensure no commented code, no dead code
 
-6. VALIDATE → Run all tests (existing + new)
-              Lint & typecheck
-              Verify against docs/specs/product/ specs
-              Update cross-references.md if dependencies changed
+6. VALIDATE → make check + make test
+              Verify against docs/specs/ specs
+              Update cross-references.md if dependencies/statuses changed
+              Update baseline numbers in README.md if counts moved
 
-7. DOCUMENT → Write daily log entry covering:
+7. DOCUMENT → Write the daily log entry covering:
               - What was built
               - Decisions made and why
-              - Mistakes / gotchas encountered
+              - Mistakes / gotchas encountered (MISTAKE blocks)
               - Commands run (for reproducibility)
 ```
 
 ## TDD Rules
 
 - **No implementation code without a failing test first.**
-- Tests live in `*_test.go` (Go) or `test/` (Flutter/Supabase).
+- Tests live in `*_test.go` (Go), `test/` (Flutter), `integration_test/`
+  (flows — every feature ships one), `test/opt-NNN-*.sh` (backend curl) and
+  `supabase/tests/schema_test.sql` (pgTAP).
 - SQL migrations are tested via `supabase db test` (pgTAP) where applicable.
-- Each Edge Function has a corresponding test script.
 - Test fixtures mirror real Supabase data shapes.
+- Keep `plan(N)` in the pgTAP suite equal to its real assertion count.
 
 ## Phase Dependency Rules
 
 Dependencies are defined in `docs/specs/steps/cross-references.md`. When starting a step:
 
-1. Verify all direct deps are complete (their `DONE` marker in the phase dir).
-2. After completing a step, check if any downstream step's dependency is now satisfied — update the progress tracker.
+1. Verify all direct dependencies are satisfied (status column).
+2. After completing a step, update the status column and check whether any downstream dependency just became satisfiable.
 
 ## Parallel Track Policy
 
@@ -62,67 +66,64 @@ Track B: Go module/CLI work
 Track C: Flutter app work
 ```
 
-Each track has its own daily log. Sync points occur when a track's output is needed by another (e.g., Track A's `DATA` schema must be deployed before Track B's `DBCL` can query it).
+Sync points occur when a track's output is needed by another (e.g., the DB schema must be deployed before CLI commands can query it). For file-level coordination between concurrent sessions use the semaphore below.
+
+## File semaphore (parallel work)
+
+- Before modifying any file, `tools/agent_lock.sh acquire <path> --owner <your-id>`; if another session holds it, WAIT; release after (`release`). Locks live in `repo-locks/` (gitignored). `tools/agent_lock.sh list` shows held locks.
+- Never edit under someone else's lock; never delete another lock. Full usage: `docs/process/DEVELOPMENT-WORKFLOW.md`.
 
 ## Port Convention
 
-> **2026-08-09**: DB port moved `5432 → 54382` so the Samay self-hosted stack can run
-> alongside the running Juega Supabase (Juega owns 5432/54321/54323/8443). Kong HTTPS
-> uses 54443. NEVER map Samay services onto Juega's ports.
+Juega's running Supabase owns host ports 5432/54321/54323/8443 — NEVER map Samay services onto them.
 
 | Service | Port | Note |
 |---------|------|------|
-| PostgreSQL | 54382 | direct DB access (was 5432 — conflicts with Juega pooler) |
+| PostgreSQL | 54382 | direct DB access |
 | Studio | 54381 | |
 | Mailpit (Email) | 54384 | |
 | Kong (API Gateway) | 54386 | all API routes go through here |
 | Analytics | 54388 | |
 | Kong HTTPS | 54443 | self-hosted compose stack |
 
-## Agent Orchestration Protocol
-
-The 180-agent orchestration campaign (phases 4.1–4.6, 2026-08-09..11) is
-**COMPLETE** (see `docs/audit/GATE-REPORT.md`); its per-agent docs were removed.
-The workflow below remains the standing protocol for any future multi-agent or
-parallel-human work — see `docs/process/DEVELOPMENT-WORKFLOW.md` for the full guide:
-
-- **Every agent reads the entire repo first** (no shortcuts) and follows `docs/process/DEVELOPMENT-WORKFLOW.md`.
-- **File semaphore:** before modifying any file, `tools/agent_lock.sh acquire <path> --owner <AGENT_ID>`; if another agent holds it, WAIT; release after (`release`). Locks live in `repo-locks/` (gitignored). `tools/agent_lock.sh list` shows held locks.
-- **File ownership:** `docs/process/FILE-OWNERSHIP.md` maps every path to its owning agent.
-- **Tests:** each worked-on thing ships tests + updates the modular integration suite (`integration_test/`, `test/opt-*.sh`, pgTAP).
-- **Checkpoints:** orchestrator validates (`dart analyze`, `flutter test`, `go test ./...`), then commits AND pushes at every 50-agent stop.
-- **Refactorability:** features will keep being added; keep code modular, typed, and easily extensible (tokens, feature services, models).
+`tools/check_ports.sh --strict` must exit 0 after any infra change.
 
 ## Documentation Standards
 
-- `docs/history/phase-XX/YYYY-MM-DD_step-NAME.md` — daily developer log
-- `docs/specs/product/` — product/CLI/web-server specs (read-only reference)
-- `docs/specs/steps/` — step specifications + `cross-references.md` (read-only reference)
-- Docs are organized per the Diátaxis model (`docs/README.md` hub): `process/` (how-to),
-  `specs/` (reference), `design|security|infra/` (explanation), `history/|audit/|to-fix/` (records)
-- Mistakes are documented as **MISTAKE** blocks in daily logs so future devs can search for them
+- `docs/README.md` — docs hub / map
+- `docs/design/DESIGN.md` — the current design language (tokens live in code)
+- `docs/security/SECURITY.md` — precautions applied now, each with its why,
+  plus open items; `E2EE-ARCHITECTURE.md` for chat crypto
+- `<private-ops-repo>/` — self-hosting runbook + deployment placeholders
+- `docs/specs/steps/` — specs for steps NOT yet implemented + `cross-references.md`
+  statuses (implemented steps' behavior is documented by code/tests; their specs are removed)
+- `<private-ops-repo>/DATABASE.md` — DB catalog as-is; `<private-ops-repo>/BACKEND.md` — Go CLI/API surface as-is
+- `docs/specs/steps/` — specs for steps NOT yet implemented + `cross-references.md`
+  statuses (implemented steps' behavior is documented by code/tests; their specs are removed)
+- `docs/history/phase-XX/YYYY-MM-DD_<slug>.md` — optional daily developer log
+  (fresh start; write one when a session deserves a record)
+- Mistakes are documented as **MISTAKE** blocks so future sessions can search for them
+- No secrets in code, tests, or docs — ever
 
 ## Testing Commands
 
 ```bash
-# Go
+make test          # flutter test + go test ./...
+make check         # dart analyze + flutter analyze + go vet + ports + secrets gates
 go test ./...
 
-# Flutter
-flutter test
-
 # Supabase
-supabase db test    # pgTAP
-supabase functions serve --debug    # Edge Functions not yet implemented — boot stub only
+supabase db test    # pgTAP (needs the stack up)
+bash test/run_all_backend.sh    # curl opt-tests (needs the stack up)
 ```
 
 ## Validation Gate
 
-Before marking a phase complete, run:
+Before marking a phase complete:
 
-- [ ] All tests pass
-- [ ] Lint passes (`golangci-lint run ./...` for Go, `dart analyze` for Flutter)
-- [ ] Spec docs are satisfied (checklist from docs/specs/product/ and docs/specs/steps/)
-- [ ] Cross-references updated if needed
-- [ ] Daily log written for each step
-- [ ] AGENTS.md updated if methodology changes
+- [ ] All tests pass (`make test`)
+- [ ] Gates pass (`make check`: analyzers, vet, port map, secrets)
+- [ ] Spec docs are satisfied (checklist from docs/specs/)
+- [ ] cross-references.md statuses updated if needed
+- [ ] README.md baseline numbers updated if counts moved
+- [ ] Daily log written if the session deserves one

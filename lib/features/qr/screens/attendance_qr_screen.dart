@@ -20,7 +20,7 @@ import 'package:samay/shared/widgets/v_button.dart';
 /// MVP-spec contract used when app_config is unreachable.
 const int _activationMinutes = 30;
 
-/// LUXE v2 family for this screen — **cyan** (ORCHESTRATION-LUXE map:
+/// LUXE v2 family for this screen — **cyan** (the LUXE restyle pass (historical) map:
 /// attendance_qr + qr_scanner → cyan).
 final AppGradient _family = AppGradients.familyOf('qr');
 

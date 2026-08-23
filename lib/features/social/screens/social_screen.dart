@@ -89,13 +89,10 @@ class _SocialScreenState extends ConsumerState<SocialScreen>
 /// user is elsewhere. Lives in the body (below the titled AppBar), never in
 /// the AppBar `bottom` — so the sub-tab content clears the OS status bar.
 ///
-/// D-social-density (2026-08-18): slimmed to ~half its old height — margin
-/// `fromLTRB(12,2,12,6)` + padding `all(2)` + a TabBar whose `Tab`s carry an
-/// explicit `height: 18` (this Flutter's TabBar has no `height` param; the
-/// Tab `height` shrinks the bar, otherwise each tab falls back to `kTabHeight`
-/// 46 and the footprint can't shrink), `labelMedium` labels and tight
-/// `labelPadding`. The outer container (incl. margins) measures ≤ 34px; tests
-/// pin it via the `socialPillTabBar` key.
+/// Simple-density posture: a fixed 40px track with tight 2px vertical
+/// margins (`fromLTRB(12,2,12,2)`), `labelMedium` labels and a rounded
+/// white indicator. The outer container (incl. margins) measures ≤ 44px;
+/// tests pin it via the `socialPillTabBar` key.
 class _PillTabBar extends StatelessWidget {
   final TabController controller;
   final int pendingCount;

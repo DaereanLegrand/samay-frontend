@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-/// Samay elevation tokens — **flat** by design (DISCO-DESIGN-SYSTEM.md §4.3,
+/// Samay elevation tokens — **flat** by design (DESIGN.md §4.3,
 /// owned by U-03).
 ///
 /// No drop shadows on boxes: surfaces are flat with hairline borders. The

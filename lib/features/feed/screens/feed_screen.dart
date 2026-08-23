@@ -32,7 +32,7 @@ import 'package:samay/shared/widgets/v_network_image.dart';
 /// The social feed — the app's landing tab (FEED spec §feed-screen).
 ///
 /// LUXE v2 (XL-07): the feed owns the **cyan** gradient family
-/// (`AppGradients.familyOf('feed')` — ORCHESTRATION-LUXE §"Gradient family →
+/// (`AppGradients.familyOf('feed')` — the LUXE restyle pass (historical) §"Gradient family →
 /// screen map"; NO PINK MAINS). The screen is always-black; the 'SAMAY' hero
 /// is a [VDisplayText] (uppercase Playfair, cyan gradient fill, pulsing halo
 /// — directive #6/#8, one hero);

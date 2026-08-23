@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/core/design_tokens/app_icon_sizes.dart';
 
-/// Shard-currency diamond — DISCO-DESIGN-SYSTEM.md §5.6 (U-05).
+/// Shard-currency diamond — DESIGN.md §5.6 (U-05).
 ///
 /// `Icons.diamond` in `discoGold #FFC94D` by default (gold is the currency
 /// color — 13.71:1 on black, far beyond the 3:1 non-text rule). Pass a

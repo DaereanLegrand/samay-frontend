@@ -3,8 +3,8 @@ import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/core/design_tokens/app_gradients.dart';
 import 'package:samay/core/design_tokens/app_radius.dart';
 
-/// Samay chip — DISCO-DESIGN-SYSTEM.md §5.4 (U-05), LUXE v2 gradient-capable
-/// (ORCHESTRATION-LUXE.md "NO PINK MAINS", 2026-08-12).
+/// Samay chip — DESIGN.md §5.4 (U-05), LUXE v2 gradient-capable
+/// (the LUXE restyle pass (historical) "NO PINK MAINS", 2026-08-12).
 ///
 /// Default: transparent fill, 1px white border, white `labelMedium` label;
 /// selected = white fill + black label. `VChip.accent`: 1px **violet**-family

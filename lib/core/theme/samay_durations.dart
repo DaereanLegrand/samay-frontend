@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-/// Samay motion durations — DISCO-DESIGN-SYSTEM.md §4.5 (the source of
+/// Samay motion durations — DESIGN.md §4.5 (the source of
 /// truth, owned by U-18). Screens and shared widgets must take their
 /// durations from here; never hardcode ms values in features.
 class SamayDurations {
@@ -18,9 +18,8 @@ class SamayDurations {
   /// Default curve for all transitions — §6.1 "easeOutCubic".
   static const defaultCurve = Curves.easeOutCubic;
 
-  /// Disco-glow breathing loop (§6.2): the glow alternates α0.75→α1.0 over
-  /// this period. [VBreathingGlow] runs it as a 1.5s up + 1.5s down
-  /// `easeInOut` alternate (see the widget's cycle note).
+  /// Glow breathing loop: the glow alternates over this period as a slow
+  /// `easeInOut` alternate cycle (see [VGlowPulse]).
   static const glowBreath = Duration(milliseconds: 3000);
 
   /// Skeleton shimmer sweep (§5.8/§6.3 — promoted from U-06's local
@@ -30,14 +29,14 @@ class SamayDurations {
   /// Live-dot α pulse, one-directional ramp (§6.3: "1.5s α pulse 0.6→1.0").
   static const liveDotPulse = Duration(milliseconds: 1500);
 
-  /// U-18 engine: static settle between glow/pulse cycles. A hard
-  /// `repeat()` schedules frames forever, hanging every `pumpAndSettle`-
-  /// based widget test over the affected screens — the pause lets the
-  /// animation run a continuous `glowBreath`/`liveDotPulse` alternate and
-  /// then rest so tests land deterministically (see `VBreathingGlow`).
+  /// Static settle between glow/pulse cycles. A hard `repeat()` schedules
+  /// frames forever, hanging every `pumpAndSettle`-based widget test over
+  /// the affected screens — the pause lets the animation run a continuous
+  /// `glowBreath`/`liveDotPulse` alternate and then rest so tests land
+  /// deterministically (see `VGlowPulse`).
   static const motionCycleRest = Duration(milliseconds: 300);
 
-  // ── LUXE v2 motion tokens (ORCHESTRATION-LUXE.md, owned by XL-04) ─────────
+  // ── Motion tokens ─────────────────────────────────────────────────────────
 
   /// [VGlowPulse] halo alternate: α0.35→α0.7 easeInOut, one direction per
   /// half — the campaign's "glow must slowly pulsate (3.6–4s)" range.

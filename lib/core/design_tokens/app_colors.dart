@@ -3,7 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 /// Samay disco color palette — the single source of truth for every color in
-/// the app (DISCO-DESIGN-SYSTEM.md §2, owned by U-01 for finalization).
+/// the app (DESIGN.md §2, owned by U-01 for finalization).
 ///
 /// Rule: screens and widgets must never invent ad-hoc `Color(0x…)` values —
 /// they reference [AppColors] (or the [SamayThemeExtension] below). New colors
@@ -106,7 +106,7 @@ abstract final class AppColors {
 
   // ── LUXE pastel + vivid ends — §2.3 (gradient families) ──────────────────
   //
-  // The light ends of the 6 LUXE gradient families (ORCHESTRATION-LUXE
+  // The light ends of the 6 LUXE gradient families (the LUXE restyle pass (historical)
   // §"Gradient family → screen map") plus the two vivid ends that had no
   // canonical token yet. Pastels are near-white by construction ("watered
   // down with white", LUXE directive #3) so they sit at AAA contrast on
@@ -229,7 +229,7 @@ abstract final class AppColors {
 }
 
 /// Theme extension exposing the Samay palette through the Flutter theme
-/// system (finding UI-06; DISCO-DESIGN-SYSTEM.md §2 + §8.1).
+/// system (finding UI-06; DESIGN.md §2 + §8.1).
 ///
 /// Registered on `ThemeData.extensions` (I-17) so widgets resolve it via
 /// `Theme.of(context).extension<SamayThemeExtension>()` or the

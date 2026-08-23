@@ -1,4 +1,4 @@
-# Minimum iOS per samay_mvp_spec.md §Tech stack ("Minimum OS: iOS 16+").
+# Minimum iOS: 16 ("Minimum OS" product requirement).
 # Must match IPHONEOS_DEPLOYMENT_TARGET in ios/Runner.xcodeproj/project.pbxproj.
 platform :ios, '16.0'
 

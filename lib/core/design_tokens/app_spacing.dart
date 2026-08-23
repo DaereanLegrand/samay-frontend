@@ -1,7 +1,7 @@
 import 'package:flutter/widgets.dart';
 
 /// Samay spacing tokens — 8-step scale + semantic aliases
-/// (DISCO-DESIGN-SYSTEM.md §4.1, owned by U-03 for finalization).
+/// (DESIGN.md §4.1, owned by U-03 for finalization).
 ///
 /// Values are logical pixels. Screens and widgets must reference these
 /// tokens instead of ad-hoc literals (finding UI-01 / M-25).

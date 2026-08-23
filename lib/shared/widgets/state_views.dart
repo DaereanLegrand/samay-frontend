@@ -8,7 +8,7 @@ import 'package:samay/shared/widgets/v_button.dart';
 import 'package:samay/shared/widgets/v_spinner.dart';
 
 /// Full-area loading state: white spinner + optional `mutedStrong` caption,
-/// centered on black (DISCO-DESIGN-SYSTEM §5.8).
+/// centered on black (DESIGN.md §5.8).
 ///
 /// The spinner is **white** — not an accent color — because loading is not a
 /// brand moment (P3: accents are privileges, not defaults; the LUXE v2
@@ -43,7 +43,7 @@ class VLoadingView extends StatelessWidget {
 
 /// Full-area empty state: `xxl` icon in `#333333` (AppColors.border),
 /// `headlineSmall` title, optional `bodyMedium` description in `mutedStrong`
-/// and optional outlined CTA (DISCO-DESIGN-SYSTEM §5.9). Centered,
+/// and optional outlined CTA (DESIGN.md §5.9). Centered,
 /// `sectionGap` spacing between the blocks.
 class VEmptyView extends StatelessWidget {
   final IconData icon;

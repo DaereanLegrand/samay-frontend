@@ -29,10 +29,8 @@ linter:
   # `// ignore_for_file: name_of_lint` syntax on the line or in the file
   # producing the lint.
   rules:
-    # M-26 (CQ-08, 2026-08-10): custom rules on top of flutter_lints v6 —
-    # see docs/history/phase-00-foundation/2026-08-10_M26-lints-hooks.md
-    # for the enable/disable decision table. Each rule was verified to have
-    # 0 violations (or auto-fixed) before enabling.
+    # Custom rules on top of flutter_lints — every rule below was verified
+    # to have 0 violations (or auto-fixed) before enabling.
     prefer_single_quotes: true
     prefer_const_constructors: true
     unnecessary_late: true

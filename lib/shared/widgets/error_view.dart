@@ -7,7 +7,7 @@ import 'package:samay/shared/widgets/v_button.dart';
 
 /// Full-area error state: icon + message + optional retry button.
 ///
-/// Themed per DISCO-DESIGN-SYSTEM.md: black background, white/gray text,
+/// Themed per DESIGN.md: black background, white/gray text,
 /// accent icon in the **error** role — [AppColors.error], the semantic
 /// alias of the glowPink token (6.00:1 — AA). Error is the one place pink
 /// may appear (LUXE directive 2026-08-12: pink is not a main color; error

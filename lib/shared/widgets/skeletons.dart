@@ -3,7 +3,7 @@ import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/shared/widgets/v_shimmer.dart';
 
-/// Skeleton screen primitives (DISCO-DESIGN-SYSTEM.md §5.8/§6.3, owned by
+/// Skeleton screen primitives (DESIGN.md §5.8/§6.3, owned by
 /// U-22 — U-06's `VShimmer`/`VShimmerBox` are the primitives this composes).
 ///
 /// Every skeleton is a **const-constructible** `VShimmer` composition of

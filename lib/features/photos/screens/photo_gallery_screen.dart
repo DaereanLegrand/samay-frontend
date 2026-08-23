@@ -25,7 +25,7 @@ import 'package:samay/shared/widgets/v_network_image.dart';
 /// (same thin-wrapper pattern as `CreateEventScreen`/`CreateGroupScreen`).
 typedef PhotoPicker = Future<XFile?> Function(ImageSource source);
 
-/// LUXE v2 family for this screen — **mint** (ORCHESTRATION-LUXE map:
+/// LUXE v2 family for this screen — **mint** (the LUXE restyle pass (historical) map:
 /// photos → mint).
 final AppGradient _family = AppGradients.familyOf('photos');
 

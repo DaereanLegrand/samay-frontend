@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
 
-/// Samay card — DISCO-DESIGN-SYSTEM.md §5.3 (U-05).
+/// Samay card — DESIGN.md §5.3 (U-05).
 ///
 /// `surface #0A0A0A` fill over black, **hairline** `#1A1A1A` 1px borders,
 /// sharp corners, `cardPadding` 16. The hairline is depth decoration (§7.2

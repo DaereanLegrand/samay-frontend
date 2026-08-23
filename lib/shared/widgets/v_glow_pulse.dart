@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:samay/core/design_tokens/app_gradients.dart';
 import 'package:samay/core/theme/samay_durations.dart';
 
-/// LUXE v2 generic pulsing glow wrapper (ORCHESTRATION-LUXE.md component
+/// LUXE v2 generic pulsing glow wrapper (the LUXE restyle pass (historical) component
 /// vocabulary — owned by XL-04).
 ///
 /// Renders [child] inside a [DecoratedBox] whose [BoxShadow] stack comes
@@ -15,7 +15,7 @@ import 'package:samay/core/theme/samay_durations.dart';
 ///
 /// Cycle shape: 1.9s easeInOut up (α0.35→α0.7) + 1.9s easeInOut down
 /// (α0.7→α0.35), then [SamayDurations.motionCycleRest] static settle at the
-/// low point before the next cycle — the exact [VBreathingGlow] idle-safe
+/// low point before the next cycle — the idle-safe
 /// engine: a hard `repeat()` schedules frames forever, hanging every
 /// `pumpAndSettle`-based widget test; the settle pause lets tests land
 /// deterministically (controller holding value 0 → the α0.35 floor).

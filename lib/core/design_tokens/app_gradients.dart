@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'app_colors.dart';
 
 /// A named 3-stop pastel gradient family (LUXE v2 design language,
-/// ORCHESTRATION-LUXE.md §"Gradient family → screen map").
+/// the LUXE restyle pass (historical) §"Gradient family → screen map").
 ///
 /// Every family runs `pastel → mid → vivid`: the light end is the color
 /// "watered down with white" (see [AppGradients.watered]), the vivid end
@@ -39,7 +39,7 @@ class AppGradient {
 }
 
 /// The LUXE gradient token layer — the single source of truth for every
-/// gradient family in the app (ORCHESTRATION-LUXE.md §"Gradient family →
+/// gradient family in the app (the LUXE restyle pass (historical) §"Gradient family →
 /// screen map" + §"Foundation API contract (XL-01 implements EXACTLY this)").
 ///
 /// Rules for consumers:
@@ -134,7 +134,7 @@ abstract final class AppGradients {
     'peach': peach,
   };
 
-  /// Resolves a screen key to its owning gradient family (ORCHESTRATION-LUXE
+  /// Resolves a screen key to its owning gradient family (the LUXE restyle pass (historical)
   /// §"Gradient family → screen map", verbatim).
   ///
   /// **NO PINK MAINS (2026-08-12 user directive):** rose is NOT assigned to

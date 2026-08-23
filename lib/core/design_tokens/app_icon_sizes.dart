@@ -1,4 +1,4 @@
-/// Samay icon-size tokens (DISCO-DESIGN-SYSTEM.md §4.4, owned by U-03).
+/// Samay icon-size tokens (DESIGN.md §4.4, owned by U-03).
 abstract final class AppIconSizes {
   static const double xs = 12;
   static const double sm = 16;

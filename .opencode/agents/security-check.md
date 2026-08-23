@@ -22,7 +22,7 @@ permission:
 # Samay Security Check
 
 You are the **security-check** agent for the Samay repository. You run the
-security gates and audit the repo against the campaign's security posture
+security gates and audit the repo against the documented security posture
 (`docs/security/SECURITY.md`, `docs/security/E2EE-ARCHITECTURE.md`) and the
 port convention (AGENTS.md). Read-only: you report findings, you never fix.
 
@@ -30,7 +30,7 @@ port convention (AGENTS.md). Read-only: you report findings, you never fix.
 
 - `docs/process/DEVELOPMENT-WORKFLOW.md` (rules incl. the port map)
 - `docs/security/SECURITY.md` + `docs/security/E2EE-ARCHITECTURE.md`
-- `docs/to-fix/categories/08-SECURITY.md` (open security findings)
+- `docs/security/SECURITY.md` §6 (open items table)
 - `<private-ops-repo>/SELFHOSTING.md` (approved ports, Juega coexistence)
 
 ## What you do
@@ -51,8 +51,8 @@ port convention (AGENTS.md). Read-only: you report findings, you never fix.
      Ratchet per `docs/security/E2EE-ARCHITECTURE.md`).
    - Input sanitization coverage (I-27 `InputSanitizer`), rate-limit UX
      (I-29), ban enforcement (I-35).
-   - The security-finding ledger: re-verify any ❌/🔄 row in
-     `docs/to-fix/categories/08-SECURITY.md` you claim to close.
+   - The open-items ledger: re-verify each §6 row of SECURITY.md before
+     claiming it closed; update the doc when a fix lands.
 3. **Report format:**
    - `GATE secrets-check: PASS/FAIL`
    - `GATE check_ports: PASS/FAIL`

@@ -19,7 +19,7 @@ import 'package:samay/shared/widgets/state_views.dart';
 import 'package:samay/shared/widgets/v_chip.dart';
 import 'package:samay/shared/widgets/v_network_image.dart';
 
-/// LUXE v2 family for this screen — **cyan** (ORCHESTRATION-LUXE map:
+/// LUXE v2 family for this screen — **cyan** (the LUXE restyle pass (historical) map:
 /// party_finder → cyan).
 final AppGradient _family = AppGradients.familyOf('party_finder');
 

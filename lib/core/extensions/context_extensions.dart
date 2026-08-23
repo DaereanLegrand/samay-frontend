@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
 
 /// BuildContext convenience accessors over the Samay theme
-/// (finding UI-07; DISCO-DESIGN-SYSTEM.md §8).
+/// (finding UI-07; DESIGN.md §8).
 extension SamayThemeContext on BuildContext {
   /// The Samay palette resolved from the registered [SamayThemeExtension].
   ///

@@ -6,8 +6,8 @@ import 'package:samay/shared/widgets/v_spinner.dart';
 
 enum VButtonVariant { outlined, emphasized, glow, dark }
 
-/// Samay primary button — DISCO-DESIGN-SYSTEM.md §5.1 (U-05), LUXE v2
-/// gradient-capable (ORCHESTRATION-LUXE.md "NO PINK MAINS", 2026-08-12).
+/// Samay primary button — DESIGN.md §5.1 (U-05), LUXE v2
+/// gradient-capable (the LUXE restyle pass (historical) "NO PINK MAINS", 2026-08-12).
 ///
 /// | Variant | Spec |
 /// |---|---|---|

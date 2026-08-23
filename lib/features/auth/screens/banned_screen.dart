@@ -12,7 +12,7 @@ import 'package:samay/shared/widgets/v_display_text.dart';
 
 /// Terminal screen for suspended accounts (AUTH spec: ban enforcement, I-35).
 ///
-/// Minimalist per DISCO-DESIGN-SYSTEM.md §1 (black always, white core, one
+/// Minimalist per DESIGN.md §1 (black always, white core, one
 /// idea per screen): an icon, the suspension title, the stored ban reason
 /// (when the administrator provided one) and a single logout action. Every
 /// route redirects here while [AuthState.banned] is set ([AuthGuard]); after

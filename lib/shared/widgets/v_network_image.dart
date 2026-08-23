@@ -13,7 +13,7 @@ import 'package:samay/core/theme/samay_durations.dart';
 /// error states for free.
 ///
 /// Loading placeholder uses the `surfaceAlt #111111` skeleton base and the
-/// error surface uses `border #333333` (DISCO-DESIGN-SYSTEM §5.8) — no raw
+/// error surface uses `border #333333` (DESIGN.md §5.8) — no raw
 /// greys.
 class VNetworkImage extends StatelessWidget {
   final String imageUrl;

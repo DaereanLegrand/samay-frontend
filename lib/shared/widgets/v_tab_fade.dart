@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:samay/core/theme/samay_durations.dart';
 
 /// One-shot `fast` (150ms) easeOutCubic fade-in for shell tab switches
-/// (DISCO-DESIGN-SYSTEM.md §6.1 "subtle, fast"; promoted from U-17's
+/// (DESIGN.md §6.1 "subtle, fast"; promoted from U-17's
 /// `_ShellTabFade` — R19, the shell flow alignment).
 ///
 /// Key the instance on the tab index (`VTabFade(key: ValueKey(index), …)`)

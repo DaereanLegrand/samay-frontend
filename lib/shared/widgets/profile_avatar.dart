@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/shared/widgets/v_network_image.dart';
 
-/// Profile-header avatar — DISCO-DESIGN-SYSTEM.md §2.1/§4.2 (U-09).
+/// Profile-header avatar — DESIGN.md §2.1/§4.2 (U-09).
 ///
 /// The §5 profile-avatar treatment: circular, `surfaceAlt #111111` fill with
 /// white initials (the doc's "initials white on surfaceAlt" handoff), and a

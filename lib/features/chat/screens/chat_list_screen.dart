@@ -19,7 +19,7 @@ import 'package:samay/shared/widgets/v_count_badge.dart';
 import 'package:samay/shared/widgets/v_network_image.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' show RealtimeChannel;
 
-/// LUXE v2 family for this screen — **peach** (ORCHESTRATION-LUXE map:
+/// LUXE v2 family for this screen — **peach** (the LUXE restyle pass (historical) map:
 /// chat → peach).
 final AppGradient _family = AppGradients.familyOf('chat');
 
@@ -191,7 +191,7 @@ class _ChatListTile extends StatelessWidget {
                       ),
                     )
                   : item.type == 'group'
-                  ? Icon(Icons.group, size: 22, color: Colors.white)
+                  ? const Icon(Icons.group, size: 22, color: Colors.white)
                   : Text(
                       (item.peerUsername?.isNotEmpty ?? false)
                           ? item.peerUsername![0].toUpperCase()

@@ -163,7 +163,7 @@ String? currentTierFromAuth(AuthState authState) {
   return null;
 }
 
-/// LUXE v2 family for this screen — **gold** (ORCHESTRATION-LUXE map:
+/// LUXE v2 family for this screen — **gold** (the LUXE restyle pass (historical) map:
 /// paywall → gold). The paywall is the brand moment: glass price cards with
 /// gold gradient borders + glow.
 final AppGradient _family = AppGradients.familyOf('paywall');

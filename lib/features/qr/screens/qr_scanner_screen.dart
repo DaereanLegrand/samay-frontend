@@ -53,7 +53,7 @@ class _ScanError extends _ScanResult {
   final bool retryable;
 }
 
-/// LUXE v2 family for this screen — **cyan** (ORCHESTRATION-LUXE map:
+/// LUXE v2 family for this screen — **cyan** (the LUXE restyle pass (historical) map:
 /// attendance_qr + qr_scanner → cyan).
 final AppGradient _family = AppGradients.familyOf('qr');
 

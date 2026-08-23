@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
 
 /// Samay typography tokens — the single source of truth for the type scale
-/// and glow treatment (DISCO-DESIGN-SYSTEM.md §3, owned by U-02).
+/// and glow treatment (DESIGN.md §3, owned by U-02).
 ///
 /// The §3.3 table is the contract: every role's family, size, weight,
 /// letter-spacing and height live here as const-constructible [TextStyle]s.
@@ -32,7 +32,7 @@ abstract final class AppTypography {
   //
   // The display voices (displayLarge/displayMedium/displaySmall and
   // headlineLarge) are Playfair Display **bold** — the ONLY Playfair usage
-  // in the app (ORCHESTRATION-LUXE directive #6). No italics (user directive
+  // in the app (the LUXE restyle pass (historical) directive #6). No italics (user directive
   // 2026-08-14).
   //
   // MAYUS rule: display copy MUST render UPPERCASE. Enforcement lives in

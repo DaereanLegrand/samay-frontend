@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
-import 'package:samay/core/router/route_paths.dart';
 import 'package:samay/features/chat/providers/chat_providers.dart';
 import 'package:samay/features/chat/widgets/chat_thread_view.dart';
 import 'package:samay/l10n/app_localizations.dart';

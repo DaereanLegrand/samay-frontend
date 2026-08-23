@@ -3,7 +3,7 @@ import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
 
 /// Hairline divider with a centered violet accent segment
-/// (DISCO-DESIGN-SYSTEM.md §2.1/§4.2 spirit, owned by U-06; LUXE v2
+/// (DESIGN.md §2.1/§4.2 spirit, owned by U-06; LUXE v2
 /// "NO PINK MAINS" — the accent is [AppColors.statusVip], never pink).
 ///
 /// The full-width rule is the `hairline #1A1A1A` depth decoration (§2.1); a

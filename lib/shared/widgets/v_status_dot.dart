@@ -10,7 +10,7 @@ import 'package:samay/core/theme/samay_durations.dart';
 /// plus the doc's pulse: the dot α oscillates 0.6 → 1.0 on a
 /// `liveDotPulse` (1.5s) easeInOut ramp (1.5s up + 1.5s down +
 /// [SamayDurations.motionCycleRest] static settle — the same idle-safe
-/// cycle as [VBreathingGlow], so `pumpAndSettle`-based widget tests over
+/// cycle as [VGlowPulse], so `pumpAndSettle`-based widget tests over
 /// the friends screens land during the pause).
 ///
 /// Reduced motion (`MediaQuery.disableAnimationsOf(context)`) → static dot

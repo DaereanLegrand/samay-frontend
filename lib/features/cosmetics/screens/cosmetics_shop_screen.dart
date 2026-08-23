@@ -14,7 +14,7 @@ import 'package:samay/shared/widgets/v_badge.dart';
 import 'package:samay/shared/widgets/v_button.dart';
 import 'package:samay/shared/widgets/v_shard_icon.dart';
 
-/// LUXE v2 family for this screen — **violet** (ORCHESTRATION-LUXE map:
+/// LUXE v2 family for this screen — **violet** (the LUXE restyle pass (historical) map:
 /// cosmetics → violet).
 final AppGradient _family = AppGradients.familyOf('cosmetics');
 

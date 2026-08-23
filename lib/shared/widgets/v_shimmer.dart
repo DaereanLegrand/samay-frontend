@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/core/theme/samay_durations.dart';
 
-/// One shimmer sweep cycle — DISCO-DESIGN-SYSTEM.md §4.5 `shimmer` 1200ms
+/// One shimmer sweep cycle — DESIGN.md §4.5 `shimmer` 1200ms
 /// (U-18 promoted U-06's local const into `SamayDurations`).
 
-/// Skeleton/shimmer loading (DISCO-DESIGN-SYSTEM.md §5.8/§6.3, owned by
+/// Skeleton/shimmer loading (DESIGN.md §5.8/§6.3, owned by
 /// U-06 for the primitive — U-22 composes skeleton screens with it).
 ///
 /// Wraps [child] — skeleton boxes built with [VShimmerBox] — in a
@@ -102,7 +102,7 @@ class _SlidingGradientTransform extends GradientTransform {
   }
 }
 
-/// Fixed-size skeleton block (DISCO-DESIGN-SYSTEM.md §5.8): `surfaceAlt
+/// Fixed-size skeleton block (DESIGN.md §5.8): `surfaceAlt
 /// #111111` fill, sharp corners (radius 0 — §4.2), const-constructible.
 ///
 /// Static on its own; wrap in [VShimmer] to apply the sweep (e.g. a whole

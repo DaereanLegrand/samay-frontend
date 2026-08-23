@@ -1,6 +1,0 @@
-⚠️ PARTIALLY MET — see gap analysis in 2026-05-12_FRND-GROU-GLIM-SDON-RANK.md
-
-- Frozen banner UI: done
-- Member limit: hardcoded 14, not wired to app_config
-- Promotor max groups: checked (≥ 5), not wired to app_config
-- Downgrade freeze detection: requires Phase 12 subscription listener

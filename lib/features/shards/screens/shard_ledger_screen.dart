@@ -77,7 +77,7 @@ IconData preshardReasonIcon(String reason) {
   };
 }
 
-/// LUXE v2 family for this screen — **gold** (ORCHESTRATION-LUXE map:
+/// LUXE v2 family for this screen — **gold** (the LUXE restyle pass (historical) map:
 /// shards → gold).
 final AppGradient _family = AppGradients.familyOf('shards');
 

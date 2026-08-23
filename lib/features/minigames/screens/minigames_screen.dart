@@ -35,7 +35,7 @@ String minigameRejectionMessage(
   };
 }
 
-/// LUXE v2 family for this screen — **peach** (ORCHESTRATION-LUXE map:
+/// LUXE v2 family for this screen — **peach** (the LUXE restyle pass (historical) map:
 /// minigames → peach).
 final AppGradient _family = AppGradients.familyOf('minigames');
 

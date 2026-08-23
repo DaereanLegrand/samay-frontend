@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 /// Samay corner-radius tokens — **SHARP** per the MVP spec ("no rounded
-/// pastel") and DISCO-DESIGN-SYSTEM.md §4.2 (owned by U-03).
+/// pastel") and DESIGN.md §4.2 (owned by U-03).
 ///
 /// Every UI component radius is `0`: buttons, cards, chips, inputs, dialogs,
 /// sheets, badges. The `#333333` hairline borders carry the geometry.

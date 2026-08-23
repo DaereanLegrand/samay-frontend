@@ -6,7 +6,7 @@ import 'package:samay/core/services/storage_service.dart';
 
 /// UI-05 / L-16 (I-65): persisted theme-mode choice.
 ///
-/// The brand is dark-only (DISCO-DESIGN-SYSTEM §1 P1 "black always"), so this
+/// The brand is dark-only (DESIGN.md §1 P1 "black always"), so this
 /// provider exists for **persistence + the 'system' seam**, not for a light
 /// theme: [ThemeMode.dark] is the default, and `themeMode 'system'` resolves
 /// to [SamayTheme.dark] anyway on most devices (both `theme` and `darkTheme`
