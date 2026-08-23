@@ -208,20 +208,22 @@ endif
 # ── fastlane lane env (ios-adhoc builds) ─────────────────────────────────────
 # The adhoc_local lane reads SUPABASE_URL / SUPABASE_ANON_KEY from the
 # environment (Fastfile dart_defines).
-#   * DEFAULT: the REMOTE API — https://supabase.samay.example.com (no port: the
-#     tunnel fronts the standard HTTPS port; placeholder per
-#     <private-ops-repo>/DEPLOYMENT-PLACEHOLDER.md R03 — pass the real URL via env).
+#   * DEFAULT (TESTING unset): the production API — SUPABASE_URL is read from
+#     .env (placeholder per <private-ops-repo>/DEPLOYMENT-PLACEHOLDER.md R03 — put the
+#     real Kong domain there) and SUPABASE_ANON_KEY likewise from .env.
 #   * TESTING=true: the LOCAL stack via this Mac's LAN IP <local-lan-ip>
-#     (127.0.0.1 is NOT reachable from the iPhone) + the freshly minted
-#     anon JWT (registered with the local Kong by the testing-kong-register
-#     prereq).
+#     (127.0.0.1 is NOT reachable from the iPhone); SUPABASE_URL is pinned to
+#     that LAN address and SUPABASE_ANON_KEY still comes from .env (the local
+#     stack's anon key, valid for the local Kong). The freshly minted
+#     TESTING_ANON_KEY is still registered with Kong by testing-kong-register
+#     and is consumed by the FLUTTER_DEFINES-based build/dev/install targets.
 ifeq ($(TESTING),true)
 LANE_SUPABASE_URL := http://<local-lan-ip>:54386
-LANE_SUPABASE_ANON_KEY := $(TESTING_ANON_KEY)
 else
-LANE_SUPABASE_URL := https://supabase.samay.example.com
-LANE_SUPABASE_ANON_KEY := $(shell sed -n 's/^SUPABASE_ANON_KEY=//p' .env 2>/dev/null | head -1)
+LANE_SUPABASE_URL := $(shell sed -n 's/^SUPABASE_URL=//p' .env 2>/dev/null | head -1)
 endif
+
+LANE_SUPABASE_ANON_KEY := $(shell sed -n 's/^SUPABASE_ANON_KEY=//p' .env 2>/dev/null | head -1)
 
 # Register the TESTING anon JWT with the local Kong so the app's requests
 # pass key-auth (the temp key is NOT the committed $ANON_KEY credential).

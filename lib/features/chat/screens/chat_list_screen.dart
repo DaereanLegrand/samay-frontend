@@ -11,10 +11,12 @@ import 'package:samay/core/providers/auth_provider.dart';
 import 'package:samay/core/providers/service_providers.dart';
 import 'package:samay/core/router/route_paths.dart';
 import 'package:samay/core/services/chat_service.dart';
-import 'package:samay/features/chat/providers/chat_providers.dart';import 'package:samay/l10n/app_localizations.dart';
+import 'package:samay/features/chat/providers/chat_providers.dart';
+import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/error_view.dart';
 import 'package:samay/shared/widgets/state_views.dart';
 import 'package:samay/shared/widgets/v_count_badge.dart';
+import 'package:samay/shared/widgets/v_network_image.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' show RealtimeChannel;
 
 /// LUXE v2 family for this screen — **peach** (ORCHESTRATION-LUXE map:
@@ -55,9 +57,9 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
   /// actually [chatInboxProvider] is shared, so an invalidation covers both).
   Future<void> _subscribeRealtime() async {
     try {
-      final channel = await ref
-          .read(realtimeServiceProvider)
-          .subscribeToInbox((_) {
+      final channel = await ref.read(realtimeServiceProvider).subscribeToInbox((
+        _,
+      ) {
         if (!mounted) return;
         ref.invalidate(chatInboxProvider);
       });
@@ -65,7 +67,10 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
       _channel = channel;
     } catch (e, st) {
       // Realtime is best-effort by design; pull-to-refresh remains.
-      AppLogger.instance.error('chat inbox realtime subscribe failed: $e', '$st');
+      AppLogger.instance.error(
+        'chat inbox realtime subscribe failed: $e',
+        '$st',
+      );
     }
   }
 
@@ -85,7 +90,16 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
 
     return Scaffold(
       backgroundColor: const Color(0xFF0A0A0C),
-      appBar: AppBar(title: Text(l10n.chatInboxTitle)),
+      appBar: AppBar(
+        title: Text(l10n.chatInboxTitle), 
+	actions: [
+          IconButton(
+            icon: const Icon(Icons.search),
+            tooltip: l10n.socialSearchTooltip,
+            onPressed: () => context.push(RoutePaths.userSearch),
+          )
+        ],
+      ),
       body: inbox.when(
         skipLoadingOnRefresh: true,
         loading: () => const VLoadingView(),
@@ -121,7 +135,11 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
 /// One inbox row (LUXE chat voice): white liquid glass, peer identity +
 /// preview + time on the left, unread [VCountBadge] on the right.
 class _ChatListTile extends StatelessWidget {
-  const _ChatListTile({required this.item, required this.me, required this.onTap});
+  const _ChatListTile({
+    required this.item,
+    required this.me,
+    required this.onTap,
+  });
 
   final ChatInboxItem item;
   final String? me;
@@ -130,7 +148,8 @@ class _ChatListTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final mine = item.lastMessageSenderId != null && item.lastMessageSenderId == me;
+    final mine =
+        item.lastMessageSenderId != null && item.lastMessageSenderId == me;
     final String preview;
     if (item.lastMessageContent == null) {
       preview = '';
@@ -139,83 +158,90 @@ class _ChatListTile extends StatelessWidget {
           ? '${l10n.chatInboxPreviewOwn}…'
           : chatUndecryptablePlaceholder;
     } else {
-      preview = '${mine ? l10n.chatInboxPreviewOwn : ''}${item.lastMessageContent}';
+      preview =
+          '${mine ? l10n.chatInboxPreviewOwn : ''}${item.lastMessageContent}';
     }
     final timeLabel = _relativeTime(item.lastMessageAt, l10n);
+    final avatarUrl = item.peerAvatarUrl;
 
     return InkWell(
-        onTap: () => onTap(item.chatId),
-        borderRadius: BorderRadius.circular(16),
-        child: Padding(
-          padding: const EdgeInsets.all(AppSpacing.lg),
-          child: Row(
-            children: [
-              // Avatar placeholder — a rounded square: the initial for 1:1
-              // chats, the group icon for group rows (ISSUE 4; avatars live
-              // in Storage, the identity row is enough for now).
-              Container(
-                width: 44,
-                height: 44,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: Colors.grey,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: item.type == 'group'
-                    ? Icon(
-                        Icons.group,
-                        size: 22,
+      onTap: () => onTap(item.chatId),
+      borderRadius: BorderRadius.circular(16),
+      child: Padding(
+        padding: const EdgeInsets.all(AppSpacing.sm),
+        child: Row(
+          children: [
+            // Avatar precedence: a real peer/group avatar URL (VNetworkImage,
+            // loaded from Storage) wins; otherwise a group row shows the group
+            // icon and a 1:1 row falls back to the peer's initial letter.
+            Container(
+              width: 44,
+              height: 44,
+              alignment: Alignment.center,
+              clipBehavior: Clip.antiAlias,
+              decoration: BoxDecoration(
+                color: Colors.grey,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: avatarUrl != null && avatarUrl.isNotEmpty
+                  ? SizedBox.expand(
+                      child: VNetworkImage(
+                        imageUrl: avatarUrl,
+                        fit: BoxFit.cover,
+                      ),
+                    )
+                  : item.type == 'group'
+                  ? Icon(Icons.group, size: 22, color: Colors.white)
+                  : Text(
+                      (item.peerUsername?.isNotEmpty ?? false)
+                          ? item.peerUsername![0].toUpperCase()
+                          : '?',
+                      style: AppTypography.titleMedium.copyWith(
                         color: Colors.white,
-                      )
-                    : Text(
-                        (item.peerUsername?.isNotEmpty ?? false)
-                            ? item.peerUsername![0].toUpperCase()
-                            : '?',
-                        style: AppTypography.titleMedium.copyWith(
-                          color: Colors.white,
-                        ),
-                      ),
-              ),
-              const SizedBox(width: AppSpacing.md),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      item.peerUsername ?? l10n.commonUser,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppTypography.bodyLarge,
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      preview.isEmpty ? l10n.chatInboxEmpty : preview,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppTypography.bodyMedium.copyWith(
-                        color: item.unreadCount > 0
-                            ? Colors.white
-                            : Theme.of(context).colorScheme.onSurfaceVariant,
-                        fontWeight:
-                            item.unreadCount > 0 ? FontWeight.w600 : FontWeight.w400,
                       ),
                     ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: AppSpacing.md),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
+            ),
+            const SizedBox(width: AppSpacing.md),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(timeLabel, style: AppTypography.labelSmall),
-                  const SizedBox(height: 6),
-                  VCountBadge(count: item.unreadCount, gradient: _family),
+                  Text(
+                    item.peerUsername ?? l10n.commonUser,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTypography.bodyLarge,
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    preview.isEmpty ? l10n.chatInboxEmpty : preview,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTypography.bodyMedium.copyWith(
+                      color: item.unreadCount > 0
+                          ? Colors.white
+                          : Theme.of(context).colorScheme.onSurfaceVariant,
+                      fontWeight: item.unreadCount > 0
+                          ? FontWeight.w600
+                          : FontWeight.w400,
+                    ),
+                  ),
                 ],
               ),
-            ],
-          ),
+            ),
+            const SizedBox(width: AppSpacing.md),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(timeLabel, style: AppTypography.labelSmall),
+                const SizedBox(height: 6),
+                VCountBadge(count: item.unreadCount, gradient: _family),
+              ],
+            ),
+          ],
         ),
-      );
+      ),
+    );
   }
 
   /// Compact relative time ("ahora", "hace 5 m", "hace 3 h", else the date).
