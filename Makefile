@@ -684,7 +684,8 @@ supabase-reset:
 	cd supabase && docker compose down && \
 	rm -rf volumes/storage && \
 	docker volume rm samay_db-data samay_minio-data 2>/dev/null || true && \
-	docker compose up -d --wait && \
+	docker compose up -d && \
+	docker compose up -d --wait db auth && \
 	sh migrate.sh
 
 # First-run bootstrap: start the stack NON-destructively, apply the baseline
@@ -722,7 +723,7 @@ supabase-docker-status:
 # covers a fresh clone where the volume doesn't exist yet) → fresh stack up.
 supabase-docker-reset:
 	$(load-env)
-	cd supabase && docker compose down && rm -rf volumes/storage && (docker volume rm samay_db-data samay_minio-data 2>/dev/null || true) && docker compose up -d --wait && echo "Running migrations..." && bash ../tools/apply_migrations.sh supabase && echo "Applying required seed-config..." && PGPASSWORD=postgres psql -h localhost -p 54382 -U postgres -d postgres -v ON_ERROR_STOP=1 -f seed-config.sql
+	cd supabase && docker compose down && rm -rf volumes/storage && (docker volume rm samay_db-data samay_minio-data 2>/dev/null || true) && docker compose up -d && docker compose up -d --wait db auth && echo "Running migrations..." && bash ../tools/apply_migrations.sh supabase && echo "Applying required seed-config..." && PGPASSWORD=postgres psql -h localhost -p 54382 -U postgres -d postgres -v ON_ERROR_STOP=1 -f seed-config.sql
 
 # Explicit seeding — seed-config is ALREADY auto-applied by init/reset/
 # migrate (fundamental app config); this target exists for idempotent re-runs.
@@ -785,7 +786,7 @@ supabase-testing-status:
 
 supabase-testing-reset:
 	$(load-env)
-	cd supabase-testing && docker compose down && rm -rf volumes/storage && (docker volume rm samay-testing_db-data samay-testing_minio-data 2>/dev/null || true) && docker compose up -d --wait && echo "Running migrations..." && bash ../tools/apply_migrations.sh supabase-testing && echo "Applying required seed-config..." && PGPASSWORD=postgres psql -h localhost -p 54382 -U postgres -d postgres -v ON_ERROR_STOP=1 -f seed-config.sql
+	cd supabase-testing && docker compose down && rm -rf volumes/storage && (docker volume rm samay-testing_db-data samay-testing_minio-data 2>/dev/null || true) && docker compose up -d && docker compose up -d --wait db auth && echo "Running migrations..." && bash ../tools/apply_migrations.sh supabase-testing && echo "Applying required seed-config..." && PGPASSWORD=postgres psql -h localhost -p 54382 -U postgres -d postgres -v ON_ERROR_STOP=1 -f seed-config.sql
 
 # Testing-stack bootstrap: start NON-destructively, apply all migrations, seed.
 # Mailpit is part of the BASE compose (2026-08-22 merge — the overlay caused
