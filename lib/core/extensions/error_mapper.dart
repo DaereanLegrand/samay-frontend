@@ -95,6 +95,10 @@ extension ObjectX on Object {
       final e = this as PostgrestException;
       final code = e.code ?? '';
       if (code == 'PGRST301') return const UnauthorizedError();
+      // Search abuse protection (OWASP API4): SR001 is raised by the
+      // search_users per-user limiter; 429 comes from the Kong route limiter
+      // (PostgrestException.fromJson falls back to the HTTP status string).
+      if (code == 'SR001' || code == '429') return RateLimitError();
       if (code == '23503') {
         return ValidationError('data', 'Referencia inválida');
       }

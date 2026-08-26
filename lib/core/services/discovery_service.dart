@@ -12,15 +12,22 @@ class DiscoveryService {
 
   GoTrueClient get auth => client.auth;
 
+  /// User search via the `search_users(p_query)` SECURITY DEFINER RPC
+  /// (migration 130_search/01_search_rpc.sql): the server validates the
+  /// trimmed query length (>= 5 chars), enforces the 60/min per-user quota
+  /// (raises SR001 → RateLimitError via error_mapper) and caps results at
+  /// 20 rows. Friendship enrichment (status/pending direction, block
+  /// filtering + hiding) stays client-side below.
   Future<List<Map<String, dynamic>>> searchUsers(String query) async {
     final user = auth.currentUser;
-    final res = await client
-        .from('user_search_view')
-        .select('id, username, avatar_url')
-        .ilike('username', '$query%')
-        .neq('id', user?.id ?? '')
-        .limit(20);
-    final results = res.map((e) => Map<String, dynamic>.from(e)).toList();
+    final res = await client.rpc(
+      'search_users',
+      params: {'p_query': query},
+    );
+    final results = (res as List)
+        .whereType<Map>()
+        .map((e) => Map<String, dynamic>.from(e))
+        .toList();
 
     if (results.isEmpty || user == null) return results;
 
