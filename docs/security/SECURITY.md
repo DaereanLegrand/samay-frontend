@@ -131,6 +131,25 @@ Industry standards these decisions align with:
   (`internal/ops/audit.go`); clients have no policy granting read/write on it.
 - **Why:** repudiation — shard grants, bans, deletions must be attributable.
 
+### 2.8 Search abuse protection (OWASP API4:2023)
+
+User-search is the one endpoint that lets any authenticated account scan the
+user base, so it gets layered resource-consumption controls (API4:
+"Unrestricted Resource Consumption"):
+
+| Layer | Control | Why |
+|---|---|---|
+| Kong route limiter | `rate-limiting` on `/rest/v1/user_search_view`: 120/min per IP (`policy: local`, `limit_by: ip`; plugin enabled in `KONG_PLUGINS`) | Coarse flood guard with standard `RateLimit-*`/`Retry-After` headers; per-IP because all app users share the anon apikey consumer |
+| `search_users(p_query)` RPC | SECURITY DEFINER (`130_search/01_search_rpc.sql`): trimmed length ∈ [5, 50] (SR002), 60 searches/rolling-minute per user via atomic `search_rate_limits` upsert (SR001), anon rejected (SR003), LIKE wildcards escaped, caller excluded, LIMIT 20 | Server-side input caps + precise per-user quota; client-side gating (`usernameMinLength`) is bypassable |
+| Prefix index | `idx_users_username_prefix` (`username text_pattern_ops`) | Plain-btree indexes cannot serve `ILIKE 'x%'` — without it every search sequential-scanned `users` |
+
+The client maps `SR001`/HTTP 429 to `RateLimitError`
+(`lib/core/extensions/error_mapper.dart`). **Deviation note:** direct SELECT
+on `user_search_view` stays granted — five non-search surfaces read it
+(public profiles, group/event/shard joins, chat sender resolution); the Kong
+limiter covers that raw path. Coverage: `test/opt-015-search-rpc.sh`,
+pgTAP Section 61. `app_config`-driven generic thresholds remain open (O1).
+
 ---
 
 ## 3. Client-side precautions
@@ -173,11 +192,11 @@ implementation pass; none is silently accepted:
 
 | # | Severity | Item | Why still open |
 |---|----------|------|----------------|
-| O1 | HIGH | No Kong rate-limit plugin; `security.*` app_config thresholds unenforced server-side | Blocked on Edge Functions (`EEDG`); GoTrue-level limits + client OTP caps are partial cover |
+| O1 | HIGH → PARTIALLY RESOLVED 2026-08-25 | ~~No Kong rate-limit plugin;~~ `security.*` app_config thresholds unenforced server-side. **Shipped:** Kong `rate-limiting` on the search route + per-user 60/min quota in `search_users()` (§2.8). Still open: Edge-Function-level limits for the remaining endpoints (`EEDG`) and app_config-driven thresholds | Remaining scope blocked on Edge Functions (`EEDG`); GoTrue-level limits + client OTP caps are partial cover |
 | O2 | HIGH | API-server admin gate is a static `ADMIN_API_KEY` placeholder | Real JWT/JWKS + `admin_users` required before any deployment |
 | O3 | MEDIUM | No certificate pinning / network-security-config | Needs prod domain first |
 | O4 | MEDIUM | No screenshot protection (`FLAG_SECURE`) on E2EE surfaces | Trade-off vs. screen-recording UX; revisit before wide E2EE rollout |
-| O5 | MEDIUM | Server-side length CHECKs absent on user-text columns (client sanitizer only) | Migration pass pending; client-side validation covers UX today |
+| O5 | RESOLVED 2026-08-25 for username/bio: server-side sanitize+validate now lives in the profile RPC family (`create_my_profile`/`update_my_profile`, baseline `020_core/02_users.sql`) + a tombstone-exempt `users_username_shape` CHECK; clients hold NO INSERT/UPDATE on `public.users` at all. Remaining text columns with client writers have RPC setters. Grapheme-vs-code-point note: caps are code points (username ≤64, bio ≤160). | Done — see BACKEND.md §profile RPCs + opt-014 |
 | O6 | LOW | Realtime channel-existence enumeration | Row access is RLS-governed; enumeration residual accepted for MVP |
 | O7 | LOW | Deep-link invite-token validation depth (`samay://event/{token}`) | Tokens are random UUIDs; add signature/HMAC if abuse appears |
 | O8 | LOW | Audit-log append-only enforcement (DB level) | CLI is the only writer today; enforcement matters when second writer appears |
