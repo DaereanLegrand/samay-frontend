@@ -12,6 +12,7 @@ import 'package:samay/core/router/route_paths.dart';
 import 'package:samay/core/utils/debouncer.dart';
 import 'package:samay/core/utils/input_sanitizer.dart';
 import 'package:samay/features/friends/providers/friends_providers.dart';
+import 'package:samay/shared/constants/auth_constants.dart';
 import 'package:samay/shared/widgets/profile_avatar.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/error_view.dart';
@@ -146,7 +147,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
               onChanged: _onChanged,
             ),
           ),
-          if (query.length < 2)
+          if (query.length < usernameMinLength)
             // R14 (F6): mirror the invite screen's min-chars hint — a
             // sub-2-char query has no results to show, so the field says
             // why instead of rendering an empty surface.
