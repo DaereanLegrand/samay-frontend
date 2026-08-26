@@ -869,15 +869,12 @@ class ChatService {
     return res?['read_receipts_enabled'] != false;
   }
 
-  /// Persists the caller's read-receipts switch (own-row only — the
-  /// `users_update_own` RLS policy; same seam as `discovery_opt_in`).
+  /// Persists the caller's read-receipts switch via the set_read_receipts_enabled
+  /// RPC (profile-RPC lockdown 2026-08-25 — no direct table writes).
   Future<void> setReadReceiptsEnabled(bool value) async {
     final user = auth.currentUser;
     if (user == null) throw const UnauthorizedError();
-    await client
-        .from('users')
-        .update({'read_receipts_enabled': value})
-        .eq('id', user.id);
+    await client.rpc('set_read_receipts_enabled', params: {'p_value': value});
   }
 
   /// Subscribes to `read_at` flips for [chatId]'s messages (realtime UPDATE

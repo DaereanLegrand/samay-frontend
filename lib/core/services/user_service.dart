@@ -45,21 +45,21 @@ class UserService {
     return Map<String, dynamic>.from(res);
   }
 
-  /// Persists the public avatar URL on the user's profile row
-  /// (PRFL avatar-upload gap — I-36). Own-row only: the `users_update_own`
-  /// RLS policy restricts the update to `id = auth.uid()`.
+  /// Persists the public avatar URL via the set_avatar_url RPC (profile-RPC
+  /// lockdown 2026-08-25 — clients hold NO table UPDATE privilege; the RPC
+  /// scopes to auth.uid() and validates the https shape server-side).
+  /// [userId] is kept for call-site stability; the server derives the scope.
   Future<void> updateAvatarUrl(String userId, String avatarUrl) async {
     await client
-        .from('users')
-        .update({'avatar_url': avatarUrl})
-        .eq('id', userId);
+        .rpc('set_avatar_url', params: {'p_avatar_url': avatarUrl});
   }
 
-  /// Persists the bio on the user's profile row (edit-profile save path).
-  /// Own-row only: the `users_update_own` RLS policy restricts the update to
-  /// `id = auth.uid()`.
+  /// Persists the bio via the update_my_profile RPC (profile-RPC lockdown
+  /// 2026-08-25). Empty string clears the field; the RPC sanitizes + caps
+  /// length server-side. [userId] is kept for call-site stability; the
+  /// server derives the scope.
   Future<void> updateBio(String userId, String bio) async {
-    await client.from('users').update({'bio': bio}).eq('id', userId);
+    await client.rpc('update_my_profile', params: {'p_bio': bio});
   }
 
   /// The Party Finder opt-in (`users.discovery_opt_in`, PFND spec: default
@@ -77,14 +77,12 @@ class UserService {
     return res?['discovery_opt_in'] as bool? ?? false;
   }
 
-  /// Persists the Party Finder opt-in on the own row (privacy toggle).
+  /// Persists the Party Finder opt-in via the set_discovery_opt_in RPC
+  /// (profile-RPC lockdown 2026-08-25).
   Future<void> setDiscoveryOptIn(bool value) async {
     final user = auth.currentUser;
     if (user == null) throw const UnauthorizedError();
-    await client
-        .from('users')
-        .update({'discovery_opt_in': value})
-        .eq('id', user.id);
+    await client.rpc('set_discovery_opt_in', params: {'p_value': value});
   }
 
   /// The current user's interest-tag slugs (own `users.interest_tags` row),

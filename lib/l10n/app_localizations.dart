@@ -755,7 +755,7 @@ abstract class AppLocalizations {
   /// Search hint shown while the query is shorter than 2 characters (R14)
   ///
   /// In es, this message translates to:
-  /// **'Escribe al menos 2 caracteres para buscar'**
+  /// **'Escribe al menos 5 caracteres para buscar'**
   String get friendsMinCharsHint;
 
   /// Mutual-friend dialog title when a friend request is accepted instantly (R15)

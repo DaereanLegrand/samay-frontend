@@ -49,6 +49,15 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
   int _failedAttempts = 0;
   bool _attemptBlocked = false;
 
+  /// Single-shot latch (2026-08-24 fake-OTP-error fix): once a code has been
+  /// VERIFIED, no further submit may run. GoTrue answers ANY rejected email
+  /// code with `otp_expired` — including one already consumed by the
+  /// successful verification — so a duplicate submit (late tap, autofill
+  /// event; this screen stays mounted offstage under the pushed routes)
+  /// produced a FAKE "código expirado" AND its failure path signed out the
+  /// just-created session.
+  bool _verified = false;
+
   @override
   void initState() {
     super.initState();
@@ -111,7 +120,7 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
       OtpVerificationScreen.maxFailedAttempts - _failedAttempts;
 
   void _onCodeChanged(String value) {
-    if (_attemptBlocked) return;
+    if (_verified || _attemptBlocked) return;
     if (cleanOtpDigits(value).length == OtpVerificationScreen.otpCodeLength &&
         !ref.read(authStateProvider).isLoading) {
       _verify();
@@ -196,6 +205,7 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
   }
 
   Future<void> _verify() async {
+    if (_verified) return;
     final auth = ref.read(authStateProvider);
     final code = cleanOtpDigits(_codeController.text);
     if (auth.isLoading ||
@@ -235,6 +245,12 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
       );
       return;
     }
+    // Verified: latch + consume the field BEFORE navigating so no queued
+    // submit can re-send the now-consumed code.
+    setState(() {
+      _verified = true;
+      _codeController.clear();
+    });
     context.push(RoutePaths.ageGate, extra: AgeGateExtra(email: widget.email));
   }
 

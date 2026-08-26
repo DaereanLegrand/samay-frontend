@@ -7,6 +7,8 @@ import 'package:samay/core/design_tokens/app_typography.dart';
 import 'package:samay/core/providers/auth_provider.dart';
 import 'package:samay/core/router/route_paths.dart';
 import 'package:samay/core/utils/input_sanitizer.dart';
+import 'package:samay/features/auth/logic/username_policy.dart';
+import 'package:samay/features/auth/providers/auth_form_errors.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/v_button.dart';
 import 'package:samay/shared/widgets/v_display_text.dart';
@@ -30,14 +32,34 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
   bool _saving = false;
 
   @override
+  void initState() {
+    super.initState();
+    // Fresh entry = fresh error surface: a previous attempt's messages must
+    // never survive into a re-entered screen (flow-scoped error providers,
+    // 2026-08-24 fake-OTP-error fix). Post-frame: provider writes are
+    // illegal during the widget life-cycle.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(signupErrorsProvider.notifier).clear();
+    });
+  }
+
+  @override
   void dispose() {
     _usernameController.dispose();
     super.dispose();
   }
 
   Future<void> _save() async {
-    final username = InputSanitizer.sanitizeUsername(_usernameController.text);
-    if (username.isEmpty) return;
+    final String username = InputSanitizer.sanitizeUsername(_usernameController.text);
+    final errors = ref.read(signupErrorsProvider.notifier)..clear();
+
+    // Specific, multiple field errors from the username requirements — the
+    // request is never sent while any rule is violated.
+    final fieldErrors = usernamePolicyErrors(username);
+    if (fieldErrors.isNotEmpty) {
+      errors.setUsernameErrors(fieldErrors);
+      return;
+    }
 
     setState(() => _saving = true);
     await ref
@@ -45,14 +67,21 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
         .createProfile(username, dateOfBirth: widget.dateOfBirth);
     if (!mounted) return;
     setState(() => _saving = false);
-    if (!ref.read(authStateProvider).hasError) {
-      context.go(RoutePaths.mainFeed);
+
+    // Own-action scoping: capture THIS save's failure once — the global auth
+    // stream is never mirrored (a stale unrelated error used to render as a
+    // fake "código expirado" on entry).
+    final auth = ref.read(authStateProvider);
+    if (auth.hasError) {
+      errors.setServerError(auth.errorMessage!);
+      return;
     }
+    context.go(RoutePaths.mainFeed);
   }
 
   @override
   Widget build(BuildContext context) {
-    final auth = ref.watch(authStateProvider);
+    final signupErrors = ref.watch(signupErrorsProvider);
     final l10n = AppLocalizations.of(context);
     final family = AppGradients.familyOf('profile_setup');
 
@@ -86,9 +115,10 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
                     VInput(
                       controller: _usernameController,
                       label: l10n.commonUsername,
-                      // §5.2: the server error rides the username field as
-                      // `errorText` (glowPink — never raw red on black).
-                      errorText: auth.hasError ? auth.errorMessage : null,
+                      // §5.2: the flow's OWN errors ride the username field
+                      // as `errorText` (glowPink — never raw red on black).
+                      // Multiple messages render as one block.
+                      errorText: signupErrors.displayText,
                     ),
                     const SizedBox(height: 8),
                     Text(
@@ -104,7 +134,8 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
                     // with the violet-family gradient fill + black text.
                     VButton.emphasized(
                       label: l10n.commonSave,
-                      loading: _saving || auth.isLoading,
+                      loading: _saving ||
+                          ref.watch(authStateProvider).isLoading,
                       gradient: family,
                       onPressed: _save,
                     ),

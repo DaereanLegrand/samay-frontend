@@ -1,4 +1,5 @@
 import 'package:characters/characters.dart';
+import 'package:samay/shared/constants/auth_constants.dart' as auth_constants;
 import 'package:unorm_dart/unorm_dart.dart' as unorm;
 
 /// Centralized input sanitization (finding SEC-06 / H-24).
@@ -51,9 +52,11 @@ class InputSanitizer {
 
   // Client-side field caps (grapheme count). Chosen to be generous for the
   // MVP while keeping UI rendering and DB storage bounded; revisit when the
-  // server-side CHECK constraints land.
-  static const int usernameMaxLength = 20;
-  static const int bioMaxLength = 160;
+  // server-side CHECK constraints land. Username/bio caps are owned by
+  // `shared/constants/auth_constants.dart` and re-exposed here as statics.
+  static int get usernameMinLength => auth_constants.usernameMinLength;
+  static int get usernameMaxLength => auth_constants.usernameMaxLength;
+  static int get bioMaxLength => auth_constants.bioMaxLength;
   static const int groupNameMaxLength = 50;
   static const int groupDescriptionMaxLength = 250;
   static const int messageMaxLength = 500;
@@ -125,5 +128,9 @@ class InputSanitizer {
       return digits.substring(0, amountMaxDigits);
     }
     return digits;
+  }
+
+  static bool validateUsername(String input) {
+    return input.length < usernameMinLength ? false : true;
   }
 }

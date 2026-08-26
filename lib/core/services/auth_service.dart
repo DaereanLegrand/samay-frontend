@@ -113,15 +113,11 @@ class AuthService {
   Future<void> softDeleteUser() async {
     final user = auth.currentUser;
     if (user == null) throw const UnauthorizedError();
-    await client
-        .from('users')
-        .update({
-          'deleted_at': DateTime.now().toIso8601String(),
-          'username': 'deleted_user_${user.id}',
-          'avatar_url': null,
-          'bio': null,
-        })
-        .eq('id', user.id);
+    // Profile-RPC lockdown (2026-08-25): clients hold NO table write
+    // privilege — deletion goes through the SECURITY DEFINER RPC, which
+    // tombstones the row server-side (deleted_at + deleted_user_ rename +
+    // PII nulling).
+    await client.rpc('delete_my_account');
   }
 
   /// Whether a `users` row exists for [userId].
@@ -139,40 +135,23 @@ class AuthService {
     return res != null;
   }
 
+  /// Creates the signed-in user's profile row via the create_my_profile RPC
+  /// (profile-RPC lockdown 2026-08-25: the table is INSERT-revoked for
+  /// clients). The RPC sanitizes + validates the username server-side
+  /// (client-side sanitize stays as defense in depth), enforces the DOB
+  /// rules, applies the economy defaults, and writes the signup shard grant
+  /// atomically. The signup tracker flip stays a separate call to preserve
+  /// the funnel's existing contract.
   Future<void> createUserProfile({
     required String username,
-    String? avatarUrl,
     String? dateOfBirth,
   }) async {
     final user = auth.currentUser;
     if (user == null) throw const UnauthorizedError();
 
-    final shards = await config.getSignupShardGrant();
-    final now = DateTime.now().toIso8601String();
-
-    await client.from('users').insert({
-      'id': user.id,
-      'username': InputSanitizer.sanitizeUsername(username),
-      'avatar_url': avatarUrl,
-      'date_of_birth': dateOfBirth,
-      'bio': null,
-      'banned_at': null,
-      'ban_reason': null,
-      'deleted_at': null,
-      'personal_shards': shards,
-      'preshards': 0,
-      'subscription_tier': 'free',
-      'subscription_expires_at': null,
-      'created_at': now,
-      'updated_at': now,
-    });
-
-    await client.from('shard_ledger').insert({
-      'user_id': user.id,
-      'delta': shards,
-      'reason': 'admin_grant',
-      'reference_id': null,
-      'created_at': now,
+    await client.rpc('create_my_profile', params: {
+      'p_username': InputSanitizer.sanitizeUsername(username),
+      'p_date_of_birth': dateOfBirth,
     });
 
     final email = user.email;

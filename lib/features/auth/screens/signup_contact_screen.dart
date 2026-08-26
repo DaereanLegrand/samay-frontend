@@ -10,6 +10,7 @@ import 'package:samay/core/providers/auth_provider.dart';
 import 'package:samay/core/router/route_extras.dart';
 import 'package:samay/core/router/route_paths.dart';
 import 'package:samay/features/auth/logic/password_policy.dart';
+import 'package:samay/features/auth/providers/auth_form_errors.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/show_app_error.dart';
 import 'package:samay/shared/widgets/v_button.dart';
@@ -31,6 +32,17 @@ class _SignupContactScreenState extends ConsumerState<SignupContactScreen> {
   String? _passwordError;
   String? _confirmError;
   bool _submitting = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Fresh entry = fresh error surface (flow-scoped error providers,
+    // 2026-08-24 fake-OTP-error fix). Post-frame: provider writes are
+    // illegal during the widget life-cycle.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(signupErrorsProvider.notifier).clear();
+    });
+  }
 
   @override
   void dispose() {
@@ -106,6 +118,9 @@ class _SignupContactScreenState extends ConsumerState<SignupContactScreen> {
         AppLogger.instance.warn('signup OTP rate-limited for $email');
       }
       AppLogger.instance.error('signup error: $e', '$st');
+      // Own-action scoping: the failure of THIS submit rides the screen's
+      // scoped error provider — the global auth stream is never mirrored.
+      ref.read(signupErrorsProvider.notifier).setServerError(appError.message);
       if (mounted) showAppError(context, e, blocking: true);
     } finally {
       if (mounted) setState(() => _submitting = false);
@@ -114,7 +129,7 @@ class _SignupContactScreenState extends ConsumerState<SignupContactScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final auth = ref.watch(authStateProvider);
+    final signupErrors = ref.watch(signupErrorsProvider);
     final l10n = AppLocalizations.of(context);
     final family = AppGradients.familyOf('signup');
 
@@ -169,11 +184,11 @@ class _SignupContactScreenState extends ConsumerState<SignupContactScreen> {
                       obscureText: true,
                       errorText: _confirmError,
                     ),
-                    if (auth.hasError)
+                    if (signupErrors.displayText != null)
                       Padding(
                         padding: const EdgeInsets.only(top: 16),
                         child: Text(
-                          auth.errorMessage!,
+                          signupErrors.displayText!,
                           style: const TextStyle(color: AppColors.error),
                         ),
                       ),
@@ -182,7 +197,8 @@ class _SignupContactScreenState extends ConsumerState<SignupContactScreen> {
                     // with the violet-family gradient fill + black text.
                     VButton.emphasized(
                       label: l10n.commonCreateAccount,
-                      loading: auth.isLoading || _submitting,
+                      loading:
+                          _submitting || ref.watch(authStateProvider).isLoading,
                       gradient: family,
                       onPressed: _signup,
                     ),

@@ -477,7 +477,7 @@
   "@friendsAddFriendButton": {
     "description": "Send-friend-request button label"
   },
-  "friendsMinCharsHint": "Type at least 2 characters to search",
+  "friendsMinCharsHint": "Type at least 5 characters to search",
   "@friendsMinCharsHint": {
     "description": "Search hint shown while the query is shorter than 2 characters (R14)"
   },

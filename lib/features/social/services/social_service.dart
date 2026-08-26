@@ -41,16 +41,11 @@ class SocialService {
     return res?['profile_public'] == true;
   }
 
-  /// Persists the caller's public-profile switch (own-row only — the
-  /// `users_update_own` RLS policy; `profile_public` is USER-OWNED profile
-  /// data, deliberately absent from the G-03 protected-column list so the
-  /// self-edit stays allowed, same class as `discovery_opt_in`).
+  /// Persists the caller's public-profile switch via the set_profile_public
+  /// RPC (profile-RPC lockdown 2026-08-25 — no direct table writes).
   Future<void> setProfilePublic(bool value) async {
     final user = _client.auth.currentUser;
     if (user == null) throw const UnauthorizedError();
-    await _client
-        .from('users')
-        .update({'profile_public': value})
-        .eq('id', user.id);
+    await _client.rpc('set_profile_public', params: {'p_value': value});
   }
 }

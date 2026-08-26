@@ -366,7 +366,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get friendsAddFriendButton => 'Add';
 
   @override
-  String get friendsMinCharsHint => 'Type at least 2 characters to search';
+  String get friendsMinCharsHint => 'Type at least 5 characters to search';
 
   @override
   String get friendsMutualAcceptedTitle => 'Request accepted!';

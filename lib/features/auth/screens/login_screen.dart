@@ -6,7 +6,9 @@ import 'package:samay/core/design_tokens/app_gradients.dart';
 import 'package:samay/core/logging/app_logger.dart';
 import 'package:samay/core/providers/auth_provider.dart';
 import 'package:samay/core/router/route_paths.dart';
+import 'package:samay/core/extensions/error_mapper.dart';
 import 'package:samay/core/utils/form_validators.dart' as form_validators;
+import 'package:samay/features/auth/providers/auth_form_errors.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/show_app_error.dart';
 import 'package:samay/shared/widgets/v_button.dart';
@@ -23,6 +25,17 @@ class LoginScreen extends ConsumerStatefulWidget {
 class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    // Fresh entry = fresh error surface (flow-scoped error providers,
+    // 2026-08-24 fake-OTP-error fix). Post-frame: provider writes are
+    // illegal during the widget life-cycle.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(loginErrorProvider.notifier).clear();
+    });
+  }
 
   @override
   void dispose() {
@@ -44,6 +57,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       );
     if (!formState.isValid) return;
     final l10n = AppLocalizations.of(context);
+    final loginErrors = ref.read(loginErrorProvider.notifier)..clear();
     try {
       await ref.read(authStateProvider.notifier).signIn(email, password);
       if (mounted &&
@@ -51,19 +65,23 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         context.go(RoutePaths.mainFeed);
         return;
       }
-      final msg =
-          ref.read(authStateProvider).errorMessage ??
+      // Own-action scoping: capture THIS attempt's failure — the global auth
+      // stream is never mirrored into the field.
+      final message = ref.read(authStateProvider).errorMessage ??
           l10n.authUnknownLoginError;
-      if (mounted) showAppError(context, msg, blocking: true);
+      loginErrors.set(message);
+      if (mounted) showAppError(context, message, blocking: true);
     } catch (e, st) {
       AppLogger.instance.error('login error: $e', '$st');
-      if (mounted) showAppError(context, e, blocking: true);
+      final message = e.toAppError().message;
+      loginErrors.set(message);
+      if (mounted) showAppError(context, message, blocking: true);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final auth = ref.watch(authStateProvider);
+    final loginError = ref.watch(loginErrorProvider);
     final l10n = AppLocalizations.of(context);
     final family = AppGradients.familyOf('login');
 
@@ -96,11 +114,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       controller: _passwordController,
                       label: l10n.commonPassword,
                       obscureText: true,
-                      // §5.2: the auth error rides the password field as
-                      // `errorText` (glowPink — never raw red on black)
+                      // §5.2: THIS attempt's error rides the password field
+                      // as `errorText` (glowPink — never raw red on black)
                       // instead of a standalone inline Text (U-07 ledger,
-                      // handoff 4).
-                      errorText: auth.hasError ? auth.errorMessage : null,
+                      // handoff 4). Sourced from the login-scoped provider —
+                      // never the global auth stream.
+                      errorText: loginError,
                     ),
                     const SizedBox(height: 8),
                     Align(
@@ -128,7 +147,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     // No family gradient on the login CTA.
                     VButton.dark(
                       label: l10n.commonSignIn,
-                      loading: auth.isLoading,
+                      loading: ref.watch(authStateProvider).isLoading,
                       onPressed: _login,
                     ),
                     const SizedBox(height: 12),
