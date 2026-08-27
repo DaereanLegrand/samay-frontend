@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
-import 'package:samay/core/design_tokens/app_gradients.dart';
 import 'package:samay/core/design_tokens/app_icon_sizes.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/logging/app_logger.dart';
@@ -47,12 +46,10 @@ IconData notificationIconForType(String type) {
 /// `notifications` table, live inserts via Realtime, tap → deep link + mark
 /// read, unread dot, pull-to-refresh, mark-all-read, empty state.
 ///
-/// LUXE v2: unread rows are gold liquid-glass cards with the gold unread dot
-/// (never pink — 2026-08-12 directive); unread state stays never color-only
-/// (bold title + dot, §2.5 rule 5). XL-18 (Gemma 11_notifications "visual
-/// hierarchy needs refinement"): the read title lifts from w300 to w400 so
-/// the muted rows still read as typography, and the unread dot fill is the
-/// gold family watered 45% (no saturated fills — ORCHESTRATION directive 3).
+/// Monochrome: unread rows emphasize with white (icon + dot) — unread state
+/// stays never color-only (bold title + dot, §2.5 rule 5). XL-18 (Gemma
+/// 11_notifications "visual hierarchy needs refinement"): the read title
+/// lifts from w300 to w400 so the muted rows still read as typography.
 class NotificationCenterScreen extends ConsumerStatefulWidget {
   const NotificationCenterScreen({super.key});
 
@@ -202,11 +199,8 @@ class _NotificationTile extends StatelessWidget {
               Icon(
                 notificationIconForType(item.type),
                 size: AppIconSizes.md,
-                // LUXE: the unread accent is the gold family vivid end —
-                // never pink (2026-08-12 directive).
-                color: unread
-                    ? AppGradients.gold.colors.last
-                    : AppColors.mutedStrong,
+                // Monochrome: the unread accent is white.
+                color: unread ? AppColors.white : AppColors.mutedStrong,
               ),
               const SizedBox(width: AppSpacing.md),
               Expanded(
@@ -262,14 +256,10 @@ class _NotificationTile extends StatelessWidget {
                   key: ValueKey('unread-dot-${item.id}'),
                   width: 8,
                   height: 8,
-                  // XL-18: no saturated fills — the gold vivid end is
-                  // watered 45% toward white, keeping the gold read while
-                  // reading as a pastel indicator (directive #3).
-                  decoration: BoxDecoration(
-                    color: AppGradients.watered(
-                      [AppGradients.gold.colors.last],
-                      mix: 0.45,
-                    ).single,
+                  // Monochrome: flat white dot (the bold title + dot pair
+                  // carries the unread state, never color alone).
+                  decoration: const BoxDecoration(
+                    color: AppColors.white,
                     shape: BoxShape.circle,
                   ),
                 ),

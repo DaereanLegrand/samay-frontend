@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:samay/core/design_tokens/app_gradients.dart';
 import 'package:samay/core/router/route_extras.dart';
 import 'package:samay/core/router/route_paths.dart';
 import 'package:samay/l10n/app_localizations.dart';
@@ -29,7 +28,6 @@ class _PrivacyTermsScreenState extends State<PrivacyTermsScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final family = AppGradients.familyOf('privacy_terms');
     return Scaffold(
       appBar: AppBar(),
       // §7.3: scroll-safe body — the long checkbox subtitles + displayMedium
@@ -58,12 +56,9 @@ class _PrivacyTermsScreenState extends State<PrivacyTermsScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const SizedBox(height: 32),
-                  // §3.2 auth big header — LUXE v2: mint-family
-                  // VDisplayText (gradient fill + slowly pulsing glow).
-                  VDisplayText(
-                    text: l10n.authAcceptTermsToContinue,
-                    gradient: family,
-                  ),
+                  // §3.2 auth big header — monochrome VDisplayText
+                  // (verbatim copy, flat white glyphs).
+                  VDisplayText(text: l10n.authAcceptTermsToContinue),
                   const SizedBox(height: 24),
                   _ConsentRow(
                     title: l10n.authPrivacyPolicy,
@@ -79,11 +74,9 @@ class _PrivacyTermsScreenState extends State<PrivacyTermsScreen> {
                     onChanged: (v) => setState(() => _termsAccepted = v),
                   ),
                   const Spacer(),
-                  // §5.1 brand moment: the primary CTA is emphasized with
-                  // the mint-family gradient fill + black text.
+                  // §5.1 primary CTA — emphasized white fill, black text.
                   VButton.emphasized(
                     label: l10n.commonCreateAccount,
-                    gradient: family,
                     onPressed: _allAccepted
                         ? () => context.push(
                             RoutePaths.profileSetup,

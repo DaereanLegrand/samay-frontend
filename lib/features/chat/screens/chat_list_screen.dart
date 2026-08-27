@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:samay/core/design_tokens/app_gradients.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/design_tokens/app_typography.dart';
 import 'package:samay/core/logging/app_logger.dart';
@@ -18,10 +17,6 @@ import 'package:samay/shared/widgets/state_views.dart';
 import 'package:samay/shared/widgets/v_count_badge.dart';
 import 'package:samay/shared/widgets/v_network_image.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' show RealtimeChannel;
-
-/// LUXE v2 family for this screen — **peach** (the LUXE restyle pass (historical) map:
-/// chat → peach).
-final AppGradient _family = AppGradients.familyOf('chat');
 
 /// Chat inbox (user request 2026-08-15): every chat the user participates in,
 /// most-recent-first, with the peer identity, a best-effort last-message
@@ -235,7 +230,7 @@ class _ChatListTile extends StatelessWidget {
               children: [
                 Text(timeLabel, style: AppTypography.labelSmall),
                 const SizedBox(height: 6),
-                VCountBadge(count: item.unreadCount, gradient: _family),
+                VCountBadge(count: item.unreadCount),
               ],
             ),
           ],

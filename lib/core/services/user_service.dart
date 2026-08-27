@@ -85,6 +85,31 @@ class UserService {
     await client.rpc('set_discovery_opt_in', params: {'p_value': value});
   }
 
+  /// The minigame-invite privacy switch (`users.minigame_invite_friends_only`,
+  /// migration 140_minigame_invites, default FALSE = anyone may invite me).
+  Future<bool> getMinigameInviteFriendsOnly() async {
+    final user = auth.currentUser;
+    if (user == null) return false;
+    final res = await client
+        .from('users')
+        .select('minigame_invite_friends_only')
+        .eq('id', user.id)
+        .maybeSingle();
+    return res?['minigame_invite_friends_only'] as bool? ?? false;
+  }
+
+  /// Persists the minigame-invite privacy switch via the
+  /// set_minigame_invite_friends_only RPC (profile-RPC lockdown — clients
+  /// hold no UPDATE on `users`).
+  Future<void> setMinigameInviteFriendsOnly(bool value) async {
+    final user = auth.currentUser;
+    if (user == null) throw const UnauthorizedError();
+    await client.rpc(
+      'set_minigame_invite_friends_only',
+      params: {'p_value': value},
+    );
+  }
+
   /// The current user's interest-tag slugs (own `users.interest_tags` row),
   /// sorted for determinism. Parsed through [UserInterests.fromDb] (handles
   /// both the PostgREST native list form and a JSON-encoded array string).

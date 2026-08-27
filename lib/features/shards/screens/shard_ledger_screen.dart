@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
-import 'package:samay/core/design_tokens/app_gradients.dart';
 import 'package:samay/core/design_tokens/app_icon_sizes.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/models/ledger_entry.dart';
@@ -77,26 +76,14 @@ IconData preshardReasonIcon(String reason) {
   };
 }
 
-/// LUXE v2 family for this screen — **gold** (the LUXE restyle pass (historical) map:
-/// shards → gold).
-final AppGradient _family = AppGradients.familyOf('shards');
-
-/// XL-17 (Gemma round 2, 16_shard_ledger: "pathetic, cluttered mess",
-/// luxury 2/minimalism 2): fills and borders ride the watered run — only the
-/// display delta shader may hold a hint more, and the vivid end is reserved
-/// for micro accents. Every per-row glass card is gone (one hairline per row,
-/// no divider + card + glow).
-final AppGradient _watered = AppGradients.wateredFamily(_family, mix: 0.4);
-
 /// The shard & preshard ledger (SLED spec): header balances (personal shards
 /// earned + preshards bought/granted, with the economy note), two tabs
 /// (Shards / Preshards) over the newest-first movement lists — each entry
-/// shows the reason icon + localized label, the delta (+white / −gray
+/// shows the reason icon + localized label, the delta (+gold / −gray
 /// strikethrough), the timestamp and the short reference id — plus
-/// pull-to-refresh and empty/error states.
-///
-/// LUXE v2: gold liquid-glass cards (border + glow + gradient delta text);
-/// the gold shard diamond is the currency accent (§5.6).
+/// pull-to-refresh and empty/error states. Monochrome hairline rows; the
+/// flat gold delta figures carry the currency meaning, the shard diamond
+/// stays the currency accent (§5.6).
 class ShardLedgerScreen extends ConsumerStatefulWidget {
   const ShardLedgerScreen({super.key});
 
@@ -217,8 +204,8 @@ class _ShardLedgerScreenState extends ConsumerState<ShardLedgerScreen>
 
 /// The economy summary header (SLED "Economy summary on profile screen"
 /// balances — also rendered here so the ledger is self-contained): earned vs
-/// bought/granted with the "no expiran / solo eventos" note. LUXE: gold
-/// liquid-glass card.
+/// bought/granted with the "no expiran / solo eventos" note (monochrome
+/// hairline card).
 class _BalanceHeader extends StatelessWidget {
   final int personalShards;
   final int preshards;
@@ -294,8 +281,8 @@ class _BalanceHeader extends StatelessWidget {
   }
 }
 
-/// Net of the visible side (derived totals from the provider). LUXE: a
-/// positive net renders in the gold family gradient (ShaderMask fill).
+/// Net of the visible side (derived totals from the provider): a positive
+/// net renders as a flat [AppColors.discoGold] figure.
 class _NetHeader extends StatelessWidget {
   final int total;
   final AppLocalizations l10n;
@@ -331,10 +318,9 @@ class _NetHeader extends StatelessWidget {
   }
 }
 
-/// A signed shard delta — positive values render in the gold family gradient
-/// (LUXE directive #2: gradient text, never flat accents); negative stays
-/// `mutedStrong` strikethrough (loss). The shader rides the watered run —
-/// the vivid end is reserved for the display voice (XL-17).
+/// A signed shard delta — positive values render as a flat
+/// [AppColors.discoGold] figure (currency token); negative stays
+/// `mutedStrong` strikethrough (loss).
 class _GradientDelta extends StatelessWidget {
   const _GradientDelta({
     required this.text,
@@ -358,12 +344,7 @@ class _GradientDelta extends StatelessWidget {
         ),
       );
     }
-    return ShaderMask(
-      shaderCallback: (bounds) =>
-          AppGradients.textShader(_watered, bounds),
-      blendMode: BlendMode.srcIn,
-      child: Text(text, style: base.copyWith(color: AppColors.white)),
-    );
+    return Text(text, style: base.copyWith(color: AppColors.discoGold));
   }
 }
 
@@ -386,8 +367,8 @@ class _LedgerTile extends StatelessWidget {
     final reference = shortReferenceId(entry.referenceId);
 
     // XL-17: the row is a hairline list row — no glass card, no glow, no
-    // shard diamond beside the delta (the watered gradient delta already
-    // carries the "+" accent; the diamond is the balance-card token).
+    // shard diamond beside the delta (the flat gold delta already carries
+    // the "+" accent; the diamond is the balance-card token).
     return Padding(
       padding: const EdgeInsets.symmetric(
         horizontal: AppSpacing.lg,
@@ -399,7 +380,7 @@ class _LedgerTile extends StatelessWidget {
           Icon(
             icon,
             size: AppIconSizes.md,
-            color: _watered.colors[1].withValues(alpha: 0.9),
+            color: AppColors.white,
           ),
           const SizedBox(width: AppSpacing.md),
           Expanded(

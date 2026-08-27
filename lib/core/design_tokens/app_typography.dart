@@ -28,19 +28,17 @@ abstract final class AppTypography {
   /// UI voice — everything else: body, buttons, inputs, labels, nav (§3.1).
   static const String inter = 'Inter';
 
-  // ── LUXE v2 display-voice contract (XL-03) ─────────────────────────────────
+  // ── Monochrome display-voice contract (2026-08-26) ────────────────────────
   //
   // The display voices (displayLarge/displayMedium/displaySmall and
   // headlineLarge) are Playfair Display **bold** — the ONLY Playfair usage
-  // in the app (the LUXE restyle pass (historical) directive #6). No italics (user directive
-  // 2026-08-14).
+  // in the app. No italics (user directive 2026-08-14).
   //
-  // MAYUS rule: display copy MUST render UPPERCASE. Enforcement lives in
-  // `VDisplayText` (lib/shared/widgets/v_display_text.dart) — it uppercases
-  // the input, so callers pass natural-case strings and never call
-  // `.toUpperCase()` themselves. Display roles must NOT be rendered as raw
-  // `Text` widgets; always route them through `VDisplayText` so the MAYUS
-  // rule, the gradient fill and the slow halo pulse stay uniform.
+  // Display copy renders VERBATIM — no case transformation (the MAYUS rule
+  // was deleted with the monochrome refactor). Callers pass natural-case
+  // strings ('samay', 'Crea tu cuenta'). Display roles must NOT be rendered
+  // as raw `Text` widgets; always route them through `VDisplayText` so the
+  // white glyph color and size-token mapping stay uniform.
 
   // ── §3.3 type-scale consts (exact doc values) ─────────────────────────────
 

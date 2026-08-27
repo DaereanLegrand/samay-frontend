@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
-import 'package:samay/core/design_tokens/app_gradients.dart';
 import 'package:samay/core/providers/auth_provider.dart';
 import 'package:samay/core/router/route_paths.dart';
 import 'package:samay/core/utils/form_validators.dart' as form_validators;
@@ -60,7 +59,6 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
   Widget build(BuildContext context) {
     final auth = ref.watch(authStateProvider);
     final l10n = AppLocalizations.of(context);
-    final family = AppGradients.familyOf('forgot_password');
 
     return Scaffold(
       appBar: AppBar(),
@@ -78,9 +76,8 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                       ? _successContent(
                           l10n,
                           _emailController.text.trim(),
-                          family,
                         )
-                      : _formContent(auth, l10n, family),
+                      : _formContent(auth, l10n),
                 ),
               ),
             ),
@@ -93,13 +90,11 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
   List<Widget> _formContent(
     AsyncValue<AuthState> auth,
     AppLocalizations l10n,
-    AppGradient family,
   ) {
     return [
       const SizedBox(height: 32),
-      // §3.2 auth big header — LUXE v2: peach-family VDisplayText (gradient
-      // fill + slowly pulsing glow + once-only shimmer sweep).
-      VDisplayText(text: l10n.authForgotPasswordHeading, gradient: family),
+      // §3.2 auth big header — monochrome VDisplayText.
+      VDisplayText(text: l10n.authForgotPasswordHeading),
       const SizedBox(height: 8),
       Text(
         l10n.authForgotPasswordHint,
@@ -117,13 +112,11 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
         errorText: _emailError ?? (auth.hasError ? auth.errorMessage : null),
       ),
       const Spacer(),
-      // §5.1 brand moment: the primary CTA is the filled glowAccent
-      // (peach-family gradient fill + black text).
-      VButton.glowAccent(
+      // §5.1 primary CTA — the black button voice (user directive
+      // 2026-08-14).
+      VButton.dark(
         label: l10n.authForgotPasswordSend,
         loading: auth.isLoading,
-        filled: true,
-        gradient: family,
         onPressed: _send,
       ),
       const SizedBox(height: 8),
@@ -142,13 +135,12 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
   List<Widget> _successContent(
     AppLocalizations l10n,
     String email,
-    AppGradient family,
   ) {
     return [
       const SizedBox(height: 32),
       // The success state keeps the same display hero (one hero per screen,
-      // §6.2) — the peach family rides both states.
-      VDisplayText(text: l10n.authForgotPasswordSuccessTitle, gradient: family),
+      // §6.2).
+      VDisplayText(text: l10n.authForgotPasswordSuccessTitle),
       const SizedBox(height: 8),
       Text(
         l10n.authForgotPasswordSuccessBody(email),

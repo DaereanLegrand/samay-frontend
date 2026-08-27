@@ -12,15 +12,11 @@ class SamayDurations {
   /// Page transitions, dialog/sheet open, snackbar.
   static const standard = Duration(milliseconds: 250);
 
-  /// Hero/display fade-in, glow settle.
+  /// Hero/display fade-in.
   static const slow = Duration(milliseconds: 500);
 
   /// Default curve for all transitions — §6.1 "easeOutCubic".
   static const defaultCurve = Curves.easeOutCubic;
-
-  /// Glow breathing loop: the glow alternates over this period as a slow
-  /// `easeInOut` alternate cycle (see [VGlowPulse]).
-  static const glowBreath = Duration(milliseconds: 3000);
 
   /// Skeleton shimmer sweep (§5.8/§6.3 — promoted from U-06's local
   /// `_shimmerSweep` const into the §4.5 token).
@@ -29,18 +25,12 @@ class SamayDurations {
   /// Live-dot α pulse, one-directional ramp (§6.3: "1.5s α pulse 0.6→1.0").
   static const liveDotPulse = Duration(milliseconds: 1500);
 
-  /// Static settle between glow/pulse cycles. A hard `repeat()` schedules
+  /// Static settle between pulse cycles. A hard `repeat()` schedules
   /// frames forever, hanging every `pumpAndSettle`-based widget test over
   /// the affected screens — the pause lets the animation run a continuous
-  /// `glowBreath`/`liveDotPulse` alternate and then rest so tests land
-  /// deterministically (see `VGlowPulse`).
+  /// `liveDotPulse` alternate and then rest so tests land
+  /// deterministically (see `VStatusDot`).
   static const motionCycleRest = Duration(milliseconds: 300);
-
-  // ── Motion tokens ─────────────────────────────────────────────────────────
-
-  /// [VGlowPulse] halo alternate: α0.35→α0.7 easeInOut, one direction per
-  /// half — the campaign's "glow must slowly pulsate (3.6–4s)" range.
-  static const glowPulse = Duration(milliseconds: 3800);
 
   /// Slow periodic drift period for ambient light-motion accents. Kept as a
   /// stable duration token; its value is locked by `samay_durations_test`.
@@ -48,10 +38,4 @@ class SamayDurations {
 
   /// [VThinkingDots] per-dot pulse period (up-down alternate, staggered).
   static const thinkingDot = Duration(milliseconds: 900);
-
-  /// Liquid-glass hover/focus accent transition (glass inputs, chips).
-  static const glassHover = Duration(milliseconds: 150);
-
-  /// Once-only shimmer sweep on hero display text (VDisplayText).
-  static const displaySweep = Duration(milliseconds: 900);
 }

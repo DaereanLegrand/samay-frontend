@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:samay/core/design_tokens/app_gradients.dart';
 import 'package:samay/core/extensions/error_mapper.dart';
 import 'package:samay/core/repositories/repository_providers.dart';
 import 'package:samay/core/utils/form_validators.dart';
@@ -101,13 +100,10 @@ class _DonateShardsScreenState extends ConsumerState<DonateShardsScreen> {
                   keyboardType: TextInputType.number,
                 ),
                 const SizedBox(height: 32),
-                // §5.1 LUXE: donating is the screen's one brand moment —
-                // the violet glow accent (family gradient fill, black text
-                // 6.00:1; the amount VInput already carries the token
-                // treatment + errorText seam).
-                VButton.glowAccent(
-                  filled: true,
-                  gradient: AppGradients.violet,
+                // §5.1 LUXE: donating is the screen's primary action; the
+                // amount VInput already carries the token treatment +
+                // errorText seam.
+                VButton.dark(
                   label: l10n.groupsDonate,
                   loading: _loading,
                   onPressed: _donate,

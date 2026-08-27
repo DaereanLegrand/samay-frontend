@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:samay/core/config/feature_flags.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/extensions/error_mapper.dart';
@@ -10,6 +12,7 @@ import 'package:samay/core/models/group_member.dart';
 import 'package:samay/core/providers/auth_provider.dart';
 import 'package:samay/core/providers/service_providers.dart';
 import 'package:samay/core/repositories/repository_providers.dart';
+import 'package:samay/core/router/route_paths.dart';
 import 'package:samay/core/services/chat_service.dart';
 import 'package:samay/core/theme/samay_durations.dart';
 import 'package:samay/features/chat/providers/chat_providers.dart';
@@ -816,6 +819,15 @@ class _ChatThreadViewState extends ConsumerState<ChatThreadView> {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
+              // Minigames entry (direct-minigames 2026-08-27): 1:1 chats
+              // open the DIRECT hub, group chats the group hub — both offer
+              // the Direct/Group toggle, so "an option for direct and
+              // groups" is reachable from inside any chat. Flag-gated
+              // (kill-switch).
+              if (ref.isEnabled(AppFeatureFlag.minigames)) ...[
+                _minigamesButton(l10n),
+                const SizedBox(width: 8),
+              ],
               Expanded(
                 // minHeight == the button's diameter so an empty/single-line
                 // field is exactly the button's height; maxLines 3 caps the
@@ -839,6 +851,41 @@ class _ChatThreadViewState extends ConsumerState<ChatThreadView> {
           ),
         ),
       ),
+    );
+  }
+
+  /// Circular minigames entry button (direct-minigames 2026-08-27): a muted
+  /// sports icon that opens the DIRECT hub from a 1:1 chat or the GROUP hub
+  /// from a group chat — both carry the Direct/Group toggle inside.
+  Widget _minigamesButton(AppLocalizations l10n) {
+    return SizedBox(
+      key: const ValueKey('chatMinigameButton'),
+      width: _sendButtonSize,
+      height: _sendButtonSize,
+      child: Tooltip(
+        message: l10n.minigamesTitle,
+        child: Material(
+          color: Colors.transparent,
+          shape: const CircleBorder(),
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            onTap: _openMinigames,
+            child: const Icon(
+              Icons.sports_esports,
+              color: AppColors.mutedStrong,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// 1:1 chat → the DIRECT hub (play with this friend without a group);
+  /// group chat → that group's hub. The hub toggle covers the other scope.
+  void _openMinigames() {
+    final groupId = widget.groupId;
+    context.push(
+      groupId == null ? RoutePaths.minigamesDirect : RoutePaths.minigames(groupId),
     );
   }
 

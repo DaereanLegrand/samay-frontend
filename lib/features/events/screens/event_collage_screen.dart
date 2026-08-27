@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
-import 'package:samay/core/design_tokens/app_gradients.dart';
 import 'package:samay/core/design_tokens/app_icon_sizes.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/extensions/error_mapper.dart';
@@ -18,8 +17,8 @@ import 'package:samay/shared/widgets/v_network_image.dart';
 /// the event (the [eventPhotosProvider] signed-URL gallery) in a tight grid
 /// with the event title overlaid on the wall.
 ///
-/// LUXE v2: photos own the **mint** family — a faint mint wash + the mint
-/// display voice in the title overlay; the wall itself stays pure photo.
+/// Monochrome: a flat translucent-black strip carries the display-voice
+/// title overlay; the wall itself stays pure photo.
 class EventCollageScreen extends ConsumerWidget {
   const EventCollageScreen({super.key, required this.eventId});
 
@@ -109,12 +108,7 @@ class _CollageWall extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                VDisplayText(
-                  text: title,
-                  size: 28,
-                  gradient: AppGradients.mint,
-                  maxLines: 2,
-                ),
+                VDisplayText(text: title, size: 28, maxLines: 2),
                 const SizedBox(height: AppSpacing.xs),
                 Text(
                   l10n.collagePhotoCount(photos.length),

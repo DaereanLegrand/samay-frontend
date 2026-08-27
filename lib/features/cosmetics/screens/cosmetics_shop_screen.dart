@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
-import 'package:samay/core/design_tokens/app_gradients.dart';
 import 'package:samay/core/extensions/error_mapper.dart';
 import 'package:samay/features/cosmetics/providers/cosmetics_providers.dart';
 import 'package:samay/features/profile/providers/profile_providers.dart';
@@ -14,17 +13,12 @@ import 'package:samay/shared/widgets/v_badge.dart';
 import 'package:samay/shared/widgets/v_button.dart';
 import 'package:samay/shared/widgets/v_shard_icon.dart';
 
-/// LUXE v2 family for this screen — **violet** (the LUXE restyle pass (historical) map:
-/// cosmetics → violet).
-final AppGradient _family = AppGradients.familyOf('cosmetics');
-
 /// The personal cosmetics shop (COSM spec): catalog grid over the three
 /// personal categories (Marcos/Fondos/Insignias), shard-only purchases with a
 /// confirm dialog, and equip/unequip for owned items (one equipped per type).
 ///
-/// LUXE v2: violet liquid-glass cards with the equipped state in the violet
-/// family (accent badge + stronger glow); the gold shard icon is the
-/// currency accent (§5.6).
+/// Monochrome: flat cards; the equipped state is the white emphasized badge,
+/// and the gold shard icon is the currency accent (§5.6).
 class CosmeticsShopScreen extends ConsumerStatefulWidget {
   const CosmeticsShopScreen({super.key});
 
@@ -261,7 +255,7 @@ class _CosmeticsShopScreenState extends ConsumerState<CosmeticsShopScreen>
 }
 
 /// Current `personal_shards` (profile provider) — the currency the shop
-/// spends. LUXE: violet glass card; the gold diamond marks the balance (§5.6).
+/// spends. The gold diamond marks the balance (§5.6).
 class _BalanceBar extends StatelessWidget {
   final int shards;
 
@@ -348,14 +342,14 @@ class _CosmeticCard extends StatelessWidget {
                   constraints: const BoxConstraints(maxWidth: 88),
                   child: FittedBox(
                     fit: BoxFit.scaleDown,
-                    // LUXE: the equipped badge is the violet-family accent
-                    // (never pink — 2026-08-12 directive); owned-but-idle
-                    // keeps the muted flat accent.
-                    child: VBadge.accent(
-                      label: l10n.cosmeticsOwned,
-                      gradient: _equipped ? _family : null,
-                      color: _equipped ? null : AppColors.mutedStrong,
-                    ),
+                    // Monochrome: equipped is the white emphasized badge;
+                    // owned-but-idle keeps the grey flat accent.
+                    child: _equipped
+                        ? VBadge.emphasized(label: l10n.cosmeticsOwned)
+                        : VBadge(
+                            label: l10n.cosmeticsOwned,
+                            color: AppColors.mutedStrong,
+                          ),
                   ),
                 ),
             ],
@@ -404,7 +398,6 @@ class _CosmeticCard extends StatelessWidget {
             child: owned == null
                 ? VButton.outlined(
                     label: l10n.cosmeticsBuyWithCost(_cost),
-                    gradient: _family,
                     loading: busy,
                     onPressed: locked ? null : onBuy,
                   )
@@ -412,7 +405,6 @@ class _CosmeticCard extends StatelessWidget {
                     label: _equipped
                         ? l10n.cosmeticsEquipped
                         : l10n.cosmeticsEquip,
-                    gradient: _family,
                     loading: busy,
                     onPressed: onToggleEquipped,
                   ),

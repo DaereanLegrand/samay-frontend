@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
-import 'package:samay/core/design_tokens/app_gradients.dart';
 import 'package:samay/core/errors/app_error.dart';
 import 'package:samay/core/extensions/error_mapper.dart';
 import 'package:samay/core/logging/app_logger.dart';
@@ -131,7 +130,6 @@ class _SignupContactScreenState extends ConsumerState<SignupContactScreen> {
   Widget build(BuildContext context) {
     final signupErrors = ref.watch(signupErrorsProvider);
     final l10n = AppLocalizations.of(context);
-    final family = AppGradients.familyOf('signup');
 
     return Scaffold(
       // LUXE v2 directive #8: the "Crear cuenta" AppBar title is useless —
@@ -148,16 +146,9 @@ class _SignupContactScreenState extends ConsumerState<SignupContactScreen> {
                 child: Column(
                   children: [
                     const SizedBox(height: 32),
-                    // §3.2 auth big header — LUXE v2: the VDisplayText
-                    // hero is the multi-color violet-family gradient
-                    // (pastel → vivid) with the slowly pulsating glow and
-                    // the once-only shimmer sweep — NOT pink (user
-                    // directive 2026-08-12); reduced-motion → static
-                    // mid-α halo.
-                    VDisplayText(
-                      text: l10n.authCreateYourAccount,
-                      gradient: family,
-                    ),
+                    // §3.2 auth big header — monochrome VDisplayText
+                    // (verbatim copy, flat white glyphs).
+                    VDisplayText(text: l10n.authCreateYourAccount),
                     // XL-19 (03_signup — still "dense", luxury 3/10): the
                     // hero → fields rhythm tightens to 32 and the field
                     // group reads at 16 — the 3 fields + CTA are ONE quiet
@@ -193,13 +184,11 @@ class _SignupContactScreenState extends ConsumerState<SignupContactScreen> {
                         ),
                       ),
                     const Spacer(),
-                    // §5.1 brand moment: the primary CTA is emphasized
-                    // with the violet-family gradient fill + black text.
+                    // §5.1 primary CTA — emphasized white fill, black text.
                     VButton.emphasized(
                       label: l10n.commonCreateAccount,
                       loading:
                           _submitting || ref.watch(authStateProvider).isLoading,
-                      gradient: family,
                       onPressed: _signup,
                     ),
                     const SizedBox(height: 32),

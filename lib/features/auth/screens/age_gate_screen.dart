@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
-import 'package:samay/core/design_tokens/app_gradients.dart';
 import 'package:samay/core/providers/service_providers.dart';
 import 'package:samay/core/router/route_extras.dart';
 import 'package:samay/core/router/route_paths.dart';
@@ -31,7 +30,6 @@ class _AgeGateScreenState extends ConsumerState<AgeGateScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final family = AppGradients.familyOf('age_gate');
     return Scaffold(
       appBar: AppBar(),
       // §7.3: scroll-safe body (the OTP pattern, U-07) — the fixed Column
@@ -51,12 +49,8 @@ class _AgeGateScreenState extends ConsumerState<AgeGateScreen> {
                 child: Column(
                   children: [
                     const SizedBox(height: 32),
-                    // §3.2 auth big header — LUXE v2: violet-family
-                    // VDisplayText (gradient fill + slowly pulsing glow).
-                    VDisplayText(
-                      text: l10n.authBirthDateQuestion,
-                      gradient: family,
-                    ),
+                    // §3.2 auth big header — monochrome VDisplayText.
+                    VDisplayText(text: l10n.authBirthDateQuestion),
                     const SizedBox(height: 8),
                     Text(
                       l10n.authMinAgeMessage,
@@ -99,11 +93,9 @@ class _AgeGateScreenState extends ConsumerState<AgeGateScreen> {
                         ),
                       ),
                     const Spacer(),
-                    // §5.1 brand moment: the primary CTA is emphasized
-                    // with the violet-family gradient fill + black text.
+                    // §5.1 primary CTA — emphasized white fill, black text.
                     VButton.emphasized(
                       label: l10n.commonContinue,
-                      gradient: family,
                       onPressed: isAdult(_selectedDate)
                           ? () => context.push(
                               RoutePaths.privacyTerms,

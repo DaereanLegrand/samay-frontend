@@ -44,6 +44,11 @@ abstract final class RoutePaths {
       '/group/$groupId/create-event';
   static String inviteToGroup(String groupId) => '/group/$groupId/invite';
   static String minigames(String groupId) => '/minigames/$groupId';
+  static String minigameSession(String sessionId) =>
+      '/minigames/session/$sessionId';
+  /// Direct (group-less) minigames hub — registered BEFORE the :groupId hub
+  /// so the static path can never be shadowed (direct-minigames 2026-08-27).
+  static const minigamesDirect = '/minigames';
   static String chat(String chatId) => '/chat/$chatId';
   static const chatList = '/chats';
   static String userProfile(String userId) => '/user/$userId';

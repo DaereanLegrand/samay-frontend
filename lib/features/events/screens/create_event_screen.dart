@@ -6,7 +6,6 @@ import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
-import 'package:samay/core/design_tokens/app_gradients.dart';
 import 'package:samay/core/design_tokens/app_typography.dart';
 import 'package:samay/core/logging/app_logger.dart';
 import 'package:samay/core/providers/service_providers.dart';
@@ -398,7 +397,7 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
             runSpacing: 8,
             children: [
               for (final type in EventType.values)
-                VChip.accent(
+                VChip(
                   label: switch (type) {
                     EventType.casual => l10n.eventsTypeCasual,
                     EventType.juerga => l10n.eventsTypeJuerga,
@@ -406,7 +405,6 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
                   },
                   selected: _form.type == type,
                   onSelected: () => _selectType(type),
-                  gradient: AppGradients.peach,
                 ),
             ],
           ),
@@ -532,9 +530,8 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
             const SizedBox(height: 16),
           ],
           const SizedBox(height: 8),
-          VButton.glowAccent(
+          VButton.dark(
             label: l10n.groupsCreateEvent,
-            gradient: AppGradients.peach,
             loading: _loading,
             onPressed: _submit,
           ),

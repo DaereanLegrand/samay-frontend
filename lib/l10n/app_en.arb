@@ -96,7 +96,7 @@
   "@commonMoreOptions": {
     "description": "Accessibility tooltip for icon-only overflow menus"
   },
-  "welcomeVive": "VIVE",
+  "welcomeVive": "vive",
   "@welcomeVive": {
     "description": "Welcome screen brand wordmark"
   },
@@ -312,7 +312,7 @@
       }
     }
   },
-  "feedBrand": "Samay",
+  "feedBrand": "samay",
   "@feedBrand": {
     "description": "Feed screen app bar title"
   },
@@ -897,6 +897,10 @@
   "@settingsSectionChat": {
     "description": "Settings section header for the chat preferences group (2026-08-15)"
   },
+  "settingsSectionGames": "Games",
+  "@settingsSectionGames": {
+    "description": "Settings section header for the minigames preferences group (2026-08-26)"
+  },
   "settingsSectionAccount": "Account",
   "@settingsSectionAccount": {
     "description": "Settings section header for the account rows group (R6)"
@@ -1336,6 +1340,10 @@
   "errorsOtpExpired": "The code has expired. Request a new one.",
   "@errorsOtpExpired": {
     "description": "User-facing expired-OTP message"
+  },
+  "errorsOtpInvalid": "The code is incorrect or has expired. Request a new one.",
+  "@errorsOtpInvalid": {
+    "description": "User-facing invalid/expired-OTP message (GoTrue answers every rejected code with otp_expired)"
   },
   "errorsInvalidReference": "Invalid reference",
   "@errorsInvalidReference": {
@@ -2353,6 +2361,18 @@
   "@minigamesErrorCreate": {
     "description": "Generic error snackbar when the session could not be created"
   },
+  "minigamesErrorInviteeNotAllowed": "Some players couldn't be invited.",
+  "@minigamesErrorInviteeNotAllowed": {
+    "description": "Error snackbar: an invitee is blocked/deleted/self"
+  },
+  "minigamesErrorInviteeFriendsOnly": "One or more players only accept invites from friends.",
+  "@minigamesErrorInviteeFriendsOnly": {
+    "description": "Error snackbar: an invitee opted into friends-only invites"
+  },
+  "minigamesErrorTooManyInvitees": "You can invite up to 20 players.",
+  "@minigamesErrorTooManyInvitees": {
+    "description": "Error snackbar: more than the cap of 20 invitees"
+  },
   "minigamesErrorLoad": "Couldn't load the games",
   "@minigamesErrorLoad": {
     "description": "Error view message when the session list fails to load"
@@ -2592,5 +2612,94 @@
   "chatMessageInfoNotRead": "Not read",
   "@chatMessageInfoNotRead": {
     "description": "Message-info sheet (1:1): the peer has not read the message yet"
+  },
+  "minigamesInviteTitle": "Invite players",
+  "@minigamesInviteTitle": {
+    "description": "App bar title of the minigame player picker"
+  },
+  "minigamesInviteCount": "Invite ({count})",
+  "@minigamesInviteCount": {
+    "description": "App bar confirm action for the minigame player picker",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "minigamesDetailTitle": "Game",
+  "@minigamesDetailTitle": {
+    "description": "App bar title of the minigame session detail"
+  },
+"minigamesWagerFree": "No wager",
+  "@minigamesWagerFree": {
+    "description": "Session detail: the session carries no shard wager"
+  },
+  "minigamesScopeDirect": "Direct",
+  "@minigamesScopeDirect": {
+    "description": "Hub toggle: play without a group (direct session)"
+  },
+  "minigamesScopeGroup": "Group",
+  "@minigamesScopeGroup": {
+    "description": "Hub toggle: play inside a group"
+  },
+  "minigamesPlayDirect": "Play directly",
+  "@minigamesPlayDirect": {
+    "description": "Home games sheet: start a group-less (direct) session"
+  },
+  "minigamesChangeGroup": "Change group",
+  "@minigamesChangeGroup": {
+    "description": "Hub: switch to another group"
+  },
+  "minigamesDirectEmpty": "No direct games yet",
+  "@minigamesDirectEmpty": {
+    "description": "Direct hub: empty state title"
+  },
+  "minigamesDirectEmptyBody": "Create a game to play right now with a friend — no group needed.",
+  "@minigamesDirectEmptyBody": {
+    "description": "Direct hub: empty state body"
+  },
+  "minigamesErrorPlayerLimitReached": "This game has reached its player limit.",
+  "@minigamesErrorPlayerLimitReached": {
+    "description": "Create/join/accept rejection: the session is at its frozen player cap"
+  },
+  "minigamesErrorNotAllowed": "You can't join this game.",
+  "@minigamesErrorNotAllowed": {
+    "description": "Join/finish rejection: a non-participant on a direct session"
+  },
+  "minigamesInvitePendingBody": "You've been invited to this game.",
+  "@minigamesInvitePendingBody": {
+    "description": "Session detail: the user has a pending invite"
+  },
+  "minigamesInviteAccept": "Accept",
+  "@minigamesInviteAccept": {
+    "description": "Session detail: accept the pending invite button"
+  },
+  "minigamesInviteDecline": "Decline",
+  "@minigamesInviteDecline": {
+    "description": "Session detail: decline the pending invite button"
+  },
+  "minigamesInviteAccepted": "You joined the game",
+  "@minigamesInviteAccepted": {
+    "description": "Snackbar after accepting a minigame invite"
+  },
+  "minigamesInviteDeclined": "Invite declined",
+  "@minigamesInviteDeclined": {
+    "description": "Snackbar after declining a minigame invite"
+  },
+  "minigamesInviteClosed": "This game has already finished. The invite can no longer be accepted.",
+  "@minigamesInviteClosed": {
+    "description": "Session detail: the invite is finished because the game ended"
+  },
+  "minigamesInviteFriendsOnly": "Only friends can invite me",
+  "@minigamesInviteFriendsOnly": {
+    "description": "Settings switch: friends-only minigame invites"
+  },
+  "minigamesInviteFriendsOnlyBody": "When on, only your friends can invite you to a minigame.",
+  "@minigamesInviteFriendsOnlyBody": {
+    "description": "Settings switch body: explains the friends-only invite privacy option"
+  },
+  "minigamesInviteFriendsOnlySaveError": "Couldn't save the preference.",
+  "@minigamesInviteFriendsOnlySaveError": {
+    "description": "Settings snackbar when persisting the friends-only invite switch fails"
   }
 }

@@ -46,6 +46,7 @@ String? notificationDeepLink(String type, Map<String, dynamic>? data) {
   final groupId = _firstId(data, const ['group_id', 'groupId']);
   final chatId = _firstId(data, const ['chat_id', 'chatId']);
   final userId = _firstId(data, const ['user_id', 'userId']);
+  final sessionId = _firstId(data, const ['session_id', 'sessionId']);
 
   switch (type) {
     case 'qr_active':
@@ -54,8 +55,12 @@ String? notificationDeepLink(String type, Map<String, dynamic>? data) {
       // Spec deep link is `/user/{userId}/friend` — a route that does not
       // exist yet, so it resolves to the registered public profile instead.
       return userId == null ? null : RoutePaths.userProfile(userId);
-    case 'rank_update':
     case 'minigame_invite':
+      // 140_minigame_invites: the invite notification carries the session,
+      // so it lands on the session detail (accept/decline) — not the group.
+      if (sessionId != null) return RoutePaths.minigameSession(sessionId);
+      return groupId == null ? null : RoutePaths.groupDetail(groupId);
+    case 'rank_update':
     case 'poke_received':
       return groupId == null ? null : RoutePaths.groupDetail(groupId);
     case 'chat_message':
@@ -109,6 +114,11 @@ bool isRegisteredRoutePath(String path) {
       'create-event',
       'invite',
     }.contains(segments[2]);
+  }
+  if (segments.length == 3 &&
+      segments[0] == 'minigames' &&
+      segments[1] == 'session') {
+    return true;
   }
   if (segments.length == 2 && segments[0] == 'chat') return true;
   if (segments.length == 2 && segments[0] == 'user') return true;

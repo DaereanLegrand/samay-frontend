@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:samay/core/config/feature_flags.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
-import 'package:samay/core/design_tokens/app_gradients.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/extensions/error_mapper.dart';
 import 'package:samay/core/models/group.dart';
@@ -157,9 +156,7 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen>
                 style: Theme.of(context).textTheme.bodyLarge,
               ),
               const SizedBox(height: 24),
-              VButton.glowAccent(
-                filled: true,
-                gradient: AppGradients.violet,
+              VButton.dark(
                 label: l10n.commonAccept,
                 onPressed: () => _acceptInvite(membershipId),
               ),
@@ -362,13 +359,10 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen>
             const SizedBox(height: 16),
             Row(
               children: [
-                // §5.1 LUXE: the donate CTA is the detail screen's one brand
-                // moment — the violet glow accent (family gradient fill, black
-                // text 6.00:1); the secondary actions stay outlined.
+                // §5.1 LUXE: the donate CTA leads the row; the secondary
+                // actions stay outlined.
                 Expanded(
-                  child: VButton.glowAccent(
-                    filled: true,
-                    gradient: AppGradients.violet,
+                  child: VButton.dark(
                     label: l10n.groupsDonateTitle,
                     onPressed: () async {
                       await context.push(
@@ -681,8 +675,7 @@ final class _RowMember extends _MembersRow {
 
 /// Dense contributor row (PERF-08: the repeated ListTile+avatar shape is a
 /// const sub-widget so unchanged rows skip rebuilds; U-11 restyle: shared
-/// `ProfileAvatar` + hairline close; XL-17: the LUXE glass card is gone —
-/// one hairline per row, the violet stays on the hero).
+/// `ProfileAvatar` + hairline close; XL-17: one hairline per row).
 class _ContributorTile extends StatelessWidget {
   final String username;
   final String shards;

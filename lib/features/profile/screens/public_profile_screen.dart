@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:samay/core/config/feature_flags.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
-import 'package:samay/core/design_tokens/app_gradients.dart';
 import 'package:samay/core/design_tokens/app_typography.dart';
 import 'package:samay/core/extensions/error_mapper.dart';
 import 'package:samay/core/logging/app_logger.dart';
@@ -202,8 +201,7 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
           ),
         ],
       ),
-      // LUXE v2 (XL-08): the public profile is informational — the hero
-      // carries the gold moment.
+      // The public profile is informational — the hero carries the identity.
       body: ListView(
           padding: const EdgeInsets.all(24),
           children: [
@@ -218,7 +216,6 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
               child: VDisplayText(
                 text: username ?? l10n.commonUser,
                 size: 28,
-                gradient: AppGradients.gold,
               ),
             ),
             if (username != null) ...[
@@ -344,13 +341,9 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
         );
       }
     }
-    return VButton.glowAccent(
-      filled: true,
+    return VButton.dark(
       label: _sending ? l10n.profileSending : l10n.profileAddFriend,
       onPressed: _sendRequest,
-      // LUXE v2 (XL-08): the public-profile primary action wears the gold
-      // family (violet is the widget default; gold is this screen's family).
-      gradient: AppGradients.gold,
     );
   }
 

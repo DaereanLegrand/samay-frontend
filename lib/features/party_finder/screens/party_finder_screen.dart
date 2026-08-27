@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
-import 'package:samay/core/design_tokens/app_gradients.dart';
 import 'package:samay/core/design_tokens/app_icon_sizes.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/extensions/error_mapper.dart';
@@ -19,20 +18,6 @@ import 'package:samay/shared/widgets/state_views.dart';
 import 'package:samay/shared/widgets/v_chip.dart';
 import 'package:samay/shared/widgets/v_network_image.dart';
 
-/// LUXE v2 family for this screen — **cyan** (the LUXE restyle pass (historical) map:
-/// party_finder → cyan).
-final AppGradient _family = AppGradients.familyOf('party_finder');
-
-/// XL-18: the accent chip accent — the cyan family **watered 35% toward
-/// white** (ORCHESTRATION directive #3: no saturated fills). The vivid end
-/// drives `VChip`'s selected fill, so the watered run keeps the chips a
-/// single cyan accent without a neon slab.
-final AppGradient _chipFamily = AppGradient(
-  name: _family.name,
-  colors: AppGradients.watered(_family.colors, mix: 0.35),
-  stops: _family.stops,
-);
-
 /// Party Finder (PFND spec — I-60): opt-in discovery by interest tags.
 ///
 /// * Opt-in toggle on top (default OFF — off users can browse but are not
@@ -42,9 +27,7 @@ final AppGradient _chipFamily = AppGradient(
 /// * Tap → public profile; "Bloquear" reuses the friendships block path so a
 ///   blocked user never appears again.
 ///
-/// LUXE v2: cyan liquid-glass cards; the opt-in highlight state (chip
-/// selection / switch accent) is the cyan family (never pink —
-/// 2026-08-12 directive).
+/// Monochrome: flat cards; interest chips are the white selected `VChip`.
 class PartyFinderScreen extends ConsumerWidget {
   const PartyFinderScreen({super.key});
 
@@ -178,7 +161,7 @@ class PartyFinderScreen extends ConsumerWidget {
 /// invisible but can still browse).
 
 /// One match row: avatar, @username, shared-interests count, tag chips and
-/// the block action (PFND spec row contract). LUXE: cyan liquid-glass card.
+/// the block action (PFND spec row contract).
 class _MatchCard extends StatelessWidget {
   final Map<String, dynamic> match;
   final VoidCallback onTap;
@@ -236,11 +219,9 @@ class _MatchCard extends StatelessWidget {
                         runSpacing: AppSpacing.sm,
                         children: [
                           for (final tag in knownTags)
-                            VChip.accent(
+                            VChip(
                               label: interestTagLabel(l10n, tag),
                               selected: true,
-                              // XL-18: watered fill (no saturated slab).
-                              gradient: _chipFamily,
                             ),
                         ],
                       ),

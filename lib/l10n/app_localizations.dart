@@ -245,7 +245,7 @@ abstract class AppLocalizations {
   /// Welcome screen brand wordmark
   ///
   /// In es, this message translates to:
-  /// **'VIVE'**
+  /// **'vive'**
   String get welcomeVive;
 
   /// Welcome screen tagline
@@ -515,7 +515,7 @@ abstract class AppLocalizations {
   /// Feed screen app bar title
   ///
   /// In es, this message translates to:
-  /// **'Samay'**
+  /// **'samay'**
   String get feedBrand;
 
   /// Feed section heading for featured (promoted) events
@@ -1298,6 +1298,12 @@ abstract class AppLocalizations {
   /// **'Chat'**
   String get settingsSectionChat;
 
+  /// Settings section header for the minigames preferences group (2026-08-26)
+  ///
+  /// In es, this message translates to:
+  /// **'Juegos'**
+  String get settingsSectionGames;
+
   /// Settings section header for the account rows group (R6)
   ///
   /// In es, this message translates to:
@@ -1927,6 +1933,12 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'El código ha expirado. Solicita uno nuevo.'**
   String get errorsOtpExpired;
+
+  /// User-facing invalid/expired-OTP message (GoTrue answers every rejected code with otp_expired)
+  ///
+  /// In es, this message translates to:
+  /// **'El código es incorrecto o ha expirado. Solicita uno nuevo.'**
+  String get errorsOtpInvalid;
 
   /// User-facing invalid-reference message
   ///
@@ -3320,6 +3332,24 @@ abstract class AppLocalizations {
   /// **'No se pudo crear la partida.'**
   String get minigamesErrorCreate;
 
+  /// Error snackbar: an invitee is blocked/deleted/self
+  ///
+  /// In es, this message translates to:
+  /// **'Algunos jugadores no pudieron ser invitados.'**
+  String get minigamesErrorInviteeNotAllowed;
+
+  /// Error snackbar: an invitee opted into friends-only invites
+  ///
+  /// In es, this message translates to:
+  /// **'Uno o más jugadores solo aceptan invitaciones de amigos.'**
+  String get minigamesErrorInviteeFriendsOnly;
+
+  /// Error snackbar: more than the cap of 20 invitees
+  ///
+  /// In es, this message translates to:
+  /// **'Puedes invitar hasta 20 jugadores.'**
+  String get minigamesErrorTooManyInvitees;
+
   /// Error view message when the session list fails to load
   ///
   /// In es, this message translates to:
@@ -3637,6 +3667,132 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'No leído'**
   String get chatMessageInfoNotRead;
+
+  /// App bar title of the minigame player picker
+  ///
+  /// In es, this message translates to:
+  /// **'Invitar a jugar'**
+  String get minigamesInviteTitle;
+
+  /// App bar confirm action on the minigame player picker
+  ///
+  /// In es, this message translates to:
+  /// **'Invitar ({count})'**
+  String minigamesInviteCount(int count);
+
+  /// App bar title of the minigame session detail
+  ///
+  /// In es, this message translates to:
+  /// **'Partida'**
+  String get minigamesDetailTitle;
+
+  /// Session detail: the session carries no shard wager
+  ///
+  /// In es, this message translates to:
+  /// **'Sin apuesta'**
+  String get minigamesWagerFree;
+
+  /// Hub toggle: play without a group (direct session)
+  ///
+  /// In es, this message translates to:
+  /// **'Directa'**
+  String get minigamesScopeDirect;
+
+  /// Hub toggle: play inside a group
+  ///
+  /// In es, this message translates to:
+  /// **'Grupo'**
+  String get minigamesScopeGroup;
+
+  /// Home games sheet: start a group-less (direct) session
+  ///
+  /// In es, this message translates to:
+  /// **'Jugar directo'**
+  String get minigamesPlayDirect;
+
+  /// Hub: switch to another group
+  ///
+  /// In es, this message translates to:
+  /// **'Cambiar grupo'**
+  String get minigamesChangeGroup;
+
+  /// Direct hub: empty state title
+  ///
+  /// In es, this message translates to:
+  /// **'Aún no hay partidas directas'**
+  String get minigamesDirectEmpty;
+
+  /// Direct hub: empty state body
+  ///
+  /// In es, this message translates to:
+  /// **'Crea una partida para jugar ya con un amigo, sin necesidad de un grupo.'**
+  String get minigamesDirectEmptyBody;
+
+  /// Create/join/accept rejection: the session is at its frozen player cap
+  ///
+  /// In es, this message translates to:
+  /// **'Esta partida alcanzó su límite de jugadores.'**
+  String get minigamesErrorPlayerLimitReached;
+
+  /// Join/finish rejection: a non-participant on a direct session
+  ///
+  /// In es, this message translates to:
+  /// **'No puedes unirte a esta partida.'**
+  String get minigamesErrorNotAllowed;
+
+  /// Session detail: the user has a pending invite
+  ///
+  /// In es, this message translates to:
+  /// **'Te invitaron a esta partida.'**
+  String get minigamesInvitePendingBody;
+
+  /// Session detail: accept the pending invite button
+  ///
+  /// In es, this message translates to:
+  /// **'Aceptar'**
+  String get minigamesInviteAccept;
+
+  /// Session detail: decline the pending invite button
+  ///
+  /// In es, this message translates to:
+  /// **'Rechazar'**
+  String get minigamesInviteDecline;
+
+  /// Snackbar after accepting a minigame invite
+  ///
+  /// In es, this message translates to:
+  /// **'Te uniste a la partida'**
+  String get minigamesInviteAccepted;
+
+  /// Snackbar after declining a minigame invite
+  ///
+  /// In es, this message translates to:
+  /// **'Invitación rechazada'**
+  String get minigamesInviteDeclined;
+
+  /// Session detail: the invite can no longer be accepted because the game finished
+  ///
+  /// In es, this message translates to:
+  /// **'Esta partida ya terminó. Ya no puedes aceptar la invitación.'**
+  String get minigamesInviteClosed;
+
+  /// Settings switch label: friends-only minigame invites
+  ///
+  /// In es, this message translates to:
+  /// **'Solo amigos pueden invitarme'**
+  String get minigamesInviteFriendsOnly;
+
+  /// Settings switch body: explains the friends-only invite privacy option
+  ///
+  /// In es, this message translates to:
+  /// **'Cuando está activado, solo tus amigos pueden invitarte a un minijuego.'**
+  String get minigamesInviteFriendsOnlyBody;
+
+  /// Settings snackbar when persisting the friends-only invite switch fails
+  ///
+  /// In es, this message translates to:
+  /// **'No se pudo guardar la preferencia.'**
+  String get minigamesInviteFriendsOnlySaveError;
 }
 
 class _AppLocalizationsDelegate

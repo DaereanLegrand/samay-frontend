@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:samay/core/config/feature_flags.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
-import 'package:samay/core/design_tokens/app_gradients.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/extensions/error_mapper.dart';
 import 'package:samay/core/models/event.dart';
@@ -147,16 +146,11 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
             ),
             const SizedBox(height: AppSpacing.lg),
           ],
-          VDisplayText(
-            text: event.name,
-            gradient: AppGradients.peach,
-            maxLines: 2,
-          ),
+          VDisplayText(text: event.name, maxLines: 2),
           const SizedBox(height: AppSpacing.sm),
           // XL-17 (Gemma round 2, 10_events: "overly saturated colors...
-          // cheap"): the peach family is spent on the hero shader + the CTA
-          // only — badges drop to the neutral glass treatment (white text,
-          // status carried by the label, never a color spray).
+          // cheap"): flat monochrome chrome — badges carry status by the
+          // label alone (white text, never a color spray).
           Wrap(
             spacing: AppSpacing.sm,
             runSpacing: AppSpacing.sm,
@@ -174,8 +168,7 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
             ),
           ],
           const SizedBox(height: AppSpacing.md),
-          // XL-17: neutral white-only glass (no family border, no glow) —
-          // the peach ring was part of the saturated spray.
+          // XL-17: flat white-only glass (no family border, no glow).
           VCard(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -226,9 +219,8 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
           ],
           if (_canEdit(uid, event.status, promotoresAsync.valueOrNull)) ...[
             const SizedBox(height: AppSpacing.xxl),
-            VButton.glowAccent(
+            VButton.dark(
               label: l10n.eventEditButton,
-              gradient: AppGradients.peach,
               onPressed: () =>
                   context.push(RoutePaths.eventEdit(widget.eventId)),
             ),
@@ -483,8 +475,7 @@ class _InfoRow extends StatelessWidget {
 }
 
 /// Promotor chip — the label carries the state (ESTA §1 / design doc §2.5
-/// rule 5: color is never the only signal); the avatar stays neutral glass
-/// (XL-17: the peach is spent on the hero + CTA).
+/// rule 5: color is never the only signal); the avatar stays neutral glass.
 class _PromotorAvatar extends StatelessWidget {
   final String username;
   final String role;

@@ -49,6 +49,7 @@ import 'package:samay/features/groups/screens/group_members_screen.dart';
 import 'package:samay/features/social/screens/social_screen.dart';
 import 'package:samay/features/social/screens/user_ranking_screen.dart';
 import 'package:samay/features/minigames/screens/minigames_screen.dart';
+import 'package:samay/features/minigames/screens/minigame_session_detail_screen.dart';
 import 'package:samay/features/notifications/screens/notification_center_screen.dart';
 import 'package:samay/features/party_finder/screens/party_finder_screen.dart';
 import 'package:samay/features/qr/screens/attendance_qr_screen.dart';
@@ -390,10 +391,21 @@ final routerProvider = Provider<GoRouter>((ref) {
         ),
       ),
       GoRoute(
+        // Direct (group-less) minigames hub (direct-minigames 2026-08-27):
+        // the DIRECT scope is the default here (a new user with zero groups
+        // can play with a friend). Gated on the minigames flag; the toggle
+        // inside the hub offers group play. Registered BEFORE the :groupId
+        // hub so the static path is never shadowed.
+        path: RoutePaths.minigamesDirect,
+        builder: (_, _) => const FlagGate(
+          flag: AppFeatureFlag.minigames,
+          child: MinigamesScreen(),
+        ),
+      ),
+      GoRoute(
         // GMCR (I-63): the group minigames hub, gated on the minigames flag
-        // as the kill-switch knob. No static /minigames routes exist, so
-        // :groupId cannot be shadowed (registered after the group routes on
-        // purpose).
+        // as the kill-switch knob. The static /minigames direct route is
+        // registered above so :groupId cannot be shadowed.
         path: RoutePaths.minigames(':groupId'),
         builder: (context, state) => _screenForId(
           state,
@@ -401,6 +413,21 @@ final routerProvider = Provider<GoRouter>((ref) {
           (groupId) => FlagGate(
             flag: AppFeatureFlag.minigames,
             child: MinigamesScreen(groupId: groupId),
+          ),
+          errorMessage: AppLocalizations.of(context).routerGroupNotFound,
+        ),
+      ),
+      GoRoute(
+        // Session detail (140_minigame_invites): accept/decline a pending
+        // invite, live status. The fixed `/session` segment keeps this from
+        // being shadowed by the `:groupId` hub route.
+        path: RoutePaths.minigameSession(':sessionId'),
+        builder: (context, state) => _screenForId(
+          state,
+          'sessionId',
+          (sessionId) => FlagGate(
+            flag: AppFeatureFlag.minigames,
+            child: MinigameSessionDetailScreen(sessionId: sessionId),
           ),
           errorMessage: AppLocalizations.of(context).routerGroupNotFound,
         ),

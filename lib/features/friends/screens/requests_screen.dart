@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:samay/core/design_tokens/app_gradients.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/extensions/error_mapper.dart';
 import 'package:samay/core/logging/app_logger.dart';
@@ -292,8 +291,7 @@ class _RequestsScreenState extends ConsumerState<RequestsScreen>
 }
 
 /// Requests tab label with the R12 (F5) pending-count badge — the badge
-/// renders only when [count] > 0 (VCountBadge shrinks to nothing at 0). The
-/// badge takes the screen's mint family (LUXE: count = pending accent).
+/// renders only when [count] > 0 (VCountBadge shrinks to nothing at 0).
 class _TabLabel extends StatelessWidget {
   final String text;
   final int count;
@@ -308,7 +306,7 @@ class _TabLabel extends StatelessWidget {
         Text(text),
         if (count > 0) ...[
           const SizedBox(width: 4),
-          VCountBadge(count: count, gradient: AppGradients.mint),
+          VCountBadge(count: count),
         ],
       ],
     );
@@ -318,9 +316,8 @@ class _TabLabel extends StatelessWidget {
 /// Accept/decline action pair (PERF-08: the repeated trailing action row of
 /// the requests and invites lists is one const sub-widget).
 ///
-/// LUXE v2: the accept action is the row's active mint accent — a compact
-/// `VButton.emphasized` carrying the mint gradient face (black label on the
-/// pastel-first fill); decline stays the theme `TextButton` (white label).
+/// Monochrome: the accept action is the white emphasized fill (black label);
+/// decline stays the theme `TextButton`.
 /// R11 (F4): when [busy], the pair collapses into a single 16px white
 /// spinner (N3: never accent-colored) while the tapped row's request is in
 /// flight — every other row keeps its buttons.
@@ -346,7 +343,6 @@ class _ActionPair extends StatelessWidget {
           width: 88,
           child: VButton.emphasized(
             label: l10n.commonAccept,
-            gradient: AppGradients.mint,
             onPressed: onAccept,
           ),
         ),

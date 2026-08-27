@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
-import 'package:samay/core/design_tokens/app_gradients.dart';
 import 'package:samay/core/design_tokens/app_typography.dart';
 import 'package:samay/core/providers/auth_provider.dart';
 import 'package:samay/core/router/route_paths.dart';
@@ -83,7 +82,6 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
   Widget build(BuildContext context) {
     final signupErrors = ref.watch(signupErrorsProvider);
     final l10n = AppLocalizations.of(context);
-    final family = AppGradients.familyOf('profile_setup');
 
     return Scaffold(
       appBar: AppBar(),
@@ -105,12 +103,8 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
                 child: Column(
                   children: [
                     const SizedBox(height: 32),
-                    // §3.2 auth big header — LUXE v2: violet-family
-                    // VDisplayText (gradient fill + slowly pulsing glow).
-                    VDisplayText(
-                      text: l10n.authCompleteProfile,
-                      gradient: family,
-                    ),
+                    // §3.2 auth big header — monochrome VDisplayText.
+                    VDisplayText(text: l10n.authCompleteProfile),
                     const SizedBox(height: 40),
                     VInput(
                       controller: _usernameController,
@@ -130,13 +124,11 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
                       ),
                     ),
                     const Spacer(),
-                    // §5.1 brand moment: the primary CTA is emphasized
-                    // with the violet-family gradient fill + black text.
+                    // §5.1 primary CTA — emphasized white fill, black text.
                     VButton.emphasized(
                       label: l10n.commonSave,
                       loading: _saving ||
                           ref.watch(authStateProvider).isLoading,
-                      gradient: family,
                       onPressed: _save,
                     ),
                     const SizedBox(height: 32),

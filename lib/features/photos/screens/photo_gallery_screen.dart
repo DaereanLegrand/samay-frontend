@@ -4,7 +4,6 @@ import 'package:image_picker/image_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:go_router/go_router.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
-import 'package:samay/core/design_tokens/app_gradients.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/extensions/error_mapper.dart';
 import 'package:samay/core/models/event_photo.dart';
@@ -24,10 +23,6 @@ import 'package:samay/shared/widgets/v_network_image.dart';
 /// cannot run in widget tests, so the screen accepts an injectable function
 /// (same thin-wrapper pattern as `CreateEventScreen`/`CreateGroupScreen`).
 typedef PhotoPicker = Future<XFile?> Function(ImageSource source);
-
-/// LUXE v2 family for this screen — **mint** (the LUXE restyle pass (historical) map:
-/// photos → mint).
-final AppGradient _family = AppGradients.familyOf('photos');
 
 /// PHUP — event photo gallery (I-59): grid of thumbnails served via signed
 /// URLs, optimistic like hearts, long-press reporting, and the upload flow
@@ -148,10 +143,7 @@ class _PhotoGalleryScreenState extends ConsumerState<PhotoGalleryScreen> {
               onPressed: uploading ? null : _pickAndUpload,
               icon: uploading
                   ? const VSpinner(size: 18)
-                  : Icon(
-                      Icons.add_a_photo_outlined,
-                      color: _family.colors[1],
-                    ),
+                  : const Icon(Icons.add_a_photo_outlined),
             ),
           // Plugged gallery (2026-08-13): the collage auto-wall entry.
           IconButton(
@@ -159,10 +151,7 @@ class _PhotoGalleryScreenState extends ConsumerState<PhotoGalleryScreen> {
             tooltip: l10n.collageTitle,
             onPressed: () =>
                 context.push(RoutePaths.eventCollage(widget.eventId)),
-            icon: Icon(
-              Icons.grid_view_outlined,
-              color: _family.colors[1],
-            ),
+            icon: const Icon(Icons.grid_view_outlined),
           ),
         ],
       ),
@@ -393,11 +382,9 @@ class _PhotoTile extends StatelessWidget {
                       photo.likedByMe
                           ? Icons.favorite
                           : Icons.favorite_border,
-                      // LUXE: the like-heart accent is the mint family vivid
-                      // end — the legacy pink is gone (2026-08-12 directive).
-                      color: photo.likedByMe
-                          ? AppColors.mint
-                          : AppColors.white,
+                      // Monochrome: the like accent is white — the filled
+                      // heart carries the liked state.
+                      color: AppColors.white,
                     ),
                   ),
                   Text(

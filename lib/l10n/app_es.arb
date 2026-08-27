@@ -96,7 +96,7 @@
   "@commonMoreOptions": {
     "description": "Accessibility tooltip for icon-only overflow menus"
   },
-  "welcomeVive": "VIVE",
+  "welcomeVive": "vive",
   "@welcomeVive": {
     "description": "Welcome screen brand wordmark"
   },
@@ -312,7 +312,7 @@
       }
     }
   },
-  "feedBrand": "Samay",
+  "feedBrand": "samay",
   "@feedBrand": {
     "description": "Feed screen app bar title"
   },
@@ -897,6 +897,10 @@
   "@settingsSectionChat": {
     "description": "Settings section header for the chat preferences group (2026-08-15)"
   },
+  "settingsSectionGames": "Juegos",
+  "@settingsSectionGames": {
+    "description": "Settings section header for the minigames preferences group (2026-08-26)"
+  },
   "settingsSectionAccount": "Cuenta",
   "@settingsSectionAccount": {
     "description": "Settings section header for the account rows group (R6)"
@@ -1336,6 +1340,10 @@
   "errorsOtpExpired": "El código ha expirado. Solicita uno nuevo.",
   "@errorsOtpExpired": {
     "description": "User-facing expired-OTP message"
+  },
+  "errorsOtpInvalid": "El código es incorrecto o ha expirado. Solicita uno nuevo.",
+  "@errorsOtpInvalid": {
+    "description": "User-facing invalid/expired-OTP message (GoTrue answers every rejected code with otp_expired)"
   },
   "errorsInvalidReference": "Referencia inválida",
   "@errorsInvalidReference": {
@@ -2353,6 +2361,18 @@
   "@minigamesErrorCreate": {
     "description": "Generic error snackbar when the session could not be created"
   },
+  "minigamesErrorInviteeNotAllowed": "Algunos jugadores no pudieron ser invitados.",
+  "@minigamesErrorInviteeNotAllowed": {
+    "description": "Error snackbar: an invitee is blocked/deleted/self"
+  },
+  "minigamesErrorInviteeFriendsOnly": "Uno o más jugadores solo aceptan invitaciones de amigos.",
+  "@minigamesErrorInviteeFriendsOnly": {
+    "description": "Error snackbar: an invitee opted into friends-only invites"
+  },
+  "minigamesErrorTooManyInvitees": "Puedes invitar hasta 20 jugadores.",
+  "@minigamesErrorTooManyInvitees": {
+    "description": "Error snackbar: more than the cap of 20 invitees"
+  },
   "minigamesErrorLoad": "No se pudieron cargar las partidas",
   "@minigamesErrorLoad": {
     "description": "Error view message when the session list fails to load"
@@ -2592,5 +2612,94 @@
   "chatMessageInfoNotRead": "No leído",
   "@chatMessageInfoNotRead": {
     "description": "Message-info sheet (1:1): the peer has not read the message yet"
+  },
+  "minigamesInviteTitle": "Invitar a jugar",
+  "@minigamesInviteTitle": {
+    "description": "App bar title of the minigame player picker"
+  },
+  "minigamesInviteCount": "Invitar ({count})",
+  "@minigamesInviteCount": {
+    "description": "App bar confirm action on the minigame player picker",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "minigamesDetailTitle": "Partida",
+  "@minigamesDetailTitle": {
+    "description": "App bar title of the minigame session detail"
+  },
+  "minigamesWagerFree": "Sin apuesta",
+  "@minigamesWagerFree": {
+    "description": "Session detail: the session carries no shard wager"
+  },
+  "minigamesScopeDirect": "Directa",
+  "@minigamesScopeDirect": {
+    "description": "Hub toggle: play without a group (direct session)"
+  },
+  "minigamesScopeGroup": "Grupo",
+  "@minigamesScopeGroup": {
+    "description": "Hub toggle: play inside a group"
+  },
+  "minigamesPlayDirect": "Jugar directo",
+  "@minigamesPlayDirect": {
+    "description": "Home games sheet: start a group-less (direct) session"
+  },
+  "minigamesChangeGroup": "Cambiar grupo",
+  "@minigamesChangeGroup": {
+    "description": "Hub: switch to another group"
+  },
+  "minigamesDirectEmpty": "Aún no hay partidas directas",
+  "@minigamesDirectEmpty": {
+    "description": "Direct hub: empty state title"
+  },
+  "minigamesDirectEmptyBody": "Crea una partida para jugar ya con un amigo, sin necesidad de un grupo.",
+  "@minigamesDirectEmptyBody": {
+    "description": "Direct hub: empty state body"
+  },
+  "minigamesErrorPlayerLimitReached": "Esta partida alcanzó su límite de jugadores.",
+  "@minigamesErrorPlayerLimitReached": {
+    "description": "Create/join/accept rejection: the session is at its frozen player cap"
+  },
+  "minigamesErrorNotAllowed": "No puedes unirte a esta partida.",
+  "@minigamesErrorNotAllowed": {
+    "description": "Join/finish rejection: a non-participant on a direct session"
+  },
+  "minigamesInvitePendingBody": "Te invitaron a esta partida.",
+  "@minigamesInvitePendingBody": {
+    "description": "Session detail: the user has a pending invite"
+  },
+  "minigamesInviteAccept": "Aceptar",
+  "@minigamesInviteAccept": {
+    "description": "Session detail: accept the pending invite button"
+  },
+  "minigamesInviteDecline": "Rechazar",
+  "@minigamesInviteDecline": {
+    "description": "Session detail: decline the pending invite button"
+  },
+  "minigamesInviteAccepted": "Te uniste a la partida",
+  "@minigamesInviteAccepted": {
+    "description": "Snackbar after accepting a minigame invite"
+  },
+  "minigamesInviteDeclined": "Invitación rechazada",
+  "@minigamesInviteDeclined": {
+    "description": "Snackbar after declining a minigame invite"
+  },
+  "minigamesInviteClosed": "Esta partida ya terminó. Ya no puedes aceptar la invitación.",
+  "@minigamesInviteClosed": {
+    "description": "Session detail: the invite can no longer be accepted because the game finished"
+  },
+  "minigamesInviteFriendsOnly": "Solo amigos pueden invitarme",
+  "@minigamesInviteFriendsOnly": {
+    "description": "Settings switch label: friends-only minigame invites"
+  },
+  "minigamesInviteFriendsOnlyBody": "Cuando está activado, solo tus amigos pueden invitarte a un minijuego.",
+  "@minigamesInviteFriendsOnlyBody": {
+    "description": "Settings switch body: explains the friends-only invite privacy option"
+  },
+  "minigamesInviteFriendsOnlySaveError": "No se pudo guardar la preferencia.",
+  "@minigamesInviteFriendsOnlySaveError": {
+    "description": "Settings snackbar when persisting the friends-only invite switch fails"
   }
 }

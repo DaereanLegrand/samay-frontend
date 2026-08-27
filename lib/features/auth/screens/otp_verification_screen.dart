@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
-import 'package:samay/core/design_tokens/app_gradients.dart';
 import 'package:samay/core/design_tokens/app_typography.dart';
 import 'package:samay/core/logging/app_logger.dart';
 import 'package:samay/core/providers/auth_provider.dart';
@@ -48,6 +47,15 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
   int _resendSeconds = 0;
   int _failedAttempts = 0;
   bool _attemptBlocked = false;
+
+  /// The failure message of THIS attempt, captured right after the awaited
+  /// `verifyOtp`. It must NOT mirror the global `authStateProvider` error:
+  /// the notifier signs out in its failure path and the `signedOut` listener
+  /// rewrites the global provider to `AsyncData` before the next frame, so
+  /// the message would be silently lost (2026-08-26 user report). GoTrue
+  /// answers every rejected email code with `otp_expired`, so the message is
+  /// a single fixed literal — never type-split on server codes.
+  String? _verifyError;
 
   /// Single-shot latch (2026-08-24 fake-OTP-error fix): once a code has been
   /// VERIFIED, no further submit may run. GoTrue answers ANY rejected email
@@ -103,6 +111,7 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
     setState(() {
       _failedAttempts = 0;
       _attemptBlocked = false;
+      _verifyError = null;
       _codeController.clear();
     });
   }
@@ -121,19 +130,20 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
 
   void _onCodeChanged(String value) {
     if (_verified || _attemptBlocked) return;
+    if (value.isNotEmpty && _verifyError != null) {
+      setState(() => _verifyError = null);
+    }
     if (cleanOtpDigits(value).length == OtpVerificationScreen.otpCodeLength &&
         !ref.read(authStateProvider).isLoading) {
       _verify();
     }
   }
 
-  /// The 6-digit code field as a liquid-glass slab (LUXE directive #7: no
-  /// underline inputs). Resting: 1px white α0.25 ring on `surfaceAlt` α0.5
-  /// fill with the neumorphic top highlight — the shared [VInput] recipe.
-  /// Focused: the ring becomes the **gold family gradient** (vivid α0.9 →
-  /// pastel α0.35) with the family's soft halo ([AppGradients.glowShadows])
-  /// — the field is the star of the screen (Gemma 04_otp).
-  Widget _codeField(AppGradient family) {
+  /// The 6-digit code field as a liquid-glass slab. Resting: 1px white α0.25
+  /// ring on `surfaceAlt` α0.5 fill with the neumorphic top highlight — the
+  /// shared [VInput] recipe. Focused: the ring brightens to solid white
+  /// (monochrome 2026-08-26 — the gold gradient ring + halo are gone).
+  Widget _codeField() {
     // ANIM-OFF (2026-08-14): zero-duration under reduced motion — the glass
     // ring swaps instantly instead of animating.
     final shellDuration = MediaQuery.disableAnimationsOf(context)
@@ -149,8 +159,8 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
           end: Alignment.bottomRight,
           colors: _codeFocused
               ? [
-                  family.colors.last.withValues(alpha: 0.9),
-                  family.colors.first.withValues(alpha: 0.35),
+                  AppColors.white.withValues(alpha: 1),
+                  AppColors.white.withValues(alpha: 1),
                 ]
               : [
                   AppColors.white.withValues(alpha: 0.25),
@@ -158,9 +168,6 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
                 ],
         ),
         borderRadius: BorderRadius.circular(16),
-        boxShadow: _codeFocused
-            ? AppGradients.glowShadows(family, alpha: 0.22, blur: 24)
-            : const [],
       ),
       padding: const EdgeInsets.all(1),
       child: AnimatedContainer(
@@ -219,6 +226,12 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
         .verifyOtp(widget.email, code, widget.password);
     if (!mounted) return;
     if (ref.read(authStateProvider).hasError) {
+      // Capture the failure NOW: the notifier's failure path signs out and
+      // the signedOut listener rewrites the global provider before the next
+      // frame, so reading `authStateProvider.errorMessage` at build time is
+      // unreliable. Render the fixed single message (the server returns
+      // `otp_expired` for every rejected code).
+      setState(() => _verifyError = l10n.errorsOtpInvalid);
       _registerFailedAttempt();
       return;
     }
@@ -275,7 +288,6 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
     final auth = ref.watch(authStateProvider);
     final l10n = AppLocalizations.of(context);
     final canResend = _resendSeconds == 0 && !auth.isLoading;
-    final family = AppGradients.familyOf('otp');
 
     return Scaffold(
       appBar: AppBar(),
@@ -289,12 +301,8 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
                 child: Column(
                   children: [
                     const SizedBox(height: 32),
-                    // §3.2 auth big header — LUXE v2: gold-family
-                    // VDisplayText (gradient fill + slowly pulsing glow).
-                    VDisplayText(
-                      text: l10n.authEnterVerificationCode,
-                      gradient: family,
-                    ),
+                    // §3.2 auth big header — monochrome VDisplayText.
+                    VDisplayText(text: l10n.authEnterVerificationCode),
                     const SizedBox(height: 8),
                     Text(
                       l10n.authOtpSentTo(widget.email),
@@ -303,20 +311,20 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
                     // XL-16 (03_signup density verdict): hint → field
                     // breathes at 40.
                     const SizedBox(height: 40),
-                    // LUXE v2 (XL-18, Gemma 04_otp "utterly pedestrian
-                    // digital form"): the 6-digit code field is the star —
-                    // a liquid-glass slab (directive #7: no underline
-                    // inputs) whose 1px border ring turns the **gold
-                    // family gradient** on focus, with the family's soft
-                    // halo underneath. The digits keep the §3.3
+                    // The 6-digit code field is the star — a liquid-glass
+                    // slab whose 1px border ring brightens to solid white on
+                    // focus (monochrome). The digits keep the §3.3
                     // otpInputText voice (30/w800/ls8, white).
-                    _codeField(family),
-                    if (auth.hasError)
+                    _codeField(),
+                    // The failure message of THIS verify attempt (captured
+                    // post-await — the global auth provider is unreliable
+                    // here, see `_verifyError`). §5.2: glowPink — never raw
+                    // red on black.
+                    if (_verifyError != null)
                       Padding(
                         padding: const EdgeInsets.only(top: 20),
                         child: Text(
-                          auth.errorMessage!,
-                          // §5.2: glowPink — never raw red on black.
+                          _verifyError!,
                           style: const TextStyle(color: AppColors.error),
                         ),
                       ),
@@ -351,13 +359,11 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
                         ),
                       ),
                     const Spacer(),
-                    // §5.1 brand moment: the primary CTA is the filled
-                    // glowAccent (gold-family gradient fill + black text).
-                    VButton.glowAccent(
+                    // §5.1 primary CTA — the black button voice
+                    // (user directive 2026-08-14).
+                    VButton.dark(
                       label: l10n.authVerify,
                       loading: auth.isLoading,
-                      filled: true,
-                      gradient: family,
                       onPressed: _attemptBlocked ? null : _verify,
                     ),
                     const SizedBox(height: 8),

@@ -9,7 +9,6 @@ import 'package:samay/core/providers/auth_provider.dart';
 import 'package:samay/core/providers/service_providers.dart';
 import 'package:samay/core/services/permission_service.dart';
 import 'package:samay/core/utils/input_sanitizer.dart';
-import 'package:samay/core/design_tokens/app_gradients.dart';
 import 'package:samay/features/profile/providers/profile_providers.dart';
 import 'package:samay/shared/widgets/profile_avatar.dart';
 import 'package:samay/l10n/app_localizations.dart';
@@ -186,8 +185,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     final l10n = AppLocalizations.of(context);
     return Scaffold(
       appBar: AppBar(title: Text(l10n.profileEditTitle)),
-      // LUXE v2 (XL-08): the form is informational — the save CTA carries
-      // the gold moment.
+      // The form is informational — the save CTA carries the emphasis.
       body: _loading
             // U-22 handoff (U-23): the edit screen mirrors the profile hero —
             // `VSkeletonProfile` (§5.8) stands in during the first load.
@@ -231,13 +229,11 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                   const SizedBox(height: 32),
                   VInput(controller: _bioController, label: l10n.profileBio),
                   const SizedBox(height: 32),
-                  // LUXE v2 (XL-08): the save CTA is the gold family fill —
-                  // pastel-first stops keep the black label contrast.
+                  // The save CTA is the white emphasized fill (black label).
                   VButton.emphasized(
                     label: l10n.profileSaveChanges,
                     loading: _saving,
                     onPressed: _save,
-                    gradient: AppGradients.gold,
                   ),
                   const SizedBox(height: 16),
                   // U-26 (U-23 F4): the password-change placeholder renders

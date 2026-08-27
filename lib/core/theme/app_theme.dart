@@ -31,11 +31,12 @@ class SamayTheme {
         onSurface: AppColors.white,
       ),
       fontFamily: AppTypography.inter,
-      // Design doc §3.3 type scale + §3.4 glow stacks — fully owned by
+      // Design doc §3.3 type scale — fully owned by
       // [AppTypography.textTheme] (U-02). Display roles are Playfair Display
-      // italic with the glow baked in; body/UI voices stay light Inter per
-      // the MVP spec. Roles outside the §3.3 table (titleSmall, caption,
-      // overline) keep the Material defaults merged by `ThemeData`.
+      // bold (rendered verbatim/white through VDisplayText); body/UI voices
+      // stay light Inter per the MVP spec. Roles outside the §3.3 table
+      // (titleSmall, caption, overline) keep the Material defaults merged by
+      // `ThemeData`.
       textTheme: AppTypography.textTheme,
       appBarTheme: const AppBarTheme(
         elevation: 0,

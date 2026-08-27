@@ -5,7 +5,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
-import 'package:samay/core/design_tokens/app_gradients.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/logging/app_logger.dart';
 import 'package:samay/core/providers/service_providers.dart';
@@ -53,14 +52,10 @@ class _ScanError extends _ScanResult {
   final bool retryable;
 }
 
-/// LUXE v2 family for this screen — **cyan** (the LUXE restyle pass (historical) map:
-/// attendance_qr + qr_scanner → cyan).
-final AppGradient _family = AppGradients.familyOf('qr');
-
 /// QRSC — promotor/co_promotor attendance QR scanner.
 ///
 /// Full-screen camera via `mobile_scanner`, white scan-frame overlay with the
-/// **cyan gradient scan line**, promotor event name and "Escanea el código QR
+/// white scan line, promotor event name and "Escanea el código QR
 /// del asistente" hint (QRSC §Scanner Screen). Camera access goes through
 /// [PermissionService] (`Permission.camera`) with the rationale/settings UX;
 /// the torch toggle is an overlay action (mission extension of QRSC's "no
@@ -328,7 +323,7 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen> {
                     },
                     errorBuilder: (context, error) => _cameraError(l10n),
                   ),
-            // Scan frame + cyan scan line (QRSC overlay spec, LUXE restyle).
+            // Scan frame + white scan line (QRSC overlay spec).
             const IgnorePointer(child: Center(child: _ScanOverlay())),
             Positioned(
               top: AppSpacing.lg,
@@ -399,8 +394,6 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // LUXE: the confirmation mark uses the family (cyan) vivid
-                // end — the legacy pink is gone (2026-08-12 directive).
                 const Icon(Icons.check_circle,
                     size: 48, color: AppColors.discoCyan),
                 const SizedBox(height: AppSpacing.sm),
@@ -457,7 +450,6 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen> {
                     // the QRSC spec requires): avoids a new ARB key while the
                     // ARB pair is contended by other agents (I-60/I-61/I-62).
                     label: l10n.commonRetry,
-                    gradient: _family,
                     onPressed: _retryLastScan,
                   ),
                 ],
@@ -469,8 +461,8 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen> {
   }
 }
 
-/// Scan-frame overlay (QRSC: white outline, corner brackets) + the **cyan
-/// gradient scan line** sweeping top→bottom on the idle-safe engine (one
+/// Scan-frame overlay (QRSC: white outline, corner brackets) + the white
+/// scan line sweeping top→bottom on the idle-safe engine (one
 /// 2.4s sweep then a [SamayDurations.motionCycleRest] settle, so
 /// `pumpAndSettle`-based tests land deterministically). Reduced motion →
 /// static line at the frame's vertical center.
@@ -546,8 +538,8 @@ class _ScanOverlayState extends State<_ScanOverlay>
 }
 
 /// White scan-frame guide (QRSC: white outline, corner brackets) with the
-/// family **cyan gradient** scan line at [progress] (0 → top edge, 1 →
-/// bottom edge). The line is the only moving part; the frame is static white.
+/// white scan line at [progress] (0 → top edge, 1 → bottom edge). The line
+/// is the only moving part; the frame is static white.
 class _ScanFramePainter extends CustomPainter {
   const _ScanFramePainter({required this.progress});
 
@@ -563,13 +555,10 @@ class _ScanFramePainter extends CustomPainter {
     final r = Rect.fromLTWH(0, 0, size.width, size.height);
     canvas.drawPath(_cornerPath(r, corner), frame);
 
-    // Cyan gradient scan line (LUXE directive #2: gradient accents only).
     final linePaint = Paint()
       ..style = PaintingStyle.stroke
       ..strokeWidth = 2
-      ..shader = _family.linear().createShader(
-            Rect.fromLTWH(0, 0, size.width, 2),
-          );
+      ..color = AppColors.white;
     final inset = corner * 0.9;
     final y = inset + (size.height - 2 * inset) * progress;
     canvas.drawLine(Offset(inset, y), Offset(size.width - inset, y), linePaint);

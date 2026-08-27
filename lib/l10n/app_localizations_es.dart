@@ -81,7 +81,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get commonMoreOptions => 'Más opciones';
 
   @override
-  String get welcomeVive => 'VIVE';
+  String get welcomeVive => 'vive';
 
   @override
   String get welcomeTagline => 'Tu vida social, en un solo lugar';
@@ -243,7 +243,7 @@ class AppLocalizationsEs extends AppLocalizations {
   }
 
   @override
-  String get feedBrand => 'Samay';
+  String get feedBrand => 'samay';
 
   @override
   String get feedFeatured => 'Destacados';
@@ -668,6 +668,9 @@ class AppLocalizationsEs extends AppLocalizations {
   String get settingsSectionChat => 'Chat';
 
   @override
+  String get settingsSectionGames => 'Juegos';
+
+  @override
   String get settingsSectionAccount => 'Cuenta';
 
   @override
@@ -1003,6 +1006,10 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get errorsOtpExpired => 'El código ha expirado. Solicita uno nuevo.';
+
+  @override
+  String get errorsOtpInvalid =>
+      'El código es incorrecto o ha expirado. Solicita uno nuevo.';
 
   @override
   String get errorsInvalidReference => 'Referencia inválida';
@@ -1785,6 +1792,18 @@ class AppLocalizationsEs extends AppLocalizations {
   String get minigamesErrorCreate => 'No se pudo crear la partida.';
 
   @override
+  String get minigamesErrorInviteeNotAllowed =>
+      'Algunos jugadores no pudieron ser invitados.';
+
+  @override
+  String get minigamesErrorInviteeFriendsOnly =>
+      'Uno o más jugadores solo aceptan invitaciones de amigos.';
+
+  @override
+  String get minigamesErrorTooManyInvitees =>
+      'Puedes invitar hasta 20 jugadores.';
+
+  @override
   String get minigamesErrorLoad => 'No se pudieron cargar las partidas';
 
   @override
@@ -1960,4 +1979,74 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get chatMessageInfoNotRead => 'No leído';
+
+  @override
+  String get minigamesInviteTitle => 'Invitar a jugar';
+
+  @override
+  String minigamesInviteCount(int count) {
+    return 'Invitar ($count)';
+  }
+
+  @override
+  String get minigamesDetailTitle => 'Partida';
+
+  @override
+  String get minigamesWagerFree => 'Sin apuesta';
+
+  @override
+  String get minigamesScopeDirect => 'Directa';
+
+  @override
+  String get minigamesScopeGroup => 'Grupo';
+
+  @override
+  String get minigamesPlayDirect => 'Jugar directo';
+
+  @override
+  String get minigamesChangeGroup => 'Cambiar grupo';
+
+  @override
+  String get minigamesDirectEmpty => 'Aún no hay partidas directas';
+
+  @override
+  String get minigamesDirectEmptyBody =>
+      'Crea una partida para jugar ya con un amigo, sin necesidad de un grupo.';
+
+  @override
+  String get minigamesErrorPlayerLimitReached =>
+      'Esta partida alcanzó su límite de jugadores.';
+
+  @override
+  String get minigamesErrorNotAllowed => 'No puedes unirte a esta partida.';
+
+  @override
+  String get minigamesInvitePendingBody => 'Te invitaron a esta partida.';
+
+  @override
+  String get minigamesInviteAccept => 'Aceptar';
+
+  @override
+  String get minigamesInviteDecline => 'Rechazar';
+
+  @override
+  String get minigamesInviteAccepted => 'Te uniste a la partida';
+
+  @override
+  String get minigamesInviteDeclined => 'Invitación rechazada';
+
+  @override
+  String get minigamesInviteClosed =>
+      'Esta partida ya terminó. Ya no puedes aceptar la invitación.';
+
+  @override
+  String get minigamesInviteFriendsOnly => 'Solo amigos pueden invitarme';
+
+  @override
+  String get minigamesInviteFriendsOnlyBody =>
+      'Cuando está activado, solo tus amigos pueden invitarte a un minijuego.';
+
+  @override
+  String get minigamesInviteFriendsOnlySaveError =>
+      'No se pudo guardar la preferencia.';
 }

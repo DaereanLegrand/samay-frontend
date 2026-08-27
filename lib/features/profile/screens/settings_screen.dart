@@ -7,6 +7,7 @@ import 'package:samay/core/providers/auth_provider.dart';
 import 'package:samay/core/providers/theme_provider.dart';
 import 'package:samay/core/router/route_paths.dart';
 import 'package:samay/features/chat/providers/chat_providers.dart';
+import 'package:samay/features/minigames/providers/minigames_providers.dart';
 import 'package:samay/features/profile/screens/notification_settings_screen.dart';
 import 'package:samay/features/profile/screens/privacy_info_screen.dart';
 import 'package:samay/features/social/providers/social_providers.dart';
@@ -97,6 +98,20 @@ class SettingsScreen extends ConsumerWidget {
                 child: Column(
                   children: [
                     _ReadReceiptsTile(),
+                  ],
+                ),
+              ),
+            ),
+            // Minigames group (140_minigame_invites): the invite privacy
+            // switch — when ON only accepted friends may invite this user to
+            // a minigame (enforced server-side in create_minigame_session).
+            _SectionHeader(l10n.settingsSectionGames),
+            VCard(
+              child: Material(
+                type: MaterialType.transparency,
+                child: Column(
+                  children: [
+                    _MinigameInvitePrivacyTile(),
                   ],
                 ),
               ),
@@ -368,6 +383,46 @@ class _ReadReceiptsTile extends ConsumerWidget {
           if (context.mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(content: Text(l10n.chatReadReceiptsSaveError)),
+            );
+          }
+        }
+      },
+    );
+  }
+}
+
+/// The minigame-invite privacy switch (140_minigame_invites):
+/// `users.minigame_invite_friends_only` via
+/// [minigameInviteFriendsOnlyProvider]. When ON only accepted friends may
+/// invite this user to a minigame; the gate is enforced server-side in
+/// create_minigame_session. Optimistic — a persistence failure rolls the
+/// switch back and surfaces a snackbar.
+class _MinigameInvitePrivacyTile extends ConsumerWidget {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+    final enabled =
+        ref.watch(minigameInviteFriendsOnlyProvider).valueOrNull ?? false;
+    return SwitchListTile(
+      contentPadding: EdgeInsets.zero,
+      secondary: const Icon(Icons.sports_esports),
+      title: Text(l10n.minigamesInviteFriendsOnly),
+      subtitle: Text(
+        l10n.minigamesInviteFriendsOnlyBody,
+        style: Theme.of(
+          context,
+        ).textTheme.bodySmall?.copyWith(color: AppColors.mutedStrong),
+      ),
+      value: enabled,
+      onChanged: (value) async {
+        try {
+          await ref
+              .read(minigameInviteFriendsOnlyProvider.notifier)
+              .setFriendsOnly(value);
+        } catch (_) {
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(l10n.minigamesInviteFriendsOnlySaveError)),
             );
           }
         }

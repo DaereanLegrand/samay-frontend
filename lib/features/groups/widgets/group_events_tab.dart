@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:samay/core/design_tokens/app_gradients.dart';
+import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/core/design_tokens/app_icon_sizes.dart';
 import 'package:samay/core/extensions/error_mapper.dart';
 import 'package:samay/core/models/event.dart';
@@ -120,10 +120,10 @@ class _EventRow extends StatelessWidget {
         children: [
           ListTile(
             contentPadding: EdgeInsets.zero,
-            leading: Icon(
+            leading: const Icon(
               Icons.event,
               size: AppIconSizes.md,
-              color: AppGradients.violet.colors.first,
+              color: AppColors.mutedStrong,
             ),
             title: Text(event.name, maxLines: 1, overflow: TextOverflow.ellipsis),
             subtitle: Column(

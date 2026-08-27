@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
-import 'package:samay/core/design_tokens/app_gradients.dart';
 import 'package:samay/core/logging/app_logger.dart';
 import 'package:samay/core/providers/auth_provider.dart';
 import 'package:samay/core/router/route_paths.dart';
@@ -83,7 +82,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   Widget build(BuildContext context) {
     final loginError = ref.watch(loginErrorProvider);
     final l10n = AppLocalizations.of(context);
-    final family = AppGradients.familyOf('login');
 
     return Scaffold(
       // LUXE v2 directive #8: no duplicate titles — the hero owns the
@@ -100,7 +98,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 child: Column(
                   children: [
                     const SizedBox(height: 32),
-                    VDisplayText(text: l10n.commonSignIn, gradient: family),
+                    VDisplayText(text: l10n.commonSignIn),
                     // XL-16 (03_signup density verdict): hero → fields
                     // breathes at 40.
                     const SizedBox(height: 40),

@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
-import 'package:samay/core/design_tokens/app_gradients.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/logging/app_logger.dart';
 import 'package:samay/core/theme/samay_durations.dart';
@@ -19,10 +18,6 @@ import 'package:samay/shared/widgets/v_button.dart';
 /// Activation-window minutes (`qr.activation_minutes_before`, seed 30) — the
 /// MVP-spec contract used when app_config is unreachable.
 const int _activationMinutes = 30;
-
-/// LUXE v2 family for this screen — **cyan** (the LUXE restyle pass (historical) map:
-/// attendance_qr + qr_scanner → cyan).
-final AppGradient _family = AppGradients.familyOf('qr');
 
 /// QRAT — dynamic attendance QR (attendee side).
 ///
@@ -202,7 +197,6 @@ class _AttendanceQrScreenState extends ConsumerState<AttendanceQrScreen> {
                 caption: l10n.qrServerPendingBody,
                 action: VButton(
                   label: l10n.commonRetry,
-                  gradient: _family,
                   onPressed: _rotating
                       ? null
                       : () => ref.invalidate(myQrTokenProvider(widget.eventId)),
@@ -219,7 +213,6 @@ class _AttendanceQrScreenState extends ConsumerState<AttendanceQrScreen> {
                 caption: l10n.qrAttendeeExpiredBody,
                 action: VButton(
                   label: l10n.commonRetry,
-                  gradient: _family,
                   onPressed: _rotating ? null : _rotate,
                 ),
               ),
@@ -257,9 +250,9 @@ class _AttendanceQrScreenState extends ConsumerState<AttendanceQrScreen> {
 }
 
 /// Active state: white-on-black QR (QRAT: "black background, white QR"),
-/// "SAMAY" center overlay, cyan countdown ring with "Nuevo código en: {s}".
-/// LUXE: the QR sits on a cyan liquid-glass panel; the ring arc uses the
-/// cyan family gradient (never pink — 2026-08-12 directive).
+/// "samay" center overlay, cyan countdown ring with "Nuevo código en: {s}" —
+/// flat [AppColors.discoCyan]; the ring is functional rotation-timing
+/// feedback.
 class _ActiveQr extends StatelessWidget {
   const _ActiveQr({
     required this.token,
@@ -315,7 +308,7 @@ class _ActiveQr extends StatelessWidget {
                     vertical: AppSpacing.xs,
                   ),
                   child: Text(
-                    'SAMAY',
+                    'samay',
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
                           color: AppColors.white,
                           fontWeight: FontWeight.w700,
@@ -345,9 +338,9 @@ class _ActiveQr extends StatelessWidget {
   }
 }
 
-/// Circular progress ring for the rotation countdown (white arc on a hairline
-/// base, **cyan gradient** end cap — the family's gradient, LUXE directive #2
-/// "never flat single-color accents"). The seconds label swaps with a
+/// Circular progress ring for the rotation countdown — functional timing
+/// feedback: flat [AppColors.discoCyan] arc on a hairline base (solid
+/// stroke, no sweep/glow). The seconds label swaps with a
 /// [SamayDurations.fast] crossfade.
 class _CountdownRing extends StatelessWidget {
   const _CountdownRing({
@@ -408,15 +401,11 @@ class _RingPainter extends CustomPainter {
       ..strokeWidth = stroke
       ..color = AppColors.hairline;
     canvas.drawCircle(center, radius, base);
-    // LUXE: the progress arc is the cyan family gradient (ShaderMask-free —
-    // a shader on the stroke paint), never the legacy pink.
     final arc = Paint()
       ..style = PaintingStyle.stroke
       ..strokeWidth = stroke
       ..strokeCap = StrokeCap.round
-      ..shader = _family.linear().createShader(
-            Rect.fromCircle(center: center, radius: radius),
-          );
+      ..color = AppColors.discoCyan;
     canvas.drawArc(
       Rect.fromCircle(center: center, radius: radius),
       -math.pi / 2,
@@ -432,7 +421,7 @@ class _RingPainter extends CustomPainter {
 }
 
 /// Simple centered message state for inactive/serverPending/expired/ended —
-/// LUXE: a cyan liquid-glass panel with the family-tinted icon.
+/// monochrome hairline panel with a white icon.
 class _MessageState extends StatelessWidget {
   const _MessageState({
     required this.icon,
@@ -466,7 +455,7 @@ class _MessageState extends StatelessWidget {
                 Icon(
                   icon,
                   size: 48,
-                  color: _family.colors[1].withValues(alpha: 0.9),
+                  color: AppColors.white,
                 ),
                 const SizedBox(height: AppSpacing.lg),
                 Text(

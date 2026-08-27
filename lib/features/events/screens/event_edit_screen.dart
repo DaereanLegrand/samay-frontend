@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
-import 'package:samay/core/design_tokens/app_gradients.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/extensions/error_mapper.dart';
 import 'package:samay/core/models/event.dart';
@@ -217,7 +216,7 @@ class _EventEditScreenState extends ConsumerState<EventEditScreen> {
           if (showPool) ...[
             const SizedBox(height: AppSpacing.xl),
             // XL-17 (10_events): the pool editor rides neutral white-only
-            // glass — the peach stays on the save CTA.
+            // glass.
             VCard(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -276,9 +275,8 @@ class _EventEditScreenState extends ConsumerState<EventEditScreen> {
             ),
           ],
           const SizedBox(height: AppSpacing.xxl),
-          VButton.glowAccent(
+          VButton.dark(
             label: l10n.commonSave,
-            gradient: AppGradients.peach,
             loading: _saving,
             onPressed: _saving ? null : _save,
           ),

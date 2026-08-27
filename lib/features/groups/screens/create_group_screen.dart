@@ -5,7 +5,6 @@ import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
-import 'package:samay/core/design_tokens/app_gradients.dart';
 import 'package:samay/core/logging/app_logger.dart';
 import 'package:samay/core/providers/service_providers.dart';
 import 'package:samay/core/services/permission_service.dart';
@@ -193,12 +192,9 @@ class _CreateGroupScreenState extends ConsumerState<CreateGroupScreen> {
                   maxLines: 3,
                 ),
                 const SizedBox(height: 32),
-                // §5.1 LUXE: creating the group is the screen's one brand
-                // moment — the violet glow accent (family gradient fill,
-                // black text 6.00:1).
-                VButton.glowAccent(
-                  filled: true,
-                  gradient: AppGradients.violet,
+                // §5.1 LUXE: creating the group is the screen's primary
+                // action.
+                VButton.dark(
                   label: l10n.commonCreate,
                   loading: _loading,
                   onPressed: _create,

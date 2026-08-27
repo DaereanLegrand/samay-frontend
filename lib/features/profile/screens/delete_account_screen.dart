@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
-import 'package:samay/core/design_tokens/app_gradients.dart';
 import 'package:samay/core/logging/app_logger.dart';
 import 'package:samay/core/providers/auth_provider.dart';
 import 'package:samay/core/providers/service_providers.dart';
@@ -92,8 +91,7 @@ class _DeleteAccountScreenState extends ConsumerState<DeleteAccountScreen> {
 
     return Scaffold(
       appBar: AppBar(title: Text(l10n.profileDeleteTitle)),
-      // LUXE v2 (XL-08): the delete screen owns the gold family; the danger
-      // stays in the semantic error, never the family.
+      // The danger stays in the semantic error, never the CTA fill.
       // §7.3: scroll-safe body (the OTP pattern, U-07) — the fixed Column
       // overflows at ≥1.5× text scale on small phones; pins the CTA when
       // the content fits and scrolls when it doesn't. Never clip.
@@ -124,15 +122,12 @@ class _DeleteAccountScreenState extends ConsumerState<DeleteAccountScreen> {
                         keyboardType: TextInputType.emailAddress,
                       ),
                       const Spacer(),
-                      // LUXE v2 (XL-08): §5.1 danger CTA — the gold-family
-                      // *outline* (1px gradient ring + gold label + halo).
-                      // The danger is a function, not a brand moment, so no
-                      // gold fill; the confirm dialog keeps the error
-                      // semantic. Disabled (empty email) drops to `muted`.
-                      VButton.glowAccent(
+                      // The danger CTA is the dark primary voice — the
+                      // danger semantic stays in the confirm dialog's error
+                      // color. Disabled (empty email) drops to `muted`.
+                      VButton.dark(
                         label: l10n.profileDeleteTitle,
                         onPressed: emailFilled ? _delete : null,
-                        gradient: AppGradients.gold,
                       ),
                       const SizedBox(height: 32),
                     ],

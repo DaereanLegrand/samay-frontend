@@ -46,6 +46,27 @@ enum MinigameSessionRejection {
 
   /// The caller's `personal_shards` are below the requested wager.
   insufficientShards,
+
+  /// One of `p_invitees` is blocked (either direction) / deleted / the caller
+  /// itself — the whole create is rejected atomically.
+  inviteeNotAllowed,
+
+  /// One of `p_invitees` opted into `minigame_invite_friends_only` and is
+  /// not an accepted friend of the caller (140 privacy switch).
+  inviteeFriendsOnly,
+
+  /// More than 20 invitees were passed (defence in depth cap).
+  tooManyInvitees,
+
+  /// The create roster (creator + invitees) exceeds the session's frozen
+  /// `player_limit` (free tier 8, scaled by the CREATOR's subscription tier
+  /// via app_config — direct-minigames 2026-08-27).
+  playerLimitReached,
+
+  /// A non-participant tried to join/finish a DIRECT session (group
+  /// sessions still reject with [notMember]). Bystanders can never join or
+  /// settle a direct game they are not in.
+  notAllowed,
 }
 
 /// Typed rejection thrown by [MinigameService.createSession] when the RPC
@@ -74,8 +95,8 @@ class MinigameService {
   GoTrueClient get auth => client.auth;
 
   static const _columns =
-      'id, group_id, game_type, status, shard_wager, participants, '
-      'winner_id, created_at';
+      'id, group_id, game_type, status, shard_wager, player_limit, '
+      'participants, winner_id, created_at';
 
   /// All sessions of [groupId], newest first (RLS `ms_read_group_member` —
   /// group members only).
@@ -84,6 +105,23 @@ class MinigameService {
         .from('minigame_sessions')
         .select(_columns)
         .eq('group_id', groupId)
+        .order('created_at', ascending: false);
+    return res.map((e) => Map<String, dynamic>.from(e)).toList();
+  }
+
+  /// The current user's DIRECT sessions (group_id IS NULL), newest first —
+  /// the direct-play hub list. RLS `ms_read_direct_participant` bounds the
+  /// read to sessions where the caller is a participant (the creator is
+  /// participant[0]); the `group_id IS NULL` + `participants @> {uid}`
+  /// filters mirror that server contract client-side.
+  Future<List<Map<String, dynamic>>> listMySessions() async {
+    final user = auth.currentUser;
+    if (user == null) throw const UnauthorizedError();
+    final res = await client
+        .from('minigame_sessions')
+        .select(_columns)
+        .isFilter('group_id', null)
+        .contains('participants', [user.id])
         .order('created_at', ascending: false);
     return res.map((e) => Map<String, dynamic>.from(e)).toList();
   }
@@ -101,17 +139,32 @@ class MinigameService {
 
   /// Creates a session for [groupId] of type [type] with an optional
   /// [wager] (0 = no wager). The server-side RPC (migration
-  /// 20260809000006) validates group membership and balance and performs the
-  /// atomic deduct + `minigame_wager` ledger + session insert; the returned
-  /// session id is the initiator's escrow anchor (GWAG).
+  /// 20260809000006 + 140_minigame_invites) validates group membership and
+  /// balance and performs the atomic deduct + `minigame_wager` ledger +
+  /// session insert + one pending `minigame_invites` row per [inviteeIds]
+  /// (the returned session id is the initiator's escrow anchor, GWAG).
+  ///
+  /// [groupId] is NULL for a DIRECT session (direct-minigames 2026-08-27) —
+  /// playing with friends without belonging to a group. The server skips the
+  /// group-membership gate for NULL (a non-null group still requires active
+  /// membership) and freezes a `player_limit` from the creator's
+  /// subscription tier (app_config `minigame.{free,pro,vip}_max_players`;
+  /// free = 8). Invitees may be zero (some games are single-player).
+  ///
+  /// Invitees are anyone from the user-search pool (reusing the
+  /// searchResultsProvider plumbing client-side); the RPC enforces the
+  /// blocked-invitee and friends-only privacy gates server-side (typed
+  /// statuses, never trusted client-side). Invitees need not be group
+  /// members — `ms_read_invitee` opens the session row to them.
   ///
   /// Throws [MinigameSessionRejectedException] with the typed rejection when
   /// the RPC returns a non-created status.
   Future<String> createSession(
-    String groupId,
+    String? groupId,
     MinigameType type,
-    int wager,
-  ) async {
+    int wager, {
+    List<String> inviteeIds = const [],
+  }) async {
     final user = auth.currentUser;
     if (user == null) throw const UnauthorizedError();
 
@@ -121,6 +174,7 @@ class MinigameService {
         'p_group_id': groupId,
         'p_game_type': type.value,
         'p_wager': wager,
+        'p_invitees': inviteeIds,
       },
     );
     final result = res is Map
@@ -144,6 +198,18 @@ class MinigameService {
       ),
       'insufficient_shards' => throw const MinigameSessionRejectedException(
         MinigameSessionRejection.insufficientShards,
+      ),
+      'invitee_not_allowed' => throw const MinigameSessionRejectedException(
+        MinigameSessionRejection.inviteeNotAllowed,
+      ),
+      'invitee_friends_only' => throw const MinigameSessionRejectedException(
+        MinigameSessionRejection.inviteeFriendsOnly,
+      ),
+      'too_many_invitees' => throw const MinigameSessionRejectedException(
+        MinigameSessionRejection.tooManyInvitees,
+      ),
+      'player_limit_reached' => throw const MinigameSessionRejectedException(
+        MinigameSessionRejection.playerLimitReached,
       ),
       _ => throw const ServerError('Unexpected create_minigame_session response'),
     };
@@ -181,6 +247,14 @@ class MinigameService {
       case 'not_member':
         throw const MinigameSessionRejectedException(
           MinigameSessionRejection.notMember,
+        );
+      case 'not_allowed':
+        throw const MinigameSessionRejectedException(
+          MinigameSessionRejection.notAllowed,
+        );
+      case 'player_limit_reached':
+        throw const MinigameSessionRejectedException(
+          MinigameSessionRejection.playerLimitReached,
         );
       case 'insufficient_shards':
         throw const MinigameSessionRejectedException(
@@ -239,12 +313,117 @@ class MinigameService {
         throw const MinigameSessionRejectedException(
           MinigameSessionRejection.notMember,
         );
+      case 'not_allowed':
+        throw const MinigameSessionRejectedException(
+          MinigameSessionRejection.notAllowed,
+        );
       case 'session_not_found':
         throw const NotFoundError('Session');
       case 'invalid_winner':
         throw ConflictError('Invalid winner', code: 'invalid_winner');
       default:
         throw const ServerError('Unexpected finish_minigame_session response');
+    }
+  }
+
+  /// The current user's invite row for [sessionId] (null when they have
+  /// none). RLS `mi_read_own` limits the read to the caller's own invites,
+  /// so the `invitee_id` filter is belt-and-suspenders.
+  Future<Map<String, dynamic>?> myInviteForSession(String sessionId) async {
+    final user = auth.currentUser;
+    if (user == null) throw const UnauthorizedError();
+    final res = await client
+        .from('minigame_invites')
+        .select('id, session_id, invitee_id, created_by, status, created_at')
+        .eq('session_id', sessionId)
+        .eq('invitee_id', user.id)
+        .maybeSingle();
+    return res == null ? null : Map<String, dynamic>.from(res);
+  }
+
+  /// Accepts [inviteId] via the `accept_minigame_invite` SECURITY DEFINER RPC
+  /// (migration 140_minigame_invites) — the invitee (self only) joins the
+  /// session while it is ACTIVE: participants append + — for wagered
+  /// sessions — the atomic wager deduction + `minigame_wager` escrow ledger
+  /// entry (GWAG mirror of join_minigame_session). A finished session cannot
+  /// be joined (`session_finished`) — the product contract that once the
+  /// game is over the invite closes.
+  Future<void> acceptInvite(String inviteId) async {
+    final user = auth.currentUser;
+    if (user == null) throw const UnauthorizedError();
+
+    final res = await client.rpc(
+      'accept_minigame_invite',
+      params: {'p_invite_id': inviteId},
+    );
+    final result = res is Map
+        ? Map<String, dynamic>.from(res)
+        : <String, dynamic>{};
+    final status = result['status'] as String?;
+
+    switch (status) {
+      case 'accepted':
+      case 'already_accepted':
+        return;
+      case 'not_authenticated':
+        throw const MinigameSessionRejectedException(
+          MinigameSessionRejection.notAuthenticated,
+        );
+      case 'invite_not_found':
+        throw const NotFoundError('Invite');
+      case 'invite_not_active':
+        throw ConflictError('Invite is not active', code: 'invite_not_active');
+      case 'session_not_found':
+        throw const NotFoundError('Session');
+      case 'session_finished':
+        throw ConflictError(
+          'The game has finished; the invite can no longer be accepted',
+          code: 'session_finished',
+        );
+      case 'player_limit_reached':
+        throw const MinigameSessionRejectedException(
+          MinigameSessionRejection.playerLimitReached,
+        );
+      case 'insufficient_shards':
+        throw const MinigameSessionRejectedException(
+          MinigameSessionRejection.insufficientShards,
+        );
+      default:
+        throw const ServerError('Unexpected accept_minigame_invite response');
+    }
+  }
+
+  /// Declines [inviteId] via the `decline_minigame_invite` SECURITY DEFINER
+  /// RPC (migration 140_minigame_invites) — pending → declined, idempotent.
+  Future<void> declineInvite(String inviteId) async {
+    final user = auth.currentUser;
+    if (user == null) throw const UnauthorizedError();
+
+    final res = await client.rpc(
+      'decline_minigame_invite',
+      params: {'p_invite_id': inviteId},
+    );
+    final result = res is Map
+        ? Map<String, dynamic>.from(res)
+        : <String, dynamic>{};
+    final status = result['status'] as String?;
+
+    switch (status) {
+      case 'declined':
+        return;
+      case 'not_authenticated':
+        throw const MinigameSessionRejectedException(
+          MinigameSessionRejection.notAuthenticated,
+        );
+      case 'invite_not_found':
+        throw const NotFoundError('Invite');
+      case 'already_accepted':
+        throw ConflictError(
+          'Invite is already accepted',
+          code: 'already_accepted',
+        );
+      default:
+        throw const ServerError('Unexpected decline_minigame_invite response');
     }
   }
 

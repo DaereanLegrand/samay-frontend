@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
-import 'package:samay/core/design_tokens/app_gradients.dart';
 import 'package:samay/core/design_tokens/app_icon_sizes.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/extensions/error_mapper.dart';
@@ -24,9 +23,8 @@ import 'package:samay/shared/widgets/v_network_image.dart';
 /// with a create CTA that routes to the groups tab (an event is always
 /// created inside a group).
 ///
-/// LUXE v2: the events family is **peach** — [AppGradients.peach] as the
-/// hero/CTA accent. The list cards are neutral white-only glass (XL-17: the
-/// family is spent on the hero and the primary CTA, never a color spray).
+/// Monochrome: flat black/white hero + CTA; the list cards stay neutral
+/// white-only glass.
 class MyEventsScreen extends ConsumerStatefulWidget {
   const MyEventsScreen({super.key});
 
@@ -103,8 +101,8 @@ class _MyEventsScreenState extends ConsumerState<MyEventsScreen> {
 }
 
 /// Brand hero + create CTA. ONE hero per screen (directive #8) — the
-/// "MIS EVENTOS" display voice in the peach family; the CTA explains that
-/// creation happens from a group.
+/// "MIS EVENTOS" display voice; the CTA explains that creation happens from
+/// a group.
 class _EventsHeader extends StatelessWidget {
   final String title;
   final VoidCallback onCreate;
@@ -124,14 +122,10 @@ class _EventsHeader extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          VDisplayText(text: title, gradient: AppGradients.peach, maxLines: 2),
+          VDisplayText(text: title, maxLines: 2),
           const SizedBox(height: AppSpacing.lg),
-          // The create CTA is a primary action — glowAccent, peach family.
-          VButton.glowAccent(
-            label: l10n.eventsCreateCta,
-            gradient: AppGradients.peach,
-            onPressed: onCreate,
-          ),
+          // The create CTA is a primary action.
+          VButton.dark(label: l10n.eventsCreateCta, onPressed: onCreate),
           const SizedBox(height: AppSpacing.sm),
           Text(
             l10n.eventsCreateCtaBody,
@@ -143,8 +137,8 @@ class _EventsHeader extends StatelessWidget {
   }
 }
 
-/// Regular event row: sharp hairline glass (glow reserved for CTAs), cover,
-/// name, type + status badges, date range and location. Tap → event detail.
+/// Regular event row: sharp hairline glass, cover, name, type + status
+/// badges, date range and location. Tap → event detail.
 class _MyEventCard extends StatelessWidget {
   final Event event;
   final VoidCallback onTap;

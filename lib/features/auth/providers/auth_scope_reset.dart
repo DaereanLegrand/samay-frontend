@@ -73,6 +73,8 @@ class AuthScopeReset extends ConsumerWidget {
     e2eeSessionStoreProvider,
     myQrTokenProvider,
     minigameSessionsProvider,
+    minigameInviteProvider,
+    minigameInviteFriendsOnlyProvider,
     eventPhotosProvider,
     partyMatchesProvider,
     feedProvider,

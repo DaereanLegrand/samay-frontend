@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
-import 'package:samay/core/design_tokens/app_gradients.dart';
 import 'package:samay/core/design_tokens/app_icon_sizes.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/providers/auth_provider.dart';
@@ -24,7 +23,6 @@ class BannedScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final reason = ref.watch(authStateProvider).valueOrNull?.banReason;
-    final family = AppGradients.familyOf('banned');
 
     return Scaffold(
       body: SafeArea(
@@ -44,12 +42,10 @@ class BannedScreen extends ConsumerWidget {
                         color: AppColors.white,
                       ),
                       const SizedBox(height: AppSpacing.xl),
-                      // LUXE §6.2: the suspension title is the display
-                      // voice — mint-family VDisplayText (gradient fill +
-                      // slowly pulsing glow).
+                      // Monochrome (2026-08-26): the suspension title is the
+                      // display voice — verbatim copy, flat white glyphs.
                       VDisplayText(
                         text: l10n.bannedTitle,
-                        gradient: family,
                         textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: AppSpacing.lg),

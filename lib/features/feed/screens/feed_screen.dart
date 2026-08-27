@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:samay/core/config/feature_flags.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
-import 'package:samay/core/design_tokens/app_gradients.dart';
 import 'package:samay/core/design_tokens/app_icon_sizes.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/design_tokens/app_typography.dart';
@@ -31,15 +30,12 @@ import 'package:samay/shared/widgets/v_network_image.dart';
 
 /// The social feed — the app's landing tab (FEED spec §feed-screen).
 ///
-/// LUXE v2 (XL-07): the feed owns the **cyan** gradient family
-/// (`AppGradients.familyOf('feed')` — the LUXE restyle pass (historical) §"Gradient family →
-/// screen map"; NO PINK MAINS). The screen is always-black; the 'SAMAY' hero
-/// is a [VDisplayText] (uppercase Playfair, cyan gradient fill, pulsing halo
-/// — directive #6/#8, one hero);
-/// featured cards are liquid glass ([VGlass], cyan ring + soft glow);
-/// upcoming cards are sharp hairline [VGlassCard]s; the featured badge is
-/// the cyan `VBadge.accent` family variant; radius chips are `VChip.accent`
-/// in cyan; the [VDiscoDivider] accent is the cyan vivid end at α0.5.
+/// Monochrome (2026-08-26 user directive: all color stripped down): the
+/// screen is always-black; the 'samay' hero is a [VDisplayText] (verbatim
+/// copy, flat white Playfair glyphs);
+/// featured cards are sharp hairline [VGlassCard]s; the featured badge is
+/// the white `VBadge.emphasized`; radius chips are plain `VChip`s; the
+/// [VDiscoDivider] accent is the neutral white tick.
 ///
 /// FOUNDATION scope preserved byte-identical (I-58): radius chips (options
 /// from `app_config`, 'anywhere' selected while no device location exists),
@@ -48,20 +44,19 @@ import 'package:samay/shared/widgets/v_network_image.dart';
 /// detail. Group activity posts and the geolocation distance filter are
 /// future work (the `LocationService` doesn't exist yet — see the I-58
 /// daily log).
+
+/// Sentinel the multi-group bottom sheet pops when the user picks
+/// "Play directly" (direct-minigames 2026-08-27) — a real group id is a
+/// UUID, so this string can never collide.
+const String _directMarker = '__direct__';
+
 class FeedScreen extends ConsumerWidget {
   const FeedScreen({super.key});
-
-  /// The cyan divider accent (vivid end at α0.5 — LUXE screen-owned tint;
-  /// a 1px segment cannot carry a gradient, so the flat vivid token is
-  /// watered for chrome, per the ORCHESTRATION divider guidance).
-  static final Color _dividerAccent =
-      AppColors.discoCyan.withValues(alpha: 0.5);
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final feed = ref.watch(feedProvider);
-    final family = AppGradients.familyOf('feed');
 
     return Scaffold(
       // LUXE directive #1: black background always — even outside the theme.
@@ -90,7 +85,6 @@ class FeedScreen extends ConsumerWidget {
                     child: _FeedHeader(
                       title: l10n.feedBrand,
                       showRadiusFilter: events.isNotEmpty,
-                      family: family,
                     ),
                   ),
                   // Plugged home (2026-08-13): the games quick-access
@@ -98,22 +92,19 @@ class FeedScreen extends ConsumerWidget {
                   // the brand hero — five minigame cards + the Party
                   // Finder entry, flag-gated.
                   const SliverToBoxAdapter(child: _GamesSection()),
-                  // The hairline + cyan-accent section separator (U-06
-                  // divider, LUXE cyan tint) between the header and the
-                  // content — and again between the featured carousel and
-                  // the upcoming list.
+                  // The hairline + white-accent section separator between
+                  // the header and the content — and again between the
+                  // featured carousel and the upcoming list.
                   if (events.isNotEmpty)
-                    SliverToBoxAdapter(
+                    const SliverToBoxAdapter(
                       child: Padding(
-                        padding: const EdgeInsets.only(
+                        padding: EdgeInsets.only(
                           top: AppSpacing.xl,
                           bottom: AppSpacing.xl,
                           left: AppSpacing.screenHorizontal,
                           right: AppSpacing.screenHorizontal,
                         ),
-                        child: VDiscoDivider(
-                          accentColor: FeedScreen._dividerAccent,
-                        ),
+                        child: VDiscoDivider(),
                       ),
                     ),
                   if (featured.isNotEmpty) ...[
@@ -122,18 +113,15 @@ class FeedScreen extends ConsumerWidget {
                         events: featured,
                         sectionLabel: l10n.feedFeatured,
                         badgeLabel: l10n.feedFeaturedBadge,
-                        family: family,
                       ),
                     ),
                     if (upcoming.isNotEmpty)
-                      SliverToBoxAdapter(
+                      const SliverToBoxAdapter(
                         child: Padding(
-                          padding: const EdgeInsets.symmetric(
+                          padding: EdgeInsets.symmetric(
                             horizontal: AppSpacing.screenHorizontal,
                           ),
-                          child: VDiscoDivider(
-                            accentColor: FeedScreen._dividerAccent,
-                          ),
+                          child: VDiscoDivider(),
                         ),
                       ),
                   ],
@@ -142,7 +130,6 @@ class FeedScreen extends ConsumerWidget {
                       itemCount: upcoming.length,
                       itemBuilder: (context, index) => _EventCard(
                         event: upcoming[index],
-                        family: family,
                       ),
                     )
                   else
@@ -164,32 +151,23 @@ class FeedScreen extends ConsumerWidget {
   }
 }
 
-/// Brand hero + radius filter. LUXE v2: ONE hero per screen (directive #8) —
-/// the 'SAMAY' wordmark in [VDisplayText] (MAYUS enforced, cyan gradient
-/// glyph fill, 3-layer glow-strong pulsing halo). The radius filter and the
-/// honest no-location notice stay below it — functional, unchanged.
+/// Brand hero + radius filter. Monochrome: ONE hero per screen — the
+/// 'samay' wordmark in [VDisplayText] (verbatim copy, flat white glyph
+/// fill). The radius filter and the honest no-location notice stay below
+/// it — functional, unchanged.
 class _FeedHeader extends ConsumerWidget {
   final String title;
   final bool showRadiusFilter;
 
-  /// The screen's cyan family — the hero gradient + the chip accent.
-  final AppGradient family;
-
   const _FeedHeader({
     required this.title,
     required this.showRadiusFilter,
-    required this.family,
   });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
-    final radius = RadiusFilterBar(l10n: l10n, family: family);
-    // The chat inbox shortcut (2026-08-15, user request): same placement as
-    // the profile's settings gear (top-right of the hero) but on the home
-    // screen. The badge shows the TOTAL unread messages across chats — kept
-    // fresh by InboxRealtimeListener.
-    final unread = ref.watch(chatUnreadCountProvider);
+    final radius = RadiusFilterBar(l10n: l10n);
     return Padding(
       padding: const EdgeInsets.fromLTRB(
         AppSpacing.screenHorizontal,
@@ -204,12 +182,9 @@ class _FeedHeader extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
-                child: VDisplayText(
-                  text: title,
-                  gradient: family,
-                ),
+                child: VDisplayText(text: title),
               ),
-              _ChatInboxButton(unread: unread, family: family),
+              const _ChatInboxButton(),
             ],
           ),
           if (showRadiusFilter) ...[
@@ -227,15 +202,17 @@ class _FeedHeader extends ConsumerWidget {
 /// The home-screen chat inbox shortcut — a chat bubble icon (tooltip is its
 /// accessibility name, mirroring the profile gear U-26 contract) carrying the
 /// total-unread [VCountBadge] (hidden at 0). Opens [RoutePaths.chatList].
-class _ChatInboxButton extends StatelessWidget {
-  final int unread;
-  final AppGradient family;
-
-  const _ChatInboxButton({required this.unread, required this.family});
+class _ChatInboxButton extends ConsumerWidget {
+  const _ChatInboxButton();
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
+    // The chat inbox shortcut (2026-08-15, user request): same placement as
+    // the profile's settings gear (top-right of the hero) but on the home
+    // screen. The badge shows the TOTAL unread messages across chats — kept
+    // fresh by InboxRealtimeListener.
+    final unread = ref.watch(chatUnreadCountProvider);
     return Stack(
       clipBehavior: Clip.none,
       children: [
@@ -247,7 +224,7 @@ class _ChatInboxButton extends StatelessWidget {
         Positioned(
           right: -2,
           top: -2,
-          child: VCountBadge(count: unread, gradient: family),
+          child: VCountBadge(count: unread),
         ),
       ],
     );
@@ -259,16 +236,12 @@ class _ChatInboxButton extends StatelessWidget {
 /// [radiusFilterProvider]. Functional today as a preference — the distance
 /// filter applies once a device location exists.
 ///
-/// LUXE v2: `VChip.accent` in the screen's cyan family — vivid cyan border +
-/// label, vivid fill when selected (the gradient family's vivid end; a chip
-/// border cannot carry a gradient, so the family hue is the accent).
+/// Monochrome: plain `VChip` — white border + label, white fill + black
+/// label when selected.
 class RadiusFilterBar extends ConsumerWidget {
   final AppLocalizations l10n;
 
-  /// The screen's cyan family — drives the accent chips.
-  final AppGradient family;
-
-  const RadiusFilterBar({super.key, required this.l10n, required this.family});
+  const RadiusFilterBar({super.key, required this.l10n});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -287,14 +260,13 @@ class RadiusFilterBar extends ConsumerWidget {
         itemBuilder: (context, index) {
           final radius = options[index];
           final anywhere = radius >= kFeedRadiusAnywhereKm;
-          return VChip.accent(
+          return VChip(
             label: anywhere
                 ? l10n.feedRadiusAnywhere
                 : l10n.feedRadiusKm(radius.round()),
             selected: selected == radius,
             onSelected: () =>
                 ref.read(radiusFilterProvider.notifier).select(radius),
-            gradient: family,
           );
         },
       ),
@@ -318,22 +290,17 @@ class _NoLocationNotice extends StatelessWidget {
   }
 }
 
-/// Featured events carousel (FEED spec): pinned at the top, liquid-glass
-/// cards with a cyan gradient ring + soft glow (the LUXE "event of the
-/// night"), 'DESTACADO' badge in the cyan `VBadge.accent` family variant.
+/// Featured events carousel (FEED spec): pinned at the top, sharp hairline
+/// cards, 'DESTACADO' badge in the white `VBadge.emphasized` variant.
 class _FeaturedSection extends StatelessWidget {
   final List<Event> events;
   final String sectionLabel;
   final String badgeLabel;
 
-  /// The screen's cyan family — the carousel glass + badge accent.
-  final AppGradient family;
-
   const _FeaturedSection({
     required this.events,
     required this.sectionLabel,
     required this.badgeLabel,
-    required this.family,
   });
 
   @override
@@ -368,7 +335,6 @@ class _FeaturedSection extends StatelessWidget {
               itemBuilder: (context, index) => _FeaturedCard(
                 event: events[index],
                 badgeLabel: badgeLabel,
-                family: family,
               ),
             ),
           ),
@@ -382,13 +348,9 @@ class _FeaturedCard extends StatelessWidget {
   final Event event;
   final String badgeLabel;
 
-  /// The screen's cyan family — the glass ring + glow + badge accent.
-  final AppGradient family;
-
   const _FeaturedCard({
     required this.event,
     required this.badgeLabel,
-    required this.family,
   });
 
   @override
@@ -429,9 +391,8 @@ class _FeaturedCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // LUXE accent badge: the cyan family — pale watered fill,
-                    // mid-stop border, black label (never pink).
-                    VBadge.accent(label: badgeLabel, gradient: family),
+                    // Monochrome featured badge: white fill + black label.
+                    VBadge.emphasized(label: badgeLabel),
                     const SizedBox(height: AppSpacing.sm),
                     Text(
                       event.name,
@@ -476,16 +437,12 @@ class _FeaturedCard extends StatelessWidget {
   }
 }
 
-/// Regular upcoming-event card: sharp hairline glass with the cyan ring
-/// (glow reserved for the featured carousel), cover, name, type badge, date
-/// range, location. Tap → event detail.
+/// Regular upcoming-event card: sharp hairline card, cover, name, type
+/// badge, date range, location. Tap → event detail.
 class _EventCard extends StatelessWidget {
   final Event event;
 
-  /// The screen's cyan family — the hairline glass ring.
-  final AppGradient family;
-
-  const _EventCard({required this.event, required this.family});
+  const _EventCard({required this.event});
 
   @override
   Widget build(BuildContext context) {
@@ -651,10 +608,12 @@ class _GamesSection extends ConsumerWidget {
     );
   }
 
-  /// Opens the group minigames hub for the picked group. Single group →
-  /// straight navigation; multiple groups → bottom-sheet picker; none → the
-  /// join-a-group hint. The groups list is awaited (the provider is only
-  /// built on first tap — a synchronous `.valueOrNull` read would always be
+  /// Opens the minigames hub. Direct play is first-class (direct-minigames
+  /// 2026-08-27): a user with ZERO groups goes straight to the DIRECT hub —
+  /// no "join a group" roadblock — and a user with groups gets the group
+  /// picker with a "Play directly" first option. Single group → straight
+  /// navigation. The groups list is awaited (the provider is only built on
+  /// first tap — a synchronous `.valueOrNull` read would always be
   /// null/loading).
   Future<void> _openMinigames(BuildContext context, WidgetRef ref) async {
     final l10n = AppLocalizations.of(context);
@@ -671,14 +630,9 @@ class _GamesSection extends ConsumerWidget {
       return;
     }
     if (groups.isEmpty) {
+      // Direct hub — no group required to play with a friend.
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            '${l10n.minigamesNoGroups}\n${l10n.minigamesNoGroupsBody}',
-          ),
-        ),
-      );
+      await context.push(RoutePaths.minigamesDirect);
       return;
     }
 
@@ -687,7 +641,7 @@ class _GamesSection extends ConsumerWidget {
       groupId = groups.first.id;
     } else {
       if (!context.mounted) return;
-      groupId = await showModalBottomSheet<String>(
+      final picked = await showModalBottomSheet<String>(
         context: context,
         backgroundColor: AppColors.surfaceAlt,
         builder: (sheetContext) => SafeArea(
@@ -702,6 +656,11 @@ class _GamesSection extends ConsumerWidget {
                   style: Theme.of(sheetContext).textTheme.titleMedium,
                 ),
               ),
+              ListTile(
+                leading: const Icon(Icons.sports_esports),
+                title: Text(l10n.minigamesPlayDirect),
+                onTap: () => Navigator.of(sheetContext).pop(_directMarker),
+              ),
               for (final group in groups)
                 ListTile(
                   leading: const Icon(Icons.group_outlined),
@@ -715,6 +674,12 @@ class _GamesSection extends ConsumerWidget {
           ),
         ),
       );
+      // Direct is first-class: the marker routes to the group-less hub.
+      if (picked == _directMarker) {
+        if (context.mounted) await context.push(RoutePaths.minigamesDirect);
+        return;
+      }
+      groupId = picked;
     }
 
     if (groupId != null && context.mounted) {
