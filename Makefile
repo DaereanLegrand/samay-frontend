@@ -42,6 +42,9 @@ help:
 	@echo "    check                    full static gate: analyzers + go vet + ports + secrets"
 	@echo "    test / test-all          full local gate (unit + Go + static + integration)"
 	@echo "    test-unit / flutter-test Flutter unit/widget tests"
+	@echo "    test-file FILE=<path>    focused loop: run ONE test file (agent default)"
+	@echo "    test-files FILES=\"a b\"   focused loop: run several files in one go"
+	@echo "    test-feature FEATURE=<f> focused loop: run one feature dir (test/features/<f>)"
 	@echo "    test-integration [TARGET] integration flows (TARGET = on-device run)"
 	@echo "    test-backend-static      static opt gates (no stack needed)"
 	@echo "    test-go                  go test ./..."
@@ -602,7 +605,31 @@ test-all: test-unit test-go test-backend-static test-integration
 test-unit: flutter-test
 
 flutter-test:
-	flutter test test/ $(FLUTTER_TEST_DEFINES)
+	flutter test test/ $(FLUTTER_TEST_DEFINES) $(FLUTTER_CONCURRENCY)
+
+# ── Focused test loop (token-budget 2026-08-27) ─────────────────────────────
+# The DEFAULT agent iteration loop. Run ONLY the tests touched by a change —
+# the full `make test` gate runs when the human explicitly asks for it.
+#
+#   make test-file FILE=test/features/friends/flow_test.dart
+#       → single-file: flutter test <FILE>
+#   make test-feature FEATURE=friends
+#       → per-feature: flutter test test/features/<FEATURE>/
+#   make test-files FILES="a.dart b.dart"
+#       → several files in one run
+# FLUTTER_TEST_DEFINES/FLUTTER_CONCURRENCY are honored; tests run in
+# parallel (--concurrency) by default so the loop stays fast.
+test-file:
+	@[ -n "$(FILE)" ] || { echo "usage: make test-file FILE=test/features/friends/flow_test.dart" >&2; exit 2; }
+	flutter test $(FILE) $(FLUTTER_TEST_DEFINES)
+
+test-files:
+	@[ -n "$(FILES)" ] || { echo "usage: make test-files FILES='a_test.dart b_test.dart'" >&2; exit 2; }
+	flutter test $(FILES) $(FLUTTER_TEST_DEFINES)
+
+test-feature:
+	@[ -n "$(FEATURE)" ] || { echo "usage: make test-feature FEATURE=friends" >&2; exit 2; }
+	flutter test test/features/$(FEATURE)/ $(FLUTTER_TEST_DEFINES)
 
 test-integration:
 	@UNAME=$$(uname); \

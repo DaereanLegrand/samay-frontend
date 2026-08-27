@@ -27,7 +27,9 @@ Samay is built in **16 phases** (00–15). Each phase follows a strict TDD + doc
 5. REFACTOR → Clean up, follow Go/Flutter conventions
                Ensure no commented code, no dead code
 
-6. VALIDATE → make check + make test
+6. VALIDATE → focused tests for the change (make test-file /
+              make test-feature) — full `make check + make test` ONLY on
+              explicit human request
               Verify against docs/specs/ specs
               Update cross-references.md if dependencies/statuses changed
               Update baseline numbers in README.md if counts moved
@@ -42,9 +44,25 @@ Samay is built in **16 phases** (00–15). Each phase follows a strict TDD + doc
 ## TDD Rules
 
 - **No implementation code without a failing test first.**
+- **UI-only exception:** pure visual/layout changes (styling, tokens, spacing,
+  text placement) with no behavior or data-flow impact skip RED/GREEN — but
+  they still keep the behavior/widget tests green, and MUST NOT add
+  visual-pinning assertions (token-budget, 2026-08-27): token values are
+  pinned once in `test/design_tokens/` + `test/theme/` + `test/widgets/` —
+  feature tests assert behavior, never exact `BoxDecoration`/`fontSize`/
+  token internals. `test/meta/conventions_test.dart` enforces this.
 - Tests live in `*_test.go` (Go), `test/` (Flutter), `integration_test/`
   (flows — every feature ships one), `test/opt-NNN-*.sh` (backend curl) and
   `supabase/tests/schema_test.sql` (pgTAP).
+- **Test-layer budget (max 2–3 layers per change):** logic → unit test; UI
+  behavior → widget test; ONE flow per feature → `integration_test/`;
+  backend security/RLS → opt-curl + pgTAP. No restyle layer; never duplicate
+  the same assertion across layers (each layer earns its keep).
+- **Iteration loop (default, explicit directive 2026-08-27):** run ONLY the
+  tests your change touches via `make test-file FILE=<path>` /
+  `make test-feature FEATURE=<name>` / `make test-files FILES="a b"`. The
+  full `make check` + `make test` gate runs ONLY when the human explicitly
+  asks for a full validation.
 - SQL migrations are tested via `supabase db test` (pgTAP) where applicable.
 - Test fixtures mirror real Supabase data shapes.
 - Keep `plan(N)` in the pgTAP suite equal to its real assertion count.

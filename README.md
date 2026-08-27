@@ -146,12 +146,20 @@ code, update them in the same commit.
 | Layer | Command | Baseline (2026-08-27) |
 |-------|---------|----------------------|
 | Static analysis | `dart analyze` | **0 issues** |
-| Flutter unit/widget | `make flutter-test` | **2471 pass / 0 fail** |
+| Flutter unit/widget | `make flutter-test` | **2386 pass / 0 fail** (restyle files removed — see below) |
 | Go | `go test ./...` | green — **188 tests**, 6 packages |
 | Integration flows | `bash integration_test/runner.sh` (hermetic) | **21 registered flows** |
 | Backend (curl) | `bash test/run_all_backend.sh` | **16 opt-tests** (needs the stack up; opt-007 static gate reports SERVICE_KEY-vs-.env alignment drift on opt-001..006 — local `.env` rotated after the 2026-08-25 baseline; runtime runs pass — see docs/history/phase-13/2026-08-26_monochrome-refactor.md) |
 | SQL (pgTAP) | `supabase db test` | **plan(661)** assertions (needs the stack; verified 661/661 on 2026-08-27) |
 | Manual end-user QA | `bash test_runner.sh` | gum-based manual runner |
+
+**Focused test loop (token-budget 2026-08-27):** agents iterate with
+`make test-file FILE=<path>` / `make test-feature FEATURE=<name>` / `make
+test-files FILES="a b"` — the full `make check` + `make test` gate runs only
+on explicit human request. The five `test/features/*/restyle_test.dart`
+visual-pinning files (~3.8k lines) were deleted and replaced by a compact
+`test/design_tokens/render_smoke_test.dart`; `test/meta/conventions_test.dart`
+guards against new visual-pinning assertions.
 
 See [`test/README.md`](test/README.md) for the full test matrix and the curl
 test-writing guide.

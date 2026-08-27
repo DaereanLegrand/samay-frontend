@@ -40,6 +40,17 @@ context and the standing development protocol **automatically**.
 
 ## Notes & decisions
 
+- **UI-only changes skip RED/GREEN** (2026-08-27). Pure visual/layout changes
+  (styling, tokens, spacing, text placement) with no behavior or data-flow
+  impact skip the failing-test-first cycle per `AGENTS.md` §TDD Rules — but
+  they still keep the behavior/widget tests green, and MUST NOT add
+  visual-pinning assertions (token-budget directive 2026-08-27: token values
+  are pinned once in `test/design_tokens/` + `test/theme/` + `test/widgets/`).
+- **Focused test loop is the default** (2026-08-27, explicit directive).
+  Agents iterate with `make test-file FILE=<path>` / `make test-feature
+  FEATURE=<name>` / `make test-files`; the full `make check` + `make test`
+  gate runs ONLY when the human explicitly asks. The `samay` agent prompt,
+  the `reviewer` agent prompt, and the Makefile all encode this.
 - **`.agents/` was NOT created** (documented decision). Juega's `.agents/`
   holds portable *skills* (the supabase + supabase-postgres-best-practices
   `SKILL.md` packages), not project agent definitions — and the same skills

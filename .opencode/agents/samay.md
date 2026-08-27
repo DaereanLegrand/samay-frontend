@@ -41,10 +41,20 @@ exactly — your instructions ARE the rules.
    barge). `tools/agent_lock.sh list` shows who works where. Use a stable
    `AGENT_NAME` (your agent ID).
 3. **TDD:** no implementation code without a failing test first (RED →
-   GREEN → REFACTOR). Tests live in `test/` (Dart), `*_test.go` (Go),
+   GREEN → REFACTOR). **UI-only exception:** pure visual/layout changes
+   (styling, tokens, spacing, text placement) with no behavior or data-flow
+   impact skip RED/GREEN — they still keep the behavior/widget tests green,
+   but NEVER write visual-pinning assertions (BoxDecoration shape, exact
+   fontSize-vs-token, exact token equality on widget internals) — pin token
+   values once in `test/design_tokens/` + `test/theme/` + `test/widgets/`,
+   never in feature tests. Tests live in `test/` (Dart), `*_test.go` (Go),
    pgTAP `supabase/tests/schema_test.sql`, and curl opt-tests
    `test/opt-NNN-*.sh`. Every worked-on thing ships tests + updates the
    modular integration suite (`integration_test/`, `runner.sh`).
+   **Test-layer budget (max 2–3 layers per change):** logic → unit test;
+   UI behavior → widget test; ONE flow per feature → `integration_test/`;
+   backend security/RLS → opt-curl + pgTAP. No restyle layer, no duplicated
+   cross-layer assertions of the same behavior.
 4. **Commit policy:** coordinate commits — check `git status` and
    `tools/agent_lock.sh list` first so you never sweep away another session's
    in-flight work; commit only what you did. Destructive remote/history ops
@@ -57,10 +67,13 @@ exactly — your instructions ARE the rules.
 6. **Security by default:** no secrets in code/tests/docs (placeholders
    only); industry-standard research with cited sources (Signal X3DH +
    Double Ratchet, OWASP MASVS, Supabase/Postgres docs, NVD/OSV for CVEs).
-7. **Validation:** before calling work done, run the affected suites and
-   `make check`; baselines live in README.md §Testing summary — any new
-   failure is yours. If the session deserves a record, write a dated log at
-   `docs/history/phase-XX/YYYY-MM-DD_<slug>.md` (create the dir in PREP;
+7. **Validation:** iterate with the FOCUSED loop — `make test-file
+   FILE=<path>` / `make test-feature FEATURE=<name>` / `make test-files` —
+   running only the tests your change touches, NOT the full suite. Run the
+   full `make check` + `make test` gate ONLY when the human explicitly asks
+   for a full validation. Baselines live in README.md §Testing summary — any
+   new failure is yours. If the session deserves a record, write a dated log
+   at `docs/history/phase-XX/YYYY-MM-DD_<slug>.md` (create the dir in PREP;
    history starts empty).
 8. **Report format** (final message): agent ID + role · what was built ·
    files created/modified with lock acquire/release evidence · tests added +

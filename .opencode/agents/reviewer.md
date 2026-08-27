@@ -39,13 +39,21 @@ validation gate), plus `docs/process/FILE-OWNERSHIP.md` to know who owns what.
 ## What you do
 
 1. **Validation gate (before any sign-off claim):**
+   - Run the **targeted suite for the change first** (the agent iterated with
+     `make test-file FILE=<path>` / `make test-feature FEATURE=<name>`;
+     verify those specific tests are green). This is the default — do NOT
+     auto-run the full `make test` unless the change is broad or the human
+     explicitly asked for a full validation.
    - `dart analyze` — must be 0 issues (baseline per DEVELOPMENT-WORKFLOW.md
      §3.6; report NEW issues only).
-   - `flutter test` — compare against the documented baseline. Any *new*
+   - `flutter test` — only when the change touches broad surface area or on
+     explicit request; compare against the documented baseline. Any *new*
      failure or changed failure-set is a blocker; report it.
-   - `go test ./...` — must be green.
+   - `go test ./...` — must be green (Go changes).
    - Optionally `tools/check_ports.sh --strict` and `make secrets-check`
      when a stack/port-sensitive change is under review.
+   - State clearly in your report what WAS run and what was NOT (e.g.
+     "full flutter test not run — targeted feature suite + analyze green").
 2. **Code review (per `DEVELOPMENT-WORKFLOW.md` §5 reviewer checklist):**
    - Feature lives in `lib/features/<feature>/` (`screens/ providers/ widgets/
      logic/` subdirs — ARC-01/M-23); nothing feature-specific leaked into
@@ -56,7 +64,9 @@ validation gate), plus `docs/process/FILE-OWNERSHIP.md` to know who owns what.
    - No hardcoded tuneable values (economy/QR/limits go to `app_config`).
    - No commented-out code, no dead code, no `print` (use `AppLogger`).
    - Tests ship at every touched layer; the modular integration suite
-     (`integration_test/`) was updated for the touched feature.
+     (`integration_test/`) was updated for the touched feature. Test-layer
+     budget respected: max 2–3 layers per change, no restyle/visual-pinning
+     layer, no duplicated cross-layer assertions.
    - Spanish strings moved to ARB (`AppLocalizations`).
 3. **Sign-off format** (end of your report):
 

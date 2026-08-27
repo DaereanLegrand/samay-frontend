@@ -33,23 +33,37 @@ Authoritative companions: `AGENTS.md` (methodology, ports) and
 ### 1.3 RED — write the failing test first
 
 TDD is non-negotiable: **no implementation code without a failing test first.**
-Write tests at every layer your change touches:
+Write tests at every layer your change touches, but respect the **test-layer
+budget (max 2–3 layers per change)** — pick the smallest set that covers the
+behavior, never the same assertion twice across layers:
 
-| Layer | Where |
-|---|---|
-| Dart unit/widget | `test/`, mirroring `lib/` layout |
-| Flutter integration | `integration_test/<module>_flow_test.dart` (register in `runner.sh` after its data deps) |
-| Backend behavior | `test/opt-NNN-desc.sh`, picked up automatically by `test/run_all_backend.sh` |
-| Go | `*_test.go` next to the code (`httptest` mocks for PostgREST) |
-| SQL | pgTAP case in `supabase/tests/schema_test.sql` (+ byte-identical mirror in `supabase-testing/tests/`) |
+| Layer | Where | When |
+|---|---|---|
+| Dart unit | `test/`, mirroring `lib/` layout | pure logic / services |
+| Dart widget | `test/features/<feature>/` | UI behavior (interaction, state) |
+| Flutter integration | `integration_test/<module>_flow_test.dart` (register in `runner.sh` after its data deps) | ONE flow per feature |
+| Backend behavior | `test/opt-NNN-desc.sh`, picked up automatically by `test/run_all_backend.sh` | API/RLS/security |
+| Go | `*_test.go` next to the code (`httptest` mocks for PostgREST) | CLI/API server logic |
+| SQL | pgTAP case in `supabase/tests/schema_test.sql` (+ byte-identical mirror in `supabase-testing/tests/`) | schema/RLS/RPC |
+
+No restyle layer exists — do not write visual-pinning assertions
+(`BoxDecoration` shape, exact `fontSize`/token equality on widget internals).
+Token values are pinned once in `test/design_tokens/` + `test/theme/` +
+`test/widgets/`; feature tests assert behavior. `test/meta/conventions_test.dart`
+guards this (2026-08-27 token-budget).
 
 Run the new test and confirm it fails for the *right* reason.
+
+**UI-only exception** (per `AGENTS.md` §TDD Rules): pure visual/layout changes
+(styling, tokens, spacing, text placement) with no behavior or data-flow impact
+skip RED/GREEN. They still keep the behavior/widget tests green, and MUST NOT
+add visual-pinning assertions (token-budget, 2026-08-27).
 
 ### 1.4 GREEN — implement the minimum
 
 - Minimum code to pass the tests; no gold-plating, no drive-by refactors.
 - **Lock before you edit** (§2); release after.
-- Run the focused suite while iterating, the full matrix at VALIDATE.
+- Iterate with the **focused loop** (§1.6), not the full suite.
 
 ### 1.5 REFACTOR
 
@@ -59,9 +73,14 @@ Run the new test and confirm it fails for the *right* reason.
 
 ### 1.6 VALIDATE
 
-- Full gates: **`make check`** (`dart analyze` + `flutter analyze` +
-  `go vet` + `tools/check_ports.sh --strict` + secrets gate) and
-  **`make test`** (`flutter test` + `go test ./...`).
+- **Default iteration loop (explicit directive 2026-08-27):** run ONLY the
+  tests your change touches — `make test-file FILE=<path>` /
+  `make test-feature FEATURE=<name>` / `make test-files FILES="a b"` /
+  `go test ./...`. This is the day-to-day loop; do NOT auto-run the full
+  matrix on every iteration.
+- **Full gate** (`make check` + `make test`) runs ONLY when the human
+  explicitly asks for a full validation — e.g. before marking a phase
+  complete or before a commit that touches broad surface area.
 - Stack-dependent suites when infra changed or backend behavior was touched:
   `bash test/run_all_backend.sh` and `supabase db test` (need the Docker stack up).
 - Baseline numbers live in `README.md` §Testing summary — update them in the
@@ -216,10 +235,15 @@ tools/agent_lock.sh list                         # who holds what
 tools/agent_lock.sh acquire <path> --owner "$AGENT_NAME"
 tools/agent_lock.sh release <path> --owner "$AGENT_NAME"
 
+# DEFAULT iteration loop — run ONLY the tests your change touches:
+make test-file FILE=test/features/friends/flow_test.dart   # one file
+make test-files FILES="a_test.dart b_test.dart"             # several files
+make test-feature FEATURE=friends                           # one feature dir
+go test ./...                                               # Go only
+
+# Full gates — ONLY on explicit human request (token-budget 2026-08-27):
 make check        # dart analyze + flutter analyze + go vet + ports + secrets
 make test         # flutter test + go test ./...
-flutter test      # unit/widget only
-go test ./...     # Go only
 bash integration_test/runner.sh          # hermetic integration suite
 bash test/run_all_backend.sh             # curl opt-tests (stack up)
 supabase db test                          # pgTAP (stack up)
