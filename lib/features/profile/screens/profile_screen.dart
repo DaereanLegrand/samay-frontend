@@ -3,11 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:samay/core/config/feature_flags.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
-import 'package:samay/core/design_tokens/app_gradients.dart';
 import 'package:samay/core/design_tokens/app_icon_sizes.dart';
 import 'package:samay/core/design_tokens/app_typography.dart';
 import 'package:samay/core/extensions/error_mapper.dart';
 import 'package:samay/core/providers/auth_provider.dart';
+import 'package:samay/core/router/main_shell.dart';
 import 'package:samay/core/router/route_paths.dart';
 import 'package:samay/features/profile/providers/profile_providers.dart';
 import 'package:samay/shared/widgets/profile_avatar.dart';
@@ -92,7 +92,14 @@ class ProfileScreen extends ConsumerWidget {
                 onRefresh: () => _refresh(ref),
                 child: ListView(
                   physics: const AlwaysScrollableScrollPhysics(),
-                  padding: const EdgeInsets.all(24),
+                  // Bottom inset clears the floating nav pill (extendBody)
+                  // so the last row is never hidden under it (2026-08-27).
+                  padding: EdgeInsets.fromLTRB(
+                    24,
+                    24,
+                    24,
+                    24 + MainShell.navBarInset(context),
+                  ),
                   children: [
                     // U-15 R8 (F18 ADAPTED): the header is the edit
                     // affordance — tapping the avatar OR the username pushes
@@ -116,14 +123,12 @@ child: InkWell(
                     Center(
                       child: InkWell(
                         onTap: () => context.push(RoutePaths.profileEdit),
-                        // LUXE v2 (XL-08): the username is the hero — gold
-                        // VDisplayText (uppercase Playfair, gradient fill,
-                        // slow halo pulse + one-time shimmer sweep). No other
-                        // title on the screen — one hero per screen (§8).
+                        // The username is the hero — white VDisplayText
+                        // (uppercase Playfair, flat fill, monochrome). No
+                        // other title on the screen — one hero per screen.
                         child: VDisplayText(
                           text: displayName,
                           size: 28,
-                          gradient: AppGradients.gold,
                         ),
                       ),
                     ),
@@ -252,10 +257,9 @@ class _BalanceCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    // LUXE v2 (XL-08): the balance card is liquid glass — gold gradient
-    // hairline ring + soft gold glow (`AppGradients.glowShadows`), white
-    // numbers, gold diamond (the currency token, §5.6). The transparent
-    // Material lets the InkWell paint its ink above the glass face.
+    // The balance card: white numbers, gold diamond (the currency token,
+    // §5.6). The transparent Material lets the InkWell paint its ink above
+    // the card face.
     return VCard(
       child: Material(
         type: MaterialType.transparency,

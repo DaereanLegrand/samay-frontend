@@ -1,64 +1,57 @@
 import 'package:flutter/material.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
-import 'package:samay/core/design_tokens/app_gradients.dart';
 import 'package:samay/core/design_tokens/app_radius.dart';
 
-/// Samay chip — DESIGN.md §5.4 (U-05), LUXE v2 gradient-capable
-/// (the LUXE restyle pass (historical) "NO PINK MAINS", 2026-08-12).
+/// Samay chip — DESIGN.md §5.4 (U-05), monochrome
+/// (2026-08-26 user directive: all color stripped down).
 ///
-/// Default: transparent fill, 1px white border, white `labelMedium` label;
-/// selected = white fill + black label. `VChip.accent`: 1px **violet**-family
-/// border + violet label (the vivid end of [AppGradients.violet] by default,
-/// or the passed `gradient:` family); selected = vivid fill + black label.
-/// Sharp corners.
+/// Transparent fill, 1px white border, white `labelMedium` label;
+/// selected = white fill + black label. Sharp corners.
+/// [compact] (2026-08-27 scope chips): reduced height/width/padding with a
+/// `labelSmall` label — for the Directa/Grupo toggle so it stays slim.
 class VChip extends StatelessWidget {
   final String label;
   final bool selected;
   final VoidCallback? onSelected;
-  final bool accent;
 
-  /// LUXE accent family — its vivid end drives the accent border/label/fill.
-  /// Null (accent variant) → [AppGradients.violet], never pink.
-  final AppGradient? gradient;
+  /// Compact mode: tighter tap target + smaller padding + `labelSmall` text.
+  final bool compact;
 
   const VChip({
     super.key,
     required this.label,
     this.selected = false,
     this.onSelected,
-    this.accent = false,
-    this.gradient,
+    this.compact = false,
   });
-
-  /// §5.4 accent chip — violet-family border + label, vivid fill when
-  /// selected (pass `gradient:` to adopt another family).
-  const VChip.accent({
-    super.key,
-    required this.label,
-    this.selected = false,
-    this.onSelected,
-    this.gradient,
-  }) : accent = true;
 
   @override
   Widget build(BuildContext context) {
-    final accentColor = accent
-        ? (gradient ?? AppGradients.violet).colors.last
-        : null;
-    final borderColor = accentColor ?? AppColors.white;
-    final labelColor = selected ? AppColors.discoBlack : borderColor;
+    final textStyle = compact
+        ? Theme.of(context).textTheme.labelSmall
+        : Theme.of(context).textTheme.labelMedium;
     return FilterChip(
       label: Text(label),
       selected: selected,
       onSelected: (value) => onSelected?.call(),
-      labelStyle: Theme.of(
-        context,
-      ).textTheme.labelMedium?.copyWith(color: labelColor),
-      selectedColor: accentColor ?? AppColors.white,
+      labelStyle: textStyle?.copyWith(color: labelColor),
+      labelPadding: compact
+          ? const EdgeInsets.symmetric(horizontal: 2)
+          : null,
+      padding: compact
+          ? const EdgeInsets.symmetric(horizontal: 6, vertical: 0)
+          : null,
+      materialTapTargetSize: compact
+          ? MaterialTapTargetSize.shrinkWrap
+          : MaterialTapTargetSize.padded,
+      visualDensity: compact ? VisualDensity.compact : VisualDensity.standard,
+      selectedColor: AppColors.white,
       backgroundColor: Colors.transparent,
-      side: BorderSide(color: borderColor),
+      side: const BorderSide(color: AppColors.white),
       shape: const RoundedRectangleBorder(borderRadius: AppRadius.sharp),
       showCheckmark: false,
     );
   }
+
+  Color get labelColor => selected ? AppColors.discoBlack : AppColors.white;
 }

@@ -143,14 +143,14 @@ tools/                        check_secrets/check_ports/check_migrations,
 Baseline numbers below are re-verified whenever docs change; if you change
 code, update them in the same commit.
 
-| Layer | Command | Baseline (2026-08-25) |
+| Layer | Command | Baseline (2026-08-27) |
 |-------|---------|----------------------|
 | Static analysis | `dart analyze` | **0 issues** |
-| Flutter unit/widget | `make flutter-test` | **2454 pass / 0 fail** |
+| Flutter unit/widget | `make flutter-test` | **2471 pass / 0 fail** |
 | Go | `go test ./...` | green — **188 tests**, 6 packages |
 | Integration flows | `bash integration_test/runner.sh` (hermetic) | **21 registered flows** |
-| Backend (curl) | `bash test/run_all_backend.sh` | **15 opt-tests** (needs the stack up; opt-007 static gate has 2 pre-existing env-alignment failures — see docs/history/phase-04/2026-08-25_profile_rpc_lockdown.md) |
-| SQL (pgTAP) | `supabase db test` | **plan(617)** assertions (needs the stack) |
+| Backend (curl) | `bash test/run_all_backend.sh` | **16 opt-tests** (needs the stack up; opt-007 static gate reports SERVICE_KEY-vs-.env alignment drift on opt-001..006 — local `.env` rotated after the 2026-08-25 baseline; runtime runs pass — see docs/history/phase-13/2026-08-26_monochrome-refactor.md) |
+| SQL (pgTAP) | `supabase db test` | **plan(661)** assertions (needs the stack; verified 661/661 on 2026-08-27) |
 | Manual end-user QA | `bash test_runner.sh` | gum-based manual runner |
 
 See [`test/README.md`](test/README.md) for the full test matrix and the curl

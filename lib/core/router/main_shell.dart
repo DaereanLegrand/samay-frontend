@@ -4,13 +4,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
-import 'package:samay/core/design_tokens/app_gradients.dart';
+import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/router/route_paths.dart';
+import 'package:samay/core/theme/samay_durations.dart';
 import 'package:samay/features/chat/providers/inbox_realtime_listener.dart';
 import 'package:samay/features/friends/providers/friends_providers.dart';
 import 'package:samay/features/friends/providers/friendships_realtime_listener.dart';
 import 'package:samay/features/groups/providers/group_memberships_realtime_listener.dart';
 import 'package:samay/features/groups/providers/groups_providers.dart';
+import 'package:samay/features/minigames/providers/minigame_invites_realtime_listener.dart';
+import 'package:samay/features/minigames/providers/minigames_providers.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/v_count_badge.dart';
 import 'package:samay/shared/widgets/v_tab_fade.dart';
@@ -71,9 +74,9 @@ int shellIndexFor(String location) {
 }
 
 /// R18 (F5 DIRECT): the shell's Grupos-tab pending counter — received friend
-/// requests + group invites, derived from the two root providers the Grupos
-/// tab already feeds on (the same count as its "Solicitudes" button). The
-/// shell only *watches*: nothing new is fetched by mounting it.
+/// requests + group invites + pending minigame invites (2026-08-27 red-circle
+/// directive), derived from the root providers the Grupos tab already feeds
+/// on. The shell only *watches*: nothing new is fetched by mounting it.
 final pendingCountsProvider = Provider<int>((ref) {
   final requests =
       ref
@@ -84,7 +87,9 @@ final pendingCountsProvider = Provider<int>((ref) {
           .length ??
       0;
   final invites = ref.watch(groupInvitesProvider).valueOrNull?.length ?? 0;
-  return requests + invites;
+  final minigameInvites =
+      ref.watch(pendingMinigameInvitesProvider);
+  return requests + invites + minigameInvites;
 });
 
 class MainShell extends ConsumerWidget {
@@ -92,6 +97,13 @@ class MainShell extends ConsumerWidget {
   final int currentIndex;
 
   const MainShell({super.key, required this.child, required this.currentIndex});
+
+  /// Bottom inset for shell-tab bodies (Juega's `navBarInset` pattern,
+  /// 2026-08-27 Premium pill): the tab content clears the floating nav bar
+  /// instead of scrolling beneath it — `extendBody` draws the body under
+  /// the bar, so every tab pads its bottom by this much.
+  static double navBarInset(BuildContext context) =>
+      MediaQuery.paddingOf(context).bottom + AppSpacing.md + 4;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -103,76 +115,153 @@ class MainShell extends ConsumerWidget {
     // The shared `VTabFade` owns the reduced-motion contract
     // (`disableAnimations` → static, U-18) + the duration/curve tokens.
     final body = VTabFade(key: ValueKey(currentIndex), child: child);
-    // Friendships realtime (2026-08-14): the listener is mounted for the
-    // shell's lifetime — invalidates friends/requests providers on remote
-    // row events, so the accepting side's list updates without pull.
+    // Friendships + inbox + group memberships + minigame-invite realtime:
+    // the listeners are mounted for the shell's lifetime — invalidates the
+    // root providers on remote row events, so badges update without pull.
     return Stack(
       children: [
         const FriendshipsRealtimeListener(),
         const InboxRealtimeListener(),
         const GroupMembershipsRealtimeListener(),
+        const MinigameInvitesRealtimeListener(),
         Scaffold(
+          extendBody: true,
           body: body,
-          // LUXE v2 (XL-06): the shell bar is a LIQUID GLASS strip — a
-          // blur-12 white-sheen layer + 1px gradient top hairline painted
-          // behind the translucent Material bar (theme fill `surface` α0.85,
-          // see bottomNavigationBarTheme). Behavior is untouched: index, taps,
-          // badge, fade.
-          bottomNavigationBar: Stack(
-            children: [
-              const Positioned.fill(child: _NavGlassStrip()),
-              BottomNavigationBar(
-                currentIndex: currentIndex,
-                onTap: (index) => context.go(mainShellTabs[index].path),
-                items: [
-                  for (var i = 0; i < mainShellTabs.length; i++)
-                    BottomNavigationBarItem(
-                      // R18: the Grupos tab icon carries the pending badge (U-16's
-                      // `VCountBadge` — tiny, accent-scale per §7.2). The badge shows
-                      // only while the user is NOT on the tab (Juega hides its feed
-                      // badge the same way) — the active tab renders `activeIcon`,
-                      // which never carries it.
-                      icon: _tabIcon(context, i, pendingCount),
-                      activeIcon: _tabGlowIcon(mainShellTabs[i].selectedIcon),
-                      label: _tabLabel(l10n, i),
-                    ),
-                ],
-              ),
-            ],
+          // Premium floating pill (2026-08-27, Juega style): a rounded
+          // liquid-glass bar with safe-area padding + a bottom inset so the
+          // tab content never hides under it. Behavior is untouched: index,
+          // taps, badge, fade.
+          bottomNavigationBar: _FloatingNavBar(
+            selectedIndex: currentIndex,
+            pendingCount: pendingCount,
+            onTap: (index) => context.go(mainShellTabs[index].path),
+            l10n: l10n,
           ),
         ),
       ],
     );
   }
+}
 
-  /// Selected-tab icon wrapped in a STATIC violet halo (LUXE XL-06): the
-  /// `glowShadows` stack at fixed α0.30 / blur 28. Deliberately NOT
-  /// `VGlowPulse` — chrome must not animate; the glow is a fixed BoxShadow.
-  Widget _tabGlowIcon(IconData icon) {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        boxShadow: AppGradients.glowShadows(
-          AppGradients.violet,
-          alpha: 0.30,
-          blur: 28,
+/// Premium floating pill nav bar — a faithful port of Juega's Premium pill
+/// (`Juega/lib/shared/widgets/main_shell.dart`, 2026-08-27 user directive:
+/// "CHECK JUEGA … easy to copy paste … unified code that works").
+///
+/// Geometry is identical to Juega: a `SafeArea` → `Padding` (24,0,24,20) →
+/// glass pill (blur 20, α0.85 fill, radius 24, inner padding 12×10) → a
+/// `spaceAround` `Row` of `AnimatedContainer` tabs (padding 16×8, radius 16).
+/// The selected tab carries a 4×4 dot under the icon; because exactly one
+/// tab is ALWAYS selected, the pill's height and width are constant — they
+/// never change on tab switch.
+class _FloatingNavBar extends ConsumerWidget {
+  final int selectedIndex;
+  final int pendingCount;
+  final void Function(int) onTap;
+  final AppLocalizations l10n;
+
+  const _FloatingNavBar({
+    required this.selectedIndex,
+    required this.pendingCount,
+    required this.onTap,
+    required this.l10n,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(24, 0, 24, 20),
+        child: ClipRRect(
+          // Sharp corners (2026-08-27 user directive: remove the rounded
+          // NavBar corners — the brutalist §4.2 radius-0 rule).
+          borderRadius: BorderRadius.zero,
+          child: BackdropFilter(
+            filter: ui.ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+            child: Container(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 10,
+              ),
+              decoration: BoxDecoration(
+                color: AppColors.surface.withValues(alpha: 0.85),
+                borderRadius: BorderRadius.zero,
+                border: Border.all(
+                  color: AppColors.white.withValues(alpha: 0.15),
+                ),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  for (var i = 0; i < mainShellTabs.length; i++)
+                    _tabItem(context, i),
+                ],
+              ),
+            ),
+          ),
         ),
       ),
-      child: Icon(icon),
     );
   }
 
-  /// The unselected-tab icon; the Grupos one gains the R18 pending badge
-  /// when there is something pending and the user is elsewhere.
-  Widget _tabIcon(BuildContext context, int index, int pendingCount) {
-    final icon = Icon(mainShellTabs[index].icon);
-    if (index != 1 || pendingCount <= 0 || currentIndex == 1) return icon;
-    return Stack(
-      clipBehavior: Clip.none,
-      children: [
-        icon,
-        Positioned(right: -6, top: -6, child: VCountBadge(count: pendingCount)),
-      ],
+  /// One tab — Juega's exact anatomy: `GestureDetector` (opaque hit) →
+  /// `AnimatedContainer` (16×8 padding, rounded 16, selected = white α0.15
+  /// fill) → `Column` [icon stack, selected dot]. The Grupos tab (index 1)
+  /// gains the red pending badge while there is something pending AND the
+  /// user is elsewhere (R18 — Juega hides its feed badge the same way).
+  Widget _tabItem(BuildContext context, int index) {
+    final selected = index == selectedIndex;
+    final label = _tabLabel(l10n, index);
+    return Semantics(
+      button: true,
+      selected: selected,
+      label: label,
+      child: GestureDetector(
+        onTap: () => onTap(index),
+        behavior: HitTestBehavior.opaque,
+        child: Tooltip(
+          message: label,
+          child: AnimatedContainer(
+            duration: SamayDurations.standard,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    Icon(
+                      selected
+                          ? mainShellTabs[index].selectedIcon
+                          : mainShellTabs[index].icon,
+                      color: selected ? AppColors.white : AppColors.muted,
+                      size: 24,
+                    ),
+                    if (index == 1 && pendingCount > 0 && selectedIndex != 1)
+                      Positioned(
+                        right: -8,
+                        top: -4,
+                        child: VCountBadge(count: pendingCount),
+                      ),
+                  ],
+                ),
+                // Selected indicator — the white icon + the 4×4 dot below it
+                // (2026-08-27: no fill background, no rounded corners — the
+                // dot is enough).
+                if (selected)
+                  Container(
+                    margin: const EdgeInsets.only(top: 4),
+                    width: 4,
+                    height: 4,
+                    decoration: const BoxDecoration(
+                      color: AppColors.white,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 
@@ -188,58 +277,5 @@ class MainShell extends ConsumerWidget {
       4 => l10n.shellProfile,
       _ => mainShellTabs[index].label,
     };
-  }
-}
-
-/// The liquid-glass strip behind the shell's nav bar (LUXE v2, XL-06).
-///
-/// Layers, back → front:
-/// 1. `BackdropFilter` blur-12 — glassmorphism over whatever scrolls beneath
-///    the bar (over flat black it degrades to the white sheen, like [VGlass]).
-/// 2. Translucent white fill α0.05 → α0.01, topLeft → bottomRight (the
-///    design-language "white fill α 0.04–0.06").
-/// 3. The 1px gradient top hairline — white α0.25 (left) → transparent
-///    (right) — the "liquid edge" separating the bar from the page.
-///
-/// Sharp, radius 0 (brutalism): the bar IS the bottom screen edge, so the
-/// strip carries no ring border (unlike [VGlass], which draws a full ring).
-class _NavGlassStrip extends StatelessWidget {
-  const _NavGlassStrip();
-
-  @override
-  Widget build(BuildContext context) {
-    return ClipRect(
-      child: BackdropFilter(
-        filter: ui.ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                AppColors.white.withValues(alpha: 0.05),
-                AppColors.white.withValues(alpha: 0.01),
-              ],
-            ),
-          ),
-          child: Align(
-            alignment: Alignment.topCenter,
-            child: Container(
-              height: 1,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.centerLeft,
-                  end: Alignment.centerRight,
-                  colors: [
-                    AppColors.white.withValues(alpha: 0.25),
-                    AppColors.white.withValues(alpha: 0.0),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
   }
 }

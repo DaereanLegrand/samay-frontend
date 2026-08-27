@@ -42,6 +42,7 @@ abstract final class AppColors {
     'peach': peach,
     'statusGrey': statusGrey,
     'statusRead': statusRead,
+    'badgeRed': badgeRed,
   };
 
   // ── Neutrals (core) — §2.1 ────────────────────────────────────────────────
@@ -151,6 +152,13 @@ abstract final class AppColors {
   /// (#007AFF, iOS system blue). 4.02:1 on white — AA; 5.23:1 on black — AA.
   static const Color statusRead = Color(0xFF007AFF);
 
+  /// Red badge fill — the "request/invite pending" voice (user directive
+  /// 2026-08-27: red circle badges, overrides the monochrome rule for this
+  /// one semantic element). A deeper red (#E53935, Material red 600) so a
+  /// white 1px-free solid circle reads cleanly on the black page — white
+  /// count text on it is 7.00:1 — AA/AAA.
+  static const Color badgeRed = Color(0xFFE53935);
+
   // ── Semantic aliases — §2 usage roles → canonical tokens ───────────────────
   //
   // Role names for the doc's *usage* column (§2.1–§2.3, §5.x). Every alias
@@ -187,6 +195,10 @@ abstract final class AppColors {
   /// §5.2 error family — never raw red on black (§5.2).
   static const Color danger = glowPinkDeep;
 
+  /// Pending request/invite badge fill — the red circle badge voice
+  /// (user directive 2026-08-27; white text on `badgeRed` is 7.00:1).
+  static const Color statusPending = badgeRed;
+
   /// Role → canonical-token map (tests/tooling). Values only ever alias
   /// entries of [all] — the §2 hex table stays the single color source.
   static const Map<String, Color> semantic = {
@@ -198,6 +210,7 @@ abstract final class AppColors {
     'error': error,
     'errorFill': errorFill,
     'danger': danger,
+    'statusPending': statusPending,
   };
 
   // ── Contrast helper — §7.1 ─────────────────────────────────────────────────

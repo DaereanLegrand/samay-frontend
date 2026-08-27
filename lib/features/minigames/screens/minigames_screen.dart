@@ -1,24 +1,30 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
-import 'package:samay/core/design_tokens/app_gradients.dart';
 import 'package:samay/core/design_tokens/app_icon_sizes.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/extensions/error_mapper.dart';
+import 'package:samay/core/models/group.dart';
+import 'package:samay/core/router/route_paths.dart';
 import 'package:samay/core/services/minigame_service.dart';
+import 'package:samay/features/groups/providers/groups_providers.dart';
 import 'package:samay/features/minigames/logic/minigame_meta.dart';
 import 'package:samay/features/minigames/providers/minigames_providers.dart';
+import 'package:samay/features/minigames/screens/minigame_invite_screen.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/error_view.dart';
 import 'package:samay/shared/widgets/state_views.dart';
 import 'package:samay/shared/widgets/v_card.dart';
 import 'package:samay/shared/widgets/v_button.dart';
 import 'package:samay/shared/widgets/v_chip.dart';
+import 'package:samay/shared/widgets/v_count_badge.dart';
 import 'package:samay/shared/widgets/v_display_text.dart';
 import 'package:samay/shared/widgets/v_input.dart';
+import 'package:samay/shared/widgets/v_network_image.dart';
 
-/// Friendly message for a rejected session creation (GWAG/GMCR typed errors
-/// — the UI never pattern-matches raw exception strings, I-62 pattern).
+/// Friendly message for a rejected session creation (GWAG/GMCR/GMN typed
+/// errors — the UI never pattern-matches raw exception strings, I-62 pattern).
 String minigameRejectionMessage(
   AppLocalizations l10n,
   MinigameSessionRejection rejection,
@@ -29,42 +35,76 @@ String minigameRejectionMessage(
       l10n.minigamesErrorInsufficientShards,
     MinigameSessionRejection.invalidGameType =>
       l10n.minigamesErrorInvalidGameType,
+    MinigameSessionRejection.inviteeNotAllowed =>
+      l10n.minigamesErrorInviteeNotAllowed,
+    MinigameSessionRejection.inviteeFriendsOnly =>
+      l10n.minigamesErrorInviteeFriendsOnly,
+    MinigameSessionRejection.tooManyInvitees =>
+      l10n.minigamesErrorTooManyInvitees,
+    MinigameSessionRejection.playerLimitReached =>
+      l10n.minigamesErrorPlayerLimitReached,
+    MinigameSessionRejection.notAllowed => l10n.minigamesErrorNotAllowed,
     MinigameSessionRejection.notAuthenticated ||
     MinigameSessionRejection.invalidWager =>
       l10n.minigamesErrorCreate,
   };
 }
 
-/// LUXE v2 family for this screen — **peach** (the LUXE restyle pass (historical) map:
-/// minigames → peach).
-final AppGradient _family = AppGradients.familyOf('minigames');
+/// The two minigame scopes (direct-minigames 2026-08-27): a DIRECT session
+/// (no group — play with friends or non-friends without belonging to any
+/// group) and a GROUP session (the GMCR baseline, group members only).
+enum MinigameScope { direct, group }
 
-/// Group minigames hub (GMCR foundation — I-63): the five game-type cards
-/// (icon + name + tagline), the optional wager input (GWAG: 0 = no wager)
-/// with the create action, and the group's session list with lifecycle
-/// status chips. Tapping a session shows the detail placeholder — the
-/// per-game UIs (turns, timers, votes) are future work.
+/// Minigames hub (I-63 + direct-minigames 2026-08-27): the five game-type
+/// cards (icon + name + tagline), the optional wager input (GWAG: 0 = no
+/// wager) with the create action, and the session list with lifecycle status
+/// chips. Tapping a session shows the detail placeholder — the per-game UIs
+/// (turns, timers, votes) are future work.
 ///
-/// LUXE v2: peach liquid-glass cards; the game-selection accent is the peach
-/// family (never pink — 2026-08-12 directive).
+/// A DIRECT/GROUP toggle sits at the top: Direct is first-class — a new
+/// user with zero groups can play with a friend without creating a group;
+/// groups stay a convenience (bulk-invite / regular play). [groupId] (route
+/// from group detail) preselects the Group scope for that group; the toggle
+/// still lets a member start a direct game from inside a group.
+///
+/// Monochrome: flat cards; selection emphasis is white.
 class MinigamesScreen extends ConsumerStatefulWidget {
-  const MinigamesScreen({super.key, required this.groupId});
+  const MinigamesScreen({super.key, this.groupId});
 
-  final String groupId;
+  /// The group preselected when arriving from a group surface (group detail
+  /// button / group chat). Null = the DIRECT hub is the default scope.
+  final String? groupId;
 
   @override
   ConsumerState<MinigamesScreen> createState() => _MinigamesScreenState();
 }
 
 class _MinigamesScreenState extends ConsumerState<MinigamesScreen> {
+  late MinigameScope _scope;
   MinigameType? _selected;
   final TextEditingController _wagerController = TextEditingController();
   bool _creating = false;
+
+  /// The group resolved in Group scope (null until the user picks one —
+  /// preseeded from [MinigamesScreen.groupId]).
+  String? _selectedGroupId;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedGroupId = widget.groupId;
+    _scope =
+        widget.groupId == null ? MinigameScope.direct : MinigameScope.group;
+  }
 
   @override
   void dispose() {
     _wagerController.dispose();
     super.dispose();
+  }
+
+  void _setScope(MinigameScope scope) {
+    setState(() => _scope = scope);
   }
 
   Future<void> _create() async {
@@ -73,11 +113,26 @@ class _MinigamesScreenState extends ConsumerState<MinigamesScreen> {
     if (type == null) return;
     final wager = int.tryParse(_wagerController.text.trim()) ?? 0;
 
+    // Player picker first: any searchable user can be invited (the
+    // friends-only + blocked + player-cap gates are enforced server-side).
+    final inviteeIds = await Navigator.of(context).push<List<String>>(
+      MaterialPageRoute(builder: (_) => const MinigameInviteScreen()),
+    );
+    if (!mounted) return;
+
     setState(() => _creating = true);
     try {
-      await ref
-          .read(minigameSessionsProvider(widget.groupId).notifier)
-          .create(type, wager);
+      if (_scope == MinigameScope.group) {
+        final groupId = _selectedGroupId;
+        if (groupId == null) return;
+        await ref
+            .read(minigameSessionsProvider(groupId).notifier)
+            .create(type, wager, inviteeIds: inviteeIds ?? const []);
+      } else {
+        await ref
+            .read(myMinigameSessionsProvider.notifier)
+            .create(type, wager, inviteeIds: inviteeIds ?? const []);
+      }
       if (!mounted) return;
       _wagerController.clear();
       ScaffoldMessenger.of(context).showSnackBar(
@@ -98,37 +153,180 @@ class _MinigamesScreenState extends ConsumerState<MinigamesScreen> {
     }
   }
 
-  void _showDetailPlaceholder() {
-    final l10n = AppLocalizations.of(context);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(l10n.minigamesDetailComingSoon)),
-    );
+  void _showDetail(String sessionId) {
+    context.push(RoutePaths.minigameSession(sessionId));
   }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final sessions = ref.watch(minigameSessionsProvider(widget.groupId));
 
     return Scaffold(
       appBar: AppBar(title: Text(l10n.minigamesTitle)),
       body: Column(
         children: [
+          // "Elige un juego" sits IMMEDIATELY below the AppBar (2026-08-27
+          // user directive) — the Directa/Grupo scope row and the game
+          // picker follow underneath.
+          Padding(
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.lg,
+              AppSpacing.lg,
+              AppSpacing.lg,
+              AppSpacing.xs,
+            ),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: VDisplayText(text: l10n.minigamesPickGame, size: 28),
+            ),
+          ),
+          _buildScopeSwitch(l10n),
+          const Divider(height: 1, thickness: 1, color: AppColors.hairline),
           Expanded(
-            child: Column(
-                children: [
-                  _buildGamePicker(l10n),
-                  const Divider(
-                    height: 1,
-                    thickness: 1,
-                    color: AppColors.hairline,
-                  ),
-                  Expanded(child: _buildSessions(l10n, sessions)),
-                ],
-              ),
+            child:
+                _scope == MinigameScope.group && _selectedGroupId == null
+                    ? _buildGroupPicker(l10n)
+                    : Column(
+                        children: [
+                          _buildGamePicker(l10n),
+                          const Divider(
+                            height: 1,
+                            thickness: 1,
+                            color: AppColors.hairline,
+                          ),
+                          Expanded(child: _buildSessions(l10n)),
+                        ],
+                      ),
           ),
         ],
       ),
+    );
+  }
+
+  /// Direct / Group toggle — Direct is the default scope for group-less
+  /// entry, Group routes to the picker below. In Group scope the SELECTED
+  /// group's name + circular banner sit at the LEFT of the row, and a
+  /// switch-groups icon (with the red pending-invite badge) sits at the
+  /// RIGHT (2026-08-27 user directive).
+  ///
+  /// The row has a FIXED height so switching Directa ↔ Grupo never changes
+  /// the layout height: the chips, the group banner+name and the switch icon
+  /// all center within the same box.
+  Widget _buildScopeSwitch(AppLocalizations l10n) {
+    final inGroup = _scope == MinigameScope.group;
+    final groupId = _selectedGroupId;
+    final pendingInvites = ref.watch(pendingMinigameInvitesProvider);
+
+    return Container(
+      height: 40,
+      alignment: Alignment.center,
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          VChip(
+            label: l10n.minigamesScopeDirect,
+            selected: _scope == MinigameScope.direct,
+            onSelected: () => _setScope(MinigameScope.direct),
+            compact: true,
+          ),
+          const SizedBox(width: AppSpacing.sm),
+          VChip(
+            label: l10n.minigamesScopeGroup,
+            selected: _scope == MinigameScope.group,
+            onSelected: () => _setScope(MinigameScope.group),
+            compact: true,
+          ),
+          const Spacer(),
+          if (inGroup && groupId != null) ...[
+            _selectedGroupChip(groupId: groupId, onSwitch: _switchGroup),
+            const SizedBox(width: AppSpacing.xs),
+          ],
+          if (inGroup)
+            _SwitchGroupButton(
+              pendingCount: pendingInvites,
+              onPressed: _switchGroup,
+              tooltip: l10n.minigamesChangeGroup,
+            ),
+        ],
+      ),
+    );
+  }
+
+  /// Opens the group picker again (switches the selected group). Group scope
+  /// with a null selection routes to the picker body.
+  void _switchGroup() {
+    setState(() => _selectedGroupId = null);
+  }
+
+  /// The selected group's identity in the scope row: a circular banner
+  /// (height == width, no taller than the Directa/Grupo chips) + the name —
+  /// resolved from the groups list (2026-08-27: the hub must show the group
+  /// name when "Grupo" is selected).
+  Widget _selectedGroupChip({
+    required String groupId,
+    required VoidCallback onSwitch,
+  }) {
+    return ref.watch(myGroupsProvider).maybeWhen(
+      data: (groups) {
+        final group = groups.where((g) => g.id == groupId).firstOrNull;
+        if (group == null) return const SizedBox.shrink();
+        return Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+             _GroupBannerAvatar(group: group, size: 20),
+            const SizedBox(width: AppSpacing.sm),
+            Flexible(
+              child: Text(
+                group.name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: AppColors.white,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+      orElse: () => const SizedBox.shrink(),
+    );
+  }
+
+  /// Group scope with no group chosen yet: the user's groups to pick from
+  /// (or the create-a-group hint when they have none — a fresh user lands on
+  /// Direct, so this is an edge state for group-seeking players).
+  Widget _buildGroupPicker(AppLocalizations l10n) {
+    return ref.watch(myGroupsProvider).when(
+      loading: () => const VLoadingView(),
+      error: (e, _) => ErrorView(
+        message: e.toAppError().message,
+        onRetry: () => ref.invalidate(myGroupsProvider),
+      ),
+      data: (groups) {
+        if (groups.isEmpty) {
+          return VEmptyView(
+            icon: Icons.group_outlined,
+            title: l10n.minigamesNoGroups,
+            description: l10n.minigamesNoGroupsBody,
+            actionLabel: l10n.groupsCreateGroup,
+            onAction: () => context.push(RoutePaths.groupCreate),
+          );
+        }
+        return ListView.separated(
+          itemCount: groups.length,
+          separatorBuilder: (_, _) => const Divider(height: 1),
+          itemBuilder: (_, i) {
+            final group = groups[i];
+            return ListTile(
+              leading: _GroupBannerAvatar(group: group, size: AppSpacing.avatar),
+              title: Text(group.name),
+              onTap: () => setState(() => _selectedGroupId = group.id),
+            );
+          },
+        );
+      },
     );
   }
 
@@ -138,12 +336,6 @@ class _MinigamesScreenState extends ConsumerState<MinigamesScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          VDisplayText(
-            text: l10n.minigamesPickGame,
-            size: 28,
-            gradient: _family,
-          ),
-          const SizedBox(height: AppSpacing.md),
           SizedBox(
             height: 132,
             child: ListView.separated(
@@ -175,10 +367,8 @@ class _MinigamesScreenState extends ConsumerState<MinigamesScreen> {
               const SizedBox(width: AppSpacing.lg),
               SizedBox(
                 width: 150,
-                child: VButton.glowAccent(
+                child: VButton.dark(
                   label: l10n.minigamesCreate,
-                  filled: true,
-                  gradient: _family,
                   loading: _creating,
                   onPressed: _selected == null ? null : _create,
                 ),
@@ -190,32 +380,67 @@ class _MinigamesScreenState extends ConsumerState<MinigamesScreen> {
     );
   }
 
-  Widget _buildSessions(
-    AppLocalizations l10n,
-    AsyncValue<List<Map<String, dynamic>>> sessions,
-  ) {
+  /// The scoped session list (the picker above sits outside it, so the list
+  /// always owns the leftover height). Loading/error/empty use a scroll-safe
+  /// centered block — the state widgets never overflow the available space.
+  Widget _buildSessions(AppLocalizations l10n) {
+    final direct = _scope == MinigameScope.direct;
+    final sessions = direct
+        ? ref.watch(myMinigameSessionsProvider)
+        : ref.watch(minigameSessionsProvider(_selectedGroupId!));
+
     return sessions.when(
       loading: () => const VLoadingView(),
-      error: (error, _) => ErrorView(
-        message: l10n.minigamesErrorLoad,
-        onRetry: () =>
-            ref.read(minigameSessionsProvider(widget.groupId).notifier).refresh(),
+      error: (error, _) => _fillState(
+        ErrorView(
+          message: l10n.minigamesErrorLoad,
+          onRetry: _refreshSessions,
+        ),
       ),
       data: (rows) => rows.isEmpty
-          ? VEmptyView(
-              icon: Icons.sports_esports,
-              title: l10n.minigamesEmpty,
-              description: l10n.minigamesEmptyBody,
+          ? _fillState(
+              VEmptyView(
+                icon: Icons.sports_esports,
+                title: direct
+                    ? l10n.minigamesDirectEmpty
+                    : l10n.minigamesEmpty,
+                description: direct
+                    ? l10n.minigamesDirectEmptyBody
+                    : l10n.minigamesEmptyBody,
+              ),
             )
           : ListView.separated(
               itemCount: rows.length,
               separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.xs),
               itemBuilder: (_, i) => _SessionCard(
                 session: rows[i],
-                onTap: _showDetailPlaceholder,
+                onTap: () => _showDetail(rows[i]['id'] as String),
               ),
             ),
     );
+  }
+
+  /// Centered state block that fills its available height and scrolls when
+  /// the state widget is taller than it (a centered state must never
+  /// overflow its box).
+  Widget _fillState(Widget child) {
+    return LayoutBuilder(
+      builder: (context, constraints) => SingleChildScrollView(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(minHeight: constraints.maxHeight),
+          child: Center(child: child),
+        ),
+      ),
+    );
+  }
+
+  /// Re-runs whichever session list is currently scoped.
+  Future<void> _refreshSessions() async {
+    if (_scope == MinigameScope.direct) {
+      await ref.read(myMinigameSessionsProvider.notifier).refresh();
+    } else {
+      await ref.read(minigameSessionsProvider(_selectedGroupId!).notifier).refresh();
+    }
   }
 }
 
@@ -263,8 +488,8 @@ class _GameCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final (icon, name, tagline) = _meta;
-    // LUXE: the selection accent is the peach family (vivid end), never pink.
-    final accent = selected ? _family.colors.last : AppColors.white;
+    // Monochrome: selection emphasis is white vs muted grey.
+    final accent = selected ? AppColors.white : AppColors.mutedStrong;
 
     return InkWell(
       onTap: onTap,
@@ -281,7 +506,7 @@ class _GameCard extends StatelessWidget {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                  color: selected ? _family.colors.last : AppColors.white,
+                  color: selected ? AppColors.white : AppColors.mutedStrong,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -358,6 +583,90 @@ class _SessionCard extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// Circular group banner avatar: a complete circle, height == width, no
+/// bigger than the Directa/Grupo chips (2026-08-27 user directive). The
+/// cover image renders inside a circular clip; the initials fallback keeps
+/// the ring when no cover exists.
+class _GroupBannerAvatar extends StatelessWidget {
+  final Group group;
+  final double size;
+
+  const _GroupBannerAvatar({required this.group, required this.size});
+
+  @override
+  Widget build(BuildContext context) {
+    final hasCover = group.coverUrl != null && group.coverUrl!.isNotEmpty;
+    final initials = group.name.isEmpty ? null : group.name.substring(0, 1);
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: AppColors.surfaceAlt,
+        border: Border.all(color: AppColors.border),
+      ),
+      padding: const EdgeInsets.all(1),
+      child: ClipOval(
+        child: SizedBox.expand(
+          child: hasCover
+              ? VNetworkImage(imageUrl: group.coverUrl!, fit: BoxFit.cover)
+              : Center(
+                  child: Text(
+                    initials ?? '',
+                    style: TextStyle(
+                      fontSize: size * 0.35,
+                      color: AppColors.white,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+        ),
+      ),
+    );
+  }
+}
+
+/// The switch-groups icon in the scope row — a swap icon that reopens the
+/// group picker, carrying the red pending-invite badge (2026-08-27
+/// directive: the red circle appears on the invite/request affordance).
+class _SwitchGroupButton extends StatelessWidget {
+  final int pendingCount;
+  final VoidCallback onPressed;
+  final String tooltip;
+
+  const _SwitchGroupButton({
+    required this.pendingCount,
+    required this.onPressed,
+    required this.tooltip,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        SizedBox(
+          width: 32,
+          height: 32,
+          child: IconButton(
+            icon: const Icon(Icons.swap_horiz, size: 20),
+            tooltip: tooltip,
+            color: AppColors.white,
+            padding: EdgeInsets.zero,
+            onPressed: onPressed,
+          ),
+        ),
+        if (pendingCount > 0)
+          Positioned(
+            right: -2,
+            top: -2,
+            child: VCountBadge(count: pendingCount),
+          ),
+      ],
     );
   }
 }
