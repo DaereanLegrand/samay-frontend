@@ -76,6 +76,11 @@ class VHeaderBar extends StatelessWidget {
                           onBack ?? () => Navigator.of(context).maybePop(),
                     ),
                   ),
+                if (showBack && title != null)
+                  // Matches the search field's icon→text gap (4px): the
+                  // header title lands on the same x as the input's starting
+                  // cursor, and the leading icons (arrow ↔ magnifier) line up.
+                  const SizedBox(width: AppSpacing.xs),
                 if (title != null)
                   Expanded(
                     child: VDisplayText(text: title!, maxLines: maxLines),
