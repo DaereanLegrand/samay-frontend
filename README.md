@@ -143,23 +143,27 @@ tools/                        check_secrets/check_ports/check_migrations,
 Baseline numbers below are re-verified whenever docs change; if you change
 code, update them in the same commit.
 
-| Layer | Command | Baseline (2026-08-27) |
+| Layer | Command | Baseline (2026-08-28) |
 |-------|---------|----------------------|
 | Static analysis | `dart analyze` | **0 issues** |
-| Flutter unit/widget | `make flutter-test` | **2386 pass / 0 fail** (restyle files removed — see below) |
+| Flutter unit/widget | `make flutter-test` | **1783 pass / 0 fail** (suckless reduction — see below) |
 | Go | `go test ./...` | green — **188 tests**, 6 packages |
 | Integration flows | `bash integration_test/runner.sh` (hermetic) | **21 registered flows** |
 | Backend (curl) | `bash test/run_all_backend.sh` | **16 opt-tests** (needs the stack up; opt-007 static gate reports SERVICE_KEY-vs-.env alignment drift on opt-001..006 — local `.env` rotated after the 2026-08-25 baseline; runtime runs pass — see docs/history/phase-13/2026-08-26_monochrome-refactor.md) |
-| SQL (pgTAP) | `supabase db test` | **plan(661)** assertions (needs the stack; verified 661/661 on 2026-08-27) |
+| SQL (pgTAP) | `supabase db test` | **plan(742)** assertions (needs the stack; +81 from Section 49c 150_minigame_play 2026-08-28) |
 | Manual end-user QA | `bash test_runner.sh` | gum-based manual runner |
 
-**Focused test loop (token-budget 2026-08-27):** agents iterate with
-`make test-file FILE=<path>` / `make test-feature FEATURE=<name>` / `make
-test-files FILES="a b"` — the full `make check` + `make test` gate runs only
-on explicit human request. The five `test/features/*/restyle_test.dart`
-visual-pinning files (~3.8k lines) were deleted and replaced by a compact
-`test/design_tokens/render_smoke_test.dart`; `test/meta/conventions_test.dart`
-guards against new visual-pinning assertions.
+**Suckless test policy (2026-08-28):** only FUNCTIONAL tests ship in `test/`
+— logic, contract, and HTTP-to-harness wiring. The UI-only layer was removed:
+per-screen render/empty-state/loading-skeleton/`renders without overflow`
+suites, the token/theme/shared-widget visual-pin files, and duplicated
+meta-guards (≈600 tests, ~25%). The remaining suite pins behavior through real
+Supabase-harness contract assertions (`harnessHttp.sent*`, e.g. the
+`accept_friend_request` RPC, leave-group `DELETE`, event-create `POST
+/rest/v1/events`). `test/meta/conventions_test.dart` enforces the policy:
+no new `takeException()==null` smoke tests and no whole-file render-only
+feature suites. `flutter test` = **1783 pass / 0 fail** (re-verified
+2026-08-28).
 
 See [`test/README.md`](test/README.md) for the full test matrix and the curl
 test-writing guide.
