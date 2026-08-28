@@ -49,11 +49,23 @@ jsonb payload.
 ## Commands run
 
 - `bash tools/check_migrations.sh` — passed (parity + no untracked after
-  mirroring).
-- `make test-file FILE=test/features/minigames/minigame_rpc_migration_test.dart` — passed.
-- `make test-feature FEATURE=minigames` — passed.
-- `make test-file FILE=test/meta/conventions_test.dart` — passed.
-- pgTAP (stack UP): `PGPASSWORD=postgres psql -h localhost -p 54382 -U postgres -d postgres -v ON_ERROR_STOP=1 -f supabase/tests/schema_test.sql` — **42/742** after migrating; full 742 after re-init (`make supabase-testing-init` + `make supabase-init` applied the migration; the RLS/PG-catalog reality matches the migration once re-initialized).
+  commit).
+- `make test-file FILE=test/features/minigames/minigame_rpc_migration_test.dart` — passed (51 tests).
+- `make test-feature FEATURE=minigames` — passed (102 tests).
+- `make test-file FILE=test/meta/conventions_test.dart` — passed (34 tests).
+- pgTAP (stack UP): `PGPASSWORD=postgres psql -h localhost -p 54382 -U postgres -d postgres -v ON_ERROR_STOP=1 -f supabase/tests/schema_test.sql` — **741/742**; the single failure (#181 "users table empty after init/reset") is a PRE-EXISTING environmental condition: the local dev stack accumulated opt-curl test users (user_a/b/c_opt006, tester1..4) from earlier sessions. All 81 new Section 49c assertions pass.
+- Full lifecycle smoke test (in ROLLBACK): create → init (random subject) → idempotent init (already_started) → reveal (random prompt) → invalid_prompt_type → advance (round-robin judge + random subject + round append + prompt clear) → complete (phase + session finished) → get (ok). Wager path: 10-shard session refunded BOTH participants via minigame_refund ledger.
+- Security verify: `minigame_game_state` + `minigame_prompts` both `relrowsecurity=t, relforcerowsecurity=t`; authenticated role reads 0 rows of game state without session standing.
+
+## Files created/modified
+
+- `supabase/migrations/150_minigame_play/play.sql` (new)
+- `supabase-testing/migrations/150_minigame_play/play.sql` (new, byte-identical)
+- `supabase/tests/schema_test.sql` (Section 49c, plan 661→742)
+- `supabase-testing/tests/schema_test.sql` (byte-identical mirror)
+- `test/features/minigames/minigame_rpc_migration_test.dart` (new group, +9 tests → 51)
+- `README.md` (pgTAP baseline plan 661→742)
+- `docs/history/phase-16/2026-08-28_truth-dare-play-engine.md` (this log)
 
 ## MISTAKE blocks
 
@@ -68,3 +80,24 @@ jsonb payload.
   the whole `public` function inventory, so the play RPCs must carry the
   exact REVOKE PUBLIC / GRANT authenticated(+service_role for
   complete/settle) lines or the pre-existing gates fail.
+- **MISTAKE (FORCE without ENABLE):** `FORCE ROW LEVEL SECURITY` does NOT
+  enable RLS — they are orthogonal PG knobs. The first migration applied
+  only FORCE, leaving the GRANT SELECT open to ALL authenticated users
+  (any authenticated user could read every game state row). Caught by the
+  pgTAP `relrowsecurity` reality check; fixed with
+  `ALTER TABLE ... ENABLE ROW LEVEL SECURITY` on both tables and re-verified
+  that an authenticated caller sees 0 rows without session standing.
+- **MISTAKE (pg_get_functiondef formatting):** `pg_get_functiondef` normalizes
+  multi-line `jsonb_build_object(...)` into a single line (or splits
+  `NEW.updated_at := now()`), so the `pg_get_functiondef(...) LIKE '%...%'`
+  static assertions must match the normalized body, not the migration
+  source. Rewrote 4 assertions to match (touch stamp, init skeleton,
+  reveal draw, advance bump).
+- **MISTAKE (commit hygiene):** the pgTAP baseline number I must update
+  (README line) was interleaved in a file that ALSO carried another
+  session's uncommitted suckless-test edits. `git add README.md` swept
+  their edits into my commit (46ecafd). No content lost — it's preserved in
+  the commit — but their in-flight README work is now inside my commit
+  rather than their working tree. The other session's 58 staged test-file
+  deletions were NOT touched. Coordinate before touching README.md when it
+  has concurrent uncommitted edits.
