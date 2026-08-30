@@ -170,10 +170,13 @@ Supabase-harness contract assertions (`harnessHttp.sent*`, e.g. the
   friends cache for invite/buscar — empty + <5-char queries show the cached
   friend list via the `get_friend_profiles` RPC; partida lobby: the session
   detail AppBar is the LOWERCASE minigame name ("verdad o reto"), the
-  realtime participant roster carries live Ready toggles
-  (`set_minigame_ready`), the creator's Start is backend-enforced
-  (`init_minigame_game_state` → `not_creator`), and creator removal refunds
-  the wager via `remove_minigame_participant`).
+  realtime participant roster carries live Ready state — plain "Listo" chips
+  for ready peers (no username), the host never shows a chip (ready by
+  default), a non-creator toggles via the emphasized "¿Listo?" button, and
+  ready-map changes update only the changed row in place (granular sync, no
+  whole-list rebuild); the creator's Start is the emphasized "Empezar",
+  backend-enforced (`init_minigame_game_state` → `not_creator`), and creator
+  removal refunds the wager via `remove_minigame_participant`).
 
 See [`test/README.md`](test/README.md) for the full test matrix and the curl
 test-writing guide.

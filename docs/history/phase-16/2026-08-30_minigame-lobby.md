@@ -37,8 +37,29 @@ Client side: `MinigameService.setReady/getMinigameParticipants/
 removeParticipant`; `minigameParticipantsProvider` (roster merged with the
 LIVE ready map from `minigameGameStateProvider`); ready/start/remove actions
 on the game-state notifier; the lobby UI on `minigame_session_detail_screen`
-(participant rows, self Ready chip, creator Start → navigates to
+(participant rows, ready chips, creator Start → navigates to
 `RoutePaths.truthDare`, creator remove with confirmation dialog).
+
+### Lobby polish (same session, after the initial ship)
+
+- **Accepted invitees see the lobby** — the static "Te uniste a la partida"
+  card is gone; accepting falls through to `_LobbySection` (the join
+  confirmation lives in the SnackBar).
+- **Granular ready sync** — the roster is fetched ONCE; live ready toggles
+  stream through `minigameGameStateProvider` and `ref.listen` diffs the ready
+  map, updating ONLY the changed row in place (`copyWithReady`). No whole-list
+  rebuild, no re-fetch — a participant flipping ready doesn't ripple the
+  whole lobby on every device.
+- **Ready UI (2026-08-30 user directive)** — others show a plain
+  (non-emphasized, `selected:false`) "Listo"/"Ready" chip with NO username,
+  and only once they are ready; a not-ready player shows nothing; the HOST
+  never shows a chip (ready by default). A non-creator toggles their own
+  state via the EMPHASIZED "¿Listo?"/"Ready?" button (white fill, black font)
+  that flips to the outlined "Listo"/"Ready" — sitting exactly where the
+  creator's Start button does.
+- **Creator Start** is now the emphasized "Empezar"/"Start" (white fill,
+  black font).
+- Removed the dead `minigamesReadyFor` l10n key (no longer used).
 
 ## Decisions made and why
 
@@ -99,10 +120,12 @@ bash -n test/opt-019-minigame-lobby.sh
   `getMinigameParticipants` / `removeParticipant` wire contracts + typed
   rejections (`not_creator`, `not_allowed`, `session_not_active`).
 - `test/features/minigames/minigame_lobby_screen_test.dart` — lowercase
-  AppBar, realtime roster, self Ready toggle wiring, creator-only Start,
-  creator-only remove wiring.
+  AppBar (body no longer repeats the capitalized title), realtime roster +
+  host marker, the non-creator "¿Listo?" toggle wiring through
+  `set_minigame_ready`, creator-only Start ("Empezar"), creator-only remove
+  wiring.
 - `integration_test/minigame_lobby_flow_test.dart` (registered in
-  `runner.sh`) — ready → creator start → play, + creator removal.
+  `runner.sh`) — creator Start ("Empezar") → init, + creator removal.
 - `test/opt-019-minigame-lobby.sh` — ready map on the row, roster resolves
   non-friends, `not_creator` for B/C, wager refund + participants drop +
   invite close on removal.
