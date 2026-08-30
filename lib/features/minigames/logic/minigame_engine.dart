@@ -157,6 +157,7 @@ class MinigameGameState {
     required this.gameType,
     required this.skeleton,
     required this.rounds,
+    required this.ready,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -165,6 +166,13 @@ class MinigameGameState {
   final String gameType;
   final GameTurnSkeleton skeleton;
   final List<GameRoundRecord> rounds;
+
+  /// The partida lobby's authoritative ready map — `{participant_id: bool}`
+  /// (180_minigame_lobby). Written ONLY through `set_minigame_ready` and
+  /// streamed live via the `minigame_game_state` realtime subscription, so a
+  /// participant's Ready toggle lands here instantly for the whole lobby.
+  final Map<String, bool> ready;
+
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -172,14 +180,18 @@ class MinigameGameState {
 
   bool get hasPrompt => skeleton.hasPrompt;
 
+  /// Whether [participantId] has toggled Ready (absent → not ready).
+  bool isReady(String participantId) => ready[participantId] ?? false;
+
   /// Parses a play-engine row. The turn skeleton is read from the nested
   /// `state.state` object (tolerant: any missing piece falls back to a
-  /// default skeleton).
+  /// default skeleton); the `ready` map tolerates absence (`{}`).
   factory MinigameGameState.fromRow(Map<String, dynamic> row) {
     final nested = row['state'] is Map
         ? Map<String, dynamic>.from(row['state'] as Map)
         : <String, dynamic>{};
     final rawRounds = row['rounds'];
+    final rawReady = row['ready'];
     return MinigameGameState(
       sessionId: row['session_id'] as String? ?? '',
       gameType: row['game_type'] as String? ?? '',
@@ -190,6 +202,12 @@ class MinigameGameState {
                 if (r is Map) GameRoundRecord.fromJson(Map<String, dynamic>.from(r)),
             ]
           : const [],
+      ready: rawReady is Map
+          ? {
+              for (final e in rawReady.entries)
+                if (e.value is bool) e.key.toString(): e.value as bool,
+            }
+          : const {},
       createdAt: DateTime.tryParse(row['created_at'] as String? ?? '') ??
           DateTime.now(),
       updatedAt: DateTime.tryParse(row['updated_at'] as String? ?? '') ??

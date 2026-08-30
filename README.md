@@ -146,11 +146,11 @@ code, update them in the same commit.
 | Layer | Command | Baseline (2026-08-30) |
 |-------|---------|----------------------|
 | Static analysis | `dart analyze` | **0 issues** |
-| Flutter unit/widget | `make flutter-test` | **1893 pass / 0 fail** (square game tiles + invite-badge feed tiles + invitee partida-N — see below) |
+| Flutter unit/widget | `make flutter-test` | **1907 pass / 0 fail** (square game tiles + invite-badge feed tiles + invitee partida-N + partida lobby — see below) |
 | Go | `go test ./...` | green — **188 tests**, 6 packages |
-| Integration flows | `bash integration_test/runner.sh` (hermetic) | **22 registered flows** (+ truth_dare_flow_test 2026-08-28; ui_smoke runs first) |
-| Backend (curl) | `bash test/run_all_backend.sh` | **17 opt-tests** (+ opt-016 extended with direct-invite notification + auto partida-N 2026-08-30; needs the stack up; opt-007 static gate reports SERVICE_KEY-vs-.env alignment drift on opt-001..006 — local `.env` rotated after the 2026-08-25 baseline; runtime runs pass — see docs/history/phase-13/2026-08-26_monochrome-refactor.md) |
-| SQL (pgTAP) | `supabase db test` | **plan(765)** assertions (needs the stack; +7 from Section 49f `170_minigame_invite_badges` 2026-08-30 — invitee-side partida-N auto_name + both-scope invite notification) |
+| Integration flows | `bash integration_test/runner.sh` (hermetic) | **23 registered flows** (+ minigame_lobby_flow_test 2026-08-30; ui_smoke runs first) |
+| Backend (curl) | `bash test/run_all_backend.sh` | **18 opt-tests** (+ opt-019-minigame-lobby 2026-08-30: ready map, creator-only Start/remove, roster; needs the stack up; opt-007 static gate reports SERVICE_KEY-vs-.env alignment drift on opt-001..006 — local `.env` rotated after the 2026-08-25 baseline; runtime runs pass — see docs/history/phase-13/2026-08-26_monochrome-refactor.md) |
+| SQL (pgTAP) | `supabase db test` | **plan(793)** assertions (needs the stack; +28 from Section 49g `180_minigame_lobby` 2026-08-30 — ready map, set_minigame_ready/get_minigame_participants/remove_minigame_participant, creator-gated init, minigame_sessions realtime) |
 | Manual end-user QA | `bash test_runner.sh` | gum-based manual runner |
 
 **Suckless test policy (2026-08-28):** only FUNCTIONAL tests ship in `test/`
@@ -162,13 +162,18 @@ Supabase-harness contract assertions (`harnessHttp.sent*`, e.g. the
 `accept_friend_request` RPC, leave-group `DELETE`, event-create `POST
 /rest/v1/events`). `test/meta/conventions_test.dart` enforces the policy:
  no new `takeException()==null` smoke tests and no whole-file render-only
- feature suites. `flutter test` = **1893 pass / 0 fail** (re-verified
+  feature suites. `flutter test` = **1907 pass / 0 fail** (re-verified
   2026-08-30; invite badges: per-game feed `VCountBadge` from unread
   `minigame_invite` notifications + the invitee sees the invited partida
   (`partida-N`, server-canonical `auto_name`) ready to accept; home game
   tiles are perfect squares of one size at any font setting; on-device
   friends cache for invite/buscar — empty + <5-char queries show the cached
-  friend list via the `get_friend_profiles` RPC).
+  friend list via the `get_friend_profiles` RPC; partida lobby: the session
+  detail AppBar is the LOWERCASE minigame name ("verdad o reto"), the
+  realtime participant roster carries live Ready toggles
+  (`set_minigame_ready`), the creator's Start is backend-enforced
+  (`init_minigame_game_state` → `not_creator`), and creator removal refunds
+  the wager via `remove_minigame_participant`).
 
 See [`test/README.md`](test/README.md) for the full test matrix and the curl
 test-writing guide.

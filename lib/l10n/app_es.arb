@@ -2792,6 +2792,55 @@
   "@minigamesDetailTitle": {
     "description": "App bar title of the minigame session detail"
   },
+  "minigamesParticipantsTitle": "Jugadores",
+  "@minigamesParticipantsTitle": {
+    "description": "Partida lobby: heading above the realtime participant list"
+  },
+  "minigamesReady": "Listo",
+  "@minigamesReady": {
+    "description": "Partida lobby: the ready chip/label on a participant row"
+  },
+  "minigamesNotReady": "No listo",
+  "@minigamesNotReady": {
+    "description": "Partida lobby: a participant who has not toggled ready"
+  },
+  "minigamesReadyQuestion": "¿Listo?",
+  "@minigamesReadyQuestion": {
+    "description": "Partida lobby: the emphasized ready toggle for a non-creator participant who is not ready yet"
+  },
+  "minigamesCreator": "Anfitrión",
+  "@minigamesCreator": {
+    "description": "Partida lobby: marker on the session creator's participant row"
+  },
+  "minigamesStart": "Empezar",
+  "@minigamesStart": {
+    "description": "Partida lobby: creator-only button that starts the partida"
+  },
+  "minigamesRemovePlayer": "Quitar jugador",
+  "@minigamesRemovePlayer": {
+    "description": "Partida lobby: creator-only tooltip/action to remove a participant"
+  },
+  "minigamesRemovePlayerConfirm": "¿Quitar a {name} de esta partida?",
+  "@minigamesRemovePlayerConfirm": {
+    "description": "Partida lobby: confirmation dialog title before removing a participant",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "minigamesRemovePlayerConfirmBody": "Se le devolverá su apuesta y se le quitará del juego.",
+  "@minigamesRemovePlayerConfirmBody": {
+    "description": "Partida lobby: confirmation dialog body before removing a participant"
+  },
+  "minigamesStartOnlyCreator": "Solo el anfitrión puede empezar la partida.",
+  "@minigamesStartOnlyCreator": {
+    "description": "Partida lobby: error when a non-creator tries to start"
+  },
+  "minigamesWaitingForPlayers": "Esperando jugadores...",
+  "@minigamesWaitingForPlayers": {
+    "description": "Partida lobby: shown before the creator starts the game"
+  },
   "minigamesWagerFree": "Sin apuesta",
   "@minigamesWagerFree": {
     "description": "Session detail: the session carries no shard wager"

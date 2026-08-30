@@ -79,9 +79,9 @@ class _MinigameDetailScreenState extends ConsumerState<MinigameDetailScreen> {
 
     return Scaffold(
       body: VHeaderBar(
-        title: minigameGameName(l10n, type.value),
+        title: minigameGameNameLower(l10n, type.value),
         child: ListView.builder(
-          padding: const EdgeInsets.all(AppSpacing.lg),
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
           itemCount: _listItemCount(l10n),
           itemBuilder: (context, index) => _buildListItem(context, l10n, type, index),
         ),
@@ -471,7 +471,7 @@ class _NewPartidaScreenState extends ConsumerState<_NewPartidaScreen> {
               onChanged: (_) => setState(() {}),
             ),
             const SizedBox(height: AppSpacing.xl),
-            VButton.dark(
+            VButton.emphasized(
               label: l10n.minigamesCreate,
               loading: _creating,
               onPressed: _creating ? null : _create,

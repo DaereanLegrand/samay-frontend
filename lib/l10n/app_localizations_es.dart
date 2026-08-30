@@ -2111,6 +2111,43 @@ class AppLocalizationsEs extends AppLocalizations {
   String get minigamesDetailTitle => 'partida';
 
   @override
+  String get minigamesParticipantsTitle => 'Jugadores';
+
+  @override
+  String get minigamesReady => 'Listo';
+
+  @override
+  String get minigamesNotReady => 'No listo';
+
+  @override
+  String get minigamesReadyQuestion => '¿Listo?';
+
+  @override
+  String get minigamesCreator => 'Anfitrión';
+
+  @override
+  String get minigamesStart => 'Empezar';
+
+  @override
+  String get minigamesRemovePlayer => 'Quitar jugador';
+
+  @override
+  String minigamesRemovePlayerConfirm(String name) {
+    return '¿Quitar a $name de esta partida?';
+  }
+
+  @override
+  String get minigamesRemovePlayerConfirmBody =>
+      'Se le devolverá su apuesta y se le quitará del juego.';
+
+  @override
+  String get minigamesStartOnlyCreator =>
+      'Solo el anfitrión puede empezar la partida.';
+
+  @override
+  String get minigamesWaitingForPlayers => 'Esperando jugadores...';
+
+  @override
   String get minigamesWagerFree => 'Sin apuesta';
 
   @override

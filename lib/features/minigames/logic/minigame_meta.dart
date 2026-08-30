@@ -18,6 +18,15 @@ String minigameGameName(AppLocalizations l10n, String? gameType) {
   };
 }
 
+/// The minigame name rendered LOWERCASE (2026-08-30 user directive): the
+/// partida lobby's AppBar title is "verdad o reto" for Verdad o Reto, etc.
+/// [minigameGameName] resolves the localized label, then `.toLowerCase()`
+/// produces the wire-friendly casing in both locales ("Verdad o Reto" →
+/// "verdad o reto").
+String minigameGameNameLower(AppLocalizations l10n, String? gameType) {
+  return minigameGameName(l10n, gameType).toLowerCase();
+}
+
 /// Icon for a [MinigameType].
 ///
 /// Shared by the home-page games section (feed) and the group minigames hub

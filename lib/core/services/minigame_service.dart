@@ -639,6 +639,120 @@ RealtimeChannel subscribeToSession(String id) {
     }
   }
 
+  /// Sets the current user's Ready flag for [sessionId] via the
+  /// `set_minigame_ready` SECURITY DEFINER RPC (180_minigame_lobby) — the
+  /// authoritative per-participant ready map lives on the
+  /// `minigame_game_state` row, so the whole lobby sees the toggle through
+  /// the existing realtime subscription. Gates: participant/invitee/group
+  /// member + active session (typed jsonb statuses).
+  Future<void> setReady(String sessionId, bool ready) async {
+    final user = auth.currentUser;
+    if (user == null) throw const UnauthorizedError();
+
+    final res = await client.rpc(
+      'set_minigame_ready',
+      params: {'p_session_id': sessionId, 'p_ready': ready},
+    );
+    final result = res is Map
+        ? Map<String, dynamic>.from(res)
+        : <String, dynamic>{};
+    switch (result['status']) {
+      case 'ready':
+        return;
+      case 'not_authenticated':
+        throw const UnauthorizedError();
+      case 'session_not_found':
+        throw const NotFoundError('Partida');
+      case 'not_allowed':
+        throw PermissionError();
+      case 'session_not_active':
+        throw ConflictError(
+          'La partida ya terminó',
+          code: 'session_not_active',
+        );
+      default:
+        throw const ServerError('Unexpected set_minigame_ready response');
+    }
+  }
+
+  /// The partida lobby's presence roster for [sessionId]
+  /// (180_minigame_lobby): `{id, username, avatar_url}` rows for every
+  /// participant, resolved in ONE round trip through the security-barrier
+  /// `user_search_view` (deleted + blocked excluded) — works for NON-friends
+  /// unlike `get_friend_profiles`. Gates: participant / invitee / group
+  /// member (I-57 typed-jsonb-status contract).
+  Future<List<Map<String, dynamic>>> getMinigameParticipants(
+    String sessionId,
+  ) async {
+    final user = auth.currentUser;
+    if (user == null) throw const UnauthorizedError();
+
+    final res = await client.rpc(
+      'get_minigame_participants',
+      params: {'p_session_id': sessionId},
+    );
+    final result = res is Map
+        ? Map<String, dynamic>.from(res)
+        : <String, dynamic>{};
+    switch (result['status']) {
+      case 'ok':
+        final roster = result['participants'];
+        if (roster is! List) return const [];
+        return roster
+            .whereType<Map>()
+            .map((e) => Map<String, dynamic>.from(e))
+            .toList();
+      case 'not_authenticated':
+        throw const UnauthorizedError();
+      case 'session_not_found':
+        throw const NotFoundError('Partida');
+      case 'not_allowed':
+        throw PermissionError();
+      default:
+        throw const ServerError('Unexpected get_minigame_participants response');
+    }
+  }
+
+  /// Removes [userId] from [sessionId]'s participants via the
+  /// `remove_minigame_participant` SECURITY DEFINER RPC (180_minigame_lobby)
+  /// — CREATOR-ONLY, backend-enforced via `participants[0]` (`not_creator`).
+  /// In one server transaction: the removed player's wager escrow is refunded
+  /// (GWAG `minigame_refund`), they leave `participants`, their invite closes
+  /// and their ready flag clears. The creator can never remove themself.
+  Future<void> removeParticipant(String sessionId, String userId) async {
+    final user = auth.currentUser;
+    if (user == null) throw const UnauthorizedError();
+
+    final res = await client.rpc(
+      'remove_minigame_participant',
+      params: {'p_session_id': sessionId, 'p_user_id': userId},
+    );
+    final result = res is Map
+        ? Map<String, dynamic>.from(res)
+        : <String, dynamic>{};
+    switch (result['status']) {
+      case 'removed':
+        return;
+      case 'not_authenticated':
+        throw const UnauthorizedError();
+      case 'session_not_found':
+        throw const NotFoundError('Partida');
+      case 'not_creator':
+        throw PermissionError();
+      case 'session_not_active':
+        throw ConflictError(
+          'La partida ya terminó',
+          code: 'session_not_active',
+        );
+      case 'not_participant':
+        throw const NotFoundError('Participante');
+      default:
+        throw const ServerError(
+          'Unexpected remove_minigame_participant response',
+        );
+    }
+  }
+
   /// Live subscription to one session's game-state row changes
   /// (150_minigame_play — init / reveal / advance / complete stream live to
   /// every participant via the `minigame_game_state` realtime publication).

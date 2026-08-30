@@ -3884,6 +3884,72 @@ abstract class AppLocalizations {
   /// **'partida'**
   String get minigamesDetailTitle;
 
+  /// Partida lobby: heading above the realtime participant list
+  ///
+  /// In es, this message translates to:
+  /// **'Jugadores'**
+  String get minigamesParticipantsTitle;
+
+  /// Partida lobby: the ready chip/label on a participant row
+  ///
+  /// In es, this message translates to:
+  /// **'Listo'**
+  String get minigamesReady;
+
+  /// Partida lobby: a participant who has not toggled ready
+  ///
+  /// In es, this message translates to:
+  /// **'No listo'**
+  String get minigamesNotReady;
+
+  /// Partida lobby: the emphasized ready toggle for a non-creator participant who is not ready yet
+  ///
+  /// In es, this message translates to:
+  /// **'¿Listo?'**
+  String get minigamesReadyQuestion;
+
+  /// Partida lobby: marker on the session creator's participant row
+  ///
+  /// In es, this message translates to:
+  /// **'Anfitrión'**
+  String get minigamesCreator;
+
+  /// Partida lobby: creator-only button that starts the partida
+  ///
+  /// In es, this message translates to:
+  /// **'Empezar'**
+  String get minigamesStart;
+
+  /// Partida lobby: creator-only tooltip/action to remove a participant
+  ///
+  /// In es, this message translates to:
+  /// **'Quitar jugador'**
+  String get minigamesRemovePlayer;
+
+  /// Partida lobby: confirmation dialog title before removing a participant
+  ///
+  /// In es, this message translates to:
+  /// **'¿Quitar a {name} de esta partida?'**
+  String minigamesRemovePlayerConfirm(String name);
+
+  /// Partida lobby: confirmation dialog body before removing a participant
+  ///
+  /// In es, this message translates to:
+  /// **'Se le devolverá su apuesta y se le quitará del juego.'**
+  String get minigamesRemovePlayerConfirmBody;
+
+  /// Partida lobby: error when a non-creator tries to start
+  ///
+  /// In es, this message translates to:
+  /// **'Solo el anfitrión puede empezar la partida.'**
+  String get minigamesStartOnlyCreator;
+
+  /// Partida lobby: shown before the creator starts the game
+  ///
+  /// In es, this message translates to:
+  /// **'Esperando jugadores...'**
+  String get minigamesWaitingForPlayers;
+
   /// Session detail: the session carries no shard wager
   ///
   /// In es, this message translates to:

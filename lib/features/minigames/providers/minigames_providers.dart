@@ -19,9 +19,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 /// Zero while the notifications list is loading (a red badge must never
 /// flash from a stale/absent value).
 final pendingMinigameInvitesProvider = Provider<int>((ref) {
-  final notifications = ref
-      .watch(notificationsProvider)
-      .valueOrNull;
+  final notifications = ref.watch(notificationsProvider).valueOrNull;
   if (notifications == null) return 0;
   return notifications
       .where((n) => n.type == 'minigame_invite' && !n.read)
@@ -50,7 +48,8 @@ final pendingMinigameInvitesByTypeProvider = Provider<Map<String?, int>>((ref) {
 /// invitee-side "partida-N ready to accept" list (170_minigame_invite_badges).
 /// RLS bounds every read (`mi_read_own` invites + `ms_read_invitee` sessions),
 /// so this never leaks a partida the user was not invited to.
-class MyPendingInvitesNotifier extends AsyncNotifier<List<Map<String, dynamic>>> {
+class MyPendingInvitesNotifier
+    extends AsyncNotifier<List<Map<String, dynamic>>> {
   MinigameService get _service => ref.read(minigameServiceProvider);
 
   @override
@@ -72,8 +71,10 @@ class MyPendingInvitesNotifier extends AsyncNotifier<List<Map<String, dynamic>>>
 /// The current user's pending minigame invites (session rows, newest invite
 /// first). Kept fresh by the shell's [MinigameInvitesRealtimeListener] via
 /// the notification realtime stream.
-final myPendingInvitesProvider = AsyncNotifierProvider<MyPendingInvitesNotifier,
-    List<Map<String, dynamic>>>(MyPendingInvitesNotifier.new);
+final myPendingInvitesProvider =
+    AsyncNotifierProvider<MyPendingInvitesNotifier, List<Map<String, dynamic>>>(
+      MyPendingInvitesNotifier.new,
+    );
 
 /// Sessions of one group, newest first (GMCR foundation — the game list the
 /// hub screen renders). Family over the group id so each group carries its
@@ -125,17 +126,20 @@ class MinigameSessionsNotifier
 }
 
 /// The group's minigame sessions (RLS `ms_read_group_member`).
-final minigameSessionsProvider = AsyncNotifierProvider.family<
-    MinigameSessionsNotifier, List<Map<String, dynamic>>, String>(
-  MinigameSessionsNotifier.new,
-);
+final minigameSessionsProvider =
+    AsyncNotifierProvider.family<
+      MinigameSessionsNotifier,
+      List<Map<String, dynamic>>,
+      String
+    >(MinigameSessionsNotifier.new);
 
 /// The current user's DIRECT sessions (group_id IS NULL), newest first —
 /// the direct-play hub (direct-minigames 2026-08-27). RLS
 /// `ms_read_direct_participant` bounds the read to sessions where the caller
 /// is a participant (creator is participant[0]); the group-scoped
 /// [minigameSessionsProvider] stays for the group hub.
-class MyMinigameSessionsNotifier extends AsyncNotifier<List<Map<String, dynamic>>> {
+class MyMinigameSessionsNotifier
+    extends AsyncNotifier<List<Map<String, dynamic>>> {
   MinigameService get _service => ref.read(minigameServiceProvider);
 
   @override
@@ -178,9 +182,10 @@ class MyMinigameSessionsNotifier extends AsyncNotifier<List<Map<String, dynamic>
 
 /// The current user's direct minigame sessions.
 final myMinigameSessionsProvider =
-    AsyncNotifierProvider<MyMinigameSessionsNotifier, List<Map<String, dynamic>>>(
-  MyMinigameSessionsNotifier.new,
-);
+    AsyncNotifierProvider<
+      MyMinigameSessionsNotifier,
+      List<Map<String, dynamic>>
+    >(MyMinigameSessionsNotifier.new);
 
 /// Live status of one session: the initial row from [MinigameService.getSession]
 /// merged with realtime row changes on the session's channel (I-52
@@ -222,15 +227,18 @@ class MinigameSessionStatusNotifier
 }
 
 /// One session's live row by id (family).
-final sessionStatusProvider = AsyncNotifierProvider.family<
-    MinigameSessionStatusNotifier, Map<String, dynamic>, String>(
-  MinigameSessionStatusNotifier.new,
-);
+final sessionStatusProvider =
+    AsyncNotifierProvider.family<
+      MinigameSessionStatusNotifier,
+      Map<String, dynamic>,
+      String
+    >(MinigameSessionStatusNotifier.new);
 
 /// The current user's invite row for one session (null when they are not
 /// invited), plus the accept/decline actions. Family by session id so each
 /// session detail carries its own invite state.
-class MinigameInviteNotifier extends FamilyAsyncNotifier<Map<String, dynamic>?, String> {
+class MinigameInviteNotifier
+    extends FamilyAsyncNotifier<Map<String, dynamic>?, String> {
   MinigameService get _service => ref.read(minigameServiceProvider);
 
   @override
@@ -263,10 +271,12 @@ class MinigameInviteNotifier extends FamilyAsyncNotifier<Map<String, dynamic>?, 
 }
 
 /// The current user's invite row for one session (family by session id).
-final minigameInviteProvider = AsyncNotifierProvider.family<
-    MinigameInviteNotifier, Map<String, dynamic>?, String>(
-  MinigameInviteNotifier.new,
-);
+final minigameInviteProvider =
+    AsyncNotifierProvider.family<
+      MinigameInviteNotifier,
+      Map<String, dynamic>?,
+      String
+    >(MinigameInviteNotifier.new);
 
 /// Owns the current user's minigame-invite privacy switch
 /// (`users.minigame_invite_friends_only`, default OFF = anyone may invite).
@@ -297,16 +307,19 @@ class MinigameInviteFriendsOnlyNotifier extends AsyncNotifier<bool> {
 /// invite me).
 final minigameInviteFriendsOnlyProvider =
     AsyncNotifierProvider<MinigameInviteFriendsOnlyNotifier, bool>(
-  MinigameInviteFriendsOnlyNotifier.new,
-);
+      MinigameInviteFriendsOnlyNotifier.new,
+    );
 
 /// Live play-engine state of one session (150_minigame_play): the
 /// [MinigameGameState] row from the RPC family merged with realtime row
 /// changes on the game-state channel — init / reveal / advance / complete
 /// stream live to every participant.
 ///
-/// Auto-initializes: a session with no game-state row yet (`not_started`)
-/// is started on first read (the server picks the first subject randomly).
+/// NO auto-init (180_minigame_lobby): a session with no game-state row yet
+/// (`not_started`) stays a lobby with an empty skeleton — starting is the
+/// CREATOR's explicit `start()` action (backend-enforced via `not_creator`).
+/// The prior auto-init-on-read made the play screen the implicit starter,
+/// which is wrong now that the lobby is the entry point.
 class MinigameGameStateNotifier
     extends FamilyAsyncNotifier<MinigameGameState, String> {
   MinigameService get _service => ref.read(minigameServiceProvider);
@@ -332,11 +345,14 @@ class MinigameGameStateNotifier
 
     final row = await _service.getMinigameGameState(sessionId);
     if (row == null) {
-      // Auto-start: no game-state row yet — the server seeds the skeleton
-      // and picks the first subject randomly.
-      return MinigameGameState.fromRow(
-        await _service.initMinigameGameState(sessionId),
-      );
+      // Not started — the lobby's empty skeleton (phase `setup`, no subject).
+      return MinigameGameState.fromRow({
+        'session_id': sessionId,
+        'game_type': '',
+        'state': <String, dynamic>{},
+        'rounds': <dynamic>[],
+        'ready': <String, dynamic>{},
+      });
     }
     return MinigameGameState.fromRow(row);
   }
@@ -349,6 +365,33 @@ class MinigameGameStateNotifier
   Future<void> reveal(TruthDareKind kind) async {
     await _service.revealMinigamePrompt(arg, kind.wire);
     await refresh();
+  }
+
+  /// Toggles the current user's Ready flag for the lobby (180_minigame_lobby)
+  /// via `set_minigame_ready` and reloads the state — the authoritative ready
+  /// map update streams back through the realtime channel and the roster
+  /// recomputes.
+  Future<void> setReady(bool ready) async {
+    await _service.setReady(arg, ready);
+    await refresh();
+  }
+
+  /// Starts the partida (creator-only, backend-enforced via `not_creator`):
+  /// calls `init_minigame_game_state` (the lobby → playing transition, which
+  /// seeds the skeleton + random first subject) and reloads the state.
+  Future<void> start() async {
+    await _service.initMinigameGameState(arg);
+    await refresh();
+  }
+
+  /// The creator removes [userId] from the lobby (180_minigame_lobby):
+  /// refunds the escrow, drops the participant, closes their invite, clears
+  /// their ready flag — all server-side. Reloads the roster + session.
+  Future<void> removeParticipant(String userId) async {
+    await _service.removeParticipant(arg, userId);
+    await refresh();
+    ref.invalidate(sessionStatusProvider(arg));
+    ref.invalidate(minigameParticipantsProvider(arg));
   }
 
   /// Closes the current turn with [outcome] and advances to the next
@@ -374,7 +417,112 @@ class MinigameGameStateNotifier
 }
 
 /// One session's live play-engine state (family by session id).
-final minigameGameStateProvider = AsyncNotifierProvider.family<
-    MinigameGameStateNotifier, MinigameGameState, String>(
-  MinigameGameStateNotifier.new,
-);
+final minigameGameStateProvider =
+    AsyncNotifierProvider.family<
+      MinigameGameStateNotifier,
+      MinigameGameState,
+      String
+    >(MinigameGameStateNotifier.new);
+
+/// One lobby participant row — the id + profile from
+/// [MinigameService.getMinigameParticipants] with the LIVE ready flag merged
+/// from [minigameGameStateProvider]'s authoritative `ready` map
+/// (180_minigame_lobby).
+class MinigameParticipant {
+  const MinigameParticipant({
+    required this.id,
+    required this.username,
+    required this.avatarUrl,
+    required this.ready,
+  });
+
+  final String id;
+  final String username;
+  final String? avatarUrl;
+
+  /// Whether the participant has toggled Ready (live via the
+  /// `minigame_game_state` realtime stream).
+  final bool ready;
+
+  bool get hasAvatar => avatarUrl != null && avatarUrl!.isNotEmpty;
+
+  /// A copy with a new ready flag — the granular ready-state sync (2026-08-30)
+  /// recomputes ONLY the affected row instead of rebuilding the whole roster.
+  MinigameParticipant copyWithReady(bool ready) => MinigameParticipant(
+    id: id,
+    username: username,
+    avatarUrl: avatarUrl,
+    ready: ready,
+  );
+}
+
+/// The partida lobby's realtime participant roster for one session: the
+/// names/avatars from `get_minigame_participants` (one batched call, works
+/// for non-friends) merged with each participant's LIVE ready flag from the
+/// play-engine state's authoritative `ready` map.
+///
+/// Granular ready sync (2026-08-30): the roster is fetched ONCE in [build].
+/// Live ready toggles stream in through [minigameGameStateProvider]'s
+/// realtime channel; [ref.listen] diffs the ready map and updates ONLY the
+/// changed rows in place (no re-fetch, no whole-list rebuild — a participant
+/// flipping ready must not ripple the whole lobby on every device).
+/// Participant joins/removes arrive through the session row's realtime stream
+/// (the `minigame_sessions` realtime membership added in 180) and refresh the
+/// roster via `sessionStatusProvider`.
+class MinigameParticipantsNotifier
+    extends FamilyAsyncNotifier<List<MinigameParticipant>, String> {
+  MinigameService get _service => ref.read(minigameServiceProvider);
+
+  @override
+  Future<List<MinigameParticipant>> build(String sessionId) async {
+    // Live ready flags: the authoritative map rides the play-engine state.
+    ref.listen<AsyncValue<MinigameGameState>>(
+      minigameGameStateProvider(sessionId),
+      (_, next) {
+        final nextReady = next.valueOrNull?.ready;
+        if (nextReady == null) return;
+        _applyReady(nextReady);
+      },
+    );
+
+    final rows = await _service.getMinigameParticipants(sessionId);
+    // Read the ready map AFTER the fetch so the initial merge is never stale.
+    final ready = ref.read(minigameGameStateProvider(sessionId)).valueOrNull;
+    return [
+      for (final row in rows)
+        MinigameParticipant(
+          id: row['id'] as String,
+          username: row['username'] as String? ?? '',
+          avatarUrl: row['avatar_url'] as String?,
+          ready: ready?.isReady(row['id'] as String) ?? false,
+        ),
+    ];
+  }
+
+  /// Updates ONLY the rows whose ready flag changed — the roster keeps its
+  /// order/profiles and never re-fetches on a ready toggle (2026-08-30).
+  void _applyReady(Map<String, bool> ready) {
+    final current = state.valueOrNull;
+    if (current == null) return;
+    final updated = [
+      for (final participant in current)
+        if (ready[participant.id] != null &&
+            ready[participant.id] != participant.ready)
+          participant.copyWithReady(ready[participant.id]!)
+        else
+          participant,
+    ];
+    state = AsyncData(updated);
+  }
+
+  /// Re-runs [build] after a start / remove (finding SM-09).
+  Future<void> refresh() async => ref.invalidateSelf();
+}
+
+/// One session's realtime participant roster (family by session id).
+final minigameParticipantsProvider =
+    AsyncNotifierProvider.family<
+      MinigameParticipantsNotifier,
+      List<MinigameParticipant>,
+      String
+    >(MinigameParticipantsNotifier.new);

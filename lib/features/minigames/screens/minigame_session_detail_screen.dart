@@ -1,27 +1,39 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/extensions/error_mapper.dart';
+import 'package:samay/core/providers/auth_provider.dart';
+import 'package:samay/core/router/route_paths.dart';
+import 'package:samay/features/minigames/logic/minigame_engine.dart';
 import 'package:samay/features/minigames/logic/minigame_meta.dart';
 import 'package:samay/features/minigames/providers/minigames_providers.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/error_view.dart';
+import 'package:samay/shared/widgets/profile_avatar.dart';
 import 'package:samay/shared/widgets/state_views.dart';
 import 'package:samay/shared/widgets/v_button.dart';
 import 'package:samay/shared/widgets/v_card.dart';
 import 'package:samay/shared/widgets/v_chip.dart';
-import 'package:samay/shared/widgets/v_display_text.dart';
 import 'package:samay/shared/widgets/v_header_bar.dart';
 
-/// Session detail (140_minigame_invites): replaces the GMCR "coming soon"
-/// placeholder. Shows the game, status, wager and participant count, and —
-/// when the current user has a PENDING invite (they need not be a group
-/// member — `ms_read_invitee` opened the row) — an Aceptar/Rechazar pair.
+/// Partida lobby (180_minigame_lobby) — the session detail screen, now the
+/// game's pre-play room. Shows the game (the AppBar is its LOWERCASE name,
+/// e.g. "verdad o reto"), the partida name, the wager/status, a REALTIME
+/// participants list with a Ready toggle per player, a creator-only Start
+/// button (backend-enforced via `init_minigame_game_state` → `not_creator`),
+/// and creator-only player removal (wager refunded server-side).
 ///
-/// Accept is only possible while the session is ACTIVE; once finished the
-/// invite is closed (server `session_finished`). Live status rides the
-/// existing `sessionStatusProvider` realtime sync.
+/// A PENDING invitee (who need not be a group member — `ms_read_invitee`
+/// opened the row) still gets the Aceptar/Rechazar pair instead of the lobby;
+/// accepting adds them to the roster live.
+///
+/// Live state: the roster rides [minigameParticipantsProvider] (names/avatars
+/// via one RPC + the authoritative ready map from
+/// [minigameGameStateProvider], both streaming through their realtime
+/// channels); participant joins/removes arrive via the `minigame_sessions`
+/// realtime stream feeding [sessionStatusProvider].
 class MinigameSessionDetailScreen extends ConsumerWidget {
   const MinigameSessionDetailScreen({super.key, required this.sessionId});
 
@@ -36,7 +48,15 @@ class MinigameSessionDetailScreen extends ConsumerWidget {
 
     return Scaffold(
       body: VHeaderBar(
-        title: l10n.minigamesDetailTitle,
+        // The AppBar title is the minigame name in LOWERCASE (2026-08-30
+        // user directive): "partida" → "verdad o reto", "game" → "truth or
+        // dare".
+        title: session.valueOrNull == null
+            ? l10n.minigamesDetailTitle
+            : minigameGameNameLower(
+                l10n,
+                session.valueOrNull!['game_type'] as String?,
+              ),
         child: session.when(
           loading: () => const VLoadingView(),
           error: (e, _) => ErrorView(
@@ -45,10 +65,7 @@ class MinigameSessionDetailScreen extends ConsumerWidget {
           ),
           data: (row) {
             final status = row['status'] as String?;
-            final gameType = row['game_type'] as String?;
             final wager = (row['shard_wager'] as num?)?.toInt() ?? 0;
-            final participants =
-                (row['participants'] as List?)?.cast<String?>() ?? const [];
             final finished = status == 'finished';
             final inviteStatus = invite.valueOrNull?['status'] as String?;
             final isPending = inviteStatus == 'pending' && !finished;
@@ -58,10 +75,8 @@ class MinigameSessionDetailScreen extends ConsumerWidget {
             final partidaName = minigameSessionName(l10n, row);
 
             return ListView(
-              padding: const EdgeInsets.all(AppSpacing.lg),
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
               children: [
-                VDisplayText(text: minigameGameName(l10n, gameType), size: 28),
-                const SizedBox(height: AppSpacing.xs),
                 Text(
                   partidaName,
                   style: const TextStyle(
@@ -82,7 +97,9 @@ class MinigameSessionDetailScreen extends ConsumerWidget {
                       ),
                       const SizedBox(height: AppSpacing.xs),
                       Text(
-                        l10n.minigamesParticipants(participants.length),
+                        l10n.minigamesParticipants(
+                          (row['participants'] as List?)?.length ?? 0,
+                        ),
                         style: const TextStyle(color: AppColors.mutedStrong),
                       ),
                       const SizedBox(height: AppSpacing.md),
@@ -97,39 +114,14 @@ class MinigameSessionDetailScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: AppSpacing.lg),
                 if (isPending)
-                  VCard(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          l10n.minigamesInvitePendingBody,
-                          style: Theme.of(context).textTheme.bodyLarge,
-                        ),
-                        const SizedBox(height: AppSpacing.md),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: VButton.dark(
-                                label: l10n.minigamesInviteAccept,
-                                onPressed: () => _accept(context, ref, l10n),
-                              ),
-                            ),
-                            const SizedBox(width: AppSpacing.md),
-                            Expanded(
-                              child: VButton.outlined(
-                                label: l10n.minigamesInviteDecline,
-                                onPressed: () => _decline(context, ref, l10n),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
+                  _InviteCard(
+                    onAccept: () => _accept(context, ref, l10n),
+                    onDecline: () => _decline(context, ref, l10n),
                   )
                 else if (inviteStatus == 'pending' && finished)
                   VCard(child: Text(l10n.minigamesInviteClosed))
-                else if (inviteStatus == 'accepted')
-                  VCard(child: Text(l10n.minigamesInviteAccepted)),
+                else
+                  _LobbySection(sessionId: sessionId, finished: finished),
               ],
             );
           },
@@ -174,5 +166,282 @@ class MinigameSessionDetailScreen extends ConsumerWidget {
         context,
       ).showSnackBar(SnackBar(content: Text(e.toAppError().message)));
     }
+  }
+}
+
+/// The accept/decline pair for a PENDING invitee (unchanged 140 behavior).
+class _InviteCard extends StatelessWidget {
+  const _InviteCard({required this.onAccept, required this.onDecline});
+
+  final VoidCallback onAccept;
+  final VoidCallback onDecline;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return VCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            l10n.minigamesInvitePendingBody,
+            style: Theme.of(context).textTheme.bodyLarge,
+          ),
+          const SizedBox(height: AppSpacing.md),
+          Row(
+            children: [
+              Expanded(
+                child: VButton.emphasized(
+                  label: l10n.minigamesInviteAccept,
+                  onPressed: onAccept,
+                ),
+              ),
+              const SizedBox(width: AppSpacing.md),
+              Expanded(
+                child: VButton.outlined(
+                  label: l10n.minigamesInviteDecline,
+                  onPressed: onDecline,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// The partida lobby: realtime participants list (ready toggles live), the
+/// creator's Start button (backend-enforced creator-only), and creator
+/// removal. Hidden for pending invitees and finished sessions.
+class _LobbySection extends ConsumerWidget {
+  const _LobbySection({required this.sessionId, required this.finished});
+
+  final String sessionId;
+  final bool finished;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+    final myId = ref.watch(authStateProvider).valueOrNull?.user?['id'];
+    final session = ref.watch(sessionStatusProvider(sessionId)).valueOrNull;
+    final participantIds =
+        (session?['participants'] as List?)?.cast<String?>() ?? const [];
+    final isCreator = participantIds.isNotEmpty && participantIds.first == myId;
+    final gameState = ref.watch(minigameGameStateProvider(sessionId));
+    final isPlaying =
+        gameState.valueOrNull?.skeleton.phase == MinigamePhase.playing;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          l10n.minigamesParticipantsTitle.toUpperCase(),
+          style: Theme.of(context).textTheme.titleSmall,
+        ),
+        const SizedBox(height: AppSpacing.md),
+        ref
+            .watch(minigameParticipantsProvider(sessionId))
+            .when(
+              loading: () => const Padding(
+                padding: EdgeInsets.all(AppSpacing.md),
+                child: VLoadingView(),
+              ),
+              error: (e, _) => ErrorView(
+                message: e.toAppError().message,
+                onRetry: () =>
+                    ref.invalidate(minigameParticipantsProvider(sessionId)),
+              ),
+              data: (participants) => Column(
+                children: [
+                  for (var i = 0; i < participants.length; i++) ...[
+                    if (i > 0) const Divider(height: 1),
+                    _ParticipantRow(
+                      participant: participants[i],
+                      isCreator: participants[i].id == participantIds.first,
+                      canRemove:
+                          isCreator && participants[i].id != myId && !finished,
+                      onRemove: () =>
+                          _confirmRemove(context, ref, participants[i]),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+        const SizedBox(height: AppSpacing.lg),
+        if (!finished) ...[
+          if (isCreator)
+            VButton.emphasized(
+              label: l10n.minigamesStart,
+              loading: gameState.isLoading,
+              onPressed: isPlaying ? null : () => _start(context, ref),
+            )
+          else
+            _ReadyToggle(
+              isReady: gameState.valueOrNull?.isReady(myId ?? '') ?? false,
+              onPressed: () => _toggleReady(context, ref),
+            ),
+        ],
+      ],
+    );
+  }
+
+  Future<void> _toggleReady(BuildContext context, WidgetRef ref) async {
+    final myId = ref.read(authStateProvider).valueOrNull?.user?['id'];
+    if (myId == null) return;
+    final current = ref.read(minigameGameStateProvider(sessionId)).valueOrNull;
+    final isReady = current?.isReady(myId) ?? false;
+    await ref
+        .read(minigameGameStateProvider(sessionId).notifier)
+        .setReady(!isReady);
+  }
+
+  Future<void> _start(BuildContext context, WidgetRef ref) async {
+    try {
+      await ref.read(minigameGameStateProvider(sessionId).notifier).start();
+      if (!context.mounted) return;
+      context.push(RoutePaths.truthDare(sessionId));
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e.toAppError().message)));
+    }
+  }
+
+  Future<void> _confirmRemove(
+    BuildContext context,
+    WidgetRef ref,
+    MinigameParticipant participant,
+  ) async {
+    final l10n = AppLocalizations.of(context);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l10n.minigamesRemovePlayerConfirm(participant.username)),
+        content: Text(l10n.minigamesRemovePlayerConfirmBody),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: Text(l10n.commonCancel),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: Text(l10n.minigamesRemovePlayer),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !context.mounted) return;
+    try {
+      await ref
+          .read(minigameGameStateProvider(sessionId).notifier)
+          .removeParticipant(participant.id);
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e.toAppError().message)));
+    }
+  }
+}
+
+/// One participant row in the lobby: avatar, username (+ host marker), a
+/// Ready chip for OTHERS (only when they are ready — a not-ready player shows
+/// nothing, and the HOST never shows a ready chip: the host is ready by
+/// default, 2026-08-30), and a creator-only remove button.
+class _ParticipantRow extends StatelessWidget {
+  const _ParticipantRow({
+    required this.participant,
+    required this.isCreator,
+    required this.canRemove,
+    required this.onRemove,
+  });
+
+  final MinigameParticipant participant;
+  final bool isCreator;
+  final bool canRemove;
+  final VoidCallback onRemove;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final initials = participant.username.isEmpty
+        ? '?'
+        : participant.username[0];
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.md,
+        vertical: AppSpacing.sm,
+      ),
+      child: Row(
+        children: [
+          ProfileAvatar(
+            size: 36,
+            initials: initials,
+            imageUrl: participant.avatarUrl,
+          ),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  participant.username,
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+                if (isCreator)
+                  Text(
+                    l10n.minigamesCreator,
+                    style: const TextStyle(
+                      color: AppColors.mutedStrong,
+                      fontSize: 11,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          // Others show their ready state only once ready — a not-ready
+          // participant renders nothing, and the chip is the plain (non-
+          // emphasized) "Listo"/"Ready" with NO username (2026-08-30).
+          if (!isCreator && participant.ready)
+            VChip(label: l10n.minigamesReady, selected: false, compact: true),
+          if (canRemove) ...[
+            const SizedBox(width: AppSpacing.xs),
+            IconButton(
+              icon: const Icon(Icons.person_remove_outlined, size: 18),
+              tooltip: l10n.minigamesRemovePlayer,
+              color: AppColors.white,
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+              onPressed: onRemove,
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+/// The non-creator participant's ready toggle — sits exactly where the
+/// creator's "Empezar partida" button does (2026-08-30). Not ready shows the
+/// EMPHASIZED "¿Listo?" (white fill, black font); once ready it flips to the
+/// flat outlined "Listo". The HOST is ready by default and never sees this.
+class _ReadyToggle extends StatelessWidget {
+  const _ReadyToggle({required this.isReady, required this.onPressed});
+
+  final bool isReady;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return isReady
+        ? VButton.outlined(label: l10n.minigamesReady, onPressed: onPressed)
+        : VButton.emphasized(
+            label: l10n.minigamesReadyQuestion,
+            onPressed: onPressed,
+          );
   }
 }

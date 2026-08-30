@@ -63,7 +63,7 @@ class TruthDareScreen extends ConsumerWidget {
             final subjectName = _nameFor(subjectId, _participants(session));
 
             return ListView(
-              padding: const EdgeInsets.all(AppSpacing.lg),
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
               children: [
                 VDisplayText(
                   text: isMyTurn
