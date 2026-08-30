@@ -33,6 +33,12 @@ enum MinigamePhase {
   /// The session exists but no game-state row is initialized yet.
   setup,
 
+  /// The host tapped Start; the 5s pre-play countdown is running. Every
+  /// participant sees the same countdown and the server flips to [playing]
+  /// once `countdown_ends_at` passes (or back to [setup] if the host
+  /// cancels). 190_minigame_countdown.
+  countdown,
+
   /// Rounds are being played (a subject + prompt are current).
   playing,
 
@@ -46,6 +52,7 @@ MinigamePhase minigamePhaseFromString(String? value) {
   return switch (value) {
     'playing' => MinigamePhase.playing,
     'finished' => MinigamePhase.finished,
+    'countdown' => MinigamePhase.countdown,
     _ => MinigamePhase.setup,
   };
 }
@@ -64,13 +71,18 @@ enum PromptOutcome {
 ///
 /// `judgeIndex` is the rotation pointer (advances round-robin server-side);
 /// `subjectId` is the CURRENT player the turn belongs to (server-random);
-/// `promptType` + `prompt` hold the revealed prompt for the current turn.
+/// `nextSubjectId` is the server-authoritative "who's next" (190); `promptType`
+/// + `prompt` hold the revealed prompt for the current turn. During the
+/// pre-play countdown, `countdownEndsAt` is the server-set deadline that the
+/// lobby's countdown overlay animates towards.
 class GameTurnSkeleton {
   const GameTurnSkeleton({
     this.judgeIndex = 0,
     this.round = 0,
     this.phase = MinigamePhase.setup,
     this.subjectId,
+    this.nextSubjectId,
+    this.countdownEndsAt,
     this.promptType,
     this.prompt,
   });
@@ -79,11 +91,23 @@ class GameTurnSkeleton {
   final int round;
   final MinigamePhase phase;
   final String? subjectId;
+
+  /// The server-drawn player whose turn comes after the current one
+  /// (authoritative — the "Siguiente: {name}" indicator).
+  final String? nextSubjectId;
+
+  /// The countdown deadline (`state.countdown_ends_at`, ISO 8601) the lobby
+  /// overlay counts down to; null outside the countdown phase.
+  final DateTime? countdownEndsAt;
+
   final String? promptType;
   final Map<String, dynamic>? prompt;
 
   /// Whether the phase is [MinigamePhase.finished].
   bool get isFinished => phase == MinigamePhase.finished;
+
+  /// Whether the pre-play countdown is running.
+  bool get isCountdown => phase == MinigamePhase.countdown;
 
   /// Whether a prompt has been revealed for the current turn.
   bool get hasPrompt => prompt != null;
@@ -95,6 +119,8 @@ class GameTurnSkeleton {
       round: _asInt(json['round']),
       phase: minigamePhaseFromString(json['phase'] as String?),
       subjectId: json['subject_id'] as String?,
+      nextSubjectId: json['next_subject_id'] as String?,
+      countdownEndsAt: DateTime.tryParse(json['countdown_ends_at'] as String? ?? ''),
       promptType: json['prompt_type'] as String?,
       prompt: json['prompt'] is Map
           ? Map<String, dynamic>.from(json['prompt'] as Map)
@@ -248,9 +274,10 @@ int randomParticipantIndex({
   return rng.nextInt(participantCount);
 }
 
-/// Localized label for a subject — "Le toca a {name}". The caller resolves
-/// the name (the engine does not know users); a null name falls back to the
-/// generic "Le toca jugar" line.
+/// Localized label for a subject — "Turno de {name}" (2026-08-30 directive:
+/// the play screen never shows a raw UUID). The caller resolves the name (the
+/// engine does not know users); a null name falls back to the generic
+/// "Turno de un jugador" line.
 String minigameSubjectLabel(AppLocalizations l10n, String? subjectName) {
   if (subjectName == null || subjectName.isEmpty) {
     return l10n.minigamesTurnGeneric;

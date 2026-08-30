@@ -3557,16 +3557,40 @@ abstract class AppLocalizations {
   /// Turn label when the subject name is not resolved
   ///
   /// In es, this message translates to:
-  /// **'Le toca a un jugador'**
+  /// **'Turno de un jugador'**
   String get minigamesTurnGeneric;
 
   /// Turn label naming the current subject
   ///
   /// In es, this message translates to:
-  /// **'Le toca a {name}'**
+  /// **'Turno de {name}'**
   String minigamesTurnFor(String name);
 
-  /// Button to end the party game (draw settlement)
+  /// Caption naming the server-authoritative next player
+  ///
+  /// In es, this message translates to:
+  /// **'Siguiente: {name}'**
+  String minigamesNextTurn(String name);
+
+  /// Non-subject view before the prompt is revealed — waiting copy
+  ///
+  /// In es, this message translates to:
+  /// **'Esperando al jugador actual…'**
+  String get minigamesWaitingChoiceGeneric;
+
+  /// Lobby countdown overlay caption
+  ///
+  /// In es, this message translates to:
+  /// **'La partida empieza en…'**
+  String get minigamesCountdownStarting;
+
+  /// Lobby countdown overlay — host-only button that cancels the start
+  ///
+  /// In es, this message translates to:
+  /// **'Cancelar'**
+  String get minigamesCountdownCancel;
+
+  /// Host-only X tooltip/action to end the party game (draw settlement)
   ///
   /// In es, this message translates to:
   /// **'Terminar juego'**
@@ -3575,13 +3599,13 @@ abstract class AppLocalizations {
   /// Confirmation dialog body when ending the party game
   ///
   /// In es, this message translates to:
-  /// **'¿Terminar el juego? Las apuestas se devuelven.'**
+  /// **'¿Seguro? Las apuestas se redistribuirán.'**
   String get minigamesCompleteConfirm;
 
   /// Confirmation dialog title when ending the party game
   ///
   /// In es, this message translates to:
-  /// **'Terminar juego'**
+  /// **'¿Terminar la partida?'**
   String get minigamesCompleteConfirmTitle;
 
   /// Finished state header on the play screen
@@ -4045,6 +4069,12 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'Esta partida ya terminó. Ya no puedes aceptar la invitación.'**
   String get minigamesInviteClosed;
+
+  /// Removed-player popup title when the host kicks the current user
+  ///
+  /// In es, this message translates to:
+  /// **'¡Oops!'**
+  String get minigamesKickedTitle;
 
   /// Settings switch label: friends-only minigame invites
   ///

@@ -2544,11 +2544,11 @@
   "@minigamesPromptSkip": {
     "description": "Button the subject taps to skip the prompt — the round closes and the turn advances"
   },
-  "minigamesTurnGeneric": "Le toca a un jugador",
+  "minigamesTurnGeneric": "Turno de un jugador",
   "@minigamesTurnGeneric": {
     "description": "Turn label when the subject name is not resolved"
   },
-  "minigamesTurnFor": "Le toca a {name}",
+  "minigamesTurnFor": "Turno de {name}",
   "@minigamesTurnFor": {
     "description": "Turn label naming the current subject",
     "placeholders": {
@@ -2557,15 +2557,36 @@
       }
     }
   },
+  "minigamesNextTurn": "Siguiente: {name}",
+  "@minigamesNextTurn": {
+    "description": "Caption naming the server-authoritative next player",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "minigamesWaitingChoiceGeneric": "Esperando al jugador actual…",
+  "@minigamesWaitingChoiceGeneric": {
+    "description": "Non-subject view before the prompt is revealed — waiting copy"
+  },
+  "minigamesCountdownStarting": "La partida empieza en…",
+  "@minigamesCountdownStarting": {
+    "description": "Lobby countdown overlay caption"
+  },
+  "minigamesCountdownCancel": "Cancelar",
+  "@minigamesCountdownCancel": {
+    "description": "Lobby countdown overlay — host-only button that cancels the start"
+  },
   "minigamesComplete": "Terminar juego",
   "@minigamesComplete": {
-    "description": "Button to end the party game (draw settlement)"
+    "description": "Host-only X tooltip/action to end the party game (draw settlement)"
   },
-  "minigamesCompleteConfirm": "¿Terminar el juego? Las apuestas se devuelven.",
+  "minigamesCompleteConfirm": "¿Seguro? Las apuestas se redistribuirán.",
   "@minigamesCompleteConfirm": {
     "description": "Confirmation dialog body when ending the party game"
   },
-  "minigamesCompleteConfirmTitle": "Terminar juego",
+  "minigamesCompleteConfirmTitle": "¿Terminar la partida?",
   "@minigamesCompleteConfirmTitle": {
     "description": "Confirmation dialog title when ending the party game"
   },
@@ -2904,6 +2925,10 @@
   "minigamesInviteClosed": "Esta partida ya terminó. Ya no puedes aceptar la invitación.",
   "@minigamesInviteClosed": {
     "description": "Session detail: the invite can no longer be accepted because the game finished"
+  },
+  "minigamesKickedTitle": "¡Oops!",
+  "@minigamesKickedTitle": {
+    "description": "Removed-player popup title when the host kicks the current user"
   },
   "minigamesInviteFriendsOnly": "Solo amigos pueden invitarme",
   "@minigamesInviteFriendsOnly": {

@@ -2557,15 +2557,36 @@
       }
     }
   },
+  "minigamesNextTurn": "Next: {name}",
+  "@minigamesNextTurn": {
+    "description": "Caption naming the server-authoritative next player",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "minigamesWaitingChoiceGeneric": "Waiting for the current player…",
+  "@minigamesWaitingChoiceGeneric": {
+    "description": "Non-subject view before the prompt is revealed — waiting copy"
+  },
+  "minigamesCountdownStarting": "The match starts in…",
+  "@minigamesCountdownStarting": {
+    "description": "Lobby countdown overlay caption"
+  },
+  "minigamesCountdownCancel": "Cancel",
+  "@minigamesCountdownCancel": {
+    "description": "Lobby countdown overlay — host-only button that cancels the start"
+  },
   "minigamesComplete": "End game",
   "@minigamesComplete": {
-    "description": "Button to end the party game (draw settlement)"
+    "description": "Host-only X tooltip/action to end the party game (draw settlement)"
   },
-  "minigamesCompleteConfirm": "End the game? Wagers are refunded.",
+  "minigamesCompleteConfirm": "Are you sure? Wagers will be redistributed.",
   "@minigamesCompleteConfirm": {
     "description": "Confirmation dialog body when ending the party game"
   },
-  "minigamesCompleteConfirmTitle": "End game",
+  "minigamesCompleteConfirmTitle": "End the match?",
   "@minigamesCompleteConfirmTitle": {
     "description": "Confirmation dialog title when ending the party game"
   },
@@ -2904,6 +2925,10 @@
   "minigamesInviteClosed": "This game has already finished. The invite can no longer be accepted.",
   "@minigamesInviteClosed": {
     "description": "Session detail: the invite is finished because the game ended"
+  },
+  "minigamesKickedTitle": "Oops!",
+  "@minigamesKickedTitle": {
+    "description": "Removed-player popup title when the host kicks the current user"
   },
   "minigamesInviteFriendsOnly": "Only friends can invite me",
   "@minigamesInviteFriendsOnly": {

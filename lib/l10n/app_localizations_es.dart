@@ -1928,22 +1928,36 @@ class AppLocalizationsEs extends AppLocalizations {
   String get minigamesPromptSkip => 'Saltar';
 
   @override
-  String get minigamesTurnGeneric => 'Le toca a un jugador';
+  String get minigamesTurnGeneric => 'Turno de un jugador';
 
   @override
   String minigamesTurnFor(String name) {
-    return 'Le toca a $name';
+    return 'Turno de $name';
   }
+
+  @override
+  String minigamesNextTurn(String name) {
+    return 'Siguiente: $name';
+  }
+
+  @override
+  String get minigamesWaitingChoiceGeneric => 'Esperando al jugador actual…';
+
+  @override
+  String get minigamesCountdownStarting => 'La partida empieza en…';
+
+  @override
+  String get minigamesCountdownCancel => 'Cancelar';
 
   @override
   String get minigamesComplete => 'Terminar juego';
 
   @override
   String get minigamesCompleteConfirm =>
-      '¿Terminar el juego? Las apuestas se devuelven.';
+      '¿Seguro? Las apuestas se redistribuirán.';
 
   @override
-  String get minigamesCompleteConfirmTitle => 'Terminar juego';
+  String get minigamesCompleteConfirmTitle => '¿Terminar la partida?';
 
   @override
   String get minigamesFinished => '¡Juego terminado!';
@@ -2197,6 +2211,9 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get minigamesInviteClosed =>
       'Esta partida ya terminó. Ya no puedes aceptar la invitación.';
+
+  @override
+  String get minigamesKickedTitle => '¡Oops!';
 
   @override
   String get minigamesInviteFriendsOnly => 'Solo amigos pueden invitarme';

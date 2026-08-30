@@ -253,20 +253,48 @@ class MinigameInviteNotifier
   /// status (participants grow). A finished session surfaces the typed
   /// `session_finished` ConflictError — the screen maps it to the
   /// invite-closed message.
+  ///
+  /// Stale-state repair (2026-08-30): accept also refreshes the roster (the
+  /// lobby must show the new participant immediately), the pending-invite
+  /// list (the game page must drop the "Invitación pendiente" row) and marks
+  /// the invite's notification read (the feed tile's red badge clears in the
+  /// same tap). Without these, only a hot restart reflected the accept.
   Future<void> accept() async {
     final inviteId = state.valueOrNull?['id'] as String?;
     if (inviteId == null) return;
     await _service.acceptInvite(inviteId);
     await refresh();
     ref.invalidate(sessionStatusProvider(arg));
+    ref.invalidate(minigameParticipantsProvider(arg));
+    ref.invalidate(myPendingInvitesProvider);
+    await _markInviteNotificationRead(inviteId);
   }
 
-  /// Declines the pending invite and reloads.
+  /// Declines the pending invite and reloads. The pending-invite list is
+  /// invalidated too so the "Invitación pendiente" row disappears without a
+  /// hot restart (2026-08-30 stale-state repair).
   Future<void> decline() async {
     final inviteId = state.valueOrNull?['id'] as String?;
     if (inviteId == null) return;
     await _service.declineInvite(inviteId);
     await refresh();
+    ref.invalidate(myPendingInvitesProvider);
+    await _markInviteNotificationRead(inviteId);
+  }
+
+  /// Marks the invite's notification read (best-effort — the notification
+  /// center's read-on-tap is the fallback if the row is missing).
+  Future<void> _markInviteNotificationRead(String inviteId) async {
+    final notifications = ref.read(notificationsProvider).valueOrNull;
+    if (notifications == null) return;
+    for (final n in notifications) {
+      if (n.type == 'minigame_invite' &&
+          n.data?['inviteId'] == inviteId &&
+          !n.read) {
+        await ref.read(notificationsProvider.notifier).markRead(n.id);
+        return;
+      }
+    }
   }
 }
 
@@ -377,10 +405,21 @@ class MinigameGameStateNotifier
   }
 
   /// Starts the partida (creator-only, backend-enforced via `not_creator`):
-  /// calls `init_minigame_game_state` (the lobby → playing transition, which
-  /// seeds the skeleton + random first subject) and reloads the state.
+  /// calls `init_minigame_game_state` (the lobby → countdown transition, which
+  /// seeds the skeleton + random first subject + the 5s deadline +
+  /// next_subject_id) and reloads the state. The whole lobby sees the
+  /// countdown via the realtime stream.
   Future<void> start() async {
     await _service.initMinigameGameState(arg);
+    await refresh();
+  }
+
+  /// Cancels the pre-play countdown (creator-only, backend-enforced via
+  /// `not_creator`): calls `cancel_minigame_start` (190_minigame_countdown),
+  /// which resets the game-state row back to a setup skeleton so every
+  /// participant stays on the match/lobby screen. Reloads the state.
+  Future<void> cancelStart() async {
+    await _service.cancelMinigameStart(arg);
     await refresh();
   }
 
@@ -392,6 +431,7 @@ class MinigameGameStateNotifier
     await refresh();
     ref.invalidate(sessionStatusProvider(arg));
     ref.invalidate(minigameParticipantsProvider(arg));
+    ref.invalidate(myPendingInvitesProvider);
   }
 
   /// Closes the current turn with [outcome] and advances to the next
@@ -485,6 +525,34 @@ class MinigameParticipantsNotifier
       },
     );
 
+    // 2026-08-30 stale-state repair: the roster must follow the session's
+    // AUTHORITATIVE participants array, not just realtime UPDATEs (which can
+    // be dropped). Whenever the set of participant ids changes — the host
+    // created the session after this client opened the lobby, someone joined,
+    // was removed, or accepted an invite — the roster re-fetches so a new
+    // player (or a kick) shows up immediately, even on a hot reload where
+    // provider state is preserved.
+    ref.listen<AsyncValue<Map<String, dynamic>>>(
+      sessionStatusProvider(sessionId),
+      (_, next) {
+        // Only react once the roster has an initial value — during the first
+        // load a session emission would spuriously re-fetch (no double-build).
+        if (!state.hasValue) return;
+        final nextIds = _participantIdsOf(next.valueOrNull);
+        if (nextIds.isEmpty) return;
+        final currentIds = {
+          for (final p in state.valueOrNull ?? const <MinigameParticipant>[])
+            p.id,
+        };
+        if (currentIds.length != nextIds.length ||
+            !currentIds.containsAll(nextIds)) {
+          // Re-fetch the roster in place (no double-build: this listen only
+          // fires on an actual participants change).
+          refresh();
+        }
+      },
+    );
+
     final rows = await _service.getMinigameParticipants(sessionId);
     // Read the ready map AFTER the fetch so the initial merge is never stale.
     final ready = ref.read(minigameGameStateProvider(sessionId)).valueOrNull;
@@ -497,6 +565,17 @@ class MinigameParticipantsNotifier
           ready: ready?.isReady(row['id'] as String) ?? false,
         ),
     ];
+  }
+
+  /// The participant ids of a session row (tolerant — missing/unparseable
+  /// yields an empty set).
+  static Set<String> _participantIdsOf(Map<String, dynamic>? session) {
+    final raw = session?['participants'];
+    if (raw is! List) return const {};
+    return {
+      for (final id in raw)
+        if (id is String) id,
+    };
   }
 
   /// Updates ONLY the rows whose ready flag changed — the roster keeps its

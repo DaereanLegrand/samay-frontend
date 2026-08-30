@@ -1927,13 +1927,28 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String minigamesNextTurn(String name) {
+    return 'Next: $name';
+  }
+
+  @override
+  String get minigamesWaitingChoiceGeneric => 'Waiting for the current player…';
+
+  @override
+  String get minigamesCountdownStarting => 'The match starts in…';
+
+  @override
+  String get minigamesCountdownCancel => 'Cancel';
+
+  @override
   String get minigamesComplete => 'End game';
 
   @override
-  String get minigamesCompleteConfirm => 'End the game? Wagers are refunded.';
+  String get minigamesCompleteConfirm =>
+      'Are you sure? Wagers will be redistributed.';
 
   @override
-  String get minigamesCompleteConfirmTitle => 'End game';
+  String get minigamesCompleteConfirmTitle => 'End the match?';
 
   @override
   String get minigamesFinished => 'Game over!';
@@ -2186,6 +2201,9 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get minigamesInviteClosed =>
       'This game has already finished. The invite can no longer be accepted.';
+
+  @override
+  String get minigamesKickedTitle => 'Oops!';
 
   @override
   String get minigamesInviteFriendsOnly => 'Only friends can invite me';

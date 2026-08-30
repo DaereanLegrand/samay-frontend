@@ -514,6 +514,48 @@ RealtimeChannel subscribeToSession(String id) {
     };
   }
 
+  /// Cancels the pre-play countdown for [sessionId] (190_minigame_countdown):
+  /// the CREATOR-only counterpart of [initMinigameGameState]. The server
+  /// resets the game-state row back to a setup skeleton (`not_started`) so
+  /// every participant stays on the match/lobby screen; the ready map is
+  /// preserved. Non-creator callers get the typed `not_creator` rejection.
+  Future<void> cancelMinigameStart(String sessionId) async {
+    final user = auth.currentUser;
+    if (user == null) throw const UnauthorizedError();
+
+    final res = await client.rpc(
+      'cancel_minigame_start',
+      params: {'p_session_id': sessionId},
+    );
+    final result = res is Map
+        ? Map<String, dynamic>.from(res)
+        : <String, dynamic>{};
+    switch (result['status']) {
+      case 'cancelled':
+        return;
+      case 'not_authenticated':
+        throw const UnauthorizedError();
+      case 'session_not_found':
+        throw const NotFoundError('Partida');
+      case 'not_allowed':
+        throw PermissionError();
+      case 'not_creator':
+        throw PermissionError();
+      case 'session_not_active':
+        throw ConflictError(
+          'La partida ya terminó',
+          code: 'session_not_active',
+        );
+      case 'not_started':
+        throw ConflictError(
+          'La partida no está en cuenta atrás',
+          code: 'not_started',
+        );
+      default:
+        throw const ServerError('Unexpected cancel_minigame_start response');
+    }
+  }
+
   /// Initializes the play engine for [sessionId] (150_minigame_play): seeds
   /// the game-agnostic turn skeleton and picks the FIRST subject randomly
   /// server-side (players never self-select). Idempotent — an existing
@@ -534,6 +576,7 @@ RealtimeChannel subscribeToSession(String id) {
       'not_authenticated' => throw const UnauthorizedError(),
       'session_not_found' => throw const NotFoundError('Partida'),
       'not_allowed' => throw PermissionError(),
+      'not_creator' => throw PermissionError(),
       'session_not_active' => throw ConflictError(
         'La partida ya terminó',
         code: 'session_not_active',
@@ -607,6 +650,10 @@ RealtimeChannel subscribeToSession(String id) {
       ),
       'not_started' => throw const ServerError('Game not started'),
       'no_participants' => throw const ServerError('No participants'),
+      'countdown_pending' => throw ConflictError(
+        'La partida aún no empieza',
+        code: 'countdown_pending',
+      ),
       _ => throw const ServerError('Unexpected advance_minigame_turn response'),
     };
   }

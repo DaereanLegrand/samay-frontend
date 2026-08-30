@@ -4,6 +4,7 @@ import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/extensions/error_mapper.dart';
 import 'package:samay/core/providers/auth_provider.dart';
 import 'package:samay/features/minigames/logic/minigame_engine.dart';
+import 'package:samay/features/minigames/logic/minigame_meta.dart';
 import 'package:samay/features/minigames/logic/truth_dare.dart';
 import 'package:samay/features/minigames/providers/minigames_providers.dart';
 import 'package:samay/l10n/app_localizations.dart';
@@ -14,16 +15,29 @@ import 'package:samay/shared/widgets/v_card.dart';
 import 'package:samay/shared/widgets/v_display_text.dart';
 import 'package:samay/shared/widgets/v_header_bar.dart';
 
-/// Verdad o Reto play screen (150_minigame_play) — the first game built on
-/// the reusable play engine.
+/// Verdad o Reto play screen (150_minigame_play + 190_minigame_countdown) —
+/// the first game built on the reusable play engine.
 ///
 /// Flow: the server randomly selects the subject (never self-selected), any
 /// participant taps Verdad or Reto (the reveal RPC draws a random prompt),
 /// the subject answers/does it and taps Hecho/Saltar (the advance RPC closes
-/// the round and the server picks the next subject), and any participant can
-/// end the game (draw settlement). The whole state rides
+/// the round and the server picks the next subject), and the HOST can end the
+/// game via the X (draw settlement). The whole state rides
 /// [minigameGameStateProvider], live via the `minigame_game_state` realtime
 /// channel — every participant sees the same turn.
+///
+/// 2026-08-30 directives:
+///   * The play screen NEVER shows a raw UUID — the current subject and the
+///     "next" player are resolved to usernames through the same roster the
+///     lobby uses ([minigameParticipantsProvider]); a missing name falls back
+///     to the generic line, never an id slice.
+///   * The header reads "Turno de {username}" for EVERY participant — the
+///     non-subject view shows the revealed prompt (or a waiting line) with NO
+///     choice buttons; only the current subject can pick/reveal/advance.
+///   * The AppBar title is the LOWERCASE minigame name, and ending the game is
+///     the HOST-ONLY X icon (confirm dialog, wagers redistributed). The back
+///     arrow stays non-destructive — it returns to the lobby, the game stays
+///     active server-side.
 class TruthDareScreen extends ConsumerWidget {
   const TruthDareScreen({super.key, required this.sessionId});
 
@@ -35,15 +49,34 @@ class TruthDareScreen extends ConsumerWidget {
     final game = ref.watch(minigameGameStateProvider(sessionId));
     final session = ref.watch(sessionStatusProvider(sessionId));
     final myId = ref.watch(authStateProvider).valueOrNull?.user?['id'];
+    final participantIds =
+        (session.valueOrNull?['participants'] as List?)?.cast<String?>() ??
+            const [];
+    final isCreator = participantIds.isNotEmpty && participantIds.first == myId;
+    final roster =
+        ref.watch(minigameParticipantsProvider(sessionId)).valueOrNull ??
+            const <MinigameParticipant>[];
 
     return Scaffold(
       body: VHeaderBar(
-        title: l10n.minigamesPlayTitle,
+        // The AppBar title is the minigame name in LOWERCASE (2026-08-30
+        // user directive), mirroring the lobby.
+        title: session.valueOrNull == null
+            ? l10n.minigamesPlayTitle.toLowerCase()
+            : minigameGameNameLower(
+                l10n,
+                session.valueOrNull!['game_type'] as String?,
+              ),
+        // The X is the HOST-ONLY end-game action (draw settlement); everyone
+        // else sees no close affordance here — the back arrow returns to the
+        // lobby without ending the game.
         actions: [
-          TextButton(
-            onPressed: () => _confirmComplete(context, ref, l10n),
-            child: Text(l10n.minigamesComplete),
-          ),
+          if (isCreator)
+            IconButton(
+              icon: const Icon(Icons.close),
+              tooltip: l10n.minigamesComplete,
+              onPressed: () => _confirmComplete(context, ref, l10n),
+            ),
         ],
         child: game.when(
           loading: () => const VLoadingView(),
@@ -58,23 +91,33 @@ class TruthDareScreen extends ConsumerWidget {
               );
             }
 
-            final subjectId = state.skeleton.subjectId;
+            final skeleton = state.skeleton;
+            final subjectId = skeleton.subjectId;
             final isMyTurn = subjectId != null && subjectId == myId;
-            final subjectName = _nameFor(subjectId, _participants(session));
 
             return ListView(
               padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
               children: [
+                // "Turno de <username>" for everyone — the subject sees the
+                // picker/reveal body, the rest a waiting view, both under the
+                // same authoritative turn header.
                 VDisplayText(
-                  text: isMyTurn
-                      ? l10n.minigamesPromptHeader(
-                          subjectName.isEmpty
-                              ? l10n.minigamesPromptGeneric
-                              : subjectName,
-                        )
-                      : truthDareChooseHeader(l10n, subjectName),
+                  text: minigameSubjectLabel(
+                    l10n,
+                    _nameFor(subjectId, roster),
+                  ),
                   size: 28,
                 ),
+                if (skeleton.nextSubjectId != null) ...[
+                  const SizedBox(height: AppSpacing.xs),
+                  Text(
+                    l10n.minigamesNextTurn(
+                      _nameFor(skeleton.nextSubjectId, roster),
+                    ),
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(fontSize: 14),
+                  ),
+                ],
                 const SizedBox(height: AppSpacing.md),
                 VCard(
                   child: Padding(
@@ -85,16 +128,7 @@ class TruthDareScreen extends ConsumerWidget {
                             state: state,
                             l10n: l10n,
                           )
-                        : Text(
-                            truthDarePromptBody(state.skeleton.prompt) ??
-                                l10n.minigamesChoosePromptFor(
-                                  subjectName.isEmpty
-                                      ? l10n.minigamesChoosePromptGeneric
-                                      : subjectName,
-                                ),
-                            style: Theme.of(context).textTheme.titleMedium,
-                            textAlign: TextAlign.center,
-                          ),
+                        : _WaitingCard(state: state, l10n: l10n),
                   ),
                 ),
               ],
@@ -105,26 +139,19 @@ class TruthDareScreen extends ConsumerWidget {
     );
   }
 
-  /// The current subject's localized display: resolves the username from the
-  /// session's participants (the session detail provider carries user rows),
-  /// falling back to a short id slice when the row is missing.
-  String _nameFor(String? subjectId, List<Map<String, dynamic>> participants) {
-    if (subjectId == null) return '';
-    for (final p in participants) {
-      if (p['id'] == subjectId) {
-        final name = p['username'] as String?;
-        if (name != null && name.isNotEmpty) return name;
+  /// The current/next subject's localized display: resolves the username from
+  /// the same roster the lobby renders ([minigameParticipantsProvider]),
+  /// falling back to an empty string — the caller then renders the generic
+  /// line. A raw UUID is NEVER shown (2026-08-30 directive).
+  String _nameFor(String? userId, List<MinigameParticipant> roster) {
+    if (userId == null) return '';
+    for (final participant in roster) {
+      if (participant.id == userId) {
+        final name = participant.username.trim();
+        if (name.isNotEmpty) return name;
       }
     }
-    return subjectId.length <= 8 ? subjectId : subjectId.substring(0, 8);
-  }
-
-  List<Map<String, dynamic>> _participants(
-    AsyncValue<Map<String, dynamic>> session,
-  ) {
-    final raw = session.valueOrNull?['participants'];
-    if (raw is! List) return const [];
-    return raw.whereType<Map<String, dynamic>>().toList();
+    return '';
   }
 
   Future<void> _confirmComplete(
@@ -152,10 +179,6 @@ class TruthDareScreen extends ConsumerWidget {
     if (confirmed != true || !context.mounted) return;
     try {
       await ref.read(minigameGameStateProvider(sessionId).notifier).complete();
-      if (!context.mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(l10n.minigamesFinished)));
     } catch (e) {
       if (!context.mounted) return;
       ScaffoldMessenger.of(
@@ -260,5 +283,26 @@ class _RevealPromptCard extends ConsumerWidget {
         context,
       ).showSnackBar(SnackBar(content: Text(e.toAppError().message)));
     }
+  }
+}
+
+/// The non-subject's view of the current turn: the revealed prompt body (so
+/// everyone reads it) or a waiting line — with NO choice buttons (2026-08-30
+/// directive: only the current subject picks/advances).
+class _WaitingCard extends StatelessWidget {
+  const _WaitingCard({required this.state, required this.l10n});
+
+  final MinigameGameState state;
+  final AppLocalizations l10n;
+
+  @override
+  Widget build(BuildContext context) {
+    final prompt = truthDarePromptBody(state.skeleton.prompt);
+    final text = prompt ?? l10n.minigamesWaitingChoiceGeneric;
+    return Text(
+      text,
+      style: Theme.of(context).textTheme.titleMedium,
+      textAlign: TextAlign.center,
+    );
   }
 }
