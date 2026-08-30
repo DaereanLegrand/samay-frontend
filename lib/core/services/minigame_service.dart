@@ -96,7 +96,7 @@ class MinigameService {
 
   static const _columns =
       'id, group_id, game_type, status, shard_wager, player_limit, '
-      'participants, winner_id, created_at, name';
+      'participants, winner_id, created_at, name, auto_name';
 
   /// All sessions of [groupId], newest first (RLS `ms_read_group_member` —
   /// group members only).
@@ -345,6 +345,42 @@ class MinigameService {
         .eq('invitee_id', user.id)
         .maybeSingle();
     return res == null ? null : Map<String, dynamic>.from(res);
+  }
+
+  /// The current user's PENDING invites, as the SESSION rows of those
+  /// invites (newest invite first) — the invitee-side "partida-N ready to
+  /// accept" list (170_minigame_invite_badges).
+  ///
+  /// Two reads: the pending invite rows (`minigame_invites`, RLS
+  /// `mi_read_own` bounds to the caller) then one `getSession` per session id
+  /// (RLS `ms_read_invitee` opens the session row to an invitee even when
+  /// they are not yet a participant). Bystanders see nothing — a pending
+  /// invite is the narrowest read that lets an invited friend render the
+  /// partida and accept while it is active.
+  Future<List<Map<String, dynamic>>> listMyPendingInvites() async {
+    final user = auth.currentUser;
+    if (user == null) throw const UnauthorizedError();
+
+    final invites = await client
+        .from('minigame_invites')
+        .select('id, session_id, invitee_id, created_by, status, created_at')
+        .eq('invitee_id', user.id)
+        .eq('status', 'pending')
+        .order('created_at', ascending: false);
+    final sessionIds = <String>[];
+    for (final row in invites) {
+      final sessionId = row['session_id'];
+      if (sessionId is String && !sessionIds.contains(sessionId)) {
+        sessionIds.add(sessionId);
+      }
+    }
+
+    final sessions = <Map<String, dynamic>>[];
+    for (final sessionId in sessionIds) {
+      final session = await getSession(sessionId);
+      if (session != null) sessions.add(session);
+    }
+    return sessions;
   }
 
   /// Accepts [inviteId] via the `accept_minigame_invite` SECURITY DEFINER RPC

@@ -99,9 +99,14 @@ MinigameType? minigameTypeFromString(String? gameType) {
 }
 
 /// Display name of a session row: the user-supplied `name` when present
-/// (trimmed), otherwise the auto `partida-XX` where XX is [index] + 1 (the
-/// session's running number in its list — 160_minigame_names). The auto-name
-/// is computed client-side and never stored.
+/// (trimmed), otherwise the server-computed `auto_name` (`partida-XX`,
+/// 170_minigame_invite_badges) when the row carries it, otherwise the
+/// fallback `partida-{index + 1}` running number.
+///
+/// `auto_name` is the CANONICAL partida-N: the notify trigger now embeds it
+/// in the invite notification and both creator and invitee resolve the same
+/// name from the row in isolation (the 160 index-based fallback is only kept
+/// for rows fetched before 170).
 String minigameSessionName(
   AppLocalizations l10n,
   Map<String, dynamic> session, {
@@ -110,5 +115,8 @@ String minigameSessionName(
   final name = session['name'] as String?;
   final trimmed = name?.trim() ?? '';
   if (trimmed.isNotEmpty) return trimmed;
+  final auto = session['auto_name'] as String?;
+  final autoTrimmed = auto?.trim() ?? '';
+  if (autoTrimmed.isNotEmpty) return autoTrimmed;
   return l10n.minigamesAutoName(index + 1);
 }

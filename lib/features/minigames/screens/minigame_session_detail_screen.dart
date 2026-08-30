@@ -52,11 +52,23 @@ class MinigameSessionDetailScreen extends ConsumerWidget {
             final finished = status == 'finished';
             final inviteStatus = invite.valueOrNull?['status'] as String?;
             final isPending = inviteStatus == 'pending' && !finished;
+            // The partida name (user title or the canonical server auto
+            // partida-N — 170_minigame_invite_badges) so an invited friend
+            // sees exactly the match they were invited to (e.g. "partida-1").
+            final partidaName = minigameSessionName(l10n, row);
 
             return ListView(
               padding: const EdgeInsets.all(AppSpacing.lg),
               children: [
                 VDisplayText(text: minigameGameName(l10n, gameType), size: 28),
+                const SizedBox(height: AppSpacing.xs),
+                Text(
+                  partidaName,
+                  style: const TextStyle(
+                    color: AppColors.mutedStrong,
+                    fontSize: 14,
+                  ),
+                ),
                 const SizedBox(height: AppSpacing.md),
                 VCard(
                   child: Column(

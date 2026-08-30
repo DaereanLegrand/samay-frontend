@@ -28,6 +28,53 @@ final pendingMinigameInvitesProvider = Provider<int>((ref) {
       .length;
 });
 
+/// Pending minigame invites grouped by game type — the per-game feed badges
+/// (170_minigame_invite_badges). Derived from the unread `minigame_invite`
+/// notifications, using the `gameType` the notify trigger now embeds in
+/// `data` (no extra round-trip). Missing/unknown types fall under a `null`
+/// key, which the feed simply ignores (the badge only renders for the five
+/// known tiles).
+final pendingMinigameInvitesByTypeProvider = Provider<Map<String?, int>>((ref) {
+  final notifications = ref.watch(notificationsProvider).valueOrNull;
+  if (notifications == null) return const {};
+  final byType = <String?, int>{};
+  for (final n in notifications) {
+    if (n.type != 'minigame_invite' || n.read) continue;
+    final gameType = n.data?['gameType'] as String?;
+    byType[gameType] = (byType[gameType] ?? 0) + 1;
+  }
+  return byType;
+});
+
+/// The current user's PENDING minigame invites as SESSION rows — the
+/// invitee-side "partida-N ready to accept" list (170_minigame_invite_badges).
+/// RLS bounds every read (`mi_read_own` invites + `ms_read_invitee` sessions),
+/// so this never leaks a partida the user was not invited to.
+class MyPendingInvitesNotifier extends AsyncNotifier<List<Map<String, dynamic>>> {
+  MinigameService get _service => ref.read(minigameServiceProvider);
+
+  @override
+  Future<List<Map<String, dynamic>>> build() async {
+    // Live via the notification stream: any new invite (or read-state
+    // change) invalidates notificationsProvider — awaiting it here re-runs
+    // the list so the invitee's "partida-N ready to accept" rows follow
+    // realtime without a pull (the `...future` watch is the settled pattern
+    // from recentFriendsProvider — a plain ref.watch would double-build).
+    await ref.watch(notificationsProvider.future);
+    return _service.listMyPendingInvites();
+  }
+
+  /// Re-runs [build] after an accept/decline or a realtime invite landing
+  /// (finding SM-09).
+  Future<void> refresh() async => ref.invalidateSelf();
+}
+
+/// The current user's pending minigame invites (session rows, newest invite
+/// first). Kept fresh by the shell's [MinigameInvitesRealtimeListener] via
+/// the notification realtime stream.
+final myPendingInvitesProvider = AsyncNotifierProvider<MyPendingInvitesNotifier,
+    List<Map<String, dynamic>>>(MyPendingInvitesNotifier.new);
+
 /// Sessions of one group, newest first (GMCR foundation — the game list the
 /// hub screen renders). Family over the group id so each group carries its
 /// own list, and the create/join actions live on this notifier so the list

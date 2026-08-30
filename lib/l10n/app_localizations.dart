@@ -3944,6 +3944,12 @@ abstract class AppLocalizations {
   /// **'Te invitaron a esta partida.'**
   String get minigamesInvitePendingBody;
 
+  /// Per-game list: a partida row that is a pending invite awaiting accept
+  ///
+  /// In es, this message translates to:
+  /// **'Invitación pendiente'**
+  String get minigamesInvitePending;
+
   /// Session detail: accept the pending invite button
   ///
   /// In es, this message translates to:

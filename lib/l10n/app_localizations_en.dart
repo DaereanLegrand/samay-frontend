@@ -2133,6 +2133,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get minigamesInvitePendingBody => 'You\'ve been invited to this game.';
 
   @override
+  String get minigamesInvitePending => 'Pending invite';
+
+  @override
   String get minigamesInviteAccept => 'Accept';
 
   @override

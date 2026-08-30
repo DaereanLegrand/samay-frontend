@@ -2832,6 +2832,10 @@
   "@minigamesInvitePendingBody": {
     "description": "Session detail: the user has a pending invite"
   },
+  "minigamesInvitePending": "Invitación pendiente",
+  "@minigamesInvitePending": {
+    "description": "Per-game list: a partida row that is a pending invite awaiting accept"
+  },
   "minigamesInviteAccept": "Aceptar",
   "@minigamesInviteAccept": {
     "description": "Session detail: accept the pending invite button"

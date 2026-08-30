@@ -90,9 +90,9 @@ class _MinigameDetailScreenState extends ConsumerState<MinigameDetailScreen> {
   }
 
   /// The lazy list: index 0 is the fixed hero + CTA + heading block; the
-  /// ongoing partidas follow one per item (PERF-01: data-derived rows must
-  /// be lazily built). Loading/error/empty collapse the list to the hero
-  /// block alone.
+  /// ongoing partidas (mine + pending invited) follow one per item
+  /// (PERF-01: data-derived rows must be lazily built). Loading/error/empty
+  /// collapse the list to the hero block alone.
   int _listItemCount(AppLocalizations l10n) {
     final sessions = ref.watch(myMinigameSessionsProvider);
     final data = sessions.valueOrNull;
@@ -101,9 +101,21 @@ class _MinigameDetailScreenState extends ConsumerState<MinigameDetailScreen> {
         .where((row) => row['status'] != 'finished')
         .where((row) => row['game_type'] == _type.value)
         .length;
-    // +1 header block; ongoing rows render as their own items (when empty the
-    // header block embeds the empty view).
-    return 1 + ongoing;
+    final pendingInvites = _pendingInvitesOfThisGame;
+    // +1 header block; ongoing + pending rows render as their own items (when
+    // empty the header block embeds the empty view).
+    return 1 + ongoing + pendingInvites.length;
+  }
+
+  /// Pending invited sessions of THIS game (170_minigame_invite_badges): the
+  /// invitee-side rows the user was invited to but has not accepted yet. They
+  /// render under the same list so an invited friend SEES "partida-1" ready
+  /// to accept — no need to already be a participant.
+  List<Map<String, dynamic>> get _pendingInvitesOfThisGame {
+    final pending = ref.watch(myPendingInvitesProvider).valueOrNull ?? const [];
+    return pending
+        .where((row) => row['game_type'] == _type.value)
+        .toList();
   }
 
   Widget _buildListItem(
@@ -140,12 +152,18 @@ class _MinigameDetailScreenState extends ConsumerState<MinigameDetailScreen> {
             .where((row) => row['game_type'] == _type.value)
             .toList() ??
         const <Map<String, dynamic>>[];
-    final session = ongoing[index - 1];
+    final pendingInvites = _pendingInvitesOfThisGame;
+    final combined = [...ongoing, ...pendingInvites];
+    final rowIndex = index - 1;
+    if (rowIndex >= combined.length) return const SizedBox.shrink();
+    final session = combined[rowIndex];
+    final isPending = rowIndex >= ongoing.length;
     return Padding(
       padding: const EdgeInsets.only(bottom: AppSpacing.xs),
       child: _SessionRow(
         session: session,
-        index: index - 1,
+        index: rowIndex,
+        pendingInvite: isPending,
         onTap: () => _showDetail(session['id'] as String),
       ),
     );
@@ -201,7 +219,8 @@ class _MinigameDetailScreenState extends ConsumerState<MinigameDetailScreen> {
             .where((row) => row['status'] != 'finished')
             .where((row) => row['game_type'] == _type.value)
             .toList();
-        if (ongoing.isEmpty) {
+        final pendingInvites = _pendingInvitesOfThisGame;
+        if (ongoing.isEmpty && pendingInvites.isEmpty) {
           return Padding(
             padding: const EdgeInsets.symmetric(vertical: AppSpacing.xl),
             child: VEmptyView(
@@ -248,15 +267,20 @@ class _AudienceTag extends StatelessWidget {
 }
 
 /// One ongoing partida row: display name (user or auto partida-XX), the
-/// wager or participant count, and the status chip.
+/// wager or participant count, and the status chip. A row may be a PENDING
+/// INVITE (170_minigame_invite_badges) — an invited friend's "partida-N
+/// ready to accept" entry — which renders the invite chip instead of the
+/// active chip and deep-links to the accept/decline detail.
 class _SessionRow extends StatelessWidget {
   final Map<String, dynamic> session;
   final int index;
+  final bool pendingInvite;
   final VoidCallback onTap;
 
   const _SessionRow({
     required this.session,
     required this.index,
+    this.pendingInvite = false,
     required this.onTap,
   });
 
@@ -295,10 +319,12 @@ class _SessionRow extends StatelessWidget {
               ),
               const SizedBox(width: AppSpacing.md),
               VChip(
-                label: status == 'finished'
+                label: pendingInvite
+                    ? l10n.minigamesInvitePending
+                    : status == 'finished'
                     ? l10n.minigamesStatusFinished
                     : l10n.minigamesStatusActive,
-                selected: status != 'finished',
+                selected: pendingInvite ? false : status != 'finished',
               ),
             ],
           ),

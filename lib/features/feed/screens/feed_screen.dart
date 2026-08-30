@@ -13,6 +13,7 @@ import 'package:samay/features/chat/providers/chat_providers.dart';
 import 'package:samay/features/events/logic/event_formatters.dart';
 import 'package:samay/features/feed/providers/feed_providers.dart';
 import 'package:samay/features/minigames/logic/minigame_meta.dart';
+import 'package:samay/features/minigames/providers/minigames_providers.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/error_view.dart';
 import 'package:samay/shared/widgets/skeletons.dart';
@@ -559,6 +560,11 @@ class _GamesSection extends ConsumerWidget {
     final minigamesOn = ref.isEnabled(AppFeatureFlag.minigames);
     final partyFinderOn = ref.isEnabled(AppFeatureFlag.partyFinder);
     if (!minigamesOn && !partyFinderOn) return const SizedBox.shrink();
+    // Per-game pending-invite counts (170_minigame_invite_badges): the unread
+    // minigame_invite notifications grouped by gameType drive the red badge
+    // on each tile — a friend who invited you to a partida makes that game's
+    // tile show how many invited matches await.
+    final pendingByType = ref.watch(pendingMinigameInvitesByTypeProvider);
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(
@@ -575,26 +581,33 @@ class _GamesSection extends ConsumerWidget {
             style: AppTypography.sectionLabel,
           ),
           const SizedBox(height: AppSpacing.md),
-              if (minigamesOn) ...[
-                SizedBox(
-                  height: AppSpacing.scale(context, 132),
-                  child: ListView.separated(
-                    scrollDirection: Axis.horizontal,
-                    itemCount: MinigameType.values.length,
-                    separatorBuilder: (_, _) =>
-                        const SizedBox(width: AppSpacing.md),
-                    itemBuilder: (context, index) => _HomeGameCard(
-                      type: MinigameType.values[index],
-                      onTap: () => context.push(
-                        RoutePaths.minigame(
-                          MinigameType.values[index].value,
-                        ),
-                      ),
+          // The tile is a SQUARE: its width equals the row height (both scale
+          // with the text scaler), so every game card is identical in size at
+          // any font setting (2026-08-30 fix — a fixed 120px width drifted
+          // from the scaled row height and made some cards wider than others).
+          if (minigamesOn) ...[
+            SizedBox(
+              height: _homeTileSize(context),
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                itemCount: MinigameType.values.length,
+                separatorBuilder: (_, _) =>
+                    const SizedBox(width: AppSpacing.md),
+                itemBuilder: (context, index) => _HomeGameCard(
+                  type: MinigameType.values[index],
+                  tileSize: _homeTileSize(context),
+                  pendingCount:
+                      pendingByType[MinigameType.values[index].value] ?? 0,
+                  onTap: () => context.push(
+                    RoutePaths.minigame(
+                      MinigameType.values[index].value,
                     ),
                   ),
                 ),
-                const SizedBox(height: AppSpacing.md),
-              ],
+              ),
+            ),
+            const SizedBox(height: AppSpacing.md),
+          ],
           if (partyFinderOn)
             _PartyFinderCard(
               onTap: () => context.push(RoutePaths.partyFinder),
@@ -605,17 +618,36 @@ class _GamesSection extends ConsumerWidget {
   }
 }
 
+/// Square tile dimension for the home games row: the 132px design height
+/// scaled by the text scaler. Width == height, so every game card is a
+/// perfect square at any font setting (2026-08-30 fix).
+double _homeTileSize(BuildContext context) => AppSpacing.scale(context, 132);
+
 /// Home tile for one minigame: icon + localized name, opening the game's
 /// dedicated page (2026-08-28: the feed card now routes to
 /// [RoutePaths.minigame] — title, explanation, audience, "Nueva partida"
 /// and the ongoing list). Black button (user directive 2026-08-14: home-page
 /// buttons are black, white-only glass, no cyan; icons are shared via
 /// [minigameIcon]).
+///
+/// The red [VCountBadge] (top-right, 170_minigame_invite_badges) shows how
+/// many invited partidas of this game await the user — same badge voice as
+/// the shell's Grupos-tab badge.
 class _HomeGameCard extends StatelessWidget {
   final MinigameType type;
+  final int pendingCount;
   final VoidCallback onTap;
 
-  const _HomeGameCard({required this.type, required this.onTap});
+  /// The square tile dimension (width == height, both scaled with the text
+  /// scaler) so every game card is identical in size.
+  final double tileSize;
+
+  const _HomeGameCard({
+    required this.type,
+    required this.tileSize,
+    required this.pendingCount,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -623,25 +655,45 @@ class _HomeGameCard extends StatelessWidget {
     return InkWell(
       onTap: onTap,
       child: SizedBox(
-        width: 120,
-        child: VCard(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Icon(minigameIcon(type), color: AppColors.white),
-              const Spacer(),
-              Text(
-                minigameGameName(l10n, type.value),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  color: AppColors.white,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 13,
+        width: tileSize,
+        height: tileSize,
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            // Positioned.fill forces the VCard to fill the WHOLE square. A
+            // Stack otherwise gives non-positioned children loose constraints,
+            // so the card shrink-wraps to its content width — a short name
+            // like "Preguntas" made the background narrower than the tile
+            // while the InkWell splash still covered the full square
+            // (2026-08-30 fix).
+            Positioned.fill(
+              child: VCard(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(minigameIcon(type), color: AppColors.white),
+                    const Spacer(),
+                    Text(
+                      minigameGameName(l10n, type.value),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: AppColors.white,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            ],
-          ),
+            ),
+            if (pendingCount > 0)
+              Positioned(
+                right: -2,
+                top: -2,
+                child: VCountBadge(count: pendingCount),
+              ),
+          ],
         ),
       ),
     );
