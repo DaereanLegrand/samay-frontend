@@ -9,9 +9,12 @@ import 'package:samay/core/extensions/error_mapper.dart';
 import 'package:samay/core/providers/auth_provider.dart';
 import 'package:samay/core/providers/service_providers.dart';
 import 'package:samay/core/router/route_paths.dart';
+import 'package:samay/core/services/minigame_service.dart';
 import 'package:samay/features/minigames/logic/minigame_engine.dart';
 import 'package:samay/features/minigames/logic/minigame_meta.dart';
 import 'package:samay/features/minigames/providers/minigames_providers.dart';
+import 'package:samay/features/minigames/screens/minigames_screen.dart'
+    show minigameRejectionMessage;
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/error_view.dart';
 import 'package:samay/shared/widgets/profile_avatar.dart';
@@ -289,6 +292,14 @@ class _MinigameSessionDetailScreenState
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(l10n.minigamesInviteAccepted)));
+    } on MinigameSessionRejectedException catch (e) {
+      // The accept RPC rejects with a typed status (insufficient_shards for a
+      // player without the funds, session_finished for a closed game…) — map
+      // it through the friendly localized message, never the raw error text.
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(minigameRejectionMessage(l10n, e.rejection))));
     } catch (e) {
       if (!context.mounted) return;
       ScaffoldMessenger.of(
@@ -308,6 +319,13 @@ class _MinigameSessionDetailScreenState
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(l10n.minigamesInviteDeclined)));
+    } on MinigameSessionRejectedException catch (e) {
+      // Typed rejection → friendly localized message (I-62 pattern), never
+      // the raw exception text.
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(minigameRejectionMessage(l10n, e.rejection))));
     } catch (e) {
       if (!context.mounted) return;
       ScaffoldMessenger.of(
