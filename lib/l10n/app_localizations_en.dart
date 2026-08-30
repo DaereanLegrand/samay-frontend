@@ -291,10 +291,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get shellProfile => 'Profile';
 
   @override
-  String get friendsTitle => 'Friends';
+  String get friendsTitle => 'friends';
 
   @override
-  String get friendsBlockedTitle => 'Blocked users';
+  String get friendsBlockedTitle => 'blocked';
 
   @override
   String get friendsNoneBlocked => 'You haven\'t blocked anyone';
@@ -315,7 +315,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get friendsNoResults => 'No results';
 
   @override
-  String get friendsRequestsTitle => 'Requests';
+  String get friendsRequestsTitle => 'requests';
 
   @override
   String get friendsTabReceived => 'Received';
@@ -342,7 +342,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get friendsNoInvites => 'No invitations';
 
   @override
-  String get friendsSearchUsers => 'Search users';
+  String get friendsSearchUsers => 'search';
 
   @override
   String get friendsSearchPlaceholder => 'Search by username';
@@ -382,7 +382,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get groupsTooltipFindFriends => 'Find friends';
 
   @override
-  String get groupsCreateGroup => 'Create group';
+  String get groupsCreateGroup => 'create';
 
   @override
   String get groupsRanking => 'Ranking';
@@ -391,7 +391,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get groupsRequests => 'Requests';
 
   @override
-  String get socialTitle => 'Social';
+  String get socialTitle => 'social';
 
   @override
   String get socialTabGroups => 'Groups';
@@ -406,7 +406,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get socialRankingEntry => 'Ranking';
 
   @override
-  String get socialRankingTitle => 'User ranking';
+  String get socialRankingTitle => 'ranking';
 
   @override
   String get socialRankingEmpty => 'No ranking data yet';
@@ -453,7 +453,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get groupsDonationSuccess => 'Donation successful';
 
   @override
-  String get groupsDonateTitle => 'Donate shards';
+  String get groupsDonateTitle => 'donate';
 
   @override
   String groupsDonateTo(String groupName) {
@@ -580,10 +580,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get groupsNotFound => 'The group was not found';
 
   @override
-  String get groupsMembersTitle => 'Members';
+  String get groupsMembersTitle => 'members';
 
   @override
-  String get groupsInviteTitle => 'Invite';
+  String get groupsInviteTitle => 'invite';
 
   @override
   String groupsInviteCount(int count) {
@@ -605,7 +605,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get groupsNoResults => 'No results';
 
   @override
-  String get groupsLeaderboardTitle => 'Group rankings';
+  String get groupsLeaderboardTitle => 'ranking';
 
   @override
   String get groupsNoRankingData => 'No ranking data';
@@ -616,13 +616,13 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get profileTitle => 'Profile';
+  String get profileTitle => 'profile';
 
   @override
-  String get profileEditTitle => 'Edit profile';
+  String get profileEditTitle => 'edit';
 
   @override
-  String get profileSettingsTitle => 'Settings';
+  String get profileSettingsTitle => 'settings';
 
   @override
   String get profileSubscription => 'Subscription';
@@ -631,7 +631,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get profileNotifications => 'Notifications';
 
   @override
-  String get profilePrivacy => 'Privacy';
+  String get profilePrivacy => 'privacy';
 
   @override
   String get profileBlockedUsers => 'Blocked users';
@@ -682,7 +682,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'By using Samay you agree to behave respectfully: no harassment, no spam, and no inappropriate content. Misuse may lead to account suspension.';
 
   @override
-  String get notificationSettingsTitle => 'Notification preferences';
+  String get notificationSettingsTitle => 'notis';
 
   @override
   String get notificationSettingsLocalNote =>
@@ -790,7 +790,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get profileUnblockError => 'Error unblocking';
 
   @override
-  String get profileDeleteTitle => 'Delete account';
+  String get profileDeleteTitle => 'delete';
 
   @override
   String get profileDeleteQuestion => 'Delete account?';
@@ -968,7 +968,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get routerInvalidInvite => 'The requested invitation is not valid.';
 
   @override
-  String get routerErrorTitle => 'Something went wrong';
+  String get routerErrorTitle => 'oops';
 
   @override
   String get routerErrorBody =>
@@ -1052,7 +1052,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get rankInSearch => 'In the Search';
 
   @override
-  String get photosTitle => 'Photos';
+  String get photosTitle => 'photos';
 
   @override
   String get photosEmpty => 'No photos yet';
@@ -1116,7 +1116,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get permissionsOpenSettings => 'Open Settings';
 
   @override
-  String get notificationsTitle => 'Notifications';
+  String get notificationsTitle => 'notis';
 
   @override
   String get notificationSettingsEventReminders => 'Event reminders';
@@ -1162,7 +1162,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get chatTitle => 'Chat';
+  String get chatTitle => 'chat';
 
   @override
   String get chatInputHint => 'Write a message...';
@@ -1203,7 +1203,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get chatLoadOlder => 'Load older messages';
 
   @override
-  String get chatInboxTitle => 'Chats';
+  String get chatInboxTitle => 'chats';
 
   @override
   String get chatInboxEmpty => 'No conversations yet';
@@ -1372,7 +1372,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get eventsErrorJoinMode => 'Select a join mode';
 
   @override
-  String get eventDetailTitle => 'Event';
+  String get eventDetailTitle => 'event';
 
   @override
   String get eventGroupScoped => 'Group event';
@@ -1459,7 +1459,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get eventCancelledSnack => 'Event cancelled';
 
   @override
-  String get eventEditTitle => 'Edit event';
+  String get eventEditTitle => 'edit';
 
   @override
   String get eventPoolLockedNotice =>
@@ -1487,7 +1487,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get eventStatusCancelled => 'Cancelled';
 
   @override
-  String get qrAttendanceTitle => 'Attendance QR';
+  String get qrAttendanceTitle => 'qr';
 
   @override
   String get qrEventLoadError => 'Could not load the event.';
@@ -1531,7 +1531,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get qrAttendeeExpiredBody => 'If the problem persists, press Retry.';
 
   @override
-  String get qrScannerTitle => 'Attendance scanner';
+  String get qrScannerTitle => 'scan';
 
   @override
   String get qrScanPrompt => 'Scan the attendee\'s QR code';
@@ -1609,7 +1609,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get qrCameraSettingsAction => 'Open settings';
 
   @override
-  String get partyFinderTitle => 'Party Finder';
+  String get partyFinderTitle => 'Party finder';
 
   @override
   String get partyFinderOptInLabel => 'Appear in Party Finder';
@@ -1643,7 +1643,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get cosmeticsShopTitle => 'Cosmetics shop';
+  String get cosmeticsShopTitle => 'cosmetics';
 
   @override
   String get cosmeticsTabFrames => 'Frames';
@@ -1703,7 +1703,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get cosmeticsEmptyCatalog => 'No cosmetics available yet';
 
   @override
-  String get minigamesTitle => 'Games';
+  String get minigamesTitle => 'games';
 
   @override
   String get homeGamesTitle => 'Games';
@@ -1732,16 +1732,28 @@ class AppLocalizationsEn extends AppLocalizations {
       'Pass the poke before the timer runs out';
 
   @override
+  String get minigamesGamePokeChainExplanation =>
+      'Pass the poke to a friend before the timer runs out. If it does, you pay the wager.';
+
+  @override
   String get minigamesGameQuestions => 'Questions';
 
   @override
   String get minigamesGameQuestionsTagline => 'Answer from the hot seat';
 
   @override
+  String get minigamesGameQuestionsExplanation =>
+      'Every player asks you questions and you answer from the hot seat. Turn by turn, no filters.';
+
+  @override
   String get minigamesGameTruthDare => 'Truth or Dare';
 
   @override
   String get minigamesGameTruthDareTagline => 'Take turns, no escaping';
+
+  @override
+  String get minigamesGameTruthDareExplanation =>
+      'Take turns: each player picks Truth or Dare and the group decides if you delivered. No escaping.';
 
   @override
   String get minigamesGameDrunkBottle => 'Drunk Bottle';
@@ -1751,6 +1763,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'Spin the bottle and see who it points to';
 
   @override
+  String get minigamesGameDrunkBottleExplanation =>
+      'Spin the bottle: whoever it points to has to take it on. Perfect for hangouts with friends.';
+
+  @override
   String get minigamesGameChallenge => 'Challenges';
 
   @override
@@ -1758,10 +1774,57 @@ class AppLocalizationsEn extends AppLocalizations {
       'Complete the challenge before the deadline';
 
   @override
-  String get minigamesWagerLabel => 'Wager (shards)';
+  String get minigamesGameChallengeExplanation =>
+      'Complete the challenge before the time runs out. Play it solo or compete with friends.';
+
+  @override
+  String get minigamesAudienceFriends => 'Meant for playing with friends';
+
+  @override
+  String get minigamesAudienceSolo => 'Meant for playing alone';
+
+  @override
+  String get minigamesAudienceBoth => 'With friends or solo';
+
+  @override
+  String get minigamesNewPartida => 'New game';
+
+  @override
+  String get minigamesPartidaNameLabel => 'Name (optional)';
+
+  @override
+  String minigamesPartidaNameHint(String autoName) {
+    return '$autoName';
+  }
+
+  @override
+  String minigamesAutoName(int index) {
+    return 'game-$index';
+  }
+
+  @override
+  String get minigamesOngoingTitle => 'Ongoing games';
+
+  @override
+  String minigamesDetailEmpty(String game) {
+    return 'No $game games yet';
+  }
+
+  @override
+  String get minigamesDetailEmptyBody =>
+      'Tap \"New game\" to start the first one.';
+
+  @override
+  String get minigamesWagerDefaultHint => 'Default: 10';
+
+  @override
+  String get minigamesWagerLabel => 'Using:';
 
   @override
   String get minigamesWagerHint => '0 = no wager';
+
+  @override
+  String get minigamesWagerBalanceCaption => 'Available';
 
   @override
   String get minigamesCreate => 'Create game';
@@ -1825,7 +1888,61 @@ class AppLocalizationsEn extends AppLocalizations {
       'The game will be playable here soon.';
 
   @override
-  String get shardsLedgerTitle => 'Shards ledger';
+  String get minigamesPlayTitle => 'Truth or Dare';
+
+  @override
+  String get minigamesChoosePromptGeneric => 'Your turn! Pick Truth or Dare';
+
+  @override
+  String minigamesChoosePromptFor(String name) {
+    return 'Up to $name: pick Truth or Dare';
+  }
+
+  @override
+  String get minigamesTruth => 'Truth';
+
+  @override
+  String get minigamesDare => 'Dare';
+
+  @override
+  String minigamesPromptHeader(String name) {
+    return 'Your turn, $name!';
+  }
+
+  @override
+  String get minigamesPromptGeneric => 'Your turn!';
+
+  @override
+  String get minigamesPromptDone => 'Done';
+
+  @override
+  String get minigamesPromptSkip => 'Skip';
+
+  @override
+  String get minigamesTurnGeneric => 'A player\'s turn';
+
+  @override
+  String minigamesTurnFor(String name) {
+    return '$name\'s turn';
+  }
+
+  @override
+  String get minigamesComplete => 'End game';
+
+  @override
+  String get minigamesCompleteConfirm => 'End the game? Wagers are refunded.';
+
+  @override
+  String get minigamesCompleteConfirmTitle => 'End game';
+
+  @override
+  String get minigamesFinished => 'Game over!';
+
+  @override
+  String get minigamesErrorLoadGame => 'Could not load the game';
+
+  @override
+  String get shardsLedgerTitle => 'shards';
 
   @override
   String get shardsLedgerTabShards => 'Shards';
@@ -1910,7 +2027,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get preshardsReasonAdminGrant => 'Granted by Samay';
 
   @override
-  String get eventsTabTitle => 'My events';
+  String get eventsTabTitle => 'events';
 
   @override
   String get eventsCreateCta => 'Create event';
@@ -1933,7 +2050,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get featureUnavailableBody => 'This feature is not available yet.';
 
   @override
-  String get collageTitle => 'Collage';
+  String get collageTitle => 'collage';
 
   @override
   String get collageEmpty => 'No photos for the collage yet';
@@ -1973,7 +2090,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get chatMessageInfoNotRead => 'Not read';
 
   @override
-  String get minigamesInviteTitle => 'Invite players';
+  String get minigamesInviteTitle => 'invite';
 
   @override
   String minigamesInviteCount(int count) {
@@ -1981,7 +2098,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get minigamesDetailTitle => 'Game';
+  String get minigamesDetailTitle => 'game';
 
   @override
   String get minigamesWagerFree => 'No wager';

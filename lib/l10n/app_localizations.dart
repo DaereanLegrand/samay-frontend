@@ -605,13 +605,13 @@ abstract class AppLocalizations {
   /// Friends list screen app bar title
   ///
   /// In es, this message translates to:
-  /// **'Amigos'**
+  /// **'amigos'**
   String get friendsTitle;
 
   /// Blocked users screen app bar title
   ///
   /// In es, this message translates to:
-  /// **'Usuarios bloqueados'**
+  /// **'bloqueados'**
   String get friendsBlockedTitle;
 
   /// Empty state when the user has not blocked anyone
@@ -653,7 +653,7 @@ abstract class AppLocalizations {
   /// Requests screen app bar title
   ///
   /// In es, this message translates to:
-  /// **'Solicitudes'**
+  /// **'solicitudes'**
   String get friendsRequestsTitle;
 
   /// Requests screen tab label
@@ -707,7 +707,7 @@ abstract class AppLocalizations {
   /// User search screen app bar title
   ///
   /// In es, this message translates to:
-  /// **'Buscar usuarios'**
+  /// **'buscar'**
   String get friendsSearchUsers;
 
   /// Search field hint on the user search screen
@@ -785,7 +785,7 @@ abstract class AppLocalizations {
   /// Create-group button label
   ///
   /// In es, this message translates to:
-  /// **'Crear grupo'**
+  /// **'crear'**
   String get groupsCreateGroup;
 
   /// Leaderboard button label
@@ -803,7 +803,7 @@ abstract class AppLocalizations {
   /// Social tab screen app bar title
   ///
   /// In es, this message translates to:
-  /// **'Social'**
+  /// **'social'**
   String get socialTitle;
 
   /// Social screen inner pill tab label (groups sub-tab)
@@ -833,7 +833,7 @@ abstract class AppLocalizations {
   /// Global user ranking screen app bar title
   ///
   /// In es, this message translates to:
-  /// **'Ranking de usuarios'**
+  /// **'ranking'**
   String get socialRankingTitle;
 
   /// Empty state when the user ranking has no entries
@@ -923,7 +923,7 @@ abstract class AppLocalizations {
   /// Donate-shards screen app bar title and button label
   ///
   /// In es, this message translates to:
-  /// **'Donar shards'**
+  /// **'donar'**
   String get groupsDonateTitle;
 
   /// Donate screen heading naming the target group
@@ -1139,13 +1139,13 @@ abstract class AppLocalizations {
   /// Group members screen app bar title
   ///
   /// In es, this message translates to:
-  /// **'Miembros'**
+  /// **'miembros'**
   String get groupsMembersTitle;
 
   /// Invite screen app bar title
   ///
   /// In es, this message translates to:
-  /// **'Invitar'**
+  /// **'invitar'**
   String get groupsInviteTitle;
 
   /// Invite action button label with the number of selected users
@@ -1181,7 +1181,7 @@ abstract class AppLocalizations {
   /// Leaderboard screen app bar title
   ///
   /// In es, this message translates to:
-  /// **'Ranking de grupos'**
+  /// **'ranking'**
   String get groupsLeaderboardTitle;
 
   /// Empty state when there is no ranking data
@@ -1199,19 +1199,19 @@ abstract class AppLocalizations {
   /// Profile screen app bar title
   ///
   /// In es, this message translates to:
-  /// **'Perfil'**
+  /// **'perfil'**
   String get profileTitle;
 
   /// Edit-profile screen app bar title
   ///
   /// In es, this message translates to:
-  /// **'Editar perfil'**
+  /// **'editar'**
   String get profileEditTitle;
 
   /// Settings screen app bar title
   ///
   /// In es, this message translates to:
-  /// **'Configuración'**
+  /// **'ajustes'**
   String get profileSettingsTitle;
 
   /// Settings list item
@@ -1229,7 +1229,7 @@ abstract class AppLocalizations {
   /// Settings list item
   ///
   /// In es, this message translates to:
-  /// **'Privacidad'**
+  /// **'privacidad'**
   String get profilePrivacy;
 
   /// Settings list item
@@ -1325,7 +1325,7 @@ abstract class AppLocalizations {
   /// Notification-settings screen app bar title
   ///
   /// In es, this message translates to:
-  /// **'Preferencias de notificaciones'**
+  /// **'preferencias de notis'**
   String get notificationSettingsTitle;
 
   /// Footer explaining notification preferences are stored locally
@@ -1529,7 +1529,7 @@ abstract class AppLocalizations {
   /// Delete-account screen app bar title
   ///
   /// In es, this message translates to:
-  /// **'Eliminar cuenta'**
+  /// **'eliminar'**
   String get profileDeleteTitle;
 
   /// Delete-account confirmation dialog title
@@ -1865,7 +1865,7 @@ abstract class AppLocalizations {
   /// Generic route error screen title
   ///
   /// In es, this message translates to:
-  /// **'Algo salió mal'**
+  /// **'ups'**
   String get routerErrorTitle;
 
   /// Generic route error screen body
@@ -2021,7 +2021,7 @@ abstract class AppLocalizations {
   /// Event photo gallery app bar title
   ///
   /// In es, this message translates to:
-  /// **'Fotos'**
+  /// **'fotos'**
   String get photosTitle;
 
   /// Empty state heading when the event has no photos
@@ -2135,7 +2135,7 @@ abstract class AppLocalizations {
   /// Notification center app bar title
   ///
   /// In es, this message translates to:
-  /// **'Notificaciones'**
+  /// **'notis'**
   String get notificationsTitle;
 
   /// Notification preference toggle: event reminders
@@ -2213,7 +2213,7 @@ abstract class AppLocalizations {
   /// Chat screen app bar title
   ///
   /// In es, this message translates to:
-  /// **'Chat'**
+  /// **'chat'**
   String get chatTitle;
 
   /// Chat composer input hint
@@ -2291,7 +2291,7 @@ abstract class AppLocalizations {
   /// Inbox / chat list screen title (also the feed button tooltip)
   ///
   /// In es, this message translates to:
-  /// **'Chats'**
+  /// **'chats'**
   String get chatInboxTitle;
 
   /// Empty state title when the inbox has no chats
@@ -2609,7 +2609,7 @@ abstract class AppLocalizations {
   /// Event detail screen app bar title
   ///
   /// In es, this message translates to:
-  /// **'Evento'**
+  /// **'evento'**
   String get eventDetailTitle;
 
   /// Badge for events scoped to a group
@@ -2765,7 +2765,7 @@ abstract class AppLocalizations {
   /// Event editor app bar title
   ///
   /// In es, this message translates to:
-  /// **'Editar evento'**
+  /// **'editar'**
   String get eventEditTitle;
 
   /// Notice that the pool fields lock at starts_at
@@ -2819,7 +2819,7 @@ abstract class AppLocalizations {
   /// Attendance QR screen title
   ///
   /// In es, this message translates to:
-  /// **'Código de asistencia'**
+  /// **'código'**
   String get qrAttendanceTitle;
 
   /// Attendance QR: event load error message
@@ -2891,7 +2891,7 @@ abstract class AppLocalizations {
   /// QR scanner screen title
   ///
   /// In es, this message translates to:
-  /// **'Escáner de asistencia'**
+  /// **'escáner'**
   String get qrScannerTitle;
 
   /// QR scanner: scan instruction
@@ -3029,7 +3029,7 @@ abstract class AppLocalizations {
   /// Party Finder screen app bar title (PFND — I-60)
   ///
   /// In es, this message translates to:
-  /// **'Party Finder'**
+  /// **'Party finder'**
   String get partyFinderTitle;
 
   /// Party Finder: opt-in switch label (privacy default OFF)
@@ -3077,7 +3077,7 @@ abstract class AppLocalizations {
   /// Cosmetics shop screen app-bar title
   ///
   /// In es, this message translates to:
-  /// **'Tienda de cosméticos'**
+  /// **'cosméticos'**
   String get cosmeticsShopTitle;
 
   /// Cosmetics shop category tab: avatar frames
@@ -3185,7 +3185,7 @@ abstract class AppLocalizations {
   /// App bar title of the group minigames hub
   ///
   /// In es, this message translates to:
-  /// **'Juegos'**
+  /// **'juegos'**
   String get minigamesTitle;
 
   /// Sección de acceso rápido a los juegos al tope del feed principal
@@ -3236,6 +3236,12 @@ abstract class AppLocalizations {
   /// **'Pasa el poke antes de que se acabe el tiempo'**
   String get minigamesGamePokeChainTagline;
 
+  /// Game #1 explanation on the dedicated game page
+  ///
+  /// In es, this message translates to:
+  /// **'Pásale el poke a un amigo antes de que se acabe el tiempo. Si se te acaba, pagas la apuesta.'**
+  String get minigamesGamePokeChainExplanation;
+
   /// Game #2 name (Questions)
   ///
   /// In es, this message translates to:
@@ -3247,6 +3253,12 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'Responde desde el asiento caliente'**
   String get minigamesGameQuestionsTagline;
+
+  /// Game #2 explanation on the dedicated game page
+  ///
+  /// In es, this message translates to:
+  /// **'Todos los jugadores te hacen preguntas y tú respondes desde el asiento caliente. Por turnos, sin filtros.'**
+  String get minigamesGameQuestionsExplanation;
 
   /// Game #3 name (Truth or Dare)
   ///
@@ -3260,6 +3272,12 @@ abstract class AppLocalizations {
   /// **'Por turnos, sin escapatoria'**
   String get minigamesGameTruthDareTagline;
 
+  /// Game #3 explanation on the dedicated game page
+  ///
+  /// In es, this message translates to:
+  /// **'Por turnos: cada jugador elige Verdad o Reto y el grupo decide si cumpliste. Sin escapatoria.'**
+  String get minigamesGameTruthDareExplanation;
+
   /// Game #4 name (Drunk Bottle)
   ///
   /// In es, this message translates to:
@@ -3271,6 +3289,12 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'Gira la botella y veamos a quién apunta'**
   String get minigamesGameDrunkBottleTagline;
+
+  /// Game #4 explanation on the dedicated game page
+  ///
+  /// In es, this message translates to:
+  /// **'Gira la botella: a quien apunte le toca cumplir. Ideal para reuniones con amigos.'**
+  String get minigamesGameDrunkBottleExplanation;
 
   /// Game #5 name (Challenges)
   ///
@@ -3284,10 +3308,82 @@ abstract class AppLocalizations {
   /// **'Completa el reto antes del límite'**
   String get minigamesGameChallengeTagline;
 
-  /// Wager input label (in shards)
+  /// Game #5 explanation on the dedicated game page
   ///
   /// In es, this message translates to:
-  /// **'Apuesta (shards)'**
+  /// **'Completa el reto antes de que se acabe el tiempo. Puedes jugarlo solo o competir con amigos.'**
+  String get minigamesGameChallengeExplanation;
+
+  /// Per-game page: the game is meant to be played with friends
+  ///
+  /// In es, this message translates to:
+  /// **'Para jugar con amigos'**
+  String get minigamesAudienceFriends;
+
+  /// Per-game page: the game is meant to be played alone
+  ///
+  /// In es, this message translates to:
+  /// **'Para jugar solo'**
+  String get minigamesAudienceSolo;
+
+  /// Per-game page: the game works both solo and with friends
+  ///
+  /// In es, this message translates to:
+  /// **'Con amigos o solo'**
+  String get minigamesAudienceBoth;
+
+  /// Per-game page: primary button that starts the create-partida flow
+  ///
+  /// In es, this message translates to:
+  /// **'Nueva partida'**
+  String get minigamesNewPartida;
+
+  /// Create-partida wizard: name input label (blank = auto partida-XX)
+  ///
+  /// In es, this message translates to:
+  /// **'Nombre (opcional)'**
+  String get minigamesPartidaNameLabel;
+
+  /// Create-partida wizard: name input hint showing the next auto name (partida-1, partida-2, ...)
+  ///
+  /// In es, this message translates to:
+  /// **'{autoName}'**
+  String minigamesPartidaNameHint(String autoName);
+
+  /// Auto partida name when the player leaves the name blank (partida-1, partida-2, ...)
+  ///
+  /// In es, this message translates to:
+  /// **'partida-{index}'**
+  String minigamesAutoName(int index);
+
+  /// Per-game page: section heading above the ongoing partidas list
+  ///
+  /// In es, this message translates to:
+  /// **'Partidas en curso'**
+  String get minigamesOngoingTitle;
+
+  /// Per-game page: empty state title when there are no ongoing partidas of this game
+  ///
+  /// In es, this message translates to:
+  /// **'Aún no hay partidas de {game}'**
+  String minigamesDetailEmpty(String game);
+
+  /// Per-game page: empty state body prompting the user to start the first partida
+  ///
+  /// In es, this message translates to:
+  /// **'Toca «Nueva partida» para crear la primera.'**
+  String get minigamesDetailEmptyBody;
+
+  /// Create-partida wizard: wager input hint (default 10 shards)
+  ///
+  /// In es, this message translates to:
+  /// **'Por defecto: 10'**
+  String get minigamesWagerDefaultHint;
+
+  /// Create-partida wizard: wager input label above the amount (Usando: = how many shards are being used)
+  ///
+  /// In es, this message translates to:
+  /// **'Usando:'**
   String get minigamesWagerLabel;
 
   /// Wager input hint: 0 means no wager
@@ -3295,6 +3391,12 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'0 = sin apuesta'**
   String get minigamesWagerHint;
+
+  /// Create-partida wizard: small caption above the player's shard balance, right of the amount input
+  ///
+  /// In es, this message translates to:
+  /// **'Disponibles'**
+  String get minigamesWagerBalanceCaption;
 
   /// Button that creates the minigame session
   ///
@@ -3398,10 +3500,106 @@ abstract class AppLocalizations {
   /// **'La partida se jugará aquí pronto.'**
   String get minigamesDetailComingSoon;
 
+  /// Play screen app bar title for the Verdad o Reto game
+  ///
+  /// In es, this message translates to:
+  /// **'Verdad o Reto'**
+  String get minigamesPlayTitle;
+
+  /// Header asking the judge to pick a prompt kind when no subject name is resolved
+  ///
+  /// In es, this message translates to:
+  /// **'¡Es tu turno! Elige Verdad o Reto'**
+  String get minigamesChoosePromptGeneric;
+
+  /// Header asking the judge to pick a prompt kind for the named subject
+  ///
+  /// In es, this message translates to:
+  /// **'Le toca a {name}: elige Verdad o Reto'**
+  String minigamesChoosePromptFor(String name);
+
+  /// Button label for the truth (verdad) prompt kind
+  ///
+  /// In es, this message translates to:
+  /// **'Verdad'**
+  String get minigamesTruth;
+
+  /// Button label for the dare (reto) prompt kind
+  ///
+  /// In es, this message translates to:
+  /// **'Reto'**
+  String get minigamesDare;
+
+  /// Header revealing who must answer the prompt
+  ///
+  /// In es, this message translates to:
+  /// **'¡Toca {name}!'**
+  String minigamesPromptHeader(String name);
+
+  /// Prompt header when the subject name is not resolved
+  ///
+  /// In es, this message translates to:
+  /// **'¡Toca jugar!'**
+  String get minigamesPromptGeneric;
+
+  /// Button the subject taps once the truth is answered / dare is done — closes the round and moves on
+  ///
+  /// In es, this message translates to:
+  /// **'Hecho'**
+  String get minigamesPromptDone;
+
+  /// Button the subject taps to skip the prompt — the round closes and the turn advances
+  ///
+  /// In es, this message translates to:
+  /// **'Saltar'**
+  String get minigamesPromptSkip;
+
+  /// Turn label when the subject name is not resolved
+  ///
+  /// In es, this message translates to:
+  /// **'Le toca a un jugador'**
+  String get minigamesTurnGeneric;
+
+  /// Turn label naming the current subject
+  ///
+  /// In es, this message translates to:
+  /// **'Le toca a {name}'**
+  String minigamesTurnFor(String name);
+
+  /// Button to end the party game (draw settlement)
+  ///
+  /// In es, this message translates to:
+  /// **'Terminar juego'**
+  String get minigamesComplete;
+
+  /// Confirmation dialog body when ending the party game
+  ///
+  /// In es, this message translates to:
+  /// **'¿Terminar el juego? Las apuestas se devuelven.'**
+  String get minigamesCompleteConfirm;
+
+  /// Confirmation dialog title when ending the party game
+  ///
+  /// In es, this message translates to:
+  /// **'Terminar juego'**
+  String get minigamesCompleteConfirmTitle;
+
+  /// Finished state header on the play screen
+  ///
+  /// In es, this message translates to:
+  /// **'¡Juego terminado!'**
+  String get minigamesFinished;
+
+  /// Error state on the play screen when the game state fails to load
+  ///
+  /// In es, this message translates to:
+  /// **'No se pudo cargar el juego'**
+  String get minigamesErrorLoadGame;
+
   /// Shard & preshard ledger screen app bar title
   ///
   /// In es, this message translates to:
-  /// **'Historial de shards'**
+  /// **'shards'**
   String get shardsLedgerTitle;
 
   /// Ledger tab label for the earned shard movements
@@ -3563,7 +3761,7 @@ abstract class AppLocalizations {
   /// Events tab hero heading (R1 events sweep)
   ///
   /// In es, this message translates to:
-  /// **'Mis eventos'**
+  /// **'eventos'**
   String get eventsTabTitle;
 
   /// Events tab create-event CTA
@@ -3605,7 +3803,7 @@ abstract class AppLocalizations {
   /// Event collage screen app bar title
   ///
   /// In es, this message translates to:
-  /// **'Collage'**
+  /// **'collage'**
   String get collageTitle;
 
   /// Event collage empty state heading
@@ -3671,10 +3869,10 @@ abstract class AppLocalizations {
   /// App bar title of the minigame player picker
   ///
   /// In es, this message translates to:
-  /// **'Invitar a jugar'**
+  /// **'invitar'**
   String get minigamesInviteTitle;
 
-  /// App bar confirm action on the minigame player picker
+  /// App bar confirm action for the minigame player picker
   ///
   /// In es, this message translates to:
   /// **'Invitar ({count})'**
@@ -3683,7 +3881,7 @@ abstract class AppLocalizations {
   /// App bar title of the minigame session detail
   ///
   /// In es, this message translates to:
-  /// **'Partida'**
+  /// **'partida'**
   String get minigamesDetailTitle;
 
   /// Session detail: the session carries no shard wager

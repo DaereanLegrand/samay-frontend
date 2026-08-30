@@ -3,12 +3,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:samay/features/chat/providers/chat_providers.dart';
 import 'package:samay/features/chat/widgets/chat_thread_view.dart';
 import 'package:samay/l10n/app_localizations.dart';
+import 'package:samay/shared/widgets/v_header_bar.dart';
 
 /// E2EE chat screen (ISSUE 4): a THIN scaffold over the reusable
 /// [ChatThreadView] — the peer username (or the group name, which the inbox
-/// RPC serves as `peer_username` for group chats) in the AppBar. The 1:1
-/// thread and the group detail Chat tab mount the SAME [ChatThreadView]; the
-/// only difference is `groupId`, resolved here from the inbox row
+/// RPC serves as `peer_username` for group chats) in the [VHeaderBar]. The
+/// 1:1 thread and the group detail Chat tab mount the SAME [ChatThreadView];
+/// the only difference is `groupId`, resolved here from the inbox row
 /// (`reference_id` when the row is a group chat) so group peer bubbles carry
 /// sender labels.
 class ChatScreen extends ConsumerStatefulWidget {
@@ -41,10 +42,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     }
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(peerUsername ?? l10n.chatTitle)
+      body: VHeaderBar(
+        title: peerUsername ?? l10n.chatTitle,
+        child: ChatThreadView(chatId: widget.chatId, groupId: groupId),
       ),
-      body: ChatThreadView(chatId: widget.chatId, groupId: groupId),
     );
   }
 }

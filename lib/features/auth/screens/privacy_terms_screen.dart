@@ -5,6 +5,7 @@ import 'package:samay/core/router/route_paths.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/v_button.dart';
 import 'package:samay/shared/widgets/v_display_text.dart';
+import 'package:samay/shared/widgets/v_header_bar.dart';
 
 class PrivacyTermsScreen extends StatefulWidget {
   final String email;
@@ -29,24 +30,8 @@ class _PrivacyTermsScreenState extends State<PrivacyTermsScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(),
-      // §7.3: scroll-safe body — the long checkbox subtitles + displayMedium
-      // header overflow the fixed Column at ≥1.5× text scale on small
-      // phones. `SliverFillRemaining` pins the CTA when the content fits
-      // and scrolls when it doesn't. The checkbox rows are custom
-      // (checkbox + texts) instead of `CheckboxListTile` because a
-      // ListTile's *intrinsic* height is smaller than its laid-out height
-      // when the subtitle wraps — that under-measure breaks both this
-      // sliver pattern and the OTP `IntrinsicHeight + Spacer` variant
-      // (U-19 finding; plain Texts measure exactly).
-      // XL-16 (06_privacy_terms — "a trivial display of over-complication"):
-      // the glass card panel is gone — black bg + the two consent rows is
-      // the cleaner surface (the hero gradient and the CTA own the only
-      // glow on screen).
-      // XL-19 (06_privacy_terms — "over-complication"): the rows keep their
-      // section labels with NO extra instruction text — exactly hero, 2
-      // consent rows, CTA.
-      body: CustomScrollView(
+      body: VHeaderBar(
+        child: CustomScrollView(
         slivers: [
           SliverFillRemaining(
             hasScrollBody: false,
@@ -93,6 +78,7 @@ class _PrivacyTermsScreenState extends State<PrivacyTermsScreen> {
             ),
           ),
         ],
+      ),
       ),
     );
   }

@@ -83,7 +83,7 @@ Local API base URL: `http://127.0.0.1:54386`. Self-hosting details:
 [`<private-ops-repo>/SELFHOSTING.md`](<private-ops-repo>/SELFHOSTING.md); deployment targets are
 placeholders in [`<private-ops-repo>/DEPLOYMENT-PLACEHOLDER.md`](<private-ops-repo>/DEPLOYMENT-PLACEHOLDER.md)
 — do not invent deployment URLs in code or docs.
-Database migrations: `supabase/migrations/**` (28 SQL files across numbered
+Database migrations: `supabase/migrations/**` (32 SQL files across 20 numbered
 domain dirs, mirrored byte-identical into `supabase-testing/migrations/`),
 applied by `supabase/migrate.sh` / `reset.sh`.
 
@@ -146,11 +146,11 @@ code, update them in the same commit.
 | Layer | Command | Baseline (2026-08-28) |
 |-------|---------|----------------------|
 | Static analysis | `dart analyze` | **0 issues** |
-| Flutter unit/widget | `make flutter-test` | **1783 pass / 0 fail** (suckless reduction — see below) |
+| Flutter unit/widget | `make flutter-test` | **1879 pass / 0 fail** (suckless reduction — see below) |
 | Go | `go test ./...` | green — **188 tests**, 6 packages |
-| Integration flows | `bash integration_test/runner.sh` (hermetic) | **21 registered flows** |
-| Backend (curl) | `bash test/run_all_backend.sh` | **16 opt-tests** (needs the stack up; opt-007 static gate reports SERVICE_KEY-vs-.env alignment drift on opt-001..006 — local `.env` rotated after the 2026-08-25 baseline; runtime runs pass — see docs/history/phase-13/2026-08-26_monochrome-refactor.md) |
-| SQL (pgTAP) | `supabase db test` | **plan(742)** assertions (needs the stack; +81 from Section 49c 150_minigame_play 2026-08-28) |
+| Integration flows | `bash integration_test/runner.sh` (hermetic) | **22 registered flows** (+ truth_dare_flow_test 2026-08-28; ui_smoke runs first) |
+| Backend (curl) | `bash test/run_all_backend.sh` | **17 opt-tests** (+ opt-018-minigame-play 2026-08-28; needs the stack up; opt-007 static gate reports SERVICE_KEY-vs-.env alignment drift on opt-001..006 — local `.env` rotated after the 2026-08-25 baseline; runtime runs pass — see docs/history/phase-13/2026-08-26_monochrome-refactor.md) |
+| SQL (pgTAP) | `supabase db test` | **plan(758)** assertions (needs the stack; +7 from Section 49e `get_friend_profiles` 2026-08-30 — the batched accepted-friend profile RPC behind the on-device friends cache) |
 | Manual end-user QA | `bash test_runner.sh` | gum-based manual runner |
 
 **Suckless test policy (2026-08-28):** only FUNCTIONAL tests ship in `test/`
@@ -161,9 +161,10 @@ meta-guards (≈600 tests, ~25%). The remaining suite pins behavior through real
 Supabase-harness contract assertions (`harnessHttp.sent*`, e.g. the
 `accept_friend_request` RPC, leave-group `DELETE`, event-create `POST
 /rest/v1/events`). `test/meta/conventions_test.dart` enforces the policy:
-no new `takeException()==null` smoke tests and no whole-file render-only
-feature suites. `flutter test` = **1783 pass / 0 fail** (re-verified
-2026-08-28).
+ no new `takeException()==null` smoke tests and no whole-file render-only
+ feature suites. `flutter test` = **1879 pass / 0 fail** (re-verified
+ 2026-08-30; on-device friends cache for invite/buscar — empty + <5-char
+ queries show the cached friend list via the `get_friend_profiles` RPC).
 
 See [`test/README.md`](test/README.md) for the full test matrix and the curl
 test-writing guide.

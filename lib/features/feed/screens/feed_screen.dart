@@ -6,15 +6,12 @@ import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/core/design_tokens/app_icon_sizes.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/design_tokens/app_typography.dart';
-import 'package:samay/core/extensions/error_mapper.dart';
 import 'package:samay/core/models/event.dart';
-import 'package:samay/core/models/group.dart';
 import 'package:samay/core/router/route_paths.dart';
 import 'package:samay/core/services/minigame_service.dart';
 import 'package:samay/features/chat/providers/chat_providers.dart';
 import 'package:samay/features/events/logic/event_formatters.dart';
 import 'package:samay/features/feed/providers/feed_providers.dart';
-import 'package:samay/features/groups/providers/groups_providers.dart';
 import 'package:samay/features/minigames/logic/minigame_meta.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/error_view.dart';
@@ -44,11 +41,6 @@ import 'package:samay/shared/widgets/v_network_image.dart';
 /// detail. Group activity posts and the geolocation distance filter are
 /// future work (the `LocationService` doesn't exist yet — see the I-58
 /// daily log).
-
-/// Sentinel the multi-group bottom sheet pops when the user picks
-/// "Play directly" (direct-minigames 2026-08-27) — a real group id is a
-/// UUID, so this string can never collide.
-const String _directMarker = '__direct__';
 
 class FeedScreen extends ConsumerWidget {
   const FeedScreen({super.key});
@@ -583,22 +575,26 @@ class _GamesSection extends ConsumerWidget {
             style: AppTypography.sectionLabel,
           ),
           const SizedBox(height: AppSpacing.md),
-          if (minigamesOn) ...[
-            SizedBox(
-              height: AppSpacing.scale(context, 132),
-              child: ListView.separated(
-                scrollDirection: Axis.horizontal,
-                itemCount: MinigameType.values.length,
-                separatorBuilder: (_, _) =>
-                    const SizedBox(width: AppSpacing.md),
-                itemBuilder: (context, index) => _HomeGameCard(
-                  type: MinigameType.values[index],
-                  onTap: () => _openMinigames(context, ref),
+              if (minigamesOn) ...[
+                SizedBox(
+                  height: AppSpacing.scale(context, 132),
+                  child: ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: MinigameType.values.length,
+                    separatorBuilder: (_, _) =>
+                        const SizedBox(width: AppSpacing.md),
+                    itemBuilder: (context, index) => _HomeGameCard(
+                      type: MinigameType.values[index],
+                      onTap: () => context.push(
+                        RoutePaths.minigame(
+                          MinigameType.values[index].value,
+                        ),
+                      ),
+                    ),
+                  ),
                 ),
-              ),
-            ),
-            const SizedBox(height: AppSpacing.md),
-          ],
+                const SizedBox(height: AppSpacing.md),
+              ],
           if (partyFinderOn)
             _PartyFinderCard(
               onTap: () => context.push(RoutePaths.partyFinder),
@@ -607,89 +603,12 @@ class _GamesSection extends ConsumerWidget {
       ),
     );
   }
-
-  /// Opens the minigames hub. Direct play is first-class (direct-minigames
-  /// 2026-08-27): a user with ZERO groups goes straight to the DIRECT hub —
-  /// no "join a group" roadblock — and a user with groups gets the group
-  /// picker with a "Play directly" first option. Single group → straight
-  /// navigation. The groups list is awaited (the provider is only built on
-  /// first tap — a synchronous `.valueOrNull` read would always be
-  /// null/loading).
-  Future<void> _openMinigames(BuildContext context, WidgetRef ref) async {
-    final l10n = AppLocalizations.of(context);
-    late final List<Group> groups;
-    try {
-      groups = await ref.read(myGroupsProvider.future);
-    } catch (e) {
-      // No-fallback (2026-08-14): a failed groups fetch must NEVER masquerade
-      // as "no groups yet" — surface the real error.
-      if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toAppError().message)),
-      );
-      return;
-    }
-    if (groups.isEmpty) {
-      // Direct hub — no group required to play with a friend.
-      if (!context.mounted) return;
-      await context.push(RoutePaths.minigamesDirect);
-      return;
-    }
-
-    String? groupId;
-    if (groups.length == 1) {
-      groupId = groups.first.id;
-    } else {
-      if (!context.mounted) return;
-      final picked = await showModalBottomSheet<String>(
-        context: context,
-        backgroundColor: AppColors.surfaceAlt,
-        builder: (sheetContext) => SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Padding(
-                padding: const EdgeInsets.all(AppSpacing.lg),
-                child: Text(
-                  l10n.minigamesChooseGroup,
-                  style: Theme.of(sheetContext).textTheme.titleMedium,
-                ),
-              ),
-              ListTile(
-                leading: const Icon(Icons.sports_esports),
-                title: Text(l10n.minigamesPlayDirect),
-                onTap: () => Navigator.of(sheetContext).pop(_directMarker),
-              ),
-              for (final group in groups)
-                ListTile(
-                  leading: const Icon(Icons.group_outlined),
-                  title: Text(group.name),
-                  onTap: () => Navigator.of(sheetContext).pop(
-                    group.id,
-                  ),
-                ),
-              const SizedBox(height: AppSpacing.sm),
-            ],
-          ),
-        ),
-      );
-      // Direct is first-class: the marker routes to the group-less hub.
-      if (picked == _directMarker) {
-        if (context.mounted) await context.push(RoutePaths.minigamesDirect);
-        return;
-      }
-      groupId = picked;
-    }
-
-    if (groupId != null && context.mounted) {
-      await context.push(RoutePaths.minigames(groupId));
-    }
-  }
 }
 
-/// Home tile for one minigame: icon + localized name, opening the games hub
-/// for the user's group (black button — user directive 2026-08-14: home-page
+/// Home tile for one minigame: icon + localized name, opening the game's
+/// dedicated page (2026-08-28: the feed card now routes to
+/// [RoutePaths.minigame] — title, explanation, audience, "Nueva partida"
+/// and the ongoing list). Black button (user directive 2026-08-14: home-page
 /// buttons are black, white-only glass, no cyan; icons are shared via
 /// [minigameIcon]).
 class _HomeGameCard extends StatelessWidget {

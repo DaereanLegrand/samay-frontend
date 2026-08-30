@@ -20,6 +20,7 @@ import 'package:samay/shared/widgets/v_button.dart';
 import 'package:samay/shared/widgets/v_chip.dart';
 import 'package:samay/shared/widgets/v_count_badge.dart';
 import 'package:samay/shared/widgets/v_display_text.dart';
+import 'package:samay/shared/widgets/v_header_bar.dart';
 import 'package:samay/shared/widgets/v_input.dart';
 import 'package:samay/shared/widgets/v_network_image.dart';
 
@@ -45,8 +46,7 @@ String minigameRejectionMessage(
       l10n.minigamesErrorPlayerLimitReached,
     MinigameSessionRejection.notAllowed => l10n.minigamesErrorNotAllowed,
     MinigameSessionRejection.notAuthenticated ||
-    MinigameSessionRejection.invalidWager =>
-      l10n.minigamesErrorCreate,
+    MinigameSessionRejection.invalidWager => l10n.minigamesErrorCreate,
   };
 }
 
@@ -93,8 +93,9 @@ class _MinigamesScreenState extends ConsumerState<MinigamesScreen> {
   void initState() {
     super.initState();
     _selectedGroupId = widget.groupId;
-    _scope =
-        widget.groupId == null ? MinigameScope.direct : MinigameScope.group;
+    _scope = widget.groupId == null
+        ? MinigameScope.direct
+        : MinigameScope.group;
   }
 
   @override
@@ -135,9 +136,9 @@ class _MinigamesScreenState extends ConsumerState<MinigamesScreen> {
       }
       if (!mounted) return;
       _wagerController.clear();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.minigamesCreated)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.minigamesCreated)));
     } on MinigameSessionRejectedException catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -145,9 +146,9 @@ class _MinigamesScreenState extends ConsumerState<MinigamesScreen> {
       );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toAppError().message)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e.toAppError().message)));
     } finally {
       if (mounted) setState(() => _creating = false);
     }
@@ -162,43 +163,44 @@ class _MinigamesScreenState extends ConsumerState<MinigamesScreen> {
     final l10n = AppLocalizations.of(context);
 
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.minigamesTitle)),
-      body: Column(
-        children: [
-          // "Elige un juego" sits IMMEDIATELY below the AppBar (2026-08-27
-          // user directive) — the Directa/Grupo scope row and the game
-          // picker follow underneath.
-          Padding(
-            padding: const EdgeInsets.fromLTRB(
-              AppSpacing.lg,
-              AppSpacing.lg,
-              AppSpacing.lg,
-              AppSpacing.xs,
+      body: VHeaderBar(
+        title: l10n.minigamesTitle,
+        child: Column(
+          children: [
+            // "Elige un juego" sits IMMEDIATELY below the AppBar (2026-08-27
+            // user directive) — the Directa/Grupo scope row and the game
+            // picker follow underneath.
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.lg,
+                AppSpacing.lg,
+                AppSpacing.lg,
+                AppSpacing.xs,
+              ),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: VDisplayText(text: l10n.minigamesPickGame, size: 28),
+              ),
             ),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: VDisplayText(text: l10n.minigamesPickGame, size: 28),
+            _buildScopeSwitch(l10n),
+            const Divider(height: 1, thickness: 1, color: AppColors.hairline),
+            Expanded(
+              child: _scope == MinigameScope.group && _selectedGroupId == null
+                  ? _buildGroupPicker(l10n)
+                  : Column(
+                      children: [
+                        _buildGamePicker(l10n),
+                        const Divider(
+                          height: 1,
+                          thickness: 1,
+                          color: AppColors.hairline,
+                        ),
+                        Expanded(child: _buildSessions(l10n)),
+                      ],
+                    ),
             ),
-          ),
-          _buildScopeSwitch(l10n),
-          const Divider(height: 1, thickness: 1, color: AppColors.hairline),
-          Expanded(
-            child:
-                _scope == MinigameScope.group && _selectedGroupId == null
-                    ? _buildGroupPicker(l10n)
-                    : Column(
-                        children: [
-                          _buildGamePicker(l10n),
-                          const Divider(
-                            height: 1,
-                            thickness: 1,
-                            color: AppColors.hairline,
-                          ),
-                          Expanded(child: _buildSessions(l10n)),
-                        ],
-                      ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -267,67 +269,74 @@ class _MinigamesScreenState extends ConsumerState<MinigamesScreen> {
     required String groupId,
     required VoidCallback onSwitch,
   }) {
-    return ref.watch(myGroupsProvider).maybeWhen(
-      data: (groups) {
-        final group = groups.where((g) => g.id == groupId).firstOrNull;
-        if (group == null) return const SizedBox.shrink();
-        return Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-             _GroupBannerAvatar(group: group, size: 20),
-            const SizedBox(width: AppSpacing.sm),
-            Flexible(
-              child: Text(
-                group.name,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  color: AppColors.white,
-                  fontWeight: FontWeight.w600,
+    return ref
+        .watch(myGroupsProvider)
+        .maybeWhen(
+          data: (groups) {
+            final group = groups.where((g) => g.id == groupId).firstOrNull;
+            if (group == null) return const SizedBox.shrink();
+            return Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _GroupBannerAvatar(group: group, size: 20),
+                const SizedBox(width: AppSpacing.sm),
+                Flexible(
+                  child: Text(
+                    group.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: AppColors.white,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                 ),
-              ),
-            ),
-          ],
+              ],
+            );
+          },
+          orElse: () => const SizedBox.shrink(),
         );
-      },
-      orElse: () => const SizedBox.shrink(),
-    );
   }
 
   /// Group scope with no group chosen yet: the user's groups to pick from
   /// (or the create-a-group hint when they have none — a fresh user lands on
   /// Direct, so this is an edge state for group-seeking players).
   Widget _buildGroupPicker(AppLocalizations l10n) {
-    return ref.watch(myGroupsProvider).when(
-      loading: () => const VLoadingView(),
-      error: (e, _) => ErrorView(
-        message: e.toAppError().message,
-        onRetry: () => ref.invalidate(myGroupsProvider),
-      ),
-      data: (groups) {
-        if (groups.isEmpty) {
-          return VEmptyView(
-            icon: Icons.group_outlined,
-            title: l10n.minigamesNoGroups,
-            description: l10n.minigamesNoGroupsBody,
-            actionLabel: l10n.groupsCreateGroup,
-            onAction: () => context.push(RoutePaths.groupCreate),
-          );
-        }
-        return ListView.separated(
-          itemCount: groups.length,
-          separatorBuilder: (_, _) => const Divider(height: 1),
-          itemBuilder: (_, i) {
-            final group = groups[i];
-            return ListTile(
-              leading: _GroupBannerAvatar(group: group, size: AppSpacing.avatar),
-              title: Text(group.name),
-              onTap: () => setState(() => _selectedGroupId = group.id),
+    return ref
+        .watch(myGroupsProvider)
+        .when(
+          loading: () => const VLoadingView(),
+          error: (e, _) => ErrorView(
+            message: e.toAppError().message,
+            onRetry: () => ref.invalidate(myGroupsProvider),
+          ),
+          data: (groups) {
+            if (groups.isEmpty) {
+              return VEmptyView(
+                icon: Icons.group_outlined,
+                title: l10n.minigamesNoGroups,
+                description: l10n.minigamesNoGroupsBody,
+                actionLabel: l10n.groupsCreateGroup,
+                onAction: () => context.push(RoutePaths.groupCreate),
+              );
+            }
+            return ListView.separated(
+              itemCount: groups.length,
+              separatorBuilder: (_, _) => const Divider(height: 1),
+              itemBuilder: (_, i) {
+                final group = groups[i];
+                return ListTile(
+                  leading: _GroupBannerAvatar(
+                    group: group,
+                    size: AppSpacing.avatar,
+                  ),
+                  title: Text(group.name),
+                  onTap: () => setState(() => _selectedGroupId = group.id),
+                );
+              },
             );
           },
         );
-      },
-    );
   }
 
   Widget _buildGamePicker(AppLocalizations l10n) {
@@ -392,18 +401,13 @@ class _MinigamesScreenState extends ConsumerState<MinigamesScreen> {
     return sessions.when(
       loading: () => const VLoadingView(),
       error: (error, _) => _fillState(
-        ErrorView(
-          message: l10n.minigamesErrorLoad,
-          onRetry: _refreshSessions,
-        ),
+        ErrorView(message: l10n.minigamesErrorLoad, onRetry: _refreshSessions),
       ),
       data: (rows) => rows.isEmpty
           ? _fillState(
               VEmptyView(
                 icon: Icons.sports_esports,
-                title: direct
-                    ? l10n.minigamesDirectEmpty
-                    : l10n.minigamesEmpty,
+                title: direct ? l10n.minigamesDirectEmpty : l10n.minigamesEmpty,
                 description: direct
                     ? l10n.minigamesDirectEmptyBody
                     : l10n.minigamesEmptyBody,
@@ -439,7 +443,9 @@ class _MinigamesScreenState extends ConsumerState<MinigamesScreen> {
     if (_scope == MinigameScope.direct) {
       await ref.read(myMinigameSessionsProvider.notifier).refresh();
     } else {
-      await ref.read(minigameSessionsProvider(_selectedGroupId!).notifier).refresh();
+      await ref
+          .read(minigameSessionsProvider(_selectedGroupId!).notifier)
+          .refresh();
     }
   }
 }
@@ -455,34 +461,38 @@ class _GameCard extends StatelessWidget {
     required this.onTap,
   });
 
-  (IconData, String Function(AppLocalizations), String Function(AppLocalizations))
-      get _meta => switch (type) {
-            MinigameType.pokeChain => (
-                minigameIcon(type),
-                (l) => l.minigamesGamePokeChain,
-                (l) => l.minigamesGamePokeChainTagline,
-              ),
-            MinigameType.questions => (
-                minigameIcon(type),
-                (l) => l.minigamesGameQuestions,
-                (l) => l.minigamesGameQuestionsTagline,
-              ),
-            MinigameType.truthDare => (
-                minigameIcon(type),
-                (l) => l.minigamesGameTruthDare,
-                (l) => l.minigamesGameTruthDareTagline,
-              ),
-            MinigameType.drunkBottle => (
-                minigameIcon(type),
-                (l) => l.minigamesGameDrunkBottle,
-                (l) => l.minigamesGameDrunkBottleTagline,
-              ),
-            MinigameType.challenge => (
-                minigameIcon(type),
-                (l) => l.minigamesGameChallenge,
-                (l) => l.minigamesGameChallengeTagline,
-              ),
-          };
+  (
+    IconData,
+    String Function(AppLocalizations),
+    String Function(AppLocalizations),
+  )
+  get _meta => switch (type) {
+    MinigameType.pokeChain => (
+      minigameIcon(type),
+      (l) => l.minigamesGamePokeChain,
+      (l) => l.minigamesGamePokeChainTagline,
+    ),
+    MinigameType.questions => (
+      minigameIcon(type),
+      (l) => l.minigamesGameQuestions,
+      (l) => l.minigamesGameQuestionsTagline,
+    ),
+    MinigameType.truthDare => (
+      minigameIcon(type),
+      (l) => l.minigamesGameTruthDare,
+      (l) => l.minigamesGameTruthDareTagline,
+    ),
+    MinigameType.drunkBottle => (
+      minigameIcon(type),
+      (l) => l.minigamesGameDrunkBottle,
+      (l) => l.minigamesGameDrunkBottleTagline,
+    ),
+    MinigameType.challenge => (
+      minigameIcon(type),
+      (l) => l.minigamesGameChallenge,
+      (l) => l.minigamesGameChallengeTagline,
+    ),
+  };
 
   @override
   Widget build(BuildContext context) {
@@ -541,8 +551,7 @@ class _SessionCard extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final status = session['status'] as String?;
     final wager = (session['shard_wager'] as num?)?.toInt() ?? 0;
-    final participants =
-        (session['participants'] as List?)?.length ?? 0;
+    final participants = (session['participants'] as List?)?.length ?? 0;
 
     return InkWell(
       onTap: onTap,

@@ -3,6 +3,7 @@ import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/v_card.dart';
+import 'package:samay/shared/widgets/v_header_bar.dart';
 
 /// Static privacy/terms info (R2 — wires the settings Privacidad row).
 ///
@@ -17,8 +18,9 @@ class PrivacyInfoScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.profilePrivacy)),
-      body: ListView(
+      body: VHeaderBar(
+        title: l10n.profilePrivacy,
+        child: ListView(
           padding: const EdgeInsets.all(AppSpacing.lg),
           children: [
             _Section(
@@ -36,6 +38,7 @@ class PrivacyInfoScreen extends StatelessWidget {
             ),
           ],
         ),
+      ),
     );
   }
 }

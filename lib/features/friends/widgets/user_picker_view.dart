@@ -6,7 +6,7 @@ import 'package:samay/core/models/user_search_result.dart';
 import 'package:samay/core/providers/config_provider.dart';
 import 'package:samay/core/utils/debouncer.dart';
 import 'package:samay/core/utils/input_sanitizer.dart';
-import 'package:samay/features/friends/providers/friends_providers.dart';
+import 'package:samay/features/friends/providers/user_search_provider.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/error_view.dart';
 import 'package:samay/shared/widgets/profile_avatar.dart';
@@ -19,8 +19,8 @@ import 'package:samay/shared/widgets/v_card.dart';
 ///
 /// * the debounced search field (same `Debouncer` + `InputSanitizer` +
 ///   `app.search_debounce_ms` plumbing as `SearchScreen` / `InviteScreen`);
-/// * the `searchResultsProvider` pool (the same provider the /chat search
-///   screen watches);
+/// * the [userSearchProvider] pool — cached friends below 5 chars, backend
+///   results + friends merged (dedup, friends first) above;
 /// * the `ProfileAvatar` + `@username` + trailing-action row shape from
 ///   `SearchScreen`.
 ///
@@ -34,20 +34,13 @@ class UserPickerView extends ConsumerStatefulWidget {
   const UserPickerView({
     super.key,
     this.excludedIds = const {},
-    this.sortFriendsFirst = true,
     this.maxSelection,
     this.onSelectionChanged,
     this.searchHint,
-    this.minQueryHint,
-    this.noResultsText,
   });
 
   /// User ids that must not appear (e.g. already-participant members).
   final Set<String> excludedIds;
-
-  /// When true, accepted friends float to the top of the results (the
-  /// "prioritize friends" invite rule).
-  final bool sortFriendsFirst;
 
   /// Optional cap on how many users can be selected.
   final int? maxSelection;
@@ -56,8 +49,6 @@ class UserPickerView extends ConsumerStatefulWidget {
   final ValueChanged<Set<String>>? onSelectionChanged;
 
   final String? searchHint;
-  final String? minQueryHint;
-  final String? noResultsText;
 
   @override
   ConsumerState<UserPickerView> createState() => _UserPickerViewState();
@@ -141,77 +132,65 @@ class _UserPickerViewState extends ConsumerState<UserPickerView> {
             ),
           ),
         ),
-        if (query.length < 2)
-          Expanded(
-            child: Center(
-              child: Text(
-                widget.minQueryHint ?? l10n.groupsMinCharsHint,
-                style: Theme.of(context).textTheme.bodyMedium,
-              ),
+        Expanded(
+          child: ref.watch(userSearchProvider(query)).when(
+            loading: () => const VLoadingView(),
+            error: (e, _) => ErrorView(
+              message: e.toAppError().message,
+              onRetry: () => ref.invalidate(userSearchProvider(query)),
             ),
-          )
-        else
-          Expanded(
-            child: ref
-                .watch(searchResultsProvider(query))
-                .when(
-                  loading: () => const VLoadingView(),
-                  error: (e, _) => ErrorView(
-                    message: e.toAppError().message,
-                    onRetry: () =>
-                        ref.invalidate(searchResultsProvider(query)),
-                  ),
-                  data: (users) {
-                    final results = users
-                        .where((u) => !excluded.contains(u.id))
-                        .toList();
-                    if (widget.sortFriendsFirst) {
-                      results.sort((a, b) {
-                        final aFriend = a.friendshipStatus == 'accepted';
-                        final bFriend = b.friendshipStatus == 'accepted';
-                        if (aFriend == bFriend) return 0;
-                        return aFriend ? -1 : 1;
-                      });
-                    }
-                    if (results.isEmpty) {
-                      return Center(
-                        child: Text(
-                          widget.noResultsText ?? l10n.groupsNoResults,
-                          style: Theme.of(context).textTheme.bodyMedium,
-                        ),
-                      );
-                    }
-                    return ListView.separated(
-                      itemCount: results.length,
-                      separatorBuilder: (_, _) => const Divider(height: 1),
-                      itemBuilder: (_, i) {
-                        final u = results[i];
-                        final uid = u.id;
-                        final selected = _selected.contains(uid);
-                        return VCard(
-                          child: Material(
-                            type: MaterialType.transparency,
-                            child: ListTile(
-                              leading: ProfileAvatar(
-                                size: AppSpacing.avatar,
-                                initials: _initials(u),
-                                imageUrl: u.avatarUrl,
-                              ),
-                              title: Text('@${u.username}'),
-                              trailing: Checkbox(
-                                value: selected,
-                                onChanged: (_) => _toggle(u),
-                              ),
-                              onTap: () => _toggle(u),
-                            ),
-                          ),
-                        );
-                      },
-                    );
-                  },
-                ),
+            data: (results) {
+              final filtered = results
+                  .where((u) => !excluded.contains(u.id))
+                  .toList();
+              return _listOrEmpty(context, filtered, l10n);
+            },
           ),
+        ),
       ],
+    );
+  }
+
+  Widget _listOrEmpty(
+    BuildContext context,
+    List<UserSearchResult> results,
+    AppLocalizations l10n, {
+    String? emptyText,
+  }) {
+    if (results.isEmpty) {
+      return Center(
+        child: Text(
+          emptyText ?? l10n.groupsNoResults,
+          style: Theme.of(context).textTheme.bodyMedium,
+        ),
+      );
+    }
+    return ListView.separated(
+      itemCount: results.length,
+      separatorBuilder: (_, _) => const Divider(height: 1),
+      itemBuilder: (_, i) {
+        final u = results[i];
+        final uid = u.id;
+        final selected = _selected.contains(uid);
+        return VCard(
+          child: Material(
+            type: MaterialType.transparency,
+            child: ListTile(
+              leading: ProfileAvatar(
+                size: AppSpacing.avatar,
+                initials: _initials(u),
+                imageUrl: u.avatarUrl,
+              ),
+              title: Text('@${u.username}'),
+              trailing: Checkbox(
+                value: selected,
+                onChanged: (_) => _toggle(u),
+              ),
+              onTap: () => _toggle(u),
+            ),
+          ),
+        );
+      },
     );
   }
 }

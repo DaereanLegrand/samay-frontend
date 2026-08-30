@@ -8,6 +8,7 @@ import 'package:samay/core/utils/form_validators.dart' as form_validators;
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/v_button.dart';
 import 'package:samay/shared/widgets/v_display_text.dart';
+import 'package:samay/shared/widgets/v_header_bar.dart';
 import 'package:samay/shared/widgets/v_input.dart';
 
 /// Password recovery (U-14 R3) — Juega's dedicated `/forgot-password` screen
@@ -61,23 +62,19 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
     final l10n = AppLocalizations.of(context);
 
     return Scaffold(
-      appBar: AppBar(),
-      // §7.3: same scroll-safe pattern as the OTP screen — the pinned CTA must
-      // never clip under large text scales or small surfaces.
-      body: LayoutBuilder(
-        builder: (context, constraints) => SingleChildScrollView(
-          child: ConstrainedBox(
-            constraints: BoxConstraints(minHeight: constraints.maxHeight),
-            child: IntrinsicHeight(
-              child: Padding(
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  children: _sent
-                      ? _successContent(
-                          l10n,
-                          _emailController.text.trim(),
-                        )
-                      : _formContent(auth, l10n),
+      body: VHeaderBar(
+        child: LayoutBuilder(
+          builder: (context, constraints) => SingleChildScrollView(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: constraints.maxHeight),
+              child: IntrinsicHeight(
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    children: _sent
+                        ? _successContent(l10n, _emailController.text.trim())
+                        : _formContent(auth, l10n),
+                  ),
                 ),
               ),
             ),
@@ -87,10 +84,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
     );
   }
 
-  List<Widget> _formContent(
-    AsyncValue<AuthState> auth,
-    AppLocalizations l10n,
-  ) {
+  List<Widget> _formContent(AsyncValue<AuthState> auth, AppLocalizations l10n) {
     return [
       const SizedBox(height: 32),
       // §3.2 auth big header — monochrome VDisplayText.
@@ -132,10 +126,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
     ];
   }
 
-  List<Widget> _successContent(
-    AppLocalizations l10n,
-    String email,
-  ) {
+  List<Widget> _successContent(AppLocalizations l10n, String email) {
     return [
       const SizedBox(height: 32),
       // The success state keeps the same display hero (one hero per screen,

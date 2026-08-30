@@ -15,6 +15,7 @@ import 'package:samay/shared/widgets/error_view.dart';
 import 'package:samay/shared/widgets/skeletons.dart';
 import 'package:samay/shared/widgets/state_views.dart';
 import 'package:samay/shared/widgets/v_card.dart';
+import 'package:samay/shared/widgets/v_header_bar.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' show RealtimeChannel;
 
 /// Icon per notification type (NOTI spec table, 16 rows). The title/body
@@ -113,8 +114,9 @@ class _NotificationCenterScreenState
     final unread = ref.watch(unreadCountProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.notificationsTitle),
+      body: VHeaderBar(
+        title: l10n.notificationsTitle,
+        showBack: false,
         actions: [
           if (unread > 0)
             TextButton(
@@ -123,8 +125,7 @@ class _NotificationCenterScreenState
               child: Text(l10n.notificationsMarkAllRead),
             ),
         ],
-      ),
-      body: notifications.when(
+        child: notifications.when(
           // U-22 (§5.8): the first load shows the avatar+lines skeleton
           // instead of the bare spinner; pull-to-refresh keeps the list
           // visible (skipLoadingOnRefresh — the skeleton only ever stands in
@@ -162,7 +163,8 @@ class _NotificationCenterScreenState
                     },
                   ),
                 ),
-        ),
+              ),
+      ),
     );
   }
 }

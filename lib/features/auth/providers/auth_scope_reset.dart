@@ -5,7 +5,9 @@ import 'package:samay/core/providers/user_provider.dart';
 import 'package:samay/features/chat/providers/chat_providers.dart';
 import 'package:samay/features/events/providers/events_providers.dart';
 import 'package:samay/features/feed/providers/feed_providers.dart';
+import 'package:samay/features/friends/providers/friends_cache_provider.dart';
 import 'package:samay/features/friends/providers/friends_providers.dart';
+import 'package:samay/features/friends/providers/recent_friends_provider.dart';
 import 'package:samay/features/groups/providers/groups_providers.dart';
 import 'package:samay/features/minigames/providers/minigames_providers.dart';
 import 'package:samay/features/notifications/providers/notifications_providers.dart';
@@ -47,6 +49,8 @@ class AuthScopeReset extends ConsumerWidget {
     friendRequestsProvider,
     blockedUsersProvider,
     searchResultsProvider,
+    recentFriendsProvider,
+    friendsCacheProvider,
     // groups
     myGroupsProvider,
     groupInvitesProvider,
@@ -75,6 +79,7 @@ class AuthScopeReset extends ConsumerWidget {
     minigameSessionsProvider,
     minigameInviteProvider,
     minigameInviteFriendsOnlyProvider,
+    minigameGameStateProvider,
     eventPhotosProvider,
     partyMatchesProvider,
     feedProvider,

@@ -12,6 +12,7 @@ import 'package:samay/features/events/providers/events_providers.dart';
 import 'package:samay/features/qr/providers/qr_providers.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/error_view.dart';
+import 'package:samay/shared/widgets/v_header_bar.dart';
 import 'package:samay/shared/widgets/state_views.dart';
 import 'package:samay/shared/widgets/v_button.dart';
 
@@ -44,8 +45,7 @@ class AttendanceQrScreen extends ConsumerStatefulWidget {
   final String eventId;
 
   @override
-  ConsumerState<AttendanceQrScreen> createState() =>
-      _AttendanceQrScreenState();
+  ConsumerState<AttendanceQrScreen> createState() => _AttendanceQrScreenState();
 }
 
 class _AttendanceQrScreenState extends ConsumerState<AttendanceQrScreen> {
@@ -56,10 +56,7 @@ class _AttendanceQrScreenState extends ConsumerState<AttendanceQrScreen> {
   @override
   void initState() {
     super.initState();
-    _ticker = Timer.periodic(
-      const Duration(seconds: 1),
-      (_) => _tick(),
-    );
+    _ticker = Timer.periodic(const Duration(seconds: 1), (_) => _tick());
   }
 
   @override
@@ -79,7 +76,8 @@ class _AttendanceQrScreenState extends ConsumerState<AttendanceQrScreen> {
     setState(() {
       if (_remaining > 0) _remaining--;
     });
-    final serverExpired = expiresAt != null && !DateTime.now().isBefore(expiresAt);
+    final serverExpired =
+        expiresAt != null && !DateTime.now().isBefore(expiresAt);
     if ((_remaining <= 0 || serverExpired) && !_rotating) {
       unawaited(_rotate());
     }
@@ -146,7 +144,7 @@ class _AttendanceQrScreenState extends ConsumerState<AttendanceQrScreen> {
           onRetry: () => ref.invalidate(eventDetailProvider(widget.eventId)),
         ),
       ),
-        data: (event) => tokenAsync.when(
+      data: (event) => tokenAsync.when(
         loading: () => _scaffold(l10n, const VLoadingView()),
         error: (e, _) => _scaffold(
           l10n,
@@ -160,13 +158,18 @@ class _AttendanceQrScreenState extends ConsumerState<AttendanceQrScreen> {
           final status = event.status;
           final startsAt = event.startsAt;
           final endsAt = event.endsAt;
-          final expiresAt = DateTime.tryParse(token?['expires_at'] as String? ?? '');
+          final expiresAt = DateTime.tryParse(
+            token?['expires_at'] as String? ?? '',
+          );
 
           if (status == 'ended' || now.isAfter(endsAt)) {
-            return _scaffold(l10n, _MessageState(
-              icon: Icons.event_available,
-              message: l10n.qrEventEnded,
-            ));
+            return _scaffold(
+              l10n,
+              _MessageState(
+                icon: Icons.event_available,
+                message: l10n.qrEventEnded,
+              ),
+            );
           }
           if (token == null) {
             final activationAt = startsAt.subtract(
@@ -235,10 +238,7 @@ class _AttendanceQrScreenState extends ConsumerState<AttendanceQrScreen> {
 
   Widget _scaffold(AppLocalizations l10n, Widget body) {
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.qrAttendanceTitle)),
-      body: SafeArea(
-        child: body,
-      ),
+      body: VHeaderBar(title: l10n.qrAttendanceTitle, child: body),
     );
   }
 
@@ -310,10 +310,10 @@ class _ActiveQr extends StatelessWidget {
                   child: Text(
                     'samay',
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          color: AppColors.white,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 2,
-                        ),
+                      color: AppColors.white,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 2,
+                    ),
                   ),
                 ),
               ],
@@ -452,11 +452,7 @@ class _MessageState extends StatelessWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(
-                  icon,
-                  size: 48,
-                  color: AppColors.white,
-                ),
+                Icon(icon, size: 48, color: AppColors.white),
                 const SizedBox(height: AppSpacing.lg),
                 Text(
                   message,

@@ -12,6 +12,7 @@ import 'package:samay/core/utils/otp_format.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/v_button.dart';
 import 'package:samay/shared/widgets/v_display_text.dart';
+import 'package:samay/shared/widgets/v_header_bar.dart';
 
 class OtpVerificationScreen extends ConsumerStatefulWidget {
   final String email;
@@ -290,106 +291,107 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
     final canResend = _resendSeconds == 0 && !auth.isLoading;
 
     return Scaffold(
-      appBar: AppBar(),
-      body: LayoutBuilder(
-        builder: (context, constraints) => SingleChildScrollView(
-          child: ConstrainedBox(
-            constraints: BoxConstraints(minHeight: constraints.maxHeight),
-            child: IntrinsicHeight(
-              child: Padding(
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  children: [
-                    const SizedBox(height: 32),
-                    // §3.2 auth big header — monochrome VDisplayText.
-                    VDisplayText(text: l10n.authEnterVerificationCode),
-                    const SizedBox(height: 8),
-                    Text(
-                      l10n.authOtpSentTo(widget.email),
-                      style: Theme.of(context).textTheme.bodyMedium,
-                    ),
-                    // XL-16 (03_signup density verdict): hint → field
-                    // breathes at 40.
-                    const SizedBox(height: 40),
-                    // The 6-digit code field is the star — a liquid-glass
-                    // slab whose 1px border ring brightens to solid white on
-                    // focus (monochrome). The digits keep the §3.3
-                    // otpInputText voice (30/w800/ls8, white).
-                    _codeField(),
-                    // The failure message of THIS verify attempt (captured
-                    // post-await — the global auth provider is unreliable
-                    // here, see `_verifyError`). §5.2: glowPink — never raw
-                    // red on black.
-                    if (_verifyError != null)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 20),
-                        child: Text(
-                          _verifyError!,
-                          style: const TextStyle(color: AppColors.error),
-                        ),
+      body: VHeaderBar(
+        child: LayoutBuilder(
+          builder: (context, constraints) => SingleChildScrollView(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: constraints.maxHeight),
+              child: IntrinsicHeight(
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    children: [
+                      const SizedBox(height: 32),
+                      // §3.2 auth big header — monochrome VDisplayText.
+                      VDisplayText(text: l10n.authEnterVerificationCode),
+                      const SizedBox(height: 8),
+                      Text(
+                        l10n.authOtpSentTo(widget.email),
+                        style: Theme.of(context).textTheme.bodyMedium,
                       ),
-                    // U-14 R2: surface I-29's wrong-attempt budget. XL-18
-                    // (Gemma 04_otp "pedestrian form" — remove helper
-                    // duplication): the counter appears ONLY near the limit
-                    // (remaining ≤ 2) — early failures read through the
-                    // error text alone; the blocked state owns the last
-                    // word. Shifts to the error color at the last attempt.
-                    if (_failedAttempts > 0 &&
-                        _remainingAttempts <= 2 &&
-                        _remainingAttempts > 0)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 20),
-                        child: Text(
-                          l10n.authOtpAttemptsRemaining(_remainingAttempts),
-                          // §2.4 AA text (mutedStrong) normally; §5.2
-                          // glowPink at ≤ 1 attempt left.
-                          style: TextStyle(
-                            color: _remainingAttempts <= 1
-                                ? AppColors.error
-                                : AppColors.mutedStrong,
+                      // XL-16 (03_signup density verdict): hint → field
+                      // breathes at 40.
+                      const SizedBox(height: 40),
+                      // The 6-digit code field is the star — a liquid-glass
+                      // slab whose 1px border ring brightens to solid white on
+                      // focus (monochrome). The digits keep the §3.3
+                      // otpInputText voice (30/w800/ls8, white).
+                      _codeField(),
+                      // The failure message of THIS verify attempt (captured
+                      // post-await — the global auth provider is unreliable
+                      // here, see `_verifyError`). §5.2: glowPink — never raw
+                      // red on black.
+                      if (_verifyError != null)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 20),
+                          child: Text(
+                            _verifyError!,
+                            style: const TextStyle(color: AppColors.error),
                           ),
                         ),
+                      // U-14 R2: surface I-29's wrong-attempt budget. XL-18
+                      // (Gemma 04_otp "pedestrian form" — remove helper
+                      // duplication): the counter appears ONLY near the limit
+                      // (remaining ≤ 2) — early failures read through the
+                      // error text alone; the blocked state owns the last
+                      // word. Shifts to the error color at the last attempt.
+                      if (_failedAttempts > 0 &&
+                          _remainingAttempts <= 2 &&
+                          _remainingAttempts > 0)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 20),
+                          child: Text(
+                            l10n.authOtpAttemptsRemaining(_remainingAttempts),
+                            // §2.4 AA text (mutedStrong) normally; §5.2
+                            // glowPink at ≤ 1 attempt left.
+                            style: TextStyle(
+                              color: _remainingAttempts <= 1
+                                  ? AppColors.error
+                                  : AppColors.mutedStrong,
+                            ),
+                          ),
+                        ),
+                      if (_attemptBlocked)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 20),
+                          child: Text(
+                            l10n.authOtpTooManyAttempts,
+                            style: const TextStyle(color: AppColors.error),
+                          ),
+                        ),
+                      const Spacer(),
+                      // §5.1 primary CTA — the black button voice
+                      // (user directive 2026-08-14).
+                      VButton.dark(
+                        label: l10n.authVerify,
+                        loading: auth.isLoading,
+                        onPressed: _attemptBlocked ? null : _verify,
                       ),
-                    if (_attemptBlocked)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 20),
+                      const SizedBox(height: 8),
+                      // XL-16: secondary links are plain + muted so the CTA
+                      // dominates the bottom edge.
+                      TextButton(
+                        onPressed: canResend ? _resend : null,
                         child: Text(
-                          l10n.authOtpTooManyAttempts,
-                          style: const TextStyle(color: AppColors.error),
+                          _resendSeconds > 0
+                              ? l10n.authResendCodeIn(_resendSeconds)
+                              : l10n.authResendCode,
+                          style: const TextStyle(color: AppColors.mutedStrong),
                         ),
                       ),
-                    const Spacer(),
-                    // §5.1 primary CTA — the black button voice
-                    // (user directive 2026-08-14).
-                    VButton.dark(
-                      label: l10n.authVerify,
-                      loading: auth.isLoading,
-                      onPressed: _attemptBlocked ? null : _verify,
-                    ),
-                    const SizedBox(height: 8),
-                    // XL-16: secondary links are plain + muted so the CTA
-                    // dominates the bottom edge.
-                    TextButton(
-                      onPressed: canResend ? _resend : null,
-                      child: Text(
-                        _resendSeconds > 0
-                            ? l10n.authResendCodeIn(_resendSeconds)
-                            : l10n.authResendCode,
-                        style: const TextStyle(color: AppColors.mutedStrong),
+                      // U-14 R1: the funnel's escape hatch — sign out and
+                      // return to login (Juega `verify_email_screen.dart:305-308`).
+                      const SizedBox(height: 8),
+                      TextButton(
+                        onPressed: _backToLogin,
+                        child: Text(
+                          l10n.authBackToLogin,
+                          style: const TextStyle(color: AppColors.mutedStrong),
+                        ),
                       ),
-                    ),
-                    // U-14 R1: the funnel's escape hatch — sign out and
-                    // return to login (Juega `verify_email_screen.dart:305-308`).
-                    const SizedBox(height: 8),
-                    TextButton(
-                      onPressed: _backToLogin,
-                      child: Text(
-                        l10n.authBackToLogin,
-                        style: const TextStyle(color: AppColors.mutedStrong),
-                      ),
-                    ),
-                    const SizedBox(height: 32),
-                  ],
+                      const SizedBox(height: 32),
+                    ],
+                  ),
                 ),
               ),
             ),

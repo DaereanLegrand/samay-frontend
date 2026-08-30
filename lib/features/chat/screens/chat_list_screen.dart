@@ -15,6 +15,7 @@ import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/error_view.dart';
 import 'package:samay/shared/widgets/state_views.dart';
 import 'package:samay/shared/widgets/v_count_badge.dart';
+import 'package:samay/shared/widgets/v_header_bar.dart';
 import 'package:samay/shared/widgets/v_network_image.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' show RealtimeChannel;
 
@@ -84,44 +85,44 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
     final me = ref.watch(authStateProvider).valueOrNull?.user?['id'];
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0A0A0C),
-      appBar: AppBar(
-        title: Text(l10n.chatInboxTitle), 
-	actions: [
+      body: VHeaderBar(
+        title: l10n.chatInboxTitle,
+        actions: [
           IconButton(
             icon: const Icon(Icons.search),
             tooltip: l10n.socialSearchTooltip,
             onPressed: () => context.push(RoutePaths.userSearch),
-          )
+          ),
         ],
-      ),
-      body: inbox.when(
-        skipLoadingOnRefresh: true,
-        loading: () => const VLoadingView(),
-        error: (_, _) => ErrorView(
-          message: l10n.chatInboxLoadError,
-          onRetry: () => ref.read(chatInboxProvider.notifier).refresh(),
-        ),
-        data: (items) {
-          if (items.isEmpty) {
-            return VEmptyView(
-              icon: Icons.chat_bubble_outline,
-              title: l10n.chatInboxEmpty,
-              description: l10n.chatInboxEmptyBody,
+        child: inbox.when(
+          skipLoadingOnRefresh: true,
+          loading: () => const VLoadingView(),
+          error: (_, _) => ErrorView(
+            message: l10n.chatInboxLoadError,
+            onRetry: () => ref.read(chatInboxProvider.notifier).refresh(),
+          ),
+          data: (items) {
+            if (items.isEmpty) {
+              return VEmptyView(
+                icon: Icons.chat_bubble_outline,
+                title: l10n.chatInboxEmpty,
+                description: l10n.chatInboxEmptyBody,
+              );
+            }
+            return RefreshIndicator(
+              onRefresh: () => ref.read(chatInboxProvider.notifier).refresh(),
+              child: ListView.separated(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.all(AppSpacing.lg),
+                itemCount: items.length,
+                separatorBuilder: (_, _) =>
+                    const SizedBox(height: AppSpacing.sm),
+                itemBuilder: (context, index) =>
+                    _ChatListTile(item: items[index], me: me, onTap: _openChat),
+              ),
             );
-          }
-          return RefreshIndicator(
-            onRefresh: () => ref.read(chatInboxProvider.notifier).refresh(),
-            child: ListView.separated(
-              physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.all(AppSpacing.lg),
-              itemCount: items.length,
-              separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.sm),
-              itemBuilder: (context, index) =>
-                  _ChatListTile(item: items[index], me: me, onTap: _openChat),
-            ),
-          );
-        },
+          },
+        ),
       ),
     );
   }

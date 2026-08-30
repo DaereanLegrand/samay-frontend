@@ -48,16 +48,25 @@ Samay is built in **16 phases** (00–15). Each phase follows a strict TDD + doc
   text placement) with no behavior or data-flow impact skip RED/GREEN — but
   they still keep the behavior/widget tests green, and MUST NOT add
   visual-pinning assertions (token-budget, 2026-08-27): token values are
-  pinned once in `test/design_tokens/` + `test/theme/` + `test/widgets/` —
-  feature tests assert behavior, never exact `BoxDecoration`/`fontSize`/
-  token internals. `test/meta/conventions_test.dart` enforces this.
+  pinned once in `test/theme/app_theme_test.dart`; feature tests assert
+  behavior, never exact `BoxDecoration`/`fontSize`/token internals.
+  `test/meta/conventions_test.dart` enforces this.
+- **Suckless test policy (2026-08-28):** only FUNCTIONAL tests ship in
+  `test/` — logic, contract, and HTTP-to-Supabase-harness wiring
+  (`harnessHttp.sent*`). NO UI-only tests: no per-screen render /
+  empty-state-copy / loading-skeleton / `renders without overflow` /
+  `takeException()==null` smoke suites, no visual-pin files, no whole-file
+  screen-render suites. Every widget test must assert a behavior or wiring,
+  never that a widget merely rendered. `test/meta/conventions_test.dart`
+  enforces this.
 - Tests live in `*_test.go` (Go), `test/` (Flutter), `integration_test/`
   (flows — every feature ships one), `test/opt-NNN-*.sh` (backend curl) and
   `supabase/tests/schema_test.sql` (pgTAP).
-- **Test-layer budget (max 2–3 layers per change):** logic → unit test; UI
-  behavior → widget test; ONE flow per feature → `integration_test/`;
-  backend security/RLS → opt-curl + pgTAP. No restyle layer; never duplicate
-  the same assertion across layers (each layer earns its keep).
+- **Test-layer budget (max 2–3 layers per change):** logic → unit test;
+  UI behavior → widget test (must assert service/HTTP wiring); ONE flow per
+  feature → `integration_test/`; backend security/RLS → opt-curl + pgTAP.
+  No render/restyle layer; never duplicate the same assertion across layers
+  (each layer earns its keep).
 - **Iteration loop (default, explicit directive 2026-08-27):** run ONLY the
   tests your change touches via `make test-file FILE=<path>` /
   `make test-feature FEATURE=<name>` / `make test-files FILES="a b"`. The

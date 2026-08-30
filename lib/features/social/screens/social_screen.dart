@@ -8,6 +8,7 @@ import 'package:samay/features/groups/screens/groups_tab_screen.dart';
 import 'package:samay/features/social/screens/amigos_tab_screen.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/v_count_badge.dart';
+import 'package:samay/shared/widgets/v_header_bar.dart';
 
 /// The Social tab root (C-social, 2026-08-18): a Juega-style inner PILL
 /// TabBar with two sub-tabs — "Grupos" (create-group + ranking + my groups)
@@ -46,26 +47,19 @@ class _SocialScreenState extends ConsumerState<SocialScreen>
     final l10n = AppLocalizations.of(context);
     final pendingCount = ref.watch(pendingCountsProvider);
     return Scaffold(
-      // A plain titled AppBar (title + the lupa, present on both sub-tabs) —
-      // identical top treatment to Perfil/Notificaciones, so the title clears
-      // the OS status bar / dynamic island on both Android and iOS. The pill
-      // sub-tab bar lives in the BODY (below the AppBar), never in the
-      // AppBar `bottom` — an AppBar bottom pushes the sub-tab content up
-      // behind the status bar on some devices.
-      appBar: AppBar(
-        title: Text(l10n.socialTitle),
-        // The top-right element of the Social tab: the lupa (user search),
-        // available from both sub-tabs (D-social-density).
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.search),
-            tooltip: l10n.socialSearchTooltip,
-            onPressed: () => context.push(RoutePaths.userSearch),
-          ),
-        ],
-      ),
       body: Column(
         children: [
+          VHeaderBar(
+            title: l10n.socialTitle,
+            showBack: false,
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.search),
+                tooltip: l10n.socialSearchTooltip,
+                onPressed: () => context.push(RoutePaths.userSearch),
+              ),
+            ],
+          ),
           _PillTabBar(
             controller: _tabController,
             pendingCount: pendingCount,

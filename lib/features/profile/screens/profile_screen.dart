@@ -17,6 +17,7 @@ import 'package:samay/shared/widgets/skeletons.dart';
 import 'package:samay/shared/widgets/v_card.dart';
 import 'package:samay/shared/widgets/state_views.dart';
 import 'package:samay/shared/widgets/v_display_text.dart';
+import 'package:samay/shared/widgets/v_header_bar.dart';
 import 'package:samay/shared/widgets/v_shard_icon.dart';
 
 class ProfileScreen extends ConsumerWidget {
@@ -62,8 +63,9 @@ class ProfileScreen extends ConsumerWidget {
         .toUpperCase();
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.profileTitle),
+      body: VHeaderBar(
+        title: l10n.profileTitle,
+        showBack: false,
         actions: [
           // U-26 (4.1.2): the gear is icon-only — the tooltip is its
           // accessibility name for screen readers.
@@ -73,10 +75,7 @@ class ProfileScreen extends ConsumerWidget {
             onPressed: () => context.push(RoutePaths.settings),
           ),
         ],
-      ),
-      // LUXE v2 (XL-08): the profile is informational — the hero username
-      // carries the brand moment.
-      body: showLoading
+        child: showLoading
             // U-22 handoff (U-23): the profile hero loads with the
             // `VSkeletonProfile` skeleton (avatar circle + name/handle/body
             // lines, §5.8/§6.3) instead of the bare spinner — the screen has
@@ -109,14 +108,14 @@ class ProfileScreen extends ConsumerWidget {
                     Center(
                       child: Tooltip(
                         message: l10n.profileEditTitle,
-child: InkWell(
-                        customBorder: const CircleBorder(),
-                        onTap: () => context.push(RoutePaths.profileEdit),
-                        child: ProfileAvatar(
-                          initials: initials,
-                          imageUrl: profile?['avatar_url'] as String?,
+                        child: InkWell(
+                          customBorder: const CircleBorder(),
+                          onTap: () => context.push(RoutePaths.profileEdit),
+                          child: ProfileAvatar(
+                            initials: initials,
+                            imageUrl: profile?['avatar_url'] as String?,
+                          ),
                         ),
-                      ),
                       ),
                     ),
                     const SizedBox(height: 16),
@@ -126,10 +125,7 @@ child: InkWell(
                         // The username is the hero — white VDisplayText
                         // (uppercase Playfair, flat fill, monochrome). No
                         // other title on the screen — one hero per screen.
-                        child: VDisplayText(
-                          text: displayName,
-                          size: 28,
-                        ),
+                        child: VDisplayText(text: displayName, size: 28),
                       ),
                     ),
                     const SizedBox(height: 24),
@@ -209,6 +205,7 @@ child: InkWell(
                   ],
                 ),
               ),
+      ),
     );
   }
 }

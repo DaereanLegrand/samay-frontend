@@ -39,6 +39,7 @@ class HiveService {
   static const photoBoxName = 'photo_cache';
   static const messageBoxName = 'message_cache';
   static const notificationBoxName = 'notification_cache';
+  static const friendsBoxName = 'friends_cache';
 
   /// Secure-storage key under which the base64-encoded Hive encryption key
   /// (32 bytes = 256 bit, AES-256) is persisted.
@@ -168,6 +169,7 @@ class HiveService {
     await _openBox(photoBoxName, key);
     await _openBox(messageBoxName, key);
     await _openBox(notificationBoxName, key);
+    await _openBox(friendsBoxName, key);
   }
 
   Future<void> cacheConfig(Map<String, String> config) async {
@@ -179,6 +181,46 @@ class HiveService {
     final box = _hive.box<String>(configBoxName);
     if (box.isEmpty) return null;
     return box.toMap().map((k, v) => MapEntry(k, v));
+  }
+
+  // ---------------------------------------------------------------------------
+  // On-device friend list cache (2026-08-29 — invite/buscar <5-char contract)
+  // ---------------------------------------------------------------------------
+  // The user's friend list is fetched in the BACKGROUND at app launch and
+  // persisted here so the invite/buscar/search pickers can render it for
+  // short (0–4 char) and empty queries WITHOUT network I/O and WITHOUT the
+  // N+1 profile-fetch error path that used to surface as
+  // "Error del servidor". Keyed by user id so an account switch never leaks
+  // the previous account's friends.
+  //
+  // The stored value is the JSON-encoded list of search-shaped friend rows
+  // (`UserSearchResult`: id/username/avatar_url, friendship_status=accepted)
+  // — the exact shape the pickers render.
+
+  /// Persists [friends] (search-shaped rows) for [userId].
+  Future<void> cacheFriends(String userId, List<Map<String, dynamic>> friends) async {
+    final box = _hive.box<String>(friendsBoxName);
+    await box.put(userId, jsonEncode(friends));
+  }
+
+  /// The cached friends of [userId] as search-shaped maps, or null when the
+  /// cache is cold for that user (no fetch happens here — pure disk read).
+  List<Map<String, dynamic>>? getCachedFriends(String userId) {
+    final box = _hive.box<String>(friendsBoxName);
+    final raw = box.get(userId);
+    if (raw == null) return null;
+    try {
+      final decoded = jsonDecode(raw) as List;
+      return decoded.whereType<Map>().map((e) => Map<String, dynamic>.from(e)).toList();
+    } on FormatException {
+      return null;
+    }
+  }
+
+  /// Removes the cached friends of [userId] (account switch / logout).
+  Future<void> clearCachedFriends(String userId) async {
+    final box = _hive.box<String>(friendsBoxName);
+    await box.delete(userId);
   }
 
   // ---------------------------------------------------------------------------

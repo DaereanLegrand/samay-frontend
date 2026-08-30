@@ -13,6 +13,7 @@ import 'package:samay/features/profile/screens/privacy_info_screen.dart';
 import 'package:samay/features/social/providers/social_providers.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/v_card.dart';
+import 'package:samay/shared/widgets/v_header_bar.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -58,10 +59,9 @@ class SettingsScreen extends ConsumerWidget {
     final themeMode =
         ref.watch(themeModeProvider).valueOrNull ?? ThemeMode.dark;
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.profileSettingsTitle)),
-      // LUXE v2 (XL-08): settings is a flat utility screen — no hero; the
-      // flat glass groups carry the gold family.
-      body: ListView(
+      body: VHeaderBar(
+        title: l10n.profileSettingsTitle,
+        child: ListView(
           children: [
             // U-15 R6 (F18 ADAPTED): Juega's grouped settings (VISUAL/ACCOUNT/
             // LEGAL cards) → Samay's flat section headers (uppercase
@@ -95,11 +95,7 @@ class SettingsScreen extends ConsumerWidget {
             VCard(
               child: Material(
                 type: MaterialType.transparency,
-                child: Column(
-                  children: [
-                    _ReadReceiptsTile(),
-                  ],
-                ),
+                child: Column(children: [_ReadReceiptsTile()]),
               ),
             ),
             // Minigames group (140_minigame_invites): the invite privacy
@@ -109,11 +105,7 @@ class SettingsScreen extends ConsumerWidget {
             VCard(
               child: Material(
                 type: MaterialType.transparency,
-                child: Column(
-                  children: [
-                    _MinigameInvitePrivacyTile(),
-                  ],
-                ),
+                child: Column(children: [_MinigameInvitePrivacyTile()]),
               ),
             ),
             _SectionHeader(l10n.settingsSectionAccount),
@@ -198,14 +190,15 @@ class SettingsScreen extends ConsumerWidget {
                 l10n.profileVersion,
                 // §2.4: the version string is informational text below the
                 // muted threshold — mutedStrong (7.37:1 AA).
-                    style: Theme.of(
-                      context,
-                    ).textTheme.bodyMedium?.copyWith(color: AppColors.mutedStrong),
-                    textAlign: TextAlign.center,
-                  ),
-                ),
-              ],
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyMedium?.copyWith(color: AppColors.mutedStrong),
+                textAlign: TextAlign.center,
+              ),
             ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -235,8 +228,7 @@ class _PublicProfileTile extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
-    final enabled =
-        ref.watch(profilePublicProvider).valueOrNull ?? false;
+    final enabled = ref.watch(profilePublicProvider).valueOrNull ?? false;
     return SwitchListTile(
       contentPadding: EdgeInsets.zero,
       secondary: const Icon(Icons.public),
@@ -363,8 +355,7 @@ class _ReadReceiptsTile extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
-    final enabled =
-        ref.watch(readReceiptsEnabledProvider).valueOrNull ?? true;
+    final enabled = ref.watch(readReceiptsEnabledProvider).valueOrNull ?? true;
     return SwitchListTile(
       contentPadding: EdgeInsets.zero,
       secondary: const Icon(Icons.done_all),
@@ -378,7 +369,9 @@ class _ReadReceiptsTile extends ConsumerWidget {
       value: enabled,
       onChanged: (value) async {
         try {
-          await ref.read(readReceiptsEnabledProvider.notifier).setEnabled(value);
+          await ref
+              .read(readReceiptsEnabledProvider.notifier)
+              .setEnabled(value);
         } catch (_) {
           if (context.mounted) {
             ScaffoldMessenger.of(context).showSnackBar(

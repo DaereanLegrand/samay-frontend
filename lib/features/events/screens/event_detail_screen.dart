@@ -18,6 +18,7 @@ import 'package:samay/shared/widgets/skeletons.dart';
 import 'package:samay/shared/widgets/v_badge.dart';
 import 'package:samay/shared/widgets/v_button.dart';
 import 'package:samay/shared/widgets/v_display_text.dart';
+import 'package:samay/shared/widgets/v_header_bar.dart';
 import 'package:samay/shared/widgets/v_network_image.dart';
 import 'package:samay/shared/widgets/v_shard_icon.dart';
 
@@ -87,10 +88,10 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
 
   Widget _scaffold(Widget body) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(AppLocalizations.of(context).eventDetailTitle),
+      body: VHeaderBar(
+        title: AppLocalizations.of(context).eventDetailTitle,
+        child: body,
       ),
-      body: body,
     );
   }
 
@@ -132,111 +133,111 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
         ref.watch(authStateProvider).valueOrNull?.user?['id'] as String?;
 
     return Scaffold(
-      // The event name lives in the VDisplayText hero — no AppBar duplicate
-      // (LUXE directive #8: no title in both AppBar and hero).
-      appBar: AppBar(),
-      body: ListView(
-        padding: const EdgeInsets.all(AppSpacing.screenHorizontal),
-        children: [
-          if (event.coverUrl != null) ...[
-            VNetworkImage(
-              imageUrl: event.coverUrl!,
-              height: 200,
-              fit: BoxFit.cover,
-            ),
-            const SizedBox(height: AppSpacing.lg),
-          ],
-          VDisplayText(text: event.name, maxLines: 2),
-          const SizedBox(height: AppSpacing.sm),
-          // XL-17 (Gemma round 2, 10_events: "overly saturated colors...
-          // cheap"): flat monochrome chrome — badges carry status by the
-          // label alone (white text, never a color spray).
-          Wrap(
-            spacing: AppSpacing.sm,
-            runSpacing: AppSpacing.sm,
-            children: [
-              VBadge(label: _typeLabel(l10n, event.type)),
-              VBadge(label: _statusLabel(l10n, event.status)),
-              if (event.groupId != null) VBadge(label: l10n.eventGroupScoped),
+      body: VHeaderBar(
+        child: ListView(
+          padding: const EdgeInsets.all(AppSpacing.screenHorizontal),
+          children: [
+            if (event.coverUrl != null) ...[
+              VNetworkImage(
+                imageUrl: event.coverUrl!,
+                height: 200,
+                fit: BoxFit.cover,
+              ),
+              const SizedBox(height: AppSpacing.lg),
             ],
-          ),
-          if (event.description != null) ...[
-            const SizedBox(height: AppSpacing.md),
-            Text(
-              event.description!,
-              style: Theme.of(context).textTheme.bodyLarge,
-            ),
-          ],
-          const SizedBox(height: AppSpacing.md),
-          // XL-17: flat white-only glass (no family border, no glow).
-          VCard(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            VDisplayText(text: event.name, maxLines: 2),
+            const SizedBox(height: AppSpacing.sm),
+            // XL-17 (Gemma round 2, 10_events: "overly saturated colors...
+            // cheap"): flat monochrome chrome — badges carry status by the
+            // label alone (white text, never a color spray).
+            Wrap(
+              spacing: AppSpacing.sm,
+              runSpacing: AppSpacing.sm,
               children: [
-                _InfoRow(
-                  icon: Icons.schedule,
-                  text: formatEventDateRange(
-                    event.startsAt,
-                    event.endsAt,
-                    Localizations.localeOf(context).languageCode,
-                  ),
-                ),
-                _InfoRow(
-                  icon: Icons.place_outlined,
-                  text: event.locationName ?? l10n.eventNoLocation,
-                ),
-                if (event.groupId != null) ...[
-                  const SizedBox(height: AppSpacing.sm),
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: TextButton.icon(
-                      onPressed: () =>
-                          context.push(RoutePaths.groupDetail(event.groupId!)),
-                      icon: const Icon(Icons.group_outlined, size: 18),
-                      label: Text(l10n.eventViewGroup),
-                    ),
-                  ),
-                ],
+                VBadge(label: _typeLabel(l10n, event.type)),
+                VBadge(label: _statusLabel(l10n, event.status)),
+                if (event.groupId != null) VBadge(label: l10n.eventGroupScoped),
               ],
             ),
-          ),
-          const SizedBox(height: AppSpacing.xl),
-          _buildPoolSection(event),
-          const SizedBox(height: AppSpacing.xl),
-          _buildPromotoresSection(promotoresAsync),
-          if (inviteAsync.valueOrNull case final invite?
-              when invite.isNotEmpty) ...[
-            const SizedBox(height: AppSpacing.lg),
-            _InfoRow(
-              icon: Icons.mail_outline,
-              text: l10n.eventInviteStatus(
-                _inviteStatusLabel(
-                  l10n,
-                  invite['status'] as String? ?? 'pending',
-                ),
+            if (event.description != null) ...[
+              const SizedBox(height: AppSpacing.md),
+              Text(
+                event.description!,
+                style: Theme.of(context).textTheme.bodyLarge,
+              ),
+            ],
+            const SizedBox(height: AppSpacing.md),
+            // XL-17: flat white-only glass (no family border, no glow).
+            VCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _InfoRow(
+                    icon: Icons.schedule,
+                    text: formatEventDateRange(
+                      event.startsAt,
+                      event.endsAt,
+                      Localizations.localeOf(context).languageCode,
+                    ),
+                  ),
+                  _InfoRow(
+                    icon: Icons.place_outlined,
+                    text: event.locationName ?? l10n.eventNoLocation,
+                  ),
+                  if (event.groupId != null) ...[
+                    const SizedBox(height: AppSpacing.sm),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: TextButton.icon(
+                        onPressed: () => context.push(
+                          RoutePaths.groupDetail(event.groupId!),
+                        ),
+                        icon: const Icon(Icons.group_outlined, size: 18),
+                        label: Text(l10n.eventViewGroup),
+                      ),
+                    ),
+                  ],
+                ],
               ),
             ),
+            const SizedBox(height: AppSpacing.xl),
+            _buildPoolSection(event),
+            const SizedBox(height: AppSpacing.xl),
+            _buildPromotoresSection(promotoresAsync),
+            if (inviteAsync.valueOrNull case final invite?
+                when invite.isNotEmpty) ...[
+              const SizedBox(height: AppSpacing.lg),
+              _InfoRow(
+                icon: Icons.mail_outline,
+                text: l10n.eventInviteStatus(
+                  _inviteStatusLabel(
+                    l10n,
+                    invite['status'] as String? ?? 'pending',
+                  ),
+                ),
+              ),
+            ],
+            if (_canEdit(uid, event.status, promotoresAsync.valueOrNull)) ...[
+              const SizedBox(height: AppSpacing.xxl),
+              VButton.dark(
+                label: l10n.eventEditButton,
+                onPressed: () =>
+                    context.push(RoutePaths.eventEdit(widget.eventId)),
+              ),
+            ],
+            if (_canCancel(uid, event.status, promotoresAsync.valueOrNull)) ...[
+              const SizedBox(height: AppSpacing.sm),
+              VButton.outlined(
+                label: l10n.eventCancelButton,
+                loading: _cancelling,
+                onPressed: _cancelling ? null : _cancelEvent,
+              ),
+            ],
+            if (!_isClosed(event.status))
+              _buildLiveActions(promotoresAsync.valueOrNull, uid),
+            const SizedBox(height: AppSpacing.xl),
           ],
-          if (_canEdit(uid, event.status, promotoresAsync.valueOrNull)) ...[
-            const SizedBox(height: AppSpacing.xxl),
-            VButton.dark(
-              label: l10n.eventEditButton,
-              onPressed: () =>
-                  context.push(RoutePaths.eventEdit(widget.eventId)),
-            ),
-          ],
-          if (_canCancel(uid, event.status, promotoresAsync.valueOrNull)) ...[
-            const SizedBox(height: AppSpacing.sm),
-            VButton.outlined(
-              label: l10n.eventCancelButton,
-              loading: _cancelling,
-              onPressed: _cancelling ? null : _cancelEvent,
-            ),
-          ],
-          if (!_isClosed(event.status))
-            _buildLiveActions(promotoresAsync.valueOrNull, uid),
-          const SizedBox(height: AppSpacing.xl),
-        ],
+        ),
       ),
     );
   }

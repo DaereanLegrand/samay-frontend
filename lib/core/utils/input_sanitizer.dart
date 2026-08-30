@@ -60,6 +60,7 @@ class InputSanitizer {
   static const int groupNameMaxLength = 50;
   static const int groupDescriptionMaxLength = 250;
   static const int messageMaxLength = 500;
+  static const int searchQueryMinLength = 5;
   static const int searchQueryMaxLength = 50;
   static const int amountMaxDigits = 9;
 

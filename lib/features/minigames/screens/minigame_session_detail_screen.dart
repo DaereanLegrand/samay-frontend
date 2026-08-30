@@ -12,6 +12,7 @@ import 'package:samay/shared/widgets/v_button.dart';
 import 'package:samay/shared/widgets/v_card.dart';
 import 'package:samay/shared/widgets/v_chip.dart';
 import 'package:samay/shared/widgets/v_display_text.dart';
+import 'package:samay/shared/widgets/v_header_bar.dart';
 
 /// Session detail (140_minigame_invites): replaces the GMCR "coming soon"
 /// placeholder. Shows the game, status, wager and participant count, and —
@@ -34,97 +35,93 @@ class MinigameSessionDetailScreen extends ConsumerWidget {
     final invite = ref.watch(minigameInviteProvider(sessionId));
 
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.minigamesDetailTitle)),
-      body: session.when(
-        loading: () => const VLoadingView(),
-        error: (e, _) => ErrorView(
-          message: l10n.minigamesErrorLoad,
-          onRetry: () => ref.invalidate(sessionStatusProvider(sessionId)),
-        ),
-        data: (row) {
-          final status = row['status'] as String?;
-          final gameType = row['game_type'] as String?;
-          final wager = (row['shard_wager'] as num?)?.toInt() ?? 0;
-          final participants =
-              (row['participants'] as List?)?.cast<String?>() ?? const [];
-          final finished = status == 'finished';
-          final inviteStatus = invite.valueOrNull?['status'] as String?;
-          final isPending = inviteStatus == 'pending' && !finished;
+      body: VHeaderBar(
+        title: l10n.minigamesDetailTitle,
+        child: session.when(
+          loading: () => const VLoadingView(),
+          error: (e, _) => ErrorView(
+            message: l10n.minigamesErrorLoad,
+            onRetry: () => ref.invalidate(sessionStatusProvider(sessionId)),
+          ),
+          data: (row) {
+            final status = row['status'] as String?;
+            final gameType = row['game_type'] as String?;
+            final wager = (row['shard_wager'] as num?)?.toInt() ?? 0;
+            final participants =
+                (row['participants'] as List?)?.cast<String?>() ?? const [];
+            final finished = status == 'finished';
+            final inviteStatus = invite.valueOrNull?['status'] as String?;
+            final isPending = inviteStatus == 'pending' && !finished;
 
-          return ListView(
-            padding: const EdgeInsets.all(AppSpacing.lg),
-            children: [
-              VDisplayText(text: minigameGameName(l10n, gameType), size: 28),
-              const SizedBox(height: AppSpacing.md),
-              VCard(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      wager > 0
-                          ? l10n.minigamesWagerPerPerson(wager)
-                          : l10n.minigamesWagerFree,
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                    const SizedBox(height: AppSpacing.xs),
-                    Text(
-                      l10n.minigamesParticipants(participants.length),
-                      style: const TextStyle(color: AppColors.mutedStrong),
-                    ),
-                    const SizedBox(height: AppSpacing.md),
-                    VChip(
-                      label: finished
-                          ? l10n.minigamesStatusFinished
-                          : l10n.minigamesStatusActive,
-                      selected: !finished,
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: AppSpacing.lg),
-              if (isPending)
+            return ListView(
+              padding: const EdgeInsets.all(AppSpacing.lg),
+              children: [
+                VDisplayText(text: minigameGameName(l10n, gameType), size: 28),
+                const SizedBox(height: AppSpacing.md),
                 VCard(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        l10n.minigamesInvitePendingBody,
-                        style: Theme.of(context).textTheme.bodyLarge,
+                        wager > 0
+                            ? l10n.minigamesWagerPerPerson(wager)
+                            : l10n.minigamesWagerFree,
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                      const SizedBox(height: AppSpacing.xs),
+                      Text(
+                        l10n.minigamesParticipants(participants.length),
+                        style: const TextStyle(color: AppColors.mutedStrong),
                       ),
                       const SizedBox(height: AppSpacing.md),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: VButton.dark(
-                              label: l10n.minigamesInviteAccept,
-                              onPressed: () =>
-                                  _accept(context, ref, l10n),
-                            ),
-                          ),
-                          const SizedBox(width: AppSpacing.md),
-                          Expanded(
-                            child: VButton.outlined(
-                              label: l10n.minigamesInviteDecline,
-                              onPressed: () =>
-                                  _decline(context, ref, l10n),
-                            ),
-                          ),
-                        ],
+                      VChip(
+                        label: finished
+                            ? l10n.minigamesStatusFinished
+                            : l10n.minigamesStatusActive,
+                        selected: !finished,
                       ),
                     ],
                   ),
-                )
-              else if (inviteStatus == 'pending' && finished)
-                VCard(
-                  child: Text(l10n.minigamesInviteClosed),
-                )
-              else if (inviteStatus == 'accepted')
-                VCard(
-                  child: Text(l10n.minigamesInviteAccepted),
                 ),
-            ],
-          );
-        },
+                const SizedBox(height: AppSpacing.lg),
+                if (isPending)
+                  VCard(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          l10n.minigamesInvitePendingBody,
+                          style: Theme.of(context).textTheme.bodyLarge,
+                        ),
+                        const SizedBox(height: AppSpacing.md),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: VButton.dark(
+                                label: l10n.minigamesInviteAccept,
+                                onPressed: () => _accept(context, ref, l10n),
+                              ),
+                            ),
+                            const SizedBox(width: AppSpacing.md),
+                            Expanded(
+                              child: VButton.outlined(
+                                label: l10n.minigamesInviteDecline,
+                                onPressed: () => _decline(context, ref, l10n),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  )
+                else if (inviteStatus == 'pending' && finished)
+                  VCard(child: Text(l10n.minigamesInviteClosed))
+                else if (inviteStatus == 'accepted')
+                  VCard(child: Text(l10n.minigamesInviteAccepted)),
+              ],
+            );
+          },
+        ),
       ),
     );
   }
@@ -137,14 +134,14 @@ class MinigameSessionDetailScreen extends ConsumerWidget {
     try {
       await ref.read(minigameInviteProvider(sessionId).notifier).accept();
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.minigamesInviteAccepted)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.minigamesInviteAccepted)));
     } catch (e) {
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toAppError().message)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e.toAppError().message)));
     }
   }
 
@@ -156,14 +153,14 @@ class MinigameSessionDetailScreen extends ConsumerWidget {
     try {
       await ref.read(minigameInviteProvider(sessionId).notifier).decline();
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.minigamesInviteDeclined)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.minigamesInviteDeclined)));
     } catch (e) {
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toAppError().message)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e.toAppError().message)));
     }
   }
 }

@@ -8,6 +8,7 @@ import 'package:samay/core/providers/service_providers.dart';
 import 'package:samay/core/router/route_paths.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/v_button.dart';
+import 'package:samay/shared/widgets/v_header_bar.dart';
 import 'package:samay/shared/widgets/v_input.dart';
 
 class DeleteAccountScreen extends ConsumerStatefulWidget {
@@ -90,12 +91,9 @@ class _DeleteAccountScreenState extends ConsumerState<DeleteAccountScreen> {
     final l10n = AppLocalizations.of(context);
 
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.profileDeleteTitle)),
-      // The danger stays in the semantic error, never the CTA fill.
-      // §7.3: scroll-safe body (the OTP pattern, U-07) — the fixed Column
-      // overflows at ≥1.5× text scale on small phones; pins the CTA when
-      // the content fits and scrolls when it doesn't. Never clip.
-      body: LayoutBuilder(
+      body: VHeaderBar(
+        title: l10n.profileDeleteTitle,
+        child: LayoutBuilder(
           builder: (context, constraints) => SingleChildScrollView(
             child: ConstrainedBox(
               constraints: BoxConstraints(minHeight: constraints.maxHeight),
@@ -137,6 +135,7 @@ class _DeleteAccountScreenState extends ConsumerState<DeleteAccountScreen> {
             ),
           ),
         ),
+      ),
     );
   }
 }

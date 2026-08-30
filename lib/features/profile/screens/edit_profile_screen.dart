@@ -14,6 +14,7 @@ import 'package:samay/shared/widgets/profile_avatar.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/skeletons.dart';
 import 'package:samay/shared/widgets/v_button.dart';
+import 'package:samay/shared/widgets/v_header_bar.dart';
 import 'package:samay/shared/widgets/v_input.dart';
 import 'package:samay/shared/widgets/v_spinner.dart';
 
@@ -184,9 +185,9 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.profileEditTitle)),
-      // The form is informational — the save CTA carries the emphasis.
-      body: _loading
+      body: VHeaderBar(
+        title: l10n.profileEditTitle,
+        child: _loading
             // U-22 handoff (U-23): the edit screen mirrors the profile hero —
             // `VSkeletonProfile` (§5.8) stands in during the first load.
             ? const VSkeletonProfile()
@@ -207,10 +208,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                             radius: 16,
                             backgroundColor: Colors.white,
                             child: _uploadingAvatar
-                                ? const VSpinner(
-                                    size: 16,
-                                    color: Colors.black,
-                                  )
+                                ? const VSpinner(size: 16, color: Colors.black)
                                 : IconButton(
                                     icon: const Icon(
                                       Icons.camera_alt,
@@ -245,6 +243,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                   ),
                 ],
               ),
+      ),
     );
   }
 }

@@ -47,6 +47,16 @@ class FriendsRepository {
     return [for (final f in res) FriendshipSummary.fromJson(f)];
   }
 
+  /// Search-shaped profile rows for [ids] via the `get_friend_profiles`
+  /// SECURITY DEFINER RPC — ONE batched query (no N+1), scoped to the caller's
+  /// accepted friends. Friends that cannot be resolved are simply absent. Used
+  /// by the on-device friends-cache warm-up so one unresolvable friend can
+  /// never abort the whole cache.
+  Future<List<Map<String, dynamic>>> getUserSearchRows(List<String> ids) async {
+    if (ids.isEmpty) return const [];
+    return _friendships.getFriendProfiles(ids);
+  }
+
   /// Search results for [query], carrying the service's `friendship_status`
   /// / `friendship_id` / `friendship_direction` enrichment.
   Future<List<UserSearchResult>> searchUsers(String query) async {

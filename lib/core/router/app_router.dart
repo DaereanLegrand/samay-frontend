@@ -48,8 +48,11 @@ import 'package:samay/features/groups/screens/leaderboard_screen.dart';
 import 'package:samay/features/groups/screens/group_members_screen.dart';
 import 'package:samay/features/social/screens/social_screen.dart';
 import 'package:samay/features/social/screens/user_ranking_screen.dart';
+import 'package:samay/features/minigames/logic/minigame_meta.dart';
+import 'package:samay/features/minigames/screens/minigame_detail_screen.dart';
 import 'package:samay/features/minigames/screens/minigames_screen.dart';
 import 'package:samay/features/minigames/screens/minigame_session_detail_screen.dart';
+import 'package:samay/features/minigames/screens/truth_dare_screen.dart';
 import 'package:samay/features/notifications/screens/notification_center_screen.dart';
 import 'package:samay/features/party_finder/screens/party_finder_screen.dart';
 import 'package:samay/features/qr/screens/attendance_qr_screen.dart';
@@ -418,6 +421,29 @@ final routerProvider = Provider<GoRouter>((ref) {
         ),
       ),
       GoRoute(
+        // The dedicated per-game landing page (2026-08-28): the feed opens
+        // /minigames/game/:gameType — title + explanation + audience +
+        // "Nueva partida" + the ongoing partidas list. Gated on the
+        // minigames flag; an unknown game_type parses to null and shows the
+        // route error screen.
+        path: RoutePaths.minigame(':gameType'),
+        builder: (context, state) => _screenForId(
+          state,
+          'gameType',
+          (gameType) {
+            final type = minigameTypeFromString(gameType);
+            if (type == null) {
+              return const RouteErrorScreen();
+            }
+            return FlagGate(
+              flag: AppFeatureFlag.minigames,
+              child: MinigameDetailScreen(gameType: type),
+            );
+          },
+          errorMessage: AppLocalizations.of(context).routerGroupNotFound,
+        ),
+      ),
+      GoRoute(
         // Session detail (140_minigame_invites): accept/decline a pending
         // invite, live status. The fixed `/session` segment keeps this from
         // being shadowed by the `:groupId` hub route.
@@ -428,6 +454,22 @@ final routerProvider = Provider<GoRouter>((ref) {
           (sessionId) => FlagGate(
             flag: AppFeatureFlag.minigames,
             child: MinigameSessionDetailScreen(sessionId: sessionId),
+          ),
+          errorMessage: AppLocalizations.of(context).routerGroupNotFound,
+        ),
+      ),
+      GoRoute(
+        // The Verdad o Reto play screen (150_minigame_play): the reusable
+        // play engine's first concrete game. Gated on the minigames flag as
+        // the kill-switch knob. A fixed segment keeps the :groupId hub from
+        // shadowing it.
+        path: RoutePaths.truthDare(':sessionId'),
+        builder: (context, state) => _screenForId(
+          state,
+          'sessionId',
+          (sessionId) => FlagGate(
+            flag: AppFeatureFlag.minigames,
+            child: TruthDareScreen(sessionId: sessionId),
           ),
           errorMessage: AppLocalizations.of(context).routerGroupNotFound,
         ),

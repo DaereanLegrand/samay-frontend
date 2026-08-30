@@ -22,6 +22,7 @@ import 'package:samay/shared/widgets/skeletons.dart';
 import 'package:samay/shared/widgets/state_views.dart';
 import 'package:samay/shared/widgets/v_badge.dart';
 import 'package:samay/shared/widgets/v_button.dart';
+import 'package:samay/shared/widgets/v_header_bar.dart';
 import 'package:samay/shared/widgets/v_network_image.dart';
 import 'package:samay/shared/widgets/v_shard_icon.dart';
 
@@ -92,12 +93,7 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen>
   /// group name may appear).
   Widget _scaffold(Widget body, {String? title}) {
     return Scaffold(
-      appBar: AppBar(
-        title: title == null
-            ? null
-            : Text(title, maxLines: 1, overflow: TextOverflow.ellipsis),
-      ),
-      body: body,
+      body: VHeaderBar(title: title, child: body),
     );
   }
 
@@ -200,15 +196,8 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen>
     final isFrozen = g.frozenAt != null;
 
     return Scaffold(
-      // USER FIX 4: the group name lives ONLY in the AppBar title, next to
-      // the back arrow (maxLines 1 + ellipsis) — there is no hero banner
-      // above the tabs. The AppBar also owns the tabs and the frozen marker.
-      appBar: AppBar(
-        title: Text(
-          g.name.isEmpty ? l10n.commonGroup : g.name,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        ),
+      body: VHeaderBar(
+        title: g.name.isEmpty ? l10n.commonGroup : g.name,
         // ISSUE 3: group info is its own tab — Info | Chat | Miembros |
         // Eventos.
         bottom: TabBar(
@@ -239,37 +228,37 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen>
               ],
             ),
         ],
-      ),
-      body: Column(
-        children: [
-          // USER FIX 4: the hero banner block is gone — the TabBarView
-          // takes the full body. The frozen errorFill strip stays above it.
-          if (isFrozen)
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(8),
-              // §5.2: never raw red on black — the frozen banner is an
-              // error *fill* (glowPinkDeep); white text on it is 5.87:1
-              // (AA).
-              color: AppColors.errorFill,
-              child: Text(
-                l10n.groupsFrozenBanner,
-                style: const TextStyle(fontSize: 12, color: AppColors.white),
-                textAlign: TextAlign.center,
+        child: Column(
+          children: [
+            // USER FIX 4: the hero banner block is gone — the TabBarView
+            // takes the full body. The frozen errorFill strip stays above it.
+            if (isFrozen)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(8),
+                // §5.2: never raw red on black — the frozen banner is an
+                // error *fill* (glowPinkDeep); white text on it is 5.87:1
+                // (AA).
+                color: AppColors.errorFill,
+                child: Text(
+                  l10n.groupsFrozenBanner,
+                  style: const TextStyle(fontSize: 12, color: AppColors.white),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            Expanded(
+              child: TabBarView(
+                controller: _tabController,
+                children: [
+                  _buildInfoTab(g, members, contributions),
+                  _buildChatTab(),
+                  _buildMembersTab(members, contributions.contributors),
+                  _buildEventsTab(),
+                ],
               ),
             ),
-          Expanded(
-            child: TabBarView(
-              controller: _tabController,
-              children: [
-                _buildInfoTab(g, members, contributions),
-                _buildChatTab(),
-                _buildMembersTab(members, contributions.contributors),
-                _buildEventsTab(),
-              ],
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -508,11 +497,11 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen>
           ),
           _RowSpacer(:final height) => SizedBox(height: height),
           _RowContributor(:final username, :final avatarUrl, :final shards) =>
-              _ContributorTile(
-                username: username,
-                avatarUrl: avatarUrl,
-                shards: shards,
-              ),
+            _ContributorTile(
+              username: username,
+              avatarUrl: avatarUrl,
+              shards: shards,
+            ),
           _RowMember(
             :final userId,
             :final username,

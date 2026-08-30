@@ -65,8 +65,12 @@ validation gate), plus `docs/process/FILE-OWNERSHIP.md` to know who owns what.
    - No commented-out code, no dead code, no `print` (use `AppLogger`).
    - Tests ship at every touched layer; the modular integration suite
      (`integration_test/`) was updated for the touched feature. Test-layer
-     budget respected: max 2–3 layers per change, no restyle/visual-pinning
-     layer, no duplicated cross-layer assertions.
+     budget respected: max 2–3 layers per change, no render/restyle/
+     visual-pinning layer, no duplicated cross-layer assertions.
+   - **Suckless policy (2026-08-28):** flag ANY new UI-only test — a widget
+     test that asserts a bare render/empty-state-copy/loading-skeleton/
+     `takeException()==null`, or a whole-file screen-render suite — unless
+     it asserts service/HTTP wiring (`when`/`verify`/`harnessHttp.sent*`).
    - Spanish strings moved to ARB (`AppLocalizations`).
 3. **Sign-off format** (end of your report):
 

@@ -120,6 +120,12 @@ bool isRegisteredRoutePath(String path) {
       segments[1] == 'session') {
     return true;
   }
+  if (segments.length == 4 &&
+      segments[0] == 'minigames' &&
+      segments[1] == 'play' &&
+      segments[2] == 'truth-dare') {
+    return true;
+  }
   if (segments.length == 2 && segments[0] == 'chat') return true;
   if (segments.length == 2 && segments[0] == 'user') return true;
   if (segments.length == 2 && segments[0] == 'qr') return true;

@@ -15,15 +15,15 @@ import 'package:samay/features/qr/providers/qr_providers.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/state_views.dart';
 import 'package:samay/shared/widgets/v_button.dart';
+import 'package:samay/shared/widgets/v_header_bar.dart';
 import 'package:samay/shared/widgets/v_spinner.dart';
 
 /// Camera-widget seam for tests: `mobile_scanner` is a platform plugin that
 /// cannot run in widget tests, so the screen accepts an injectable builder
 /// (same thin-wrapper pattern as `CreateEventScreen`/`PermissionService`).
 /// The builder receives the on-detect callback and returns the camera widget.
-typedef QrScannerViewBuilder = Widget Function({
-  required ValueChanged<String> onDetect,
-});
+typedef QrScannerViewBuilder =
+    Widget Function({required ValueChanged<String> onDetect});
 
 enum _CameraStatus { checking, granted, denied, unavailable }
 
@@ -223,22 +223,40 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen> {
           setState(() => _result = _Confirmed(data['attendeeName'] as String?));
           _scheduleReady();
         case QrScanResult.expired:
-          setState(() => _result = _ScanError(l10n.qrScanExpired, retryable: false));
+          setState(
+            () => _result = _ScanError(l10n.qrScanExpired, retryable: false),
+          );
           _scheduleReady();
         case QrScanResult.alreadyScanned:
-          setState(() => _result = _ScanError(l10n.qrScanAlreadyScanned, retryable: false));
+          setState(
+            () => _result = _ScanError(
+              l10n.qrScanAlreadyScanned,
+              retryable: false,
+            ),
+          );
           _scheduleReady();
         case QrScanResult.notInvited:
-          setState(() => _result = _ScanError(l10n.qrScanNotInvited, retryable: false));
+          setState(
+            () => _result = _ScanError(l10n.qrScanNotInvited, retryable: false),
+          );
           _scheduleReady();
         case QrScanResult.notInWindow:
-          setState(() => _result = _ScanError(l10n.qrScanNotInWindow, retryable: false));
+          setState(
+            () =>
+                _result = _ScanError(l10n.qrScanNotInWindow, retryable: false),
+          );
           _scheduleReady();
         case QrScanResult.notPromotor:
-          setState(() => _result = _ScanError(l10n.qrScanNotPromotor, retryable: false));
+          setState(
+            () =>
+                _result = _ScanError(l10n.qrScanNotPromotor, retryable: false),
+          );
           _scheduleReady();
         case QrScanResult.invalidToken:
-          setState(() => _result = _ScanError(l10n.qrScanInvalidToken, retryable: false));
+          setState(
+            () =>
+                _result = _ScanError(l10n.qrScanInvalidToken, retryable: false),
+          );
           _scheduleReady();
       }
     } catch (e, st) {
@@ -262,13 +280,12 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final eventAsync = ref.watch(eventDetailProvider(widget.eventId));
-    final eventName =
-        eventAsync.valueOrNull?.name ?? l10n.qrScanEventFallback;
+    final eventName = eventAsync.valueOrNull?.name ?? l10n.qrScanEventFallback;
 
     return Scaffold(
       backgroundColor: AppColors.discoBlack,
-      appBar: AppBar(
-        title: Text(l10n.qrScannerTitle),
+      body: VHeaderBar(
+        title: l10n.qrScannerTitle,
         actions: [
           if (_cameraStatus == _CameraStatus.granted)
             IconButton(
@@ -280,8 +297,8 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen> {
               onPressed: _toggleTorch,
             ),
         ],
+        child: _body(l10n, eventName),
       ),
-      body: SafeArea(child: _body(l10n, eventName)),
     );
   }
 
@@ -366,61 +383,64 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen> {
       bottom: AppSpacing.xxxl,
       child: switch (result) {
         _Processing() => Container(
-            padding: const EdgeInsets.all(AppSpacing.md),
-            decoration: BoxDecoration(
-              color: AppColors.surface,
-              border: Border.all(color: AppColors.hairline),
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const VSpinner(size: 16),
-                const SizedBox(width: AppSpacing.md),
-                Text(
-                  l10n.qrScanProcessing,
-                  style: const TextStyle(color: AppColors.white),
-                ),
-              ],
-            ),
+          padding: const EdgeInsets.all(AppSpacing.md),
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            border: Border.all(color: AppColors.hairline),
+            borderRadius: BorderRadius.circular(16),
           ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const VSpinner(size: 16),
+              const SizedBox(width: AppSpacing.md),
+              Text(
+                l10n.qrScanProcessing,
+                style: const TextStyle(color: AppColors.white),
+              ),
+            ],
+          ),
+        ),
         _Confirmed(attendeeName: final name) => Container(
-            padding: const EdgeInsets.all(AppSpacing.lg),
-            decoration: BoxDecoration(
-              color: AppColors.surface,
-              border: Border.all(color: AppColors.hairline),
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.check_circle,
-                    size: 48, color: AppColors.discoCyan),
-                const SizedBox(height: AppSpacing.sm),
-                Text(
-                  l10n.qrScanConfirmed,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    color: AppColors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                  ),
+          padding: const EdgeInsets.all(AppSpacing.lg),
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            border: Border.all(color: AppColors.hairline),
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(
+                Icons.check_circle,
+                size: 48,
+                color: AppColors.discoCyan,
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              Text(
+                l10n.qrScanConfirmed,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: AppColors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
                 ),
-                if (name != null && name.isNotEmpty) ...[
-                  const SizedBox(height: AppSpacing.xs),
-                  Text(
-                    l10n.qrScanAttendee(name),
-                    style: const TextStyle(color: AppColors.mutedStrong),
-                  ),
-                ],
-                const SizedBox(height: AppSpacing.sm),
+              ),
+              if (name != null && name.isNotEmpty) ...[
+                const SizedBox(height: AppSpacing.xs),
                 Text(
-                  l10n.qrScanReady,
+                  l10n.qrScanAttendee(name),
                   style: const TextStyle(color: AppColors.mutedStrong),
                 ),
               ],
-            ),
+              const SizedBox(height: AppSpacing.sm),
+              Text(
+                l10n.qrScanReady,
+                style: const TextStyle(color: AppColors.mutedStrong),
+              ),
+            ],
           ),
+        ),
         _ScanError(message: final message, retryable: final retryable) =>
           Container(
             padding: const EdgeInsets.all(AppSpacing.lg),
@@ -529,9 +549,8 @@ class _ScanOverlayState extends State<_ScanOverlay>
       height: 280,
       child: AnimatedBuilder(
         animation: _sweep,
-        builder: (context, _) => CustomPaint(
-          painter: _ScanFramePainter(progress: _sweep.value),
-        ),
+        builder: (context, _) =>
+            CustomPaint(painter: _ScanFramePainter(progress: _sweep.value)),
       ),
     );
   }

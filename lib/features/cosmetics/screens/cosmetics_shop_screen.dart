@@ -11,6 +11,7 @@ import 'package:samay/shared/widgets/v_card.dart';
 import 'package:samay/shared/widgets/state_views.dart';
 import 'package:samay/shared/widgets/v_badge.dart';
 import 'package:samay/shared/widgets/v_button.dart';
+import 'package:samay/shared/widgets/v_header_bar.dart';
 import 'package:samay/shared/widgets/v_shard_icon.dart';
 
 /// The personal cosmetics shop (COSM spec): catalog grid over the three
@@ -160,30 +161,31 @@ class _CosmeticsShopScreenState extends ConsumerState<CosmeticsShopScreen>
     final userTier = profile?['subscription_tier']?.toString() ?? 'free';
 
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.cosmeticsShopTitle)),
-      body: Column(
-        children: [
-          _BalanceBar(shards: personalShards),
-          Column(
-            children: [
-              TabBar(
-                controller: _tabController,
-                labelColor: AppColors.white,
-                // §2.4: unselected tab labels are informational text at
-                // normal size — muted #666666 fails 1.4.3 (3.66:1);
-                // mutedStrong is AA.
-                unselectedLabelColor: AppColors.mutedStrong,
-                indicatorColor: AppColors.white,
-                tabs: [
-                  for (var i = 0; i < _tabTypes.length; i++)
-                    Tab(text: _tabLabel(l10n, i)),
-                ],
-              ),
-              const SizedBox(height: 12),
-            ],
-          ),
-          Expanded(
-            child: catalogAsync.when(
+      body: VHeaderBar(
+        title: l10n.cosmeticsShopTitle,
+        child: Column(
+          children: [
+            _BalanceBar(shards: personalShards),
+            Column(
+              children: [
+                TabBar(
+                  controller: _tabController,
+                  labelColor: AppColors.white,
+                  // §2.4: unselected tab labels are informational text at
+                  // normal size — muted #666666 fails 1.4.3 (3.66:1);
+                  // mutedStrong is AA.
+                  unselectedLabelColor: AppColors.mutedStrong,
+                  indicatorColor: AppColors.white,
+                  tabs: [
+                    for (var i = 0; i < _tabTypes.length; i++)
+                      Tab(text: _tabLabel(l10n, i)),
+                  ],
+                ),
+                const SizedBox(height: 12),
+              ],
+            ),
+            Expanded(
+              child: catalogAsync.when(
                 // U-25 (§5.8): the shop is a grid first load with nothing on
                 // screen — the §5.3 card-grid skeleton stands in (U-22's
                 // handoff suggested VSkeletonList, but the shop renders a
@@ -247,8 +249,9 @@ class _CosmeticsShopScreenState extends ConsumerState<CosmeticsShopScreen>
                   );
                 },
               ),
-          ),
-        ],
+            ),
+          ],
+        ),
       ),
     );
   }

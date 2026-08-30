@@ -101,3 +101,67 @@ jsonb payload.
   rather than their working tree. The other session's 58 staged test-file
   deletions were NOT touched. Coordinate before touching README.md when it
   has concurrent uncommitted edits.
+
+---
+
+## Flutter layer (2026-08-28, same session — orchestrator)
+
+### What was built
+- **Reusable Dart engine** `lib/features/minigames/logic/minigame_engine.dart`
+  — game-agnostic turn skeleton (`GameTurnSkeleton`, `MinigameGameState`,
+  `GameRoundRecord`), `MinigamePhase`, `PromptOutcome`, round-robin
+  `nextJudgeIndex`, seeded `randomParticipantIndex`. Pure Dart, unit-tested.
+- `lib/features/minigames/logic/truth_dare.dart` — `TruthDareKind`
+  (verdad/reto wire), prompt-body extraction, localized choose headers.
+- `MinigameService` +5 methods: `getMinigameGameState` (null on
+  `not_started`), `initMinigameGameState` (idempotent `already_started`),
+  `revealMinigamePrompt` (server-random draw), `advanceMinigameTurn`,
+  `completeMinigameGame` (idempotent `already_finished`) +
+  `subscribeToGameState` channel. Typed error mapping per status.
+- `minigameGameStateProvider` (family by session) — auto-initializes on
+  first read, live-merges the `minigame-game-state` realtime channel,
+  exposes `reveal`/`advance`/`complete` notifier actions.
+- `TruthDareScreen` + `RoutePaths.truthDare`
+  (`/minigames/play/truth-dare/:id`), flag-gated; registered in the router,
+  `conventions_test` gatedRoutes, `notifications_providers` deep-link
+  recognition, and `auth_scope_reset` invalidation. Subject name resolves
+  from the session participants; the current subject sees Verdad/Reto,
+  everyone else the waiting header; revealed prompt shows Hecho/Saltar.
+
+### Tests
+- `test/features/minigames/logic/minigame_engine_test.dart` (14) +
+  `truth_dare_test.dart` (7) — pure logic.
+- `minigame_service_test.dart` +9 (RPC params + typed errors).
+- `minigames_providers_test.dart` +6 (auto-init, reveal/advance/complete,
+  realtime merge); fakes extended for the grown interface.
+- `truth_dare_screen_test.dart` — 4 functional widget tests asserting the
+  reveal/advance/complete wiring (not render-only).
+- `integration_test/truth_dare_flow_test.dart` (registered in runner.sh).
+- `test/opt-018-minigame-play.sh` — **23/23 against the live stack**:
+  not_started → init (server-random) → reveal → invalid_type → advance →
+  bystander denial ×5 → complete (draw) + idempotency.
+
+### Flutter MISTAKE blocks
+- **MISTAKE (screen auth):** `TruthDareScreen` first read the current user
+  from `authServiceProvider.auth.currentUser` (Supabase client) which is
+  null in the hermetic harness — the screen always showed the "waiting"
+  state. Fixed to `authStateProvider` (the riverpod seam the rest of the app
+  uses).
+- **MISTAKE (fake state loss):** widget/integration fakes' `reveal` set the
+  state but `getMinigameGameState` returned a fresh un-revealed row, so
+  `invalidateSelf()` after reveal wiped the prompt. Fakes must hold a
+  mutable `_current` row like the real DB.
+- **MISTAKE (opt-018 unbound var):** cleanup referenced `$SESSION_ID` under
+  `set -u` before assignment → "unbound variable". Guarded `${SESSION_ID:-}`.
+
+### Commands run (Flutter layer)
+```bash
+flutter gen-l10n
+dart analyze lib test integration_test          # 0 issues
+make test-feature FEATURE=minigames             # 145 pass
+make test-file FILE=test/meta/conventions_test.dart
+flutter test -d macos integration_test/truth_dare_flow_test.dart   # pass
+flutter test -d macos integration_test/minigames_flow_test.dart    # pass (fake extended)
+bash test/opt-018-minigame-play.sh              # 23/23 (stack up, migration 150 applied)
+bash -n test/opt-018-minigame-play.sh
+```

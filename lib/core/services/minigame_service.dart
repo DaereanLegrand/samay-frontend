@@ -96,7 +96,7 @@ class MinigameService {
 
   static const _columns =
       'id, group_id, game_type, status, shard_wager, player_limit, '
-      'participants, winner_id, created_at';
+      'participants, winner_id, created_at, name';
 
   /// All sessions of [groupId], newest first (RLS `ms_read_group_member` —
   /// group members only).
@@ -159,11 +159,16 @@ class MinigameService {
   ///
   /// Throws [MinigameSessionRejectedException] with the typed rejection when
   /// the RPC returns a non-created status.
+  ///
+  /// [name] is the optional partida title (160_minigame_names). Null or blank
+  /// leaves the row unnamed — the UI then displays the computed `partida-XX`
+  /// (auto-name stays client-side, never polluting the DB).
   Future<String> createSession(
     String? groupId,
     MinigameType type,
     int wager, {
     List<String> inviteeIds = const [],
+    String? name,
   }) async {
     final user = auth.currentUser;
     if (user == null) throw const UnauthorizedError();
@@ -175,6 +180,7 @@ class MinigameService {
         'p_game_type': type.value,
         'p_wager': wager,
         'p_invitees': inviteeIds,
+        'p_name': name,
       },
     );
     final result = res is Map
@@ -427,18 +433,188 @@ class MinigameService {
     }
   }
 
-  /// Live subscription to one session's row changes (GMCR Realtime sync:
-  /// all participants subscribe to the `minigame_sessions` row changes).
+/// Live subscription to one session's row changes (GMCR Realtime sync:
+/// all participants subscribe to the `minigame_sessions` row changes).
+///
+/// Returns the channel — the caller owns the unsubscribe handle. Rows are
+/// ALSO delivered through [sessionStatusProvider]
+/// (lib/features/minigames/minigames_providers.dart), which drives the
+/// I-52 realtime lifecycle (reconnect/backoff).
+RealtimeChannel subscribeToSession(String id) {
+  return realtime.subscribeToChannel(
+    'minigame-session:$id',
+    PostgresChangeEvent.update,
+    'minigame_sessions',
+    (_) {},
+  );
+}
+
+  /// The play-engine state row for [sessionId] (150_minigame_play), or null
+  /// when the session has no game state yet (`not_started`). Gates: auth,
+  /// session exists, caller is participant / invitee / group member —
+  /// mirrored server-side (the same semantic as `mgs_read_participant`).
+  ///
+  /// The returned map is the full `minigame_game_state` row: the turn
+  /// skeleton (judge_index / round / phase / subject_id / prompt_type /
+  /// prompt) is nested under `state`.
+  Future<Map<String, dynamic>?> getMinigameGameState(String sessionId) async {
+    final user = auth.currentUser;
+    if (user == null) throw const UnauthorizedError();
+
+    final res = await client.rpc(
+      'get_minigame_game_state',
+      params: {'p_session_id': sessionId},
+    );
+    final result = res is Map
+        ? Map<String, dynamic>.from(res)
+        : <String, dynamic>{};
+    return switch (result['status']) {
+      'ok' => result['state'] as Map<String, dynamic>?,
+      'not_started' => null,
+      'not_authenticated' => throw const UnauthorizedError(),
+      'session_not_found' => throw const NotFoundError('Partida'),
+      'not_allowed' => throw PermissionError(),
+      _ => throw const ServerError('Unexpected get_minigame_game_state response'),
+    };
+  }
+
+  /// Initializes the play engine for [sessionId] (150_minigame_play): seeds
+  /// the game-agnostic turn skeleton and picks the FIRST subject randomly
+  /// server-side (players never self-select). Idempotent — an existing
+  /// game-state row returns `already_started` with the current state.
+  Future<Map<String, dynamic>> initMinigameGameState(String sessionId) async {
+    final user = auth.currentUser;
+    if (user == null) throw const UnauthorizedError();
+
+    final res = await client.rpc(
+      'init_minigame_game_state',
+      params: {'p_session_id': sessionId},
+    );
+    final result = res is Map
+        ? Map<String, dynamic>.from(res)
+        : <String, dynamic>{};
+    return switch (result['status']) {
+      'started' || 'already_started' => result['state'] as Map<String, dynamic>,
+      'not_authenticated' => throw const UnauthorizedError(),
+      'session_not_found' => throw const NotFoundError('Partida'),
+      'not_allowed' => throw PermissionError(),
+      'session_not_active' => throw ConflictError(
+        'La partida ya terminó',
+        code: 'session_not_active',
+      ),
+      'no_participants' => throw const ServerError('No participants'),
+      _ => throw const ServerError('Unexpected init_minigame_game_state response'),
+    };
+  }
+
+  /// Draws a random active prompt of [promptType] for [sessionId]'s game and
+  /// persists it into the game state (150_minigame_play). The draw is
+  /// server-random (`ORDER BY random() LIMIT 1`); the client only passes the
+  /// prompt_type ('verdad' | 'reto' for truth_dare).
+  Future<Map<String, dynamic>> revealMinigamePrompt(
+    String sessionId,
+    String promptType,
+  ) async {
+    final user = auth.currentUser;
+    if (user == null) throw const UnauthorizedError();
+
+    final res = await client.rpc(
+      'reveal_minigame_prompt',
+      params: {'p_session_id': sessionId, 'p_prompt_type': promptType},
+    );
+    final result = res is Map
+        ? Map<String, dynamic>.from(res)
+        : <String, dynamic>{};
+    return switch (result['status']) {
+      'revealed' => result['state'] as Map<String, dynamic>,
+      'not_authenticated' => throw const UnauthorizedError(),
+      'session_not_found' => throw const NotFoundError('Partida'),
+      'not_allowed' => throw PermissionError(),
+      'session_not_active' => throw ConflictError(
+        'La partida ya terminó',
+        code: 'session_not_active',
+      ),
+      'invalid_prompt_type' => throw ValidationError(
+        'prompt_type',
+        'Tipo de prompt no válido',
+      ),
+      'no_prompts_available' => throw const NotFoundError('Prompt'),
+      _ => throw const ServerError('Unexpected reveal_minigame_prompt response'),
+    };
+  }
+
+  /// Closes the current turn: appends [round] (the completed-round record)
+  /// and advances judge_index + picks the next subject randomly server-side
+  /// (150_minigame_play).
+  Future<Map<String, dynamic>> advanceMinigameTurn(
+    String sessionId,
+    Map<String, dynamic> round,
+  ) async {
+    final user = auth.currentUser;
+    if (user == null) throw const UnauthorizedError();
+
+    final res = await client.rpc(
+      'advance_minigame_turn',
+      params: {'p_session_id': sessionId, 'p_round': round},
+    );
+    final result = res is Map
+        ? Map<String, dynamic>.from(res)
+        : <String, dynamic>{};
+    return switch (result['status']) {
+      'advanced' => result['state'] as Map<String, dynamic>,
+      'not_authenticated' => throw const UnauthorizedError(),
+      'session_not_found' => throw const NotFoundError('Partida'),
+      'not_allowed' => throw PermissionError(),
+      'session_not_active' => throw ConflictError(
+        'La partida ya terminó',
+        code: 'session_not_active',
+      ),
+      'not_started' => throw const ServerError('Game not started'),
+      'no_participants' => throw const ServerError('No participants'),
+      _ => throw const ServerError('Unexpected advance_minigame_turn response'),
+    };
+  }
+
+  /// Ends the party game (150_minigame_play): flips the game phase + the
+  /// session status to finished and settles the wager as a draw (refund
+  /// every participant). Idempotent — `already_finished` is a no-op.
+  Future<void> completeMinigameGame(String sessionId) async {
+    final user = auth.currentUser;
+    if (user == null) throw const UnauthorizedError();
+
+    final res = await client.rpc(
+      'complete_minigame_game',
+      params: {'p_session_id': sessionId},
+    );
+    final result = res is Map
+        ? Map<String, dynamic>.from(res)
+        : <String, dynamic>{};
+    switch (result['status']) {
+      case 'finished' || 'already_finished':
+        return;
+      case 'not_authenticated':
+        throw const UnauthorizedError();
+      case 'session_not_found':
+        throw const NotFoundError('Partida');
+      case 'not_allowed':
+        throw PermissionError();
+      default:
+        throw const ServerError('Unexpected complete_minigame_game response');
+    }
+  }
+
+  /// Live subscription to one session's game-state row changes
+  /// (150_minigame_play — init / reveal / advance / complete stream live to
+  /// every participant via the `minigame_game_state` realtime publication).
   ///
   /// Returns the channel — the caller owns the unsubscribe handle. Rows are
-  /// ALSO delivered through [sessionStatusProvider]
-  /// (lib/features/minigames/minigames_providers.dart), which drives the
-  /// I-52 realtime lifecycle (reconnect/backoff).
-  RealtimeChannel subscribeToSession(String id) {
+  /// ALSO delivered through [minigameGameStateProvider]
+  /// (lib/features/minigames/providers/minigames_providers.dart).
+  RealtimeChannel subscribeToGameState(String sessionId) {
     return realtime.subscribeToChannel(
-      'minigame-session:$id',
+      'minigame-game-state:$sessionId',
       PostgresChangeEvent.update,
-      'minigame_sessions',
+      'minigame_game_state',
       (_) {},
     );
   }

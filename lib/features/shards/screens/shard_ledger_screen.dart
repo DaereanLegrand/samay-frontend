@@ -11,6 +11,7 @@ import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/error_view.dart';
 import 'package:samay/shared/widgets/skeletons.dart';
 import 'package:samay/shared/widgets/v_card.dart';
+import 'package:samay/shared/widgets/v_header_bar.dart';
 import 'package:samay/shared/widgets/state_views.dart';
 import 'package:samay/shared/widgets/v_shard_icon.dart';
 
@@ -119,28 +120,29 @@ class _ShardLedgerScreenState extends ConsumerState<ShardLedgerScreen>
     final preshards = (profile?['preshards'] as num?)?.toInt() ?? 0;
 
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.shardsLedgerTitle)),
-      body: Column(
-        children: [
-          _BalanceHeader(
-            personalShards: personalShards,
-            preshards: preshards,
-            l10n: l10n,
-          ),
-          TabBar(
-            controller: _tabController,
-            labelColor: AppColors.white,
-            // §2.4: unselected tab labels are informational text at normal
-            // size — muted #666666 fails 1.4.3 (3.66:1); mutedStrong is AA.
-            unselectedLabelColor: AppColors.mutedStrong,
-            indicatorColor: AppColors.white,
-            tabs: [
-              Tab(text: l10n.shardsLedgerTabShards),
-              Tab(text: l10n.shardsLedgerTabPreshards),
-            ],
-          ),
-          Expanded(
-            child: ledgerAsync.when(
+      body: VHeaderBar(
+        title: l10n.shardsLedgerTitle,
+        child: Column(
+          children: [
+            _BalanceHeader(
+              personalShards: personalShards,
+              preshards: preshards,
+              l10n: l10n,
+            ),
+            TabBar(
+              controller: _tabController,
+              labelColor: AppColors.white,
+              // §2.4: unselected tab labels are informational text at normal
+              // size — muted #666666 fails 1.4.3 (3.66:1); mutedStrong is AA.
+              unselectedLabelColor: AppColors.mutedStrong,
+              indicatorColor: AppColors.white,
+              tabs: [
+                Tab(text: l10n.shardsLedgerTabShards),
+                Tab(text: l10n.shardsLedgerTabPreshards),
+              ],
+            ),
+            Expanded(
+              child: ledgerAsync.when(
                 // U-25 (§5.8): the ledger is a list-y first load with nothing
                 // on screen, so the row skeleton stands in (U-22's handoff
                 // named shard_ledger → VSkeletonList). Pull-to-refresh keeps
@@ -155,8 +157,9 @@ class _ShardLedgerScreenState extends ConsumerState<ShardLedgerScreen>
                 ),
                 data: (ledger) => _buildLedger(l10n, ledger),
               ),
-          ),
-        ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -178,9 +181,8 @@ class _ShardLedgerScreenState extends ConsumerState<ShardLedgerScreen>
       child: ListView.separated(
         physics: const AlwaysScrollableScrollPhysics(),
         itemCount: entries.length + 1,
-        separatorBuilder: (_, index) => index == 0
-            ? const SizedBox.shrink()
-            : const Divider(height: 1),
+        separatorBuilder: (_, index) =>
+            index == 0 ? const SizedBox.shrink() : const Divider(height: 1),
         itemBuilder: (context, index) {
           if (index == 0) {
             return _NetHeader(total: total, l10n: l10n);
@@ -377,20 +379,13 @@ class _LedgerTile extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(
-            icon,
-            size: AppIconSizes.md,
-            color: AppColors.white,
-          ),
+          Icon(icon, size: AppIconSizes.md, color: AppColors.white),
           const SizedBox(width: AppSpacing.md),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  label,
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
+                Text(label, style: Theme.of(context).textTheme.titleMedium),
                 const SizedBox(height: AppSpacing.xs),
                 Text(
                   formatLedgerTimestamp(entry.createdAt, l10n.localeName),
@@ -416,10 +411,7 @@ class _LedgerTile extends StatelessWidget {
           _GradientDelta(
             text: '${positive ? '+' : ''}${entry.delta}',
             positive: positive,
-            style: const TextStyle(
-              fontWeight: FontWeight.w700,
-              fontSize: 16,
-            ),
+            style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
           ),
         ],
       ),

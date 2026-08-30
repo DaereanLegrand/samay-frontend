@@ -10,6 +10,7 @@ import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/error_view.dart';
 import 'package:samay/shared/widgets/show_app_error.dart';
 import 'package:samay/shared/widgets/v_card.dart';
+import 'package:samay/shared/widgets/v_header_bar.dart';
 import 'package:samay/shared/widgets/state_views.dart';
 import 'package:samay/shared/widgets/v_button.dart';
 import 'package:samay/shared/widgets/v_input.dart';
@@ -148,17 +149,19 @@ class _EventEditScreenState extends ConsumerState<EventEditScreen> {
     if (detailAsync.valueOrNull != null) _seedFrom(detailAsync.valueOrNull!);
 
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.eventEditTitle)),
-      body: detailAsync.when(
-        loading: () => const VLoadingView(),
-        error: (e, _) => ErrorView(
-          message: e.toAppError().message,
-          onRetry: () => ref.invalidate(eventDetailProvider(widget.eventId)),
+      body: VHeaderBar(
+        title: l10n.eventEditTitle,
+        child: detailAsync.when(
+          loading: () => const VLoadingView(),
+          error: (e, _) => ErrorView(
+            message: e.toAppError().message,
+            onRetry: () => ref.invalidate(eventDetailProvider(widget.eventId)),
+          ),
+          data: (event) {
+            final type = event.type;
+            return _buildForm(l10n, type);
+          },
         ),
-        data: (event) {
-          final type = event.type;
-          return _buildForm(l10n, type);
-        },
       ),
     );
   }

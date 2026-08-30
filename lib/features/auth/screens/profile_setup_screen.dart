@@ -11,6 +11,7 @@ import 'package:samay/features/auth/providers/auth_form_errors.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/v_button.dart';
 import 'package:samay/shared/widgets/v_display_text.dart';
+import 'package:samay/shared/widgets/v_header_bar.dart';
 import 'package:samay/shared/widgets/v_input.dart';
 
 class ProfileSetupScreen extends ConsumerStatefulWidget {
@@ -49,7 +50,9 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
   }
 
   Future<void> _save() async {
-    final String username = InputSanitizer.sanitizeUsername(_usernameController.text);
+    final String username = InputSanitizer.sanitizeUsername(
+      _usernameController.text,
+    );
     final errors = ref.read(signupErrorsProvider.notifier)..clear();
 
     // Specific, multiple field errors from the username requirements — the
@@ -84,55 +87,48 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
     final l10n = AppLocalizations.of(context);
 
     return Scaffold(
-      appBar: AppBar(),
-      // XL-16 (07_profile_setup — minimalism 1/10: "multiple overlapping
-      // elements create visual noise and cheap ornamentation"): stripped to
-      // hero, one hint, the field, the CTA. The avatar placeholder and the
-      // inline "@usuario" hint are gone — the immutable-username caption is
-      // the one line of guidance the screen needs.
-      // §7.3: scroll-safe body (the OTP pattern, U-07) — the fixed Column
-      // overflows at ≥1.5× text scale on small phones; pins the CTA when
-      // the content fits and scrolls when it doesn't. Never clip.
-      body: LayoutBuilder(
-        builder: (context, constraints) => SingleChildScrollView(
-          child: ConstrainedBox(
-            constraints: BoxConstraints(minHeight: constraints.maxHeight),
-            child: IntrinsicHeight(
-              child: Padding(
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  children: [
-                    const SizedBox(height: 32),
-                    // §3.2 auth big header — monochrome VDisplayText.
-                    VDisplayText(text: l10n.authCompleteProfile),
-                    const SizedBox(height: 40),
-                    VInput(
-                      controller: _usernameController,
-                      label: l10n.commonUsername,
-                      // §5.2: the flow's OWN errors ride the username field
-                      // as `errorText` (glowPink — never raw red on black).
-                      // Multiple messages render as one block.
-                      errorText: signupErrors.displayText,
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      l10n.authUsernameImmutable,
-                      // §2.4/§3.3: informational caption = bodySmall in
-                      // mutedStrong (7.37:1 AA — was grey[500]).
-                      style: AppTypography.bodySmall.copyWith(
-                        color: AppColors.mutedStrong,
+      body: VHeaderBar(
+        child: LayoutBuilder(
+          builder: (context, constraints) => SingleChildScrollView(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: constraints.maxHeight),
+              child: IntrinsicHeight(
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    children: [
+                      const SizedBox(height: 32),
+                      // §3.2 auth big header — monochrome VDisplayText.
+                      VDisplayText(text: l10n.authCompleteProfile),
+                      const SizedBox(height: 40),
+                      VInput(
+                        controller: _usernameController,
+                        label: l10n.commonUsername,
+                        // §5.2: the flow's OWN errors ride the username field
+                        // as `errorText` (glowPink — never raw red on black).
+                        // Multiple messages render as one block.
+                        errorText: signupErrors.displayText,
                       ),
-                    ),
-                    const Spacer(),
-                    // §5.1 primary CTA — emphasized white fill, black text.
-                    VButton.emphasized(
-                      label: l10n.commonSave,
-                      loading: _saving ||
-                          ref.watch(authStateProvider).isLoading,
-                      onPressed: _save,
-                    ),
-                    const SizedBox(height: 32),
-                  ],
+                      const SizedBox(height: 8),
+                      Text(
+                        l10n.authUsernameImmutable,
+                        // §2.4/§3.3: informational caption = bodySmall in
+                        // mutedStrong (7.37:1 AA — was grey[500]).
+                        style: AppTypography.bodySmall.copyWith(
+                          color: AppColors.mutedStrong,
+                        ),
+                      ),
+                      const Spacer(),
+                      // §5.1 primary CTA — emphasized white fill, black text.
+                      VButton.emphasized(
+                        label: l10n.commonSave,
+                        loading:
+                            _saving || ref.watch(authStateProvider).isLoading,
+                        onPressed: _save,
+                      ),
+                      const SizedBox(height: 32),
+                    ],
+                  ),
                 ),
               ),
             ),

@@ -30,3 +30,85 @@ IconData minigameIcon(MinigameType type) => switch (type) {
   MinigameType.drunkBottle => Icons.sports_bar,
   MinigameType.challenge => Icons.emoji_events,
 };
+
+/// How a minigame is meant to be played — the "con amigos / solo" fact every
+/// per-game landing page surfaces.
+enum MinigameAudience {
+  /// Requires other players (two or more).
+  friends,
+
+  /// Playable solo.
+  solo,
+
+  /// Works both solo and with others.
+  both,
+}
+
+/// Per-game metadata for the dedicated landing page (2026-08-28): every
+/// [MinigameType] resolves a localized explanation and its [MinigameAudience]
+/// so the shared `MinigameDetailScreen` stays game-agnostic and new games
+/// only need a l10n pair + this switch arm.
+extension MinigameMeta on MinigameType {
+  /// The explanation paragraph shown under the game title.
+  String explanation(AppLocalizations l10n) => switch (this) {
+    MinigameType.pokeChain => l10n.minigamesGamePokeChainExplanation,
+    MinigameType.questions => l10n.minigamesGameQuestionsExplanation,
+    MinigameType.truthDare => l10n.minigamesGameTruthDareExplanation,
+    MinigameType.drunkBottle => l10n.minigamesGameDrunkBottleExplanation,
+    MinigameType.challenge => l10n.minigamesGameChallengeExplanation,
+  };
+
+  /// Whether the game is played with friends, solo, or both.
+  MinigameAudience get audience => switch (this) {
+    MinigameType.pokeChain => MinigameAudience.friends,
+    MinigameType.questions => MinigameAudience.friends,
+    MinigameType.truthDare => MinigameAudience.friends,
+    MinigameType.drunkBottle => MinigameAudience.friends,
+    MinigameType.challenge => MinigameAudience.both,
+  };
+
+  /// Localized audience label ("Para jugar con amigos", "Para jugar solo",
+  /// "Con amigos o solo").
+  String audienceLabel(AppLocalizations l10n) => switch (audience) {
+    MinigameAudience.friends => l10n.minigamesAudienceFriends,
+    MinigameAudience.solo => l10n.minigamesAudienceSolo,
+    MinigameAudience.both => l10n.minigamesAudienceBoth,
+  };
+
+  /// Localized tagline (the one-liner under the game name).
+  String tagline(AppLocalizations l10n) => switch (this) {
+    MinigameType.pokeChain => l10n.minigamesGamePokeChainTagline,
+    MinigameType.questions => l10n.minigamesGameQuestionsTagline,
+    MinigameType.truthDare => l10n.minigamesGameTruthDareTagline,
+    MinigameType.drunkBottle => l10n.minigamesGameDrunkBottleTagline,
+    MinigameType.challenge => l10n.minigamesGameChallengeTagline,
+  };
+}
+
+/// Resolves a minigame type from its wire `game_type` string (tolerant —
+/// null/unknown returns null so callers can fall back to a generic screen).
+MinigameType? minigameTypeFromString(String? gameType) {
+  return switch (gameType) {
+    'poke_chain' => MinigameType.pokeChain,
+    'questions' => MinigameType.questions,
+    'truth_dare' => MinigameType.truthDare,
+    'drunk_bottle' => MinigameType.drunkBottle,
+    'challenge' => MinigameType.challenge,
+    _ => null,
+  };
+}
+
+/// Display name of a session row: the user-supplied `name` when present
+/// (trimmed), otherwise the auto `partida-XX` where XX is [index] + 1 (the
+/// session's running number in its list — 160_minigame_names). The auto-name
+/// is computed client-side and never stored.
+String minigameSessionName(
+  AppLocalizations l10n,
+  Map<String, dynamic> session, {
+  int index = 0,
+}) {
+  final name = session['name'] as String?;
+  final trimmed = name?.trim() ?? '';
+  if (trimmed.isNotEmpty) return trimmed;
+  return l10n.minigamesAutoName(index + 1);
+}

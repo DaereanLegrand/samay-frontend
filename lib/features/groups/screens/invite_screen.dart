@@ -6,15 +6,17 @@ import 'package:samay/core/extensions/error_mapper.dart';
 import 'package:samay/core/logging/app_logger.dart';
 import 'package:samay/core/providers/config_provider.dart';
 import 'package:samay/core/providers/service_providers.dart';
+import 'package:samay/core/models/user_search_result.dart';
 import 'package:samay/core/utils/debouncer.dart';
 import 'package:samay/core/utils/input_sanitizer.dart';
-import 'package:samay/features/friends/providers/friends_providers.dart';
+import 'package:samay/features/friends/providers/user_search_provider.dart';
 import 'package:samay/features/groups/providers/groups_providers.dart';
 import 'package:samay/shared/widgets/profile_avatar.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/error_view.dart';
 import 'package:samay/shared/widgets/state_views.dart';
 import 'package:samay/shared/widgets/v_card.dart';
+import 'package:samay/shared/widgets/v_header_bar.dart';
 import 'package:samay/shared/widgets/show_app_error.dart';
 import 'package:samay/shared/widgets/v_spinner.dart';
 
@@ -95,10 +97,9 @@ class _InviteScreenState extends ConsumerState<InviteScreen> {
     final memberIds =
         membersAsync.valueOrNull?.map((m) => m.userId).toSet() ??
         const <String>{};
-
     return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.groupsInviteTitle),
+      body: VHeaderBar(
+        title: l10n.groupsInviteTitle,
         actions: [
           if (_selectedIds.isNotEmpty)
             TextButton(
@@ -108,100 +109,50 @@ class _InviteScreenState extends ConsumerState<InviteScreen> {
                   : Text(l10n.groupsInviteCount(_selectedIds.length)),
             ),
         ],
-      ),
-      body: membersAsync.when(
-        loading: () => const VLoadingView(),
-        error: (e, _) => ErrorView(
-          message: e.toAppError().message,
-          onRetry: () => ref.invalidate(groupMembersProvider(widget.groupId)),
-        ),
-        data: (_) => Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(16),
-              // User override (2026-08-18): no glass ring, no background —
-              // the search is a bare borderless field (theme
-              // inputDecorationTheme).
-              child: TextField(
-                controller: _searchController,
-                decoration: InputDecoration(
-                  hintText: l10n.groupsSearchUsersHint,
-                  prefixIcon: const Icon(Icons.search),
-                  border: InputBorder.none,
-                  filled: false,
-                  floatingLabelBehavior: FloatingLabelBehavior.never,
-                ),
-              ),
-            ),
-            if (query.length < 2)
-              Expanded(
-                child: Center(
-                  child: Text(
-                    l10n.groupsMinCharsHint,
-                    style: Theme.of(context).textTheme.bodyMedium,
+        child: membersAsync.when(
+          loading: () => const VLoadingView(),
+          error: (e, _) => ErrorView(
+            message: e.toAppError().message,
+            onRetry: () => ref.invalidate(groupMembersProvider(widget.groupId)),
+          ),
+          data: (_) => Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(16),
+                // User override (2026-08-18): no glass ring, no background —
+                // the search is a bare borderless field (theme
+                // inputDecorationTheme).
+                child: TextField(
+                  controller: _searchController,
+                  decoration: InputDecoration(
+                    hintText: l10n.groupsSearchUsersHint,
+                    prefixIcon: const Icon(Icons.search),
+                    border: InputBorder.none,
+                    filled: false,
+                    floatingLabelBehavior: FloatingLabelBehavior.never,
                   ),
                 ),
-              )
-            else
+              ),
               Expanded(
                 child: ref
-                    .watch(searchResultsProvider(query))
+                    .watch(userSearchProvider(query))
                     .when(
                       loading: () => const VLoadingView(),
                       error: (e, _) => ErrorView(
                         message: e.toAppError().message,
                         onRetry: () =>
-                            ref.invalidate(searchResultsProvider(query)),
+                            ref.invalidate(userSearchProvider(query)),
                       ),
                       data: (users) {
                         final results = users
                             .where((u) => !memberIds.contains(u.id))
                             .toList();
-                        if (results.isEmpty) {
-                          return Center(
-                            child: Text(
-                              l10n.groupsNoResults,
-                              style: Theme.of(context).textTheme.bodyMedium,
-                            ),
-                          );
-                        }
-                        return ListView.separated(
-                          itemCount: results.length,
-                          separatorBuilder: (_, _) => const Divider(height: 1),
-                          itemBuilder: (_, i) {
-                            final u = results[i];
-                            final uid = u.id;
-                            final selected = _selectedIds.contains(uid);
-                            final username = u.username;
-                            // U-26 (U-24 F3): an empty (non-null) username
-                            // would RangeError on substring — '?' fallback.
-                            final initial = username.isEmpty
-                                ? '?'
-                                : username.substring(0, 1);
-                            return VCard(
-                              child: Material(
-                                type: MaterialType.transparency,
-                                child: ListTile(
-                                  leading: ProfileAvatar(
-                                    size: AppSpacing.avatar,
-                                    initials: initial,
-                                    imageUrl: u.avatarUrl,
-                                  ),
-                                  title: Text('@${u.username}'),
-                                  trailing: Checkbox(
-                                    value: selected,
-                                    onChanged: (_) => _toggle(uid),
-                                  ),
-                                  onTap: () => _toggle(uid),
-                                ),
-                              ),
-                            );
-                          },
-                        );
+                        return _resultsList(context, results, l10n, query);
                       },
                     ),
               ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -215,5 +166,56 @@ class _InviteScreenState extends ConsumerState<InviteScreen> {
         _selectedIds.add(uid);
       }
     });
+  }
+
+  /// Renders the merged user rows (cached friends below 5 chars, backend +
+  /// friends above) with the empty state when nothing matches.
+  Widget _resultsList(
+    BuildContext context,
+    List<UserSearchResult> results,
+    AppLocalizations l10n,
+    String query,
+  ) {
+    if (results.isEmpty) {
+      return Center(
+        child: Text(
+          query.length < InputSanitizer.searchQueryMinLength
+              ? l10n.friendsNoResults
+              : l10n.groupsNoResults,
+          style: Theme.of(context).textTheme.bodyMedium,
+        ),
+      );
+    }
+    return ListView.separated(
+      itemCount: results.length,
+      separatorBuilder: (_, _) => const Divider(height: 1),
+      itemBuilder: (_, i) {
+        final u = results[i];
+        final uid = u.id;
+        final selected = _selectedIds.contains(uid);
+        final username = u.username;
+        // U-26 (U-24 F3): an empty (non-null) username would RangeError on
+        // substring — '?' fallback.
+        final initial = username.isEmpty ? '?' : username.substring(0, 1);
+        return VCard(
+          child: Material(
+            type: MaterialType.transparency,
+            child: ListTile(
+              leading: ProfileAvatar(
+                size: AppSpacing.avatar,
+                initials: initial,
+                imageUrl: u.avatarUrl,
+              ),
+              title: Text('@${u.username}'),
+              trailing: Checkbox(
+                value: selected,
+                onChanged: (_) => _toggle(uid),
+              ),
+              onTap: () => _toggle(uid),
+            ),
+          ),
+        );
+      },
+    );
   }
 }

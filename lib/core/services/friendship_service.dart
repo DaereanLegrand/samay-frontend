@@ -243,6 +243,26 @@ class FriendshipService {
     return friends;
   }
 
+  /// Resolves the CALLER's accepted-friend profiles in ONE round trip via the
+  /// `get_friend_profiles` SECURITY DEFINER RPC (migration 040_friends/
+  /// 01_get_friend_profiles.sql). The RPC scopes to auth.uid() — it can only
+  /// ever return the caller's accepted friends, never arbitrary users — and
+  /// ships in the migration so it exists on every deployment (the previous
+  /// `user_search_view` client read was not queryable on some deployments,
+  /// surfacing as a client-side cast crash).
+  Future<List<Map<String, dynamic>>> getFriendProfiles(
+    List<String> userIds,
+  ) async {
+    if (userIds.isEmpty) return const [];
+    final res = await client.rpc('get_friend_profiles', params: {
+      'p_user_ids': userIds,
+    });
+    return (res as List)
+        .whereType<Map>()
+        .map((e) => Map<String, dynamic>.from(e))
+        .toList();
+  }
+
   Future<void> removeFriend(String friendshipId) async {
     await client.from('friendships').delete().eq('id', friendshipId);
   }

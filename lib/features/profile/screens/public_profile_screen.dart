@@ -16,6 +16,7 @@ import 'package:samay/shared/widgets/show_app_error.dart';
 import 'package:samay/shared/widgets/skeletons.dart';
 import 'package:samay/shared/widgets/v_button.dart';
 import 'package:samay/shared/widgets/v_display_text.dart';
+import 'package:samay/shared/widgets/v_header_bar.dart';
 
 class PublicProfileScreen extends ConsumerStatefulWidget {
   final String userId;
@@ -158,14 +159,7 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     if (_loading) {
-      return Scaffold(
-        // LUXE v2 (XL-08): no AppBar title — the hero owns the identity
-        // (directive #8: one hero per screen, nothing duplicated).
-        appBar: AppBar(),
-        // U-22 handoff (U-23): the public profile mirrors the own-profile
-        // hero — `VSkeletonProfile` (§5.8) during the first load.
-        body: const VSkeletonProfile(),
-      );
+      return const Scaffold(body: VHeaderBar(child: VSkeletonProfile()));
     }
 
     final p = _profile;
@@ -178,10 +172,7 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
         : username.substring(0, 1).toUpperCase();
 
     return Scaffold(
-      // LUXE v2 (XL-08): no AppBar title — the username hero below is the
-      // identity (directive #8: the '@dana' AppBar title duplicated the
-      // hero + handle; the overflow menu keeps its slot).
-      appBar: AppBar(
+      body: VHeaderBar(
         actions: [
           // U-26 (4.1.2): the overflow menu is icon-only — the tooltip is
           // its accessibility name for screen readers.
@@ -200,9 +191,7 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
             ],
           ),
         ],
-      ),
-      // The public profile is informational — the hero carries the identity.
-      body: ListView(
+        child: ListView(
           padding: const EdgeInsets.all(24),
           children: [
             Center(
@@ -213,10 +202,7 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
             ),
             const SizedBox(height: 16),
             Center(
-              child: VDisplayText(
-                text: username ?? l10n.commonUser,
-                size: 28,
-              ),
+              child: VDisplayText(text: username ?? l10n.commonUser, size: 28),
             ),
             if (username != null) ...[
               const SizedBox(height: 4),
@@ -290,6 +276,7 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
             ),
           ],
         ),
+      ),
     );
   }
 

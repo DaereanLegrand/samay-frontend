@@ -11,6 +11,7 @@ import 'package:samay/shared/widgets/profile_avatar.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/state_views.dart';
 import 'package:samay/shared/widgets/v_badge.dart';
+import 'package:samay/shared/widgets/v_header_bar.dart';
 
 class GroupMembersScreen extends ConsumerStatefulWidget {
   final String groupId;
@@ -75,66 +76,71 @@ class _GroupMembersScreenState extends ConsumerState<GroupMembersScreen> {
         : _members.where((m) => m['user_id'] == myId).firstOrNull;
     final myRole = myRow?['role'] as String? ?? 'member';
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.groupsMembersTitle)),
-      body: _loading
-          ? const VLoadingView()
-          : _members.isEmpty
-          ? VEmptyView(icon: Icons.people_outline, title: l10n.groupsNoMembers)
-          : ListView.separated(
-              padding: const EdgeInsets.all(16),
-              itemCount: _members.length,
-              separatorBuilder: (_, _) => const Divider(height: 1),
-              itemBuilder: (context, index) {
-                final m = _members[index];
-                final user = m['users'] as Map<String, dynamic>?;
-                final rawUsername = user?['username'] as String?;
-                final userId = m['user_id']?.toString() ?? '';
-                final username = (rawUsername == null || rawUsername.isEmpty)
-                    ? (userId.isEmpty
-                          ? l10n.commonUser
-                          : userId.substring(
-                              0,
-                              userId.length < 8 ? userId.length : 8,
-                            ))
-                    : rawUsername;
-                final initials = username.substring(0, 1).toUpperCase();
-                final role = m['role'] as String? ?? 'member';
-                final tappable = _canAct(myRole, userId, role);
-                // 2026-08-17: the row itself is the navigation affordance —
-                // every member tile opens the member's public profile. The
-                // trailing ellipsis (admin rows only) opens the manage sheet
-                // (R17).
-                return ListTile(
-                  dense: true,
-                  leading: ProfileAvatar(
-                    size: AppSpacing.avatar,
-                    initials: initials,
-                    imageUrl: user?['avatar_url'] as String?,
-                  ),
-                  title: Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          username,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
+      body: VHeaderBar(
+        title: l10n.groupsMembersTitle,
+        child: _loading
+            ? const VLoadingView()
+            : _members.isEmpty
+            ? VEmptyView(
+                icon: Icons.people_outline,
+                title: l10n.groupsNoMembers,
+              )
+            : ListView.separated(
+                padding: const EdgeInsets.all(16),
+                itemCount: _members.length,
+                separatorBuilder: (_, _) => const Divider(height: 1),
+                itemBuilder: (context, index) {
+                  final m = _members[index];
+                  final user = m['users'] as Map<String, dynamic>?;
+                  final rawUsername = user?['username'] as String?;
+                  final userId = m['user_id']?.toString() ?? '';
+                  final username = (rawUsername == null || rawUsername.isEmpty)
+                      ? (userId.isEmpty
+                            ? l10n.commonUser
+                            : userId.substring(
+                                0,
+                                userId.length < 8 ? userId.length : 8,
+                              ))
+                      : rawUsername;
+                  final initials = username.substring(0, 1).toUpperCase();
+                  final role = m['role'] as String? ?? 'member';
+                  final tappable = _canAct(myRole, userId, role);
+                  // 2026-08-17: the row itself is the navigation affordance —
+                  // every member tile opens the member's public profile. The
+                  // trailing ellipsis (admin rows only) opens the manage sheet
+                  // (R17).
+                  return ListTile(
+                    dense: true,
+                    leading: ProfileAvatar(
+                      size: AppSpacing.avatar,
+                      initials: initials,
+                      imageUrl: user?['avatar_url'] as String?,
+                    ),
+                    title: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            username,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         ),
-                      ),
-                      VBadge(label: role),
-                    ],
-                  ),
-                  trailing: tappable
-                      ? IconButton(
-                          visualDensity: VisualDensity.compact,
-                          icon: const Icon(Icons.more_horiz, size: 20),
-                          tooltip: l10n.commonMoreOptions,
-                          onPressed: () => _openActions(m),
-                        )
-                      : null,
-                  onTap: () => context.push(RoutePaths.userProfile(userId)),
-                );
-              },
-            ),
+                        VBadge(label: role),
+                      ],
+                    ),
+                    trailing: tappable
+                        ? IconButton(
+                            visualDensity: VisualDensity.compact,
+                            icon: const Icon(Icons.more_horiz, size: 20),
+                            tooltip: l10n.commonMoreOptions,
+                            onPressed: () => _openActions(m),
+                          )
+                        : null,
+                    onTap: () => context.push(RoutePaths.userProfile(userId)),
+                  );
+                },
+              ),
+      ),
     );
   }
 }

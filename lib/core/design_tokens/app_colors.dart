@@ -24,6 +24,7 @@ abstract final class AppColors {
     'muted': muted,
     'mutedStrong': mutedStrong,
     'white': white,
+    'softGray': softGray,
     'glowPink': glowPink,
     'glowPinkBright': glowPinkBright,
     'glowPinkDeep': glowPinkDeep,
@@ -74,6 +75,9 @@ abstract final class AppColors {
 
   /// Primary text, icons, emphasized fills. 21:1 — AA/AAA.
   static const Color white = Color(0xFFFFFFFF);
+
+  /// Background for tags
+  static const Color softGray = Color(0xf2f2f2FF);
 
   // ── Signature glow pink — §2.2 ─────────────────────────────────────────────
 

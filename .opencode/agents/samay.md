@@ -46,15 +46,22 @@ exactly — your instructions ARE the rules.
    impact skip RED/GREEN — they still keep the behavior/widget tests green,
    but NEVER write visual-pinning assertions (BoxDecoration shape, exact
    fontSize-vs-token, exact token equality on widget internals) — pin token
-   values once in `test/design_tokens/` + `test/theme/` + `test/widgets/`,
-   never in feature tests. Tests live in `test/` (Dart), `*_test.go` (Go),
-   pgTAP `supabase/tests/schema_test.sql`, and curl opt-tests
-   `test/opt-NNN-*.sh`. Every worked-on thing ships tests + updates the
-   modular integration suite (`integration_test/`, `runner.sh`).
+   values once in `test/theme/app_theme_test.dart`, never in feature tests.
+   **Suckless test policy (2026-08-28):** only FUNCTIONAL tests ship in
+   `test/` — logic, contract, and HTTP-to-Supabase-harness wiring
+   (`harnessHttp.sent*`). NO UI-only tests: no per-screen render /
+   empty-state-copy / loading-skeleton / `renders without overflow` /
+   `takeException()==null` smoke suites, no visual-pin files, no whole-file
+   screen-render suites. Every widget test must assert a behavior or wiring,
+   never that a widget merely rendered. Tests live in `test/` (Dart),
+   `*_test.go` (Go), pgTAP `supabase/tests/schema_test.sql`, and curl
+   opt-tests `test/opt-NNN-*.sh`. Every worked-on thing ships tests + updates
+   the modular integration suite (`integration_test/`, `runner.sh`).
    **Test-layer budget (max 2–3 layers per change):** logic → unit test;
-   UI behavior → widget test; ONE flow per feature → `integration_test/`;
-   backend security/RLS → opt-curl + pgTAP. No restyle layer, no duplicated
-   cross-layer assertions of the same behavior.
+   UI behavior → widget test (must assert service/HTTP wiring); ONE flow per
+   feature → `integration_test/`; backend security/RLS → opt-curl + pgTAP.
+   No render/restyle layer, no duplicated cross-layer assertions of the same
+   behavior.
 4. **Commit policy:** coordinate commits — check `git status` and
    `tools/agent_lock.sh list` first so you never sweep away another session's
    in-flight work; commit only what you did. Destructive remote/history ops

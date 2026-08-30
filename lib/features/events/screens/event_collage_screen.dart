@@ -9,6 +9,7 @@ import 'package:samay/features/events/providers/events_providers.dart';
 import 'package:samay/features/photos/providers/photos_providers.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/error_view.dart';
+import 'package:samay/shared/widgets/v_header_bar.dart';
 import 'package:samay/shared/widgets/state_views.dart';
 import 'package:samay/shared/widgets/v_display_text.dart';
 import 'package:samay/shared/widgets/v_network_image.dart';
@@ -31,20 +32,22 @@ class EventCollageScreen extends ConsumerWidget {
     final title = ref.watch(eventDetailProvider(eventId)).valueOrNull?.name;
 
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.collageTitle)),
-      body: photosAsync.when(
-        loading: () => const VLoadingView(),
-        error: (e, _) => ErrorView(
-          message: e.toAppError().message,
-          onRetry: () => ref.invalidate(eventPhotosProvider(eventId)),
+      body: VHeaderBar(
+        title: l10n.collageTitle,
+        child: photosAsync.when(
+          loading: () => const VLoadingView(),
+          error: (e, _) => ErrorView(
+            message: e.toAppError().message,
+            onRetry: () => ref.invalidate(eventPhotosProvider(eventId)),
+          ),
+          data: (photos) => photos.isEmpty
+              ? VEmptyView(
+                  icon: Icons.photo_library_outlined,
+                  title: l10n.collageEmpty,
+                  description: l10n.collageEmptyBody,
+                )
+              : _CollageWall(photos: photos, title: title ?? l10n.collageTitle),
         ),
-        data: (photos) => photos.isEmpty
-            ? VEmptyView(
-                icon: Icons.photo_library_outlined,
-                title: l10n.collageEmpty,
-                description: l10n.collageEmptyBody,
-              )
-            : _CollageWall(photos: photos, title: title ?? l10n.collageTitle),
       ),
     );
   }

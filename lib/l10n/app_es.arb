@@ -377,11 +377,11 @@
   "@shellProfile": {
     "description": "Bottom navigation tab label"
   },
-  "friendsTitle": "Amigos",
+  "friendsTitle": "amigos",
   "@friendsTitle": {
     "description": "Friends list screen app bar title"
   },
-  "friendsBlockedTitle": "Usuarios bloqueados",
+  "friendsBlockedTitle": "bloqueados",
   "@friendsBlockedTitle": {
     "description": "Blocked users screen app bar title"
   },
@@ -409,7 +409,7 @@
   "@friendsNoResults": {
     "description": "Empty state when the friends filter matches nothing"
   },
-  "friendsRequestsTitle": "Solicitudes",
+  "friendsRequestsTitle": "solicitudes",
   "@friendsRequestsTitle": {
     "description": "Requests screen app bar title"
   },
@@ -445,7 +445,7 @@
   "@friendsNoInvites": {
     "description": "Empty state for the group-invites tab"
   },
-  "friendsSearchUsers": "Buscar usuarios",
+  "friendsSearchUsers": "buscar",
   "@friendsSearchUsers": {
     "description": "User search screen app bar title"
   },
@@ -497,7 +497,7 @@
   "@groupsTooltipFindFriends": {
     "description": "Tooltip for the find-friends icon button"
   },
-  "groupsCreateGroup": "Crear grupo",
+  "groupsCreateGroup": "crear",
   "@groupsCreateGroup": {
     "description": "Create-group button label"
   },
@@ -509,7 +509,7 @@
   "@groupsRequests": {
     "description": "Friend-requests shortcut button label"
   },
-  "socialTitle": "Social",
+  "socialTitle": "social",
   "@socialTitle": {
     "description": "Social tab screen app bar title"
   },
@@ -529,7 +529,7 @@
   "@socialRankingEntry": {
     "description": "Amigos sub-tab entry that opens the global user ranking"
   },
-  "socialRankingTitle": "Ranking de usuarios",
+  "socialRankingTitle": "ranking",
   "@socialRankingTitle": {
     "description": "Global user ranking screen app bar title"
   },
@@ -589,7 +589,7 @@
   "@groupsDonationSuccess": {
     "description": "Snackbar after a successful donation"
   },
-  "groupsDonateTitle": "Donar shards",
+  "groupsDonateTitle": "donar",
   "@groupsDonateTitle": {
     "description": "Donate-shards screen app bar title and button label"
   },
@@ -771,11 +771,11 @@
   "@groupsNotFound": {
     "description": "Error view message when the group detail fails to load"
   },
-  "groupsMembersTitle": "Miembros",
+  "groupsMembersTitle": "miembros",
   "@groupsMembersTitle": {
     "description": "Group members screen app bar title"
   },
-  "groupsInviteTitle": "Invitar",
+  "groupsInviteTitle": "invitar",
   "@groupsInviteTitle": {
     "description": "Invite screen app bar title"
   },
@@ -809,7 +809,7 @@
   "@groupsNoResults": {
     "description": "Empty state when the invite search matches nothing"
   },
-  "groupsLeaderboardTitle": "Ranking de grupos",
+  "groupsLeaderboardTitle": "ranking",
   "@groupsLeaderboardTitle": {
     "description": "Leaderboard screen app bar title"
   },
@@ -829,15 +829,15 @@
       }
     }
   },
-  "profileTitle": "Perfil",
+  "profileTitle": "perfil",
   "@profileTitle": {
     "description": "Profile screen app bar title"
   },
-  "profileEditTitle": "Editar perfil",
+  "profileEditTitle": "editar",
   "@profileEditTitle": {
     "description": "Edit-profile screen app bar title"
   },
-  "profileSettingsTitle": "Configuración",
+  "profileSettingsTitle": "ajustes",
   "@profileSettingsTitle": {
     "description": "Settings screen app bar title"
   },
@@ -849,7 +849,7 @@
   "@profileNotifications": {
     "description": "Settings list item"
   },
-  "profilePrivacy": "Privacidad",
+  "profilePrivacy": "privacidad",
   "@profilePrivacy": {
     "description": "Settings list item"
   },
@@ -913,7 +913,7 @@
   "@settingsServiceTermsBody": {
     "description": "Static service-terms body on the privacy info screen"
   },
-  "notificationSettingsTitle": "Preferencias de notificaciones",
+  "notificationSettingsTitle": "preferencias de notis",
   "@notificationSettingsTitle": {
     "description": "Notification-settings screen app bar title"
   },
@@ -1059,7 +1059,7 @@
   "@profileUnblockError": {
     "description": "Snackbar when unblocking a user fails"
   },
-  "profileDeleteTitle": "Eliminar cuenta",
+  "profileDeleteTitle": "eliminar",
   "@profileDeleteTitle": {
     "description": "Delete-account screen app bar title"
   },
@@ -1288,7 +1288,7 @@
   "@routerInvalidInvite": {
     "description": "Router error when the requested invitation is invalid"
   },
-  "routerErrorTitle": "Algo salió mal",
+  "routerErrorTitle": "ups",
   "@routerErrorTitle": {
     "description": "Generic route error screen title"
   },
@@ -1397,7 +1397,7 @@
   "@rankInSearch": {
     "description": "Rank bracket label (0-20)"
   },
-  "photosTitle": "Fotos",
+  "photosTitle": "fotos",
   "@photosTitle": {
     "description": "Event photo gallery app bar title"
   },
@@ -1478,7 +1478,7 @@
   "@permissionsOpenSettings": {
     "description": "Dialog action that opens the system app settings"
   },
-  "notificationsTitle": "Notificaciones",
+  "notificationsTitle": "notis",
   "@notificationsTitle": {
     "description": "Notification center app bar title"
   },
@@ -1545,7 +1545,7 @@
       }
     }
   },
-  "chatTitle": "Chat",
+  "chatTitle": "chat",
   "@chatTitle": {
     "description": "Chat screen app bar title"
   },
@@ -1597,7 +1597,7 @@
   "@chatLoadOlder": {
     "description": "Button that loads the previous page of older messages"
   },
-  "chatInboxTitle": "Chats",
+  "chatInboxTitle": "chats",
   "@chatInboxTitle": {
     "description": "Inbox / chat list screen title (also the feed button tooltip)"
   },
@@ -1809,7 +1809,7 @@
   "@eventsErrorJoinMode": {
     "description": "Validation error: a join mode is required for public events"
   },
-  "eventDetailTitle": "Evento",
+  "eventDetailTitle": "evento",
   "@eventDetailTitle": {
     "description": "Event detail screen app bar title"
   },
@@ -1933,7 +1933,7 @@
   "@eventCancelledSnack": {
     "description": "Snackbar after cancelling an event"
   },
-  "eventEditTitle": "Editar evento",
+  "eventEditTitle": "editar",
   "@eventEditTitle": {
     "description": "Event editor app bar title"
   },
@@ -1969,7 +1969,7 @@
   "@eventStatusCancelled": {
     "description": "Cancelled status badge"
   },
-  "qrAttendanceTitle": "Código de asistencia",
+  "qrAttendanceTitle": "código",
   "@qrAttendanceTitle": {
     "description": "Attendance QR screen title"
   },
@@ -2032,7 +2032,7 @@
   "@qrAttendeeExpiredBody": {
     "description": "Attendance QR: expired retry hint"
   },
-  "qrScannerTitle": "Escáner de asistencia",
+  "qrScannerTitle": "escáner",
   "@qrScannerTitle": {
     "description": "QR scanner screen title"
   },
@@ -2134,7 +2134,7 @@
   "@qrCameraSettingsAction": {
     "description": "QR scanner: settings dialog action"
   },
-  "partyFinderTitle": "Party Finder",
+  "partyFinderTitle": "Party finder",
   "@partyFinderTitle": {
     "description": "Party Finder screen app bar title (PFND — I-60)"
   },
@@ -2171,7 +2171,7 @@
       }
     }
   },
-  "cosmeticsShopTitle": "Tienda de cosméticos",
+  "cosmeticsShopTitle": "cosméticos",
   "@cosmeticsShopTitle": {
     "description": "Cosmetics shop screen app-bar title"
   },
@@ -2261,7 +2261,7 @@
   "@cosmeticsEmptyCatalog": {
     "description": "Empty state on the cosmetics shop"
   },
-  "minigamesTitle": "Juegos",
+  "minigamesTitle": "juegos",
   "homeGamesTitle": "Juegos",
   "@homeGamesTitle": {
     "description": "Sección de acceso rápido a los juegos al tope del feed principal"
@@ -2297,6 +2297,10 @@
   "@minigamesGamePokeChainTagline": {
     "description": "Game #1 one-line tagline"
   },
+  "minigamesGamePokeChainExplanation": "Pásale el poke a un amigo antes de que se acabe el tiempo. Si se te acaba, pagas la apuesta.",
+  "@minigamesGamePokeChainExplanation": {
+    "description": "Game #1 explanation on the dedicated game page"
+  },
   "minigamesGameQuestions": "Preguntas",
   "@minigamesGameQuestions": {
     "description": "Game #2 name (Questions)"
@@ -2304,6 +2308,10 @@
   "minigamesGameQuestionsTagline": "Responde desde el asiento caliente",
   "@minigamesGameQuestionsTagline": {
     "description": "Game #2 one-line tagline"
+  },
+  "minigamesGameQuestionsExplanation": "Todos los jugadores te hacen preguntas y tú respondes desde el asiento caliente. Por turnos, sin filtros.",
+  "@minigamesGameQuestionsExplanation": {
+    "description": "Game #2 explanation on the dedicated game page"
   },
   "minigamesGameTruthDare": "Verdad o Reto",
   "@minigamesGameTruthDare": {
@@ -2313,6 +2321,10 @@
   "@minigamesGameTruthDareTagline": {
     "description": "Game #3 one-line tagline"
   },
+  "minigamesGameTruthDareExplanation": "Por turnos: cada jugador elige Verdad o Reto y el grupo decide si cumpliste. Sin escapatoria.",
+  "@minigamesGameTruthDareExplanation": {
+    "description": "Game #3 explanation on the dedicated game page"
+  },
   "minigamesGameDrunkBottle": "Botella",
   "@minigamesGameDrunkBottle": {
     "description": "Game #4 name (Drunk Bottle)"
@@ -2320,6 +2332,10 @@
   "minigamesGameDrunkBottleTagline": "Gira la botella y veamos a quién apunta",
   "@minigamesGameDrunkBottleTagline": {
     "description": "Game #4 one-line tagline"
+  },
+  "minigamesGameDrunkBottleExplanation": "Gira la botella: a quien apunte le toca cumplir. Ideal para reuniones con amigos.",
+  "@minigamesGameDrunkBottleExplanation": {
+    "description": "Game #4 explanation on the dedicated game page"
   },
   "minigamesGameChallenge": "Retos",
   "@minigamesGameChallenge": {
@@ -2329,13 +2345,80 @@
   "@minigamesGameChallengeTagline": {
     "description": "Game #5 one-line tagline"
   },
-  "minigamesWagerLabel": "Apuesta (shards)",
+  "minigamesGameChallengeExplanation": "Completa el reto antes de que se acabe el tiempo. Puedes jugarlo solo o competir con amigos.",
+  "@minigamesGameChallengeExplanation": {
+    "description": "Game #5 explanation on the dedicated game page"
+  },
+  "minigamesAudienceFriends": "Para jugar con amigos",
+  "@minigamesAudienceFriends": {
+    "description": "Per-game page: the game is meant to be played with friends"
+  },
+  "minigamesAudienceSolo": "Para jugar solo",
+  "@minigamesAudienceSolo": {
+    "description": "Per-game page: the game is meant to be played alone"
+  },
+  "minigamesAudienceBoth": "Con amigos o solo",
+  "@minigamesAudienceBoth": {
+    "description": "Per-game page: the game works both solo and with friends"
+  },
+  "minigamesNewPartida": "Nueva partida",
+  "@minigamesNewPartida": {
+    "description": "Per-game page: primary button that starts the create-partida flow"
+  },
+  "minigamesPartidaNameLabel": "Nombre (opcional)",
+  "@minigamesPartidaNameLabel": {
+    "description": "Create-partida wizard: name input label (blank = auto partida-XX)"
+  },
+  "minigamesPartidaNameHint": "{autoName}",
+  "@minigamesPartidaNameHint": {
+    "description": "Create-partida wizard: name input hint showing the next auto name (partida-1, partida-2, ...)",
+    "placeholders": {
+      "autoName": {
+        "type": "String"
+      }
+    }
+  },
+  "minigamesAutoName": "partida-{index}",
+  "@minigamesAutoName": {
+    "description": "Auto partida name when the player leaves the name blank (partida-1, partida-2, ...)",
+    "placeholders": {
+      "index": {
+        "type": "int"
+      }
+    }
+  },
+  "minigamesOngoingTitle": "Partidas en curso",
+  "@minigamesOngoingTitle": {
+    "description": "Per-game page: section heading above the ongoing partidas list"
+  },
+  "minigamesDetailEmpty": "Aún no hay partidas de {game}",
+  "@minigamesDetailEmpty": {
+    "description": "Per-game page: empty state title when there are no ongoing partidas of this game",
+    "placeholders": {
+      "game": {
+        "type": "String"
+      }
+    }
+  },
+  "minigamesDetailEmptyBody": "Toca «Nueva partida» para crear la primera.",
+  "@minigamesDetailEmptyBody": {
+    "description": "Per-game page: empty state body prompting the user to start the first partida"
+  },
+  "minigamesWagerDefaultHint": "Por defecto: 10",
+  "@minigamesWagerDefaultHint": {
+    "description": "Create-partida wizard: wager input hint (default 10 shards)"
+  },
+  "minigamesWagerLabel": "Usando:",
   "@minigamesWagerLabel": {
-    "description": "Wager input label (in shards)"
+    "description": "Create-partida wizard: wager input label above the amount (Usando: = how many shards are being used)"
   },
   "minigamesWagerHint": "0 = sin apuesta",
   "@minigamesWagerHint": {
     "description": "Wager input hint: 0 means no wager"
+  },
+  "minigamesWagerBalanceCaption": "Disponibles",
+  "@minigamesWagerBalanceCaption": {
+    "description": "Create-partida wizard: small caption above the player's shard balance, right of the amount input"
   },
   "minigamesCreate": "Crear partida",
   "@minigamesCreate": {
@@ -2415,7 +2498,86 @@
   "@minigamesDetailComingSoon": {
     "description": "Placeholder snackbar when tapping a session (per-game UIs are future work)"
   },
-  "shardsLedgerTitle": "Historial de shards",
+  "minigamesPlayTitle": "Verdad o Reto",
+  "@minigamesPlayTitle": {
+    "description": "Play screen app bar title for the Verdad o Reto game"
+  },
+  "minigamesChoosePromptGeneric": "¡Es tu turno! Elige Verdad o Reto",
+  "@minigamesChoosePromptGeneric": {
+    "description": "Header asking the judge to pick a prompt kind when no subject name is resolved"
+  },
+  "minigamesChoosePromptFor": "Le toca a {name}: elige Verdad o Reto",
+  "@minigamesChoosePromptFor": {
+    "description": "Header asking the judge to pick a prompt kind for the named subject",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "minigamesTruth": "Verdad",
+  "@minigamesTruth": {
+    "description": "Button label for the truth (verdad) prompt kind"
+  },
+  "minigamesDare": "Reto",
+  "@minigamesDare": {
+    "description": "Button label for the dare (reto) prompt kind"
+  },
+  "minigamesPromptHeader": "¡Toca {name}!",
+  "@minigamesPromptHeader": {
+    "description": "Header revealing who must answer the prompt",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "minigamesPromptGeneric": "¡Toca jugar!",
+  "@minigamesPromptGeneric": {
+    "description": "Prompt header when the subject name is not resolved"
+  },
+  "minigamesPromptDone": "Hecho",
+  "@minigamesPromptDone": {
+    "description": "Button the subject taps once the truth is answered / dare is done — closes the round and moves on"
+  },
+  "minigamesPromptSkip": "Saltar",
+  "@minigamesPromptSkip": {
+    "description": "Button the subject taps to skip the prompt — the round closes and the turn advances"
+  },
+  "minigamesTurnGeneric": "Le toca a un jugador",
+  "@minigamesTurnGeneric": {
+    "description": "Turn label when the subject name is not resolved"
+  },
+  "minigamesTurnFor": "Le toca a {name}",
+  "@minigamesTurnFor": {
+    "description": "Turn label naming the current subject",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "minigamesComplete": "Terminar juego",
+  "@minigamesComplete": {
+    "description": "Button to end the party game (draw settlement)"
+  },
+  "minigamesCompleteConfirm": "¿Terminar el juego? Las apuestas se devuelven.",
+  "@minigamesCompleteConfirm": {
+    "description": "Confirmation dialog body when ending the party game"
+  },
+  "minigamesCompleteConfirmTitle": "Terminar juego",
+  "@minigamesCompleteConfirmTitle": {
+    "description": "Confirmation dialog title when ending the party game"
+  },
+  "minigamesFinished": "¡Juego terminado!",
+  "@minigamesFinished": {
+    "description": "Finished state header on the play screen"
+  },
+  "minigamesErrorLoadGame": "No se pudo cargar el juego",
+  "@minigamesErrorLoadGame": {
+    "description": "Error state on the play screen when the game state fails to load"
+  },
+  "shardsLedgerTitle": "shards",
   "@shardsLedgerTitle": {
     "description": "Shard & preshard ledger screen app bar title"
   },
@@ -2528,7 +2690,7 @@
   "@preshardsReasonAdminGrant": {
     "description": "Preshard ledger reason: preshards granted by the Samay team"
   },
-  "eventsTabTitle": "Mis eventos",
+  "eventsTabTitle": "eventos",
   "@eventsTabTitle": {
     "description": "Events tab hero heading (R1 events sweep)"
   },
@@ -2556,7 +2718,7 @@
   "@featureUnavailableBody": {
     "description": "Neutral flag-gate fallback body"
   },
-  "collageTitle": "Collage",
+  "collageTitle": "collage",
   "@collageTitle": {
     "description": "Event collage screen app bar title"
   },
@@ -2613,20 +2775,20 @@
   "@chatMessageInfoNotRead": {
     "description": "Message-info sheet (1:1): the peer has not read the message yet"
   },
-  "minigamesInviteTitle": "Invitar a jugar",
+  "minigamesInviteTitle": "invitar",
   "@minigamesInviteTitle": {
     "description": "App bar title of the minigame player picker"
   },
   "minigamesInviteCount": "Invitar ({count})",
   "@minigamesInviteCount": {
-    "description": "App bar confirm action on the minigame player picker",
+    "description": "App bar confirm action for the minigame player picker",
     "placeholders": {
       "count": {
         "type": "int"
       }
     }
   },
-  "minigamesDetailTitle": "Partida",
+  "minigamesDetailTitle": "partida",
   "@minigamesDetailTitle": {
     "description": "App bar title of the minigame session detail"
   },

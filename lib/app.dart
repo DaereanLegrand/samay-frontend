@@ -5,6 +5,7 @@ import 'package:samay/core/providers/theme_provider.dart';
 import 'package:samay/core/theme/app_theme.dart';
 import 'package:samay/core/router/app_router.dart';
 import 'package:samay/features/auth/providers/auth_scope_reset.dart';
+import 'package:samay/features/friends/providers/friends_cache_provider.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/connectivity_banner.dart';
 import 'package:samay/shared/widgets/crash_recovery_banner.dart';
@@ -61,6 +62,11 @@ class SamayApp extends ConsumerWidget {
               // user-scoped provider is invalidated (no stale data survives
               // an account switch in the same session).
               const AuthScopeReset(),
+              // FRIENDS CACHE (2026-08-29): fetches the friend list in the
+              // background on auth and persists it to the device DB so the
+              // invite/buscar pickers render friends for empty + <5-char
+              // queries with zero network I/O.
+              const FriendsCacheWarmer(),
               // I-67: the connectivity banner overlays the top of the screen.
               const Positioned(
                 top: 0,

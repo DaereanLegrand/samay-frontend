@@ -11,12 +11,13 @@ import 'package:samay/core/router/route_paths.dart';
 import 'package:samay/core/utils/debouncer.dart';
 import 'package:samay/core/utils/input_sanitizer.dart';
 import 'package:samay/features/friends/providers/friends_providers.dart';
-import 'package:samay/shared/constants/auth_constants.dart';
+import 'package:samay/features/friends/providers/user_search_provider.dart';
 import 'package:samay/shared/widgets/profile_avatar.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/error_view.dart';
 import 'package:samay/shared/widgets/show_app_error.dart';
 import 'package:samay/shared/widgets/v_card.dart';
+import 'package:samay/shared/widgets/v_header_bar.dart';
 import 'package:samay/shared/widgets/state_views.dart';
 import 'package:samay/shared/widgets/v_badge.dart';
 import 'package:samay/shared/widgets/v_button.dart';
@@ -129,89 +130,80 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     final query = _query;
     final l10n = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.friendsSearchUsers)),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: TextField(
-              controller: _controller,
-              // R14 (F6): Juega autofocuses the search field — the keyboard
-              // is up the moment the screen opens.
-              autofocus: true,
-              decoration: InputDecoration(
-                hintText: l10n.friendsSearchPlaceholder,
-                prefixIcon: const Icon(Icons.search),
-              ),
-              onChanged: _onChanged,
-            ),
-          ),
-          if (query.length < usernameMinLength)
-            // R14 (F6): mirror the invite screen's min-chars hint — a
-            // sub-2-char query has no results to show, so the field says
-            // why instead of rendering an empty surface.
-            Expanded(
-              child: Center(
-                child: Text(
-                  l10n.friendsMinCharsHint,
-                  style: Theme.of(context).textTheme.bodyMedium,
+      body: VHeaderBar(
+        title: l10n.friendsSearchUsers,
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: TextField(
+                controller: _controller,
+                // R14 (F6): Juega autofocuses the search field — the keyboard
+                // is up the moment the screen opens.
+                autofocus: true,
+                decoration: InputDecoration(
+                  hintText: l10n.friendsSearchPlaceholder,
+                  prefixIcon: const Icon(Icons.search),
                 ),
+                onChanged: _onChanged,
               ),
-            )
-          else
+            ),
             Expanded(
               child: ref
-                  .watch(searchResultsProvider(query))
+                  .watch(userSearchProvider(query))
                   .when(
                     loading: () => const VLoadingView(),
                     error: (e, _) => ErrorView(
                       message: e.toAppError().message,
-                      onRetry: () =>
-                          ref.invalidate(searchResultsProvider(query)),
+                      onRetry: () => ref.invalidate(userSearchProvider(query)),
                     ),
-                    data: (results) {
-                      if (results.isEmpty) {
-                        return VEmptyView(
-                          icon: Icons.person_search,
-                          title: l10n.friendsNoUsersFound,
-                        );
-                      }
-                      return ListView.separated(
-                        padding: const EdgeInsets.fromLTRB(
-                          AppSpacing.lg,
-                          0,
-                          AppSpacing.lg,
-                          AppSpacing.lg,
-                        ),
-                        itemCount: results.length,
-                        separatorBuilder: (_, _) =>
-                            const SizedBox(height: AppSpacing.sm),
-                        itemBuilder: (_, i) {
-                          final u = results[i];
-                          return VCard(
-                            child: Material(
-                              type: MaterialType.transparency,
-                              child: ListTile(
-                                leading: ProfileAvatar(
-                                  size: AppSpacing.avatar,
-                                  initials: _initials(u),
-                                  imageUrl: u.avatarUrl,
-                                ),
-                                title: Text('@${u.username}'),
-                                onTap: () => context.push(
-                                  RoutePaths.userProfile(u.id),
-                                ),
-                                trailing: _buildButton(u),
-                              ),
-                            ),
-                          );
-                        },
-                      );
-                    },
+                    data: (results) => _buildResults(results),
                   ),
             ),
-        ],
+          ],
+        ),
       ),
+    );
+  }
+
+  /// Renders the merged results (cached friends below 5 chars, backend +
+  /// friends above) as search rows with the friends-first ordering already
+  /// applied by [userSearchProvider].
+  Widget _buildResults(List<UserSearchResult> results) {
+    final l10n = AppLocalizations.of(context);
+    if (results.isEmpty) {
+      return VEmptyView(
+        icon: Icons.person_search,
+        title: l10n.friendsNoUsersFound,
+      );
+    }
+    return ListView.separated(
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.lg,
+        0,
+        AppSpacing.lg,
+        AppSpacing.lg,
+      ),
+      itemCount: results.length,
+      separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.sm),
+      itemBuilder: (_, i) {
+        final u = results[i];
+        return VCard(
+          child: Material(
+            type: MaterialType.transparency,
+            child: ListTile(
+              leading: ProfileAvatar(
+                size: AppSpacing.avatar,
+                initials: _initials(u),
+                imageUrl: u.avatarUrl,
+              ),
+              title: Text('@${u.username}'),
+              onTap: () => context.push(RoutePaths.userProfile(u.id)),
+              trailing: _buildButton(u),
+            ),
+          ),
+        );
+      },
     );
   }
 

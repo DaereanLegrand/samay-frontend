@@ -44,8 +44,18 @@ abstract final class RoutePaths {
       '/group/$groupId/create-event';
   static String inviteToGroup(String groupId) => '/group/$groupId/invite';
   static String minigames(String groupId) => '/minigames/$groupId';
+  /// The dedicated per-game landing page (2026-08-28) — a fixed `/game`
+  /// segment + the `game_type` wire value (e.g.
+  /// `/minigames/game/truth_dare`) so it can never shadow the `:groupId`
+  /// hub or the `/play` routes.
+  static String minigame(String gameType) => '/minigames/game/$gameType';
   static String minigameSession(String sessionId) =>
       '/minigames/session/$sessionId';
+  /// The Verdad o Reto play screen for a session (150_minigame_play) —
+  /// a fixed `/play/truth-dare` segment so the :sessionId hub is never
+  /// shadowed.
+  static String truthDare(String sessionId) =>
+      '/minigames/play/truth-dare/$sessionId';
   /// Direct (group-less) minigames hub — registered BEFORE the :groupId hub
   /// so the static path can never be shadowed (direct-minigames 2026-08-27).
   static const minigamesDirect = '/minigames';

@@ -16,6 +16,7 @@ import 'package:samay/shared/widgets/skeletons.dart';
 import 'package:samay/shared/widgets/v_card.dart';
 import 'package:samay/shared/widgets/state_views.dart';
 import 'package:samay/shared/widgets/v_chip.dart';
+import 'package:samay/shared/widgets/v_header_bar.dart';
 import 'package:samay/shared/widgets/v_network_image.dart';
 
 /// Party Finder (PFND spec — I-60): opt-in discovery by interest tags.
@@ -66,32 +67,32 @@ class PartyFinderScreen extends ConsumerWidget {
     final optIn = ref.watch(discoveryOptInProvider);
 
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.partyFinderTitle)),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(
-              AppSpacing.lg,
-              AppSpacing.sm,
-              AppSpacing.lg,
-              AppSpacing.sm,
-            ),
-            child: VCard(
-              child: Material(
-                type: MaterialType.transparency,
-                child: SwitchListTile(
-                  title: Text(l10n.partyFinderOptInLabel),
-                  value: optIn.valueOrNull ?? false,
-                  onChanged: (value) => _setOptIn(ref, value),
+      body: VHeaderBar(
+        title: l10n.partyFinderTitle,
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.lg,
+                AppSpacing.sm,
+                AppSpacing.lg,
+                AppSpacing.sm,
+              ),
+              child: VCard(
+                child: Material(
+                  type: MaterialType.transparency,
+                  child: SwitchListTile(
+                    title: Text(l10n.partyFinderOptInLabel),
+                    value: optIn.valueOrNull ?? false,
+                    onChanged: (value) => _setOptIn(ref, value),
+                  ),
                 ),
               ),
             ),
-          ),
-          const Divider(height: 1, thickness: 1, color: AppColors.hairline),
-          Expanded(
-            child: _body(context, ref, l10n, optIn),
-          ),
-        ],
+            const Divider(height: 1, thickness: 1, color: AppColors.hairline),
+            Expanded(child: _body(context, ref, l10n, optIn)),
+          ],
+        ),
       ),
     );
   }

@@ -14,6 +14,7 @@ import 'package:samay/shared/widgets/v_card.dart';
 import 'package:samay/shared/widgets/v_badge.dart';
 import 'package:samay/shared/widgets/v_button.dart';
 import 'package:samay/shared/widgets/v_display_text.dart';
+import 'package:samay/shared/widgets/v_header_bar.dart';
 
 /// Subscription tier identifiers, matching `users.subscription_tier`.
 class PaywallTier {
@@ -52,8 +53,12 @@ const paywallTiers = <PaywallTier>[
 /// plain numbers, the markers `check`/`cross`, or an ARB key resolved through
 /// [paywallRowLabel] — data stays const and testable, copy stays localized.
 class PaywallRow {
-  const PaywallRow(this.labelKey,
-      {required this.free, required this.pro, required this.vip});
+  const PaywallRow(
+    this.labelKey, {
+    required this.free,
+    required this.pro,
+    required this.vip,
+  });
 
   final String labelKey;
   final String free;
@@ -65,7 +70,12 @@ class PaywallRow {
 const paywallRows = <PaywallRow>[
   PaywallRow('paywallRowEvents', free: '3', pro: '10', vip: '100'),
   PaywallRow('paywallRowGroups', free: '5', pro: '20', vip: '100'),
-  PaywallRow('paywallRowMembers', free: '14', pro: '256', vip: 'paywallUnlimited'),
+  PaywallRow(
+    'paywallRowMembers',
+    free: '14',
+    pro: '256',
+    vip: 'paywallUnlimited',
+  ),
   PaywallRow('paywallRowPreshards', free: '10', pro: '1000', vip: '10000'),
   PaywallRow('paywallRowFeed', free: 'cross', pro: 'check', vip: 'check'),
   PaywallRow('paywallRowVideo', free: 'cross', pro: 'check', vip: 'check'),
@@ -87,26 +97,26 @@ const paywallRows = <PaywallRow>[
 /// [l10n]. Numeric literals and the `check`/`cross` markers pass through
 /// untouched.
 String paywallRowLabel(AppLocalizations l10n, String key) => switch (key) {
-      'paywallTierFree' => l10n.paywallTierFree,
-      'paywallTierPro' => l10n.paywallTierPro,
-      'paywallTierVip' => l10n.paywallTierVip,
-      'paywallRowEvents' => l10n.paywallRowEvents,
-      'paywallRowGroups' => l10n.paywallRowGroups,
-      'paywallRowMembers' => l10n.paywallRowMembers,
-      'paywallRowPreshards' => l10n.paywallRowPreshards,
-      'paywallRowFeed' => l10n.paywallRowFeed,
-      'paywallRowVideo' => l10n.paywallRowVideo,
-      'paywallRowCosmetics' => l10n.paywallRowCosmetics,
-      'paywallRowRank' => l10n.paywallRowRank,
-      'paywallUnlimited' => l10n.paywallUnlimited,
-      'paywallLimited' => l10n.paywallLimited,
-      'paywallCosmeticsFull' => l10n.paywallCosmeticsFull,
-      'paywallCosmeticsFullExclusive' => l10n.paywallCosmeticsFullExclusive,
-      'paywallRankMicro' => l10n.paywallRankMicro,
-      'paywallRankUpToMedium' => l10n.paywallRankUpToMedium,
-      'paywallRankAll' => l10n.paywallRankAll,
-      _ => key,
-    };
+  'paywallTierFree' => l10n.paywallTierFree,
+  'paywallTierPro' => l10n.paywallTierPro,
+  'paywallTierVip' => l10n.paywallTierVip,
+  'paywallRowEvents' => l10n.paywallRowEvents,
+  'paywallRowGroups' => l10n.paywallRowGroups,
+  'paywallRowMembers' => l10n.paywallRowMembers,
+  'paywallRowPreshards' => l10n.paywallRowPreshards,
+  'paywallRowFeed' => l10n.paywallRowFeed,
+  'paywallRowVideo' => l10n.paywallRowVideo,
+  'paywallRowCosmetics' => l10n.paywallRowCosmetics,
+  'paywallRowRank' => l10n.paywallRowRank,
+  'paywallUnlimited' => l10n.paywallUnlimited,
+  'paywallLimited' => l10n.paywallLimited,
+  'paywallCosmeticsFull' => l10n.paywallCosmeticsFull,
+  'paywallCosmeticsFullExclusive' => l10n.paywallCosmeticsFullExclusive,
+  'paywallRankMicro' => l10n.paywallRankMicro,
+  'paywallRankUpToMedium' => l10n.paywallRankUpToMedium,
+  'paywallRankAll' => l10n.paywallRankAll,
+  _ => key,
+};
 
 /// Monthly price in PEN centimos for [tierId] from the `app_config` map
 /// (spec §6.12 + seed `subs.*` keys). Missing keys fall back to the seeded
@@ -152,7 +162,8 @@ String formatPEN(int centimos) {
 String? currentTierFromAuth(AuthState authState) {
   final user = authState.user;
   if (user == null) return null;
-  final raw = user['subscription_tier'] ??
+  final raw =
+      user['subscription_tier'] ??
       (user['user_metadata'] is Map<String, dynamic>
           ? (user['user_metadata'] as Map<String, dynamic>)['subscription_tier']
           : null);
@@ -174,14 +185,16 @@ String? currentTierFromAuth(AuthState authState) {
 class PaywallScreen extends ConsumerWidget {
   const PaywallScreen({super.key});
 
-  Future<void> _purchase(BuildContext context, WidgetRef ref, String tierId) async {
+  Future<void> _purchase(
+    BuildContext context,
+    WidgetRef ref,
+    String tierId,
+  ) async {
     final messenger = ScaffoldMessenger.of(context);
     try {
       await ref.read(revenueCatServiceProvider).purchase(tierId);
     } catch (e, _) {
-      messenger.showSnackBar(
-        SnackBar(content: Text(e.toAppError().message)),
-      );
+      messenger.showSnackBar(SnackBar(content: Text(e.toAppError().message)));
     }
   }
 
@@ -190,9 +203,7 @@ class PaywallScreen extends ConsumerWidget {
     try {
       await ref.read(revenueCatServiceProvider).restorePurchases();
     } catch (e, _) {
-      messenger.showSnackBar(
-        SnackBar(content: Text(e.toAppError().message)),
-      );
+      messenger.showSnackBar(SnackBar(content: Text(e.toAppError().message)));
     }
   }
 
@@ -204,16 +215,18 @@ class PaywallScreen extends ConsumerWidget {
     final stubMode = ref.watch(revenueCatServiceProvider).isStubMode;
 
     return Scaffold(
-      appBar: AppBar(),
-      body: config.when(
-        loading: () => const VLoadingView(),
-        error: (error, _) => ErrorView(
-          message: error.toAppError().message,
-          onRetry: () => ref.invalidate(appConfigProvider),
-        ),
-        data: (appConfig) {
-          final currentTier = currentTierFromAuth(authState.valueOrNull ?? const AuthState());
-          return ListView(
+      body: VHeaderBar(
+        child: config.when(
+          loading: () => const VLoadingView(),
+          error: (error, _) => ErrorView(
+            message: error.toAppError().message,
+            onRetry: () => ref.invalidate(appConfigProvider),
+          ),
+          data: (appConfig) {
+            final currentTier = currentTierFromAuth(
+              authState.valueOrNull ?? const AuthState(),
+            );
+            return ListView(
               padding: const EdgeInsets.all(AppSpacing.xl),
               children: [
                 // The single display hero (LUXE directive #8): the AppBar
@@ -248,7 +261,8 @@ class PaywallScreen extends ConsumerWidget {
                 ),
               ],
             );
-        },
+          },
+        ),
       ),
     );
   }
@@ -294,8 +308,7 @@ class _TierCard extends StatelessWidget {
                   ),
                 ),
               ),
-              if (isCurrent)
-                VBadge.emphasized(label: l10n.paywallCurrentBadge),
+              if (isCurrent) VBadge.emphasized(label: l10n.paywallCurrentBadge),
             ],
           ),
           const SizedBox(height: AppSpacing.sm),
@@ -379,9 +392,6 @@ class _FeatureCell extends StatelessWidget {
     if (value == 'cross') {
       return const Icon(Icons.close, size: 16, color: AppColors.mutedStrong);
     }
-    return SizedBox(
-      width: 88,
-      child: Text(text, textAlign: TextAlign.right),
-    );
+    return SizedBox(width: 88, child: Text(text, textAlign: TextAlign.right));
   }
 }

@@ -14,6 +14,7 @@ import 'package:samay/shared/widgets/v_card.dart';
 import 'package:samay/shared/widgets/state_views.dart';
 import 'package:samay/shared/widgets/v_button.dart';
 import 'package:samay/shared/widgets/v_count_badge.dart';
+import 'package:samay/shared/widgets/v_header_bar.dart';
 import 'package:samay/shared/widgets/v_refreshable.dart';
 import 'package:samay/shared/widgets/v_spinner.dart';
 
@@ -61,21 +62,19 @@ class _RequestsScreenState extends ConsumerState<RequestsScreen>
     }
   }
 
-  Future<void> _acceptFriend(String id) =>
-      _run(id, () async {
-        await ref.read(friendsRepositoryProvider).acceptFriendRequest(id);
-        ref.invalidate(friendRequestsProvider);
-        // The new friend must appear in the list immediately (2026-08-14).
-        ref.invalidate(friendsListProvider);
-      });
+  Future<void> _acceptFriend(String id) => _run(id, () async {
+    await ref.read(friendsRepositoryProvider).acceptFriendRequest(id);
+    ref.invalidate(friendRequestsProvider);
+    // The new friend must appear in the list immediately (2026-08-14).
+    ref.invalidate(friendsListProvider);
+  });
 
-  Future<void> _declineFriend(String id) =>
-      _run(id, () async {
-        await ref.read(friendsRepositoryProvider).declineFriendRequest(id);
-        ref.invalidate(friendRequestsProvider);
-        // A declined request can't leave a stale accepted row behind.
-        ref.invalidate(friendsListProvider);
-      });
+  Future<void> _declineFriend(String id) => _run(id, () async {
+    await ref.read(friendsRepositoryProvider).declineFriendRequest(id);
+    ref.invalidate(friendRequestsProvider);
+    // A declined request can't leave a stale accepted row behind.
+    ref.invalidate(friendsListProvider);
+  });
 
   Future<void> _acceptInvite(String membershipId, String groupId) =>
       _run(membershipId, () async {
@@ -119,8 +118,8 @@ class _RequestsScreenState extends ConsumerState<RequestsScreen>
         0;
     final invitesCount = invitesAsync.valueOrNull?.length ?? 0;
     return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.friendsRequestsTitle),
+      body: VHeaderBar(
+        title: l10n.friendsRequestsTitle,
         bottom: TabBar(
           controller: _tabController,
           tabs: [
@@ -139,34 +138,35 @@ class _RequestsScreenState extends ConsumerState<RequestsScreen>
             ),
           ],
         ),
-      ),
-      body: requestsAsync.when(
-        loading: () => const VLoadingView(),
-        error: (e, _) => ErrorView(
-          message: e.toAppError().message,
-          onRetry: () => ref.invalidate(friendRequestsProvider),
-        ),
-        data: (data) => invitesAsync.when(
+        child: requestsAsync.when(
           loading: () => const VLoadingView(),
           error: (e, _) => ErrorView(
             message: e.toAppError().message,
-            onRetry: () => ref.invalidate(groupInvitesProvider),
+            onRetry: () => ref.invalidate(friendRequestsProvider),
           ),
-          data: (invites) {
-            final received =
-                data.requests.where((r) => r.type == 'received').toList();
-            final sent = data.requests
-                .where((r) => r.type == 'sent')
-                .toList();
-            return TabBarView(
-              controller: _tabController,
-              children: [
-                _buildRequests(received, data.names, isReceived: true),
-                _buildRequests(sent, data.names, isReceived: false),
-                _buildInvites(invites),
-              ],
-            );
-          },
+          data: (data) => invitesAsync.when(
+            loading: () => const VLoadingView(),
+            error: (e, _) => ErrorView(
+              message: e.toAppError().message,
+              onRetry: () => ref.invalidate(groupInvitesProvider),
+            ),
+            data: (invites) {
+              final received = data.requests
+                  .where((r) => r.type == 'received')
+                  .toList();
+              final sent = data.requests
+                  .where((r) => r.type == 'sent')
+                  .toList();
+              return TabBarView(
+                controller: _tabController,
+                children: [
+                  _buildRequests(received, data.names, isReceived: true),
+                  _buildRequests(sent, data.names, isReceived: false),
+                  _buildInvites(invites),
+                ],
+              );
+            },
+          ),
         ),
       ),
     );
@@ -216,7 +216,9 @@ class _RequestsScreenState extends ConsumerState<RequestsScreen>
               child: ListTile(
                 title: Text(name),
                 subtitle: Text(
-                  isReceived ? l10n.friendsSentYouRequest : l10n.friendsRequestSent,
+                  isReceived
+                      ? l10n.friendsSentYouRequest
+                      : l10n.friendsRequestSent,
                 ),
                 trailing: isReceived
                     ? _ActionPair(
@@ -267,9 +269,8 @@ class _RequestsScreenState extends ConsumerState<RequestsScreen>
           final id = invite['id'] as String;
           final groupId = invite['group_id'] as String? ?? '';
           final groupName =
-              (invite['groups'] as Map<String, dynamic>?)?['name']
-                      as String? ??
-                  l10n.commonGroup;
+              (invite['groups'] as Map<String, dynamic>?)?['name'] as String? ??
+              l10n.commonGroup;
           return VCard(
             child: Material(
               type: MaterialType.transparency,
@@ -304,10 +305,7 @@ class _TabLabel extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         Text(text),
-        if (count > 0) ...[
-          const SizedBox(width: 4),
-          VCountBadge(count: count),
-        ],
+        if (count > 0) ...[const SizedBox(width: 4), VCountBadge(count: count)],
       ],
     );
   }

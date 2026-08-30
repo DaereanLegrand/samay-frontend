@@ -45,7 +45,13 @@ context and the standing development protocol **automatically**.
   impact skip the failing-test-first cycle per `AGENTS.md` §TDD Rules — but
   they still keep the behavior/widget tests green, and MUST NOT add
   visual-pinning assertions (token-budget directive 2026-08-27: token values
-  are pinned once in `test/design_tokens/` + `test/theme/` + `test/widgets/`).
+  are pinned once in `test/theme/app_theme_test.dart`).
+- **Suckless test policy (2026-08-28).** Only FUNCTIONAL tests ship in
+  `test/` — logic, contract, and HTTP-to-Supabase-harness wiring
+  (`harnessHttp.sent*`). The UI-only layer was deleted (~600 tests) and
+  `test/meta/conventions_test.dart` enforces it: no new
+  `takeException()==null` smoke tests and no whole-file render-only feature
+  suites. `flutter test` = **1853 pass / 0 fail** (2026-08-28).
 - **Focused test loop is the default** (2026-08-27, explicit directive).
   Agents iterate with `make test-file FILE=<path>` / `make test-feature
   FEATURE=<name>` / `make test-files`; the full `make check` + `make test`

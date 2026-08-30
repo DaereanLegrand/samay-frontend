@@ -40,17 +40,21 @@ behavior, never the same assertion twice across layers:
 | Layer | Where | When |
 |---|---|---|
 | Dart unit | `test/`, mirroring `lib/` layout | pure logic / services |
-| Dart widget | `test/features/<feature>/` | UI behavior (interaction, state) |
+| Dart widget (functional) | `test/features/<feature>/` | UI behavior (interaction, state) — MUST assert service/HTTP wiring (`when`/`verify` or the real `harnessHttp.sent*` contract), never a bare render |
 | Flutter integration | `integration_test/<module>_flow_test.dart` (register in `runner.sh` after its data deps) | ONE flow per feature |
 | Backend behavior | `test/opt-NNN-desc.sh`, picked up automatically by `test/run_all_backend.sh` | API/RLS/security |
 | Go | `*_test.go` next to the code (`httptest` mocks for PostgREST) | CLI/API server logic |
 | SQL | pgTAP case in `supabase/tests/schema_test.sql` (+ byte-identical mirror in `supabase-testing/tests/`) | schema/RLS/RPC |
 
-No restyle layer exists — do not write visual-pinning assertions
-(`BoxDecoration` shape, exact `fontSize`/token equality on widget internals).
-Token values are pinned once in `test/design_tokens/` + `test/theme/` +
-`test/widgets/`; feature tests assert behavior. `test/meta/conventions_test.dart`
-guards this (2026-08-27 token-budget).
+**Suckless test policy (2026-08-28):** only FUNCTIONAL tests ship in `test/`
+— logic, contract, and HTTP-to-Supabase-harness wiring (`harnessHttp.sent*`).
+NO UI-only tests: no per-screen render / empty-state-copy / loading-skeleton /
+`renders without overflow` / `takeException()==null` smoke suites, no
+visual-pin files, no whole-file screen-render suites. Every widget test must
+assert a behavior or wiring, never that a widget merely rendered.
+`test/meta/conventions_test.dart` enforces this. Token values are pinned once
+in `test/theme/app_theme_test.dart`; feature tests assert behavior
+(token-budget, 2026-08-27).
 
 Run the new test and confirm it fails for the *right* reason.
 

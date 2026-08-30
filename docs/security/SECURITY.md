@@ -62,7 +62,7 @@ Industry standards these decisions align with:
 
 - **Where:** `ALTER TABLE … ENABLE/FORCE ROW LEVEL SECURITY` across the
   migration set (`supabase/migrations/**`, mirrored byte-identical in
-  `supabase-testing/migrations/**`); 34 FORCE statements today.
+  `supabase-testing/migrations/**`); 38 FORCE statements today.
 - **Why:** Postgres applies RLS to the table owner too *only* with `FORCE`
   (R8). Without it, any leak of the owner/postgres credential silently
   disables the entire authorization model. With it, RLS holds even for

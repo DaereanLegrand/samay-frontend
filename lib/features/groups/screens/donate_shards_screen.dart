@@ -8,6 +8,7 @@ import 'package:samay/core/utils/input_sanitizer.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/v_button.dart';
 import 'package:samay/shared/widgets/v_card.dart';
+import 'package:samay/shared/widgets/v_header_bar.dart';
 import 'package:samay/shared/widgets/v_input.dart';
 
 class DonateShardsScreen extends ConsumerStatefulWidget {
@@ -76,8 +77,9 @@ class _DonateShardsScreenState extends ConsumerState<DonateShardsScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.groupsDonateTitle)),
-      body: ListView(
+      body: VHeaderBar(
+        title: l10n.groupsDonateTitle,
+        child: ListView(
         padding: const EdgeInsets.all(24),
         children: [
           VCard(
@@ -112,6 +114,7 @@ class _DonateShardsScreenState extends ConsumerState<DonateShardsScreen> {
             ),
           ),
         ],
+      ),
       ),
     );
   }

@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:samay/core/providers/realtime_provider.dart';
 import 'package:samay/core/providers/service_providers.dart';
 import 'package:samay/core/services/minigame_service.dart';
+import 'package:samay/features/minigames/logic/minigame_engine.dart';
+import 'package:samay/features/minigames/logic/truth_dare.dart';
 import 'package:samay/features/notifications/providers/notifications_providers.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -43,9 +45,9 @@ class MinigameSessionsNotifier
   Future<void> refresh() async => ref.invalidateSelf();
 
   /// Creates a session of [type] in this group with an optional [wager]
-  /// (0 = no wager) and optional [inviteeIds] (any searchable user — the
-  /// friends-only + blocked gates are enforced server-side) and reloads the
-  /// list.
+  /// (0 = no wager), an optional partida [name] (160_minigame_names) and
+  /// optional [inviteeIds] (any searchable user — the friends-only + blocked
+  /// gates are enforced server-side) and reloads the list.
   ///
   /// Server rejections surface as the typed [MinigameSessionRejectedException]
   /// (insufficient shards / not a member / invalid game / invitee gates) —
@@ -55,12 +57,14 @@ class MinigameSessionsNotifier
     MinigameType type,
     int wager, {
     List<String> inviteeIds = const [],
+    String? name,
   }) async {
     final id = await _service.createSession(
       arg,
       type,
       wager,
       inviteeIds: inviteeIds,
+      name: name,
     );
     await refresh();
     return id;
@@ -96,21 +100,23 @@ class MyMinigameSessionsNotifier extends AsyncNotifier<List<Map<String, dynamic>
   Future<void> refresh() async => ref.invalidateSelf();
 
   /// Creates a DIRECT session (null group) of [type] with an optional
-  /// [wager] (0 = no wager) and optional [inviteeIds] (some games are
-  /// single-player — the server freezes the player_limit from the creator's
-  /// tier). Server rejections surface as the typed
-  /// [MinigameSessionRejectedException] (insufficient shards / invitee
-  /// gates / player limit) and reload the direct list.
+  /// [wager] (0 = no wager), an optional partida [name] (160_minigame_names)
+  /// and optional [inviteeIds] (some games are single-player — the server
+  /// freezes the player_limit from the creator's tier). Server rejections
+  /// surface as the typed [MinigameSessionRejectedException] (insufficient
+  /// shards / invitee gates / player limit) and reload the direct list.
   Future<String> create(
     MinigameType type,
     int wager, {
     List<String> inviteeIds = const [],
+    String? name,
   }) async {
     final id = await _service.createSession(
       null,
       type,
       wager,
       inviteeIds: inviteeIds,
+      name: name,
     );
     await refresh();
     return id;
@@ -245,4 +251,83 @@ class MinigameInviteFriendsOnlyNotifier extends AsyncNotifier<bool> {
 final minigameInviteFriendsOnlyProvider =
     AsyncNotifierProvider<MinigameInviteFriendsOnlyNotifier, bool>(
   MinigameInviteFriendsOnlyNotifier.new,
+);
+
+/// Live play-engine state of one session (150_minigame_play): the
+/// [MinigameGameState] row from the RPC family merged with realtime row
+/// changes on the game-state channel — init / reveal / advance / complete
+/// stream live to every participant.
+///
+/// Auto-initializes: a session with no game-state row yet (`not_started`)
+/// is started on first read (the server picks the first subject randomly).
+class MinigameGameStateNotifier
+    extends FamilyAsyncNotifier<MinigameGameState, String> {
+  MinigameService get _service => ref.read(minigameServiceProvider);
+
+  @override
+  Future<MinigameGameState> build(String sessionId) async {
+    // Live updates ride the I-52 realtime lifecycle provider (mirror of
+    // MinigameSessionStatusNotifier); the game-state row key is session_id.
+    ref.listen<AsyncValue<Map<String, dynamic>>>(
+      realtimeChannelProvider((
+        channelName: 'minigame-game-state:$sessionId',
+        table: 'minigame_game_state',
+        event: PostgresChangeEvent.update,
+      )),
+      (_, next) {
+        final row = next.valueOrNull;
+        if (row == null || row['session_id'] != sessionId) return;
+        if (state.hasValue) {
+          state = AsyncData(MinigameGameState.fromRow(row));
+        }
+      },
+    );
+
+    final row = await _service.getMinigameGameState(sessionId);
+    if (row == null) {
+      // Auto-start: no game-state row yet — the server seeds the skeleton
+      // and picks the first subject randomly.
+      return MinigameGameState.fromRow(
+        await _service.initMinigameGameState(sessionId),
+      );
+    }
+    return MinigameGameState.fromRow(row);
+  }
+
+  /// Re-runs [build] (finding SM-09).
+  Future<void> refresh() async => ref.invalidateSelf();
+
+  /// Reveals a random prompt of [kind] (the server draws it randomly) and
+  /// reloads the state.
+  Future<void> reveal(TruthDareKind kind) async {
+    await _service.revealMinigamePrompt(arg, kind.wire);
+    await refresh();
+  }
+
+  /// Closes the current turn with [outcome] and advances to the next
+  /// (server-random subject) — the completed-round record rides the current
+  /// skeleton's subject/prompt.
+  Future<void> advance({PromptOutcome outcome = PromptOutcome.done}) async {
+    final current = state.valueOrNull;
+    final round = GameRoundRecord(
+      subjectId: current?.skeleton.subjectId ?? '',
+      promptType: current?.skeleton.promptType,
+      promptId: current?.skeleton.prompt?['id'] as String?,
+      outcome: outcome,
+    );
+    await _service.advanceMinigameTurn(arg, round.toJson());
+    await refresh();
+  }
+
+  /// Ends the party game (draw settlement server-side) and reloads.
+  Future<void> complete() async {
+    await _service.completeMinigameGame(arg);
+    await refresh();
+  }
+}
+
+/// One session's live play-engine state (family by session id).
+final minigameGameStateProvider = AsyncNotifierProvider.family<
+    MinigameGameStateNotifier, MinigameGameState, String>(
+  MinigameGameStateNotifier.new,
 );

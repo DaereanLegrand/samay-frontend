@@ -16,6 +16,7 @@ import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/error_view.dart';
 import 'package:samay/shared/widgets/show_app_error.dart';
 import 'package:samay/shared/widgets/v_spinner.dart';
+import 'package:samay/shared/widgets/v_header_bar.dart';
 import 'package:samay/shared/widgets/state_views.dart';
 import 'package:samay/shared/widgets/v_network_image.dart';
 
@@ -76,9 +77,9 @@ class _PhotoGalleryScreenState extends ConsumerState<PhotoGalleryScreen> {
     try {
       await ref.read(uploadPhotoProvider.notifier).upload(widget.eventId, file);
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.photosUploadedSnack)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.photosUploadedSnack)));
     } catch (e, _) {
       if (mounted) showAppError(context, e);
     }
@@ -103,14 +104,13 @@ class _PhotoGalleryScreenState extends ConsumerState<PhotoGalleryScreen> {
     if (reason == null || reason.isEmpty || !mounted) return;
 
     try {
-      await ref.read(eventPhotosProvider(widget.eventId).notifier).report(
-            photo.id,
-            reason,
-          );
+      await ref
+          .read(eventPhotosProvider(widget.eventId).notifier)
+          .report(photo.id, reason);
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.photosReportSent)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.photosReportSent)));
     } catch (e, _) {
       if (mounted) showAppError(context, e);
     }
@@ -133,8 +133,8 @@ class _PhotoGalleryScreenState extends ConsumerState<PhotoGalleryScreen> {
     final uploading = uploadState?.isUploading ?? false;
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.photosTitle),
+      body: VHeaderBar(
+        title: l10n.photosTitle,
         actions: [
           if (windowOpen)
             IconButton(
@@ -154,39 +154,38 @@ class _PhotoGalleryScreenState extends ConsumerState<PhotoGalleryScreen> {
             icon: const Icon(Icons.grid_view_outlined),
           ),
         ],
-      ),
-      body: Column(
-        children: [
-          if (!windowOpen)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(
-                AppSpacing.lg,
-                AppSpacing.sm,
-                AppSpacing.lg,
-                0,
-              ),
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.md,
-                  vertical: AppSpacing.sm,
+        child: Column(
+          children: [
+            if (!windowOpen)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.lg,
+                  AppSpacing.sm,
+                  AppSpacing.lg,
+                  0,
                 ),
-                decoration: BoxDecoration(
-                  color: AppColors.surface,
-                  border: Border.all(color: AppColors.hairline),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  l10n.photosUploadWindowClosed,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    color: AppColors.mutedStrong,
-                    fontSize: 12,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.md,
+                    vertical: AppSpacing.sm,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppColors.surface,
+                    border: Border.all(color: AppColors.hairline),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    l10n.photosUploadWindowClosed,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      color: AppColors.mutedStrong,
+                      fontSize: 12,
+                    ),
                   ),
                 ),
               ),
-            ),
-          Expanded(
-            child: photosAsync.when(
+            Expanded(
+              child: photosAsync.when(
                 loading: () => const VLoadingView(),
                 error: (e, _) => ErrorView(
                   message: e.toAppError().message,
@@ -207,8 +206,9 @@ class _PhotoGalleryScreenState extends ConsumerState<PhotoGalleryScreen> {
                         onLongPress: _report,
                       ),
               ),
-          ),
-        ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -281,8 +281,7 @@ class _ReportDialogState extends State<_ReportDialog> {
           child: Text(l10n.commonCancel),
         ),
         TextButton(
-          onPressed: () =>
-              Navigator.of(context).pop(_controller.text.trim()),
+          onPressed: () => Navigator.of(context).pop(_controller.text.trim()),
           child: Text(l10n.photosReportSubmit),
         ),
       ],
@@ -348,8 +347,11 @@ class _PhotoTile extends StatelessWidget {
             const ColoredBox(
               color: AppColors.surfaceAlt,
               child: Center(
-                child: Icon(Icons.photo_outlined,
-                    color: AppColors.mutedStrong, size: 24),
+                child: Icon(
+                  Icons.photo_outlined,
+                  color: AppColors.mutedStrong,
+                  size: 24,
+                ),
               ),
             )
           else
@@ -379,9 +381,7 @@ class _PhotoTile extends StatelessWidget {
                     iconSize: 18,
                     onPressed: onLike,
                     icon: Icon(
-                      photo.likedByMe
-                          ? Icons.favorite
-                          : Icons.favorite_border,
+                      photo.likedByMe ? Icons.favorite : Icons.favorite_border,
                       // Monochrome: the like accent is white — the filled
                       // heart carries the liked state.
                       color: AppColors.white,

@@ -4,6 +4,7 @@ import 'package:samay/core/design_tokens/app_icon_sizes.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/v_button.dart';
+import 'package:samay/shared/widgets/v_header_bar.dart';
 
 /// Fallback screen for unrecoverable routing failures: unknown routes,
 /// missing path parameters, and invalid navigation extras (findings NAV-03 /
@@ -19,36 +20,38 @@ class RouteErrorScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(title: Text(title ?? l10n.routerErrorTitle)),
-      body: SafeArea(
-        child: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(AppSpacing.xl),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(
-                  Icons.error_outline,
-                  size: AppIconSizes.xxl,
-                  color: AppColors.border,
-                ),
-                const SizedBox(height: AppSpacing.lg),
-                Text(
-                  message ?? l10n.routerErrorBody,
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.bodyLarge,
-                ),
-                const SizedBox(height: AppSpacing.xl),
-                // U-19: full-width CTA capped at 320 — the fixed 200px width
-                // clipped long labels at 1.5× text scale (§7.3).
-                ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 320),
-                  child: VButton.outlined(
-                    label: l10n.commonBack,
-                    onPressed: () => Navigator.of(context).maybePop(),
+      body: VHeaderBar(
+        title: title ?? l10n.routerErrorTitle,
+        child: SafeArea(
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(AppSpacing.xl),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(
+                    Icons.error_outline,
+                    size: AppIconSizes.xxl,
+                    color: AppColors.border,
                   ),
-                ),
-              ],
+                  const SizedBox(height: AppSpacing.lg),
+                  Text(
+                    message ?? l10n.routerErrorBody,
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.bodyLarge,
+                  ),
+                  const SizedBox(height: AppSpacing.xl),
+                  // U-19: full-width CTA capped at 320 — the fixed 200px width
+                  // clipped long labels at 1.5× text scale (§7.3).
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 320),
+                    child: VButton.outlined(
+                      label: l10n.commonBack,
+                      onPressed: () => Navigator.of(context).maybePop(),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),

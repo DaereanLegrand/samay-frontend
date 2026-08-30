@@ -11,6 +11,7 @@ import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/error_view.dart';
 import 'package:samay/shared/widgets/state_views.dart';
 import 'package:samay/shared/widgets/v_card.dart';
+import 'package:samay/shared/widgets/v_header_bar.dart';
 import 'package:samay/shared/widgets/v_refreshable.dart';
 import 'package:samay/shared/widgets/v_status_dot.dart';
 
@@ -41,105 +42,107 @@ class _FriendsListScreenState extends ConsumerState<FriendsListScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.friendsTitle)),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: TextField(
-              controller: _searchController,
-              decoration: InputDecoration(
-                hintText: l10n.friendsSearchHint,
-                prefixIcon: const Icon(Icons.search),
+      body: VHeaderBar(
+        title: l10n.friendsTitle,
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: TextField(
+                controller: _searchController,
+                decoration: InputDecoration(
+                  hintText: l10n.friendsSearchHint,
+                  prefixIcon: const Icon(Icons.search),
+                ),
+                onChanged: (_) => setState(() {}),
               ),
-              onChanged: (_) => setState(() {}),
             ),
-          ),
-          Expanded(
-            child: ref
-                .watch(friendsListProvider)
-                .when(
-                  loading: () => const VLoadingView(),
-                  error: (e, _) => ErrorView(
-                    message: e.toAppError().message,
-                    onRetry: () => ref.invalidate(friendsListProvider),
-                  ),
-                  data: (friends) {
-                    // R13 (F3): pull-to-refresh on the list AND the empty
-                    // states — the whole surface reloads the provider.
-                    Future<void> onRefresh() =>
-                        ref.read(friendsListProvider.notifier).refresh();
-                    final q = _searchController.text.toLowerCase();
-                    final filtered = friends
-                        .where(
-                          (f) =>
-                              q.isEmpty ||
-                              f.username.toLowerCase().contains(q),
-                        )
-                        .toList();
-                    if (filtered.isEmpty && friends.isEmpty) {
-                      return VRefreshable(
+            Expanded(
+              child: ref
+                  .watch(friendsListProvider)
+                  .when(
+                    loading: () => const VLoadingView(),
+                    error: (e, _) => ErrorView(
+                      message: e.toAppError().message,
+                      onRetry: () => ref.invalidate(friendsListProvider),
+                    ),
+                    data: (friends) {
+                      // R13 (F3): pull-to-refresh on the list AND the empty
+                      // states — the whole surface reloads the provider.
+                      Future<void> onRefresh() =>
+                          ref.read(friendsListProvider.notifier).refresh();
+                      final q = _searchController.text.toLowerCase();
+                      final filtered = friends
+                          .where(
+                            (f) =>
+                                q.isEmpty ||
+                                f.username.toLowerCase().contains(q),
+                          )
+                          .toList();
+                      if (filtered.isEmpty && friends.isEmpty) {
+                        return VRefreshable(
+                          onRefresh: onRefresh,
+                          child: VEmptyView(
+                            icon: Icons.person_search,
+                            title: l10n.friendsNoneYet,
+                            description: l10n.friendsSearchPrompt,
+                          ),
+                        );
+                      }
+                      if (filtered.isEmpty) {
+                        return VRefreshable(
+                          onRefresh: onRefresh,
+                          child: VEmptyView(
+                            icon: Icons.search_off,
+                            title: l10n.friendsNoResults,
+                          ),
+                        );
+                      }
+                      return RefreshIndicator(
                         onRefresh: onRefresh,
-                        child: VEmptyView(
-                          icon: Icons.person_search,
-                          title: l10n.friendsNoneYet,
-                          description: l10n.friendsSearchPrompt,
-                        ),
-                      );
-                    }
-                    if (filtered.isEmpty) {
-                      return VRefreshable(
-                        onRefresh: onRefresh,
-                        child: VEmptyView(
-                          icon: Icons.search_off,
-                          title: l10n.friendsNoResults,
-                        ),
-                      );
-                    }
-                    return RefreshIndicator(
-                      onRefresh: onRefresh,
-                      child: ListView.separated(
-                        physics: const AlwaysScrollableScrollPhysics(),
-                        padding: const EdgeInsets.fromLTRB(
-                          AppSpacing.lg,
-                          0,
-                          AppSpacing.lg,
-                          AppSpacing.lg,
-                        ),
-                        itemCount: filtered.length,
-                        separatorBuilder: (_, _) =>
-                            const SizedBox(height: AppSpacing.sm),
-                        itemBuilder: (_, i) {
-                          final u = filtered[i];
-                          return VCard(
-                            child: Material(
-                              type: MaterialType.transparency,
-                              child: ListTile(
-                                leading: ProfileAvatar(
-                                  size: AppSpacing.avatar,
-                                  initials: _initials(u),
-                                  imageUrl: u.avatarUrl,
-                                ),
-                                title: Text('@${u.username}'),
-                                // §5.5 presence dot + §6.3 α pulse (U-18's
-                                // `VStatusDot` — the pulse is gated by reduced
-                                // motion; the dot itself stays the 8px
-                                // statusOnline circle U-10 restyled). Cyan is
-                                // semantic (presence), not a screen accent.
-                                trailing: const VStatusDot(),
-                                onTap: () => context.push(
-                                  RoutePaths.userProfile(u.id),
+                        child: ListView.separated(
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          padding: const EdgeInsets.fromLTRB(
+                            AppSpacing.lg,
+                            0,
+                            AppSpacing.lg,
+                            AppSpacing.lg,
+                          ),
+                          itemCount: filtered.length,
+                          separatorBuilder: (_, _) =>
+                              const SizedBox(height: AppSpacing.sm),
+                          itemBuilder: (_, i) {
+                            final u = filtered[i];
+                            return VCard(
+                              child: Material(
+                                type: MaterialType.transparency,
+                                child: ListTile(
+                                  leading: ProfileAvatar(
+                                    size: AppSpacing.avatar,
+                                    initials: _initials(u),
+                                    imageUrl: u.avatarUrl,
+                                  ),
+                                  title: Text('@${u.username}'),
+                                  // §5.5 presence dot + §6.3 α pulse (U-18's
+                                  // `VStatusDot` — the pulse is gated by reduced
+                                  // motion; the dot itself stays the 8px
+                                  // statusOnline circle U-10 restyled). Cyan is
+                                  // semantic (presence), not a screen accent.
+                                  trailing: const VStatusDot(),
+                                  onTap: () => context.push(
+                                    RoutePaths.userProfile(u.id),
+                                  ),
                                 ),
                               ),
-                            ),
-                          );
-                        },
-                      ),
-                    );
-                  },
-                ),
-          ),
-        ],
+                            );
+                          },
+                        ),
+                      );
+                    },
+                  ),
+            ),
+          ],
+        ),
       ),
     );
   }

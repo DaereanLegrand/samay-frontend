@@ -14,6 +14,7 @@ import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/show_app_error.dart';
 import 'package:samay/shared/widgets/v_button.dart';
 import 'package:samay/shared/widgets/v_card.dart';
+import 'package:samay/shared/widgets/v_header_bar.dart';
 import 'package:samay/shared/widgets/v_input.dart';
 
 /// Gallery-picking seam for tests: `image_picker` is a platform plugin that
@@ -132,77 +133,79 @@ class _CreateGroupScreenState extends ConsumerState<CreateGroupScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.groupsCreateGroup)),
-      body: ListView(
-        padding: const EdgeInsets.all(24),
-        children: [
-          VCard(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                GestureDetector(
-                  onTap: _pickImage,
-                  child: Container(
-                    height: 160,
-                    decoration: BoxDecoration(
-                      // §5.8 skeleton-base surface for the empty cover slot +
-                      // the §2.1 interactive-outline token (never raw greys).
-                      color: AppColors.surfaceAlt,
-                      border: Border.all(color: AppColors.border),
-                    ),
-                    child: _coverImage != null
-                        ? ClipRect(
-                            child: Image.file(
-                              File(_coverImage!.path),
-                              fit: BoxFit.cover,
-                              width: double.infinity,
-                              height: 160,
-                            ),
-                          )
-                        : Center(
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                const Icon(
-                                  Icons.camera_alt,
-                                  size: 40,
-                                  color: AppColors.muted,
-                                ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  l10n.groupsAddCover,
-                                  style: const TextStyle(
-                                    color: AppColors.mutedStrong,
+      body: VHeaderBar(
+        title: l10n.groupsCreateGroup,
+        child: ListView(
+          padding: const EdgeInsets.all(24),
+          children: [
+            VCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  GestureDetector(
+                    onTap: _pickImage,
+                    child: Container(
+                      height: 160,
+                      decoration: BoxDecoration(
+                        // §5.8 skeleton-base surface for the empty cover slot +
+                        // the §2.1 interactive-outline token (never raw greys).
+                        color: AppColors.surfaceAlt,
+                        border: Border.all(color: AppColors.border),
+                      ),
+                      child: _coverImage != null
+                          ? ClipRect(
+                              child: Image.file(
+                                File(_coverImage!.path),
+                                fit: BoxFit.cover,
+                                width: double.infinity,
+                                height: 160,
+                              ),
+                            )
+                          : Center(
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(
+                                    Icons.camera_alt,
+                                    size: 40,
+                                    color: AppColors.muted,
                                   ),
-                                ),
-                              ],
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    l10n.groupsAddCover,
+                                    style: const TextStyle(
+                                      color: AppColors.mutedStrong,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
-                          ),
+                    ),
                   ),
-                ),
-                const SizedBox(height: 24),
-                VInput(
-                  controller: _nameController,
-                  label: l10n.groupsNameLabel,
-                ),
-                const SizedBox(height: 16),
-                VInput(
-                  controller: _descController,
-                  label: l10n.groupsDescriptionOptional,
-                  maxLines: 3,
-                ),
-                const SizedBox(height: 32),
-                // §5.1 LUXE: creating the group is the screen's primary
-                // action.
-                VButton.dark(
-                  label: l10n.commonCreate,
-                  loading: _loading,
-                  onPressed: _create,
-                ),
-              ],
+                  const SizedBox(height: 24),
+                  VInput(
+                    controller: _nameController,
+                    label: l10n.groupsNameLabel,
+                  ),
+                  const SizedBox(height: 16),
+                  VInput(
+                    controller: _descController,
+                    label: l10n.groupsDescriptionOptional,
+                    maxLines: 3,
+                  ),
+                  const SizedBox(height: 32),
+                  // §5.1 LUXE: creating the group is the screen's primary
+                  // action.
+                  VButton.dark(
+                    label: l10n.commonCreate,
+                    loading: _loading,
+                    onPressed: _create,
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
