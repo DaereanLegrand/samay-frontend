@@ -1,13 +1,34 @@
 import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:samay/core/logging/app_logger.dart';
+import 'package:samay/core/providers/auth_provider.dart';
 import 'package:samay/core/providers/realtime_provider.dart';
 import 'package:samay/core/providers/service_providers.dart';
 import 'package:samay/core/services/minigame_service.dart';
+import 'package:samay/features/chat/providers/chat_providers.dart';
+import 'package:samay/features/minigames/logic/minigame_cipher.dart';
 import 'package:samay/features/minigames/logic/minigame_engine.dart';
 import 'package:samay/features/minigames/logic/truth_dare.dart';
 import 'package:samay/features/notifications/providers/notifications_providers.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+
+/// The E2EE answer cipher for one minigame session (202_minigame_play_v2):
+/// the per-round key model — the host mints `K_r` and distributes it
+/// pairwise through `minigame_e2ee_bundles`; answers are AES-GCM-encrypted
+/// with the round's own key and only ciphertext ever reaches the server.
+final minigameCipherProvider = Provider.family<MinigameCipher, String>((ref, sessionId) {
+  final user = ref.watch(authStateProvider).valueOrNull?.user;
+  final uid = user?['id'] as String? ?? '';
+  return MinigameCipher(
+    sessionId: sessionId,
+    ownerUserId: uid,
+    keyStore: ref.watch(e2eeKeyStoreProvider),
+    sessionStore: ref.watch(e2eeSessionStoreProvider),
+    prekeyService: ref.watch(e2eePrekeyServiceProvider),
+    service: ref.watch(minigameServiceProvider),
+  );
+});
 
 /// Number of pending minigame invites the current user has NOT read yet —
 /// derived from the notification center (2026-08-27 red-circle badge
@@ -59,8 +80,30 @@ class MyPendingInvitesNotifier
     // the list so the invitee's "partida-N ready to accept" rows follow
     // realtime without a pull (the `...future` watch is the settled pattern
     // from recentFriendsProvider — a plain ref.watch would double-build).
-    await ref.watch(notificationsProvider.future);
-    return _service.listMyPendingInvites();
+    final notifications = await ref.watch(notificationsProvider.future);
+    final rows = await _service.listMyPendingInvites();
+    // The invitee cannot read the inviter username (RLS user_search_view) or
+    // the group name (RLS groups_read_member) for a session they are not yet a
+    // member of. The notification trigger (200_minigame_invite_notice) embeds
+    // them in the notification data, so attach them to each pending row here —
+    // the accept surfaces show "from <inviter> / <group>" without re-querying.
+    final bySessionId = <String, Map<String, dynamic>>{};
+    for (final n in notifications) {
+      if (n.type != 'minigame_invite') continue;
+      final sessionId = n.data?['sessionId'] as String?;
+      if (sessionId == null) continue;
+      bySessionId[sessionId] = n.data!;
+    }
+    return [
+      for (final row in rows)
+        {
+          ...row,
+          if (row['inviterName'] == null)
+            'inviterName': bySessionId[row['id']]?['inviterName'],
+          if (row['groupName'] == null)
+            'groupName': bySessionId[row['id']]?['groupName'],
+        },
+    ];
   }
 
   /// Re-runs [build] after an accept/decline or a realtime invite landing
@@ -106,6 +149,12 @@ class MinigameSessionsNotifier
     int wager, {
     List<String> inviteeIds = const [],
     String? name,
+    int rounds = 5,
+    int prizePositions = kDefaultPrizePositions,
+    MinigamePlayMode playMode = MinigamePlayMode.byTurns,
+    bool anonymous = false,
+    int asyncRoundsPerPlayer = 1,
+    DateTime? asyncEndsAt,
   }) async {
     final id = await _service.createSession(
       arg,
@@ -113,6 +162,12 @@ class MinigameSessionsNotifier
       wager,
       inviteeIds: inviteeIds,
       name: name,
+      rounds: rounds,
+      prizePositions: prizePositions,
+      playMode: playMode,
+      anonymous: anonymous,
+      asyncRoundsPerPlayer: asyncRoundsPerPlayer,
+      asyncEndsAt: asyncEndsAt,
     );
     await refresh();
     return id;
@@ -161,6 +216,12 @@ class MyMinigameSessionsNotifier
     int wager, {
     List<String> inviteeIds = const [],
     String? name,
+    int rounds = 5,
+    int prizePositions = kDefaultPrizePositions,
+    MinigamePlayMode playMode = MinigamePlayMode.byTurns,
+    bool anonymous = false,
+    int asyncRoundsPerPlayer = 1,
+    DateTime? asyncEndsAt,
   }) async {
     final id = await _service.createSession(
       null,
@@ -168,6 +229,12 @@ class MyMinigameSessionsNotifier
       wager,
       inviteeIds: inviteeIds,
       name: name,
+      rounds: rounds,
+      prizePositions: prizePositions,
+      playMode: playMode,
+      anonymous: anonymous,
+      asyncRoundsPerPlayer: asyncRoundsPerPlayer,
+      asyncEndsAt: asyncEndsAt,
     );
     await refresh();
     return id;
@@ -259,8 +326,19 @@ class MinigameInviteNotifier
   /// list (the game page must drop the "Invitación pendiente" row) and marks
   /// the invite's notification read (the feed tile's red badge clears in the
   /// same tap). Without these, only a hot restart reflected the accept.
+  ///
+  /// E2EE round-key distribution (2026-08-31): after the accept lands, the
+  /// HOST hands this new player the full `K_1..K_N` history it has minted so
+  /// far (best-effort — a no-prekey peer is skipped and retried on the next
+  /// roster change; a distribution failure never fails the accept).
   Future<void> accept() async {
-    final inviteId = state.valueOrNull?['id'] as String?;
+    // Await the built value, not the possibly-loading state: the provider may
+    // not be alive yet when invoked from the per-game list inline action, in
+    // which case state.valueOrNull is null right after reading .notifier and
+    // accept() would silently no-op (the RPC never runs, the detail then
+    // still shows a pending invite). AsyncNotifier.future resolves with the
+    // built invite row (and throws on error).
+    final inviteId = (await future)?['id'] as String?;
     if (inviteId == null) return;
     await _service.acceptInvite(inviteId);
     await refresh();
@@ -268,13 +346,44 @@ class MinigameInviteNotifier
     ref.invalidate(minigameParticipantsProvider(arg));
     ref.invalidate(myPendingInvitesProvider);
     await _markInviteNotificationRead(inviteId);
+    await _distributeKeysOnAccept();
+  }
+
+  /// Best-effort E2EE history distribution to the roster at accept-time
+  /// (2026-08-31): the new participant cannot decrypt any past round until
+  /// the host hands them `K_1..K_N`. `const {}` is deliberate — the acceptor
+  /// has no local history at accept; the HOST's roster-change safety net
+  /// ([MinigameParticipantsNotifier._distributeToNewMembers]) delivers the
+  /// real history. Failures are logged and swallowed (best-effort contract).
+  Future<void> _distributeKeysOnAccept() async {
+    try {
+      final myId = ref.read(authStateProvider).valueOrNull?.user?['id'];
+      if (myId == null) return;
+      final session = ref.read(sessionStatusProvider(arg)).valueOrNull;
+      final participants = (session?['participants'] as List?)?.cast<String?>();
+      if (participants == null) return;
+      final peers = [
+        for (final p in participants)
+          if (p != null && p != myId) p,
+      ];
+      await ref.read(minigameCipherProvider(arg)).distributeHistoryKeys(
+        peerIds: peers,
+        roundKeys: const {},
+      );
+    } catch (e, st) {
+      AppLogger.instance.warn('minigame accept key distribution skipped', '$st');
+    }
   }
 
   /// Declines the pending invite and reloads. The pending-invite list is
   /// invalidated too so the "Invitación pendiente" row disappears without a
   /// hot restart (2026-08-30 stale-state repair).
   Future<void> decline() async {
-    final inviteId = state.valueOrNull?['id'] as String?;
+    // Same await-the-built-value guard as accept(): a decline invoked from
+    // the per-game list must not silently no-op because the provider was not
+    // alive yet (state.valueOrNull would be null right after reading
+    // .notifier while build() is still in flight).
+    final inviteId = (await future)?['id'] as String?;
     if (inviteId == null) return;
     await _service.declineInvite(inviteId);
     await refresh();
@@ -426,12 +535,53 @@ class MinigameGameStateNotifier
   /// The creator removes [userId] from the lobby (180_minigame_lobby):
   /// refunds the escrow, drops the participant, closes their invite, clears
   /// their ready flag — all server-side. Reloads the roster + session.
+  ///
+  /// E2EE forward rotation (2026-08-31): after the kick lands, the creator
+  /// mints `K_{r+1}` and hands it ONLY to the remaining roster — the kicked
+  /// player is forward-rotated out (their stored keys still decrypt past
+  /// rounds, but they never receive the new key). Best-effort: a
+  /// distribution failure never fails the kick, and round keys are never
+  /// wiped.
   Future<void> removeParticipant(String userId) async {
     await _service.removeParticipant(arg, userId);
     await refresh();
     ref.invalidate(sessionStatusProvider(arg));
-    ref.invalidate(minigameParticipantsProvider(arg));
+    // ref.container.invalidate (not ref.invalidate): the roster provider
+    // LISTENS to this provider (ready-flag sync), so a plain ref.invalidate
+    // from here trips Riverpod's debug circular-dependency check. The
+    // container-level invalidate is semantically identical and assert-safe.
+    ref.container.invalidate(minigameParticipantsProvider(arg));
     ref.invalidate(myPendingInvitesProvider);
+    await _rotateKeysOnKick(userId);
+  }
+
+  /// Best-effort E2EE forward rotation on a kick (2026-08-31): mints the
+  /// next round key and distributes it ONLY to the remaining participants —
+  /// the kicked player never receives `K_{r+1}`, so future rounds are
+  /// revoked for them (their stored keys still decrypt their past rounds).
+  /// Failures are logged and swallowed (best-effort contract); round keys
+  /// are never wiped here — forward rotation is the only revoke mechanism.
+  Future<void> _rotateKeysOnKick(String kickedUserId) async {
+    try {
+      final myId = ref.read(authStateProvider).valueOrNull?.user?['id'];
+      if (myId == null) return;
+      final session = ref.read(sessionStatusProvider(arg)).valueOrNull;
+      final participants = (session?['participants'] as List?)?.cast<String?>();
+      if (participants == null) return;
+      // Only the creator rotates (remove is creator-only; belt-and-suspenders).
+      if (participants.isEmpty || participants.first != myId) return;
+      final peers = [
+        for (final p in participants)
+          if (p != null && p != myId && p != kickedUserId) p,
+      ];
+      final current = state.valueOrNull?.skeleton.round ?? 0;
+      await ref.read(minigameCipherProvider(arg)).rotateRoundKey(
+        peerIds: peers,
+        round: current + 1,
+      );
+    } catch (e, st) {
+      AppLogger.instance.warn('minigame kick rotation skipped', '$st');
+    }
   }
 
   /// Closes the current turn with [outcome] and advances to the next
@@ -449,12 +599,170 @@ class MinigameGameStateNotifier
     await refresh();
   }
 
-  /// Ends the party game (draw settlement server-side) and reloads.
-  Future<void> complete() async {
-    await _service.completeMinigameGame(arg);
+  /// Ends the party game via the leaderboard settlement RPC
+  /// (`finish_minigame_game`, 201_minigame_voting — replaces the old
+  /// draw-only completer) and reloads. The finished screen then reads the
+  /// settled leaderboard from [minigameResultProvider].
+  Future<void> finish() async {
+    await _service.finishGame(arg);
+    await refresh();
+    ref.invalidate(minigameResultProvider(arg));
+    // On-device match summary (202_minigame_play_v2): the durable history /
+    // summary record lives in the encrypted Hive cache (the server purge is
+    // deferred — decision 2026-08-30).
+    await _cacheSummary();
+  }
+
+  /// Writes the finished match summary (results + answers + reactions +
+  /// aliases) into the encrypted on-device Hive box.
+  Future<void> _cacheSummary() async {
+    try {
+      final result = await ref.read(minigameResultProvider(arg).future);
+      final gameState = state.valueOrNull;
+      final session =
+          ref.read(sessionStatusProvider(arg)).valueOrNull;
+      await ref.read(hiveServiceProvider).cacheMinigameSummary(arg, {
+        'finished_at': DateTime.now().toIso8601String(),
+        'game_type': gameState?.gameType ?? '',
+        'play_mode': gameState?.skeleton.playMode.wire ?? 'by_turns',
+        'anonymous': gameState?.skeleton.anonymous ?? false,
+        'results': result?.rows
+                .map(
+                  (r) => {
+                    'participant_id': r.participantId,
+                    'username': r.username,
+                    'score': r.score,
+                    'rank': r.rank,
+                    'prize': r.prize,
+                  },
+                )
+                .toList() ??
+            const [],
+        'answers': [
+          for (final a in gameState?.skeleton.answers ?? const <MinigameAnswer>[])
+            {
+              'round': a.round,
+              'subject_id': a.subjectId,
+              'answer_ciphertext': a.answerCiphertext,
+              'image_storage_path': a.imageStoragePath,
+              'passed': a.passed,
+            },
+        ],
+        'participants': session?['participants'] ?? const <dynamic>[],
+      });
+    } catch (_) {
+      // Best-effort: a summary write failure must never break settlement.
+    }
+  }
+
+  /// Submits the caller's emoji vote for the current round (201_minigame_voting)
+  /// and reloads the state (the live tally streams back through the realtime
+  /// channel for the whole lobby).
+  Future<void> react(ReactionKind reaction) async {
+    await _service.submitReaction(arg, reaction);
+    await refresh();
+  }
+
+  /// The current-turn subject submits their E2EE answer (202_minigame_play_v2)
+  /// and reloads the state — the ciphertext streams to every participant and
+  /// opens the reaction row for the others.
+  Future<void> submitAnswer({
+    required String answerCiphertext,
+    String? imageStoragePath,
+  }) async {
+    await _service.submitAnswer(
+      arg,
+      answerCiphertext: answerCiphertext,
+      imageStoragePath: imageStoragePath,
+    );
+    await refresh();
+  }
+
+  /// The current-turn subject passes (202_minigame_play_v2): blocks all
+  /// reactions and auto-advances with score -1.
+  Future<void> pasar() async {
+    await _service.submitPasar(arg);
+    await refresh();
+  }
+
+  /// Completes one async round of the caller (202_minigame_play_v2): the
+  /// server draws a random [kind] prompt and records the round; the reactable
+  /// list streams the ciphertext to the others.
+  Future<void> submitAsyncAnswer({
+    required TruthDareKind kind,
+    required String answerCiphertext,
+    String? imageStoragePath,
+  }) async {
+    await _service.submitAsyncAnswer(
+      arg,
+      kind: kind,
+      answerCiphertext: answerCiphertext,
+      imageStoragePath: imageStoragePath,
+    );
+    await refresh();
+  }
+
+  /// Reacts to an arbitrary COMPLETED round (202_minigame_play_v2) — the
+  /// async reactable-rounds list.
+  Future<void> reactToRound({
+    required int round,
+    required ReactionKind reaction,
+  }) async {
+    await _service.reactToRound(arg, round: round, reaction: reaction);
     await refresh();
   }
 }
+
+/// The temp nicknames of one session (202_minigame_play_v2 anonymous mode) —
+/// `{participant_id: alias}` read from `minigame_aliases`, refreshed after
+/// every set/update so the realtime stream and the local write stay in sync.
+class MinigameAliasesNotifier
+    extends FamilyAsyncNotifier<Map<String, String>, String> {
+  MinigameService get _service => ref.read(minigameServiceProvider);
+
+  @override
+  Future<Map<String, String>> build(String sessionId) {
+    // Live alias updates ride the I-52 realtime lifecycle provider: a
+    // participant's nickname change streams in on the minigame_aliases
+    // channel and merges into the map (anonymous mode, 202_minigame_play_v2).
+    ref.listen<AsyncValue<Map<String, dynamic>>>(
+      realtimeChannelProvider((
+        channelName: 'minigame-aliases:$sessionId',
+        table: 'minigame_aliases',
+        event: PostgresChangeEvent.update,
+      )),
+      (_, next) {
+        final row = next.valueOrNull;
+        if (row == null || row['session_id'] != sessionId) return;
+        if (!state.hasValue) return;
+        final alias = row['alias'];
+        if (row['participant_id'] is! String || alias is! String) return;
+        state = AsyncData({
+          ...state.valueOrNull!,
+          row['participant_id'] as String: alias,
+        });
+      },
+    );
+    return _service.getAliases(sessionId);
+  }
+
+  /// Re-runs [build] after a set/update (finding SM-09).
+  Future<void> refresh() async => ref.invalidateSelf();
+
+  /// Sets/updates the caller's temp nickname and reloads the map.
+  Future<void> setAlias(String sessionId, String alias) async {
+    await _service.setAlias(sessionId, alias);
+    await refresh();
+  }
+}
+
+/// One session's temp nicknames (family by session id; empty map when none).
+final minigameAliasesProvider =
+    AsyncNotifierProvider.family<
+      MinigameAliasesNotifier,
+      Map<String, String>,
+      String
+    >(MinigameAliasesNotifier.new);
 
 /// One session's live play-engine state (family by session id).
 final minigameGameStateProvider =
@@ -463,6 +771,31 @@ final minigameGameStateProvider =
       MinigameGameState,
       String
     >(MinigameGameStateNotifier.new);
+
+/// The settled leaderboard of one session (201_minigame_voting) — read from
+/// `minigame_results` once the game has finished. Null while the game is
+/// still active (no settlement row yet).
+class MinigameResultNotifier
+    extends FamilyAsyncNotifier<MinigameResult?, String> {
+  MinigameService get _service => ref.read(minigameServiceProvider);
+
+  @override
+  Future<MinigameResult?> build(String sessionId) async {
+    return _service.getMinigameResult(sessionId);
+  }
+
+  /// Re-runs [build] after the game settles (finding SM-09).
+  Future<void> refresh() async => ref.invalidateSelf();
+}
+
+/// One session's settled leaderboard (family by session id; null before the
+/// game ends).
+final minigameResultProvider =
+    AsyncNotifierProvider.family<
+      MinigameResultNotifier,
+      MinigameResult?,
+      String
+    >(MinigameResultNotifier.new);
 
 /// One lobby participant row — the id + profile from
 /// [MinigameService.getMinigameParticipants] with the LIVE ready flag merged
@@ -513,6 +846,12 @@ class MinigameParticipantsNotifier
     extends FamilyAsyncNotifier<List<MinigameParticipant>, String> {
   MinigameService get _service => ref.read(minigameServiceProvider);
 
+  /// Participants this notifier has already handed the round-key history to
+  /// (2026-08-31) — the roster-change safety net fires ONCE per newcomer,
+  /// never on every session emission. A delivered-mark is dropped when the
+  /// participant leaves the roster so a re-join re-delivers.
+  final Set<String> _deliveredRecipients = {};
+
   @override
   Future<List<MinigameParticipant>> build(String sessionId) async {
     // Live ready flags: the authoritative map rides the play-engine state.
@@ -532,6 +871,14 @@ class MinigameParticipantsNotifier
     // was removed, or accepted an invite — the roster re-fetches so a new
     // player (or a kick) shows up immediately, even on a hot reload where
     // provider state is preserved.
+    //
+    // E2EE roster-change safety net (2026-08-31): the same id-set change ALSO
+    // hands the NEW members the full `K_1..K_N` history — the accept-time
+    // [MinigameInviteNotifier._distributeKeysOnAccept] is the acceptor-side
+    // best-effort shot, but the HOST's copy here is authoritative (a peer who
+    // skipped at accept for lack of a prekey gets retried on the next roster
+    // change, exactly the cipher's retry contract). Participants whose
+    // delivered-mark is dropped (left the roster) re-deliver on re-join.
     ref.listen<AsyncValue<Map<String, dynamic>>>(
       sessionStatusProvider(sessionId),
       (_, next) {
@@ -540,6 +887,9 @@ class MinigameParticipantsNotifier
         if (!state.hasValue) return;
         final nextIds = _participantIdsOf(next.valueOrNull);
         if (nextIds.isEmpty) return;
+        // Drop delivered-marks for participants no longer in the roster so a
+        // re-join (or a kicked-and-reinvited player) re-delivers.
+        _deliveredRecipients.removeWhere((id) => !nextIds.contains(id));
         final currentIds = {
           for (final p in state.valueOrNull ?? const <MinigameParticipant>[])
             p.id,
@@ -549,6 +899,7 @@ class MinigameParticipantsNotifier
           // Re-fetch the roster in place (no double-build: this listen only
           // fires on an actual participants change).
           refresh();
+          _distributeToNewMembers(nextIds);
         }
       },
     );
@@ -592,6 +943,32 @@ class MinigameParticipantsNotifier
           participant,
     ];
     state = AsyncData(updated);
+  }
+
+  /// Best-effort E2EE history distribution to the roster's NEW members
+  /// (2026-08-31): fires exactly when the participant id-set changes (the
+  /// same condition that re-fetches the roster) and hands each newcomer NOT
+  /// yet in [_deliveredRecipients] the full `K_1..K_N` history. The host
+  /// being the key custodian, this is the authoritative delivery — it also
+  /// retries peers that a no-prekey skip left missing at accept. Failures are
+  /// logged and swallowed (best-effort contract); delivered-marks are set
+  /// only after a successful call so a transient failure retries on the next
+  /// roster change.
+  Future<void> _distributeToNewMembers(Set<String> nextIds) async {
+    try {
+      final myId = ref.read(authStateProvider).valueOrNull?.user?['id'];
+      if (myId == null) return;
+      final cipher = ref.read(minigameCipherProvider(arg));
+      final peers = [
+        for (final id in nextIds)
+          if (id != myId && !_deliveredRecipients.contains(id)) id,
+      ];
+      if (peers.isEmpty) return;
+      await cipher.distributeHistoryKeys(peerIds: peers, roundKeys: const {});
+      _deliveredRecipients.addAll(peers);
+    } catch (e, st) {
+      AppLogger.instance.warn('minigame roster distribution skipped', '$st');
+    }
   }
 
   /// Re-runs [build] after a start / remove (finding SM-09).

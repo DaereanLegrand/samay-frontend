@@ -9,6 +9,7 @@ import 'package:samay/core/models/group.dart';
 import 'package:samay/core/router/route_paths.dart';
 import 'package:samay/core/services/minigame_service.dart';
 import 'package:samay/features/groups/providers/groups_providers.dart';
+import 'package:samay/features/minigames/logic/minigame_engine.dart';
 import 'package:samay/features/minigames/logic/minigame_meta.dart';
 import 'package:samay/features/minigames/providers/minigames_providers.dart';
 import 'package:samay/features/minigames/screens/minigame_invite_screen.dart';
@@ -25,6 +26,7 @@ import 'package:samay/shared/widgets/v_chip.dart';
 import 'package:samay/shared/widgets/v_header_bar.dart';
 import 'package:samay/shared/widgets/v_input.dart';
 import 'package:samay/shared/widgets/v_shard_icon.dart';
+import 'package:samay/shared/widgets/v_spinner.dart';
 
 /// Dedicated per-game landing page (2026-08-28): the reusable shell every
 /// minigame owns — game title + icon, explanation, audience ("con amigos /
@@ -53,6 +55,10 @@ class MinigameDetailScreen extends ConsumerStatefulWidget {
 class _MinigameDetailScreenState extends ConsumerState<MinigameDetailScreen> {
   MinigameType get _type => widget.gameType;
 
+  /// Session ids with an accept/decline in flight — the inline buttons turn
+  /// into spinners and ignore taps until the RPC settles (double-tap guard).
+  final Set<String> _busySessionIds = <String>{};
+
   Future<void> _openNewPartida() async {
     final created = await Navigator.of(context).push<bool>(
       MaterialPageRoute(
@@ -66,6 +72,66 @@ class _MinigameDetailScreenState extends ConsumerState<MinigameDetailScreen> {
 
   void _showDetail(String sessionId) {
     context.push(RoutePaths.minigameSession(sessionId));
+  }
+
+  /// Inline ACCEPT (2026-08-30): accepts the pending invite straight from the
+  /// per-game list — no need to open the session detail first. On success the
+  /// user is taken to the partida LOBBY (the session detail becomes the
+  /// pre-play room once they are a participant). Rejections surface the typed
+  /// [MinigameSessionRejectedException] through [minigameRejectionMessage] so
+  /// "insufficient shards" reads as a friendly explanation, never a raw error.
+  Future<void> _acceptInvite(String sessionId) async {
+    final l10n = AppLocalizations.of(context);
+    if (_busySessionIds.contains(sessionId)) return;
+    setState(() => _busySessionIds.add(sessionId));
+    try {
+      await ref.read(minigameInviteProvider(sessionId).notifier).accept();
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.minigamesInviteAccepted)));
+      context.push(RoutePaths.minigameSession(sessionId));
+    } on MinigameSessionRejectedException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(minigameRejectionMessage(l10n, e.rejection))),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e.toAppError().message)));
+    } finally {
+      if (mounted) setState(() => _busySessionIds.remove(sessionId));
+    }
+  }
+
+  /// Inline DECLINE (2026-08-30): declines the pending invite straight from
+  /// the per-game list. The accept/decline action invalidates
+  /// [myPendingInvitesProvider], so the row drops off the list on success.
+  Future<void> _declineInvite(String sessionId) async {
+    final l10n = AppLocalizations.of(context);
+    if (_busySessionIds.contains(sessionId)) return;
+    setState(() => _busySessionIds.add(sessionId));
+    try {
+      await ref.read(minigameInviteProvider(sessionId).notifier).decline();
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.minigamesInviteDeclined)));
+    } on MinigameSessionRejectedException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(minigameRejectionMessage(l10n, e.rejection))),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e.toAppError().message)));
+    } finally {
+      if (mounted) setState(() => _busySessionIds.remove(sessionId));
+    }
   }
 
   Future<void> _refresh() async {
@@ -164,7 +230,14 @@ class _MinigameDetailScreenState extends ConsumerState<MinigameDetailScreen> {
         session: session,
         index: rowIndex,
         pendingInvite: isPending,
+        busy: _busySessionIds.contains(session['id']),
         onTap: () => _showDetail(session['id'] as String),
+        onAccept: isPending
+            ? () => _acceptInvite(session['id'] as String)
+            : null,
+        onDecline: isPending
+            ? () => _declineInvite(session['id'] as String)
+            : null,
       ),
     );
   }
@@ -269,19 +342,35 @@ class _AudienceTag extends StatelessWidget {
 /// One ongoing partida row: display name (user or auto partida-XX), the
 /// wager or participant count, and the status chip. A row may be a PENDING
 /// INVITE (170_minigame_invite_badges) — an invited friend's "partida-N
-/// ready to accept" entry — which renders the invite chip instead of the
-/// active chip and deep-links to the accept/decline detail.
+/// ready to accept" entry — which renders:
+///
+///   * the who-invited context (2026-08-30): "Invitado por {name}" for a
+///     DIRECT session, "Grupo {name}" for a GROUP session — resolved from the
+///     notification payload the server embeds (RLS keeps the raw group/user
+///     rows unreadable to a non-member invitee),
+///   * a trailing ACCEPT (emphasized check) / DECLINE (outlined x) pair so the
+///     invite is handled straight from the list — accepting lands on the
+///     partida lobby, declining drops the row — instead of deep-linking to
+///     the session detail for the accept/decline pair.
+///
+/// Tapping the row body still deep-links to the accept/decline detail.
 class _SessionRow extends StatelessWidget {
   final Map<String, dynamic> session;
   final int index;
   final bool pendingInvite;
+  final bool busy;
   final VoidCallback onTap;
+  final VoidCallback? onAccept;
+  final VoidCallback? onDecline;
 
   const _SessionRow({
     required this.session,
     required this.index,
     this.pendingInvite = false,
+    this.busy = false,
     required this.onTap,
+    this.onAccept,
+    this.onDecline,
   });
 
   @override
@@ -291,6 +380,19 @@ class _SessionRow extends StatelessWidget {
     final wager = (session['shard_wager'] as num?)?.toInt() ?? 0;
     final participants = (session['participants'] as List?)?.length ?? 0;
     final name = minigameSessionName(l10n, session, index: index);
+    final inviterName = session['inviterName'] as String?;
+    final groupName = session['groupName'] as String?;
+    final groupId = session['group_id'] as String?;
+    // Who invited me: a GROUP session shows the group name; a DIRECT session
+    // shows the inviter's username (both ride the notification payload — RLS
+    // hides the underlying rows from a non-member invitee).
+    final fromLabel = pendingInvite && groupId != null
+        ? groupName == null || groupName.isEmpty
+              ? null
+              : l10n.minigamesInviteFromGroup(groupName)
+        : pendingInvite && inviterName != null && inviterName.isNotEmpty
+        ? l10n.minigamesInviteFromDirect(inviterName)
+        : null;
 
     return InkWell(
       onTap: onTap,
@@ -314,22 +416,102 @@ class _SessionRow extends StatelessWidget {
                           : l10n.minigamesParticipants(participants),
                       style: const TextStyle(color: AppColors.mutedStrong),
                     ),
+                    if (fromLabel != null) ...[
+                      const SizedBox(height: AppSpacing.xs),
+                      Text(
+                        fromLabel,
+                        style: const TextStyle(
+                          color: AppColors.mutedStrong,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),
               const SizedBox(width: AppSpacing.md),
-              VChip(
-                label: pendingInvite
-                    ? l10n.minigamesInvitePending
-                    : status == 'finished'
-                    ? l10n.minigamesStatusFinished
-                    : l10n.minigamesStatusActive,
-                selected: pendingInvite ? false : status != 'finished',
-              ),
+              if (pendingInvite)
+                _PendingInviteActions(
+                  busy: busy,
+                  onAccept: onAccept,
+                  onDecline: onDecline,
+                )
+              else
+                VChip(
+                  label: status == 'finished'
+                      ? l10n.minigamesStatusFinished
+                      : l10n.minigamesStatusActive,
+                  selected: status != 'finished',
+                ),
             ],
           ),
         ),
       ),
+    );
+  }
+}
+
+/// The inline ACCEPT (emphasized check) / DECLINE (outlined x) pair on a
+/// pending-invite row (2026-08-30). The check is the emphasized voice — white
+/// fill, black icon; the x is the outlined voice — transparent fill, white
+/// border + icon. While the RPC is in flight both turn into a single spinner
+/// and ignore taps (double-tap guard).
+class _PendingInviteActions extends StatelessWidget {
+  final bool busy;
+  final VoidCallback? onAccept;
+  final VoidCallback? onDecline;
+
+  const _PendingInviteActions({
+    required this.busy,
+    this.onAccept,
+    this.onDecline,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    if (busy) {
+      return const SizedBox(
+        width: 72,
+        height: 36,
+        child: Center(child: VSpinner(size: 18)),
+      );
+    }
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        SizedBox(
+          width: 36,
+          height: 36,
+          child: IconButton(
+            onPressed: onAccept,
+            tooltip: l10n.minigamesInviteAccept,
+            style: IconButton.styleFrom(
+              backgroundColor: AppColors.white,
+              shape: const RoundedRectangleBorder(),
+              padding: EdgeInsets.zero,
+              disabledBackgroundColor: AppColors.muted,
+            ),
+            icon: const Icon(Icons.check, size: 20, color: AppColors.discoBlack),
+          ),
+        ),
+        const SizedBox(width: AppSpacing.sm),
+        SizedBox(
+          width: 36,
+          height: 36,
+          child: IconButton(
+            onPressed: onDecline,
+            tooltip: l10n.minigamesInviteDecline,
+            style: IconButton.styleFrom(
+              backgroundColor: Colors.transparent,
+              side: const BorderSide(color: AppColors.white),
+              shape: const RoundedRectangleBorder(),
+              padding: EdgeInsets.zero,
+            ),
+            icon: const Icon(Icons.close, size: 20, color: AppColors.white),
+          ),
+        ),
+      ],
     );
   }
 }
@@ -350,15 +532,24 @@ class _NewPartidaScreen extends ConsumerStatefulWidget {
 class _NewPartidaScreenState extends ConsumerState<_NewPartidaScreen> {
   final _nameController = TextEditingController();
   final _wagerController = TextEditingController(text: '10');
+  final _roundsController = TextEditingController(text: '5');
+  final _asyncRoundsController = TextEditingController(text: '1');
+  final _asyncDaysController = TextEditingController(text: '1');
   MinigameScope _scope = MinigameScope.direct;
   String? _selectedGroupId;
   List<String> _inviteeIds = const [];
+  final int _prizePositions = kDefaultPrizePositions;
+  MinigamePlayMode _playMode = MinigamePlayMode.byTurns;
+  bool _anonymous = false;
   bool _creating = false;
 
   @override
   void dispose() {
     _nameController.dispose();
     _wagerController.dispose();
+    _roundsController.dispose();
+    _asyncRoundsController.dispose();
+    _asyncDaysController.dispose();
     super.dispose();
   }
 
@@ -393,6 +584,14 @@ class _NewPartidaScreenState extends ConsumerState<_NewPartidaScreen> {
     final type = widget.gameType;
     final name = _nameController.text.trim();
     final wager = int.tryParse(_wagerController.text.trim()) ?? 0;
+    final rounds = int.tryParse(_roundsController.text.trim()) ?? 5;
+    final prizePositions = _prizePositions;
+    final asyncRoundsPerPlayer =
+        int.tryParse(_asyncRoundsController.text.trim()) ?? 1;
+    final asyncDays = int.tryParse(_asyncDaysController.text.trim()) ?? 1;
+    final asyncEndsAt = _playMode == MinigamePlayMode.async
+        ? DateTime.now().add(Duration(days: asyncDays))
+        : null;
 
     setState(() => _creating = true);
     try {
@@ -401,11 +600,33 @@ class _NewPartidaScreenState extends ConsumerState<_NewPartidaScreen> {
         if (groupId == null) return;
         await ref
             .read(minigameSessionsProvider(groupId).notifier)
-            .create(type, wager, inviteeIds: _inviteeIds, name: name);
+            .create(
+              type,
+              wager,
+              inviteeIds: _inviteeIds,
+              name: name,
+              rounds: rounds,
+              prizePositions: prizePositions,
+              playMode: _playMode,
+              anonymous: _anonymous,
+              asyncRoundsPerPlayer: asyncRoundsPerPlayer,
+              asyncEndsAt: asyncEndsAt,
+            );
       } else {
         await ref
             .read(myMinigameSessionsProvider.notifier)
-            .create(type, wager, inviteeIds: _inviteeIds, name: name);
+            .create(
+              type,
+              wager,
+              inviteeIds: _inviteeIds,
+              name: name,
+              rounds: rounds,
+              prizePositions: prizePositions,
+              playMode: _playMode,
+              anonymous: _anonymous,
+              asyncRoundsPerPlayer: asyncRoundsPerPlayer,
+              asyncEndsAt: asyncEndsAt,
+            );
       }
       if (!mounted) return;
       ScaffoldMessenger.of(
@@ -469,6 +690,56 @@ class _NewPartidaScreenState extends ConsumerState<_NewPartidaScreen> {
               controller: _wagerController,
               balanceCaption: l10n.minigamesWagerBalanceCaption,
               onChanged: (_) => setState(() {}),
+            ),
+            const SizedBox(height: AppSpacing.md),
+            // 201_minigame_voting: the total-turn target (default 5). The
+            // host-set prize-position (N) selector is deferred (TODO) — the
+            // client sends the default N = 3.
+            _RoundsRow(controller: _roundsController),
+            const SizedBox(height: AppSpacing.md),
+            // 202_minigame_play_v2: play-mode selector (by_turns / async) +
+            // the async per-player rounds + timer (settable at creation, no
+            // override after) + the anonymous toggle.
+            Text(
+              l10n.minigamesModeLabel.toUpperCase(),
+              style: Theme.of(context).textTheme.titleSmall,
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            Row(
+              children: [
+                VChip(
+                  label: l10n.minigamesModeByTurns,
+                  selected: _playMode == MinigamePlayMode.byTurns,
+                  onSelected: () =>
+                      setState(() => _playMode = MinigamePlayMode.byTurns),
+                  compact: true,
+                ),
+                const SizedBox(width: AppSpacing.sm),
+                VChip(
+                  label: l10n.minigamesModeAsync,
+                  selected: _playMode == MinigamePlayMode.async,
+                  onSelected: () =>
+                      setState(() => _playMode = MinigamePlayMode.async),
+                  compact: true,
+                ),
+              ],
+            ),
+            if (_playMode == MinigamePlayMode.async) ...[
+              const SizedBox(height: AppSpacing.md),
+              _RoundsRow(
+                controller: _asyncRoundsController,
+                label: l10n.minigamesAsyncRoundsLabel,
+              ),
+              const SizedBox(height: AppSpacing.md),
+              _RoundsRow(
+                controller: _asyncDaysController,
+                label: l10n.minigamesAsyncEndsLabel,
+              ),
+            ],
+            const SizedBox(height: AppSpacing.md),
+            _AnonymousToggle(
+              value: _anonymous,
+              onChanged: (v) => setState(() => _anonymous = v),
             ),
             const SizedBox(height: AppSpacing.xl),
             VButton.emphasized(
@@ -660,7 +931,7 @@ class _WagerRowState extends ConsumerState<_WagerRow> {
                 ),
               ),
               const SizedBox(height: 2),
-              Row(
+                  Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   const VShardIcon(size: AppIconSizes.xs),
@@ -677,6 +948,88 @@ class _WagerRowState extends ConsumerState<_WagerRow> {
                 ],
               ),
             ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// The rounds row in the create-partida wizard (201_minigame_voting): the
+/// total-turn target (default 5) with a compact label to the left, mirroring
+/// the wager row's layout. The play engine auto-finishes once this many
+/// turns complete.
+class _RoundsRow extends StatelessWidget {
+  const _RoundsRow({required this.controller, this.label});
+
+  final TextEditingController controller;
+
+  /// Overrides the default "Rondas" label (202 async fields reuse the row
+  /// with their own labels).
+  final String? label;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final title = label ?? l10n.minigamesRoundsLabel;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+      child: Row(
+        children: [
+          Text(
+            title,
+            style: const TextStyle(
+              color: AppColors.white,
+              fontSize: 17,
+              fontWeight: FontWeight.w400,
+              height: 1.35,
+            ),
+          ),
+          const SizedBox(width: AppSpacing.sm),
+          Expanded(
+            child: VInput(
+              label: title,
+              hint: l10n.minigamesRoundsHint,
+              controller: controller,
+              keyboardType: TextInputType.number,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// The anonymous-mode toggle in the create wizard (202_minigame_play_v2):
+/// hides usernames during play — participants use temp nicknames until the
+/// leaderboard.
+class _AnonymousToggle extends StatelessWidget {
+  const _AnonymousToggle({required this.value, required this.onChanged});
+
+  final bool value;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              l10n.minigamesAnonymousLabel,
+              style: const TextStyle(
+                color: AppColors.white,
+                fontSize: 17,
+                fontWeight: FontWeight.w400,
+                height: 1.35,
+              ),
+            ),
+          ),
+          Switch(
+            value: value,
+            onChanged: onChanged,
           ),
         ],
       ),

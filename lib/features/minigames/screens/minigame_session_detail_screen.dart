@@ -520,7 +520,15 @@ class _LobbySection extends ConsumerWidget {
       await ref
           .read(minigameGameStateProvider(sessionId).notifier)
           .removeParticipant(participant.id);
-      if (context.mounted) Navigator.of(context).pop();
+      // Pop the lobby back to the list ONLY when it was actually pushed —
+      // when the session detail is the root route (deep link / direct
+      // navigation) there is nothing to pop to, and popping would leave
+      // go_router re-pushing the same page (Navigator `!_debugLocked` teardown
+      // race).
+      if (context.mounted) {
+        final navigator = Navigator.of(context);
+        if (navigator.canPop()) navigator.pop();
+      }
     } catch (e) {
       if (e.toAppError().code == 'NOT_FOUND' && context.mounted) {
         Navigator.of(context).pop();

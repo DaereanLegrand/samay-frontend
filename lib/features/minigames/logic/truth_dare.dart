@@ -52,3 +52,10 @@ String truthDareChooseHeader(AppLocalizations l10n, String? subjectName) {
   }
   return l10n.minigamesChoosePromptFor(subjectName);
 }
+
+/// The default anonymous temp nickname for a participant (202_minigame_play_v2):
+/// localized `anónimoXXX` with a random-unique numeric suffix.
+String defaultAnonAlias(AppLocalizations l10n, {required String seed}) {
+  final code = seed.hashCode.abs() % 1000;
+  return '${l10n.minigamesAnonAliasPrefix}$code';
+}

@@ -1827,6 +1827,12 @@ class AppLocalizationsEs extends AppLocalizations {
   String get minigamesWagerDefaultHint => 'Por defecto: 10';
 
   @override
+  String get minigamesRoundsLabel => 'Rondas:';
+
+  @override
+  String get minigamesRoundsHint => 'Por defecto: 5';
+
+  @override
   String get minigamesWagerLabel => 'Usando:';
 
   @override
@@ -1931,6 +1937,84 @@ class AppLocalizationsEs extends AppLocalizations {
   String get minigamesTurnGeneric => 'Turno de un jugador';
 
   @override
+  String get minigamesAnonAliasPrefix => 'anónimo';
+
+  @override
+  String get minigamesAnswerTitle => 'Tu respuesta';
+
+  @override
+  String get minigamesAnswerPlaceholder => 'Escribe tu respuesta…';
+
+  @override
+  String get minigamesAnswerImageLabel => 'Añadir imagen';
+
+  @override
+  String get minigamesAnswerRemoveImage => 'Quitar imagen';
+
+  @override
+  String get minigamesAnswerSubmit => 'Responder';
+
+  @override
+  String get minigamesAnswerRevealed => 'Respondida';
+
+  @override
+  String get minigamesAnswerWaiting => 'Esperando la respuesta…';
+
+  @override
+  String minigamesAnswerWaitingReactions(int reacted, int required) {
+    return 'esperando $reacted/$required reacciones…';
+  }
+
+  @override
+  String get minigamesPasar => 'Pasar';
+
+  @override
+  String get minigamesPasarSkipped => 'pasó';
+
+  @override
+  String get minigamesModeLabel => 'Modo de juego';
+
+  @override
+  String get minigamesModeByTurns => 'Por turnos';
+
+  @override
+  String get minigamesModeAsync => 'Asíncrono';
+
+  @override
+  String get minigamesAsyncRoundsLabel => 'Rondas por jugador';
+
+  @override
+  String get minigamesAsyncEndsLabel => 'Tiempo de la partida (días)';
+
+  @override
+  String get minigamesAnonymousLabel => 'Partida anónima';
+
+  @override
+  String get minigamesAliasLabel => 'Apodo temporal';
+
+  @override
+  String get minigamesAliasUpdate => 'Actualizar nombre';
+
+  @override
+  String get minigamesAliasUpdated => 'Nombre actualizado';
+
+  @override
+  String minigamesAsyncProgress(int done, int target) {
+    return 'Tus rondas: $done/$target';
+  }
+
+  @override
+  String get minigamesAsyncAvailable => 'Rondas para reaccionar';
+
+  @override
+  String minigamesAsyncTimerEnds(String date) {
+    return 'La partida termina el $date';
+  }
+
+  @override
+  String get minigamesAnswerPasarLine => 'puedes pasar si no quieres responder';
+
+  @override
   String minigamesTurnFor(String name) {
     return 'Turno de $name';
   }
@@ -1961,6 +2045,25 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get minigamesFinished => '¡Juego terminado!';
+
+  @override
+  String minigamesRoundCounter(int current, int total) {
+    return 'Ronda $current / $total';
+  }
+
+  @override
+  String get minigamesReactionsTitle => 'Reacciona al turno:';
+
+  @override
+  String get minigamesLeaderboardTitle => 'Clasificación';
+
+  @override
+  String get minigamesAnonymousPlayer => 'Jugador';
+
+  @override
+  String minigamesPrizeAmount(int amount) {
+    return '$amount shards';
+  }
 
   @override
   String get minigamesErrorLoadGame => 'No se pudo cargar el juego';
@@ -2188,13 +2291,38 @@ class AppLocalizationsEs extends AppLocalizations {
       'Esta partida alcanzó su límite de jugadores.';
 
   @override
+  String get minigamesErrorInvalidRounds => 'El número de rondas no es válido.';
+
+  @override
+  String get minigamesErrorInvalidPrizePositions =>
+      'El número de puestos premiados no es válido.';
+
+  @override
+  String get minigamesErrorInvalidPlayMode => 'El modo de juego no es válido.';
+
+  @override
+  String get minigamesErrorInvalidAsyncRounds =>
+      'Las rondas por jugador no son válidas.';
+
+  @override
+  String get minigamesErrorInvalidAsyncEndsAt =>
+      'La fecha de fin de la partida asíncrona no es válida.';
+
+  @override
   String get minigamesErrorNotAllowed => 'No puedes unirte a esta partida.';
 
   @override
   String get minigamesInvitePendingBody => 'Te invitaron a esta partida.';
 
   @override
-  String get minigamesInvitePending => 'Invitación pendiente';
+  String minigamesInviteFromDirect(String name) {
+    return 'Invitado por $name';
+  }
+
+  @override
+  String minigamesInviteFromGroup(String name) {
+    return 'Grupo $name';
+  }
 
   @override
   String get minigamesInviteAccept => 'Aceptar';

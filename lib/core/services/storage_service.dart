@@ -40,6 +40,7 @@ class HiveService {
   static const messageBoxName = 'message_cache';
   static const notificationBoxName = 'notification_cache';
   static const friendsBoxName = 'friends_cache';
+  static const minigameSummaryBoxName = 'minigame_summary_cache';
 
   /// Secure-storage key under which the base64-encoded Hive encryption key
   /// (32 bytes = 256 bit, AES-256) is persisted.
@@ -170,6 +171,7 @@ class HiveService {
     await _openBox(messageBoxName, key);
     await _openBox(notificationBoxName, key);
     await _openBox(friendsBoxName, key);
+    await _openBox(minigameSummaryBoxName, key);
   }
 
   Future<void> cacheConfig(Map<String, String> config) async {
@@ -297,6 +299,40 @@ class HiveService {
     try {
       final t = (jsonDecode(raw) as Map)['t'];
       return t is String ? DateTime.tryParse(t) : null;
+    } on FormatException {
+      return null;
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // On-device minigame match summary (202_minigame_play_v2 — the history /
+  // summary lives on the device; the user directive said the server would
+  // purge it later, so the device copy is the durable record).
+  // ---------------------------------------------------------------------------
+  // Keys are `minigame:<sessionId>`; values are the JSON-encoded summary map:
+  // `{results, answers, reactions, aliases}` written when the match finishes.
+  // AES-256 at rest (same box cipher as every Hive cache).
+
+  /// Persists the finished match [summary] for [sessionId] on-device.
+  Future<void> cacheMinigameSummary(
+    String sessionId,
+    Map<String, dynamic> summary,
+  ) async {
+    final box = _hive.box<String>(minigameSummaryBoxName);
+    await box.put('minigame:$sessionId', jsonEncode(summary));
+  }
+
+  /// The on-device match summary for [sessionId], or null when the device has
+  /// no record yet.
+  Map<String, dynamic>? getCachedMinigameSummary(String sessionId) {
+    final box = _hive.box<String>(minigameSummaryBoxName);
+    final raw = box.get('minigame:$sessionId');
+    if (raw == null) return null;
+    try {
+      final decoded = jsonDecode(raw);
+      return decoded is Map
+          ? Map<String, dynamic>.from(decoded)
+          : null;
     } on FormatException {
       return null;
     }

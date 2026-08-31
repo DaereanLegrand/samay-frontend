@@ -44,6 +44,16 @@ String minigameRejectionMessage(
       l10n.minigamesErrorTooManyInvitees,
     MinigameSessionRejection.playerLimitReached =>
       l10n.minigamesErrorPlayerLimitReached,
+    MinigameSessionRejection.invalidRounds =>
+      l10n.minigamesErrorInvalidRounds,
+    MinigameSessionRejection.invalidPrizePositions =>
+      l10n.minigamesErrorInvalidPrizePositions,
+    MinigameSessionRejection.invalidPlayMode =>
+      l10n.minigamesErrorInvalidPlayMode,
+    MinigameSessionRejection.invalidAsyncRounds =>
+      l10n.minigamesErrorInvalidAsyncRounds,
+    MinigameSessionRejection.invalidAsyncEndsAt =>
+      l10n.minigamesErrorInvalidAsyncEndsAt,
     MinigameSessionRejection.notAllowed => l10n.minigamesErrorNotAllowed,
     MinigameSessionRejection.notAuthenticated ||
     MinigameSessionRejection.invalidWager => l10n.minigamesErrorCreate,

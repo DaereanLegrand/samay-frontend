@@ -1,6 +1,11 @@
+import 'dart:typed_data';
+
 import 'package:samay/core/errors/app_error.dart';
 import 'package:samay/core/services/realtime_service.dart';
+import 'package:samay/features/minigames/logic/minigame_engine.dart';
+import 'package:samay/features/minigames/logic/truth_dare.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:uuid/uuid.dart';
 
 /// The five group-scoped mini-game types (GMCR spec; DB enum
 /// `mini_game_type`). `.value` is the wire value used by the RPC and the
@@ -62,6 +67,22 @@ enum MinigameSessionRejection {
   /// `player_limit` (free tier 8, scaled by the CREATOR's subscription tier
   /// via app_config — direct-minigames 2026-08-27).
   playerLimitReached,
+
+  /// `p_rounds < 1` (201_minigame_voting).
+  invalidRounds,
+
+  /// `p_prize_positions < 1` (201_minigame_voting).
+  invalidPrizePositions,
+
+  /// `p_play_mode` is not `by_turns` / `async` (202_minigame_play_v2).
+  invalidPlayMode,
+
+  /// `p_async_rounds_per_player < 1` (202_minigame_play_v2).
+  invalidAsyncRounds,
+
+  /// `p_async_ends_at` is missing / in the past for an async session
+  /// (202_minigame_play_v2 — the timer is settable at creation, no override).
+  invalidAsyncEndsAt,
 
   /// A non-participant tried to join/finish a DIRECT session (group
   /// sessions still reject with [notMember]). Bystanders can never join or
@@ -163,12 +184,23 @@ class MinigameService {
   /// [name] is the optional partida title (160_minigame_names). Null or blank
   /// leaves the row unnamed — the UI then displays the computed `partida-XX`
   /// (auto-name stays client-side, never polluting the DB).
+  ///
+  /// 202_minigame_play_v2 additions: [playMode] (by_turns / async), [anonymous]
+  /// (hide usernames during play — temp nicknames until the leaderboard),
+  /// [asyncRoundsPerPlayer] (per-player target in async mode, default 1) and
+  /// [asyncEndsAt] (the settable async deadline, no override after creation).
   Future<String> createSession(
     String? groupId,
     MinigameType type,
     int wager, {
     List<String> inviteeIds = const [],
     String? name,
+    int rounds = 5,
+    int prizePositions = kDefaultPrizePositions,
+    MinigamePlayMode playMode = MinigamePlayMode.byTurns,
+    bool anonymous = false,
+    int asyncRoundsPerPlayer = 1,
+    DateTime? asyncEndsAt,
   }) async {
     final user = auth.currentUser;
     if (user == null) throw const UnauthorizedError();
@@ -181,6 +213,12 @@ class MinigameService {
         'p_wager': wager,
         'p_invitees': inviteeIds,
         'p_name': name,
+        'p_rounds': rounds,
+        'p_prize_positions': prizePositions,
+        'p_play_mode': playMode.wire,
+        'p_anonymous': anonymous,
+        'p_async_rounds_per_player': asyncRoundsPerPlayer,
+        'p_async_ends_at': asyncEndsAt?.toIso8601String(),
       },
     );
     final result = res is Map
@@ -216,6 +254,21 @@ class MinigameService {
       ),
       'player_limit_reached' => throw const MinigameSessionRejectedException(
         MinigameSessionRejection.playerLimitReached,
+      ),
+      'invalid_rounds' => throw const MinigameSessionRejectedException(
+        MinigameSessionRejection.invalidRounds,
+      ),
+      'invalid_prize_positions' => throw const MinigameSessionRejectedException(
+        MinigameSessionRejection.invalidPrizePositions,
+      ),
+      'invalid_play_mode' => throw const MinigameSessionRejectedException(
+        MinigameSessionRejection.invalidPlayMode,
+      ),
+      'invalid_async_rounds' => throw const MinigameSessionRejectedException(
+        MinigameSessionRejection.invalidAsyncRounds,
+      ),
+      'invalid_async_ends_at' => throw const MinigameSessionRejectedException(
+        MinigameSessionRejection.invalidAsyncEndsAt,
       ),
       _ => throw const ServerError('Unexpected create_minigame_session response'),
     };
@@ -275,39 +328,30 @@ class MinigameService {
     }
   }
 
-  /// Flips the session lifecycle status (GMCR: `active` → `finished`) via the
-  /// `finish_minigame_session` SECURITY DEFINER RPC (migration
-  /// 20260813000001) — the client-side UPDATE is RLS-blocked
-  /// (`minigame_sessions` has no UPDATE policy under FORCE RLS) and the
-  /// settlement MUST happen server-side.
+  /// Settles a finished minigame via the `finish_minigame_game` SECURITY
+  /// DEFINER RPC (201_minigame_voting) — the single settlement seam that
+  /// REPLACED `finish_minigame_session` (winner-takes-all) and
+  /// `complete_minigame_game` (draw-only). The client-side UPDATE is
+  /// RLS-blocked (`minigame_sessions` has no UPDATE policy under FORCE RLS)
+  /// and the settlement MUST happen server-side.
   ///
-  /// The RPC settles the escrow in one transaction (GWAG §Wager Resolution):
-  /// with a winner it credits `users.personal_shards` with the full pot and
-  /// writes the `minigame_win` ledger row; with a null winner (draw) it
-  /// refunds every participant (`minigame_refund`). This seam carries no
-  /// winner id, so finishing through it resolves a wagered session as a
-  /// draw — a future winner-aware caller can invoke `finish_minigame_session`
-  /// directly with `p_winner_id`. Reactivating a finished session has no
-  /// server contract and is rejected.
-  Future<void> updateStatus(String id, MinigameStatus status) async {
-    if (status != MinigameStatus.finished) {
-      throw ConflictError(
-        'Only MinigameStatus.finished has a server contract '
-        '(finish_minigame_session); reactivation is not supported',
-        code: 'reactivation_not_supported',
-      );
-    }
-
+  /// The RPC computes the leaderboard from the rounds history, pays the
+  /// HARMONIC prize split (1/rank over N = prize_positions places, integer-
+  /// exact) into `users.personal_shards` with `minigame_win` ledger rows,
+  /// writes `minigame_results` and flips phase + session status to finished.
+  /// Idempotent — repeat calls are a no-op. The finished screen reads the
+  /// settled leaderboard via [getMinigameResult].
+  Future<void> finishGame(String id) async {
     final res = await client.rpc(
-      'finish_minigame_session',
-      params: {'p_session_id': id, 'p_winner_id': null, 'p_place': null},
+      'finish_minigame_game',
+      params: {'p_session_id': id},
     );
     final result = res is Map
         ? Map<String, dynamic>.from(res)
         : <String, dynamic>{};
-    final statusResponse = result['status'] as String?;
+    final status = result['status'] as String?;
 
-    switch (statusResponse) {
+    switch (status) {
       case 'finished':
       case 'already_finished':
         return;
@@ -325,11 +369,24 @@ class MinigameService {
         );
       case 'session_not_found':
         throw const NotFoundError('Session');
-      case 'invalid_winner':
-        throw ConflictError('Invalid winner', code: 'invalid_winner');
       default:
-        throw const ServerError('Unexpected finish_minigame_session response');
+        throw const ServerError('Unexpected finish_minigame_game response');
     }
+  }
+
+  /// Reads the settled leaderboard for [sessionId] from `minigame_results`
+  /// (RLS `mgs_results_read` — participants/invitees/group members only), or
+  /// null when the game has not settled yet.
+  Future<MinigameResult?> getMinigameResult(String sessionId) async {
+    final user = auth.currentUser;
+    if (user == null) throw const UnauthorizedError();
+    final res = await client
+        .from('minigame_results')
+        .select('session_id, results')
+        .eq('session_id', sessionId)
+        .maybeSingle();
+    if (res == null) return null;
+    return MinigameResult.fromJson(Map<String, dynamic>.from(res));
   }
 
   /// The current user's invite row for [sessionId] (null when they have
@@ -658,32 +715,431 @@ RealtimeChannel subscribeToSession(String id) {
     };
   }
 
-  /// Ends the party game (150_minigame_play): flips the game phase + the
-  /// session status to finished and settles the wager as a draw (refund
-  /// every participant). Idempotent — `already_finished` is a no-op.
-  Future<void> completeMinigameGame(String sessionId) async {
+  /// Submits the caller's ONE emoji vote for the CURRENT round via the
+  /// `submit_minigame_reaction` SECURITY DEFINER RPC (201_minigame_voting).
+  /// One vote per voter per round (re-voting replaces); the vote is persisted
+  /// to `minigame_reactions` AND mirrored into the game-state payload so the
+  /// whole lobby sees the live tally on the realtime channel. Gates:
+  /// participant/invitee/group member + active playing session (typed jsonb
+  /// statuses).
+  Future<void> submitReaction(String sessionId, ReactionKind reaction) async {
     final user = auth.currentUser;
     if (user == null) throw const UnauthorizedError();
 
     final res = await client.rpc(
-      'complete_minigame_game',
+      'submit_minigame_reaction',
+      params: {'p_session_id': sessionId, 'p_reaction': reaction.wire},
+    );
+    final result = res is Map
+        ? Map<String, dynamic>.from(res)
+        : <String, dynamic>{};
+    switch (result['status']) {
+      case 'submitted':
+        return;
+      case 'not_authenticated':
+        throw const MinigameSessionRejectedException(
+          MinigameSessionRejection.notAuthenticated,
+        );
+      case 'session_not_found':
+        throw const NotFoundError('Partida');
+      case 'not_allowed':
+        throw PermissionError();
+      case 'session_not_active':
+        throw ConflictError(
+          'La partida ya terminó',
+          code: 'session_not_active',
+        );
+      case 'not_started':
+        throw ConflictError(
+          'La partida aún no empieza',
+          code: 'not_started',
+        );
+      case 'invalid_reaction':
+        throw ValidationError('reaction', 'Reacción no válida');
+      default:
+        throw const ServerError('Unexpected submit_minigame_reaction response');
+    }
+  }
+
+  /// Submits the current-turn subject's E2EE answer via the
+  /// `submit_minigame_answer` SECURITY DEFINER RPC (202_minigame_play_v2).
+  /// Gates: caller IS the state.subject_id, by_turns mode, round not already
+  /// answered/passed, prompt revealed. The answer rides the payload as
+  /// CIPHERTEXT only (the server never sees plaintext) and streams to every
+  /// participant via the game-state realtime channel. [imageStoragePath] is the
+  /// optional private-bucket object path of the ENCRYPTED image bytes (reto) —
+  /// see [uploadMinigameImage]; the server never stores the key or plaintext.
+  Future<void> submitAnswer(
+    String sessionId, {
+    required String answerCiphertext,
+    String? imageStoragePath,
+  }) async {
+    final user = auth.currentUser;
+    if (user == null) throw const UnauthorizedError();
+
+    final res = await client.rpc(
+      'submit_minigame_answer',
+      params: {
+        'p_session_id': sessionId,
+        'p_answer_ciphertext': answerCiphertext,
+        'p_image_storage_path': imageStoragePath,
+      },
+    );
+    final result = res is Map
+        ? Map<String, dynamic>.from(res)
+        : <String, dynamic>{};
+    switch (result['status']) {
+      case 'submitted':
+        return;
+      case 'not_authenticated':
+        throw const MinigameSessionRejectedException(
+          MinigameSessionRejection.notAuthenticated,
+        );
+      case 'session_not_found':
+        throw const NotFoundError('Partida');
+      case 'not_allowed':
+        throw PermissionError();
+      case 'session_not_active':
+        throw ConflictError(
+          'La partida ya terminó',
+          code: 'session_not_active',
+        );
+      case 'not_started':
+        throw ConflictError(
+          'La partida aún no empieza',
+          code: 'not_started',
+        );
+      case 'wrong_mode':
+        throw ConflictError(
+          'No es el modo por turnos',
+          code: 'wrong_mode',
+        );
+      case 'not_subject':
+        throw PermissionError();
+      case 'already_answered':
+        throw ConflictError(
+          'La ronda ya fue respondida',
+          code: 'already_answered',
+        );
+      case 'no_prompt':
+        throw ConflictError(
+          'El reto aún no se ha revelado',
+          code: 'no_prompt',
+        );
+      default:
+        throw const ServerError('Unexpected submit_minigame_answer response');
+    }
+  }
+
+  /// The current-turn subject passes via `submit_minigame_pasar`
+  /// (202_minigame_play_v2): blocks ALL reactions on the round and
+  /// auto-advances with score -1. Gates: caller IS the state.subject_id,
+  /// by_turns mode, round not already answered.
+  Future<void> submitPasar(String sessionId) async {
+    final user = auth.currentUser;
+    if (user == null) throw const UnauthorizedError();
+
+    final res = await client.rpc(
+      'submit_minigame_pasar',
       params: {'p_session_id': sessionId},
     );
     final result = res is Map
         ? Map<String, dynamic>.from(res)
         : <String, dynamic>{};
     switch (result['status']) {
-      case 'finished' || 'already_finished':
+      case 'advanced':
         return;
       case 'not_authenticated':
-        throw const UnauthorizedError();
+        throw const MinigameSessionRejectedException(
+          MinigameSessionRejection.notAuthenticated,
+        );
       case 'session_not_found':
         throw const NotFoundError('Partida');
       case 'not_allowed':
         throw PermissionError();
+      case 'session_not_active':
+        throw ConflictError(
+          'La partida ya terminó',
+          code: 'session_not_active',
+        );
+      case 'not_started':
+        throw ConflictError(
+          'La partida aún no empieza',
+          code: 'not_started',
+        );
+      case 'wrong_mode':
+        throw ConflictError(
+          'No es el modo por turnos',
+          code: 'wrong_mode',
+        );
+      case 'not_subject':
+        throw PermissionError();
+      case 'already_answered':
+        throw ConflictError(
+          'La ronda ya fue respondida',
+          code: 'already_answered',
+        );
       default:
-        throw const ServerError('Unexpected complete_minigame_game response');
+        throw const ServerError('Unexpected submit_minigame_pasar response');
     }
+  }
+
+  /// Submits one async round of the caller via `submit_minigame_async_answer`
+  /// (202_minigame_play_v2): the server draws a random prompt of
+  /// [promptType], records the caller's per-player round, and mirrors it into
+  /// the reactable rounds list. The answer is ciphertext-only; [imageStoragePath]
+  /// is the optional private-bucket object path of the ENCRYPTED image bytes
+  /// (see [uploadMinigameImage]). Auto-finishes when every participant reaches
+  /// the per-player target (or the settable timer passes — no override).
+  Future<void> submitAsyncAnswer(
+    String sessionId, {
+    required TruthDareKind kind,
+    required String answerCiphertext,
+    String? imageStoragePath,
+  }) async {
+    final user = auth.currentUser;
+    if (user == null) throw const UnauthorizedError();
+
+    final res = await client.rpc(
+      'submit_minigame_async_answer',
+      params: {
+        'p_session_id': sessionId,
+        'p_prompt_type': kind.wire,
+        'p_answer_ciphertext': answerCiphertext,
+        'p_image_storage_path': imageStoragePath,
+      },
+    );
+    final result = res is Map
+        ? Map<String, dynamic>.from(res)
+        : <String, dynamic>{};
+    switch (result['status']) {
+      case 'submitted':
+        return;
+      case 'not_authenticated':
+        throw const MinigameSessionRejectedException(
+          MinigameSessionRejection.notAuthenticated,
+        );
+      case 'session_not_found':
+        throw const NotFoundError('Partida');
+      case 'not_allowed':
+        throw PermissionError();
+      case 'session_not_active':
+        throw ConflictError(
+          'La partida ya terminó',
+          code: 'session_not_active',
+        );
+      case 'not_started':
+        throw ConflictError(
+          'La partida aún no empieza',
+          code: 'not_started',
+        );
+      case 'wrong_mode':
+        throw ConflictError(
+          'No es el modo asíncrono',
+          code: 'wrong_mode',
+        );
+      case 'invalid_prompt_type':
+        throw ValidationError(
+          'prompt_type',
+          'Tipo de prompt no válido',
+        );
+      case 'no_prompts_available':
+        throw const NotFoundError('Prompt');
+      case 'rounds_exhausted':
+        throw ConflictError(
+          'Ya completaste tus rondas de esta partida',
+          code: 'rounds_exhausted',
+        );
+      default:
+        throw const ServerError('Unexpected submit_minigame_async_answer response');
+    }
+  }
+
+  /// Uploads the ENCRYPTED image ciphertext bytes to the private
+  /// `minigame_images` bucket at `<sessionId>/<round>/<uuid>.bin` and returns
+  /// the object path (the `image_storage_path` column value). The server only
+  /// ever stores the ciphertext blob — never the key, never the plaintext.
+  Future<String> uploadMinigameImage(
+    String sessionId,
+    int round,
+    Uint8List ciphertextBytes,
+  ) async {
+    final user = auth.currentUser;
+    if (user == null) throw const UnauthorizedError();
+    final path = '$sessionId/$round/${const Uuid().v4()}.bin';
+    await client.storage.from('minigame_images').uploadBinary(path, ciphertextBytes);
+    return path;
+  }
+
+  /// Signed URL (1h) for a participant to download the ENCRYPTED image blob —
+  /// the private bucket has no public URL.
+  Future<String> getSignedMinigameImageUrl(String storagePath) async {
+    return client.storage.from('minigame_images').createSignedUrl(storagePath, 3600);
+  }
+
+  /// Downloads the ENCRYPTED image blob at [storagePath] from the private
+  /// `minigame_images` bucket (the authenticated storage download — the
+  /// bucket's read policy is participant-gated, so the caller's auth token
+  /// bounds the read exactly like every other storage read). Returns the raw
+  /// ciphertext bytes, or null when the download fails (the caller renders no
+  /// image then).
+  ///
+  /// This is the read-side counterpart of [uploadMinigameImage]: the server
+  /// never holds the plaintext — the app fetches the blob and
+  /// `MinigameCipher.decryptAnswerImageBytes` recovers the image locally.
+  Future<Uint8List?> downloadMinigameImageBytes(String storagePath) async {
+    try {
+      return await client.storage.from('minigame_images').download(storagePath);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Reacts to an arbitrary COMPLETED round via `react_minigame_round`
+  /// (202_minigame_play_v2) — the async reactable-rounds list. The caller
+  /// cannot be the round's subject; a passed round rejects reactions.
+  Future<void> reactToRound(
+    String sessionId, {
+    required int round,
+    required ReactionKind reaction,
+  }) async {
+    final user = auth.currentUser;
+    if (user == null) throw const UnauthorizedError();
+
+    final res = await client.rpc(
+      'react_minigame_round',
+      params: {
+        'p_session_id': sessionId,
+        'p_round': round,
+        'p_reaction': reaction.wire,
+      },
+    );
+    final result = res is Map
+        ? Map<String, dynamic>.from(res)
+        : <String, dynamic>{};
+    switch (result['status']) {
+      case 'submitted':
+        return;
+      case 'not_authenticated':
+        throw const MinigameSessionRejectedException(
+          MinigameSessionRejection.notAuthenticated,
+        );
+      case 'session_not_found':
+        throw const NotFoundError('Partida');
+      case 'not_allowed':
+        throw PermissionError();
+      case 'session_not_active':
+        throw ConflictError(
+          'La partida ya terminó',
+          code: 'session_not_active',
+        );
+      case 'answer_pending':
+        throw ConflictError(
+          'La ronda aún no se puede valorar',
+          code: 'answer_pending',
+        );
+      case 'own_round':
+        throw ConflictError(
+          'No puedes reaccionar a tu propia ronda',
+          code: 'own_round',
+        );
+      case 'invalid_reaction':
+        throw ValidationError('reaction', 'Reacción no válida');
+      default:
+        throw const ServerError('Unexpected react_minigame_round response');
+    }
+  }
+
+  /// Sets/updates the caller's temp nickname for [sessionId] via
+  /// `set_minigame_alias` (202_minigame_play_v2 anonymous mode). Participant-
+  /// only; streams realtime via the `minigame_aliases` publication. Returns
+  /// the persisted alias.
+  Future<String> setAlias(String sessionId, String alias) async {
+    final user = auth.currentUser;
+    if (user == null) throw const UnauthorizedError();
+
+    final res = await client.rpc(
+      'set_minigame_alias',
+      params: {'p_session_id': sessionId, 'p_alias': alias},
+    );
+    final result = res is Map
+        ? Map<String, dynamic>.from(res)
+        : <String, dynamic>{};
+    switch (result['status']) {
+      case 'alias_set':
+        return result['alias'] as String? ?? alias;
+      case 'not_authenticated':
+        throw const MinigameSessionRejectedException(
+          MinigameSessionRejection.notAuthenticated,
+        );
+      case 'session_not_found':
+        throw const NotFoundError('Partida');
+      case 'not_allowed':
+        throw PermissionError();
+      case 'session_not_active':
+        throw ConflictError(
+          'La partida ya terminó',
+          code: 'session_not_active',
+        );
+      case 'invalid_alias':
+        throw ValidationError('alias', 'Apodo no válido');
+      default:
+        throw const ServerError('Unexpected set_minigame_alias response');
+    }
+  }
+
+  /// The temp nicknames of [sessionId] (`minigame_aliases`, RLS-bounded to
+  /// participants) — the anonymous-mode display names.
+  Future<Map<String, String>> getAliases(String sessionId) async {
+    final user = auth.currentUser;
+    if (user == null) throw const UnauthorizedError();
+
+    final res = await client
+        .from('minigame_aliases')
+        .select('participant_id, alias')
+        .eq('session_id', sessionId);
+    return {
+      for (final row in res)
+        if (row['participant_id'] is String && row['alias'] is String)
+          row['participant_id'] as String: row['alias'] as String,
+    };
+  }
+
+  /// Upserts one sender-key distribution bundle row (202_minigame_play_v2
+  /// E2EE): the sender's ciphertext envelope addressed to [recipientId]. The
+  /// sender writes only their own rows (RLS `mgs_bundles_insert_own`).
+  Future<void> putE2eeBundle(
+    String sessionId, {
+    required String senderId,
+    required String recipientId,
+    required String bundleCiphertext,
+  }) async {
+    final user = auth.currentUser;
+    if (user == null) throw const UnauthorizedError();
+
+    await client.from('minigame_e2ee_bundles').upsert(
+      {
+        'session_id': sessionId,
+        'sender_id': senderId,
+        'recipient_id': recipientId,
+        'bundle_ciphertext': bundleCiphertext,
+      },
+      onConflict: 'session_id,sender_id,recipient_id',
+    );
+  }
+
+  /// Reads the sender-key distribution bundles addressed to the caller
+  /// (RLS `mgs_bundles_read_recipient`) — the E2EE key delivery seam.
+  Future<List<Map<String, dynamic>>> getE2eeBundles(String sessionId) async {
+    final user = auth.currentUser;
+    if (user == null) throw const UnauthorizedError();
+
+    final res = await client
+        .from('minigame_e2ee_bundles')
+        .select('session_id, sender_id, recipient_id, bundle_ciphertext')
+        .eq('session_id', sessionId)
+        .eq('recipient_id', user.id);
+    return res.map((e) => Map<String, dynamic>.from(e)).toList();
   }
 
   /// Sets the current user's Ready flag for [sessionId] via the

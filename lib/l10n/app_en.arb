@@ -2408,6 +2408,14 @@
   "@minigamesWagerDefaultHint": {
     "description": "Create-partida wizard: wager input hint (default 10 shards)"
   },
+  "minigamesRoundsLabel": "Rounds:",
+  "@minigamesRoundsLabel": {
+    "description": "Create-partida wizard: total-turn target label (201_minigame_voting)"
+  },
+  "minigamesRoundsHint": "Default: 5",
+  "@minigamesRoundsHint": {
+    "description": "Create-partida wizard: rounds input hint (default 5 turns)"
+  },
   "minigamesWagerLabel": "Using:",
   "@minigamesWagerLabel": {
     "description": "Create-partida wizard: wager input label above the amount (Using: = how many shards are being used)"
@@ -2548,6 +2556,113 @@
   "@minigamesTurnGeneric": {
     "description": "Turn label when the subject name is not resolved"
   },
+  "minigamesAnonAliasPrefix": "anonymous",
+  "@minigamesAnonAliasPrefix": {
+    "description": "Prefix of the default anonymous temp nickname (202_minigame_play_v2)"
+  },
+  "minigamesAnswerTitle": "Your answer",
+  "@minigamesAnswerTitle": {
+    "description": "Title of the current-turn subject's answer input"
+  },
+  "minigamesAnswerPlaceholder": "Type your answer…",
+  "@minigamesAnswerPlaceholder": {
+    "description": "Placeholder of the answer text field"
+  },
+  "minigamesAnswerImageLabel": "Add image",
+  "@minigamesAnswerImageLabel": {
+    "description": "Button to attach an image to a Reto answer"
+  },
+  "minigamesAnswerRemoveImage": "Remove image",
+  "@minigamesAnswerRemoveImage": {
+    "description": "Button to remove the attached answer image"
+  },
+  "minigamesAnswerSubmit": "Answer",
+  "@minigamesAnswerSubmit": {
+    "description": "Button the subject taps to submit their answer"
+  },
+  "minigamesAnswerRevealed": "Answered",
+  "@minigamesAnswerRevealed": {
+    "description": "Label shown to the others once the subject has answered"
+  },
+  "minigamesAnswerWaiting": "Waiting for the answer…",
+  "@minigamesAnswerWaiting": {
+    "description": "Shown to the others while the subject has not answered yet"
+  },
+  "minigamesAnswerWaitingReactions": "waiting for {reacted}/{required} reactions…",
+  "@minigamesAnswerWaitingReactions": {
+    "description": "Shown to the subject after submitting: how many of the other participants have reacted so far",
+    "placeholders": {
+      "reacted": { "type": "int" },
+      "required": { "type": "int" }
+    }
+  },
+  "minigamesPasar": "Skip",
+  "@minigamesPasar": {
+    "description": "Button the subject taps to skip (blocks reactions, score -1)"
+  },
+  "minigamesPasarSkipped": "skipped",
+  "@minigamesPasarSkipped": {
+    "description": "Suffix shown when the subject passed the round"
+  },
+  "minigamesModeLabel": "Game mode",
+  "@minigamesModeLabel": {
+    "description": "Label of the play-mode selector in the create wizard"
+  },
+  "minigamesModeByTurns": "By turns",
+  "@minigamesModeByTurns": {
+    "description": "By-turns play mode: answer -> all react -> next turn"
+  },
+  "minigamesModeAsync": "Async",
+  "@minigamesModeAsync": {
+    "description": "Async play mode: per-player rounds, reactable list, timer end"
+  },
+  "minigamesAsyncRoundsLabel": "Rounds per player",
+  "@minigamesAsyncRoundsLabel": {
+    "description": "Per-player round target in async mode"
+  },
+  "minigamesAsyncEndsLabel": "Game time (days)",
+  "@minigamesAsyncEndsLabel": {
+    "description": "Async timer duration in days (settable at creation, no override)"
+  },
+  "minigamesAnonymousLabel": "Anonymous game",
+  "@minigamesAnonymousLabel": {
+    "description": "Anonymous-mode toggle: hide usernames, temp nicknames during play"
+  },
+  "minigamesAliasLabel": "Temp nickname",
+  "@minigamesAliasLabel": {
+    "description": "Label of the temp-nickname input in anonymous mode"
+  },
+  "minigamesAliasUpdate": "Update name",
+  "@minigamesAliasUpdate": {
+    "description": "Button to update the temp nickname in anonymous mode"
+  },
+  "minigamesAliasUpdated": "Name updated",
+  "@minigamesAliasUpdated": {
+    "description": "Snackbar after a temp-nickname update"
+  },
+  "minigamesAsyncProgress": "Your rounds: {done}/{target}",
+  "@minigamesAsyncProgress": {
+    "description": "Per-player async progress",
+    "placeholders": {
+      "done": { "type": "int" },
+      "target": { "type": "int" }
+    }
+  },
+  "minigamesAsyncAvailable": "Rounds to react",
+  "@minigamesAsyncAvailable": {
+    "description": "Heading of the async reactable-rounds list"
+  },
+  "minigamesAsyncTimerEnds": "The game ends on {date}",
+  "@minigamesAsyncTimerEnds": {
+    "description": "Shows the async settable deadline",
+    "placeholders": {
+      "date": { "type": "String" }
+    }
+  },
+  "minigamesAnswerPasarLine": "you can skip if you'd rather not answer",
+  "@minigamesAnswerPasarLine": {
+    "description": "Hint under the answer card that Pasar is available"
+  },
   "minigamesTurnFor": "{name}'s turn",
   "@minigamesTurnFor": {
     "description": "Turn label naming the current subject",
@@ -2593,6 +2708,33 @@
   "minigamesFinished": "Game over!",
   "@minigamesFinished": {
     "description": "Finished state header on the play screen"
+  },
+  "minigamesRoundCounter": "Round {current} / {total}",
+  "@minigamesRoundCounter": {
+    "description": "Play screen round counter: the current turn out of the total-turn target (201_minigame_voting)",
+    "placeholders": {
+      "current": { "type": "int" },
+      "total": { "type": "int" }
+    }
+  },
+  "minigamesReactionsTitle": "React to the turn:",
+  "@minigamesReactionsTitle": {
+    "description": "Voting row header: each non-subject taps one emoji on the current round (201_minigame_voting)"
+  },
+  "minigamesLeaderboardTitle": "Leaderboard",
+  "@minigamesLeaderboardTitle": {
+    "description": "Finished-game leaderboard title (201_minigame_voting)"
+  },
+  "minigamesAnonymousPlayer": "Player",
+  "@minigamesAnonymousPlayer": {
+    "description": "Leaderboard fallback name when the winner username is missing"
+  },
+  "minigamesPrizeAmount": "{amount} shards",
+  "@minigamesPrizeAmount": {
+    "description": "Leaderboard prize per ranked winner (201_minigame_voting)",
+    "placeholders": {
+      "amount": { "type": "int" }
+    }
   },
   "minigamesErrorLoadGame": "Could not load the game",
   "@minigamesErrorLoadGame": {
@@ -2894,6 +3036,26 @@
   "@minigamesErrorPlayerLimitReached": {
     "description": "Create/join/accept rejection: the session is at its frozen player cap"
   },
+  "minigamesErrorInvalidRounds": "The round count is not valid.",
+  "@minigamesErrorInvalidRounds": {
+    "description": "Create rejection: p_rounds < 1 (201_minigame_voting)"
+  },
+  "minigamesErrorInvalidPrizePositions": "The prize-position count is not valid.",
+  "minigamesErrorInvalidPlayMode": "The game mode is not valid.",
+  "@minigamesErrorInvalidPlayMode": {
+    "description": "Create rejection: p_play_mode is not by_turns/async (202_minigame_play_v2)"
+  },
+  "minigamesErrorInvalidAsyncRounds": "The rounds-per-player value is not valid.",
+  "@minigamesErrorInvalidAsyncRounds": {
+    "description": "Create rejection: p_async_rounds_per_player < 1 (202_minigame_play_v2)"
+  },
+  "minigamesErrorInvalidAsyncEndsAt": "The async game end time is not valid.",
+  "@minigamesErrorInvalidAsyncEndsAt": {
+    "description": "Create rejection: async deadline missing/past (202_minigame_play_v2)"
+  },
+  "@minigamesErrorInvalidPrizePositions": {
+    "description": "Create rejection: p_prize_positions < 1 (201_minigame_voting)"
+  },
   "minigamesErrorNotAllowed": "You can't join this game.",
   "@minigamesErrorNotAllowed": {
     "description": "Join/finish rejection: a non-participant on a direct session"
@@ -2902,9 +3064,23 @@
   "@minigamesInvitePendingBody": {
     "description": "Session detail: the user has a pending invite"
   },
-  "minigamesInvitePending": "Pending invite",
-  "@minigamesInvitePending": {
-    "description": "Per-game list: a partida row that is a pending invite awaiting accept"
+  "minigamesInviteFromDirect": "Invited by {name}",
+  "@minigamesInviteFromDirect": {
+    "description": "Per-game list pending invite: who invited you (direct session)",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "minigamesInviteFromGroup": "Group {name}",
+  "@minigamesInviteFromGroup": {
+    "description": "Per-game list pending invite: which group invited you (group session)",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
   },
   "minigamesInviteAccept": "Accept",
   "@minigamesInviteAccept": {

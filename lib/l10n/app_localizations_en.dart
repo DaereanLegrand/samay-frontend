@@ -1818,6 +1818,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get minigamesWagerDefaultHint => 'Default: 10';
 
   @override
+  String get minigamesRoundsLabel => 'Rounds:';
+
+  @override
+  String get minigamesRoundsHint => 'Default: 5';
+
+  @override
   String get minigamesWagerLabel => 'Using:';
 
   @override
@@ -1922,6 +1928,85 @@ class AppLocalizationsEn extends AppLocalizations {
   String get minigamesTurnGeneric => 'A player\'s turn';
 
   @override
+  String get minigamesAnonAliasPrefix => 'anonymous';
+
+  @override
+  String get minigamesAnswerTitle => 'Your answer';
+
+  @override
+  String get minigamesAnswerPlaceholder => 'Type your answer…';
+
+  @override
+  String get minigamesAnswerImageLabel => 'Add image';
+
+  @override
+  String get minigamesAnswerRemoveImage => 'Remove image';
+
+  @override
+  String get minigamesAnswerSubmit => 'Answer';
+
+  @override
+  String get minigamesAnswerRevealed => 'Answered';
+
+  @override
+  String get minigamesAnswerWaiting => 'Waiting for the answer…';
+
+  @override
+  String minigamesAnswerWaitingReactions(int reacted, int required) {
+    return 'waiting for $reacted/$required reactions…';
+  }
+
+  @override
+  String get minigamesPasar => 'Skip';
+
+  @override
+  String get minigamesPasarSkipped => 'skipped';
+
+  @override
+  String get minigamesModeLabel => 'Game mode';
+
+  @override
+  String get minigamesModeByTurns => 'By turns';
+
+  @override
+  String get minigamesModeAsync => 'Async';
+
+  @override
+  String get minigamesAsyncRoundsLabel => 'Rounds per player';
+
+  @override
+  String get minigamesAsyncEndsLabel => 'Game time (days)';
+
+  @override
+  String get minigamesAnonymousLabel => 'Anonymous game';
+
+  @override
+  String get minigamesAliasLabel => 'Temp nickname';
+
+  @override
+  String get minigamesAliasUpdate => 'Update name';
+
+  @override
+  String get minigamesAliasUpdated => 'Name updated';
+
+  @override
+  String minigamesAsyncProgress(int done, int target) {
+    return 'Your rounds: $done/$target';
+  }
+
+  @override
+  String get minigamesAsyncAvailable => 'Rounds to react';
+
+  @override
+  String minigamesAsyncTimerEnds(String date) {
+    return 'The game ends on $date';
+  }
+
+  @override
+  String get minigamesAnswerPasarLine =>
+      'you can skip if you\'d rather not answer';
+
+  @override
   String minigamesTurnFor(String name) {
     return '$name\'s turn';
   }
@@ -1952,6 +2037,25 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get minigamesFinished => 'Game over!';
+
+  @override
+  String minigamesRoundCounter(int current, int total) {
+    return 'Round $current / $total';
+  }
+
+  @override
+  String get minigamesReactionsTitle => 'React to the turn:';
+
+  @override
+  String get minigamesLeaderboardTitle => 'Leaderboard';
+
+  @override
+  String get minigamesAnonymousPlayer => 'Player';
+
+  @override
+  String minigamesPrizeAmount(int amount) {
+    return '$amount shards';
+  }
 
   @override
   String get minigamesErrorLoadGame => 'Could not load the game';
@@ -2178,13 +2282,38 @@ class AppLocalizationsEn extends AppLocalizations {
       'This game has reached its player limit.';
 
   @override
+  String get minigamesErrorInvalidRounds => 'The round count is not valid.';
+
+  @override
+  String get minigamesErrorInvalidPrizePositions =>
+      'The prize-position count is not valid.';
+
+  @override
+  String get minigamesErrorInvalidPlayMode => 'The game mode is not valid.';
+
+  @override
+  String get minigamesErrorInvalidAsyncRounds =>
+      'The rounds-per-player value is not valid.';
+
+  @override
+  String get minigamesErrorInvalidAsyncEndsAt =>
+      'The async game end time is not valid.';
+
+  @override
   String get minigamesErrorNotAllowed => 'You can\'t join this game.';
 
   @override
   String get minigamesInvitePendingBody => 'You\'ve been invited to this game.';
 
   @override
-  String get minigamesInvitePending => 'Pending invite';
+  String minigamesInviteFromDirect(String name) {
+    return 'Invited by $name';
+  }
+
+  @override
+  String minigamesInviteFromGroup(String name) {
+    return 'Group $name';
+  }
 
   @override
   String get minigamesInviteAccept => 'Accept';

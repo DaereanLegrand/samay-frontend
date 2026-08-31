@@ -3380,6 +3380,18 @@ abstract class AppLocalizations {
   /// **'Por defecto: 10'**
   String get minigamesWagerDefaultHint;
 
+  /// Create-partida wizard: total-turn target label (201_minigame_voting)
+  ///
+  /// In es, this message translates to:
+  /// **'Rondas:'**
+  String get minigamesRoundsLabel;
+
+  /// Create-partida wizard: rounds input hint (default 5 turns)
+  ///
+  /// In es, this message translates to:
+  /// **'Por defecto: 5'**
+  String get minigamesRoundsHint;
+
   /// Create-partida wizard: wager input label above the amount (Usando: = how many shards are being used)
   ///
   /// In es, this message translates to:
@@ -3560,6 +3572,150 @@ abstract class AppLocalizations {
   /// **'Turno de un jugador'**
   String get minigamesTurnGeneric;
 
+  /// Prefix of the default anonymous temp nickname (202_minigame_play_v2)
+  ///
+  /// In es, this message translates to:
+  /// **'anónimo'**
+  String get minigamesAnonAliasPrefix;
+
+  /// Title of the current-turn subject's answer input
+  ///
+  /// In es, this message translates to:
+  /// **'Tu respuesta'**
+  String get minigamesAnswerTitle;
+
+  /// Placeholder of the answer text field
+  ///
+  /// In es, this message translates to:
+  /// **'Escribe tu respuesta…'**
+  String get minigamesAnswerPlaceholder;
+
+  /// Button to attach an image to a Reto answer
+  ///
+  /// In es, this message translates to:
+  /// **'Añadir imagen'**
+  String get minigamesAnswerImageLabel;
+
+  /// Button to remove the attached answer image
+  ///
+  /// In es, this message translates to:
+  /// **'Quitar imagen'**
+  String get minigamesAnswerRemoveImage;
+
+  /// Button the subject taps to submit their answer
+  ///
+  /// In es, this message translates to:
+  /// **'Responder'**
+  String get minigamesAnswerSubmit;
+
+  /// Label shown to the others once the subject has answered
+  ///
+  /// In es, this message translates to:
+  /// **'Respondida'**
+  String get minigamesAnswerRevealed;
+
+  /// Shown to the others while the subject has not answered yet
+  ///
+  /// In es, this message translates to:
+  /// **'Esperando la respuesta…'**
+  String get minigamesAnswerWaiting;
+
+  /// Shown to the subject after submitting: how many of the other participants have reacted so far
+  ///
+  /// In es, this message translates to:
+  /// **'esperando {reacted}/{required} reacciones…'**
+  String minigamesAnswerWaitingReactions(int reacted, int required);
+
+  /// Button the subject taps to skip (blocks reactions, score -1)
+  ///
+  /// In es, this message translates to:
+  /// **'Pasar'**
+  String get minigamesPasar;
+
+  /// Suffix shown when the subject passed the round
+  ///
+  /// In es, this message translates to:
+  /// **'pasó'**
+  String get minigamesPasarSkipped;
+
+  /// Label of the play-mode selector in the create wizard
+  ///
+  /// In es, this message translates to:
+  /// **'Modo de juego'**
+  String get minigamesModeLabel;
+
+  /// By-turns play mode: answer -> all react -> next turn
+  ///
+  /// In es, this message translates to:
+  /// **'Por turnos'**
+  String get minigamesModeByTurns;
+
+  /// Async play mode: per-player rounds, reactable list, timer end
+  ///
+  /// In es, this message translates to:
+  /// **'Asíncrono'**
+  String get minigamesModeAsync;
+
+  /// Per-player round target in async mode
+  ///
+  /// In es, this message translates to:
+  /// **'Rondas por jugador'**
+  String get minigamesAsyncRoundsLabel;
+
+  /// Async timer duration in days (settable at creation, no override)
+  ///
+  /// In es, this message translates to:
+  /// **'Tiempo de la partida (días)'**
+  String get minigamesAsyncEndsLabel;
+
+  /// Anonymous-mode toggle: hide usernames, temp nicknames during play
+  ///
+  /// In es, this message translates to:
+  /// **'Partida anónima'**
+  String get minigamesAnonymousLabel;
+
+  /// Label of the temp-nickname input in anonymous mode
+  ///
+  /// In es, this message translates to:
+  /// **'Apodo temporal'**
+  String get minigamesAliasLabel;
+
+  /// Button to update the temp nickname in anonymous mode
+  ///
+  /// In es, this message translates to:
+  /// **'Actualizar nombre'**
+  String get minigamesAliasUpdate;
+
+  /// Snackbar after a temp-nickname update
+  ///
+  /// In es, this message translates to:
+  /// **'Nombre actualizado'**
+  String get minigamesAliasUpdated;
+
+  /// Per-player async progress
+  ///
+  /// In es, this message translates to:
+  /// **'Tus rondas: {done}/{target}'**
+  String minigamesAsyncProgress(int done, int target);
+
+  /// Heading of the async reactable-rounds list
+  ///
+  /// In es, this message translates to:
+  /// **'Rondas para reaccionar'**
+  String get minigamesAsyncAvailable;
+
+  /// Shows the async settable deadline
+  ///
+  /// In es, this message translates to:
+  /// **'La partida termina el {date}'**
+  String minigamesAsyncTimerEnds(String date);
+
+  /// Hint under the answer card that Pasar is available
+  ///
+  /// In es, this message translates to:
+  /// **'puedes pasar si no quieres responder'**
+  String get minigamesAnswerPasarLine;
+
   /// Turn label naming the current subject
   ///
   /// In es, this message translates to:
@@ -3613,6 +3769,36 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'¡Juego terminado!'**
   String get minigamesFinished;
+
+  /// Play screen round counter: the current turn out of the total-turn target (201_minigame_voting)
+  ///
+  /// In es, this message translates to:
+  /// **'Ronda {current} / {total}'**
+  String minigamesRoundCounter(int current, int total);
+
+  /// Voting row header: each non-subject taps one emoji on the current round (201_minigame_voting)
+  ///
+  /// In es, this message translates to:
+  /// **'Reacciona al turno:'**
+  String get minigamesReactionsTitle;
+
+  /// Finished-game leaderboard title (201_minigame_voting)
+  ///
+  /// In es, this message translates to:
+  /// **'Clasificación'**
+  String get minigamesLeaderboardTitle;
+
+  /// Leaderboard fallback name when the winner username is missing
+  ///
+  /// In es, this message translates to:
+  /// **'Jugador'**
+  String get minigamesAnonymousPlayer;
+
+  /// Leaderboard prize per ranked winner (201_minigame_voting)
+  ///
+  /// In es, this message translates to:
+  /// **'{amount} shards'**
+  String minigamesPrizeAmount(int amount);
 
   /// Error state on the play screen when the game state fails to load
   ///
@@ -4022,6 +4208,36 @@ abstract class AppLocalizations {
   /// **'Esta partida alcanzó su límite de jugadores.'**
   String get minigamesErrorPlayerLimitReached;
 
+  /// Create rejection: p_rounds < 1 (201_minigame_voting)
+  ///
+  /// In es, this message translates to:
+  /// **'El número de rondas no es válido.'**
+  String get minigamesErrorInvalidRounds;
+
+  /// Create rejection: p_prize_positions < 1 (201_minigame_voting)
+  ///
+  /// In es, this message translates to:
+  /// **'El número de puestos premiados no es válido.'**
+  String get minigamesErrorInvalidPrizePositions;
+
+  /// Create rejection: p_play_mode is not by_turns/async (202_minigame_play_v2)
+  ///
+  /// In es, this message translates to:
+  /// **'El modo de juego no es válido.'**
+  String get minigamesErrorInvalidPlayMode;
+
+  /// Create rejection: p_async_rounds_per_player < 1 (202_minigame_play_v2)
+  ///
+  /// In es, this message translates to:
+  /// **'Las rondas por jugador no son válidas.'**
+  String get minigamesErrorInvalidAsyncRounds;
+
+  /// Create rejection: async deadline missing/past (202_minigame_play_v2)
+  ///
+  /// In es, this message translates to:
+  /// **'La fecha de fin de la partida asíncrona no es válida.'**
+  String get minigamesErrorInvalidAsyncEndsAt;
+
   /// Join/finish rejection: a non-participant on a direct session
   ///
   /// In es, this message translates to:
@@ -4034,11 +4250,17 @@ abstract class AppLocalizations {
   /// **'Te invitaron a esta partida.'**
   String get minigamesInvitePendingBody;
 
-  /// Per-game list: a partida row that is a pending invite awaiting accept
+  /// Per-game list pending invite: who invited you (direct session)
   ///
   /// In es, this message translates to:
-  /// **'Invitación pendiente'**
-  String get minigamesInvitePending;
+  /// **'Invitado por {name}'**
+  String minigamesInviteFromDirect(String name);
+
+  /// Per-game list pending invite: which group invited you (group session)
+  ///
+  /// In es, this message translates to:
+  /// **'Grupo {name}'**
+  String minigamesInviteFromGroup(String name);
 
   /// Session detail: accept the pending invite button
   ///
