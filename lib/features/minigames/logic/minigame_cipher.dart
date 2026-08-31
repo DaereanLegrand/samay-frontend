@@ -188,6 +188,50 @@ class MinigameCipher {
     ]);
   }
 
+  /// Mints `K_round` (random 32 bytes) if not already known, persists it
+  /// locally and distributes the FULL cumulative history `K_1..K_round` to
+  /// [peerIds]. The host calls this at the countdown → playing transition so
+  /// every participant holds the first round's key BEFORE any answer is
+  /// submitted (2026-08-31 on-device fix: previously the first key was only
+  /// minted on kick, so `K_0`/`K_1` never existed and the subject's submit
+  /// failed with "round key 0 missing").
+  ///
+  /// Best-effort like [rotateRoundKey]: a peer with no published prekey is
+  /// skipped (logged) and stays missing — retried on the next roster change.
+  Future<void> mintRoundKeyAndDistribute({
+    required List<String> peerIds,
+    required int round,
+  }) async {
+    final known = await _keyForRound(round);
+    if (known == null) {
+      await _cacheRoundKey(round, _randomKey());
+    }
+    final history = <int, Uint8List>{};
+    for (var r = 1; r <= round; r++) {
+      final k = await _keyForRound(r);
+      if (k != null) history[r] = k;
+    }
+    final payload = _encodeRoundKeys(history);
+    await Future.wait([
+      for (final peer in peerIds)
+        _deliverBundle(peer, payload),
+    ]);
+  }
+
+  /// The round keys this device currently knows for the session —
+  /// `{round: key}` from memory + the persisted store. Used by the accept /
+  /// roster-change distributions to hand newcomers the REAL history (not an
+  /// empty bundle).
+  Future<Map<int, Uint8List>> knownRoundKeys() async {
+    final known = await _loadKnownRounds();
+    final out = <int, Uint8List>{};
+    for (final r in known) {
+      final k = await _keyForRound(r);
+      if (k != null) out[r] = k;
+    }
+    return out;
+  }
+
   /// Ensures `K_round` is cached/persisted. When missing, pulls the caller's
   /// OWN-recipient bundles from the server, decrypts each envelope with the
   /// sender's pairwise session and caches every round key found.

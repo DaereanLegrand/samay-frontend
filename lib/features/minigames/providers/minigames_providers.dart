@@ -351,10 +351,10 @@ class MinigameInviteNotifier
 
   /// Best-effort E2EE history distribution to the roster at accept-time
   /// (2026-08-31): the new participant cannot decrypt any past round until
-  /// the host hands them `K_1..K_N`. `const {}` is deliberate — the acceptor
-  /// has no local history at accept; the HOST's roster-change safety net
-  /// ([MinigameParticipantsNotifier._distributeToNewMembers]) delivers the
-  /// real history. Failures are logged and swallowed (best-effort contract).
+  /// the host hands them `K_1..K_N`. Carries the host's KNOWN round keys (the
+  /// acceptor itself has no history yet, but the HOST-side accept — or the
+  /// roster-change safety net) delivers the real history. Failures are logged
+  /// and swallowed (best-effort contract).
   Future<void> _distributeKeysOnAccept() async {
     try {
       final myId = ref.read(authStateProvider).valueOrNull?.user?['id'];
@@ -366,9 +366,10 @@ class MinigameInviteNotifier
         for (final p in participants)
           if (p != null && p != myId) p,
       ];
-      await ref.read(minigameCipherProvider(arg)).distributeHistoryKeys(
+      final cipher = ref.read(minigameCipherProvider(arg));
+      await cipher.distributeHistoryKeys(
         peerIds: peers,
-        roundKeys: const {},
+        roundKeys: await cipher.knownRoundKeys(),
       );
     } catch (e, st) {
       AppLogger.instance.warn('minigame accept key distribution skipped', '$st');
@@ -461,6 +462,10 @@ class MinigameGameStateNotifier
     extends FamilyAsyncNotifier<MinigameGameState, String> {
   MinigameService get _service => ref.read(minigameServiceProvider);
 
+  /// Tracks the highest round the host has minted for this session so a round
+  /// bump re-mints. Reset on [refresh] so a re-entered session re-arms.
+  int? _mintedRound;
+
   @override
   Future<MinigameGameState> build(String sessionId) async {
     // Live updates ride the I-52 realtime lifecycle provider (mirror of
@@ -474,8 +479,25 @@ class MinigameGameStateNotifier
       (_, next) {
         final row = next.valueOrNull;
         if (row == null || row['session_id'] != sessionId) return;
+        final parsed = MinigameGameState.fromRow(row);
         if (state.hasValue) {
-          state = AsyncData(MinigameGameState.fromRow(row));
+          final prevPhase = state.valueOrNull?.skeleton.phase;
+          final prevRound = state.valueOrNull?.skeleton.round ?? 0;
+          state = AsyncData(parsed);
+          // The HOST mints + distributes the round key for a NEW round: at the
+          // countdown → playing flip (round 0/1) and on every server-side round
+          // advance (rounds bump via _minigame_advance_round). Round keys are
+          // additive, so each mint hands the FULL history K_1..K_r. Only the
+          // creator (participants[0]) mints — belt-and-suspenders against the
+          // backend's creator-only start.
+          final newRound = parsed.skeleton.round;
+          final justStarted =
+              prevPhase == MinigamePhase.countdown &&
+              parsed.skeleton.phase == MinigamePhase.playing;
+          if (justStarted || (newRound > prevRound && newRound > (_mintedRound ?? -1))) {
+            _mintedRound = newRound;
+            _mintRoundKey(newRound);
+          }
         }
       },
     );
@@ -494,8 +516,37 @@ class MinigameGameStateNotifier
     return MinigameGameState.fromRow(row);
   }
 
+  /// Best-effort: the HOST mints `K_round` and pairwise-distributes the round-key
+  /// history to the roster when a new round begins (countdown → playing flip or
+  /// a server-side round advance). Failures are logged and swallowed
+  /// (best-effort contract); a no-prekey peer is skipped and retried on the
+  /// next roster change.
+  Future<void> _mintRoundKey(int round) async {
+    try {
+      final myId = ref.read(authStateProvider).valueOrNull?.user?['id'];
+      if (myId == null) return;
+      final session = ref.read(sessionStatusProvider(arg)).valueOrNull;
+      final participants = (session?['participants'] as List?)?.cast<String?>();
+      if (participants == null || participants.isEmpty) return;
+      // Creator = participant[0] (the only role that can start the game).
+      if (participants.first != myId) return;
+      final peers = [
+        for (final p in participants)
+          if (p != null && p != myId) p,
+      ];
+      await ref
+          .read(minigameCipherProvider(arg))
+          .mintRoundKeyAndDistribute(peerIds: peers, round: round);
+    } catch (e, st) {
+      AppLogger.instance.warn('minigame round key mint skipped', '$st');
+    }
+  }
+
   /// Re-runs [build] (finding SM-09).
-  Future<void> refresh() async => ref.invalidateSelf();
+  Future<void> refresh() async {
+    _mintedRound = null;
+    ref.invalidateSelf();
+  }
 
   /// Reveals a random prompt of [kind] (the server draws it randomly) and
   /// reloads the state.
@@ -964,7 +1015,10 @@ class MinigameParticipantsNotifier
           if (id != myId && !_deliveredRecipients.contains(id)) id,
       ];
       if (peers.isEmpty) return;
-      await cipher.distributeHistoryKeys(peerIds: peers, roundKeys: const {});
+      await cipher.distributeHistoryKeys(
+        peerIds: peers,
+        roundKeys: await cipher.knownRoundKeys(),
+      );
       _deliveredRecipients.addAll(peers);
     } catch (e, st) {
       AppLogger.instance.warn('minigame roster distribution skipped', '$st');

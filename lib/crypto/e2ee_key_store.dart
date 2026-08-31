@@ -1,8 +1,8 @@
 library;
 import 'dart:convert';
 import 'dart:math';
-import 'dart:typed_data';
 
+import 'package:flutter/services.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:samay/crypto/codec.dart';
 import 'package:samay/crypto/constants.dart';
@@ -22,6 +22,58 @@ import 'package:samay/crypto/interfaces.dart';
 /// hardcoded inside the classes.
 /// Generates a registration id in [1, 0x3FFF] (libsignal-compatible).
 int _generateRegistrationId() => Random.secure().nextInt(0x3FFF) + 1;
+
+/// Resilient [FlutterSecureStorage] write wrapper (2026-08-31 on-device fix).
+///
+/// Two iOS Keychain failure modes, both handled here:
+///
+/// 1. **Duplicate item (`-25299` / `errSecDuplicateItem`)** — the plugin's
+///    `write()` is a delete-then-set; on iOS the delete can race an
+///    in-flight write to the SAME key (the minigame bundle delivery runs
+///    parallel [Future.wait] envelopes), leaving a stale item that the set
+///    then reports as already-existing. Retried as an explicit
+///    `delete()` → `write()`.
+/// 2. **Concurrent writes to the keychain** — all writes are serialized
+///    through a per-instance future chain so parallel `_deliverBundle`
+///    envelopes never touch the keychain at the same instant.
+///
+/// Reads/deletes pass straight through (they are not the racy path).
+class _ResilientSecureStorage {
+  _ResilientSecureStorage(FlutterSecureStorage storage) : _storage = storage;
+
+  final FlutterSecureStorage _storage;
+  Future<void> _writeTail = Future.value();
+
+  Future<String?> read({required String key}) => _storage.read(key: key);
+
+  Future<void> delete({required String key}) => _storage.delete(key: key);
+
+  Future<Map<String, String>> readAll() => _storage.readAll();
+
+  /// Serialized resilient write: chain onto the queue, then (if the direct
+  /// write reports a duplicate item) delete + retry. The chain guarantees
+  /// the keychain is only ever touched by one write at a time.
+  Future<void> write({required String key, required String? value}) {
+    final op = _writeTail.then((_) async {
+      try {
+        await _storage.write(key: key, value: value);
+      } on PlatformException catch (e) {
+        // iOS Keychain "The specified item already exists" — the stale item
+        // from a raced delete-then-set. Clear it and retry the write.
+        if (e.code == '-25299' || e.code == 'errSecDuplicateItem') {
+          await _storage.delete(key: key);
+          await _storage.write(key: key, value: value);
+        } else {
+          rethrow;
+        }
+      }
+    });
+    // Keep the chain alive regardless of an op's success so one failure does
+    // not wedge the queue; the caller still sees the op's own error.
+    _writeTail = op.catchError((Object _) {});
+    return op;
+  }
+}
 
 /// A retired signed prekey with its rotation-out timestamp — the 7-day
 /// retention window (§5.2) counts from retirement, not from creation.
@@ -185,7 +237,9 @@ class SecureE2eeKeyStore implements E2eeKeyStore {
   SecureE2eeKeyStore({
     FlutterSecureStorage? secureStorage,
     DateTime Function()? clock,
-  }) : _storage = secureStorage ?? const FlutterSecureStorage(),
+  }) : _storage = _ResilientSecureStorage(
+         secureStorage ?? const FlutterSecureStorage(),
+       ),
        _clock = clock ?? DateTime.now;
 
   static const identityDhPrivKey = 'samay.e2ee.identity.dh.priv';
@@ -199,7 +253,7 @@ class SecureE2eeKeyStore implements E2eeKeyStore {
   static const opkPrivPrefix = 'samay.e2ee.opk.priv.';
   static const ownerUidKey = 'samay.e2ee.owner_uid';
 
-  final FlutterSecureStorage _storage;
+  final _ResilientSecureStorage _storage;
   final DateTime Function() _clock;
 
   @override
@@ -476,13 +530,15 @@ class SecureE2eeSessionStore implements E2eeSessionStore {
   SecureE2eeSessionStore({
     FlutterSecureStorage? secureStorage,
     DateTime Function()? clock,
-  }) : _storage = secureStorage ?? const FlutterSecureStorage(),
+  }) : _storage = _ResilientSecureStorage(
+         secureStorage ?? const FlutterSecureStorage(),
+       ),
        _clock = clock ?? DateTime.now;
 
   static const sessionKeyPrefix = 'samay.e2ee.session.';
   static const indexKey = 'samay.e2ee.session.index';
 
-  final FlutterSecureStorage _storage;
+  final _ResilientSecureStorage _storage;
   final DateTime Function() _clock;
 
   @override
