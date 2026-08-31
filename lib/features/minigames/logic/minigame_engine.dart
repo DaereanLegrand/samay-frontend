@@ -33,10 +33,10 @@ enum MinigamePhase {
   /// The session exists but no game-state row is initialized yet.
   setup,
 
-  /// The host tapped Start; the 5s pre-play countdown is running. Every
-  /// participant sees the same countdown and the server flips to [playing]
-  /// once `countdown_ends_at` passes (or back to [setup] if the host
-  /// cancels). 190_minigame_countdown.
+  /// The host tapped Start; the 5s pre-play countdown is running on every
+  /// device (on-device clock, no server deadline). The HOST's device confirms
+  /// via `start_minigame_match` → [playing], or cancels → [setup].
+  /// 190_minigame_countdown + 203_minigame_host_start.
   countdown,
 
   /// Rounds are being played (a subject + prompt are current).
@@ -248,8 +248,9 @@ int _gcd(int a, int b) {
 /// `subjectId` is the CURRENT player the turn belongs to (server-random);
 /// `nextSubjectId` is the server-authoritative "who's next" (190); `promptType`
 /// + `prompt` hold the revealed prompt for the current turn. During the
-/// pre-play countdown, `countdownEndsAt` is the server-set deadline that the
-/// lobby's countdown overlay animates towards.
+/// pre-play countdown (`phase == countdown`) every device runs its OWN
+/// on-device 5s countdown — there is no server deadline (203_minigame_host_start;
+/// the host's device confirms start via start_minigame_match).
 class GameTurnSkeleton {
   const GameTurnSkeleton({
     this.judgeIndex = 0,
@@ -261,7 +262,6 @@ class GameTurnSkeleton {
     this.reactionCounts = const {},
     this.prizePositions = kDefaultPrizePositions,
     this.nextSubjectId,
-    this.countdownEndsAt,
     this.promptType,
     this.prompt,
     this.playMode = MinigamePlayMode.byTurns,
@@ -339,10 +339,6 @@ class GameTurnSkeleton {
   /// (authoritative — the "Siguiente: {name}" indicator).
   final String? nextSubjectId;
 
-  /// The countdown deadline (`state.countdown_ends_at`, ISO 8601) the lobby
-  /// overlay counts down to; null outside the countdown phase.
-  final DateTime? countdownEndsAt;
-
   final String? promptType;
   final Map<String, dynamic>? prompt;
 
@@ -371,7 +367,6 @@ class GameTurnSkeleton {
           ? _asInt(json['prize_positions'])
           : kDefaultPrizePositions,
       nextSubjectId: json['next_subject_id'] as String?,
-      countdownEndsAt: DateTime.tryParse(json['countdown_ends_at'] as String? ?? ''),
       promptType: json['prompt_type'] as String?,
       prompt: json['prompt'] is Map
           ? Map<String, dynamic>.from(json['prompt'] as Map)

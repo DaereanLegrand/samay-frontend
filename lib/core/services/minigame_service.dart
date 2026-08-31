@@ -643,6 +643,40 @@ RealtimeChannel subscribeToSession(String id) {
     };
   }
 
+  /// The HOST's device confirms the countdown finished without a cancel
+  /// (203_minigame_host_start): flips the game-state phase countdown →
+  /// playing. Creator-only, backend-enforced via participants[0]. The UPDATE
+  /// streams via realtime — every participant navigates to the play screen
+  /// together. Idempotent for an already-playing row.
+  Future<Map<String, dynamic>> startMatch(String sessionId) async {
+    final user = auth.currentUser;
+    if (user == null) throw const UnauthorizedError();
+
+    final res = await client.rpc(
+      'start_minigame_match',
+      params: {'p_session_id': sessionId},
+    );
+    final result = res is Map
+        ? Map<String, dynamic>.from(res)
+        : <String, dynamic>{};
+    return switch (result['status']) {
+      'started' => result['state'] as Map<String, dynamic>,
+      'not_authenticated' => throw const UnauthorizedError(),
+      'session_not_found' => throw const NotFoundError('Partida'),
+      'not_allowed' => throw PermissionError(),
+      'not_creator' => throw PermissionError(),
+      'session_not_active' => throw ConflictError(
+        'La partida ya terminó',
+        code: 'session_not_active',
+      ),
+      'not_started' => throw ConflictError(
+        'La partida no está en cuenta atrás',
+        code: 'not_started',
+      ),
+      _ => throw const ServerError('Unexpected start_minigame_match response'),
+    };
+  }
+
   /// Draws a random active prompt of [promptType] for [sessionId]'s game and
   /// persists it into the game state (150_minigame_play). The draw is
   /// server-random (`ORDER BY random() LIMIT 1`); the client only passes the

@@ -3740,6 +3740,18 @@ abstract class AppLocalizations {
   /// **'La partida empieza en…'**
   String get minigamesCountdownStarting;
 
+  /// Non-host countdown overlay after the on-device countdown ends — waiting for the host to confirm the match start
+  ///
+  /// In es, this message translates to:
+  /// **'Esperando al anfitrión…'**
+  String get minigamesCountdownWaitingHost;
+
+  /// Non-host countdown overlay — the host did not confirm/cancel within the watchdog window
+  ///
+  /// In es, this message translates to:
+  /// **'El anfitrión no confirmó la partida. Inténtalo de nuevo.'**
+  String get minigamesCountdownHostError;
+
   /// Lobby countdown overlay — host-only button that cancels the start
   ///
   /// In es, this message translates to:

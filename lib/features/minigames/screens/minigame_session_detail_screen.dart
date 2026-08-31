@@ -642,15 +642,20 @@ class _ReadyToggle extends StatelessWidget {
   }
 }
 
-/// The full-screen pre-play countdown (190_minigame_countdown): a large
-/// 5→0 number seeded from the server-set `countdown_ends_at`, shown to every
-/// participant the moment the host taps Start. The timer is purely visual —
-/// the AUTHORITATIVE transition back to the game is the server flipping
-/// countdown → playing on the game-state row (streamed via realtime); the
-/// overlay's own tick only nudges a re-read at 0 so the flip is observed
-/// promptly. Only the HOST gets the Cancel button (wired to
-/// `cancel_minigame_start`, creator-only server-side); when the countdown
-/// ends uncancelled, the whole lobby navigates to the play screen together.
+/// The full-screen pre-play countdown (190 + 203_minigame_host_start). The
+/// countdown is DEVICE-BASED: every participant runs a 5s countdown from
+/// their own internal clock, started the moment the server's `countdown`
+/// phase streams in (there is NO server deadline / countdown_ends_at).
+///
+///   * HOST sees the countdown number AND a Cancel button. When its own
+///     countdown reaches 0 without a cancel, the host's device calls
+///     `start_minigame_match` (203) → the server flips countdown → playing →
+///     realtime streams it to everyone, who navigate to the play screen
+///     together.
+///   * NON-HOSTS see the countdown number. At 1 they switch to a
+///     "Waiting for the host…" line (Counter A is done; only the host decides
+///     whether the match actually starts). A 10s watchdog from that moment
+///     surfaces a host-error if neither start nor cancel arrives.
 class _CountdownOverlay extends ConsumerStatefulWidget {
   const _CountdownOverlay({
     required this.sessionId,
@@ -666,42 +671,72 @@ class _CountdownOverlay extends ConsumerStatefulWidget {
 
 class _CountdownOverlayState extends ConsumerState<_CountdownOverlay> {
   static const int _seconds = 5;
+  static const int _waitingTimeoutSeconds = 10;
+
   Timer? _ticker;
+  Timer? _watchdog;
   bool _cancelling = false;
+  bool _starting = false;
+  bool _hostError = false;
+  int _remaining = _seconds;
 
   @override
   void initState() {
     super.initState();
-    // Seed the display from the server deadline (covers a client that enters
-    // the lobby mid-countdown); tick every second. Ticking at 0 nudges a
-    // re-read so the server performs the authoritative countdown → playing
-    // flip promptly.
+    // Device-clock countdown, ticked every second with a repaint. The host's
+    // device auto-confirms at 0; non-hosts go to "waiting for the host".
     _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
-      final state = ref.read(minigameGameStateProvider(widget.sessionId));
-      final deadline = state.valueOrNull?.skeleton.countdownEndsAt;
-      if (deadline == null) return;
-      final remaining = deadline.difference(DateTime.now());
-      if (remaining <= Duration.zero && mounted) {
+      if (!mounted) return;
+      if (_remaining <= 1) {
         _ticker?.cancel();
-        ref
-            .read(minigameGameStateProvider(widget.sessionId).notifier)
-            .refresh();
+        if (widget.isCreator) {
+          _confirmStart();
+        } else {
+          setState(() {
+            _remaining = 0;
+          });
+          _armWaitingWatchdog();
+        }
+        return;
       }
+      setState(() => _remaining -= 1);
     });
   }
 
   @override
   void dispose() {
     _ticker?.cancel();
+    _watchdog?.cancel();
     super.dispose();
   }
 
-  int _remaining() {
-    final state = ref.read(minigameGameStateProvider(widget.sessionId));
-    final deadline = state.valueOrNull?.skeleton.countdownEndsAt;
-    if (deadline == null) return _seconds;
-    final remaining = deadline.difference(DateTime.now()).inSeconds;
-    return remaining.clamp(0, _seconds);
+  /// The host's device confirms the countdown finished without a cancel:
+  /// calls `start_minigame_match` (203). The server streams the flip to every
+  /// participant.
+  Future<void> _confirmStart() async {
+    if (_starting || !mounted) return;
+    setState(() => _starting = true);
+    try {
+      await ref
+          .read(minigameGameStateProvider(widget.sessionId).notifier)
+          .startMatch();
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e.toAppError().message)));
+    } finally {
+      if (mounted) setState(() => _starting = false);
+    }
+  }
+
+  /// Non-host watchdog: after the on-device countdown ends, wait up to 10s for
+  /// the host's start (or a cancel). If neither arrives, surface a host-error.
+  void _armWaitingWatchdog() {
+    _watchdog = Timer(const Duration(seconds: _waitingTimeoutSeconds), () {
+      if (!mounted) return;
+      setState(() => _hostError = true);
+    });
   }
 
   Future<void> _cancel() async {
@@ -724,20 +759,37 @@ class _CountdownOverlayState extends ConsumerState<_CountdownOverlay> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final String title;
+    final bool showCancel = widget.isCreator && !_starting;
+    final bool waitingForHost = !widget.isCreator && _remaining == 0;
+
+    if (_hostError) {
+      title = l10n.minigamesCountdownHostError;
+    } else if (waitingForHost) {
+      title = l10n.minigamesCountdownWaitingHost;
+    } else if (widget.isCreator && _starting) {
+      title = l10n.minigamesCountdownStarting;
+    } else {
+      title = l10n.minigamesCountdownStarting;
+    }
+
     return ColoredBox(
       color: AppColors.surface,
       child: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            VDisplayText(text: '${_remaining()}', size: 64),
+            VDisplayText(
+              text: _hostError || waitingForHost ? '…' : '$_remaining',
+              size: 64,
+            ),
             const SizedBox(height: AppSpacing.md),
             Text(
-              l10n.minigamesCountdownStarting,
+              title,
               style: Theme.of(context).textTheme.titleMedium,
             ),
             const SizedBox(height: AppSpacing.lg),
-            if (widget.isCreator)
+            if (showCancel)
               VButton.outlined(
                 label: l10n.minigamesCountdownCancel,
                 loading: _cancelling,

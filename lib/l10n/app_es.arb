@@ -2689,6 +2689,14 @@
   "@minigamesCountdownStarting": {
     "description": "Lobby countdown overlay caption"
   },
+  "minigamesCountdownWaitingHost": "Esperando al anfitrión…",
+  "@minigamesCountdownWaitingHost": {
+    "description": "Non-host countdown overlay after the on-device countdown ends — waiting for the host to confirm the match start"
+  },
+  "minigamesCountdownHostError": "El anfitrión no confirmó la partida. Inténtalo de nuevo.",
+  "@minigamesCountdownHostError": {
+    "description": "Non-host countdown overlay — the host did not confirm/cancel within the watchdog window"
+  },
   "minigamesCountdownCancel": "Cancelar",
   "@minigamesCountdownCancel": {
     "description": "Lobby countdown overlay — host-only button that cancels the start"

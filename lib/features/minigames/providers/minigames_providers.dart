@@ -566,9 +566,9 @@ class MinigameGameStateNotifier
 
   /// Starts the partida (creator-only, backend-enforced via `not_creator`):
   /// calls `init_minigame_game_state` (the lobby → countdown transition, which
-  /// seeds the skeleton + random first subject + the 5s deadline +
-  /// next_subject_id) and reloads the state. The whole lobby sees the
-  /// countdown via the realtime stream.
+  /// seeds the skeleton + random first subject + next_subject_id) and reloads
+  /// the state. The whole lobby sees the countdown via the realtime stream and
+  /// each device runs its own on-device countdown (no server deadline — 203).
   Future<void> start() async {
     await _service.initMinigameGameState(arg);
     await refresh();
@@ -580,6 +580,15 @@ class MinigameGameStateNotifier
   /// participant stays on the match/lobby screen. Reloads the state.
   Future<void> cancelStart() async {
     await _service.cancelMinigameStart(arg);
+    await refresh();
+  }
+
+  /// The HOST's device confirms the countdown finished without a cancel
+  /// (203_minigame_host_start): calls `start_minigame_match`, flipping the
+  /// game-state phase countdown → playing. The realtime stream carries the
+  /// flip to every participant, who navigate to the play screen together.
+  Future<void> startMatch() async {
+    await _service.startMatch(arg);
     await refresh();
   }
 

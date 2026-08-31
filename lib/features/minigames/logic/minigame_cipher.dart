@@ -177,7 +177,11 @@ class MinigameCipher {
     await _cacheRoundKey(round, key);
 
     final history = <int, Uint8List>{};
-    for (var r = 1; r <= round; r++) {
+    // Include round 0 — the first playable round is round 0 (the game starts
+    // at round 0), so K_0 must be part of the delivered history (2026-08-31
+    // fix: the loop started at 1, so the round-0 key was never distributed and
+    // the subject could not encrypt/decrypt round 0).
+    for (var r = 0; r <= round; r++) {
       final k = await _keyForRound(r);
       if (k != null) history[r] = k;
     }
@@ -207,7 +211,10 @@ class MinigameCipher {
       await _cacheRoundKey(round, _randomKey());
     }
     final history = <int, Uint8List>{};
-    for (var r = 1; r <= round; r++) {
+    // Include round 0 — the first playable round is round 0, so K_0 must be
+    // distributed (2026-08-31 fix: the loop started at 1 and round-0 keys
+    // never reached the roster).
+    for (var r = 0; r <= round; r++) {
       final k = await _keyForRound(r);
       if (k != null) history[r] = k;
     }

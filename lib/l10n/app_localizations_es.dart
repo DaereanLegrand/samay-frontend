@@ -2031,6 +2031,13 @@ class AppLocalizationsEs extends AppLocalizations {
   String get minigamesCountdownStarting => 'La partida empieza en…';
 
   @override
+  String get minigamesCountdownWaitingHost => 'Esperando al anfitrión…';
+
+  @override
+  String get minigamesCountdownHostError =>
+      'El anfitrión no confirmó la partida. Inténtalo de nuevo.';
+
+  @override
   String get minigamesCountdownCancel => 'Cancelar';
 
   @override

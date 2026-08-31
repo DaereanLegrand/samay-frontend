@@ -2023,6 +2023,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get minigamesCountdownStarting => 'The match starts in…';
 
   @override
+  String get minigamesCountdownWaitingHost => 'Waiting for the host…';
+
+  @override
+  String get minigamesCountdownHostError =>
+      'The host didn\'t confirm the match. Please try again.';
+
+  @override
   String get minigamesCountdownCancel => 'Cancel';
 
   @override
