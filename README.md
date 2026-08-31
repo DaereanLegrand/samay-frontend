@@ -64,6 +64,14 @@ Nothing env-related is bundled as a Flutter asset and `.env` is gitignored.
 | `make clean` | Build artifacts |
 | `make supabase-*` / `supabase-docker-*` / `supabase-testing-*` | Supabase stack lifecycle |
 
+**Build target notes:**
+- `TARGET=android` and `TARGET=waydroid` both use the `.env` URL by default
+  (production). Use `TESTING=true` to point at the local stack at
+  `http://10.0.2.2:54386` with a fresh anon JWT (e.g. `make dev
+  TARGET=android TESTING=true`).
+- Android 9+ allows cleartext HTTP (`usesCleartextTraffic` in manifest) so
+  the `TESTING=true` local-stack URL works from the emulator.
+
 ### Supabase port map (coexists with the Juega stack)
 
 Juega owns host ports `5432, 54321, 54323, 8443` — never map Samay onto them.
