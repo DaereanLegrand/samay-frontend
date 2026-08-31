@@ -226,20 +226,6 @@ install: | testing-kong-register
 tunnel-android: | testing-kong-register
 endif
 
-# TARGET=android on a NON-Darwin host pins the guest-reachable gateway host
-# (see ANDROID_GATEWAY_HOST above) — the emulator runs on this machine, so
-# 10.0.2.2 is its canonical alias for this host's loopback, and 127.0.0.1
-# inside the guest is the GUEST itself. On Darwin the AVD is reached via the
-# <build-host> adb tunnel (tunnel-android), so Android must use .env's URL
-# (https://samay-api.qallariy.lat) like waydroid/simulators — a local
-# 127.0.0.1:54386 override would point the guest at the <build-host>'s loopback,
-# where no Supabase stack runs (login → SERVER_ERROR).
-ifeq ($(TARGET),android)
-ifeq ($(OS_IS_DARWIN),)
-FLUTTER_DEFINES += --dart-define=SUPABASE_URL=http://$(ANDROID_GATEWAY_HOST):54386
-endif
-endif
-
 # ── fastlane lane env (ios-adhoc builds) ─────────────────────────────────────
 # The adhoc_local lane reads SUPABASE_URL / SUPABASE_ANON_KEY from the
 # environment (Fastfile dart_defines).
