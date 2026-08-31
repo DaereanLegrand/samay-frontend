@@ -6,6 +6,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/extensions/error_mapper.dart';
+import 'package:samay/core/logging/app_logger.dart';
 import 'package:samay/core/providers/auth_provider.dart';
 import 'package:samay/core/providers/service_providers.dart';
 import 'package:samay/features/minigames/logic/minigame_engine.dart';
@@ -438,7 +439,16 @@ class _AnswerCardState extends ConsumerState<_AnswerCard> {
     try {
       final cipher = ref.read(minigameCipherProvider(widget.sessionId));
       final round = widget.state.skeleton.round;
+      AppLogger.instance.debug(
+        'minigame submitAnswer start session=${widget.sessionId} round=$round '
+        'hasText=${text.isNotEmpty} hasImage=${_image != null} '
+        'subject=${widget.state.skeleton.subjectId?.substring(0, 8)}…',
+      );
       final textCipher = await cipher.encryptAnswerText(text, round);
+      AppLogger.instance.debug(
+        'minigame submitAnswer encrypted text session=${widget.sessionId} '
+        'round=$round cipherLen=${textCipher.length}',
+      );
       String? imagePath;
       if (_image != null) {
         final bytes = Uint8List.fromList(await _image!.readAsBytes());
@@ -449,6 +459,10 @@ class _AnswerCardState extends ConsumerState<_AnswerCard> {
         imagePath = await ref
             .read(minigameServiceProvider)
             .uploadMinigameImage(widget.sessionId, round, cipherBytes);
+        AppLogger.instance.debug(
+          'minigame submitAnswer uploaded image session=${widget.sessionId} '
+          'round=$round path=$imagePath',
+        );
       }
       await ref
           .read(minigameGameStateProvider(widget.sessionId).notifier)
@@ -456,7 +470,15 @@ class _AnswerCardState extends ConsumerState<_AnswerCard> {
             answerCiphertext: textCipher,
             imageStoragePath: imagePath,
           );
-    } catch (e) {
+      AppLogger.instance.debug(
+        'minigame submitAnswer RPC ok session=${widget.sessionId} round=$round',
+      );
+    } catch (e, st) {
+      AppLogger.instance.error(
+        'minigame submitAnswer FAILED session=${widget.sessionId} '
+        'round=${widget.state.skeleton.round} type=${e.runtimeType}: $e',
+        '$st',
+      );
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,

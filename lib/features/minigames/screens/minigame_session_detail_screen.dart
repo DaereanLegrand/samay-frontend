@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/extensions/error_mapper.dart';
+import 'package:samay/core/logging/app_logger.dart';
 import 'package:samay/core/providers/auth_provider.dart';
 import 'package:samay/core/providers/service_providers.dart';
 import 'package:samay/core/router/route_paths.dart';
@@ -683,12 +684,20 @@ class _CountdownOverlayState extends ConsumerState<_CountdownOverlay> {
   @override
   void initState() {
     super.initState();
+    AppLogger.instance.debug(
+      'countdown overlay mounted session=${widget.sessionId} '
+      'isCreator=${widget.isCreator} seconds=$_seconds',
+    );
     // Device-clock countdown, ticked every second with a repaint. The host's
     // device auto-confirms at 0; non-hosts go to "waiting for the host".
     _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
       if (!mounted) return;
       if (_remaining <= 1) {
         _ticker?.cancel();
+        AppLogger.instance.debug(
+          'countdown tick finished session=${widget.sessionId} '
+          'isCreator=${widget.isCreator}',
+        );
         if (widget.isCreator) {
           _confirmStart();
         } else {
@@ -700,11 +709,18 @@ class _CountdownOverlayState extends ConsumerState<_CountdownOverlay> {
         return;
       }
       setState(() => _remaining -= 1);
+      AppLogger.instance.debug(
+        'countdown tick session=${widget.sessionId} remaining=$_remaining',
+      );
     });
   }
 
   @override
   void dispose() {
+    AppLogger.instance.debug(
+      'countdown overlay disposed session=${widget.sessionId} '
+      'isCreator=${widget.isCreator}',
+    );
     _ticker?.cancel();
     _watchdog?.cancel();
     super.dispose();
@@ -715,12 +731,22 @@ class _CountdownOverlayState extends ConsumerState<_CountdownOverlay> {
   /// participant.
   Future<void> _confirmStart() async {
     if (_starting || !mounted) return;
+    AppLogger.instance.debug(
+      'countdown host confirming start session=${widget.sessionId}',
+    );
     setState(() => _starting = true);
     try {
       await ref
           .read(minigameGameStateProvider(widget.sessionId).notifier)
           .startMatch();
+      AppLogger.instance.debug(
+        'countdown host startMatch succeeded session=${widget.sessionId}',
+      );
     } catch (e) {
+      AppLogger.instance.warn(
+        'countdown host startMatch FAILED session=${widget.sessionId} '
+        'type=${e.runtimeType}: $e',
+      );
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
@@ -733,20 +759,38 @@ class _CountdownOverlayState extends ConsumerState<_CountdownOverlay> {
   /// Non-host watchdog: after the on-device countdown ends, wait up to 10s for
   /// the host's start (or a cancel). If neither arrives, surface a host-error.
   void _armWaitingWatchdog() {
+    AppLogger.instance.debug(
+      'countdown non-host waiting for host session=${widget.sessionId} '
+      'watchdogSeconds=$_waitingTimeoutSeconds',
+    );
     _watchdog = Timer(const Duration(seconds: _waitingTimeoutSeconds), () {
       if (!mounted) return;
+      AppLogger.instance.warn(
+        'countdown watchdog fired — host did not confirm/cancel '
+        'session=${widget.sessionId}',
+      );
       setState(() => _hostError = true);
     });
   }
 
   Future<void> _cancel() async {
     if (_cancelling) return;
+    AppLogger.instance.debug(
+      'countdown host cancelling session=${widget.sessionId}',
+    );
     setState(() => _cancelling = true);
     try {
       await ref
           .read(minigameGameStateProvider(widget.sessionId).notifier)
           .cancelStart();
+      AppLogger.instance.debug(
+        'countdown cancel succeeded session=${widget.sessionId}',
+      );
     } catch (e) {
+      AppLogger.instance.warn(
+        'countdown cancel FAILED session=${widget.sessionId} '
+        'type=${e.runtimeType}: $e',
+      );
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,

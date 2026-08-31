@@ -148,6 +148,10 @@ class MinigameCipher {
     required List<String> peerIds,
     required Map<int, Uint8List> roundKeys,
   }) async {
+    AppLogger.instance.debug(
+      'minigame distributeHistoryKeys enter session=$sessionId '
+      'peers=${peerIds.length} history=${roundKeys.keys.toList()}',
+    );
     // Persist our own minted keys first — the host on a fresh device can
     // recover them locally.
     for (final entry in roundKeys.entries) {
@@ -173,6 +177,10 @@ class MinigameCipher {
     required List<String> peerIds,
     required int round,
   }) async {
+    AppLogger.instance.debug(
+      'minigame rotateRoundKey enter session=$sessionId round=$round '
+      'peers=${peerIds.length}',
+    );
     final key = _randomKey();
     await _cacheRoundKey(round, key);
 
@@ -186,6 +194,10 @@ class MinigameCipher {
       if (k != null) history[r] = k;
     }
     final payload = _encodeRoundKeys(history);
+    AppLogger.instance.debug(
+      'minigame rotateRoundKey minted session=$sessionId round=$round '
+      'historyRounds=${history.keys.toList()} payloadBytes=${payload.length}',
+    );
     await Future.wait([
       for (final peer in peerIds)
         _deliverBundle(peer, payload),
@@ -207,6 +219,10 @@ class MinigameCipher {
     required int round,
   }) async {
     final known = await _keyForRound(round);
+    AppLogger.instance.debug(
+      'minigame mintRoundKeyAndDistribute enter session=$sessionId round=$round '
+      'keyKnown=${known != null} peers=${peerIds.length}',
+    );
     if (known == null) {
       await _cacheRoundKey(round, _randomKey());
     }
@@ -219,6 +235,11 @@ class MinigameCipher {
       if (k != null) history[r] = k;
     }
     final payload = _encodeRoundKeys(history);
+    AppLogger.instance.debug(
+      'minigame mintRoundKeyAndDistribute built session=$sessionId round=$round '
+      'historyRounds=${history.keys.toList()} payloadBytes=${payload.length} '
+      'sendingTo=${peerIds.length}',
+    );
     await Future.wait([
       for (final peer in peerIds)
         _deliverBundle(peer, payload),
@@ -236,6 +257,10 @@ class MinigameCipher {
       final k = await _keyForRound(r);
       if (k != null) out[r] = k;
     }
+    AppLogger.instance.debug(
+      'minigame knownRoundKeys session=$sessionId '
+      'persistedRounds=${known.toList()} knownRounds=${out.keys.toList()}',
+    );
     return out;
   }
 
@@ -246,6 +271,11 @@ class MinigameCipher {
     if (_hasRoundKey(round)) return;
 
     final rows = await _service.getE2eeBundles(sessionId);
+    AppLogger.instance.debug(
+      'minigame ensureRoundKey session=$sessionId round=$round '
+      'selfRecipientBundles=${rows.length}',
+    );
+    var foundAny = false;
     for (final row in rows) {
       final senderId = row['sender_id'];
       final bundle = row['bundle_ciphertext'];
@@ -255,6 +285,7 @@ class MinigameCipher {
         final plaintext = await envelope.decryptEnvelope(bundle);
         if (plaintext == null) continue;
         final decoded = _decodeRoundKeys(plaintext);
+        foundAny = foundAny || decoded.isNotEmpty;
         for (final entry in decoded.entries) {
           await _cacheRoundKey(entry.key, entry.value);
         }
@@ -267,10 +298,15 @@ class MinigameCipher {
       }
     }
 
-    if (!_hasRoundKey(round)) {
+    if (foundAny) {
+      AppLogger.instance.debug(
+        'minigame ensureRoundKey recovered keys session=$sessionId round=$round '
+        'nowHasRound=${_hasRoundKey(round)}',
+      );
+    } else if (!_hasRoundKey(round)) {
       AppLogger.instance.debug(
         'minigame e2ee round key missing after self-heal session=$sessionId '
-        'round=$round',
+        'round=$round bundles=${rows.length}',
       );
     }
   }
@@ -368,6 +404,7 @@ class MinigameCipher {
   // ---------------------------------------------------------------------------
 
   Future<Uint8List> _ensureKeyForWrite(int round) async {
+    var source = 'memory';
     var key = _roundKeys[round];
     if (key == null) {
       final saved = await _sessionStore.loadSession(_roundStoreKey(round));
@@ -375,15 +412,26 @@ class MinigameCipher {
       if (decoded != null && decoded.length == 32) {
         key = decoded;
         _roundKeys[round] = key;
+        source = 'store';
       }
     }
     if (key == null) {
+      source = 'self-heal';
       await ensureRoundKey(round: round);
       key = _roundKeys[round];
     }
     if (key == null) {
+      AppLogger.instance.error(
+        'minigame round key missing for WRITE session=$sessionId round=$round '
+        'source=$source inMemory=${_roundKeys.containsKey(round)} '
+        'knownRounds=${await _loadKnownRounds()}',
+      );
       throw StateError('round key $round missing');
     }
+    AppLogger.instance.debug(
+      'minigame round key ready for write session=$sessionId round=$round '
+      'source=$source',
+    );
     return key;
   }
 
@@ -419,6 +467,10 @@ class MinigameCipher {
     );
     index.add(round);
     await _sessionStore.saveSession(_roundIndexKey, _encodeRoundsIndex(index));
+    AppLogger.instance.debug(
+      'minigame round key cached session=$sessionId round=$round '
+      'index=${index.toList()}',
+    );
   }
 
   /// The persisted set of round numbers for this session (loaded lazily and
@@ -462,6 +514,11 @@ class MinigameCipher {
     try {
       final envelope = _pairwiseSession(peerUserId);
       final bundle = await envelope.encryptText(payload);
+      AppLogger.instance.debug(
+        'minigame e2ee bundle encrypting session=$sessionId '
+        'recipient=$peerUserId envelope=${_pairwiseSessionKey(peerUserId)} '
+        'payloadBytes=${payload.length} bundleBytes=${bundle.length}',
+      );
       await _service.putE2eeBundle(
         sessionId,
         senderId: _ownerUserId,

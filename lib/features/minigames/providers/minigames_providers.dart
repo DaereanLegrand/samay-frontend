@@ -358,7 +358,12 @@ class MinigameInviteNotifier
   Future<void> _distributeKeysOnAccept() async {
     try {
       final myId = ref.read(authStateProvider).valueOrNull?.user?['id'];
-      if (myId == null) return;
+      if (myId == null) {
+        AppLogger.instance.warn(
+          'minigame accept key distribution skipped session=$arg — no user',
+        );
+        return;
+      }
       final session = ref.read(sessionStatusProvider(arg)).valueOrNull;
       final participants = (session?['participants'] as List?)?.cast<String?>();
       if (participants == null) return;
@@ -367,9 +372,14 @@ class MinigameInviteNotifier
           if (p != null && p != myId) p,
       ];
       final cipher = ref.read(minigameCipherProvider(arg));
+      final history = await cipher.knownRoundKeys();
+      AppLogger.instance.debug(
+        'minigame accept key distribution session=$arg roster=${participants.length} '
+        'peers=${peers.length} historyRounds=${history.keys.toList()}',
+      );
       await cipher.distributeHistoryKeys(
         peerIds: peers,
-        roundKeys: await cipher.knownRoundKeys(),
+        roundKeys: history,
       );
     } catch (e, st) {
       AppLogger.instance.warn('minigame accept key distribution skipped', '$st');
@@ -494,6 +504,12 @@ class MinigameGameStateNotifier
           final justStarted =
               prevPhase == MinigamePhase.countdown &&
               parsed.skeleton.phase == MinigamePhase.playing;
+          AppLogger.instance.debug(
+            'minigame state realtime session=$sessionId '
+            'prevPhase=${prevPhase?.name} phase=${parsed.skeleton.phase.name} '
+            'prevRound=$prevRound newRound=$newRound justStarted=$justStarted '
+            'mintedRound=$_mintedRound subject=${parsed.skeleton.subjectId?.substring(0, 8)}…',
+          );
           if (justStarted || (newRound > prevRound && newRound > (_mintedRound ?? -1))) {
             _mintedRound = newRound;
             _mintRoundKey(newRound);
@@ -524,21 +540,48 @@ class MinigameGameStateNotifier
   Future<void> _mintRoundKey(int round) async {
     try {
       final myId = ref.read(authStateProvider).valueOrNull?.user?['id'];
-      if (myId == null) return;
+      if (myId == null) {
+        AppLogger.instance.warn(
+          'minigame mint skipped session=$arg round=$round — no authenticated user',
+        );
+        return;
+      }
       final session = ref.read(sessionStatusProvider(arg)).valueOrNull;
       final participants = (session?['participants'] as List?)?.cast<String?>();
-      if (participants == null || participants.isEmpty) return;
+      if (participants == null || participants.isEmpty) {
+        AppLogger.instance.warn(
+          'minigame mint skipped session=$arg round=$round — empty participants',
+        );
+        return;
+      }
       // Creator = participant[0] (the only role that can start the game).
-      if (participants.first != myId) return;
+      if (participants.first != myId) {
+        AppLogger.instance.debug(
+          'minigame mint skipped session=$arg round=$round — not creator '
+          '(myId=${myId.substring(0, 8)}… first=${participants.first?.substring(0, 8)}…)',
+        );
+        return;
+      }
       final peers = [
         for (final p in participants)
           if (p != null && p != myId) p,
       ];
+      AppLogger.instance.debug(
+        'minigame mint triggered session=$arg round=$round roster=${participants.length} '
+        'peers=${peers.length} mintedSoFar=$_mintedRound',
+      );
       await ref
           .read(minigameCipherProvider(arg))
           .mintRoundKeyAndDistribute(peerIds: peers, round: round);
+      AppLogger.instance.debug(
+        'minigame mint done session=$arg round=$round peers=${peers.length}',
+      );
     } catch (e, st) {
-      AppLogger.instance.warn('minigame round key mint skipped', '$st');
+      AppLogger.instance.warn(
+        'minigame round key mint skipped session=$arg round=$round '
+        'type=${e.runtimeType}: $e',
+        '$st',
+      );
     }
   }
 
