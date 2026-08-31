@@ -26,6 +26,11 @@ security gates and audit the repo against the documented security posture
 (`docs/security/SECURITY.md`, `docs/security/E2EE-ARCHITECTURE.md`) and the
 port convention (AGENTS.md). Read-only: you report findings, you never fix.
 
+Testing is backend-only (directive 2026-08-31): the Flutter test trees
+(`test/*.dart`, `integration_test/`, `test_driver/`) were deleted; the
+security-relevant test surface is the curl opt-tests (`test/opt-*.sh`, esp.
+opt-001 RLS) + pgTAP (`supabase/tests/schema_test.sql`).
+
 ## Mandatory reading
 
 - `docs/process/DEVELOPMENT-WORKFLOW.md` (rules incl. the port map)

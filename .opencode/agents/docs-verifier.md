@@ -33,8 +33,10 @@ report, never fix.
 ## What you verify (checklist)
 
 1. **Baseline numbers:** root README's Testing summary must equal fresh runs
-   (`dart analyze`, `flutter test`, `go test ./...`, pgTAP plan, opt-test and
-   integration-flow counts). Report any drift with both numbers.
+   (`dart analyze`, `go test ./...`, pgTAP plan, opt-test counts). Testing is
+   backend-only (directive 2026-08-31): the Flutter/Dart test trees
+   (`test/*.dart`, `integration_test/`, `test_driver/`) were deleted and must
+   NOT be re-referenced as live. Report any drift with both numbers.
 2. **Step statuses vs reality:** for every ✅ row in `cross-references.md`,
    spot-check the feature exists in code; for every ⚠️/❌/🔴 row, confirm the
    pending part is genuinely still absent.

@@ -55,19 +55,11 @@ dependencies:
   purchases_flutter: ^10.8.0
 
 dev_dependencies:
-  flutter_test:
-    sdk: flutter
-  integration_test:
-    sdk: flutter
-  # Platform-interface seam of connectivity_plus (I-67): the service tests
-  # substitute a fake `ConnectivityPlatform` to exercise the real default
-  # implementation without a device or MethodChannel. Version mirrors the
-  # transitive one pinned by connectivity_plus ^7.3.1.
-  connectivity_plus_platform_interface: ^2.1.0
+  # Testing is backend-only (directive 2026-08-31): Go `*_test.go`, pgTAP
+  # supabase/tests/schema_test.sql, curl opt-tests test/opt-*.sh. The Flutter
+  # test trees (test/*.dart, integration_test/) were deleted, so flutter_test
+  # and integration_test are gone.
   flutter_lints: ^6.0.0
-  yaml: ^3.1.3
-  mocktail: ^1.0.4
-  file: ^7.0.1
   build_runner: ^2.15.1
   freezed: ^4.0.0-dev.3
   json_serializable: ^6.14.1

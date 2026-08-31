@@ -23,22 +23,23 @@ before an edit. Ownership is enforced by the **file semaphore**
 | `docs/README.md` | Docs hub — keep the map accurate |
 | `README.md` | Baseline numbers — update in the same commit as count changes |
 | `docs/specs/steps/cross-references.md` | Dependency graph + statuses — single writer at a time |
-| `lib/core/router/app_router.dart`, `route_paths.dart`, `route_extras.dart` | Central routing; many feature tests pin it |
+| `lib/core/router/app_router.dart`, `route_paths.dart`, `route_extras.dart` | Central routing; many features depend on it |
 | `lib/core/providers/auth_provider.dart` | Auth state machine; auth flows across features depend on it |
 | `lib/main.dart` | Bootstrap order (Supabase init, Hive, handlers) |
-| `lib/core/design_tokens/**`, `lib/core/theme/**` | Token/theme layer; shared-widget + screen tests pin values |
+| `lib/core/design_tokens/**`, `lib/core/theme/**` | Token/theme layer |
 | `lib/shared/widgets/**` | Shared component contracts |
-| `lib/core/services/chat_service.dart`, `lib/crypto/**` | E2EE chat stack — crypto changes must pair with `test/crypto/` + opt-tests |
-| `pubspec.yaml` (+ generated lockfiles) | Dependency contract guarded by `test/pubspec_test.dart` + conventions guards |
+| `lib/core/services/chat_service.dart`, `lib/crypto/**` | E2EE chat stack — crypto changes must pair with opt-tests |
+| `pubspec.yaml` (+ generated lockfiles) | Dependency contract — testing deps were removed (directive 2026-08-31) |
 | `Makefile` | Gate definitions (`make check` / `make test`) |
 | `tools/check_secrets.sh`, `tools/check_ports.sh`, `tools/hooks/pre-commit` | Repo gates — loosening them requires explicit human sign-off |
 | `supabase/migrations/**` ↔ `supabase-testing/migrations/**` | Byte-identical mirror rule; move both or neither |
 | `supabase/tests/schema_test.sql` ↔ `supabase-testing/tests/schema_test.sql` | pgTAP parity; keep `plan(N)` == assertion count |
-| `integration_test/runner.sh` | Flow registration order (data deps between flows) |
-| `test/meta/conventions_test.dart` | Repo-convention guards — extend, don't weaken |
+| `test/opt-NNN-*.sh` + `test/run_all_backend.sh` | Backend curl test suite — register new opt-tests in the runner |
 
 ## Dead paths
 
 Do not recreate: `docs/to-fix/`, `docs/audit/`, campaign-era docs,
-`DISCO-*` design docs (replaced by `docs/design/DESIGN.md`). The guard in
-`test/meta/conventions_test.dart` fails any tracked reference to them.
+`DISCO-*` design docs (replaced by `docs/design/DESIGN.md`). Also dead
+(directive 2026-08-31): the Flutter/Dart test trees — `test/*.dart`,
+`test/support/`, `test/meta/conventions_test.dart`, `test_driver/`,
+`integration_test/` (flows + `runner.sh`). Testing is backend-only.

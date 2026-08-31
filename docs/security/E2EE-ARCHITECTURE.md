@@ -45,9 +45,11 @@ differed, it is listed here.
 
 ### 0.3 Verification posture
 
-Crypto unit tests live in `test/crypto/` (x3dh, group_cipher, session,
-primitives, key_store, envelope, ratchet, prekey); no plaintext persists
-client-side — only envelope bytes reach `messages.content`.
+Crypto behavior is pinned by the backend contract (`test/opt-003-chat.sh`,
+`test/opt-010-groups-chat.sh` + pgTAP) — the Flutter unit suites in
+`test/crypto/` were deleted with the Dart test trees (directive 2026-08-31).
+No plaintext persists client-side — only envelope bytes reach
+`messages.content`.
 
 ---
 
@@ -117,7 +119,7 @@ client-side — only envelope bytes reach `messages.content`.
 
 - 1:1 direct chats and group/event chats share the same wire format family. 1:1 sessions use the X3DH + Double Ratchet envelopes (types 0x01/0x02); **group chat is E2EE with Signal sender keys** (type 0x03, §9.6) — implemented, not a later step.
 
-- Text messages E2EE. Media (images/videos in Supabase Storage) is **NOT** E2EE at MVP — explicit limitation (§9.7).
+- Text messages E2EE. CHAT media (images/videos in Supabase Storage) is **NOT** E2EE at MVP — explicit limitation (§9.7); minigame image answers ARE client-side-encrypted in Storage since 2026-08-31 (§9.8).
 
 - Single device per user at MVP (no multi-device session fan-out). Session management follows the parts of Sesame (R3) that apply to single-device async messaging: active session per chat, identity-change detection on reinstall, stale-session deletion.
 
@@ -1583,9 +1585,7 @@ guard D1f), `03_messaging.sql` adds `messages.recipient_id`). The
 
 publication are untouched — distribution rows are transparent to all of them.
 
-Integration: `test/opt-010-groups-chat.sh` (DB-layer contract) +
-
-`integration_test/group_chat_flow_test.dart` (client flow); UI: group rows in
+Integration: `test/opt-010-groups-chat.sh` (DB-layer contract); UI: group rows in
 
 the inbox + `ChatThreadView` in the group-detail Chat tab (D4).
 
@@ -1595,7 +1595,25 @@ the inbox + `ChatThreadView` in the group-detail Chat tab (D4).
 
 
 
-`media_url` media in Storage is NOT encrypted at MVP (E2EE applies to message contents). Documented in SECURITY.md §2.5 (bucket policies are S-09/I-59 scope). A future media-encryption step encrypts blobs with a session-derived key before upload — the envelope reserves `type 0x04` for media-key transfer messages. **Server sees no chat text, ever; server MAY see media bytes at MVP.**
+**CHAT media** (`media_url` in Storage) is NOT encrypted at MVP (E2EE applies to message contents). Documented in SECURITY.md §2.5 (bucket policies are S-09/I-59 scope). A future media-encryption step encrypts blobs with a session-derived key before upload — the envelope reserves `type 0x04` for media-key transfer messages. **Server sees no chat text, ever; server MAY see chat media bytes at MVP.** Note the minigame exception below (§9.8): minigame image answers ARE client-side-encrypted in Storage since 2026-08-31.
+
+
+
+### 9.8 Minigame answers: non-ratcheted round-key envelopes + encrypted media in Storage (2026-08-31)
+
+
+
+Minigame answers (Verdad o Reto play engine v2, `202_minigame_play_v2`) are E2EE via a **per-round group key `K_r`** — a deliberate non-ratcheted design chosen so a late joiner can read full history (Signal sender keys / Matrix Megolm one-way chains destroy past keys; requirement 2 of TODO.md §3.1/§3.2).
+
+- **Per-round key model.** Each round's answer (text + image) is AES-256-GCM-encrypted with `K_r` (a fresh `Random.secure()` 32-byte value); AAD binds session + round. The server stores only ciphertext (`minigame_answers.answer_ciphertext` / the game-state payload) and the storage path of an encrypted image blob. **Keys are additive, never wiped**: a player who accepts at round N receives the FULL history `K_1..K_N`, so every previous answer decrypts. No epoch/rekey/`wipeGroupKeys` machinery — device-scoped `wipe()` for account/device cleanup is the only deletion.
+- **Host = key custodian.** The creator (participant[0]) mints the round keys and the accept/kick bundles. The creator cannot remove itself (`remove_minigame_participant` is `not_creator` for self) and there is no leave RPC, so the host is present for the session's lifetime.
+- **Pairwise delivery.** Keys travel only inside pairwise-encrypted `E2eeSession` envelopes (X3DH + Double Ratchet) written to `minigame_e2ee_bundles` (namespace `g:minigame:<sessionId>:<peerId>`). `mgs_bundles_insert_own` is participant-only (sender AND recipient in `s.participants`); recipients read only their own-addressed rows. **Late-joiner full-history reads are achieved by delivery** — `distributeHistoryKeys` on accept, `ensureRoundKey` self-heal for a host on a fresh device, and the roster-change safety net for missed accepts.
+- **Forward-rotation revoke on kick.** On kick the host mints `K_{r+1}` and delivers it ONLY to the remaining participants; the kicked player's RLS blocks reading others' bundles, so they never learn `K_{r+1}+`. Additive keys are kept (no wipe).
+- **One cryptographic impossibility (explicit product decision).** A kicked user keeps decrypting rounds they **already participated in** because they hold those `K_r`. No mechanism on the internet can retroactively un-read content a device already decrypted — Signal, Matrix, and MLS all accept this. Future rounds are fully revoked; the already-seen rounds are not. This is an accepted product decision, not a bug (TODO.md §3.3 / Finding F).
+- **Server-blindness posture.** Answer text is ciphertext in `minigame_answers.answer_ciphertext` / the game-state payload. Answer IMAGES are AEAD ciphertext BYTES in the PRIVATE `minigame_images` Storage bucket at `<sessionId>/<round>/<uuid>.bin`; the DB stores only `image_storage_path`. Reads are participant-gated via storage RLS (`storage_objects_minigame_images_select` participant-gated SELECT, `storage_objects_minigame_images_insert` participant-only INSERT) + signed URL / authenticated `download()`. The server never sees plaintext and never holds a raw key — this is the documented media-E2EE deviation from the §9.7 MVP limitation: the minigame media path IS encrypted client-side, unlike chat media.
+- **Backend hardening (2026-08-31, TODO §3.7 findings A–E).** `gm.status='active'` + not-deleted in every group-member RLS SELECT and play/lobby RPC gate; by-turns/async WRITER RPCs participant-only (`auth.uid() = ANY (v_participants)`); `_minigame_advance_round` ACL revoked from PUBLIC; `init_minigame_game_state` preserves `round_target`/`prize_positions`; distinct-voter `{list,count}` reaction counts.
+
+Coverage: `lib/features/minigames/logic/minigame_cipher.dart` (the Flutter `test/features/minigames/logic/minigame_cipher_test.dart` regression suite was deleted 2026-08-31 — backend-only testing), `test/opt-021-minigame-play-v2.sh` TEST H, pgTAP Sections 49k/49l.
 
 
 
@@ -1749,7 +1767,7 @@ abstract class E2eePrekeyService {
 
 
 
-### 11.1 Unit tests — `test/crypto/` (I-37)
+### 11.1 Crypto unit tests (I-37 — deleted with the Dart test trees, 2026-08-31)
 
 
 
@@ -1791,7 +1809,7 @@ abstract class E2eePrekeyService {
 
 
 
-### 11.2 Integration tests — `integration_test/e2ee_flow_test.dart` + `test/opt-003-chat.sh` (I-38)
+### 11.2 Integration tests — `test/opt-003-chat.sh` (I-38)
 
 
 
@@ -1821,7 +1839,7 @@ Two in-memory "clients" (the real `lib/crypto/`) against a fake server implement
 
 
 
-- `flutter test` (incl. `test/crypto/`) green; `dart analyze` clean; `go test ./...` untouched; `test/opt-003-chat.sh` green against the stack; S-07 crypto audit before chat ships (SECURITY.md §5.2).
+- `dart analyze` clean; `go test ./...` green; `test/opt-003-chat.sh` green against the stack; S-07 crypto audit before chat ships (SECURITY.md §5.2). (The Flutter `test/crypto/` suite was deleted with the Dart test trees — directive 2026-08-31; crypto behavior is pinned by opt-003 + pgTAP.)
 
 - Negative proof: `rg` over `lib/crypto/ lib/core/services/chat_service.dart` shows zero plaintext writes to any persistence layer (only envelope bytes to Postgres, only keys to flutter_secure_storage).
 
@@ -1857,7 +1875,7 @@ Two in-memory "clients" (the real `lib/crypto/`) against a fake server implement
 
 | 7 | `session.dart` (x3dh+ratchet+envelope orchestration), `e2ee_prekey_service.dart` | I1 (unit-level, fake server) green |
 
-| 8 | `test/crypto/*` full matrix + `README` | full matrix green; `dart analyze` clean |
+| 8 | crypto behavior pinned by `test/opt-003-chat.sh` + pgTAP (the `test/crypto/*` Flutter matrix was deleted 2026-08-31) | opt-003 green; `dart analyze` clean |
 
 
 
@@ -1881,7 +1899,7 @@ Two in-memory "clients" (the real `lib/crypto/`) against a fake server implement
 
 | 4 | Key lifecycle hooks in auth: publish on `createProfile`, wipe on account switch/`deleteAccount` (**landed 2026-08-15** — `AuthNotifier._ensureE2eeKeysPublished`: `createProfile` → `publishAll()`; session restore / `signedIn` → ownership guard (wipe on account switch) + `handleMissingSession()` heal that also republishes on identity mismatch; `signOut` KEEPS material per §7.6 Signal model; `_wipeE2eeMaterial` wipes on switch/delete) | I6 green |
 
-| 5 | `integration_test/e2ee_flow_test.dart` + `test/opt-003-chat.sh` | I5 green |
+| 5 | `test/opt-003-chat.sh` (the `integration_test/e2ee_flow_test.dart` flow was deleted 2026-08-31 — backend-only testing) | I5 green |
 
 | 6 | Wire `RoutePaths.chat` to the real chat screen (**landed** — ChatScreen live at app_router.dart:414-420, replaces `VComingSoonScreen`) with decrypt path | chat UI shows decrypted text; session-present failures → "Mensaje no descifrable"; no-session failures (reinstall history) are hidden + auto-deleted (§7.5, 2026-08-16) |
 
@@ -1928,7 +1946,7 @@ Two in-memory "clients" (the real `lib/crypto/`) against a fake server implement
 
 | D8 | Group chat | **Signal sender keys — envelope type 0x03 (IMPLEMENTED, ISSUE 4)** | one message row + N decryptions beats per-recipient fan-out; per-pairwise X3DH distribution bundles addressed by `messages.recipient_id`; hard rekey on roster change (§9.6) |
 
-| D9 | Media | NOT E2EE at MVP (explicit) | scoped; reserved type 0x04 |
+| D9 | Media | CHAT media NOT E2EE at MVP (explicit); **minigame image answers E2EE in Storage since 2026-08-31 (§9.8)** | chat scoped; reserved type 0x04 |
 
 | D10 | Metadata | Accepted exposure, Signal stance | documented, no anonymity claims |
 
@@ -1944,9 +1962,10 @@ Two in-memory "clients" (the real `lib/crypto/`) against a fake server implement
 
 ## 14. Verification
 
-- Crypto behavior is pinned by the unit suites in `test/crypto/` and the
-  hermetic integration flows; backend-side assertions live in
+- Crypto behavior is pinned by the backend assertions in
   `test/opt-003-chat.sh`, `test/opt-010-groups-chat.sh` and the pgTAP suite
-  (`supabase/tests/schema_test.sql`).
+  (`supabase/tests/schema_test.sql`). The Flutter unit/integration suites
+  (`test/crypto/`, `integration_test/`) were deleted with the Dart test trees
+  (directive 2026-08-31).
 - Implementation status and deviations are recorded in §0; update both in the
   same commit as any crypto change.

@@ -8,7 +8,7 @@ context and the standing development protocol **automatically**.
 | File | Effect |
 |---|---|
 | `opencode.json` | **Project config**: `instructions` inject AGENTS.md + `docs/process/DEVELOPMENT-WORKFLOW.md` + `docs/process/FILE-OWNERSHIP.md` into every session; `permission.bash` denies destructive git operations (commit/push allowed on human request, see below). |
-| `agents/*.md` | Four project agents (see table below). Subagents are invoked via `@mention`; `samay` is a primary agent you can switch to with Tab. |
+| `agents/*.md` | Three subagents (see table below) + `samay` primary agent. Subagents are invoked via `@mention`; `samay` is a primary agent you can switch to with Tab. |
 | `README.md` | This file — how the config works and how the lock protocol is surfaced. |
 
 ## The lock protocol is surfaced three ways
@@ -26,49 +26,53 @@ context and the standing development protocol **automatically**.
    rule-driven (DEVELOPMENT-WORKFLOW.md §2) rather than permission-driven:
    the lock, not the tool, arbitrates parallel edits.
 3. **The `samay` agent** re-states the full protocol in its system prompt
-   (read-first mandate, semaphore, TDD, commit policy, report format) for any
-   session that switches to it.
+   (read-first mandate, semaphore, backend-only testing, commit policy,
+   report format) for any session that switches to it.
 
 ## Agents
 
 | Agent | Mode | Purpose | Tools |
 |---|---|---|---|
-| `@reviewer` | subagent | Sign-off gate: `dart analyze` + `flutter test` + `go test ./...`, then code review per DEVELOPMENT-WORKFLOW.md §5 | read/grep/glob + gate commands only (`edit`/`write` denied) |
+| `@reviewer` | subagent | Sign-off gate: `go test ./...` + `dart analyze` + `go vet`, then code review per DEVELOPMENT-WORKFLOW.md §5 | read/grep/glob + gate commands only (`edit`/`write` denied) |
 | `@security-check` | subagent | Security gates: secrets gate + `tools/check_ports.sh --strict` + audit vs `docs/security/` (RLS, E2EE, sanitization, port map) | read/grep/glob + the gates only (`edit`/`write` denied) |
 | `@docs-verifier` | subagent | Doc↔code consistency: README baselines, cross-references statuses, security/design/infra claims, port map | read/grep/glob + `rg`/`git grep` only (`edit`/`write` denied) |
 | `samay` | primary | Full DEVELOPMENT-WORKFLOW workflow for implementation work (Tab to switch) | all tools; destructive git ops denied, commit/push on human request |
 
+## Testing architecture (directive 2026-08-31)
+
+- **Testing is reserved for the backend**, or per task there are **no
+  integration tests**.
+- The Flutter/Dart test trees were **deleted**: `test/*.dart` (unit/widget/
+  provider/router/theme suites), `integration_test/` (all flows + `runner.sh`),
+  and `test_driver/`. They must NOT be recreated.
+- What remains: **Go tests** (`go test ./...`, `internal/` + `cmd/`
+  `*_test.go`), **pgTAP** (`supabase/tests/schema_test.sql`,
+  `supabase-testing/tests/schema_test.sql`), and **curl opt-tests**
+  (`test/opt-NNN-*.sh`, runner `test/run_all_backend.sh`). The backend curl
+  tests and pgTAP need the self-hosted stack up (approved ports 54382/54386).
+- No `make flutter-test` / `make test-file` / `make test-feature` /
+  `make test-integration` targets exist anymore. `make test` = `go test
+  ./...` + the static opt gates.
+- Backend-only TDD: Go changes ship `*_test.go`; SQL changes extend pgTAP;
+  REST/RLS changes ship a curl opt-test. No Flutter test-first cycle exists.
+
 ## Notes & decisions
 
-- **UI-only changes skip RED/GREEN** (2026-08-27). Pure visual/layout changes
-  (styling, tokens, spacing, text placement) with no behavior or data-flow
-  impact skip the failing-test-first cycle per `AGENTS.md` §TDD Rules — but
-  they still keep the behavior/widget tests green, and MUST NOT add
-  visual-pinning assertions (token-budget directive 2026-08-27: token values
-  are pinned once in `test/theme/app_theme_test.dart`).
-- **Suckless test policy (2026-08-28).** Only FUNCTIONAL tests ship in
-  `test/` — logic, contract, and HTTP-to-Supabase-harness wiring
-  (`harnessHttp.sent*`). The UI-only layer was deleted (~600 tests) and
-  `test/meta/conventions_test.dart` enforces it: no new
-  `takeException()==null` smoke tests and no whole-file render-only feature
-  suites. `flutter test` = **1853 pass / 0 fail** (2026-08-28).
-- **Focused test loop is the default** (2026-08-27, explicit directive).
-  Agents iterate with `make test-file FILE=<path>` / `make test-feature
-  FEATURE=<name>` / `make test-files`; the full `make check` + `make test`
-  gate runs ONLY when the human explicitly asks. The `samay` agent prompt,
-  the `reviewer` agent prompt, and the Makefile all encode this.
+- **Suckless test policy (2026-08-28)** is superseded by the 2026-08-31
+  backend-only directive: the Flutter `test/` tree was deleted wholesale.
+- **Focused test loop** no longer applies to Flutter. Backend iteration:
+  `go test ./...` for Go, `bash test/opt-NNN-<name>.sh` for a single curl
+  opt-test, `bash test/run_all_backend.sh` for the suite (stack up).
 - **`.agents/` was NOT created** (documented decision). Juega's `.agents/`
   holds portable *skills* (the supabase + supabase-postgres-best-practices
   `SKILL.md` packages), not project agent definitions — and the same skills
   already exist user-wide in `~/.agents/skills/`. Samay's project-specific
   needs are fully covered by `.opencode/` + `docs/process/`; an empty
-  `.agents/` would be a placeholder dir, which the repo forbids
-  (structure_test dynamic invariant). If a portable skill is ever needed,
+  `.agents/` would be a placeholder dir. If a portable skill is ever needed,
   install it at the user level or vendor it with real content.
-- The guard `test/meta/conventions_test.dart` enforces: the config exists +
-  parses, references DEVELOPMENT-WORKFLOW.md + FILE-OWNERSHIP.md, allows
-  `git commit`/`git push`, denies the destructive git ops, and ships the
-  three subagents + README.
+- The guard `test/meta/conventions_test.dart` was deleted with the Flutter
+  test tree (2026-08-31); repo conventions are now documented in
+  `docs/process/` and enforced by the reviewer/security-check agents.
 - Config format follows the opencode docs (opencode.ai/docs/config,
   /agents, /permissions); `.opencode/opencode.json` is a documented
   project-config location.

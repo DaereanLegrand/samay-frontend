@@ -1,6 +1,6 @@
 .PHONY: help build dev install build-install clean clear-storage uninstall build-cli build-linux build-api lint check test \
-        test-all test-unit test-integration test-backend-static test-go \
-        flutter-test flutter-analyze define-env secrets-check tunnel-android tunnel-waydroid \
+        test-all test-backend-static test-go \
+        flutter-analyze define-env secrets-check tunnel-android tunnel-waydroid \
         ios-signing-restore \
         install-hooks \
         supabase-start supabase-stop supabase-status supabase-reset supabase-init \
@@ -40,12 +40,7 @@ help:
 	@echo ""
 	@echo "  CHECKS / TESTS"
 	@echo "    check                    full static gate: analyzers + go vet + ports + secrets"
-	@echo "    test / test-all          full local gate (unit + Go + static + integration)"
-	@echo "    test-unit / flutter-test Flutter unit/widget tests"
-	@echo "    test-file FILE=<path>    focused loop: run ONE test file (agent default)"
-	@echo "    test-files FILES=\"a b\"   focused loop: run several files in one go"
-	@echo "    test-feature FEATURE=<f> focused loop: run one feature dir (test/features/<f>)"
-	@echo "    test-integration [TARGET] integration flows (TARGET = on-device run)"
+	@echo "    test / test-all          full local gate (Go + backend static)"
 	@echo "    test-backend-static      static opt gates (no stack needed)"
 	@echo "    test-go                  go test ./..."
 	@echo "    flutter-analyze          dart analyze"
@@ -195,14 +190,15 @@ endif
 # power-save/roaming silently drops SYNs — 2026-08-22 session: healthy stack,
 # intermittent errno-110 from `make dev TARGET=android`), and 127.0.0.1 inside
 # the guest is the GUEST itself; 10.0.2.2 is the emulator's canonical alias for
-# host loopback (sub-ms, wlan-independent). macOS keeps 127.0.0.1 semantics.
+# host loopback (sub-ms, wlan-independent).
 ANDROID_GATEWAY_HOST := $(if $(findstring Linux,$(shell uname -s)),10.0.2.2,127.0.0.1)
+# Non-empty on Darwin (see the TARGET=android define override below).
+OS_IS_DARWIN := $(findstring Darwin,$(shell uname -s))
 
 # Test targets are intentionally define-FREE by default (I-34 proved
-# `--dart-define` flips exactly the two env-dependent cases in
-# test/core/env_config_test.dart, which assert the empty-default behavior).
-# To prove a define reaches the app during a test run, pass it explicitly:
-#   make test-unit FLUTTER_TEST_DEFINES="--dart-define=SUPABASE_URL=..."
+# `--dart-define` flips exactly the two env-dependent cases that the deleted
+# Flutter test suite covered). The only remaining test surface is backend
+# (Go + curl opt-tests), which reads the env directly.
 FLUTTER_TEST_DEFINES ?=
 
 # ── TESTING mode (TESTING=true) ──────────────────────────────────────────────
@@ -230,12 +226,18 @@ install: | testing-kong-register
 tunnel-android: | testing-kong-register
 endif
 
-# TARGET=android always pins the guest-reachable gateway host (see
-# ANDROID_GATEWAY_HOST above) — .env's LAN URL is for phones/desktop, never
-# for the AVD. Same value the TESTING lane emits, so duplicate flags (when
-# TESTING=true too) are identical, never conflicting.
+# TARGET=android on a NON-Darwin host pins the guest-reachable gateway host
+# (see ANDROID_GATEWAY_HOST above) — the emulator runs on this machine, so
+# 10.0.2.2 is its canonical alias for this host's loopback, and 127.0.0.1
+# inside the guest is the GUEST itself. On Darwin the AVD is reached via the
+# <build-host> adb tunnel (tunnel-android), so Android must use .env's URL
+# (https://samay-api.qallariy.lat) like waydroid/simulators — a local
+# 127.0.0.1:54386 override would point the guest at the <build-host>'s loopback,
+# where no Supabase stack runs (login → SERVER_ERROR).
 ifeq ($(TARGET),android)
+ifeq ($(OS_IS_DARWIN),)
 FLUTTER_DEFINES += --dart-define=SUPABASE_URL=http://$(ANDROID_GATEWAY_HOST):54386
+endif
 endif
 
 # ── fastlane lane env (ios-adhoc builds) ─────────────────────────────────────
@@ -591,66 +593,17 @@ build-api:
 	go build -o samay-api-server ./cmd/samay-api-server
 
 # ── Tests ─────────────────────────────────────────────────────────────────────
-# MKE-06 (M-11): separated targets. `make test` (= test-all) is the full local
-# gate: Flutter unit/widget + Go + the backend STATIC gates (opt-005 seeds,
-# opt-007 compose — no stack needed) + the hermetic integration suite.
-# The LIVE backend opt-tests (001/002/003/004/006) need the stack up
+# Testing is reserved for the BACKEND (directive 2026-08-31): Go unit tests
+# (`go test ./...`) + the backend STATIC gates (opt-005 seeds, opt-007
+# compose — no stack needed) + pgTAP (`supabase db test`). There are NO
+# Dart/Flutter tests and NO integration tests in this repo — the Flutter test
+# trees (`test/*.dart`, `integration_test/`) were deleted. The LIVE backend
+# opt-tests (001/002/003/004/006) need the stack up
 # (`make supabase-docker-start`) and run via `bash test/run_all_backend.sh`.
 
 test: test-all
 
-test-all: test-unit test-go test-backend-static test-integration
-
-# test/ only — integration_test/ is excluded (separate runner below).
-test-unit: flutter-test
-
-flutter-test:
-	flutter test test/ $(FLUTTER_TEST_DEFINES) $(FLUTTER_CONCURRENCY)
-
-# ── Focused test loop (token-budget 2026-08-27) ─────────────────────────────
-# The DEFAULT agent iteration loop. Run ONLY the tests touched by a change —
-# the full `make test` gate runs when the human explicitly asks for it.
-#
-#   make test-file FILE=test/features/friends/flow_test.dart
-#       → single-file: flutter test <FILE>
-#   make test-feature FEATURE=friends
-#       → per-feature: flutter test test/features/<FEATURE>/
-#   make test-files FILES="a.dart b.dart"
-#       → several files in one run
-# FLUTTER_TEST_DEFINES/FLUTTER_CONCURRENCY are honored; tests run in
-# parallel (--concurrency) by default so the loop stays fast.
-test-file:
-	@[ -n "$(FILE)" ] || { echo "usage: make test-file FILE=test/features/friends/flow_test.dart" >&2; exit 2; }
-	flutter test $(FILE) $(FLUTTER_TEST_DEFINES)
-
-test-files:
-	@[ -n "$(FILES)" ] || { echo "usage: make test-files FILES='a_test.dart b_test.dart'" >&2; exit 2; }
-	flutter test $(FILES) $(FLUTTER_TEST_DEFINES)
-
-test-feature:
-	@[ -n "$(FEATURE)" ] || { echo "usage: make test-feature FEATURE=friends" >&2; exit 2; }
-	flutter test test/features/$(FEATURE)/ $(FLUTTER_TEST_DEFINES)
-
-test-integration:
-	@UNAME=$$(uname); \
-	if [ "$$UNAME" = "Darwin" ] && [ "$(TARGET)" = "android" ]; then \
-		$(call tunnel-android, flutter test integration_test/ -d localhost:$(TUNNEL_ANDROID_PORT)); \
-	elif [ "$$UNAME" = "Darwin" ] && [ "$(TARGET)" = "waydroid" ]; then \
-		$(call tunnel-waydroid, flutter test integration_test/ -d localhost:$(TUNNEL_WAYDROID_PORT)); \
-	elif [ "$(TARGET)" = "waydroid" ]; then \
-		IP=$$(waydroid status | awk '/IP address:/ {print $$3}'); \
-		adb connect "$$IP:5555"; \
-		flutter test integration_test/ -d "$$IP:5555"; \
-	elif [ "$(TARGET)" = "android" ]; then \
-		DEV=$$(adb devices | grep -o 'emulator-[0-9]*' | head -1); \
-		if [ -n "$$DEV" ]; then \
-			flutter test integration_test/ -d "$$DEV"; \
-		else \
-			bash integration_test/runner.sh; \
-		fi; \
-	else \
-		bash integration_test/runner.sh; \
-	fi
+test-all: test-go test-backend-static
 
 test-backend-static:
 	bash test/opt-005-seeds-static.sh
@@ -868,11 +821,10 @@ secrets-check:
 # ── Pre-commit hooks (TOOL-04, M-26) ─────────────────────────────────────────
 # Wires git's core.hooksPath to the COMMITTED tools/hooks/ dir (never
 # .git/hooks/ — that is per-clone state). The pre-commit hook delegates to
-# tools/pre-commit.sh, the FAST gate: dart analyze + flutter test smoke
-# (test/meta/ + test/core/ + test/utils/ — full suite is CI's job) +
-# secrets-check + check_ports --strict + opt-008 makefile-static. Run once
-# per clone (the setting is local to each checkout). Exit codes: 0 wired,
-# 1 hook file missing/not executable (gates never silently skip).
+# tools/pre-commit.sh, the FAST gate: dart analyze + secrets-check +
+# check_ports --strict + opt-008 makefile-static. Run once per clone (the
+# setting is local to each checkout). Exit codes: 0 wired, 1 hook file
+# missing/not executable (gates never silently skip).
 install-hooks:
 	@git config core.hooksPath tools/hooks
 	@[ -x tools/hooks/pre-commit ] || { echo "❌  tools/hooks/pre-commit missing or not executable — fix before committing."; exit 1; }

@@ -9,7 +9,7 @@ This repository is a **3-track project**:
 
 | Track | What | Status |
 |-------|------|--------|
-| **Flutter app** (`lib/`, `test/`) | iOS + Android app — auth, profile, friends, groups, shard donations, rankings, events, QR, E2EE chat (1:1 + group), feed/photos, notifications, minigames, party finder. Most screens live behind feature flags; subscriptions stay gated (RevenueCat wiring pending) | Phases 00–04 done; phase 05+ foundations landed; edge functions pending |
+| **Flutter app** (`lib/`) | iOS + Android app — auth, profile, friends, groups, shard donations, rankings, events, QR, E2EE chat (1:1 + group), feed/photos, notifications, minigames, party finder. Most screens live behind feature flags; subscriptions stay gated (RevenueCat wiring pending) | Phases 00–04 done; phase 05+ foundations landed; edge functions pending |
 | **Go admin CLI** (`cmd/samay-admin/`, `internal/`) | Cobra-based operational CLI (`samay`) using the `service_role` key — users, events, groups, reports, shards, config, subs, system | Complete |
 | **Self-hosted Supabase** (`supabase/`, `supabase-testing/`) | PostgreSQL 17 + GoTrue + PostgREST + Realtime + Storage + Kong gateway; Docker Compose and `config.toml` dual setups; migration-based testing | Done — approved port map enforced |
 
@@ -33,10 +33,9 @@ cp .env.example .env
 # 3. Run the app (or: make dev TARGET=android)
 flutter run
 
-# 4. Tests
-make flutter-test        # Flutter unit/widget tests
-make flutter-analyze     # dart analyze
-make test                # flutter-test + go test ./...
+# 4. Tests (backend-only — directive 2026-08-31)
+make test                # go test ./... + static opt gates
+make check               # dart analyze + flutter analyze + go vet + ports + secrets
 make build-cli           # builds ./samay admin CLI binary
 
 # 5. Backend stack (self-hosted Supabase on the approved ports)
@@ -59,8 +58,8 @@ Nothing env-related is bundled as a Flutter asset and `.env` is gitignored.
 | `make install` | Install APK/IPA to device |
 | `make build-cli` / `build-linux` | Go admin CLI binaries |
 | `make build-api` | Gin API server binary |
-| `make flutter-test` / `flutter-analyze` | Flutter suite / static analysis |
-| `make test` | Flutter + Go suites |
+| `make flutter-analyze` | `dart analyze` static analysis |
+| `make test` | Go + backend static opt gates |
 | `make check` | dart analyze + flutter analyze + go vet + ports gate + secrets gate |
 | `make clean` | Build artifacts |
 | `make supabase-*` / `supabase-docker-*` / `supabase-testing-*` | Supabase stack lifecycle |
@@ -124,11 +123,9 @@ supabase/                     Self-hosted stack: config.toml, docker-compose*.ym
                               tests/schema_test.sql (pgTAP), volumes/
 supabase-testing/             Isolated testing stack (same layout)
 
-test/                         Flutter unit/widget tests + backend curl opt-tests
+test/                         Backend curl opt-tests
   opt-NNN-*.sh                curl integration tests (self-contained, exit 0/1)
   run_all_backend.sh          Runs every opt test against http://127.0.0.1:54386
-integration_test/             Hermetic modular integration suite (22 flows,
-                              runner.sh)
 test_runner.sh                gum-based MANUAL end-user QA runner
 
 docs/                         See docs/README.md for the map
@@ -143,40 +140,19 @@ tools/                        check_secrets/check_ports/check_migrations,
 Baseline numbers below are re-verified whenever docs change; if you change
 code, update them in the same commit.
 
-| Layer | Command | Baseline (2026-08-30) |
+**Testing is reserved for the backend, or per task there are NO integration
+tests (directive 2026-08-31).** The Flutter/Dart test trees were deleted
+(`test/*.dart`, `integration_test/` flows + `runner.sh`, `test_driver/`) and
+must NOT be recreated. There is no `make flutter-test` / `make test-file` /
+`make test-feature` / `make test-integration`.
+
+| Layer | Command | Baseline (2026-08-31) |
 |-------|---------|----------------------|
 | Static analysis | `dart analyze` | **0 issues** |
-| Flutter unit/widget | `make flutter-test` | **1907 pass / 0 fail** (square game tiles + invite-badge feed tiles + invitee partida-N + partida lobby — see below) |
 | Go | `go test ./...` | green — **188 tests**, 6 packages |
-| Integration flows | `bash integration_test/runner.sh` (hermetic) | **23 registered flows** (+ minigame_lobby_flow_test 2026-08-30; ui_smoke runs first) |
-| Backend (curl) | `bash test/run_all_backend.sh` | **18 opt-tests** (+ opt-019-minigame-lobby 2026-08-30: ready map, creator-only Start/remove, roster; needs the stack up; opt-007 static gate reports SERVICE_KEY-vs-.env alignment drift on opt-001..006 — local `.env` rotated after the 2026-08-25 baseline; runtime runs pass — see docs/history/phase-13/2026-08-26_monochrome-refactor.md) |
-| SQL (pgTAP) | `supabase db test` | **plan(793)** assertions (needs the stack; +28 from Section 49g `180_minigame_lobby` 2026-08-30 — ready map, set_minigame_ready/get_minigame_participants/remove_minigame_participant, creator-gated init, minigame_sessions realtime) |
+| Backend (curl) | `bash test/run_all_backend.sh` | **20 opt-tests** (+ opt-019-minigame-lobby 2026-08-30, opt-020-minigame-voting + opt-021-minigame-play-v2 2026-08-30; opt-006/016/018/020 reconciled 2026-08-31 to the current contracts — answer-first gate + hardening + `{list,count}` mirror shape; needs the stack up; opt-007 static gate reports SERVICE_KEY-vs-.env alignment drift on opt-001..006 — local `.env` rotated after the 2026-08-25 baseline; runtime runs pass) |
+| SQL (pgTAP) | `supabase db test` | **plan(871)** assertions (needs the stack; +18 from Section 49k/49l `202_minigame_play_v2` 2026-08-31 — play-mode/round-key hardening: active-only group-member RLS, participant-only writers/bundles, distinct-voter `{list,count}` reactions, `image_storage_path` + private `minigame_images` bucket, `_minigame_advance_round` ACL; on top of +60 from 2026-08-30) |
 | Manual end-user QA | `bash test_runner.sh` | gum-based manual runner |
-
-**Suckless test policy (2026-08-28):** only FUNCTIONAL tests ship in `test/`
-— logic, contract, and HTTP-to-harness wiring. The UI-only layer was removed:
-per-screen render/empty-state/loading-skeleton/`renders without overflow`
-suites, the token/theme/shared-widget visual-pin files, and duplicated
-meta-guards (≈600 tests, ~25%). The remaining suite pins behavior through real
-Supabase-harness contract assertions (`harnessHttp.sent*`, e.g. the
-`accept_friend_request` RPC, leave-group `DELETE`, event-create `POST
-/rest/v1/events`). `test/meta/conventions_test.dart` enforces the policy:
- no new `takeException()==null` smoke tests and no whole-file render-only
-  feature suites. `flutter test` = **1907 pass / 0 fail** (re-verified
-  2026-08-30; invite badges: per-game feed `VCountBadge` from unread
-  `minigame_invite` notifications + the invitee sees the invited partida
-  (`partida-N`, server-canonical `auto_name`) ready to accept; home game
-  tiles are perfect squares of one size at any font setting; on-device
-  friends cache for invite/buscar — empty + <5-char queries show the cached
-  friend list via the `get_friend_profiles` RPC; partida lobby: the session
-  detail AppBar is the LOWERCASE minigame name ("verdad o reto"), the
-  realtime participant roster carries live Ready state — plain "Listo" chips
-  for ready peers (no username), the host never shows a chip (ready by
-  default), a non-creator toggles via the emphasized "¿Listo?" button, and
-  ready-map changes update only the changed row in place (granular sync, no
-  whole-list rebuild); the creator's Start is the emphasized "Empezar",
-  backend-enforced (`init_minigame_game_state` → `not_creator`), and creator
-  removal refunds the wager via `remove_minigame_participant`).
 
 See [`test/README.md`](test/README.md) for the full test matrix and the curl
 test-writing guide.
@@ -200,10 +176,11 @@ Build in layers so the next feature slots in without a rewrite:
 6. New behavior ships behind a feature flag (`lib/core/config/feature_flags.dart`).
 7. Tuneable values go in `app_config` (`./samay config set <key> <value>
    --confirm`) — never hardcode economy/QR/limit constants.
-8. Write the failing test first at every touched layer (widget test in
-   `test/features/`, flow file in `integration_test/`, curl opt-test
-   `test/opt-NNN-*.sh` for backend, pgTAP case in `supabase/tests/schema_test.sql`
-   for SQL), implement the minimum, then run `make check` + `make test`.
+8. Write the failing test first at every touched backend layer (Go
+   `*_test.go`, curl opt-test `test/opt-NNN-*.sh`, pgTAP case in
+   `supabase/tests/schema_test.sql`), implement the minimum, then run
+   `make check` + `make test`. There are no Dart/Flutter or integration tests
+   (directive 2026-08-31).
 
 ---
 

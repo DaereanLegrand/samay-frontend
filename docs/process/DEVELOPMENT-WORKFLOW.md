@@ -30,38 +30,26 @@ Authoritative companions: `AGENTS.md` (methodology, ports) and
 - Agents: `export AGENT_NAME=<your-id>` once per session so every lock command
   is consistent.
 
-### 1.3 RED — write the failing test first
+### 1.3 RED — write the failing backend test first
 
 TDD is non-negotiable: **no implementation code without a failing test first.**
-Write tests at every layer your change touches, but respect the **test-layer
-budget (max 2–3 layers per change)** — pick the smallest set that covers the
-behavior, never the same assertion twice across layers:
+Testing is **reserved for the backend, or per task there are NO integration
+tests** (explicit directive 2026-08-31). The Flutter/Dart test trees were
+deleted (`test/*.dart`, `integration_test/`, `test_driver/`) and must NOT be
+recreated. Write tests at every backend layer your change touches, but respect
+the **test-layer budget (max 2–3 layers per change)** — pick the smallest set
+that covers the behavior, never the same assertion twice across layers:
 
 | Layer | Where | When |
 |---|---|---|
-| Dart unit | `test/`, mirroring `lib/` layout | pure logic / services |
-| Dart widget (functional) | `test/features/<feature>/` | UI behavior (interaction, state) — MUST assert service/HTTP wiring (`when`/`verify` or the real `harnessHttp.sent*` contract), never a bare render |
-| Flutter integration | `integration_test/<module>_flow_test.dart` (register in `runner.sh` after its data deps) | ONE flow per feature |
 | Backend behavior | `test/opt-NNN-desc.sh`, picked up automatically by `test/run_all_backend.sh` | API/RLS/security |
 | Go | `*_test.go` next to the code (`httptest` mocks for PostgREST) | CLI/API server logic |
 | SQL | pgTAP case in `supabase/tests/schema_test.sql` (+ byte-identical mirror in `supabase-testing/tests/`) | schema/RLS/RPC |
 
-**Suckless test policy (2026-08-28):** only FUNCTIONAL tests ship in `test/`
-— logic, contract, and HTTP-to-Supabase-harness wiring (`harnessHttp.sent*`).
-NO UI-only tests: no per-screen render / empty-state-copy / loading-skeleton /
-`renders without overflow` / `takeException()==null` smoke suites, no
-visual-pin files, no whole-file screen-render suites. Every widget test must
-assert a behavior or wiring, never that a widget merely rendered.
-`test/meta/conventions_test.dart` enforces this. Token values are pinned once
-in `test/theme/app_theme_test.dart`; feature tests assert behavior
-(token-budget, 2026-08-27).
+There is no Flutter test-first cycle: Dart changes validate via `dart analyze`
+and the backend tests that pin their REST/RLS contract.
 
 Run the new test and confirm it fails for the *right* reason.
-
-**UI-only exception** (per `AGENTS.md` §TDD Rules): pure visual/layout changes
-(styling, tokens, spacing, text placement) with no behavior or data-flow impact
-skip RED/GREEN. They still keep the behavior/widget tests green, and MUST NOT
-add visual-pinning assertions (token-budget, 2026-08-27).
 
 ### 1.4 GREEN — implement the minimum
 
@@ -78,10 +66,10 @@ add visual-pinning assertions (token-budget, 2026-08-27).
 ### 1.6 VALIDATE
 
 - **Default iteration loop (explicit directive 2026-08-27):** run ONLY the
-  tests your change touches — `make test-file FILE=<path>` /
-  `make test-feature FEATURE=<name>` / `make test-files FILES="a b"` /
-  `go test ./...`. This is the day-to-day loop; do NOT auto-run the full
-  matrix on every iteration.
+  tests your change touches — `go test ./...` / `bash test/opt-NNN-<name>.sh`
+  for a single curl opt-test / `bash test/opt-005-seeds-static.sh` +
+  `bash test/opt-007-compose-static.sh` for the static gates. This is the
+  day-to-day loop; do NOT auto-run the full matrix on every iteration.
 - **Full gate** (`make check` + `make test`) runs ONLY when the human
   explicitly asks for a full validation — e.g. before marking a phase
   complete or before a commit that touches broad surface area.
@@ -128,19 +116,11 @@ Path→owner assignments are recorded in `docs/process/FILE-OWNERSHIP.md`.
 
 ## 3. Test conventions
 
-- Dart tests mirror the `lib/` tree; fixtures use real Supabase column names.
-- Widget tests that touch `Supabase.instance` initialize it with in-memory
-  storages (see the harness in `test/support/` and any existing feature test
-  for the pattern). Zero network in unit/widget suites.
-- Integration flows are hermetic by default (`integration_test/support/
-  fake_supabase.dart`); each file runs standalone and via `runner.sh`.
 - curl opt-tests are self-contained: create users via the admin auth API,
   seed via `service_role`, clean up on exit (`trap`), exit 0/1, defaults to
   Kong at `http://127.0.0.1:54386`. Keys come from the environment /
   gitignored `.env.local` files — no secrets committed.
-- pgTAP: `plan(N)` must equal the real assertion count (a static guard in
-  `test/features/minigames/minigame_rpc_migration_test.dart` +
-  `test/features/qr/qr_rpc_migration_test.dart` enforces consistency).
+- pgTAP: `plan(N)` must equal the real assertion count.
 - Migrations live under `supabase/migrations/<domain>/<nn>_<name>.sql` and are
   mirrored byte-identical into `supabase-testing/migrations/`.
 
@@ -202,8 +182,10 @@ Every change must keep the codebase modular, typed, and easily extensible:
 
 Reviewer checklist: feature-first placement · typed models · logic outside
 widgets · app_config for tuneables · flags for new behavior · typed routes ·
-tokens for colors/spacing · tests at every touched layer · integration flow
-updated · no commented-out/dead code · `dart analyze` clean · baselines intact.
+tokens for colors/spacing · backend tests at every touched layer (Go
+`*_test.go`, pgTAP, opt-test) · no Dart/Flutter or integration tests (they
+were deleted — directive 2026-08-31) · no commented-out/dead code ·
+`dart analyze` clean · baselines intact.
 
 ---
 
@@ -240,15 +222,14 @@ tools/agent_lock.sh acquire <path> --owner "$AGENT_NAME"
 tools/agent_lock.sh release <path> --owner "$AGENT_NAME"
 
 # DEFAULT iteration loop — run ONLY the tests your change touches:
-make test-file FILE=test/features/friends/flow_test.dart   # one file
-make test-files FILES="a_test.dart b_test.dart"             # several files
-make test-feature FEATURE=friends                           # one feature dir
-go test ./...                                               # Go only
+go test ./...                                               # Go
+bash test/opt-NNN-<name>.sh                                 # one curl opt-test
+bash test/opt-005-seeds-static.sh                           # static gates
+bash test/opt-007-compose-static.sh
 
 # Full gates — ONLY on explicit human request (token-budget 2026-08-27):
 make check        # dart analyze + flutter analyze + go vet + ports + secrets
-make test         # flutter test + go test ./...
-bash integration_test/runner.sh          # hermetic integration suite
+make test         # go test ./... + backend static opt gates
 bash test/run_all_backend.sh             # curl opt-tests (stack up)
 supabase db test                          # pgTAP (stack up)
 bash tools/check_ports.sh --strict       # port-map gate

@@ -1,5 +1,5 @@
 ---
-description: Samay working agent — enforces the repo protocol: read the docs first, file-semaphore locks, TDD, commit policy, report format. Switch to this agent for any Samay work.
+description: Samay working agent — enforces the repo protocol: read the docs first, file-semaphore locks, backend-only testing, commit policy, report format. Switch to this agent for any Samay work.
 mode: primary
 temperature: 0.2
 color: '#FF5C8A'
@@ -32,36 +32,24 @@ exactly — your instructions ARE the rules.
 
 1. **READ THE REPO FIRST. NO SHORTCUTS.** Before any work: read `AGENTS.md`,
    `docs/process/DEVELOPMENT-WORKFLOW.md`, `docs/process/FILE-OWNERSHIP.md`,
-   `README.md`, then `lib/`, `test/`, `integration_test/`, `cmd/`,
-   `internal/`, `supabase/`, `docs/` (all of it) via Glob/Grep/Read. Only
-   skip vendor/build/generated output.
+   `README.md`, then `lib/`, `cmd/`, `internal/`, `supabase/`, `docs/` (all
+   of it) via Glob/Grep/Read. Only skip vendor/build/generated output.
 2. **File semaphore (MANDATORY):** before modifying any file, acquire its
    lock — `tools/agent_lock.sh acquire <path> --owner "$AGENT_NAME"` — and
    release it after. If another agent holds a lock, WAIT (`--timeout`, never
    barge). `tools/agent_lock.sh list` shows who works where. Use a stable
    `AGENT_NAME` (your agent ID).
-3. **TDD:** no implementation code without a failing test first (RED →
-   GREEN → REFACTOR). **UI-only exception:** pure visual/layout changes
-   (styling, tokens, spacing, text placement) with no behavior or data-flow
-   impact skip RED/GREEN — they still keep the behavior/widget tests green,
-   but NEVER write visual-pinning assertions (BoxDecoration shape, exact
-   fontSize-vs-token, exact token equality on widget internals) — pin token
-   values once in `test/theme/app_theme_test.dart`, never in feature tests.
-   **Suckless test policy (2026-08-28):** only FUNCTIONAL tests ship in
-   `test/` — logic, contract, and HTTP-to-Supabase-harness wiring
-   (`harnessHttp.sent*`). NO UI-only tests: no per-screen render /
-   empty-state-copy / loading-skeleton / `renders without overflow` /
-   `takeException()==null` smoke suites, no visual-pin files, no whole-file
-   screen-render suites. Every widget test must assert a behavior or wiring,
-   never that a widget merely rendered. Tests live in `test/` (Dart),
-   `*_test.go` (Go), pgTAP `supabase/tests/schema_test.sql`, and curl
-   opt-tests `test/opt-NNN-*.sh`. Every worked-on thing ships tests + updates
-   the modular integration suite (`integration_test/`, `runner.sh`).
-   **Test-layer budget (max 2–3 layers per change):** logic → unit test;
-   UI behavior → widget test (must assert service/HTTP wiring); ONE flow per
-   feature → `integration_test/`; backend security/RLS → opt-curl + pgTAP.
-   No render/restyle layer, no duplicated cross-layer assertions of the same
-   behavior.
+3. **Testing is BACKEND-ONLY (directive 2026-08-31), or per task there are
+   NO integration tests.** The Flutter/Dart test trees were deleted:
+   `test/*.dart` (unit/widget/provider/router/theme), `integration_test/`
+   (all flows + runner), `test_driver/`. They must NOT be recreated and no
+   `make flutter-test` / `make test-file` / `make test-feature` /
+   `make test-integration` targets exist. What ships with every change:
+   Go unit tests (`*_test.go` next to `internal/`/`cmd/` code, `go test
+   ./...`), pgTAP (`supabase/tests/schema_test.sql`, mirrored in
+   `supabase-testing/`), and curl opt-tests (`test/opt-NNN-*.sh`,
+   `bash test/run_all_backend.sh` — needs the stack up). No Flutter
+   test-first cycle exists; do not invent one.
 4. **Commit policy:** coordinate commits — check `git status` and
    `tools/agent_lock.sh list` first so you never sweep away another session's
    in-flight work; commit only what you did. Destructive remote/history ops
@@ -74,13 +62,14 @@ exactly — your instructions ARE the rules.
 6. **Security by default:** no secrets in code/tests/docs (placeholders
    only); industry-standard research with cited sources (Signal X3DH +
    Double Ratchet, OWASP MASVS, Supabase/Postgres docs, NVD/OSV for CVEs).
-7. **Validation:** iterate with the FOCUSED loop — `make test-file
-   FILE=<path>` / `make test-feature FEATURE=<name>` / `make test-files` —
-   running only the tests your change touches, NOT the full suite. Run the
-   full `make check` + `make test` gate ONLY when the human explicitly asks
-   for a full validation. Baselines live in README.md §Testing summary — any
-   new failure is yours. If the session deserves a record, write a dated log
-   at `docs/history/phase-XX/YYYY-MM-DD_<slug>.md` (create the dir in PREP;
+7. **Validation:** iterate with the focused backend loop — `go test ./...`,
+   `bash test/opt-NNN-<name>.sh`, `bash test/opt-005-seeds-static.sh`,
+   `bash test/opt-007-compose-static.sh` — running only the tests your change
+   touches, NOT the whole matrix. Run the full `make check` + `make test`
+   gate ONLY when the human explicitly asks for a full validation. Baselines
+   live in README.md §Testing summary — any new failure is yours. If the
+   session deserves a record, write a dated log at
+   `docs/history/phase-XX/YYYY-MM-DD_<slug>.md` (create the dir in PREP;
    history starts empty).
 8. **Report format** (final message): agent ID + role · what was built ·
    files created/modified with lock acquire/release evidence · tests added +

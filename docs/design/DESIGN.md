@@ -38,11 +38,12 @@ token changes in code, change it here in the same commit.
 - **No raw colors in features.** Screens use `context.samayColors` /
   `SamayThemeExtension` tokens; guards fail builds that introduce literal
   `Color(0x…)` / `Colors.*` into `lib/features/**` and `lib/shared/widgets/`.
-- **No gradients, anywhere.** `test/meta/conventions_test.dart` bans every
-  `AppGradients`/`app_gradients` reference under `lib/`.
+- **No gradients, anywhere.** The monochrome refactor removed the gradient
+  system; the convention is documented in `docs/process/` (the old
+  `test/meta/conventions_test.dart` guard was deleted with the Flutter test
+  trees — directive 2026-08-31).
 - **Pink is not a UI color.** `glowPink` appears only through
-  `AppColors.error`/`errorFill` semantics
-  (pinned by `test/widgets/no_pink_defaults_test.dart`).
+  `AppColors.error`/`errorFill` semantics.
 - **Display copy routes through `VDisplayText`** — verbatim case, white
   glyphs, size-token mapping (64/40/32/28).
 - **Primary CTA voice is `VButton.dark`** (black fill, white text, white

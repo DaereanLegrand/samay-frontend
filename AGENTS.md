@@ -18,7 +18,7 @@ Samay is built in **16 phases** (00–15). Each phase follows a strict TDD + doc
            docs/history/phase-XX/YYYY-MM-DD_<slug>.md (the dir may not exist
            yet — create it; history starts empty and grows as needed)
 
-3. RED   → Write tests that define the expected behavior
+3. RED   → Write backend tests that define the expected behavior
             Tests must be runnable and fail initially
 
 4. GREEN → Implement the minimum code to pass tests
@@ -27,9 +27,9 @@ Samay is built in **16 phases** (00–15). Each phase follows a strict TDD + doc
 5. REFACTOR → Clean up, follow Go/Flutter conventions
                Ensure no commented code, no dead code
 
-6. VALIDATE → focused tests for the change (make test-file /
-              make test-feature) — full `make check + make test` ONLY on
-              explicit human request
+6. VALIDATE → focused tests for the change (go test ./... /
+              bash test/opt-NNN-<name>.sh) — full `make check + make test`
+              ONLY on explicit human request
               Verify against docs/specs/ specs
               Update cross-references.md if dependencies/statuses changed
               Update baseline numbers in README.md if counts moved
@@ -41,37 +41,28 @@ Samay is built in **16 phases** (00–15). Each phase follows a strict TDD + doc
               - Commands run (for reproducibility)
 ```
 
-## TDD Rules
+## Testing Rules
 
-- **No implementation code without a failing test first.**
-- **UI-only exception:** pure visual/layout changes (styling, tokens, spacing,
-  text placement) with no behavior or data-flow impact skip RED/GREEN — but
-  they still keep the behavior/widget tests green, and MUST NOT add
-  visual-pinning assertions (token-budget, 2026-08-27): token values are
-  pinned once in `test/theme/app_theme_test.dart`; feature tests assert
-  behavior, never exact `BoxDecoration`/`fontSize`/token internals.
-  `test/meta/conventions_test.dart` enforces this.
-- **Suckless test policy (2026-08-28):** only FUNCTIONAL tests ship in
-  `test/` — logic, contract, and HTTP-to-Supabase-harness wiring
-  (`harnessHttp.sent*`). NO UI-only tests: no per-screen render /
-  empty-state-copy / loading-skeleton / `renders without overflow` /
-  `takeException()==null` smoke suites, no visual-pin files, no whole-file
-  screen-render suites. Every widget test must assert a behavior or wiring,
-  never that a widget merely rendered. `test/meta/conventions_test.dart`
-  enforces this.
-- Tests live in `*_test.go` (Go), `test/` (Flutter), `integration_test/`
-  (flows — every feature ships one), `test/opt-NNN-*.sh` (backend curl) and
-  `supabase/tests/schema_test.sql` (pgTAP).
-- **Test-layer budget (max 2–3 layers per change):** logic → unit test;
-  UI behavior → widget test (must assert service/HTTP wiring); ONE flow per
-  feature → `integration_test/`; backend security/RLS → opt-curl + pgTAP.
-  No render/restyle layer; never duplicate the same assertion across layers
-  (each layer earns its keep).
+- **Testing is reserved for the backend, or per task there are NO integration
+  tests (explicit directive 2026-08-31).** The Flutter/Dart test trees were
+  deleted: `test/*.dart` (unit/widget/provider/router/theme suites),
+  `integration_test/` (all flows + `runner.sh`), `test_driver/`. They must
+  NOT be recreated, and no `make flutter-test` / `make test-file` /
+  `make test-feature` / `make test-integration` targets exist.
+- **Backend TDD only:** no implementation code without a failing test first,
+  where the tests are Go `*_test.go`, pgTAP cases, or curl opt-tests.
+- Tests live in `*_test.go` (Go), `test/opt-NNN-*.sh` (backend curl) and
+  `supabase/tests/schema_test.sql` (pgTAP, mirrored byte-identical in
+  `supabase-testing/`).
+- **Test-layer budget (max 2–3 layers per change):** Go logic → unit test;
+  SQL/schema/RLS → pgTAP; REST/RLS/security → curl opt-test. Never duplicate
+  the same assertion across layers (each layer earns its keep).
 - **Iteration loop (default, explicit directive 2026-08-27):** run ONLY the
-  tests your change touches via `make test-file FILE=<path>` /
-  `make test-feature FEATURE=<name>` / `make test-files FILES="a b"`. The
-  full `make check` + `make test` gate runs ONLY when the human explicitly
-  asks for a full validation.
+  tests your change touches — `go test ./...`, `bash test/opt-NNN-<name>.sh`
+  for a single curl opt-test, `bash test/opt-005-seeds-static.sh` /
+  `bash test/opt-007-compose-static.sh` for the static gates. The full
+  `make check` + `make test` gate runs ONLY when the human explicitly asks
+  for a full validation.
 - SQL migrations are tested via `supabase db test` (pgTAP) where applicable.
 - Test fixtures mirror real Supabase data shapes.
 - Keep `plan(N)` in the pgTAP suite equal to its real assertion count.
@@ -125,8 +116,6 @@ Juega's running Supabase owns host ports 5432/54321/54323/8443 — NEVER map Sam
 - `docs/specs/steps/` — specs for steps NOT yet implemented + `cross-references.md`
   statuses (implemented steps' behavior is documented by code/tests; their specs are removed)
 - `<private-ops-repo>/DATABASE.md` — DB catalog as-is; `<private-ops-repo>/BACKEND.md` — Go CLI/API surface as-is
-- `docs/specs/steps/` — specs for steps NOT yet implemented + `cross-references.md`
-  statuses (implemented steps' behavior is documented by code/tests; their specs are removed)
 - `docs/history/phase-XX/YYYY-MM-DD_<slug>.md` — optional daily developer log
   (fresh start; write one when a session deserves a record)
 - Mistakes are documented as **MISTAKE** blocks so future sessions can search for them
@@ -135,7 +124,7 @@ Juega's running Supabase owns host ports 5432/54321/54323/8443 — NEVER map Sam
 ## Testing Commands
 
 ```bash
-make test          # flutter test + go test ./...
+make test          # go test ./... + backend static opt gates
 make check         # dart analyze + flutter analyze + go vet + ports + secrets gates
 go test ./...
 
