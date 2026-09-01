@@ -3632,6 +3632,12 @@ abstract class AppLocalizations {
   /// **'Pasar'**
   String get minigamesPasar;
 
+  /// Hint under the reactor-side Pasar button (204): passing gives the round's subject -0.5 on the leaderboard
+  ///
+  /// In es, this message translates to:
+  /// **'Pasar — al jugador le resta 0.5'**
+  String get minigamesPasarReactionHint;
+
   /// Suffix shown when the subject passed the round
   ///
   /// In es, this message translates to:

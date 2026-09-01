@@ -708,16 +708,19 @@ in-db:
 	@bash -c 'nc -z 127.0.0.1 $${POSTGRES_PORT:-54382} 2>/dev/null' || { echo "❌  PostgreSQL not reachable on $${POSTGRES_PORT:-54382} — start the stack first: make supabase-docker-start"; exit 1; }
 	PGPASSWORD=postgres psql -h localhost -p $${POSTGRES_PORT:-54382} -U postgres -d postgres
 
-# pgTAP schema tests (494 assertions, supabase/tests/schema_test.sql) against
+# pgTAP schema tests (893 assertions, supabase/tests/schema_test.sql) against
 # the SELF-HOSTED stack — `supabase db test --db-url` connects to the running
-# compose DB on the approved port (verified: CLI v2.113.0 enables pgtap, then
-# runs pg_prove via the supabase/pg_prove:3.36 docker image; first run pulls
-# that image). NOT `supabase db test` bare: that targets the CLI-managed
-# stack, which conflicts with the compose stack on the same approved ports.
+# compose DB on the approved port (verified: CLI enables pgtap, then runs
+# pg_prove via the supabase/pg_prove:3.36 docker image; first run pulls that
+# image). NOT `supabase db test` bare: that targets the CLI-managed stack,
+# which conflicts with the compose stack on the same approved ports.
+# `sslmode=disable` is REQUIRED since CLI 2.116.0: the compose server exposes
+# no TLS and the CLI's pg_prove otherwise fails with "tls error (The server
+# does not support SSL connections)" (2026-09-01 regression).
 # No-CLI fallback (no docker image needed):
 #   PGPASSWORD=postgres psql -h localhost -p 54382 -U postgres -d postgres \
 #     -v ON_ERROR_STOP=1 -f supabase/tests/schema_test.sql
-PGTAP_DB_URL ?= postgres://postgres:postgres@localhost:54382/postgres
+PGTAP_DB_URL ?= postgres://postgres:postgres@localhost:54382/postgres?sslmode=disable
 supabase-db-test:
 	@bash -c 'nc -z 127.0.0.1 54382 2>/dev/null' || { echo "❌  PostgreSQL not reachable on 54382 — start the stack first: make supabase-docker-start"; exit 1; }
 	@command -v supabase >/dev/null || { echo "❌  supabase CLI not found — psql fallback: PGPASSWORD=postgres psql -h localhost -p 54382 -U postgres -d postgres -v ON_ERROR_STOP=1 -f supabase/tests/schema_test.sql"; exit 1; }

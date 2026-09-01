@@ -1047,7 +1047,7 @@ class _AsyncReactableTileState extends ConsumerState<_AsyncReactableTile> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                for (final kind in ReactionKind.values)
+                for (final kind in reactionEmojiKinds)
                   InkWell(
                     onTap: () => _react(context, ref, kind),
                     borderRadius: BorderRadius.circular(4),
@@ -1060,6 +1060,13 @@ class _AsyncReactableTileState extends ConsumerState<_AsyncReactableTile> {
                     ),
                   ),
               ],
+            ),
+            // Reactor-side Pasar (204) on the async reactable round — same
+            // contract as the by_turns deck: the round's subject takes -0.5.
+            const SizedBox(height: AppSpacing.sm),
+            VButton.outlined(
+              label: l10n.minigamesPasar,
+              onPressed: () => _react(context, ref, ReactionKind.pass),
             ),
           ],
         ),
@@ -1087,7 +1094,9 @@ class _AsyncReactableTileState extends ConsumerState<_AsyncReactableTile> {
 
 /// The realtime reaction voting row (201 + 202 answer-first): rendered ONLY
 /// when the current round is reactable (the subject answered, caller is not
-/// the subject). One emoji per voter; the live tally streams back.
+/// the subject). One emoji per voter; the live tally streams back. Below the
+/// emoji deck sits the reactor-side Pasar (204): passing gives the round's
+/// subject -0.5 on the leaderboard.
 class _ReactionRow extends ConsumerWidget {
   const _ReactionRow({required this.sessionId});
 
@@ -1110,7 +1119,7 @@ class _ReactionRow extends ConsumerWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                for (final kind in ReactionKind.values)
+                for (final kind in reactionEmojiKinds)
                   InkWell(
                     onTap: () => _react(context, ref, kind),
                     borderRadius: BorderRadius.circular(4),
@@ -1123,6 +1132,19 @@ class _ReactionRow extends ConsumerWidget {
                     ),
                   ),
               ],
+            ),
+            const SizedBox(height: AppSpacing.md),
+            // Reactor-side Pasar (204): the voter opts out of emoji-reacting;
+            // the round's subject scores -0.5 on the leaderboard.
+            VButton.outlined(
+              label: l10n.minigamesPasar,
+              onPressed: () => _react(context, ref, ReactionKind.pass),
+            ),
+            const SizedBox(height: AppSpacing.xs),
+            Text(
+              l10n.minigamesPasarReactionHint,
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: AppColors.mutedStrong, fontSize: 12),
             ),
           ],
         ),

@@ -146,10 +146,14 @@ class MinigameAnswer {
   }
 }
 
-/// The six emoji reactions of the realtime voting (201_minigame_voting).
+/// The reactions of the realtime voting (201_minigame_voting + 204_minigame_pasar).
 /// `.wire` is the DB value on `minigame_reactions.reaction` and the
-/// `submit_minigame_reaction` RPC param. The emoji is the UI face; the wire
-/// is what the server stores.
+/// `submit_minigame_reaction` / `react_minigame_round` RPC params.
+///
+/// [ReactionKind.pass] is the reactor-side Pasar (204): a NON-subject opts
+/// out of emoji-reacting on a round; the server stores a NULL-reaction row
+/// and the round's subject scores -0.5 per passer. It has NO emoji face —
+/// the [reactionEmojiKinds] list is what the reaction row renders.
 enum ReactionKind {
   /// 😖 — disgust
   disgust('disgust'),
@@ -167,7 +171,10 @@ enum ReactionKind {
   demon('demon'),
 
   /// ❤️ — heart
-  heart('heart');
+  heart('heart'),
+
+  /// Reactor Pasar (204_minigame_pasar): no emoji, the subject scores -0.5.
+  pass('pasar');
 
   const ReactionKind(this.wire);
 
@@ -184,6 +191,17 @@ const Map<ReactionKind, String> reactionEmoji = {
   ReactionKind.heart: '❤️',
 };
 
+/// The emoji reactions the reaction row renders — [ReactionKind.pass] is
+/// excluded (it is a separate Pasar button, never an emoji tile).
+const Iterable<ReactionKind> reactionEmojiKinds = [
+  ReactionKind.disgust,
+  ReactionKind.sad,
+  ReactionKind.surprised,
+  ReactionKind.excited,
+  ReactionKind.demon,
+  ReactionKind.heart,
+];
+
 /// Parses a `reaction` wire value into [ReactionKind] (null on unknown /
 /// missing values).
 ReactionKind? reactionKindFromWire(String? value) {
@@ -194,13 +212,16 @@ ReactionKind? reactionKindFromWire(String? value) {
     'excited' => ReactionKind.excited,
     'demon' => ReactionKind.demon,
     'heart' => ReactionKind.heart,
+    'pasar' => ReactionKind.pass,
     _ => null,
   };
 }
 
-/// The score a subject earns for a round with [reactionCount] reactions —
-/// +1 per reaction, and -1 when they received NONE (the no-reactions
-/// penalty, 201 product contract).
+/// The score a subject earns for a round with [reactionCount] emoji
+/// reactions — +1 per emoji, and -1 when they received NONE (the no-
+/// reactions penalty, 201 product contract). The reactor-side Pasar (-0.5
+/// per passer, 204) is scored SERVER-side; this legacy helper keeps the
+/// emoji-only formula for the non-fractional path.
 int reactionScore(int reactionCount) {
   return reactionCount > 0 ? reactionCount : -1;
 }
@@ -260,6 +281,7 @@ class GameTurnSkeleton {
     this.roundTarget,
     this.reactions = const {},
     this.reactionCounts = const {},
+    this.reactionPassCounts = const {},
     this.prizePositions = kDefaultPrizePositions,
     this.nextSubjectId,
     this.promptType,
@@ -316,9 +338,10 @@ class GameTurnSkeleton {
   /// Populated by `submit_minigame_reaction`, cleared by `advance`.
   ///
   /// The wire payload (202 security hardening 2026-08-31) carries the tally as
-  /// `{subject_id: {"list": [emoji…], "count": N}}` — this map keeps the typed
-  /// emoji lists for the legacy/UI rendering, and [reactionCounts] the
-  /// distinct-voter count (never row count).
+  /// `{subject_id: {"list": [emoji…], "count": N, "pass": P}}` (204 adds the
+  /// `pass` reactor-Pasar count) — this map keeps the typed emoji lists for
+  /// the legacy/UI rendering, [reactionCounts] the distinct-voter count (never
+  /// row count) and [reactionPassCounts] the reactor-Pasar count.
   final Map<String, List<ReactionKind>> reactions;
 
   /// The distinct-voter reaction count per subject —
@@ -327,9 +350,17 @@ class GameTurnSkeleton {
   /// list length when a legacy flat-shape payload is parsed.
   final Map<String, int> reactionCounts;
 
+  /// The reactor Pasar count per subject — `{subject_id: P}` read from the
+  /// mirror's `pass` key (204_minigame_pasar; absent/legacy payloads → 0).
+  final Map<String, int> reactionPassCounts;
+
   /// The distinct-voter reaction count for [subjectId], or null when the
   /// subject has no tally in the current turn.
   int? reactionCount(String subjectId) => reactionCounts[subjectId];
+
+  /// The reactor Pasar count for [subjectId] (0 when the mirror carries no
+  /// `pass` key / the subject has no tally — a legacy payload).
+  int reactionPassCount(String subjectId) => reactionPassCounts[subjectId] ?? 0;
 
   /// The number of paid prize positions N (201_minigame_voting). Defaults to
   /// [kDefaultPrizePositions].
@@ -363,6 +394,7 @@ class GameTurnSkeleton {
           : null,
       reactions: _parseReactions(json['reactions']),
       reactionCounts: _parseReactionCounts(json['reactions']),
+      reactionPassCounts: _parseReactionPassCounts(json['reactions']),
       prizePositions: _asInt(json['prize_positions']) > 0
           ? _asInt(json['prize_positions'])
           : kDefaultPrizePositions,
@@ -447,6 +479,24 @@ class GameTurnSkeleton {
       }
       if (raw is List) {
         result[entry.key.toString()] = raw.length;
+      }
+    }
+    return result;
+  }
+
+  /// Parses the reactor Pasar count per subject from the mirror shape
+  /// `{subject_id: {"list": […], "count": N, "pass": P}}` (204_minigame_pasar).
+  /// Tolerant — absent `pass` keys / legacy flat payloads yield no entries
+  /// (callers read 0 via [reactionPassCount]).
+  static Map<String, int> _parseReactionPassCounts(Object? value) {
+    if (value is! Map) return const {};
+    final result = <String, int>{};
+    for (final entry in value.entries) {
+      final raw = entry.value;
+      if (raw is! Map) continue;
+      final pass = raw['pass'];
+      if (pass is num) {
+        result[entry.key.toString()] = pass.toInt();
       }
     }
     return result;
@@ -676,7 +726,8 @@ String minigameSubjectLabel(AppLocalizations l10n, String? subjectName) {
 ///   * the current subject can NEVER react to their own round.
 /// Returns false in every other state (no prompt, waiting for the answer,
 /// passed round) — the reaction row must NOT render at all (gated
-/// availability, never a disabled stub).
+/// availability, never a disabled stub). A voter who already reacted may
+/// re-tap (the server upsert replaces their one action per round).
 bool canReactToCurrentRound(
   GameTurnSkeleton skeleton, {
   required String? callerId,
@@ -719,12 +770,15 @@ List<MinigameAnswer> reactableAsyncRounds(
 }
 
 /// Whether [callerId] has reacted to the current by_turns round (the tally
-/// rides `state.reactions[subjectId]`).
+/// rides `state.reactions[subjectId]`). The mirror's `list` holds emojis and
+/// its `pass` count holds passers — either counts as a reaction (the voter
+/// used their one action for the round, 204_minigame_pasar).
 bool hasReactedToCurrentRound(
   GameTurnSkeleton skeleton, {
   required String? callerId,
 }) {
+  if (callerId == null || callerId.isEmpty) return false;
   final tally = skeleton.reactions[skeleton.subjectId];
-  if (tally == null) return false;
-  return tally.isNotEmpty;
+  if (tally != null && tally.isNotEmpty) return true;
+  return skeleton.reactionPassCount(skeleton.subjectId ?? '') > 0;
 }

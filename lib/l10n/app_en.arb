@@ -2600,6 +2600,10 @@
   "@minigamesPasar": {
     "description": "Button the subject taps to skip (blocks reactions, score -1)"
   },
+  "minigamesPasarReactionHint": "Pass — the player takes -0.5",
+  "@minigamesPasarReactionHint": {
+    "description": "Hint under the reactor-side Pasar button (204): passing gives the round's subject -0.5 on the leaderboard"
+  },
   "minigamesPasarSkipped": "skipped",
   "@minigamesPasarSkipped": {
     "description": "Suffix shown when the subject passed the round"
