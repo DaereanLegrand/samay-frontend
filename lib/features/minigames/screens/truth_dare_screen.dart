@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
@@ -350,24 +351,41 @@ class _AnswerCardState extends ConsumerState<_AnswerCard> {
               ),
             )
           else ...[
+            // Preview the picked image (2026-09-01 fix): previously only the
+            // filename rendered — the app-wide picked-image convention is the
+            // actual image (create_group_screen / create_event_screen), so
+            // show Image.file over the XFile path.
             VCard(
               child: Padding(
                 padding: const EdgeInsets.all(AppSpacing.sm),
-                child: Row(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    const Icon(Icons.check_circle_outline, size: 18),
-                    const SizedBox(width: AppSpacing.sm),
-                    Expanded(
-                      child: Text(
-                        _image!.name,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(fontSize: 12),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(AppSpacing.sm),
+                      child: Image.file(
+                        File(_image!.path),
+                        fit: BoxFit.cover,
+                        width: double.infinity,
+                        height: 160,
                       ),
                     ),
-                    IconButton(
-                      onPressed: () => setState(() => _image = null),
-                      tooltip: widget.l10n.minigamesAnswerRemoveImage,
-                      icon: const Icon(Icons.close, size: 18),
+                    const SizedBox(height: AppSpacing.sm),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            _image!.name,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(fontSize: 12),
+                          ),
+                        ),
+                        IconButton(
+                          onPressed: () => setState(() => _image = null),
+                          tooltip: widget.l10n.minigamesAnswerRemoveImage,
+                          icon: const Icon(Icons.close, size: 18),
+                        ),
+                      ],
                     ),
                   ],
                 ),
