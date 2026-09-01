@@ -354,41 +354,33 @@ class _AnswerCardState extends ConsumerState<_AnswerCard> {
             // Preview the picked image (2026-09-01 fix): previously only the
             // filename rendered — the app-wide picked-image convention is the
             // actual image (create_group_screen / create_event_screen), so
-            // show Image.file over the XFile path.
-            VCard(
-              child: Padding(
-                padding: const EdgeInsets.all(AppSpacing.sm),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(AppSpacing.sm),
-                      child: Image.file(
-                        File(_image!.path),
-                        fit: BoxFit.cover,
-                        width: double.infinity,
-                        height: 160,
+            // show Image.file over the XFile path. No filename shown (image
+            // metadata stays out of the UI); the remove (×) control overlays
+            // the image's top-right corner.
+            ClipRRect(
+              borderRadius: BorderRadius.circular(AppSpacing.sm),
+              child: Stack(
+                children: [
+                  Image.file(
+                    File(_image!.path),
+                    fit: BoxFit.cover,
+                    width: double.infinity,
+                    height: 160,
+                  ),
+                  Positioned(
+                    top: 4,
+                    right: 4,
+                    child: IconButton(
+                      onPressed: () => setState(() => _image = null),
+                      tooltip: widget.l10n.minigamesAnswerRemoveImage,
+                      icon: const Icon(Icons.close, size: 18),
+                      style: IconButton.styleFrom(
+                        backgroundColor: AppColors.surface,
+                        foregroundColor: AppColors.white,
                       ),
                     ),
-                    const SizedBox(height: AppSpacing.sm),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            _image!.name,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(fontSize: 12),
-                          ),
-                        ),
-                        IconButton(
-                          onPressed: () => setState(() => _image = null),
-                          tooltip: widget.l10n.minigamesAnswerRemoveImage,
-                          icon: const Icon(Icons.close, size: 18),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
           ],
