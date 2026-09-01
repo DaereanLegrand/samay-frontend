@@ -494,12 +494,16 @@ class MinigameGameStateNotifier
           final prevPhase = state.valueOrNull?.skeleton.phase;
           final prevRound = state.valueOrNull?.skeleton.round ?? 0;
           state = AsyncData(parsed);
-          // The HOST mints + distributes the round key for a NEW round: at the
-          // countdown → playing flip (round 0/1) and on every server-side round
-          // advance (rounds bump via _minigame_advance_round). Round keys are
-          // additive, so each mint hands the FULL history K_1..K_r. Only the
-          // creator (participants[0]) mints — belt-and-suspenders against the
-          // backend's creator-only start.
+          // The HOST mints + distributes round keys. Round 0 is minted
+          // SYNCHRONOUSLY inside startMatch() (the host performs that flip
+          // itself via start_minigame_match, so its own realtime listener
+          // already reads prevPhase=playing and would never fire justStarted —
+          // the 2026-08-31 race). This listener covers the ROUND BUMPS the
+          // host observes from OTHER devices: every server-side advance
+          // (rounds bump via _minigame_advance_round) re-mints and
+          // re-delivers the FULL history K_0..K_r, catching up anyone who was
+          // offline at start/accept. _mintedRound keeps both paths idempotent
+          // (startMatch sets it, so a re-entrant listener can't double-mint).
           final newRound = parsed.skeleton.round;
           final justStarted =
               prevPhase == MinigamePhase.countdown &&
@@ -533,10 +537,19 @@ class MinigameGameStateNotifier
   }
 
   /// Best-effort: the HOST mints `K_round` and pairwise-distributes the round-key
-  /// history to the roster when a new round begins (countdown → playing flip or
-  /// a server-side round advance). Failures are logged and swallowed
-  /// (best-effort contract); a no-prekey peer is skipped and retried on the
-  /// next roster change.
+  /// history to the roster. Called synchronously from [startMatch] (round 0 —
+  /// the RPC result the host itself produced, closing the own-UPDATE race) and
+  /// from the realtime listener on every server-side round advance (round 1+,
+  /// cumulative `K_0..K_r` re-delivery). Failures are logged and swallowed
+  /// (best-effort contract).
+  ///
+  /// Offline posture (2026-08-31): prekeys and bundles are server-persisted,
+  /// so a peer offline at mint time can still be wrapped IF its prekeys are
+  /// published (X3DH reads `e2ee_identity_keys` via `fetch_prekey_bundle`);
+  /// a peer with NO published prekey throws [E2eeCryptoException], is skipped
+  /// and stays missing — retried on the next roster change or round bump.
+  /// Every delivered bundle row survives on the server, so an offline member
+  /// self-heals on return via [MinigameCipher.ensureRoundKey].
   Future<void> _mintRoundKey(int round) async {
     try {
       final myId = ref.read(authStateProvider).valueOrNull?.user?['id'];
@@ -630,8 +643,25 @@ class MinigameGameStateNotifier
   /// (203_minigame_host_start): calls `start_minigame_match`, flipping the
   /// game-state phase countdown → playing. The realtime stream carries the
   /// flip to every participant, who navigate to the play screen together.
+  ///
+  /// E2EE round-key mint (2026-08-31 race fix): the HOST mints + distributes
+  /// `K_0` HERE, synchronously from the RPC result — NOT from observing its
+  /// own countdown → playing transition on the realtime channel. The host
+  /// performs that flip itself via this RPC, so Riverpod already applied the
+  /// UPDATE by the time its own realtime listener fires: `prevPhase` reads
+  /// 'playing', `justStarted` is false and the observation-driven mint
+  /// (the `_mintRoundKey` call in the listener) never runs — the subject's
+  /// submit then self-heals to an empty bundle table and throws
+  /// "round key 0 missing" → "Error del servidor". Minting here guarantees
+  /// the persisted K_0 bundle exists (minigame_e2ee_bundles) before any
+  /// participant can submit; an offline member self-heals on return via
+  /// [MinigameCipher.ensureRoundKey]. Round 1+ keeps riding the realtime
+  /// listener (cumulative K_0..K_r re-delivery on each server-side bump).
   Future<void> startMatch() async {
-    await _service.startMatch(arg);
+    final result = await _service.startMatch(arg);
+    final round = MinigameGameState.fromRow(result).skeleton.round;
+    _mintedRound = round;
+    await _mintRoundKey(round);
     await refresh();
   }
 
