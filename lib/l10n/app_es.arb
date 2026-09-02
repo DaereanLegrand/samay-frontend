@@ -2995,6 +2995,10 @@
   "@minigamesStart": {
     "description": "Partida lobby: creator-only button that starts the partida"
   },
+  "minigamesRejoin": "Volver a la partida",
+  "@minigamesRejoin": {
+    "description": "Partida lobby: button for a returning participant (host or player) to get back into an already-running match"
+  },
   "minigamesRemovePlayer": "Quitar jugador",
   "@minigamesRemovePlayer": {
     "description": "Partida lobby: creator-only tooltip/action to remove a participant"

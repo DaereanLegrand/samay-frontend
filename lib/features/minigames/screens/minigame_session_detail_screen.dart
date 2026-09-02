@@ -500,6 +500,9 @@ class _LobbySection extends ConsumerWidget {
                           participants[i].id == participantIds.first,
                       canRemove:
                           isCreator && participants[i].id != myId && !finished,
+                      // The "Listo" ready chip is pre-play semantics — once
+                      // the match is running it means nothing (2026-09-02).
+                      showReadyChip: !isPlaying,
                       onRemove: () =>
                           _confirmRemove(context, ref, participants[i]),
                     ),
@@ -509,15 +512,25 @@ class _LobbySection extends ConsumerWidget {
             ),
         const SizedBox(height: AppSpacing.lg),
         if (!finished) ...[
-          if (isCreator)
+          // 2026-09-02: the match is already RUNNING (a participant reopened
+          // the partida after leaving the app / losing connection mid-play —
+          // they never left the roster). Empezar/¿Listo? are pre-play
+          // semantics and mean nothing here, so BOTH host and participant get
+          // a "Volver a la partida" rejoin CTA that routes back into the play
+          // screen (TruthDareScreen renders the correct mid-round state from
+          // the same providers).
+          if (isPlaying)
+            VButton.emphasized(
+              label: l10n.minigamesRejoin,
+              onPressed: () => _rejoin(context, ref),
+            )
+          else if (isCreator)
             VButton.emphasized(
               label: l10n.minigamesStart,
               loading: gameState.isLoading,
               // Start is disabled while the countdown runs — the host
               // cancels instead (190_minigame_countdown).
-              onPressed: isPlaying || isCountdown
-                  ? null
-                  : () => _start(context, ref),
+              onPressed: isCountdown ? null : () => _start(context, ref),
             )
           else if (!isCountdown)
             _ReadyToggle(
@@ -527,6 +540,14 @@ class _LobbySection extends ConsumerWidget {
         ],
       ],
     );
+  }
+
+  /// Returns the caller to the RUNNING match (2026-09-02): pushes the play
+  /// screen exactly like the live countdown → playing navigation does — the
+  /// game-state row is already `playing` and holds the current round, so
+  /// TruthDareScreen picks up the right subject/prompt/reactions.
+  void _rejoin(BuildContext context, WidgetRef ref) {
+    context.push(RoutePaths.truthDare(sessionId));
   }
 
   Future<void> _toggleReady(BuildContext context, WidgetRef ref) async {
@@ -612,17 +633,22 @@ class _LobbySection extends ConsumerWidget {
 /// Ready chip for OTHERS (only when they are ready — a not-ready player shows
 /// nothing, and the HOST never shows a ready chip: the host is ready by
 /// default, 2026-08-30), and a creator-only remove button.
+///
+/// [showReadyChip] suppresses the "Listo" chip once the match is RUNNING
+/// (2026-09-02) — ready is pre-play semantics and means nothing mid-game.
 class _ParticipantRow extends StatelessWidget {
   const _ParticipantRow({
     required this.participant,
     required this.isCreator,
     required this.canRemove,
+    this.showReadyChip = true,
     required this.onRemove,
   });
 
   final MinigameParticipant participant;
   final bool isCreator;
   final bool canRemove;
+  final bool showReadyChip;
   final VoidCallback onRemove;
 
   @override
@@ -666,8 +692,9 @@ class _ParticipantRow extends StatelessWidget {
           ),
           // Others show their ready state only once ready — a not-ready
           // participant renders nothing, and the chip is the plain (non-
-          // emphasized) "Listo"/"Ready" with NO username (2026-08-30).
-          if (!isCreator && participant.ready)
+          // emphasized) "Listo"/"Ready" with NO username (2026-08-30). Hidden
+          // entirely once the match is running (2026-09-02).
+          if (showReadyChip && !isCreator && participant.ready)
             VChip(label: l10n.minigamesReady, selected: false, compact: true),
           if (canRemove) ...[
             const SizedBox(width: AppSpacing.xs),

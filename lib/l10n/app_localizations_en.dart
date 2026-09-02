@@ -2251,6 +2251,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get minigamesStart => 'Start';
 
   @override
+  String get minigamesRejoin => 'Back to the match';
+
+  @override
   String get minigamesRemovePlayer => 'Remove player';
 
   @override

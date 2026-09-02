@@ -4154,6 +4154,12 @@ abstract class AppLocalizations {
   /// **'Empezar'**
   String get minigamesStart;
 
+  /// Partida lobby: button for a returning participant (host or player) to get back into an already-running match
+  ///
+  /// In es, this message translates to:
+  /// **'Volver a la partida'**
+  String get minigamesRejoin;
+
   /// Partida lobby: creator-only tooltip/action to remove a participant
   ///
   /// In es, this message translates to:

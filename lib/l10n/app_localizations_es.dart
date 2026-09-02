@@ -2259,6 +2259,9 @@ class AppLocalizationsEs extends AppLocalizations {
   String get minigamesStart => 'Empezar';
 
   @override
+  String get minigamesRejoin => 'Volver a la partida';
+
+  @override
   String get minigamesRemovePlayer => 'Quitar jugador';
 
   @override
