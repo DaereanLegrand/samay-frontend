@@ -1966,9 +1966,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get minigamesPasar => 'Skip';
 
   @override
-  String get minigamesPasarReactionHint => 'Pass — the player takes -0.5';
-
-  @override
   String get minigamesPasarSkipped => 'skipped';
 
   @override

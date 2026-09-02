@@ -258,6 +258,54 @@ class TruthDareScreen extends ConsumerWidget {
   }
 }
 
+/// Opens [bytes] in a full-viewport, full-bleed viewer (opaque disco-black
+/// backdrop): the image scales with [BoxFit.contain] so it is never cropped.
+/// An X at the top-right dismisses it; tapping the image, the backdrop, or
+/// the system back gesture also closes it.
+void _showFullAnswerImage(BuildContext context, Uint8List bytes) {
+  showDialog<void>(
+    context: context,
+    barrierColor: AppColors.discoBlack,
+    builder: (dialogContext) => Dialog(
+      backgroundColor: AppColors.discoBlack,
+      insetPadding: EdgeInsets.zero,
+      child: SizedBox.expand(
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            GestureDetector(
+              onTap: () => Navigator.of(dialogContext).pop(),
+              child: Image.memory(
+                bytes,
+                fit: BoxFit.contain,
+                gaplessPlayback: true,
+                errorBuilder: (_, _, _) => const SizedBox.shrink(),
+              ),
+            ),
+            SafeArea(
+              child: Align(
+                alignment: Alignment.topRight,
+                child: Padding(
+                  padding: const EdgeInsets.all(AppSpacing.sm),
+                  child: IconButton(
+                    onPressed: () => Navigator.of(dialogContext).pop(),
+                    tooltip: AppLocalizations.of(dialogContext).commonClose,
+                    icon: const Icon(Icons.close),
+                    style: IconButton.styleFrom(
+                      backgroundColor: AppColors.surface,
+                      foregroundColor: AppColors.white,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+}
+
 /// A tiny BuildContext holder used by the anonymous default-alias resolver.
 
 /// The current-turn subject's body (202 answer-first): reveals the prompt
@@ -357,15 +405,24 @@ class _AnswerCardState extends ConsumerState<_AnswerCard> {
             // show Image.file over the XFile path. No filename shown (image
             // metadata stays out of the UI); the remove (×) control overlays
             // the image's top-right corner.
-            ClipRRect(
-              borderRadius: BorderRadius.circular(AppSpacing.sm),
+            // Center → Stack hugs the photo: the rounded clip (below) now
+            // lands on the photo's own corners, not on a letterboxed frame
+            // (the remove (×) overlays the photo's top-right corner).
+            Center(
               child: Stack(
                 children: [
-                  Image.file(
-                    File(_image!.path),
-                    fit: BoxFit.cover,
-                    width: double.infinity,
-                    height: 160,
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: GestureDetector(
+                      onTap: _previewPickedImage,
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxHeight: 160),
+                        child: Image.file(
+                          File(_image!.path),
+                          fit: BoxFit.contain,
+                        ),
+                      ),
+                    ),
                   ),
                   Positioned(
                     top: 4,
@@ -439,6 +496,18 @@ class _AnswerCardState extends ConsumerState<_AnswerCard> {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(e.toAppError().message)));
+    }
+  }
+
+  Future<void> _previewPickedImage() async {
+    try {
+      final picked = _image;
+      if (picked == null || !mounted) return;
+      final bytes = Uint8List.fromList(await picked.readAsBytes());
+      if (!mounted) return;
+      _showFullAnswerImage(context, bytes);
+    } catch (_) {
+      // Best-effort: never let a preview failure break the editor.
     }
   }
 
@@ -782,13 +851,20 @@ class _AnswerPreviewState extends ConsumerState<_AnswerPreview> {
           const SizedBox(height: AppSpacing.sm),
         ],
         if (_imageBytes != null)
-          ClipRRect(
-            borderRadius: BorderRadius.circular(8),
-            child: Image.memory(
-              _imageBytes!,
-              height: 180,
-              fit: BoxFit.cover,
-              errorBuilder: (_, _, _) => const SizedBox.shrink(),
+          Center(
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: GestureDetector(
+                onTap: () => _showFullAnswerImage(context, _imageBytes!),
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxHeight: 180),
+                  child: Image.memory(
+                    _imageBytes!,
+                    fit: BoxFit.contain,
+                    errorBuilder: (_, _, _) => const SizedBox.shrink(),
+                  ),
+                ),
+              ),
             ),
           ),
       ],
@@ -1034,13 +1110,20 @@ class _AsyncReactableTileState extends ConsumerState<_AsyncReactableTile> {
               const SizedBox(height: AppSpacing.xs),
             ],
             if (_imageBytes != null)
-              ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: Image.memory(
-                  _imageBytes!,
-                  height: 140,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, _, _) => const SizedBox.shrink(),
+              Center(
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: GestureDetector(
+                    onTap: () => _showFullAnswerImage(context, _imageBytes!),
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxHeight: 140),
+                      child: Image.memory(
+                        _imageBytes!,
+                        fit: BoxFit.contain,
+                        errorBuilder: (_, _, _) => const SizedBox.shrink(),
+                      ),
+                    ),
+                  ),
                 ),
               ),
             const SizedBox(height: AppSpacing.sm),
@@ -1139,12 +1222,6 @@ class _ReactionRow extends ConsumerWidget {
             VButton.outlined(
               label: l10n.minigamesPasar,
               onPressed: () => _react(context, ref, ReactionKind.pass),
-            ),
-            const SizedBox(height: AppSpacing.xs),
-            Text(
-              l10n.minigamesPasarReactionHint,
-              textAlign: TextAlign.center,
-              style: const TextStyle(color: AppColors.mutedStrong, fontSize: 12),
             ),
           ],
         ),
