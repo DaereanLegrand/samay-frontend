@@ -22,6 +22,7 @@ import 'package:samay/shared/widgets/v_card.dart';
 import 'package:samay/shared/widgets/v_display_text.dart';
 import 'package:samay/shared/widgets/v_header_bar.dart';
 import 'package:samay/shared/widgets/v_input.dart';
+import 'package:samay/shared/widgets/v_spinner.dart';
 
 /// Verdad o Reto play screen (150/190/201 + 202_minigame_play_v2).
 ///
@@ -802,6 +803,7 @@ class _AnswerPreview extends ConsumerStatefulWidget {
 
 class _AnswerPreviewState extends ConsumerState<_AnswerPreview> {
   Uint8List? _imageBytes;
+  bool _imageLoading = false;
   bool _started = false;
 
   @override
@@ -825,15 +827,23 @@ class _AnswerPreviewState extends ConsumerState<_AnswerPreview> {
     }
     // The image is NOT inline: it lives in the private `minigame_images`
     // bucket (defect B). Resolve the object path via the storage download and
-    // decrypt the RAW ciphertext bytes locally.
+    // decrypt the RAW ciphertext bytes locally. A small spinner fills the
+    // image slot while the download + decrypt run (2026-09-02) so a slow
+    // round never reads as a blank card.
     final path = widget.answer.imageStoragePath;
     if (path != null && path.isNotEmpty) {
+      _imageLoading = true;
       final bytes = await ref
           .read(minigameServiceProvider)
           .downloadMinigameImageBytes(path);
-      if (bytes == null || !mounted) return;
-      final clear = await cipher.decryptAnswerImageBytes(bytes, round);
-      if (clear != null && mounted) setState(() => _imageBytes = clear);
+      final clear = bytes == null
+          ? null
+          : await cipher.decryptAnswerImageBytes(bytes, round);
+      if (!mounted) return;
+      setState(() {
+        _imageLoading = false;
+        if (clear != null) _imageBytes = clear;
+      });
     }
   }
 
@@ -866,6 +876,11 @@ class _AnswerPreviewState extends ConsumerState<_AnswerPreview> {
                 ),
               ),
             ),
+          )
+        else if (_imageLoading)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: AppSpacing.md),
+            child: Center(child: VSpinner(size: 18)),
           ),
       ],
     );
@@ -1048,6 +1063,7 @@ class _AsyncReactableTile extends ConsumerStatefulWidget {
 class _AsyncReactableTileState extends ConsumerState<_AsyncReactableTile> {
   String? _decrypted;
   Uint8List? _imageBytes;
+  bool _imageLoading = false;
 
   @override
   void initState() {
@@ -1067,15 +1083,22 @@ class _AsyncReactableTileState extends ConsumerState<_AsyncReactableTile> {
     }
     // Async image answers follow the SAME storage contract (defect B image
     // half): the object path resolves through the private bucket download,
-    // then the RAW ciphertext bytes decrypt locally.
+    // then the RAW ciphertext bytes decrypt locally. A small spinner fills
+    // the image slot meanwhile (2026-09-02).
     final path = widget.answer.imageStoragePath;
     if (path != null && path.isNotEmpty) {
+      _imageLoading = true;
       final bytes = await ref
           .read(minigameServiceProvider)
           .downloadMinigameImageBytes(path);
-      if (bytes == null || !mounted) return;
-      final clear = await cipher.decryptAnswerImageBytes(bytes, round);
-      if (clear != null && mounted) setState(() => _imageBytes = clear);
+      final clear = bytes == null
+          ? null
+          : await cipher.decryptAnswerImageBytes(bytes, round);
+      if (!mounted) return;
+      setState(() {
+        _imageLoading = false;
+        if (clear != null) _imageBytes = clear;
+      });
     }
   }
 
@@ -1125,6 +1148,11 @@ class _AsyncReactableTileState extends ConsumerState<_AsyncReactableTile> {
                     ),
                   ),
                 ),
+              )
+            else if (_imageLoading)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: AppSpacing.sm),
+                child: Center(child: VSpinner(size: 18)),
               ),
             const SizedBox(height: AppSpacing.sm),
             Row(
