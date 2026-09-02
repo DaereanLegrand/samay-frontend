@@ -526,6 +526,65 @@ class MinigameService {
     }
   }
 
+  /// Invites players into an ALREADY-CREATED session via the
+  /// `invite_minigame_players` SECURITY DEFINER RPC (205_minigame_invite_lobby
+  /// — the 2026-09-01 lobby flow: create with zero invitees, then the HOST
+  /// invites while waiting in the lobby). CREATOR-ONLY (backend-enforced via
+  /// `participants[1]` → `not_creator`), idempotent (self / already-participant
+  /// / already-pending invitees are skipped) and re-checks the session's frozen
+  /// player cap. Mirrors the create-time per-invitee gates (blocked/deleted +
+  /// friends-only privacy); the existing `notify_minigame_invite` trigger
+  /// dispatches each new invite's notification unchanged.
+  Future<void> invitePlayers(String sessionId, List<String> inviteeIds) async {
+    final user = auth.currentUser;
+    if (user == null) throw const UnauthorizedError();
+
+    final res = await client.rpc(
+      'invite_minigame_players',
+      params: {'p_session_id': sessionId, 'p_invitees': inviteeIds},
+    );
+    final result = res is Map
+        ? Map<String, dynamic>.from(res)
+        : <String, dynamic>{};
+    final status = result['status'] as String?;
+
+    switch (status) {
+      case 'ok':
+        return;
+      case 'not_authenticated':
+        throw const MinigameSessionRejectedException(
+          MinigameSessionRejection.notAuthenticated,
+        );
+      case 'session_not_found':
+        throw const NotFoundError('Partida');
+      case 'session_not_active':
+        throw ConflictError(
+          'La partida ya terminó',
+          code: 'session_not_active',
+        );
+      case 'not_creator':
+        throw PermissionError();
+      case 'invitee_not_allowed':
+        throw const MinigameSessionRejectedException(
+          MinigameSessionRejection.inviteeNotAllowed,
+        );
+      case 'invitee_friends_only':
+        throw const MinigameSessionRejectedException(
+          MinigameSessionRejection.inviteeFriendsOnly,
+        );
+      case 'too_many_invitees':
+        throw const MinigameSessionRejectedException(
+          MinigameSessionRejection.tooManyInvitees,
+        );
+      case 'player_limit_reached':
+        throw const MinigameSessionRejectedException(
+          MinigameSessionRejection.playerLimitReached,
+        );
+      default:
+        throw const ServerError('Unexpected invite_minigame_players response');
+    }
+  }
+
 /// Live subscription to one session's row changes (GMCR Realtime sync:
 /// all participants subscribe to the `minigame_sessions` row changes).
 ///

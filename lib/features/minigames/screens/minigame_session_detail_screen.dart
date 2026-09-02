@@ -14,6 +14,7 @@ import 'package:samay/core/services/minigame_service.dart';
 import 'package:samay/features/minigames/logic/minigame_engine.dart';
 import 'package:samay/features/minigames/logic/minigame_meta.dart';
 import 'package:samay/features/minigames/providers/minigames_providers.dart';
+import 'package:samay/features/minigames/screens/minigame_invite_screen.dart';
 import 'package:samay/features/minigames/screens/minigames_screen.dart'
     show minigameRejectionMessage;
 import 'package:samay/l10n/app_localizations.dart';
@@ -150,6 +151,9 @@ class _MinigameSessionDetailScreenState
             const [];
     final isCreator = participantIds.isNotEmpty && participantIds.first == myId;
     final gameState = ref.watch(minigameGameStateProvider(_sessionId));
+    // The session status also gates the AppBar Invite button (host-only, while
+    // the partida is still active — 205_minigame_invite_lobby).
+    final isFinished = session.valueOrNull?['status'] == 'finished';
 
     // 190_minigame_countdown: when the server flips countdown → playing (the
     // 5s deadline passed and the host did not cancel), EVERY participant is
@@ -190,6 +194,21 @@ class _MinigameSessionDetailScreenState
                 l10n,
                 session.valueOrNull!['game_type'] as String?,
               ),
+        // 2026-09-01: invites moved out of match creation into the lobby.
+        // The HOST (participants[0]) sees the Invite button at the title's
+        // right while waiting — inviting is done AFTER the match exists.
+        actions: [
+          if (isCreator && !isFinished)
+            Padding(
+              padding: const EdgeInsets.only(right: AppSpacing.md),
+              child: IconButton(
+                icon: const Icon(Icons.person_add_alt),
+                tooltip: l10n.minigamesInviteTitle,
+                color: AppColors.white,
+                onPressed: () => _invite(context, ref, l10n),
+              ),
+            ),
+        ],
         child: session.when(
           loading: () => const VLoadingView(),
           error: (e, _) => ErrorView(
@@ -323,6 +342,49 @@ class _MinigameSessionDetailScreenState
     } on MinigameSessionRejectedException catch (e) {
       // Typed rejection → friendly localized message (I-62 pattern), never
       // the raw exception text.
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(minigameRejectionMessage(l10n, e.rejection))));
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e.toAppError().message)));
+    }
+  }
+
+  /// The HOST's AppBar invite (205_minigame_invite_lobby): opens the player
+  /// picker with the current participants excluded (no re-picking people
+  /// already in the lobby), then calls the lobby invite RPC and surfaces a
+  /// confirmation. Typed rejections (blocked / friends-only / cap) map to
+  /// the friendly localized message — never the raw error text.
+  Future<void> _invite(
+    BuildContext context,
+    WidgetRef ref,
+    AppLocalizations l10n,
+  ) async {
+    final participantIds =
+        (ref.read(sessionStatusProvider(_sessionId)).valueOrNull?['participants']
+                as List?)
+            ?.whereType<String>()
+            .toSet() ??
+        const <String>{};
+    final picked = await Navigator.of(context).push<List<String>>(
+      MaterialPageRoute(
+        builder: (_) => MinigameInviteScreen(excludedIds: participantIds),
+      ),
+    );
+    if (picked == null || picked.isEmpty || !context.mounted) return;
+    try {
+      await ref
+          .read(minigameInviteProvider(_sessionId).notifier)
+          .invitePlayers(picked);
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.minigamesInviteSent)));
+    } on MinigameSessionRejectedException catch (e) {
       if (!context.mounted) return;
       ScaffoldMessenger.of(
         context,

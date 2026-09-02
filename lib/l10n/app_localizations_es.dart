@@ -2353,6 +2353,9 @@ class AppLocalizationsEs extends AppLocalizations {
   String get minigamesInviteDeclined => 'Invitación rechazada';
 
   @override
+  String get minigamesInviteSent => 'Invitación enviada';
+
+  @override
   String get minigamesInviteClosed =>
       'Esta partida ya terminó. Ya no puedes aceptar la invitación.';
 

@@ -2344,6 +2344,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get minigamesInviteDeclined => 'Invite declined';
 
   @override
+  String get minigamesInviteSent => 'Invite sent';
+
+  @override
   String get minigamesInviteClosed =>
       'This game has already finished. The invite can no longer be accepted.';
 

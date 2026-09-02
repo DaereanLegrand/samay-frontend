@@ -90,7 +90,7 @@ Local API base URL: `http://127.0.0.1:54386`. Self-hosting details:
 [`<private-ops-repo>/SELFHOSTING.md`](<private-ops-repo>/SELFHOSTING.md); deployment targets are
 placeholders in [`<private-ops-repo>/DEPLOYMENT-PLACEHOLDER.md`](<private-ops-repo>/DEPLOYMENT-PLACEHOLDER.md)
 — do not invent deployment URLs in code or docs.
-Database migrations: `supabase/migrations/**` (34 SQL files across 21 numbered
+Database migrations: `supabase/migrations/**` (43 SQL files across 30 numbered
 domain dirs, mirrored byte-identical into `supabase-testing/migrations/`),
 applied by `supabase/migrate.sh` / `reset.sh`.
 
@@ -158,8 +158,8 @@ must NOT be recreated. There is no `make flutter-test` / `make test-file` /
 |-------|---------|----------------------|
 | Static analysis | `dart analyze` | **0 issues** |
 | Go | `go test ./...` | green — **188 tests**, 6 packages |
-| Backend (curl) | `bash test/run_all_backend.sh` | **20 opt-tests** (+ opt-019-minigame-lobby 2026-08-30, opt-020-minigame-voting + opt-021-minigame-play-v2 2026-08-30; opt-006/016/018/020 reconciled 2026-08-31 to the current contracts — answer-first gate + hardening + `{list,count}` mirror shape; opt-020/021 extended 2026-09-01 with the reactor-side Pasar — `'pasar'` wire, `{list,count,pass}` mirror, `emoji - pass/2` scoring; needs the stack up; opt-007 static gate reports SERVICE_KEY-vs-.env alignment drift on opt-001..006 — local `.env` rotated after the 2026-08-25 baseline; runtime runs pass) |
-| SQL (pgTAP) | `supabase db test` | **plan(893)** assertions (needs the stack; +12 from Section 49n `204_minigame_pasar` 2026-09-01 — NULLable reaction + `mgs_reaction_value_check`, `'pasar'` accept + `pass` mirror count, `emoji - pass/2` scoring + fractional by_turns/async settlement; on top of +22 from 2026-08-31 and +60 from 2026-08-30) |
+| Backend (curl) | `bash test/run_all_backend.sh` | **20 opt-tests** (+ opt-019-minigame-lobby 2026-08-30, opt-020-minigame-voting + opt-021-minigame-play-v2 2026-08-30; opt-006/016/018/020 reconciled 2026-08-31 to the current contracts — answer-first gate + hardening + `{list,count}` mirror shape; opt-020/021 extended 2026-09-01 with the reactor-side Pasar — `'pasar'` wire, `{list,count,pass}` mirror, `emoji - pass/2` scoring; opt-016 extended 2026-09-01 with TEST I — the lobby invite RPC `invite_minigame_players` (idempotent re-invite, `not_creator`, friends-only, frozen-cap, notification dispatch); needs the stack up; opt-007 static gate reports SERVICE_KEY-vs-.env alignment drift on opt-001..006 — local `.env` rotated after the 2026-08-25 baseline; runtime runs pass) |
+| SQL (pgTAP) | `supabase db test` | **plan(903)** assertions (needs the stack; +10 from Section 49o `205_minigame_invite_lobby` 2026-09-01 — `invite_minigame_players(p_session_id, p_invitees)` creator-only lobby invite RPC: typed lifecycle statuses, blocked/friends-only privacy mirror, frozen player-cap re-check, idempotent pending-skip, ACL posture; on top of +12 from Section 49n `204_minigame_pasar` 2026-09-01, +22 from 2026-08-31 and +60 from 2026-08-30) |
 | Manual end-user QA | `bash test_runner.sh` | gum-based manual runner |
 
 See [`test/README.md`](test/README.md) for the full test matrix and the curl

@@ -4316,6 +4316,12 @@ abstract class AppLocalizations {
   /// **'Invitación rechazada'**
   String get minigamesInviteDeclined;
 
+  /// Snackbar after the HOST invites players from the lobby (205_minigame_invite_lobby)
+  ///
+  /// In es, this message translates to:
+  /// **'Invitación enviada'**
+  String get minigamesInviteSent;
+
   /// Session detail: the invite can no longer be accepted because the game finished
   ///
   /// In es, this message translates to:

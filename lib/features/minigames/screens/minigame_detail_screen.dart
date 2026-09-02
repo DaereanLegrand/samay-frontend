@@ -16,7 +16,6 @@ import 'package:samay/features/groups/providers/groups_providers.dart';
 import 'package:samay/features/minigames/logic/minigame_engine.dart';
 import 'package:samay/features/minigames/logic/minigame_meta.dart';
 import 'package:samay/features/minigames/providers/minigames_providers.dart';
-import 'package:samay/features/minigames/screens/minigame_invite_screen.dart';
 import 'package:samay/features/minigames/screens/minigames_screen.dart'
     show MinigameScope, minigameRejectionMessage;
 import 'package:samay/features/profile/providers/profile_providers.dart'
@@ -64,14 +63,19 @@ class _MinigameDetailScreenState extends ConsumerState<MinigameDetailScreen> {
   final Set<String> _busySessionIds = <String>{};
 
   Future<void> _openNewPartida() async {
-    final created = await Navigator.of(context).push<bool>(
+    // 2026-09-01: creation is invite-free — the host enters the LOBBY and
+    // invites from there. The wizard pops the created session id; this screen
+    // then jumps straight into the waiting room so the host lands with the
+    // AppBar Invite button ready.
+    final sessionId = await Navigator.of(context).push<String>(
       MaterialPageRoute(
         builder: (_) => _NewPartidaScreen(gameType: _type),
       ),
     );
-    if (created == true && mounted) {
-      await ref.read(myMinigameSessionsProvider.notifier).refresh();
-    }
+    if (sessionId == null || !mounted) return;
+    await ref.read(myMinigameSessionsProvider.notifier).refresh();
+    if (!mounted) return;
+    context.push(RoutePaths.minigameSession(sessionId));
   }
 
   void _showDetail(String sessionId) {
@@ -548,7 +552,6 @@ class _NewPartidaScreenState extends ConsumerState<_NewPartidaScreen> {
   final _asyncDaysController = TextEditingController(text: '1');
   MinigameScope _scope = MinigameScope.direct;
   String? _selectedGroupId;
-  List<String> _inviteeIds = const [];
   final int _prizePositions = kDefaultPrizePositions;
   MinigamePlayMode _playMode = MinigamePlayMode.byTurns;
   bool _anonymous = false;
@@ -581,15 +584,6 @@ class _NewPartidaScreenState extends ConsumerState<_NewPartidaScreen> {
     return l10n.minigamesAutoName(ongoing + 1);
   }
 
-  Future<void> _pickInvitees() async {
-    final picked = await Navigator.of(context).push<List<String>>(
-      MaterialPageRoute(builder: (_) => const MinigameInviteScreen()),
-    );
-    if (picked != null && mounted) {
-      setState(() => _inviteeIds = picked);
-    }
-  }
-
   Future<void> _create() async {
     final l10n = AppLocalizations.of(context);
     final type = widget.gameType;
@@ -606,15 +600,18 @@ class _NewPartidaScreenState extends ConsumerState<_NewPartidaScreen> {
 
     setState(() => _creating = true);
     try {
+      // 2026-09-01: the wizard creates with ZERO invitees — invites happen
+      // in the lobby (invite_minigame_players). Both .create() calls return
+      // the created session id so the wizard pops it up for auto-entry.
+      final String sessionId;
       if (_scope == MinigameScope.group) {
         final groupId = _selectedGroupId;
         if (groupId == null) return;
-        await ref
+        sessionId = await ref
             .read(minigameSessionsProvider(groupId).notifier)
             .create(
               type,
               wager,
-              inviteeIds: _inviteeIds,
               name: name,
               rounds: rounds,
               prizePositions: prizePositions,
@@ -624,12 +621,11 @@ class _NewPartidaScreenState extends ConsumerState<_NewPartidaScreen> {
               asyncEndsAt: asyncEndsAt,
             );
       } else {
-        await ref
+        sessionId = await ref
             .read(myMinigameSessionsProvider.notifier)
             .create(
               type,
               wager,
-              inviteeIds: _inviteeIds,
               name: name,
               rounds: rounds,
               prizePositions: prizePositions,
@@ -643,7 +639,7 @@ class _NewPartidaScreenState extends ConsumerState<_NewPartidaScreen> {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(l10n.minigamesCreated)));
-      Navigator.of(context).pop(true);
+      Navigator.of(context).pop(sessionId);
     } on MinigameSessionRejectedException catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -836,11 +832,6 @@ class _NewPartidaScreenState extends ConsumerState<_NewPartidaScreen> {
               label: l10n.minigamesCreate,
               loading: _creating,
               onPressed: _creating ? null : _create,
-            ),
-            const SizedBox(height: AppSpacing.lg),
-            _InviteesSummary(
-              count: _inviteeIds.length,
-              onPick: _pickInvitees,
             ),
           ],
         ),
@@ -1039,34 +1030,6 @@ Future<String?> showGroupPickerSheet(
       );
     },
   );
-}
-
-/// Outlined row that opens the player picker and reports the chosen count.
-class _InviteesSummary extends StatelessWidget {
-  final int count;
-  final VoidCallback onPick;
-
-  const _InviteesSummary({required this.count, required this.onPick});
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    return VButton.outlined(
-      onPressed: onPick,
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(Icons.person_add_outlined, size: 18),
-          const SizedBox(width: AppSpacing.sm),
-          Text(
-            count > 0
-                ? l10n.minigamesInviteCount(count)
-                : l10n.minigamesInviteTitle,
-          ),
-        ],
-      ),
-    );
-  }
 }
 
 /// The wager + rounds row in the create-partida wizard — two columns in one

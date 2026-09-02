@@ -11,7 +11,6 @@ import 'package:samay/core/services/minigame_service.dart';
 import 'package:samay/features/groups/providers/groups_providers.dart';
 import 'package:samay/features/minigames/logic/minigame_meta.dart';
 import 'package:samay/features/minigames/providers/minigames_providers.dart';
-import 'package:samay/features/minigames/screens/minigame_invite_screen.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/error_view.dart';
 import 'package:samay/shared/widgets/state_views.dart';
@@ -124,31 +123,30 @@ class _MinigamesScreenState extends ConsumerState<MinigamesScreen> {
     if (type == null) return;
     final wager = int.tryParse(_wagerController.text.trim()) ?? 0;
 
-    // Player picker first: any searchable user can be invited (the
-    // friends-only + blocked + player-cap gates are enforced server-side).
-    final inviteeIds = await Navigator.of(context).push<List<String>>(
-      MaterialPageRoute(builder: (_) => const MinigameInviteScreen()),
-    );
-    if (!mounted) return;
-
+    // 2026-09-01: creation is invite-free — invites happen in the lobby
+    // (invite_minigame_players). The hub .create() returns the session id,
+    // so the host jumps straight into the waiting room with the AppBar
+    // Invite button ready.
     setState(() => _creating = true);
     try {
+      final String sessionId;
       if (_scope == MinigameScope.group) {
         final groupId = _selectedGroupId;
         if (groupId == null) return;
-        await ref
+        sessionId = await ref
             .read(minigameSessionsProvider(groupId).notifier)
-            .create(type, wager, inviteeIds: inviteeIds ?? const []);
+            .create(type, wager);
       } else {
-        await ref
+        sessionId = await ref
             .read(myMinigameSessionsProvider.notifier)
-            .create(type, wager, inviteeIds: inviteeIds ?? const []);
+            .create(type, wager);
       }
       if (!mounted) return;
       _wagerController.clear();
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(l10n.minigamesCreated)));
+      context.push(RoutePaths.minigameSession(sessionId));
     } on MinigameSessionRejectedException catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(

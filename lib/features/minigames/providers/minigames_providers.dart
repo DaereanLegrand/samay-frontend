@@ -402,6 +402,19 @@ class MinigameInviteNotifier
     await _markInviteNotificationRead(inviteId);
   }
 
+  /// The HOST invites players into this ALREADY-CREATED session from the
+  /// lobby (205_minigame_invite_lobby — the 2026-09-01 flow: create with zero
+  /// invitees, then invite while waiting). Idempotent server-side; refreshes
+  /// the pending-invite list (the invitee's "partida-N ready to accept" rows
+  /// appear) and the session status. Typed rejections surface as
+  /// [MinigameSessionRejectedException] (blocked / friends-only / cap).
+  Future<void> invitePlayers(List<String> inviteeIds) async {
+    if (inviteeIds.isEmpty) return;
+    await _service.invitePlayers(arg, inviteeIds);
+    ref.invalidate(myPendingInvitesProvider);
+    ref.invalidate(sessionStatusProvider(arg));
+  }
+
   /// Marks the invite's notification read (best-effort — the notification
   /// center's read-on-tap is the fallback if the row is missing).
   Future<void> _markInviteNotificationRead(String inviteId) async {
