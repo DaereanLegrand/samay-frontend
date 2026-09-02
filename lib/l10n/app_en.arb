@@ -2277,6 +2277,10 @@
   "@minigamesChooseGroup": {
     "description": "Title of the group-picker bottom sheet shown when starting a game from the home feed"
   },
+  "minigamesChooseGroupEllipsis": "…",
+  "@minigamesChooseGroupEllipsis": {
+    "description": "Create-partida wizard: placeholder shown where the selected group name goes before any group is chosen"
+  },
   "minigamesNoGroups": "No groups yet",
   "@minigamesNoGroups": {
     "description": "Title of the snackbar shown when starting a game without any group membership"
@@ -2317,11 +2321,11 @@
   "@minigamesGameTruthDare": {
     "description": "Game #3 name (Truth or Dare)"
   },
-  "minigamesGameTruthDareTagline": "Take turns, no escaping",
+  "minigamesGameTruthDareTagline": "Do you dare...?",
   "@minigamesGameTruthDareTagline": {
     "description": "Game #3 one-line tagline"
   },
-  "minigamesGameTruthDareExplanation": "Take turns: each player picks Truth or Dare and the group decides if you delivered. No escaping.",
+  "minigamesGameTruthDareExplanation": "Each player picks Truth or Dare and the group decides if you delivered. No escaping.",
   "@minigamesGameTruthDareExplanation": {
     "description": "Game #3 explanation on the dedicated game page"
   },
@@ -2361,9 +2365,13 @@
   "@minigamesAudienceBoth": {
     "description": "Per-game page: the game works both solo and with friends"
   },
-  "minigamesNewPartida": "New game",
+  "minigamesNewPartida": "new game",
   "@minigamesNewPartida": {
     "description": "Per-game page: primary button that starts the create-partida flow"
+  },
+  "minigamesScopeLabel": "Partida",
+  "@minigamesScopeLabel": {
+    "description": "Create-partida wizard: section title above the Directa/Grupo scope toggle"
   },
   "minigamesPartidaNameLabel": "Name (optional)",
   "@minigamesPartidaNameLabel": {
@@ -2408,7 +2416,7 @@
   "@minigamesWagerDefaultHint": {
     "description": "Create-partida wizard: wager input hint (default 10 shards)"
   },
-  "minigamesRoundsLabel": "Rounds:",
+  "minigamesRoundsLabel": "Rounds",
   "@minigamesRoundsLabel": {
     "description": "Create-partida wizard: total-turn target label (201_minigame_voting)"
   },
@@ -2416,9 +2424,9 @@
   "@minigamesRoundsHint": {
     "description": "Create-partida wizard: rounds input hint (default 5 turns)"
   },
-  "minigamesWagerLabel": "Using:",
+  "minigamesWagerLabel": "Entry",
   "@minigamesWagerLabel": {
-    "description": "Create-partida wizard: wager input label above the amount (Using: = how many shards are being used)"
+    "description": "Create-partida wizard: wager input label above the amount (Entry: = how many shards are being used)"
   },
   "minigamesWagerHint": "0 = no wager",
   "@minigamesWagerHint": {

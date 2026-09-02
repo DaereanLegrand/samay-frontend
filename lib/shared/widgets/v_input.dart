@@ -22,6 +22,7 @@ class VInput extends StatelessWidget {
   final int maxLines;
   final int minLines;
   final TextAlignVertical? textAlignVertical;
+  final Widget? suffixIcon;
 
   const VInput({
     super.key,
@@ -35,6 +36,7 @@ class VInput extends StatelessWidget {
     this.maxLines = 1,
     this.minLines = 1,
     this.textAlignVertical,
+    this.suffixIcon,
   });
 
   /// Vestigial liquid-glass geometry (LUXE §4.3). Retained so the
@@ -74,6 +76,7 @@ class VInput extends StatelessWidget {
       decoration: InputDecoration(
         hintText: hint ?? label,
         errorText: errorText,
+        suffixIcon: suffixIcon,
         // No border, no background — the field is bare text on black.
         border: InputBorder.none,
         enabledBorder: InputBorder.none,

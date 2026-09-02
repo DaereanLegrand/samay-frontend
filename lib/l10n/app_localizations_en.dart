@@ -1715,6 +1715,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get minigamesChooseGroup => 'Choose a group';
 
   @override
+  String get minigamesChooseGroupEllipsis => '…';
+
+  @override
   String get minigamesNoGroups => 'No groups yet';
 
   @override
@@ -1749,11 +1752,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get minigamesGameTruthDare => 'Truth or Dare';
 
   @override
-  String get minigamesGameTruthDareTagline => 'Take turns, no escaping';
+  String get minigamesGameTruthDareTagline => 'Do you dare...?';
 
   @override
   String get minigamesGameTruthDareExplanation =>
-      'Take turns: each player picks Truth or Dare and the group decides if you delivered. No escaping.';
+      'Each player picks Truth or Dare and the group decides if you delivered. No escaping.';
 
   @override
   String get minigamesGameDrunkBottle => 'Drunk Bottle';
@@ -1787,7 +1790,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get minigamesAudienceBoth => 'With friends or solo';
 
   @override
-  String get minigamesNewPartida => 'New game';
+  String get minigamesNewPartida => 'new game';
+
+  @override
+  String get minigamesScopeLabel => 'Partida';
 
   @override
   String get minigamesPartidaNameLabel => 'Name (optional)';
@@ -1818,13 +1824,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get minigamesWagerDefaultHint => 'Default: 10';
 
   @override
-  String get minigamesRoundsLabel => 'Rounds:';
+  String get minigamesRoundsLabel => 'Rounds';
 
   @override
   String get minigamesRoundsHint => 'Default: 5';
 
   @override
-  String get minigamesWagerLabel => 'Using:';
+  String get minigamesWagerLabel => 'Entry';
 
   @override
   String get minigamesWagerHint => '0 = no wager';

@@ -3206,6 +3206,12 @@ abstract class AppLocalizations {
   /// **'Elige un grupo'**
   String get minigamesChooseGroup;
 
+  /// Create-partida wizard: placeholder shown where the selected group name goes before any group is chosen
+  ///
+  /// In es, this message translates to:
+  /// **'…'**
+  String get minigamesChooseGroupEllipsis;
+
   /// Título del snackbar al intentar jugar sin pertenecer a ningún grupo
   ///
   /// In es, this message translates to:
@@ -3269,13 +3275,13 @@ abstract class AppLocalizations {
   /// Game #3 one-line tagline
   ///
   /// In es, this message translates to:
-  /// **'Por turnos, sin escapatoria'**
+  /// **'¿Te atreves...?'**
   String get minigamesGameTruthDareTagline;
 
   /// Game #3 explanation on the dedicated game page
   ///
   /// In es, this message translates to:
-  /// **'Por turnos: cada jugador elige Verdad o Reto y el grupo decide si cumpliste. Sin escapatoria.'**
+  /// **'Cada jugador elige Verdad o Reto y el grupo decide si cumpliste. Sin escapatoria.'**
   String get minigamesGameTruthDareExplanation;
 
   /// Game #4 name (Drunk Bottle)
@@ -3335,8 +3341,14 @@ abstract class AppLocalizations {
   /// Per-game page: primary button that starts the create-partida flow
   ///
   /// In es, this message translates to:
-  /// **'Nueva partida'**
+  /// **'nueva partida'**
   String get minigamesNewPartida;
+
+  /// Create-partida wizard: section title above the Directa/Grupo scope toggle
+  ///
+  /// In es, this message translates to:
+  /// **'Partida'**
+  String get minigamesScopeLabel;
 
   /// Create-partida wizard: name input label (blank = auto partida-XX)
   ///
@@ -3383,7 +3395,7 @@ abstract class AppLocalizations {
   /// Create-partida wizard: total-turn target label (201_minigame_voting)
   ///
   /// In es, this message translates to:
-  /// **'Rondas:'**
+  /// **'Rondas'**
   String get minigamesRoundsLabel;
 
   /// Create-partida wizard: rounds input hint (default 5 turns)
@@ -3392,10 +3404,10 @@ abstract class AppLocalizations {
   /// **'Por defecto: 5'**
   String get minigamesRoundsHint;
 
-  /// Create-partida wizard: wager input label above the amount (Usando: = how many shards are being used)
+  /// Create-partida wizard: wager input label above the amount (Entrada: = how many shards are being used)
   ///
   /// In es, this message translates to:
-  /// **'Usando:'**
+  /// **'Entrada'**
   String get minigamesWagerLabel;
 
   /// Wager input hint: 0 means no wager

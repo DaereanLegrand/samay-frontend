@@ -1,9 +1,13 @@
+import 'package:flutter/cupertino.dart'
+    show CupertinoPicker, FixedExtentScrollController;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/core/design_tokens/app_icon_sizes.dart';
+import 'package:samay/core/design_tokens/app_radius.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
+import 'package:samay/core/design_tokens/app_typography.dart';
 import 'package:samay/core/extensions/error_mapper.dart';
 import 'package:samay/core/models/group.dart';
 import 'package:samay/core/router/route_paths.dart';
@@ -311,9 +315,10 @@ class _MinigameDetailScreenState extends ConsumerState<MinigameDetailScreen> {
   }
 }
 
-/// Small grey pill for the audience fact ("Para jugar con amigos"): grey
-/// background, black text, compact — the design-token voice for a secondary
-/// label (2026-08-28 user directive).
+/// Small outlined pill for the audience fact ("Para jugar con amigos"):
+/// transparent fill, 1px `border` hairline, white text, sharp corners — the
+/// design-token voice for a secondary label (2026-08-28 user directive;
+/// outlined, not emphasized).
 class _AudienceTag extends StatelessWidget {
   final String label;
 
@@ -324,13 +329,14 @@ class _AudienceTag extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: 6),
       decoration: BoxDecoration(
-        color: AppColors.softGray,
-        borderRadius: BorderRadius.circular(4),
+        color: Colors.transparent,
+        border: Border.all(color: AppColors.border),
+        borderRadius: AppRadius.sharp,
       ),
       child: Text(
         label,
         style: const TextStyle(
-          color: AppColors.discoBlack,
+          color: AppColors.white,
           fontSize: 12,
           fontWeight: FontWeight.w600,
         ),
@@ -530,6 +536,11 @@ class _NewPartidaScreen extends ConsumerStatefulWidget {
 }
 
 class _NewPartidaScreenState extends ConsumerState<_NewPartidaScreen> {
+  /// Shared control-row height for the two-column mode section: the chips
+  /// and the anonymous switch both occupy this fixed height so their control
+  /// baselines align and the gap to their labels matches (2026-09-01).
+  static const double wizardControlHeight = 40;
+
   final _nameController = TextEditingController();
   final _wagerController = TextEditingController(text: '10');
   final _roundsController = TextEditingController(text: '5');
@@ -651,28 +662,92 @@ class _NewPartidaScreenState extends ConsumerState<_NewPartidaScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final balance =
+        (ref.watch(profile.myProfileProvider).valueOrNull?['personal_shards']
+                as num? ??
+            0).toInt();
 
     return Scaffold(
       body: VHeaderBar(
         title: l10n.minigamesNewPartida,
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: AppSpacing.md),
+            child: Transform.translate(
+              // Playfair's hhea box is top-heavy (ascent 1082 / descent
+              // -251): like the back arrow (v_header_bar.dart:72), nudge the
+              // shard number+symbol down so it reads optically centered with
+              // the title.
+              offset: const Offset(0, 6),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const VShardIcon(size: AppIconSizes.sm),
+                  const SizedBox(width: AppSpacing.xs),
+                  Text(
+                    // Just the number — the shard icon already conveys the unit.
+                    '$balance',
+                    style: const TextStyle(
+                      color: AppColors.white,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
         child: ListView(
           padding: const EdgeInsets.all(AppSpacing.lg),
           children: [
-	    Row(
+            // Scope: labels row (Partida | Elige un grupo) then controls row
+            // (Directa/Grupo | selected group) — the two columns share the
+            // same vertical lines (2026-09-01 directive).
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                VChip(
-                  label: l10n.minigamesScopeDirect,
-                  selected: _scope == MinigameScope.direct,
-                  onSelected: () => setState(() => _scope = MinigameScope.direct),
-                  compact: true,
+                _WizardSectionLabel(l10n.minigamesScopeLabel),
+                const Spacer(),
+                if (_scope == MinigameScope.group)
+                  InkWell(
+                    onTap: _pickGroup,
+                    child: _WizardSectionLabel(
+                      l10n.minigamesChooseGroup,
+                      alignEnd: true,
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Row(
+                  children: [
+                    VChip(
+                      label: l10n.minigamesScopeDirect,
+                      selected: _scope == MinigameScope.direct,
+                      onSelected: () =>
+                          setState(() => _scope = MinigameScope.direct),
+                      compact: true,
+                    ),
+                    const SizedBox(width: AppSpacing.sm),
+                    VChip(
+                      label: l10n.minigamesScopeGroup,
+                      selected: _scope == MinigameScope.group,
+                      onSelected: () =>
+                          setState(() => _scope = MinigameScope.group),
+                      compact: true,
+                    ),
+                  ],
                 ),
-                const SizedBox(width: AppSpacing.sm),
-                VChip(
-                  label: l10n.minigamesScopeGroup,
-                  selected: _scope == MinigameScope.group,
-                  onSelected: () => setState(() => _scope = MinigameScope.group),
-                  compact: true,
-                ),
+                const Spacer(),
+                if (_scope == MinigameScope.group)
+                  _SelectedGroupButton(
+                    groupId: _selectedGroupId,
+                    onTap: _pickGroup,
+                  ),
               ],
             ),
             const SizedBox(height: AppSpacing.lg),
@@ -681,65 +756,80 @@ class _NewPartidaScreenState extends ConsumerState<_NewPartidaScreen> {
               hint: l10n.minigamesPartidaNameHint(_nextAutoName()),
               controller: _nameController,
             ),
-            if (_scope == MinigameScope.group) ...[
-              const SizedBox(height: AppSpacing.lg),
-              _buildGroupPicker(l10n),
-            ],
             const SizedBox(height: AppSpacing.xs),
-            _WagerRow(
-              controller: _wagerController,
-              balanceCaption: l10n.minigamesWagerBalanceCaption,
-              onChanged: (_) => setState(() {}),
-            ),
-            const SizedBox(height: AppSpacing.md),
-            // 201_minigame_voting: the total-turn target (default 5). The
-            // host-set prize-position (N) selector is deferred (TODO) — the
-            // client sends the default N = 3.
-            _RoundsRow(controller: _roundsController),
-            const SizedBox(height: AppSpacing.md),
             // 202_minigame_play_v2: play-mode selector (by_turns / async) +
             // the async per-player rounds + timer (settable at creation, no
             // override after) + the anonymous toggle.
-            Text(
-              l10n.minigamesModeLabel.toUpperCase(),
-              style: Theme.of(context).textTheme.titleSmall,
-            ),
-            const SizedBox(height: AppSpacing.sm),
+            // Two columns: left = "Modo de juego" + its Por turnos/Asíncrono
+            // chips; right = "Partida anónima" + its switch. Labels share one
+            // vertical line, controls the next (2026-09-01 directive). Both
+            // control areas share [wizardControlHeight] so the chips and the
+            // switch sit on the same baseline with identical label gaps.
             Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                VChip(
-                  label: l10n.minigamesModeByTurns,
-                  selected: _playMode == MinigamePlayMode.byTurns,
-                  onSelected: () =>
-                      setState(() => _playMode = MinigamePlayMode.byTurns),
-                  compact: true,
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _WizardSectionLabel(l10n.minigamesModeLabel),
+                      const SizedBox(height: AppSpacing.sm),
+                      SizedBox(
+                        height: wizardControlHeight,
+                        child: Row(
+                          children: [
+                            VChip(
+                              label: l10n.minigamesModeByTurns,
+                              selected: _playMode == MinigamePlayMode.byTurns,
+                              onSelected: () => setState(
+                                () => _playMode = MinigamePlayMode.byTurns,
+                              ),
+                              compact: true,
+                            ),
+                            const SizedBox(width: AppSpacing.sm),
+                            VChip(
+                              label: l10n.minigamesModeAsync,
+                              selected: _playMode == MinigamePlayMode.async,
+                              onSelected: () => setState(
+                                () => _playMode = MinigamePlayMode.async,
+                              ),
+                              compact: true,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-                const SizedBox(width: AppSpacing.sm),
-                VChip(
-                  label: l10n.minigamesModeAsync,
-                  selected: _playMode == MinigamePlayMode.async,
-                  onSelected: () =>
-                      setState(() => _playMode = MinigamePlayMode.async),
-                  compact: true,
+                const SizedBox(width: AppSpacing.md),
+                _AnonymousToggle(
+                  value: _anonymous,
+                  onChanged: (v) => setState(() => _anonymous = v),
                 ),
               ],
             ),
             if (_playMode == MinigamePlayMode.async) ...[
               const SizedBox(height: AppSpacing.md),
-              _RoundsRow(
-                controller: _asyncRoundsController,
+              _LabeledNumberRow(
                 label: l10n.minigamesAsyncRoundsLabel,
+                controller: _asyncRoundsController,
+                hint: l10n.minigamesRoundsHint,
               ),
               const SizedBox(height: AppSpacing.md),
-              _RoundsRow(
-                controller: _asyncDaysController,
+              _LabeledNumberRow(
                 label: l10n.minigamesAsyncEndsLabel,
+                controller: _asyncDaysController,
+                hint: l10n.minigamesRoundsHint,
               ),
             ],
             const SizedBox(height: AppSpacing.md),
-            _AnonymousToggle(
-              value: _anonymous,
-              onChanged: (v) => setState(() => _anonymous = v),
+            // 201_minigame_voting: the total-turn target (default 5). The
+            // host-set prize-position (N) selector is deferred (TODO) — the
+            // client sends the default N = 3.
+            _WagerRoundsRow(
+              wagerController: _wagerController,
+              roundsController: _roundsController,
+              onWagerChanged: (_) => setState(() {}),
             ),
             const SizedBox(height: AppSpacing.xl),
             VButton.emphasized(
@@ -758,77 +848,197 @@ class _NewPartidaScreenState extends ConsumerState<_NewPartidaScreen> {
     );
   }
 
-  Widget _buildGroupPicker(AppLocalizations l10n) {
-    return ref.watch(myGroupsProvider).when(
-      loading: () => const VLoadingView(),
-      error: (e, _) => ErrorView(message: e.toAppError().message),
-      data: (groups) {
-        if (groups.isEmpty) {
-          return Text(
-            l10n.minigamesNoGroupsBody,
-            style: const TextStyle(color: AppColors.mutedStrong),
-          );
-        }
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              l10n.minigamesChooseGroup.toUpperCase(),
-              style: Theme.of(context).textTheme.titleSmall,
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            for (final group in groups)
-              _GroupPickTile(
-                group: group,
-                selected: group.id == _selectedGroupId,
-                onTap: () =>
-                    setState(() => _selectedGroupId = group.id),
-              ),
-          ],
-        );
-      },
+  /// Opens the group picker bottom sheet (all the user's groups); picking a
+  /// group selects it for the Grupo scope.
+  Future<void> _pickGroup() async {
+    final l10n = AppLocalizations.of(context);
+    final groups = ref.read(myGroupsProvider).valueOrNull ?? const <Group>[];
+    if (groups.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.minigamesNoGroupsBody)),
+      );
+      return;
+    }
+    final pickedId = await showGroupPickerSheet(
+      context,
+      groups: groups,
+      selectedId: _selectedGroupId,
+    );
+    if (pickedId == null || !mounted) return;
+    setState(() => _selectedGroupId = pickedId);
+  }
+}
+
+/// The wizard's compact subtitle (create-partida) — UPPERCASE, regular weight,
+/// small (2026-09-01 user directive: all subtitles uppercase + not bold).
+/// Rendered ABOVE its control group; left-aligned labels get left padding,
+/// right-aligned get right padding — ONLY on these title tiles.
+class _WizardSectionLabel extends StatelessWidget {
+  final String text;
+  final bool alignEnd;
+
+  const _WizardSectionLabel(this.text, {this.alignEnd = false});
+
+  /// Shared style — the compact wizard-subtitle voice. Uppercase is applied at
+  /// render time (`.toUpperCase()`); regular weight (not bold).
+  static const TextStyle style = TextStyle(
+    fontFamily: 'Inter',
+    fontSize: 11,
+    fontWeight: FontWeight.w400,
+    letterSpacing: 2.0,
+    color: AppColors.mutedStrong,
+  );
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(
+        left: alignEnd ? 0 : AppSpacing.sm,
+        right: alignEnd ? AppSpacing.sm : 0,
+      ),
+      child: Text(
+        text.toUpperCase(),
+        style: style,
+        textAlign: alignEnd ? TextAlign.end : TextAlign.start,
+      ),
     );
   }
 }
 
-/// Group radio-style tile in the wizard's group picker.
-class _GroupPickTile extends StatelessWidget {
-  final Group group;
-  final bool selected;
+/// The selected group's name on the RIGHT of the Directa/Grupo chips when
+/// Grupo is selected — vertically centered with the chips. Tapping it opens
+/// the group picker sheet. The "Elige un grupo" LABEL lives one row above in
+/// the scope labels row (2026-09-01 directive); this widget renders only the
+/// value (name or a "…" prompt while nothing is chosen).
+class _SelectedGroupButton extends ConsumerWidget {
+  final String? groupId;
   final VoidCallback onTap;
 
-  const _GroupPickTile({
-    required this.group,
-    required this.selected,
-    required this.onTap,
-  });
+  const _SelectedGroupButton({required this.groupId, required this.onTap});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+    final group = ref
+        .watch(myGroupsProvider)
+        .valueOrNull
+        ?.where((g) => g.id == groupId)
+        .firstOrNull;
+    final selectedName = group?.name;
     return InkWell(
       onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
-        child: Row(
-          children: [
-            Icon(
-              selected ? Icons.radio_button_checked : Icons.radio_button_off,
-              size: 20,
-              color: selected ? AppColors.white : AppColors.mutedStrong,
-            ),
-            const SizedBox(width: AppSpacing.md),
-            Text(
-              group.name,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Flexible(
+            child: Text(
+              selectedName ?? l10n.minigamesChooseGroupEllipsis,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: TextStyle(
-                color: selected ? AppColors.white : AppColors.mutedStrong,
+                color: selectedName != null
+                    ? AppColors.white
+                    : AppColors.mutedStrong,
                 fontWeight: FontWeight.w600,
+                fontSize: 14,
               ),
             ),
-          ],
-        ),
+          ),
+          const SizedBox(width: AppSpacing.xs),
+          const Icon(
+            Icons.expand_more,
+            size: 18,
+            color: AppColors.mutedStrong,
+          ),
+        ],
       ),
     );
   }
+}
+
+/// Bottom-sheet list of every [groups] group (radio-style selection). Picking
+/// returns the chosen group id; dismissing returns null. The sheet is the
+/// wizard's "picker with all groups list" (2026-09-01 user directive).
+Future<String?> showGroupPickerSheet(
+  BuildContext context, {
+  required List<Group> groups,
+  required String? selectedId,
+}) {
+  return showModalBottomSheet<String>(
+    context: context,
+    backgroundColor: AppColors.discoBlack,
+    shape: const RoundedRectangleBorder(),
+    builder: (sheetContext) {
+      final l10n = AppLocalizations.of(sheetContext);
+      return SafeArea(
+        child: Container(
+          decoration: const BoxDecoration(
+            color: AppColors.surface,
+            border: Border(
+              top: BorderSide(color: AppColors.hairline),
+            ),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(AppSpacing.md),
+                child: Text(
+                  l10n.minigamesChooseGroup,
+                  style: AppTypography.titleMedium,
+                ),
+              ),
+              Flexible(
+                child: ListView.separated(
+                  shrinkWrap: true,
+                  itemCount: groups.length,
+                  separatorBuilder: (_, _) => const Divider(height: 1),
+                  itemBuilder: (_, i) {
+                    final group = groups[i];
+                    final selected = group.id == selectedId;
+                    return InkWell(
+                      onTap: () => Navigator.of(sheetContext).pop(group.id),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: AppSpacing.lg,
+                          vertical: AppSpacing.md,
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              selected
+                                  ? Icons.radio_button_checked
+                                  : Icons.radio_button_off,
+                              size: 20,
+                              color: selected
+                                  ? AppColors.white
+                                  : AppColors.mutedStrong,
+                            ),
+                            const SizedBox(width: AppSpacing.md),
+                            Expanded(
+                              child: Text(
+                                group.name,
+                                style: TextStyle(
+                                  color: selected
+                                      ? AppColors.white
+                                      : AppColors.mutedStrong,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    },
+  );
 }
 
 /// Outlined row that opens the player picker and reports the chosen count.
@@ -859,150 +1069,291 @@ class _InviteesSummary extends StatelessWidget {
   }
 }
 
-/// The wager row in the create-partida wizard: the amount input with the
-/// player's available shard balance to the right (small caption + count) so
-/// the amount is always compared against what they actually have.
-///
-/// The balance comes from [myProfileProvider] (`personal_shards`); while it
-/// loads, the right column shows a placeholder. The row carries its own
-/// horizontal padding so it never sits flush against the screen edges.
-class _WagerRow extends ConsumerStatefulWidget {
-  final TextEditingController controller;
-  final ValueChanged<String> onChanged;
-  final String balanceCaption;
+/// The wager + rounds row in the create-partida wizard — two columns in one
+/// row (2026-09-01 directive): LEFT = "Usando" (plain editable amount with a
+/// shard icon on the right); RIGHT = "Rondas" (wheel picker).
+class _WagerRoundsRow extends StatelessWidget {
+  final TextEditingController wagerController;
+  final TextEditingController roundsController;
+  final ValueChanged<String> onWagerChanged;
 
-  const _WagerRow({
-    required this.controller,
-    required this.onChanged,
-    required this.balanceCaption,
+  const _WagerRoundsRow({
+    required this.wagerController,
+    required this.roundsController,
+    required this.onWagerChanged,
   });
 
   @override
-  ConsumerState<_WagerRow> createState() => _WagerRowState();
-}
-
-class _WagerRowState extends ConsumerState<_WagerRow> {
-  @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final balance =
-        (ref.watch(profile.myProfileProvider).valueOrNull?['personal_shards']
-                as num? ??
-            0).toInt();
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Text(
-            l10n.minigamesWagerLabel,
-            style: const TextStyle(
-              color: AppColors.white,
-              fontSize: 17,
-              fontWeight: FontWeight.w400,
-              height: 1.35,
-            ),
-          ),
-          const SizedBox(width: AppSpacing.sm),
-          Expanded(
-            child: VInput(
-              label: l10n.minigamesWagerLabel,
-              hint: l10n.minigamesWagerDefaultHint,
-              controller: widget.controller,
-              keyboardType: TextInputType.number,
-              onChanged: widget.onChanged,
-            ),
-          ),
-          const SizedBox(width: AppSpacing.md),
-          // Balance block: "Disponibles" caption over the amount. Both lines
-          // use a small font so the two stacked lines occupy the same height
-          // as the single "Usando: XX" 17px line (user directive 2026-08-28).
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                widget.balanceCaption,
-                style: const TextStyle(
-                  color: AppColors.mutedStrong,
-                  fontSize: 9,
-                  fontWeight: FontWeight.w500,
-                  height: 1.0,
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: _labelFieldColumn(
+            label: l10n.minigamesWagerLabel,
+            // Constrain the wager input width so the amount + shard icon sit
+            // together instead of the input stretching full column width
+            // (2026-09-01).
+            field: Align(
+              alignment: Alignment.centerLeft,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 120),
+                // Plain editable amount field (no wheel picker — the picker
+                // stays only on Rondas; 2026-09-01). Shard symbol on the
+                // RIGHT of the number.
+                child: VInput(
+                  label: l10n.minigamesWagerLabel,
+                  hint: l10n.minigamesWagerDefaultHint,
+                  controller: wagerController,
+                  keyboardType: TextInputType.number,
+                  onChanged: onWagerChanged,
+                  suffixIcon: const Padding(
+                    padding: EdgeInsets.only(
+                      left: AppSpacing.xs,
+                      right: AppSpacing.lg,
+                    ),
+                    child: VShardIcon(size: AppIconSizes.sm),
+                  ),
                 ),
               ),
-              const SizedBox(height: 2),
-                  Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const VShardIcon(size: AppIconSizes.xs),
-                  const SizedBox(width: AppSpacing.xs),
-                  Text(
-                    l10n.profileShardsCount(balance),
-                    style: const TextStyle(
-                      color: AppColors.white,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                      height: 1.0,
+            ),
+          ),
+        ),
+        const SizedBox(width: AppSpacing.md),
+        Expanded(
+          child: _labelFieldColumn(
+            label: l10n.minigamesRoundsLabel,
+            field: _NumberField(
+              hint: l10n.minigamesRoundsHint,
+              controller: roundsController,
+              // Rondas value right-aligned like its column (2026-09-01).
+              textAlign: TextAlign.end,
+            ),
+            // Rondas right-aligned against the column's right edge so the two
+            // columns mirror (2026-09-01).
+            alignEnd: true,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _labelFieldColumn({
+    required String label,
+    required Widget field,
+    bool alignEnd = false,
+  }) {
+    return Column(
+      crossAxisAlignment: alignEnd
+          ? CrossAxisAlignment.end
+          : CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: EdgeInsets.only(
+            left: alignEnd ? 0 : AppSpacing.sm,
+            right: alignEnd ? AppSpacing.sm : 0,
+          ),
+          child: Text(
+            label.toUpperCase(),
+            style: _WizardSectionLabel.style,
+            textAlign: alignEnd ? TextAlign.end : TextAlign.start,
+          ),
+        ),
+        // Tight gap between label and its input (2026-09-01).
+        const SizedBox(height: 0),
+        field,
+      ],
+    );
+  }
+}
+
+/// A single labeled number row used by the async mode fields (per-player
+/// rounds + game-time days): label ABOVE the wheel, same voice as the wager
+/// column's label.
+class _LabeledNumberRow extends StatelessWidget {
+  final String label;
+  final TextEditingController controller;
+  final String hint;
+
+  const _LabeledNumberRow({
+    required this.label,
+    required this.controller,
+    required this.hint,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(left: AppSpacing.sm),
+          child: Text(
+            label.toUpperCase(),
+            style: _WizardSectionLabel.style,
+          ),
+        ),
+        const SizedBox(height: 2),
+        _NumberField(hint: hint, controller: controller),
+      ],
+    );
+  }
+}
+
+/// A compact numeric field that opens a scrollable wheel picker on tap
+/// (2026-09-01 user directive: "Rondas" + the async fields use the scrollable
+/// picker for easier set up; the wager "Usando" is a plain `VInput`). It
+/// LOOKS like a numeric `VInput` (bare text on black, same hint voice) but the
+/// keyboard never opens — the whole field is an inkwell that slides up a
+/// monochrome `CupertinoPicker` bottom sheet; picking writes the value into
+/// [controller].
+class _NumberField extends StatelessWidget {
+  final String hint;
+  final TextEditingController controller;
+
+  /// Text alignment of the input value (the Rondas input right-aligns to
+  /// mirror the right-aligned column; 2026-09-01).
+  final TextAlign textAlign;
+
+  const _NumberField({
+    required this.hint,
+    required this.controller,
+    this.textAlign = TextAlign.start,
+  });
+
+  Future<void> _openPicker(BuildContext context) async {
+    final current = int.tryParse(controller.text.trim()) ?? 0;
+    final picked = await showNumberWheelSheet(context, min: 0, max: 50, value: current);
+    if (picked == null || !context.mounted) return;
+    controller.text = '$picked';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: () => _openPicker(context),
+      child: TextField(
+        controller: controller,
+        readOnly: true,
+        onTap: () => _openPicker(context),
+        showCursor: false,
+        textAlign: textAlign,
+        style: const TextStyle(
+          color: AppColors.white,
+          fontSize: 17,
+          fontWeight: FontWeight.w400,
+          height: 1.35,
+        ),
+        decoration: InputDecoration(
+          hintText: hint,
+          border: InputBorder.none,
+          enabledBorder: InputBorder.none,
+          focusedBorder: InputBorder.none,
+          filled: false,
+          floatingLabelBehavior: FloatingLabelBehavior.never,
+          hintStyle: const TextStyle(
+            color: AppColors.mutedStrong,
+            fontSize: 17,
+            fontWeight: FontWeight.w400,
+            height: 1.35,
+          ),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.lg,
+            vertical: AppSpacing.md,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Opens a monochrome scrollable number wheel (sharp, hairline border, white
+/// `CupertinoPicker` text on black — the design-token voice). Returns the
+/// selected integer, or null when dismissed.
+Future<int?> showNumberWheelSheet(
+  BuildContext context, {
+  required int min,
+  required int max,
+  required int value,
+}) {
+  return showModalBottomSheet<int>(
+    context: context,
+    backgroundColor: AppColors.discoBlack,
+    shape: const RoundedRectangleBorder(),
+    builder: (sheetContext) {
+      final values = [for (var v = min; v <= max; v++) v];
+      var index = (value - min).clamp(0, values.length - 1);
+      final l10n = AppLocalizations.of(sheetContext);
+      return SafeArea(
+        child: Container(
+          decoration: const BoxDecoration(
+            color: AppColors.surface,
+            border: Border(
+              top: BorderSide(color: AppColors.hairline),
+            ),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(AppSpacing.md),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    TextButton(
+                      onPressed: () => Navigator.of(sheetContext).pop(),
+                      child: Text(l10n.commonCancel),
+                    ),
+                    TextButton(
+                      onPressed: () =>
+                          Navigator.of(sheetContext).pop(values[index]),
+                      child: Text(l10n.commonOk),
+                    ),
+                  ],
+                ),
+              ),
+              SizedBox(
+                height: 220,
+                child: CupertinoPicker(
+                  scrollController: FixedExtentScrollController(initialItem: index),
+                  itemExtent: 44,
+                  onSelectedItemChanged: (i) => index = i,
+                  selectionOverlay: const DecoratedBox(
+                    decoration: BoxDecoration(
+                      border: Border.symmetric(
+                        horizontal: BorderSide(color: AppColors.border),
+                      ),
                     ),
                   ),
-                ],
+                  children: [
+                    for (final v in values)
+                      Center(
+                        child: Text(
+                          '$v',
+                          style: const TextStyle(
+                            color: AppColors.white,
+                            fontSize: 20,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
               ),
             ],
           ),
-        ],
-      ),
-    );
-  }
-}
-
-/// The rounds row in the create-partida wizard (201_minigame_voting): the
-/// total-turn target (default 5) with a compact label to the left, mirroring
-/// the wager row's layout. The play engine auto-finishes once this many
-/// turns complete.
-class _RoundsRow extends StatelessWidget {
-  const _RoundsRow({required this.controller, this.label});
-
-  final TextEditingController controller;
-
-  /// Overrides the default "Rondas" label (202 async fields reuse the row
-  /// with their own labels).
-  final String? label;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    final title = label ?? l10n.minigamesRoundsLabel;
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-      child: Row(
-        children: [
-          Text(
-            title,
-            style: const TextStyle(
-              color: AppColors.white,
-              fontSize: 17,
-              fontWeight: FontWeight.w400,
-              height: 1.35,
-            ),
-          ),
-          const SizedBox(width: AppSpacing.sm),
-          Expanded(
-            child: VInput(
-              label: title,
-              hint: l10n.minigamesRoundsHint,
-              controller: controller,
-              keyboardType: TextInputType.number,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+        ),
+      );
+    },
+  );
 }
 
 /// The anonymous-mode toggle in the create wizard (202_minigame_play_v2):
 /// hides usernames during play — participants use temp nicknames until the
-/// leaderboard.
+/// leaderboard. Two-column mode section: the label sits ABOVE the switch in
+/// the right column, so both mode labels share one line and both controls
+/// (chips + switch) the next (2026-09-01 directive).
 class _AnonymousToggle extends StatelessWidget {
   const _AnonymousToggle({required this.value, required this.onChanged});
 
@@ -1012,27 +1363,36 @@ class _AnonymousToggle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              l10n.minigamesAnonymousLabel,
-              style: const TextStyle(
-                color: AppColors.white,
-                fontSize: 17,
-                fontWeight: FontWeight.w400,
-                height: 1.35,
-              ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(right: AppSpacing.sm),
+          child: Text(
+            l10n.minigamesAnonymousLabel.toUpperCase(),
+            style: _WizardSectionLabel.style,
+            textAlign: TextAlign.end,
+          ),
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        // Same fixed control height as the mode chips so the switch centers
+        // on the chips' baseline; the materialSwitchTapTargetSize.shrinkWrap
+        // removes the extra tap-target padding that inflated the label gap
+        // and dropped the switch below the chips (2026-09-01). Right padding
+        // mirrors the label's so text and switch share the right edge.
+        Padding(
+          padding: const EdgeInsets.only(right: AppSpacing.sm),
+          child: SizedBox(
+            height: _NewPartidaScreenState.wizardControlHeight,
+            child: Switch(
+              value: value,
+              onChanged: onChanged,
+              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
             ),
           ),
-          Switch(
-            value: value,
-            onChanged: onChanged,
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
