@@ -665,7 +665,10 @@ class _NewPartidaScreenState extends ConsumerState<_NewPartidaScreen> {
 
     return Scaffold(
       body: VHeaderBar(
-        title: l10n.minigamesNewPartida,
+        // AppBar titles are lowercase (2026-08-30 directive): the l10n
+        // default is capitalized ("Nueva partida"), so the wizard title
+        // lowercases it here.
+        title: l10n.minigamesNewPartida.toLowerCase(),
         actions: [
           Padding(
             padding: const EdgeInsets.only(right: AppSpacing.md),

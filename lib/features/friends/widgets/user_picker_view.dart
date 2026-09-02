@@ -37,6 +37,7 @@ class UserPickerView extends ConsumerStatefulWidget {
     this.maxSelection,
     this.onSelectionChanged,
     this.searchHint,
+    this.trailingBuilder,
   });
 
   /// User ids that must not appear (e.g. already-participant members).
@@ -49,6 +50,12 @@ class UserPickerView extends ConsumerStatefulWidget {
   final ValueChanged<Set<String>>? onSelectionChanged;
 
   final String? searchHint;
+
+  /// Optional per-row trailing widget (e.g. the minigame host picker's
+  /// "sent"/"enviada" tag for already-pending invitees). When null the row
+  /// falls back to the selection [Checkbox]. Kept opt-in so the shared picker
+  /// (groups invite, chat) renders exactly as before.
+  final Widget? Function(UserSearchResult user)? trailingBuilder;
 
   @override
   ConsumerState<UserPickerView> createState() => _UserPickerViewState();
@@ -172,6 +179,7 @@ class _UserPickerViewState extends ConsumerState<UserPickerView> {
         final u = results[i];
         final uid = u.id;
         final selected = _selected.contains(uid);
+        final trailing = widget.trailingBuilder?.call(u);
         return VCard(
           child: Material(
             type: MaterialType.transparency,
@@ -182,10 +190,11 @@ class _UserPickerViewState extends ConsumerState<UserPickerView> {
                 imageUrl: u.avatarUrl,
               ),
               title: Text('@${u.username}'),
-              trailing: Checkbox(
-                value: selected,
-                onChanged: (_) => _toggle(u),
-              ),
+              trailing: trailing ??
+                  Checkbox(
+                    value: selected,
+                    onChanged: (_) => _toggle(u),
+                  ),
               onTap: () => _toggle(u),
             ),
           ),

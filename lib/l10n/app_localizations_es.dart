@@ -1799,7 +1799,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get minigamesAudienceBoth => 'Con amigos o solo';
 
   @override
-  String get minigamesNewPartida => 'nueva partida';
+  String get minigamesNewPartida => 'Nueva partida';
 
   @override
   String get minigamesScopeLabel => 'Partida';
@@ -2351,6 +2351,9 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get minigamesInviteSent => 'Invitación enviada';
+
+  @override
+  String get minigamesInviteSentTag => 'enviada';
 
   @override
   String get minigamesInviteClosed =>

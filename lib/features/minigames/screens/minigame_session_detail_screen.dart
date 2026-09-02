@@ -372,7 +372,10 @@ class _MinigameSessionDetailScreenState
         const <String>{};
     final picked = await Navigator.of(context).push<List<String>>(
       MaterialPageRoute(
-        builder: (_) => MinigameInviteScreen(excludedIds: participantIds),
+        builder: (_) => MinigameInviteScreen(
+          excludedIds: participantIds,
+          sessionId: _sessionId,
+        ),
       ),
     );
     if (picked == null || picked.isEmpty || !context.mounted) return;

@@ -404,6 +404,28 @@ class MinigameService {
     return res == null ? null : Map<String, dynamic>.from(res);
   }
 
+  /// The HOST-side invite state for [sessionId], keyed by invitee id — the
+  /// lobby picker's "already invited" tag (2026-09-02). RLS `mi_read_own`
+  /// bounds the read to invites the caller CREATED, so only the host sees
+  /// them; each entry maps `invitee_id -> status`. A declined invite deletes
+  /// its row (2026-09-02), so a declined/kicked player simply has no entry
+  /// and shows as a fresh invitee in the picker — there is no "declined"
+  /// residue.
+  Future<Map<String, String>> inviteeStates(String sessionId) async {
+    final user = auth.currentUser;
+    if (user == null) throw const UnauthorizedError();
+    final res = await client
+        .from('minigame_invites')
+        .select('invitee_id, status')
+        .eq('session_id', sessionId)
+        .eq('created_by', user.id);
+    return {
+      for (final row in res)
+        if (row['invitee_id'] is String && row['status'] is String)
+          row['invitee_id'] as String: row['status'] as String,
+    };
+  }
+
   /// The current user's PENDING invites, as the SESSION rows of those
   /// invites (newest invite first) — the invitee-side "partida-N ready to
   /// accept" list (170_minigame_invite_badges).

@@ -3338,10 +3338,10 @@ abstract class AppLocalizations {
   /// **'Con amigos o solo'**
   String get minigamesAudienceBoth;
 
-  /// Per-game page: primary button that starts the create-partida flow
+  /// Create-partida flow: default capitalized form. The wizard AppBar title lowercases it (minigamesNewPartida.toLowerCase()) per the 2026-08-30 directive; the detail CTA uses it as-is.
   ///
   /// In es, this message translates to:
-  /// **'nueva partida'**
+  /// **'Nueva partida'**
   String get minigamesNewPartida;
 
   /// Create-partida wizard: section title above the Directa/Grupo scope toggle
@@ -4315,6 +4315,12 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'Invitación enviada'**
   String get minigamesInviteSent;
+
+  /// Lobby invite picker: compact right-aligned tag on a user who already holds a pending invite for this session (2026-09-02)
+  ///
+  /// In es, this message translates to:
+  /// **'enviada'**
+  String get minigamesInviteSentTag;
 
   /// Session detail: the invite can no longer be accepted because the game finished
   ///

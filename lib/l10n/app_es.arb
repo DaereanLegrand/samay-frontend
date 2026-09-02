@@ -2365,9 +2365,9 @@
   "@minigamesAudienceBoth": {
     "description": "Per-game page: the game works both solo and with friends"
   },
-  "minigamesNewPartida": "nueva partida",
+  "minigamesNewPartida": "Nueva partida",
   "@minigamesNewPartida": {
-    "description": "Per-game page: primary button that starts the create-partida flow"
+    "description": "Create-partida flow: default capitalized form. The wizard AppBar title lowercases it (minigamesNewPartida.toLowerCase()) per the 2026-08-30 directive; the detail CTA uses it as-is."
   },
   "minigamesScopeLabel": "Partida",
   "@minigamesScopeLabel": {
@@ -3117,6 +3117,10 @@
   "minigamesInviteSent": "Invitación enviada",
   "@minigamesInviteSent": {
     "description": "Snackbar after the HOST invites players from the lobby (205_minigame_invite_lobby)"
+  },
+  "minigamesInviteSentTag": "enviada",
+  "@minigamesInviteSentTag": {
+    "description": "Lobby invite picker: compact right-aligned tag on a user who already holds a pending invite for this session (2026-09-02)"
   },
   "minigamesInviteClosed": "Esta partida ya terminó. Ya no puedes aceptar la invitación.",
   "@minigamesInviteClosed": {

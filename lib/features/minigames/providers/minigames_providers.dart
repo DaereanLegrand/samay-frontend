@@ -82,6 +82,19 @@ class MyPendingInvitesNotifier
     // from recentFriendsProvider — a plain ref.watch would double-build).
     final notifications = await ref.watch(notificationsProvider.future);
     final rows = await _service.listMyPendingInvites();
+    // 2026-09-02: a session whose invite the user has ALREADY accepted (e.g.
+    // a kicked-and-re-invited player who accepted again, or a stale realtime
+    // read) must NOT show as a pending Accept/Decline row — the game landing
+    // would otherwise list the partida as "pending" even though the user is a
+    // participant. The session row already carries the authoritative
+    // `participants` array, so drop any row where the caller is in it.
+    final myId = ref.read(authStateProvider).valueOrNull?.user?['id'];
+    final notYetJoined =
+        rows.where((row) {
+          final participants = row['participants'];
+          if (participants is! List) return true;
+          return myId == null || !participants.contains(myId);
+        }).toList();
     // The invitee cannot read the inviter username (RLS user_search_view) or
     // the group name (RLS groups_read_member) for a session they are not yet a
     // member of. The notification trigger (200_minigame_invite_notice) embeds
@@ -95,7 +108,7 @@ class MyPendingInvitesNotifier
       bySessionId[sessionId] = n.data!;
     }
     return [
-      for (final row in rows)
+      for (final row in notYetJoined)
         {
           ...row,
           if (row['inviterName'] == null)
@@ -281,9 +294,14 @@ class MinigameSessionStatusNotifier
         if (row == null || row['id'] != sessionId) return;
         // Only apply once the build's own value is set — mutating state while
         // the notifier is still building trips Riverpod's cycle assertion.
-        if (state.hasValue) {
-          state = AsyncData(row);
-        }
+        if (!state.hasValue) return;
+        // 2026-09-02: the roster diff depends on the authoritative
+        // `participants` array (REPLICA IDENTITY FULL now ships it on every
+        // UPDATE). Guard against a partial payload anyway — if the update
+        // omitted the array, keep the last full row so a stale roster never
+        // displaces the real one.
+        if (row['participants'] is! List) return;
+        state = AsyncData(row);
       },
     );
 
@@ -413,6 +431,8 @@ class MinigameInviteNotifier
     await _service.invitePlayers(arg, inviteeIds);
     ref.invalidate(myPendingInvitesProvider);
     ref.invalidate(sessionStatusProvider(arg));
+    // The picker's "enviada/sent" tags must reflect the fresh pending rows.
+    ref.invalidate(minigameInviteeStatesProvider(arg));
   }
 
   /// Marks the invite's notification read (best-effort — the notification
@@ -438,6 +458,30 @@ final minigameInviteProvider =
       Map<String, dynamic>?,
       String
     >(MinigameInviteNotifier.new);
+
+/// The HOST-side per-invitee invite state for one session
+/// (`{invitee_id: status}`) — the lobby picker's "enviada/sent" tag
+/// (2026-09-02). RLS `mi_read_own` bounds it to invites the host created;
+/// a declined invite deletes its row, so a declined/kicked player has no
+/// entry and shows as a fresh invitee (a re-invite is a normal invite — no
+/// special resend path).
+final minigameInviteeStatesProvider =
+    AsyncNotifierProvider.family<MinigameInviteeStatesNotifier,
+        Map<String, String>, String>(MinigameInviteeStatesNotifier.new);
+
+/// Notifier for [minigameInviteeStatesProvider].
+class MinigameInviteeStatesNotifier
+    extends FamilyAsyncNotifier<Map<String, String>, String> {
+  MinigameService get _service => ref.read(minigameServiceProvider);
+
+  @override
+  Future<Map<String, String>> build(String sessionId) {
+    return _service.inviteeStates(sessionId);
+  }
+
+  /// Re-runs [build] after an invite/remove (finding SM-09).
+  Future<void> refresh() async => ref.invalidateSelf();
+}
 
 /// Owns the current user's minigame-invite privacy switch
 /// (`users.minigame_invite_friends_only`, default OFF = anyone may invite).
@@ -698,6 +742,9 @@ class MinigameGameStateNotifier
     // container-level invalidate is semantically identical and assert-safe.
     ref.container.invalidate(minigameParticipantsProvider(arg));
     ref.invalidate(myPendingInvitesProvider);
+    // The kicked player's invite row is gone — the picker must drop their
+    // "sent" tag so they render as a fresh invitee on re-invite.
+    ref.invalidate(minigameInviteeStatesProvider(arg));
     await _rotateKeysOnKick(userId);
   }
 
@@ -1040,8 +1087,14 @@ class MinigameParticipantsNotifier
           for (final p in state.valueOrNull ?? const <MinigameParticipant>[])
             p.id,
         };
-        if (currentIds.length != nextIds.length ||
-            !currentIds.containsAll(nextIds)) {
+        // 2026-09-02: compare the participant id SETS directly. The old
+        // `length != || !containsAll` missed a re-join after a kick when the
+        // count returned to the same value (e.g. 3 -> kick -> 3) — the sets
+        // differed (one player swapped) but length + containsAll both passed,
+        // so the roster never re-fetched and other devices kept showing the
+        // pre-kick roster (the "3 devices see 3, one sees 4" staleness). Set
+        // equality catches ANY membership change regardless of count.
+        if (currentIds != nextIds) {
           // Re-fetch the roster in place (no double-build: this listen only
           // fires on an actual participants change).
           refresh();
