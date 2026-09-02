@@ -24,27 +24,42 @@ class AuthGuard {
       return location == RoutePaths.banned ? null : RoutePaths.banned;
     }
 
-    final isPublicRoute =
+    final isPreAuthRoute =
         location == RoutePaths.welcome ||
         location == RoutePaths.login ||
-        location == RoutePaths.forgotPassword ||
-        location.startsWith(RoutePaths.authPrefix);
+        location == RoutePaths.forgotPassword;
 
     if (data == null || !data.authenticated) {
-      return isPublicRoute ? null : RoutePaths.login;
+      // Unauthenticated: only the pre-auth screens, the signup ENTRY (contact)
+      // and the OTP step (which the user reaches from the contact screen
+      // BEFORE the code is verified) are visible. Every funnel step AFTER
+      // verification — age gate / privacy terms / profile setup — requires an
+      // authenticated in-progress signup, so a deep link or stale route can
+      // never drop an unauthenticated user onto the birthdate screen.
+      final inExplicitSignup =
+          isPreAuthRoute ||
+          location == RoutePaths.signup ||
+          location == RoutePaths.verify;
+      return inExplicitSignup ? null : RoutePaths.login;
     }
 
-    // Funnel-completion gate (2026-08-13): an authenticated user without a
-    // `users` row must NOT enter the app — age verification, terms and
-    // username selection are mandatory, not skippable (a mid-funnel app
-    // restart previously dropped these users straight onto the feed).
-    // The age gate is the ONLY legitimate next step: it resolves the email
-    // from the session and re-establishes the explicit chain age gate →
-    // privacy/terms → profile setup. This is not a hidden navigation — it is
-    // the funnel itself; every screen in it is under `authPrefix`, so the
-    // redirect fires only when the user is NOT already in the funnel.
-    if (!data.hasProfile && !location.startsWith(RoutePaths.authPrefix)) {
-      return RoutePaths.ageGate;
+    final isFunnelStep =
+        location == RoutePaths.verify ||
+        location == RoutePaths.ageGate ||
+        location == RoutePaths.privacyTerms ||
+        location == RoutePaths.profileSetup;
+
+    // Funnel-scoped gate (2026-09-01): the signup funnel (verify / age gate /
+    // privacy terms / profile setup) is STRICTLY part of the signup process.
+    // It is reachable only while authenticated AND without a completed profile
+    // — i.e. exactly the signup-in-progress state that walks OTP → age gate →
+    // terms → profile setup. An authenticated user who already has a profile
+    // (hasProfile: true) must NEVER see these screens and is redirected to the
+    // feed; a restored profile-less session is signed out at startup
+    // (AuthNotifier._resolveInitialState) before it ever reaches the router.
+    // There is no implicit bounce into the funnel — ever.
+    if (isFunnelStep) {
+      return data.hasProfile ? RoutePaths.mainFeed : null;
     }
 
     if (location == RoutePaths.login || location == RoutePaths.welcome) {
@@ -58,7 +73,9 @@ class AuthGuard {
 // NOTE (no-fallback policy, 2026-08-13): the guard must never navigate a
 // user to an UNRELATED screen they did not explicitly request. The only
 // implicit redirects are: banned → ban screen, unauthenticated → login,
-// authenticated → feed, and (funnel-completion) authenticated-without-profile
-// → the age gate — the start of the explicit signup-completion funnel. Any
-// error in the profile check surfaces as an error (with code) at the explicit
-// action that triggered it; a failed check never bounces the user around.
+// authenticated → feed. The signup funnel (verify / age gate / privacy terms /
+// profile setup) is never entered implicitly: it is reachable only while
+// authenticated-without-profile, and a fully-registered user is redirected
+// away from it to the feed. Any error in the profile check surfaces as an
+// error (with code) at the explicit action that triggered it; a failed check
+// never bounces the user around.

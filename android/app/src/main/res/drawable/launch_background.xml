@@ -1,12 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Modify this file to customize your launch splash screen -->
+<!-- Native launch splash: plain brand-black background. The icon is shown by
+     the OS-level splash surface (drawable-<density>/launch_image.png on API
+     21–30, or the values-v31 system splash on API 31+) — this drawable must
+     stay a SOLID COLOR so there is exactly ONE visible brand image, never a
+     double splash. -->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-    <item android:drawable="@android:color/white" />
-
-    <!-- You can insert your own image assets here -->
-    <!-- <item>
-        <bitmap
-            android:gravity="center"
-            android:src="@mipmap/launch_image" />
-    </item> -->
+    <item android:drawable="@color/launch_background" />
 </layer-list>

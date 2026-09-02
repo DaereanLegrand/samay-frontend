@@ -3118,6 +3118,10 @@
   "@minigamesInviteDeclined": {
     "description": "Snackbar after declining a minigame invite"
   },
+  "minigamesInviteSent": "Invite sent",
+  "@minigamesInviteSent": {
+    "description": "Snackbar after the HOST invites players from the lobby (205_minigame_invite_lobby)"
+  },
   "minigamesInviteClosed": "This game has already finished. The invite can no longer be accepted.",
   "@minigamesInviteClosed": {
     "description": "Session detail: the invite is finished because the game ended"

@@ -98,12 +98,35 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
       final user = _service.getCurrentUser();
       if (user != null) {
         final state = await _authStateForUserSafe(user, forceBanCheck: true);
+        final resolved = await _orphanGate(user, state);
+        if (!resolved.authenticated) return resolved;
         await _ensureE2eeKeysPublished(uid: user['id'] as String?);
-        return state;
+        return resolved;
       }
     } catch (e, st) {
       AppLogger.instance.error('checkInitialSession error: $e', '$st');
     }
+    return const AuthState();
+  }
+
+  /// Orphan-session gate (2026-09-01): an authenticated [user] with NO
+  /// `users` row is an account that no longer exists on the server (backend
+  /// reset, account deletion, admin wipe). The profile probe must NOT
+  /// masquerade as the signup funnel — the funnel is only ever entered
+  /// EXPLICITLY (OTP → age gate). Sign out and return unauthenticated instead
+  /// of surfacing an `authenticated && !hasProfile` state to the router (which
+  /// previously flashed the feed, or — before the guard change — bounced to
+  /// the birthdate screen).
+  Future<AuthState> _orphanGate(
+    Map<String, dynamic> user,
+    AuthState state,
+  ) async {
+    if (!state.authenticated || state.hasProfile) return state;
+    AppLogger.instance.warn(
+      'session has no profile row (uid=${user['id']}) — orphan session, '
+      'signing out to the login screen',
+    );
+    await _service.signOut();
     return const AuthState();
   }
 
@@ -139,10 +162,13 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
         if (session?.user != null) {
           final user = session!.user.toJson();
           // Cache-aware ban check (I-35): a ban lands at worst within the
-          // 30 s cache window on a long-lived session.
-          state = AsyncData(
+          // 30 s cache window on a long-lived session. A refresh that surfaces
+          // a profile-less user is an orphan (see [_orphanGate]).
+          final resolved = await _orphanGate(
+            user,
             await _authStateForUserSafe(user, forceBanCheck: false),
           );
+          state = AsyncData(resolved);
         } else {
           AppLogger.instance.warn(
             'tokenRefreshed fired without a session — refresh failed, '
@@ -155,10 +181,14 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
       case AuthChangeEvent.signedIn:
         if (session?.user != null) {
           final user = session!.user.toJson();
-          state = AsyncData(
+          final resolved = await _orphanGate(
+            user,
             await _authStateForUserSafe(user, forceBanCheck: true),
           );
-          await _ensureE2eeKeysPublished(uid: user['id'] as String?);
+          state = AsyncData(resolved);
+          if (resolved.authenticated) {
+            await _ensureE2eeKeysPublished(uid: user['id'] as String?);
+          }
         } else {
           state = const AsyncData(AuthState());
         }
