@@ -179,4 +179,31 @@ class RealtimeService {
       },
     );
   }
+
+  /// `minigame_sessions` rows the current user may read — any
+  /// insert/update/delete.
+  ///
+  /// postgres_changes cannot match an array membership (`participants` is a
+  /// uuid[]), so the whole `minigame_sessions` stream is subscribed and the
+  /// RLS SELECT policies (`ms_read_direct_participant` / `ms_read_group_member`
+  /// / `ms_read_invitee`) gate which rows are even delivered — a client only
+  /// receives sessions it may read, exactly like the group-memberships seam.
+  /// The consumer invalidates the my-sessions list providers on every event
+  /// (2026-09-02): an invite accept flips the row's `participants` (REPLICA
+  /// IDENTITY FULL ships the full new row), so the invitee's per-game ongoing
+  /// list picks the match up without a pull-to-refresh or restart.
+  ///
+  /// Returns the channel — the caller owns the unsubscribe handle.
+  Future<RealtimeChannel> subscribeToMinigameSessions(
+    void Function(Map<String, dynamic>) onChange,
+  ) async {
+    final user = auth.currentUser;
+    if (user == null) throw const UnauthorizedError();
+    return subscribeToChannel(
+      'minigame-sessions:${user.id}',
+      PostgresChangeEvent.all,
+      'minigame_sessions',
+      onChange,
+    );
+  }
 }

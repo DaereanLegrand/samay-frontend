@@ -13,6 +13,7 @@ import 'package:samay/features/friends/providers/friendships_realtime_listener.d
 import 'package:samay/features/groups/providers/group_memberships_realtime_listener.dart';
 import 'package:samay/features/groups/providers/groups_providers.dart';
 import 'package:samay/features/minigames/providers/minigame_invites_realtime_listener.dart';
+import 'package:samay/features/minigames/providers/minigame_sessions_realtime_listener.dart';
 import 'package:samay/features/minigames/providers/minigames_providers.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/v_count_badge.dart';
@@ -115,15 +116,17 @@ class MainShell extends ConsumerWidget {
     // The shared `VTabFade` owns the reduced-motion contract
     // (`disableAnimations` → static, U-18) + the duration/curve tokens.
     final body = VTabFade(key: ValueKey(currentIndex), child: child);
-    // Friendships + inbox + group memberships + minigame-invite realtime:
-    // the listeners are mounted for the shell's lifetime — invalidates the
-    // root providers on remote row events, so badges update without pull.
+    // Friendships + inbox + group memberships + minigame-invite + minigame-
+    // session realtime: the listeners are mounted for the shell's lifetime —
+    // invalidates the root providers on remote row events, so badges update
+    // without pull.
     return Stack(
       children: [
         const FriendshipsRealtimeListener(),
         const InboxRealtimeListener(),
         const GroupMembershipsRealtimeListener(),
         const MinigameInvitesRealtimeListener(),
+        const MinigameSessionsRealtimeListener(),
         Scaffold(
           extendBody: true,
           body: body,
