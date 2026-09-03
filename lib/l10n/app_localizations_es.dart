@@ -1996,6 +1996,13 @@ class AppLocalizationsEs extends AppLocalizations {
   }
 
   @override
+  String get minigamesKeyRequesting =>
+      'Esperando a que otro participante se conecte para descifrar…';
+
+  @override
+  String get minigamesKeyMissing => 'Nadie conectado para reenviar la clave.';
+
+  @override
   String get minigamesPasar => 'Pasar';
 
   @override

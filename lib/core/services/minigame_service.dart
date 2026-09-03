@@ -1257,6 +1257,81 @@ RealtimeChannel subscribeToSession(String id) {
     return res.map((e) => Map<String, dynamic>.from(e)).toList();
   }
 
+  /// Flags the caller as a round-key REQUESTER for [sessionId]
+  /// (206_minigame_key_request, 2026-09-03): a participant who lost its
+  /// device-local E2EE state (reinstall / data clear regenerated the identity,
+  /// so the pairwise self-heal can never decrypt the host's old-identity
+  /// bundles) appends itself to `state.key_requests`. ANY other participant
+  /// who still holds the key history observes the marker and re-wraps it to
+  /// the requester's CURRENT identity. The server only brokers the marker —
+  /// no key material crosses this RPC.
+  Future<void> requestMinigameRoundKeys(String sessionId) async {
+    final res = await client.rpc(
+      'request_minigame_round_keys',
+      params: {'p_session_id': sessionId},
+    );
+    final result = res is Map
+        ? Map<String, dynamic>.from(res)
+        : <String, dynamic>{};
+    switch (result['status']) {
+      case 'requested':
+      case 'resolved':
+        return;
+      case 'not_authenticated':
+        throw const UnauthorizedError();
+      case 'session_not_found':
+        throw const NotFoundError('Partida');
+      case 'not_allowed':
+        throw PermissionError();
+      case 'session_not_active':
+        throw ConflictError('La partida ya terminó', code: 'session_not_active');
+      case 'not_started':
+        throw ConflictError(
+          'La partida no está en juego',
+          code: 'not_started',
+        );
+      default:
+        throw const ServerError('Unexpected request_minigame_round_keys response');
+    }
+  }
+
+  /// A HOLDER clears a served round-key requester [requesterId] from
+  /// [sessionId]'s `state.key_requests` (206_minigame_key_request) AFTER it
+  /// successfully re-wrapped its key history to that peer via the bundle seam.
+  /// Stops the ring from re-serving. Gates: participant-only, never self-clear.
+  Future<void> resolveMinigameKeyRequest(
+    String sessionId, {
+    required String requesterId,
+  }) async {
+    final res = await client.rpc(
+      'resolve_minigame_key_request',
+      params: {
+        'p_session_id': sessionId,
+        'p_requester': requesterId,
+      },
+    );
+    final result = res is Map
+        ? Map<String, dynamic>.from(res)
+        : <String, dynamic>{};
+    switch (result['status']) {
+      case 'resolved':
+      case 'requested':
+        return;
+      case 'not_authenticated':
+        throw const UnauthorizedError();
+      case 'session_not_found':
+        throw const NotFoundError('Partida');
+      case 'not_allowed':
+        throw PermissionError();
+      case 'self_resolve':
+        throw PermissionError();
+      case 'session_not_active':
+        throw ConflictError('La partida ya terminó', code: 'session_not_active');
+      default:
+        throw const ServerError('Unexpected resolve_minigame_key_request response');
+    }
+  }
+
   /// Sets the current user's Ready flag for [sessionId] via the
   /// `set_minigame_ready` SECURITY DEFINER RPC (180_minigame_lobby) — the
   /// authoritative per-participant ready map lives on the

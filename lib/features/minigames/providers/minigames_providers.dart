@@ -565,16 +565,29 @@ class MinigameGameStateNotifier
           final justStarted =
               prevPhase == MinigamePhase.countdown &&
               parsed.skeleton.phase == MinigamePhase.playing;
+          // 206_minigame_key_request (2026-09-03): ANY participant (not just
+          // the host) who still holds the round-key history serves a peer who
+          // flagged itself as having lost its device-local keys (reinstall).
+          // Fire ONLY when the requester set actually CHANGED — a persistent
+          // unserved requester (its holder is offline) must not re-trigger a
+          // serve pass on every unrelated state UPDATE.
+          final prevRequesters = state.valueOrNull?.skeleton.keyRequests ?? const <String>{};
+          final nextRequesters = parsed.skeleton.keyRequests;
+          final newRequesters = nextRequesters.difference(prevRequesters);
+          final removedRequesters = prevRequesters.difference(nextRequesters);
           AppLogger.instance.debug(
             'minigame state realtime session=$sessionId '
             'prevPhase=${prevPhase?.name} phase=${parsed.skeleton.phase.name} '
             'prevRound=$prevRound newRound=$newRound justStarted=$justStarted '
-            'mintedRound=$_mintedRound subject=${parsed.skeleton.subjectId?.substring(0, 8)}…',
+            'mintedRound=$_mintedRound subject=${parsed.skeleton.subjectId?.substring(0, 8)}… '
+            'keyRequesters=${nextRequesters.length} newRequesters=${newRequesters.length} '
+            'removedRequesters=${removedRequesters.length}',
           );
           if (justStarted || (newRound > prevRound && newRound > (_mintedRound ?? -1))) {
             _mintedRound = newRound;
             _mintRoundKey(newRound);
           }
+          _serveKeyRequests(parsed, requesterDelta: newRequesters.isNotEmpty);
         }
       },
     );
@@ -590,7 +603,56 @@ class MinigameGameStateNotifier
         'ready': <String, dynamic>{},
       });
     }
-    return MinigameGameState.fromRow(row);
+    final initial = MinigameGameState.fromRow(row);
+    // A holder who arrives at an already-flagged session serves immediately
+    // (the requester may have flagged while this device was offline).
+    _serveKeyRequests(initial);
+    return initial;
+  }
+
+  /// Prevents concurrent serve passes (the ring helper is async and best-
+  /// effort; a second realtime emission while one pass is in flight must not
+  /// double-deliver to the same requester).
+  bool _servingKeyRequests = false;
+
+  /// 206_minigame_key_request serve side: a participant who still holds the
+  /// round-key history re-wraps `K_0..K_<latest>` to every requester in
+  /// [state] who is NOT this device, then clears the served markers. Works for
+  /// ANY holder (the key ring is not host-dependent); best-effort — a holder
+  /// with no keys logs and skips; a failed delivery leaves the requester
+  /// flagged for the next holder.
+  ///
+  /// [requesterDelta] guards the realtime path: a serve pass runs only when
+  /// the requester set actually CHANGED (someone new flagged, or a marker was
+  /// cleared and a still-unsatisfied peer deserves a retry) — never on every
+  /// unrelated game-state UPDATE. The initial-load call passes true.
+  void _serveKeyRequests(
+    MinigameGameState state, {
+    bool requesterDelta = true,
+  }) {
+    if (!requesterDelta || _servingKeyRequests) return;
+    final myId = ref.read(authStateProvider).valueOrNull?.user?['id'];
+    final requesters = state.skeleton.keyRequests
+        .where((id) => id != myId)
+        .toList();
+    if (requesters.isEmpty) return;
+    _servingKeyRequests = true;
+    unawaited(() async {
+      try {
+        final cipher = ref.read(minigameCipherProvider(arg));
+        final served = await cipher.shareRoundHistoryWith(requesters);
+        for (final requester in served) {
+          await _service.resolveMinigameKeyRequest(arg, requesterId: requester);
+        }
+      } catch (e, st) {
+        AppLogger.instance.warn(
+          'minigame key-ring serve skipped session=$arg type=${e.runtimeType}: $e',
+          '$st',
+        );
+      } finally {
+        _servingKeyRequests = false;
+      }
+    }());
   }
 
   /// Best-effort: the HOST mints `K_round` and pairwise-distributes the round-key

@@ -510,7 +510,10 @@ class MinigameCipher {
   /// Pairwise-delivers one [payload] bundle to [peerUserId]. A peer with no
   /// published prekey throws [E2eeCryptoException] from the pairwise session
   /// — skipped (logged), stays missing, retried on the next roster change.
-  Future<void> _deliverBundle(String peerUserId, String payload) async {
+  ///
+  /// Returns true only when the envelope actually reached the server (a
+  /// caller may then clear the requester marker — 206_minigame_key_request).
+  Future<bool> _deliverBundle(String peerUserId, String payload) async {
     try {
       final envelope = _pairwiseSession(peerUserId);
       final bundle = await envelope.encryptText(payload);
@@ -529,18 +532,107 @@ class MinigameCipher {
         'minigame e2ee bundle delivered session=$sessionId '
         'recipient=$peerUserId',
       );
+      return true;
     } on E2eeCryptoException catch (e) {
       AppLogger.instance.warn(
         'minigame e2ee bundle SKIPPED session=$sessionId recipient=$peerUserId '
         '— peer has no published prekey: $e',
       );
+      return false;
     } catch (e, st) {
       AppLogger.instance.warn(
         'minigame e2ee bundle delivery failed session=$sessionId '
         'recipient=$peerUserId type=${e.runtimeType}: $e',
         '$st',
       );
+      return false;
     }
+  }
+
+  /// Whether this device currently holds `K_round` (memory OR the secure
+  /// store). Unlike [ensureRoundKey] it does NOT self-heal — a caller uses it
+  /// to distinguish "the key is genuinely gone from this device" (a reinstall
+  /// wiped the E2EE identity) from "the key exists but the decrypt failed"
+  /// (a tamper / auth failure). 206_minigame_key_request (2026-09-03).
+  Future<bool> hasRoundKey(int round) async {
+    if (_roundKeys[round] != null) return true;
+    final saved = await _sessionStore.loadSession(_roundStoreKey(round));
+    if (saved == null) return false;
+    final decoded = base64UrlNoPadDecode(saved);
+    return decoded != null && decoded.length == 32;
+  }
+
+  /// Re-wraps THIS device's full additive key history `K_0..K_<latest>` to
+  /// each [requesterId] (206_minigame_key_request, 2026-09-03): the requester
+  /// lost its device-local E2EE state (fresh identity), so the host's old
+  /// pairwise bundles can never decrypt on it. ANY participant who still
+  /// holds the keys may serve — the ring is not host-dependent.
+  ///
+  /// Each delivery is a fresh pairwise X3DH init against the requester's
+  /// CURRENT published bundle (the E2eeSession init path). Returns the
+  /// requesters a bundle actually reached (so the caller clears only those
+  /// markers); a peer with no published prekey is skipped and stays flagged.
+  Future<List<String>> shareRoundHistoryWith(List<String> requesterIds) async {
+    final history = await knownRoundKeys();
+    if (history.isEmpty) {
+      AppLogger.instance.debug(
+        'minigame key-ring share skipped session=$sessionId — no round keys '
+        'held on this device',
+      );
+      return const [];
+    }
+    final payload = _encodeRoundKeys(history);
+    AppLogger.instance.debug(
+      'minigame key-ring share session=$sessionId requesters=${requesterIds.length} '
+      'historyRounds=${history.keys.toList()}',
+    );
+    final served = <String>[];
+    for (final requester in requesterIds) {
+      if (requester == _ownerUserId) continue;
+      final ok = await _deliverBundle(requester, payload);
+      if (ok) served.add(requester);
+    }
+    return served;
+  }
+
+  /// The requester side of the key ring (206_minigame_key_request): flags this
+  /// device on the server, then polls its OWN-recipient bundle rows until a
+  /// holder's fresh re-wrap lands (or [timeout] elapses). Returns true when
+  /// `K_round` became available. Server-blind — the marker carries no key.
+  ///
+  /// Best-effort: the caller shows a friendly "waiting for a participant to
+  /// resend the key" state while this runs; a false return means no holder was
+  /// online (the caller may surface a Reintentar action).
+  Future<bool> requestRoundKeyShare(int round, {Duration timeout = const Duration(seconds: 12)}) async {
+    if (await hasRoundKey(round)) return true;
+    AppLogger.instance.debug(
+      'minigame key-ring request session=$sessionId round=$round — flagging',
+    );
+    try {
+      await _service.requestMinigameRoundKeys(sessionId);
+    } catch (e, st) {
+      AppLogger.instance.warn(
+        'minigame key-ring request RPC failed session=$sessionId round=$round '
+        'type=${e.runtimeType}: $e',
+        '$st',
+      );
+      return false;
+    }
+    // Poll own-recipient bundles — every poll re-tries the pairwise decrypt
+    // against this device's CURRENT identity, so a holder's fresh init lands.
+    final deadline = DateTime.now().add(timeout);
+    while (DateTime.now().isBefore(deadline)) {
+      if (await hasRoundKey(round)) return true;
+      // ensureRoundKey re-pulls + decrypts every own-recipient row.
+      await ensureRoundKey(round: round);
+      if (await hasRoundKey(round)) return true;
+      await Future<void>.delayed(const Duration(milliseconds: 1200));
+    }
+    AppLogger.instance.debug(
+      'minigame key-ring request timed out session=$sessionId round=$round — '
+      'no holder served',
+    );
+    return false;
   }
 
   /// Serializes a round-key map into the bundle JSON:

@@ -2636,6 +2636,14 @@
       "required": { "type": "int" }
     }
   },
+  "minigamesKeyRequesting": "Waiting for another participant to connect to decrypt…",
+  "@minigamesKeyRequesting": {
+    "description": "Shown while a participant who reinstalled the app waits for another participant to resend the round key"
+  },
+  "minigamesKeyMissing": "No one connected to resend the key.",
+  "@minigamesKeyMissing": {
+    "description": "Shown when no participant was online to resend the lost round key — invites a retry"
+  },
   "minigamesPasar": "Skip",
   "@minigamesPasar": {
     "description": "Button the subject taps to skip (blocks reactions, score -1)"

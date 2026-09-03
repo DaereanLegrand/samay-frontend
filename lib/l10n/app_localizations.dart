@@ -3686,6 +3686,18 @@ abstract class AppLocalizations {
   /// **'esperando {reacted}/{required} reacciones…'**
   String minigamesAnswerWaitingReactions(int reacted, int required);
 
+  /// Shown while a participant who reinstalled the app waits for another participant to resend the round key
+  ///
+  /// In es, this message translates to:
+  /// **'Esperando a que otro participante se conecte para descifrar…'**
+  String get minigamesKeyRequesting;
+
+  /// Shown when no participant was online to resend the lost round key — invites a retry
+  ///
+  /// In es, this message translates to:
+  /// **'Nadie conectado para reenviar la clave.'**
+  String get minigamesKeyMissing;
+
   /// Button the subject taps to skip (blocks reactions, score -1)
   ///
   /// In es, this message translates to:

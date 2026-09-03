@@ -2636,6 +2636,14 @@
       "required": { "type": "int" }
     }
   },
+  "minigamesKeyRequesting": "Esperando a que otro participante se conecte para descifrar…",
+  "@minigamesKeyRequesting": {
+    "description": "Shown while a participant who reinstalled the app waits for another participant to resend the round key"
+  },
+  "minigamesKeyMissing": "Nadie conectado para reenviar la clave.",
+  "@minigamesKeyMissing": {
+    "description": "Shown when no participant was online to resend the lost round key — invites a retry"
+  },
   "minigamesPasar": "Pasar",
   "@minigamesPasar": {
     "description": "Button the subject taps to skip (blocks reactions, score -1)"

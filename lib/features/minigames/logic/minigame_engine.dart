@@ -291,6 +291,7 @@ class GameTurnSkeleton {
     this.roundMap = const {},
     this.answers = const [],
     this.answer,
+    this.keyRequests = const {},
   });
 
   final int judgeIndex;
@@ -321,6 +322,17 @@ class GameTurnSkeleton {
   /// The async per-player progress — `{participant_id: rounds_completed}`
   /// (202_minigame_play_v2).
   final Map<String, int> roundMap;
+
+  /// Participants who flagged that they LOST their local round keys (app
+  /// reinstall / data clear / account switch regenerated the E2EE identity
+  /// — 206_minigame_key_request, 2026-09-03). Rides the game-state payload as
+  /// `state.key_requests` (jsonb uuid[]) so the marker streams to every
+  /// participant on the existing realtime channel. ANY participant who holds
+  /// the key history may serve them; the marker clears once a holder delivers.
+  final Set<String> keyRequests;
+
+  /// Whether [participantId] is currently awaiting a round-key re-share.
+  bool isRequestingKeys(String participantId) => keyRequests.contains(participantId);
 
   /// The async completed rounds (the "reactable rounds" list) —
   /// ciphertext-only [MinigameAnswer] rows (202_minigame_play_v2).
@@ -414,7 +426,19 @@ class GameTurnSkeleton {
               Map<String, dynamic>.from(json['answer'] as Map),
             )
           : null,
+      keyRequests: _parseKeyRequests(json['key_requests']),
     );
+  }
+
+  /// Parses the `state.key_requests` jsonb uuid[] (206_minigame_key_request)
+  /// into a [Set] of participant ids. Tolerant — absent / non-array / non-
+  /// string entries drop (an empty set means nobody is awaiting keys).
+  static Set<String> _parseKeyRequests(Object? value) {
+    if (value is! List) return const {};
+    return {
+      for (final id in value)
+        if (id is String && id.isNotEmpty) id,
+    };
   }
 
   /// Parses the `{participant_id: rounds_completed}` async progress map.

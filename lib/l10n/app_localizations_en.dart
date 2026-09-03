@@ -1987,6 +1987,13 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get minigamesKeyRequesting =>
+      'Waiting for another participant to connect to decrypt…';
+
+  @override
+  String get minigamesKeyMissing => 'No one connected to resend the key.';
+
+  @override
   String get minigamesPasar => 'Skip';
 
   @override

@@ -168,8 +168,11 @@ class TruthDareScreen extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.sm,
+                      padding: const EdgeInsets.fromLTRB(
+                        AppSpacing.md,
+                        AppSpacing.md,
+                        AppSpacing.md,
+                        AppSpacing.none,
                       ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -968,6 +971,14 @@ class _SubjectWaitingCardState extends ConsumerState<_SubjectWaitingCard> {
 /// Renders the subject's submitted E2EE answer (text + optional image),
 /// decrypting locally via [minigameCipherProvider]. The server never held the
 /// plaintext — this is the only place it appears.
+///
+/// Reinstall recovery (206_minigame_key_request, 2026-09-03): when the round
+/// key is genuinely GONE from this device (a reinstall regenerated the E2EE
+/// identity, so the pairwise self-heal can never decrypt the host's old-
+/// identity bundles), the card enters a friendly recovery state instead of a
+/// silent blank: a "requesting the key from another participant…" spinner
+/// while the key ring works, then — if no holder is online — an explanatory
+/// message with a Reintentar action.
 class _AnswerPreview extends ConsumerStatefulWidget {
   const _AnswerPreview({
     required this.sessionId,
@@ -992,12 +1003,50 @@ class _AnswerPreviewState extends ConsumerState<_AnswerPreview> {
   bool _imageLoading = false;
   bool _started = false;
 
+  /// Whether the round key was missing and a recovery pass is in flight or
+  /// failed. `_KeyRecovery.none` = key present / decrypt path only.
+  _KeyRecovery _recovery = _KeyRecovery.none;
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     if (!_started) {
       _started = true;
-      _decrypt();
+      _start();
+    }
+  }
+
+  Future<void> _start() async {
+    // Distinguish a GENUINELY missing key (reinstall — needs the key ring)
+    // from a present-but-undecryptable blob (tamper — show nothing, as today).
+    final cipher = ref.read(minigameCipherProvider(widget.sessionId));
+    final round = widget.answer.round;
+    final hasContent =
+        (widget.answer.answerCiphertext?.isNotEmpty ?? false) ||
+        (widget.answer.imageStoragePath?.isNotEmpty ?? false);
+    if (hasContent && !await cipher.hasRoundKey(round)) {
+      await _recoverKey();
+      return;
+    }
+    await _decrypt();
+  }
+
+  /// The requester side of the key ring: flag this device on the server and
+  /// wait (with a friendly spinner) for any participant who still holds the
+  /// round keys to re-wrap them to this device's CURRENT identity. On success
+  /// the decrypt runs; on timeout the card surfaces the recoverable state.
+  Future<void> _recoverKey() async {
+    if (!mounted) return;
+    setState(() => _recovery = _KeyRecovery.waiting);
+    final cipher = ref.read(minigameCipherProvider(widget.sessionId));
+    final round = widget.answer.round;
+    final recovered = await cipher.requestRoundKeyShare(round);
+    if (!mounted) return;
+    if (recovered) {
+      setState(() => _recovery = _KeyRecovery.none);
+      await _decrypt();
+    } else {
+      setState(() => _recovery = _KeyRecovery.missing);
     }
   }
 
@@ -1035,16 +1084,54 @@ class _AnswerPreviewState extends ConsumerState<_AnswerPreview> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    if (_recovery == _KeyRecovery.waiting) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: AppSpacing.md),
+            child: Center(child: VSpinner(size: 18)),
+          ),
+          const SizedBox(height: AppSpacing.xs),
+          Text(
+            l10n.minigamesKeyRequesting,
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: AppColors.mutedStrong, fontSize: 12),
+          ),
+        ],
+      );
+    }
+    if (_recovery == _KeyRecovery.missing) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const SizedBox(height: AppSpacing.sm),
+          Text(
+            l10n.minigamesKeyMissing,
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+          const SizedBox(height: AppSpacing.md),
+          Center(
+            child: VButton.outlined(
+              label: l10n.commonRetry,
+              onPressed: _recoverKey,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.xs),
+        ],
+      );
+    }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         if (widget.decrypted != null && widget.decrypted!.isNotEmpty) ...[
           Text(
             widget.decrypted!,
-            style: Theme.of(context)
-                .textTheme
-                .titleMedium
-                ?.copyWith(fontFamily: AppTypography.quicksand),
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+              fontFamily: AppTypography.quicksand,
+            ),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: AppSpacing.sm),
@@ -1074,6 +1161,18 @@ class _AnswerPreviewState extends ConsumerState<_AnswerPreview> {
       ],
     );
   }
+}
+
+/// The _AnswerPreview key-recovery lifecycle (206_minigame_key_request).
+enum _KeyRecovery {
+  /// The round key is present — normal decrypt only.
+  none,
+
+  /// The key is missing and a holder re-share was requested — show a spinner.
+  waiting,
+
+  /// No holder was online to re-share within the window — show Reintentar.
+  missing,
 }
 
 /// The async mode panel (202): the caller's per-player progress + the
