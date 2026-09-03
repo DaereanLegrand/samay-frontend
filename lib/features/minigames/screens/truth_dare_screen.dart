@@ -14,6 +14,7 @@ import 'package:samay/features/minigames/logic/minigame_engine.dart';
 import 'package:samay/features/minigames/logic/minigame_meta.dart';
 import 'package:samay/features/minigames/logic/truth_dare.dart';
 import 'package:samay/features/minigames/providers/minigames_providers.dart';
+import 'package:samay/features/minigames/widgets/minigame_header_title.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/error_view.dart';
 import 'package:samay/shared/widgets/state_views.dart';
@@ -54,15 +55,27 @@ class TruthDareScreen extends ConsumerWidget {
         ref.watch(minigameParticipantsProvider(sessionId)).valueOrNull ??
             const <MinigameParticipant>[];
     final aliases = ref.watch(minigameAliasesProvider(sessionId)).valueOrNull;
+    // The lowercase minigame name — the two-line bar's line 2 (and the plain
+    // single-line fallback for states without a current player).
+    final gameNameLower = session.valueOrNull == null
+        ? l10n.minigamesPlayTitle.toLowerCase()
+        : minigameGameNameLower(
+            l10n,
+            session.valueOrNull!['game_type'] as String?,
+          );
+    final headerTitle = _headerTitle(
+      game: game,
+      gameNameLower: gameNameLower,
+      roster: roster,
+      aliases: aliases,
+      myId: myId,
+      l10n: l10n,
+    );
 
     return Scaffold(
       body: VHeaderBar(
-        title: session.valueOrNull == null
-            ? l10n.minigamesPlayTitle.toLowerCase()
-            : minigameGameNameLower(
-                l10n,
-                session.valueOrNull!['game_type'] as String?,
-              ),
+        titleWidget: headerTitle,
+        title: headerTitle == null ? gameNameLower : null,
         actions: [
           if (isCreator)
             IconButton(
@@ -112,13 +125,6 @@ class TruthDareScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: AppSpacing.xs),
                 ],
-                VDisplayText(
-                  text: minigameSubjectLabel(
-                    l10n,
-                    _displayNameFor(subjectId, roster, aliases, skeleton, l10n),
-                  ),
-                  size: 28,
-                ),
                 if (skeleton.nextSubjectId != null &&
                     skeleton.playMode == MinigamePlayMode.byTurns) ...[
                   const SizedBox(height: AppSpacing.xs),
@@ -189,6 +195,108 @@ class TruthDareScreen extends ConsumerWidget {
           },
         ),
       ),
+    );
+  }
+
+  /// The rich two-line [VHeaderBar] title for the play screen, per state:
+  ///
+  ///   * by_turns playing → "turno de {subject}" with the outlined name
+  ///     (small muted prefix + the user's name) + the lowercase minigame name.
+  ///   * async playing, caller still owes rounds → "respondiendo".
+  ///   * async playing, caller has a reactable round → "respuesta de {author}".
+  ///   * finished → the leaderboard word; loading → "waiting…"; error →
+  ///     "error" — each with the lowercase minigame name under it.
+  ///   * not-yet-playing (setup skeleton via a direct route / cancelled
+  ///     countdown) and async-done-with-nothing-to-react → null, so the bar
+  ///     falls back to the plain lowercase minigame-name [VHeaderBar.title].
+  Widget? _headerTitle({
+    required AsyncValue<MinigameGameState> game,
+    required String gameNameLower,
+    required List<MinigameParticipant> roster,
+    required Map<String, String>? aliases,
+    required String? myId,
+    required AppLocalizations l10n,
+  }) {
+    return game.when(
+      loading: () => MinigameHeaderTitle(
+        word: l10n.minigamesBarWaiting,
+        secondary: gameNameLower,
+      ),
+      error: (_, _) => MinigameHeaderTitle(
+        word: l10n.minigamesBarError,
+        secondary: gameNameLower,
+      ),
+      data: (state) {
+        final skeleton = state.skeleton;
+        if (state.isFinished) {
+          return MinigameHeaderTitle(
+            word: l10n.minigamesBarLeaderboard,
+            secondary: gameNameLower,
+          );
+        }
+        if (skeleton.phase != MinigamePhase.playing) {
+          // Setup/countdown: no current player — the plain minigame-name bar
+          // title is the fallback (the lobby owns the pre-play UI).
+          return null;
+        }
+        if (skeleton.playMode == MinigamePlayMode.async) {
+          // The caller still owes rounds → they answer next.
+          final progress = skeleton.roundMap[myId] ?? 0;
+          if (progress < skeleton.asyncRoundsPerPlayer) {
+            return MinigameHeaderTitle(
+              word: l10n.minigamesBarResponding,
+              secondary: gameNameLower,
+            );
+          }
+          // Caller is done answering — is there someone's answer to react to?
+          final reactable = reactableAsyncRounds(skeleton, callerId: myId);
+          if (reactable.isNotEmpty) {
+            final authorName = _displayNameFor(
+              reactable.first.subjectId,
+              roster,
+              aliases,
+              skeleton,
+              l10n,
+            );
+            if (authorName.isNotEmpty) {
+              return MinigameHeaderTitle(
+                prefix: l10n.minigamesResponseBarPrefix,
+                name: authorName,
+                suffix: l10n.minigamesResponseBarSuffix,
+                secondary: gameNameLower,
+              );
+            }
+            return MinigameHeaderTitle(
+              word: l10n.minigamesBarResponding,
+              secondary: gameNameLower,
+            );
+          }
+          // Nothing owed, nothing to react to — the plain name fallback.
+          return null;
+        }
+        // by_turns playing: the subject is server-guaranteed (never null once
+        // playing). The name resolution is defensive — a subject that cannot
+        // be resolved renders the generic turn line, never a raw UUID.
+        final subjectName = _displayNameFor(
+          skeleton.subjectId,
+          roster,
+          aliases,
+          skeleton,
+          l10n,
+        );
+        if (subjectName.isEmpty) {
+          return MinigameHeaderTitle(
+            word: l10n.minigamesTurnGeneric.toLowerCase(),
+            secondary: gameNameLower,
+          );
+        }
+        return MinigameHeaderTitle(
+          prefix: l10n.minigamesTurnBarPrefix,
+          name: subjectName,
+          suffix: l10n.minigamesTurnBarSuffix,
+          secondary: gameNameLower,
+        );
+      },
     );
   }
 

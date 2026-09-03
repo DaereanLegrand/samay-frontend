@@ -26,8 +26,6 @@ library;
 
 import 'dart:math';
 
-import 'package:samay/l10n/app_localizations.dart';
-
 /// Lifecycle phase of a minigame session's play engine.
 enum MinigamePhase {
   /// The session exists but no game-state row is initialized yet.
@@ -706,17 +704,6 @@ int randomParticipantIndex({
     );
   }
   return rng.nextInt(participantCount);
-}
-
-/// Localized label for a subject — "Turno de {name}" (2026-08-30 directive:
-/// the play screen never shows a raw UUID). The caller resolves the name (the
-/// engine does not know users); a null name falls back to the generic
-/// "Turno de un jugador" line.
-String minigameSubjectLabel(AppLocalizations l10n, String? subjectName) {
-  if (subjectName == null || subjectName.isEmpty) {
-    return l10n.minigamesTurnGeneric;
-  }
-  return l10n.minigamesTurnFor(subjectName);
 }
 
 /// Whether [callerId] may react to the CURRENT by_turns round

@@ -2518,6 +2518,38 @@
   "@minigamesPlayTitle": {
     "description": "Play screen app bar title for the Truth or Dare game"
   },
+  "minigamesBarWaiting": "waiting…",
+  "@minigamesBarWaiting": {
+    "description": "Play screen header title word shown while the game state loads"
+  },
+  "minigamesBarError": "error",
+  "@minigamesBarError": {
+    "description": "Play screen header title word shown when the game state fails to load"
+  },
+  "minigamesBarLeaderboard": "leaderboard",
+  "@minigamesBarLeaderboard": {
+    "description": "Play screen header title word shown on the finished leaderboard"
+  },
+  "minigamesBarResponding": "answering",
+  "@minigamesBarResponding": {
+    "description": "Async-mode header word while the caller still owes a round (they answer next)"
+  },
+  "minigamesTurnBarPrefix": "",
+  "@minigamesTurnBarPrefix": {
+    "description": "Small muted lead-in before the current subject's name in the play header (empty for English word order — the possessive rides the suffix)"
+  },
+  "minigamesTurnBarSuffix": "'s turn",
+  "@minigamesTurnBarSuffix": {
+    "description": "Small muted trailing words after the current subject's name in the play header (English: '{name}'s turn')."
+  },
+  "minigamesResponseBarPrefix": "",
+  "@minigamesResponseBarPrefix": {
+    "description": "Small muted lead-in before the author's name in the async header (empty for English word order — the possessive rides the suffix)"
+  },
+  "minigamesResponseBarSuffix": "'s response",
+  "@minigamesResponseBarSuffix": {
+    "description": "Small muted trailing words after the author's name in the async header (English: '{name}'s response')."
+  },
   "minigamesChoosePromptGeneric": "Your turn! Pick Truth or Dare",
   "@minigamesChoosePromptGeneric": {
     "description": "Header asking the judge to pick a prompt kind when no subject name is resolved"

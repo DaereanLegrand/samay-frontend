@@ -1911,6 +1911,30 @@ class AppLocalizationsEs extends AppLocalizations {
   String get minigamesPlayTitle => 'Verdad o Reto';
 
   @override
+  String get minigamesBarWaiting => 'esperando…';
+
+  @override
+  String get minigamesBarError => 'error';
+
+  @override
+  String get minigamesBarLeaderboard => 'clasificación';
+
+  @override
+  String get minigamesBarResponding => 'respondiendo';
+
+  @override
+  String get minigamesTurnBarPrefix => 'turno de ';
+
+  @override
+  String get minigamesTurnBarSuffix => '';
+
+  @override
+  String get minigamesResponseBarPrefix => 'respuesta de ';
+
+  @override
+  String get minigamesResponseBarSuffix => '';
+
+  @override
   String get minigamesChoosePromptGeneric =>
       '¡Es tu turno! Elige Verdad o Reto';
 

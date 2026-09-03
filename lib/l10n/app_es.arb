@@ -2518,6 +2518,38 @@
   "@minigamesPlayTitle": {
     "description": "Play screen app bar title for the Verdad o Reto game"
   },
+  "minigamesBarWaiting": "esperando…",
+  "@minigamesBarWaiting": {
+    "description": "Play screen header title word shown while the game state loads"
+  },
+  "minigamesBarError": "error",
+  "@minigamesBarError": {
+    "description": "Play screen header title word shown when the game state fails to load"
+  },
+  "minigamesBarLeaderboard": "clasificación",
+  "@minigamesBarLeaderboard": {
+    "description": "Play screen header title word shown on the finished leaderboard"
+  },
+  "minigamesBarResponding": "respondiendo",
+  "@minigamesBarResponding": {
+    "description": "Async-mode header word while the caller still owes a round (they answer next)"
+  },
+  "minigamesTurnBarPrefix": "turno de ",
+  "@minigamesTurnBarPrefix": {
+    "description": "Small muted lead-in before the current subject's name in the play header (Spanish word order: 'turno de {name}'). Trailing space included."
+  },
+  "minigamesTurnBarSuffix": "",
+  "@minigamesTurnBarSuffix": {
+    "description": "Small muted trailing words after the current subject's name in the play header (empty for Spanish word order)"
+  },
+  "minigamesResponseBarPrefix": "respuesta de ",
+  "@minigamesResponseBarPrefix": {
+    "description": "Small muted lead-in before the author's name in the async header (Spanish: 'respuesta de {name}'). Trailing space included."
+  },
+  "minigamesResponseBarSuffix": "",
+  "@minigamesResponseBarSuffix": {
+    "description": "Small muted trailing words after the author's name in the async header (empty for Spanish word order)"
+  },
   "minigamesChoosePromptGeneric": "¡Es tu turno! Elige Verdad o Reto",
   "@minigamesChoosePromptGeneric": {
     "description": "Header asking the judge to pick a prompt kind when no subject name is resolved"

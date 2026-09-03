@@ -3530,6 +3530,54 @@ abstract class AppLocalizations {
   /// **'Verdad o Reto'**
   String get minigamesPlayTitle;
 
+  /// Play screen header title word shown while the game state loads
+  ///
+  /// In es, this message translates to:
+  /// **'esperando…'**
+  String get minigamesBarWaiting;
+
+  /// Play screen header title word shown when the game state fails to load
+  ///
+  /// In es, this message translates to:
+  /// **'error'**
+  String get minigamesBarError;
+
+  /// Play screen header title word shown on the finished leaderboard
+  ///
+  /// In es, this message translates to:
+  /// **'clasificación'**
+  String get minigamesBarLeaderboard;
+
+  /// Async-mode header word while the caller still owes a round (they answer next)
+  ///
+  /// In es, this message translates to:
+  /// **'respondiendo'**
+  String get minigamesBarResponding;
+
+  /// Small muted lead-in before the current subject's name in the play header (Spanish word order: 'turno de {name}'). Trailing space included.
+  ///
+  /// In es, this message translates to:
+  /// **'turno de '**
+  String get minigamesTurnBarPrefix;
+
+  /// Small muted trailing words after the current subject's name in the play header (empty for Spanish word order)
+  ///
+  /// In es, this message translates to:
+  /// **''**
+  String get minigamesTurnBarSuffix;
+
+  /// Small muted lead-in before the author's name in the async header (Spanish: 'respuesta de {name}'). Trailing space included.
+  ///
+  /// In es, this message translates to:
+  /// **'respuesta de '**
+  String get minigamesResponseBarPrefix;
+
+  /// Small muted trailing words after the author's name in the async header (empty for Spanish word order)
+  ///
+  /// In es, this message translates to:
+  /// **''**
+  String get minigamesResponseBarSuffix;
+
   /// Header asking the judge to pick a prompt kind when no subject name is resolved
   ///
   /// In es, this message translates to:

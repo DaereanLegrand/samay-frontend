@@ -1903,6 +1903,30 @@ class AppLocalizationsEn extends AppLocalizations {
   String get minigamesPlayTitle => 'Truth or Dare';
 
   @override
+  String get minigamesBarWaiting => 'waiting…';
+
+  @override
+  String get minigamesBarError => 'error';
+
+  @override
+  String get minigamesBarLeaderboard => 'leaderboard';
+
+  @override
+  String get minigamesBarResponding => 'answering';
+
+  @override
+  String get minigamesTurnBarPrefix => '';
+
+  @override
+  String get minigamesTurnBarSuffix => '\'s turn';
+
+  @override
+  String get minigamesResponseBarPrefix => '';
+
+  @override
+  String get minigamesResponseBarSuffix => '\'s response';
+
+  @override
   String get minigamesChoosePromptGeneric => 'Your turn! Pick Truth or Dare';
 
   @override

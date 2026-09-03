@@ -19,6 +19,14 @@ class VHeaderBar extends StatelessWidget {
   /// Header title (Playfair Display, size 40). Omit for back-arrow-only bars.
   final String? title;
 
+  /// A CUSTOM title widget that replaces the plain [VDisplayText] rendering
+  /// of [title] (multi-line / mixed-font bar titles, e.g. the minigame play
+  /// screen's two-line header). Mutually exclusive with [title]; when set it
+  /// fills the same Expanded slot inside the fixed [barHeight] row, so the bar
+  /// height is unchanged. Long content must fit (ellipsize / scale down
+  /// itself).
+  final Widget? titleWidget;
+
   /// Trailing actions (icon buttons, text buttons, popup menus).
   final List<Widget>? actions;
 
@@ -41,6 +49,7 @@ class VHeaderBar extends StatelessWidget {
   const VHeaderBar({
     super.key,
     this.title,
+    this.titleWidget,
     this.actions,
     this.showBack = true,
     this.onBack,
@@ -76,12 +85,14 @@ class VHeaderBar extends StatelessWidget {
                           onBack ?? () => Navigator.of(context).maybePop(),
                     ),
                   ),
-                if (showBack && title != null)
+                if (showBack && (title != null || titleWidget != null))
                   // Matches the search field's icon→text gap (4px): the
                   // header title lands on the same x as the input's starting
                   // cursor, and the leading icons (arrow ↔ magnifier) line up.
                   const SizedBox(width: AppSpacing.xs),
-                if (title != null)
+                if (titleWidget != null)
+                  Expanded(child: titleWidget!)
+                else if (title != null)
                   Expanded(
                     child: VDisplayText(text: title!, maxLines: maxLines),
                   ),
