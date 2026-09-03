@@ -28,6 +28,12 @@ abstract final class AppTypography {
   /// UI voice — everything else: body, buttons, inputs, labels, nav (§3.1).
   static const String inter = 'Inter';
 
+  /// Minigame play voice — the expressive rounded UI family used for the
+  /// question/dare prompt and the submitted answer copy inside minigame
+  /// rounds (Quicksand). Never a display role; it reads as friendly body
+  /// copy within the play cards.
+  static const String quicksand = 'Quicksand';
+
   // ── Monochrome display-voice contract (2026-08-26) ────────────────────────
   //
   // The display voices (displayLarge/displayMedium/displaySmall and

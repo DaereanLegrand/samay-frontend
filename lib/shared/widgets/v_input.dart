@@ -23,6 +23,7 @@ class VInput extends StatelessWidget {
   final int minLines;
   final TextAlignVertical? textAlignVertical;
   final Widget? suffixIcon;
+  final String? fontFamily;
 
   const VInput({
     super.key,
@@ -37,6 +38,7 @@ class VInput extends StatelessWidget {
     this.minLines = 1,
     this.textAlignVertical,
     this.suffixIcon,
+    this.fontFamily,
   });
 
   /// Vestigial liquid-glass geometry (LUXE §4.3). Retained so the
@@ -65,12 +67,15 @@ class VInput extends StatelessWidget {
       textAlignVertical: textAlignVertical,
       cursorColor: AppColors.white,
       // iOS-native 17px input voice — clean, never styled like display copy.
-      style: const TextStyle(
+      // [fontFamily] lets a caller opt into a custom family (e.g. the
+      // Quicksand minigame answer voice); null keeps the default Inter.
+      style: TextStyle(
         color: AppColors.white,
         fontSize: 17,
         fontWeight: FontWeight.w400,
         height: 1.35,
         letterSpacing: 0.0,
+        fontFamily: fontFamily,
       ),
       selectionControls: materialTextSelectionControls,
       decoration: InputDecoration(
@@ -90,6 +95,7 @@ class VInput extends StatelessWidget {
           fontSize: 17,
           fontWeight: FontWeight.w400,
           height: 1.35,
+          fontFamily: fontFamily,
         ),
         errorStyle: const TextStyle(color: AppColors.error),
         contentPadding: const EdgeInsets.symmetric(

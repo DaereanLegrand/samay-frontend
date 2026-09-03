@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
+import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/design_tokens/app_typography.dart';
 
 /// A rich two-line title for the minigame play screen's [VHeaderBar].
@@ -55,28 +56,31 @@ class MinigameHeaderTitle extends StatelessWidget {
         : _WordLine(word: word ?? '');
 
     final sub = secondary;
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      mainAxisAlignment: MainAxisAlignment.center,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        line1,
-        if (sub != null && sub.isNotEmpty) ...[
-          Text(
-            sub,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              fontFamily: AppTypography.inter,
-              fontSize: 11,
-              fontWeight: FontWeight.w500,
-              letterSpacing: 0.2,
-              height: 1.0,
-              color: AppColors.mutedStrong,
+    return Padding(
+      padding: const EdgeInsets.only(top: AppSpacing.sm),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          line1,
+          if (sub != null && sub.isNotEmpty) ...[
+            Text(
+              sub,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontFamily: AppTypography.inter,
+                fontSize: 11,
+                fontWeight: FontWeight.w500,
+                letterSpacing: 0.2,
+                height: 1.0,
+                color: AppColors.mutedStrong,
+              ),
             ),
-          ),
+          ],
         ],
-      ],
+      ),
     );
   }
 }
@@ -116,7 +120,7 @@ class _PhraseLine extends StatelessWidget {
             if (lead != null && lead.isNotEmpty)
               TextSpan(
                 text: lead,
-                style: const TextStyle(color: AppColors.muted),
+                style: const TextStyle(color: AppColors.softGray),
               ),
             TextSpan(
               text: name,

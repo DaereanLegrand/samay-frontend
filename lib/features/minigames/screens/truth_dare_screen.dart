@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
+import 'package:samay/core/design_tokens/app_typography.dart';
 import 'package:samay/core/extensions/error_mapper.dart';
 import 'package:samay/core/logging/app_logger.dart';
 import 'package:samay/core/providers/auth_provider.dart';
@@ -49,11 +50,11 @@ class TruthDareScreen extends ConsumerWidget {
     final myId = ref.watch(authStateProvider).valueOrNull?.user?['id'];
     final participantIds =
         (session.valueOrNull?['participants'] as List?)?.cast<String?>() ??
-            const [];
+        const [];
     final isCreator = participantIds.isNotEmpty && participantIds.first == myId;
     final roster =
         ref.watch(minigameParticipantsProvider(sessionId)).valueOrNull ??
-            const <MinigameParticipant>[];
+        const <MinigameParticipant>[];
     final aliases = ref.watch(minigameAliasesProvider(sessionId)).valueOrNull;
     // The lowercase minigame name — the two-line bar's line 2 (and the plain
     // single-line fallback for states without a current player).
@@ -100,81 +101,152 @@ class TruthDareScreen extends ConsumerWidget {
             final isMyTurn = subjectId != null && subjectId == myId;
             final roundTarget = skeleton.roundTarget;
 
+            // The top meta captions, fully capitalized at a smaller size than
+            // the body copy. In by_turns the round counter and the next-turn
+            // line sit INSIDE the answer card flush to its top-left / top-right
+            // corners (bleeding over the card's inner padding). Async shows its
+            // deadline caption centered above the async panel.
+            const captionStyle = TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: AppColors.mutedStrong,
+            );
+            final isByTurns = skeleton.playMode == MinigamePlayMode.byTurns;
+            final showRoundCaption = isByTurns && roundTarget != null;
+            final showNextCaption = isByTurns && skeleton.nextSubjectId != null;
+            final showAsyncDeadline = !isByTurns && skeleton.asyncEndsAt != null;
+
+            Widget buildAnswerCard() {
+              final hasCaptions = showRoundCaption || showNextCaption;
+
+              final body = isMyTurn
+                  ? (skeleton.answer == null
+                        ? _AnswerCard(
+                            sessionId: sessionId,
+                            state: state,
+                            l10n: l10n,
+                          )
+                        // The subject answered: their device must NOT stay
+                        // stuck on the editor (defect B) — show the read-only
+                        // waiting card instead.
+                        : _SubjectWaitingCard(
+                            sessionId: sessionId,
+                            state: state,
+                            l10n: l10n,
+                            roster: roster,
+                            aliases: aliases,
+                          ))
+                  : _WaitingCard(
+                      sessionId: sessionId,
+                      state: state,
+                      l10n: l10n,
+                      roster: roster,
+                      aliases: aliases,
+                    );
+
+              if (!hasCaptions) {
+                return VCard(
+                  child: Padding(
+                    padding: const EdgeInsets.all(AppSpacing.md),
+                    child: body,
+                  ),
+                );
+              }
+
+              // A card body with the caption row at its very top: the round
+              // counter hugs the top-left corner and the next-turn line the
+              // top-right, ignoring the card's usual inner padding. The card
+              // container mirrors VCard (surface + horizontal hairlines).
+              return Container(
+                decoration: const BoxDecoration(
+                  color: AppColors.surface,
+                  border: Border.symmetric(
+                    horizontal: BorderSide(color: AppColors.hairline),
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.sm,
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          if (showRoundCaption)
+                            Flexible(
+                              child: Text(
+                                l10n
+                                    .minigamesRoundCounter(
+                                      skeleton.round + 1,
+                                      roundTarget,
+                                    )
+                                    .toUpperCase(),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: captionStyle,
+                              ),
+                            ),
+                          if (showNextCaption)
+                            Flexible(
+                              child: Text(
+                                l10n
+                                    .minigamesNextTurn(
+                                      _displayNameFor(
+                                        skeleton.nextSubjectId,
+                                        roster,
+                                        aliases,
+                                        skeleton,
+                                        l10n,
+                                      ),
+                                    )
+                                    .toUpperCase(),
+                                textAlign: TextAlign.right,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: captionStyle,
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.sm),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(
+                        AppSpacing.cardPadding,
+                        AppSpacing.md,
+                        AppSpacing.cardPadding,
+                        AppSpacing.cardPadding,
+                      ),
+                      child: body,
+                    ),
+                  ],
+                ),
+              );
+            }
+
             return ListView(
               padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
               children: [
-                if (roundTarget != null && skeleton.playMode == MinigamePlayMode.byTurns) ...[
+                if (showAsyncDeadline) ...[
                   Text(
-                    l10n.minigamesRoundCounter(
-                      skeleton.round + 1,
-                      roundTarget,
-                    ),
+                    l10n
+                        .minigamesAsyncTimerEnds(
+                          _formatDate(skeleton.asyncEndsAt!),
+                        )
+                        .toUpperCase(),
                     textAlign: TextAlign.center,
-                    style: const TextStyle(fontSize: 14),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: captionStyle,
                   ),
                   const SizedBox(height: AppSpacing.xs),
                 ],
-                if (skeleton.playMode == MinigamePlayMode.async &&
-                    skeleton.asyncEndsAt != null) ...[
-                  Text(
-                    l10n.minigamesAsyncTimerEnds(
-                      _formatDate(skeleton.asyncEndsAt!),
-                    ),
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(fontSize: 14),
-                  ),
-                  const SizedBox(height: AppSpacing.xs),
-                ],
-                if (skeleton.nextSubjectId != null &&
-                    skeleton.playMode == MinigamePlayMode.byTurns) ...[
-                  const SizedBox(height: AppSpacing.xs),
-                  Text(
-                    l10n.minigamesNextTurn(
-                      _displayNameFor(
-                        skeleton.nextSubjectId,
-                        roster,
-                        aliases,
-                        skeleton,
-                        l10n,
-                      ),
-                    ),
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(fontSize: 14),
-                  ),
-                ],
-                const SizedBox(height: AppSpacing.md),
                 if (skeleton.playMode == MinigamePlayMode.async)
                   _AsyncPanel(sessionId: sessionId, state: state)
                 else
-                  VCard(
-                      child: Padding(
-                        padding: const EdgeInsets.all(AppSpacing.md),
-                        child: isMyTurn
-                            ? (skeleton.answer == null
-                                ? _AnswerCard(
-                                    sessionId: sessionId,
-                                    state: state,
-                                    l10n: l10n,
-                                  )
-                                // The subject answered: their device must NOT
-                                // stay stuck on the editor (defect B) — show
-                                // the read-only waiting card instead.
-                                : _SubjectWaitingCard(
-                                    sessionId: sessionId,
-                                    state: state,
-                                    l10n: l10n,
-                                    roster: roster,
-                                    aliases: aliases,
-                                  ))
-                            : _WaitingCard(
-                                sessionId: sessionId,
-                                state: state,
-                                l10n: l10n,
-                                roster: roster,
-                                aliases: aliases,
-                              ),
-                      ),
-                  ),
+                  buildAnswerCard(),
                 // The reaction row renders ONLY when the current round is
                 // reactable (202 answer-first): the subject answered, the
                 // caller is not the subject, phase is playing. Never a
@@ -325,7 +397,8 @@ class TruthDareScreen extends ConsumerWidget {
     return '';
   }
 
-  static String _formatDate(DateTime date) {    final local = date.toLocal();
+  static String _formatDate(DateTime date) {
+    final local = date.toLocal();
     final mm = local.month.toString().padLeft(2, '0');
     final dd = local.day.toString().padLeft(2, '0');
     final hh = local.hour.toString().padLeft(2, '0');
@@ -478,10 +551,13 @@ class _AnswerCardState extends ConsumerState<_AnswerCard> {
       children: [
         Text(
           prompt,
-          style: Theme.of(context).textTheme.headlineSmall,
+          style: Theme.of(context)
+              .textTheme
+              .headlineSmall
+              ?.copyWith(fontFamily: AppTypography.quicksand),
           textAlign: TextAlign.center,
         ),
-        const SizedBox(height: AppSpacing.lg),
+        const SizedBox(height: AppSpacing.xs),
         Text(
           widget.l10n.minigamesAnswerTitle,
           style: Theme.of(context).textTheme.titleSmall,
@@ -492,6 +568,7 @@ class _AnswerCardState extends ConsumerState<_AnswerCard> {
           controller: _answerController,
           maxLines: 3,
           minLines: 2,
+          fontFamily: AppTypography.quicksand,
         ),
         if (isDare) ...[
           const SizedBox(height: AppSpacing.md),
@@ -555,10 +632,7 @@ class _AnswerCardState extends ConsumerState<_AnswerCard> {
         Text(
           widget.l10n.minigamesAnswerPasarLine,
           textAlign: TextAlign.center,
-          style: const TextStyle(
-            color: AppColors.mutedStrong,
-            fontSize: 12,
-          ),
+          style: const TextStyle(color: AppColors.mutedStrong, fontSize: 12),
         ),
         const SizedBox(height: AppSpacing.md),
         Row(
@@ -664,7 +738,7 @@ class _AnswerCardState extends ConsumerState<_AnswerCard> {
     } catch (e, st) {
       AppLogger.instance.error(
         'minigame submitAnswer FAILED session=${widget.sessionId} '
-        'round=${widget.state.skeleton.round} type=${e.runtimeType}: $e',
+            'round=${widget.state.skeleton.round} type=${e.runtimeType}: $e',
         '$st',
       );
       if (!mounted) return;
@@ -737,10 +811,13 @@ class _WaitingCardState extends ConsumerState<_WaitingCard> {
       children: [
         Text(
           prompt,
-          style: Theme.of(context).textTheme.headlineSmall,
+          style: Theme.of(context)
+              .textTheme
+              .headlineSmall
+              ?.copyWith(fontFamily: AppTypography.quicksand),
           textAlign: TextAlign.center,
         ),
-        const SizedBox(height: AppSpacing.lg),
+        const SizedBox(height: AppSpacing.xs),
         if (answer == null)
           Text(
             widget.l10n.minigamesAnswerWaiting,
@@ -805,7 +882,8 @@ class _SubjectWaitingCard extends ConsumerStatefulWidget {
   final Map<String, String>? aliases;
 
   @override
-  ConsumerState<_SubjectWaitingCard> createState() => _SubjectWaitingCardState();
+  ConsumerState<_SubjectWaitingCard> createState() =>
+      _SubjectWaitingCardState();
 }
 
 class _SubjectWaitingCardState extends ConsumerState<_SubjectWaitingCard> {
@@ -837,10 +915,13 @@ class _SubjectWaitingCardState extends ConsumerState<_SubjectWaitingCard> {
       children: [
         Text(
           prompt,
-          style: Theme.of(context).textTheme.headlineSmall,
+          style: Theme.of(context)
+              .textTheme
+              .headlineSmall
+              ?.copyWith(fontFamily: AppTypography.quicksand),
           textAlign: TextAlign.center,
         ),
-        const SizedBox(height: AppSpacing.lg),
+        const SizedBox(height: AppSpacing.xs),
         if (answer.passed)
           Text(
             widget.l10n.minigamesPasarSkipped,
@@ -860,10 +941,7 @@ class _SubjectWaitingCardState extends ConsumerState<_SubjectWaitingCard> {
           Text(
             widget.l10n.minigamesAnswerWaitingReactions(reacted, required),
             textAlign: TextAlign.center,
-            style: const TextStyle(
-              color: AppColors.mutedStrong,
-              fontSize: 12,
-            ),
+            style: const TextStyle(color: AppColors.mutedStrong, fontSize: 12),
           ),
         ],
       ],
@@ -963,7 +1041,10 @@ class _AnswerPreviewState extends ConsumerState<_AnswerPreview> {
         if (widget.decrypted != null && widget.decrypted!.isNotEmpty) ...[
           Text(
             widget.decrypted!,
-            style: Theme.of(context).textTheme.titleMedium,
+            style: Theme.of(context)
+                .textTheme
+                .titleMedium
+                ?.copyWith(fontFamily: AppTypography.quicksand),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: AppSpacing.sm),
@@ -1033,22 +1114,16 @@ class _AsyncPanel extends ConsumerWidget {
                     Expanded(
                       child: VButton.dark(
                         label: l10n.minigamesTruth,
-                        onPressed: () => _completeRound(
-                          context,
-                          ref,
-                          TruthDareKind.truth,
-                        ),
+                        onPressed: () =>
+                            _completeRound(context, ref, TruthDareKind.truth),
                       ),
                     ),
                     const SizedBox(width: AppSpacing.md),
                     Expanded(
                       child: VButton.outlined(
                         label: l10n.minigamesDare,
-                        onPressed: () => _completeRound(
-                          context,
-                          ref,
-                          TruthDareKind.dare,
-                        ),
+                        onPressed: () =>
+                            _completeRound(context, ref, TruthDareKind.dare),
                       ),
                     ),
                   ],
@@ -1065,10 +1140,7 @@ class _AsyncPanel extends ConsumerWidget {
           ),
           const SizedBox(height: AppSpacing.sm),
           for (final answer in reactable)
-            _AsyncReactableTile(
-              sessionId: sessionId,
-              answer: answer,
-            ),
+            _AsyncReactableTile(sessionId: sessionId, answer: answer),
         ],
       ],
     );
@@ -1095,6 +1167,7 @@ class _AsyncPanel extends ConsumerWidget {
           controller: controller,
           maxLines: 3,
           minLines: 2,
+          fontFamily: AppTypography.quicksand,
         ),
         actions: [
           TextButton(
@@ -1236,7 +1309,10 @@ class _AsyncReactableTileState extends ConsumerState<_AsyncReactableTile> {
             if (_decrypted != null && _decrypted!.isNotEmpty) ...[
               Text(
                 _decrypted!,
-                style: Theme.of(context).textTheme.titleMedium,
+                style: Theme.of(context)
+                    .textTheme
+                    .titleMedium
+                    ?.copyWith(fontFamily: AppTypography.quicksand),
               ),
               const SizedBox(height: AppSpacing.xs),
             ],
@@ -1371,9 +1447,7 @@ class _ReactionRow extends ConsumerWidget {
     ReactionKind kind,
   ) async {
     try {
-      await ref
-          .read(minigameGameStateProvider(sessionId).notifier)
-          .react(kind);
+      await ref.read(minigameGameStateProvider(sessionId).notifier).react(kind);
     } catch (e) {
       if (!context.mounted) return;
       ScaffoldMessenger.of(
@@ -1411,7 +1485,9 @@ class _AliasEditorState extends ConsumerState<_AliasEditor> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final myId = ref.watch(authStateProvider).valueOrNull?.user?['id'];
-    final aliases = ref.watch(minigameAliasesProvider(widget.sessionId)).valueOrNull;
+    final aliases = ref
+        .watch(minigameAliasesProvider(widget.sessionId))
+        .valueOrNull;
     final current = myId == null ? null : aliases?[myId];
 
     return VCard(
@@ -1497,14 +1573,11 @@ class _FinishedLeaderboard extends ConsumerWidget {
         }
         final roster =
             ref.watch(minigameParticipantsProvider(sessionId)).valueOrNull ??
-                const <MinigameParticipant>[];
+            const <MinigameParticipant>[];
         return ListView(
           padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
           children: [
-            VDisplayText(
-              text: l10n.minigamesLeaderboardTitle,
-              size: 28,
-            ),
+            VDisplayText(text: l10n.minigamesLeaderboardTitle, size: 28),
             const SizedBox(height: AppSpacing.md),
             for (final row in settled.rows)
               VCard(
