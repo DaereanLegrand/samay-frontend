@@ -7,10 +7,12 @@ import 'package:image_picker/image_picker.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/design_tokens/app_typography.dart';
+import 'package:samay/core/theme/samay_durations.dart';
 import 'package:samay/core/extensions/error_mapper.dart';
 import 'package:samay/core/logging/app_logger.dart';
 import 'package:samay/core/providers/auth_provider.dart';
 import 'package:samay/core/providers/service_providers.dart';
+import 'package:samay/core/utils/image_processor.dart';
 import 'package:samay/features/minigames/logic/minigame_engine.dart';
 import 'package:samay/features/minigames/logic/minigame_meta.dart';
 import 'package:samay/features/minigames/logic/truth_dare.dart';
@@ -716,7 +718,13 @@ class _AnswerCardState extends ConsumerState<_AnswerCard> {
       );
       String? imagePath;
       if (_image != null) {
-        final bytes = Uint8List.fromList(await _image!.readAsBytes());
+        // Downscale + JPEG-encode BEFORE the E2EE encrypt (PERF-03/M-36): the
+        // smaller JPEG plaintext becomes a smaller ciphertext, cutting storage
+        // and per-viewer download+decrypt+decode time. Raw picked bytes never
+        // leave the device — only the compressed JPEG is encrypted.
+        final bytes = await ImageProcessor.compressBytes(
+          Uint8List.fromList(await _image!.readAsBytes()),
+        );
         final cipherBytes = await cipher.encryptAnswerImage(bytes, round);
         // The image NEVER rides the RPC payload as base64: upload the RAW
         // ciphertext bytes to the private `minigame_images` bucket and pass
@@ -833,7 +841,7 @@ class _WaitingCardState extends ConsumerState<_WaitingCard> {
             textAlign: TextAlign.center,
             style: const TextStyle(color: AppColors.mutedStrong),
           )
-        else
+        else ...[
           _AnswerPreview(
             sessionId: widget.sessionId,
             answer: answer,
@@ -841,6 +849,17 @@ class _WaitingCardState extends ConsumerState<_WaitingCard> {
             onDecrypted: (text) => setState(() => _decrypted = text),
             decrypted: _decrypted,
           ),
+          // The open reaction window's live tally — visible to every
+          // non-subject too (the subject's own card shows the same line), so
+          // all participants watch the same "esperando X/Y reacciones…" while
+          // the round stays open.
+          const SizedBox(height: AppSpacing.md),
+          _ReactionsWaitingLine(
+            skeleton: widget.state.skeleton,
+            roster: widget.roster,
+            l10n: widget.l10n,
+          ),
+        ],
       ],
     );
   }
@@ -859,6 +878,41 @@ class _WaitingCardState extends ConsumerState<_WaitingCard> {
       }
     }
     return '';
+  }
+}
+
+/// The "esperando X/Y reacciones…" progress line for the CURRENT by_turns
+/// round's open reaction window (202 answer-first). Shows the live
+/// distinct-voter reaction tally (emoji OR reactor-Pasar, matching the
+/// server's auto-advance gate) against the roster minus the round's subject.
+///
+/// Rendered for EVERY participant — the subject and every reactor — so the
+/// whole table watches the same countdown while the round stays open.
+class _ReactionsWaitingLine extends StatelessWidget {
+  const _ReactionsWaitingLine({
+    required this.skeleton,
+    required this.roster,
+    required this.l10n,
+  });
+
+  final GameTurnSkeleton skeleton;
+  final List<MinigameParticipant> roster;
+  final AppLocalizations l10n;
+
+  @override
+  Widget build(BuildContext context) {
+    final subjectId = skeleton.subjectId;
+    final required = subjectId == null
+        ? 0
+        : (roster.length - 1).clamp(0, 1 << 31);
+    final reacted = subjectId == null
+        ? 0
+        : (skeleton.reactionCount(subjectId) ?? 0);
+    return Text(
+      l10n.minigamesAnswerWaitingReactions(reacted, required),
+      textAlign: TextAlign.center,
+      style: const TextStyle(color: AppColors.mutedStrong, fontSize: 12),
+    );
   }
 }
 
@@ -906,12 +960,6 @@ class _SubjectWaitingCardState extends ConsumerState<_SubjectWaitingCard> {
       );
     }
     final subjectId = widget.state.skeleton.subjectId;
-    final reacted = subjectId == null
-        ? 0
-        : (widget.state.skeleton.reactionCount(subjectId) ?? 0);
-    final required = subjectId == null
-        ? 0
-        : (widget.roster.length - 1).clamp(0, 1 << 31);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -941,10 +989,10 @@ class _SubjectWaitingCardState extends ConsumerState<_SubjectWaitingCard> {
           ),
         if (!answer.passed) ...[
           const SizedBox(height: AppSpacing.md),
-          Text(
-            widget.l10n.minigamesAnswerWaitingReactions(reacted, required),
-            textAlign: TextAlign.center,
-            style: const TextStyle(color: AppColors.mutedStrong, fontSize: 12),
+          _ReactionsWaitingLine(
+            skeleton: widget.state.skeleton,
+            roster: widget.roster,
+            l10n: widget.l10n,
           ),
         ],
       ],
@@ -1290,7 +1338,11 @@ class _AsyncPanel extends ConsumerWidget {
       final textCipher = await cipher.encryptAnswerText(text, round);
       String? imagePath;
       if (image != null) {
-        final bytes = Uint8List.fromList(await image.readAsBytes());
+        // Downscale + JPEG-encode BEFORE the E2EE encrypt (PERF-03/M-36) — see
+        // _AnswerCardState._submitAnswer for the rationale.
+        final bytes = await ImageProcessor.compressBytes(
+          Uint8List.fromList(await image.readAsBytes()),
+        );
         final cipherBytes = await cipher.encryptAnswerImage(bytes, round);
         // Async images follow the SAME storage contract as by_turns (defect B
         // image half): upload the RAW ciphertext bytes to the private bucket
@@ -1324,6 +1376,177 @@ class _AsyncPanel extends ConsumerWidget {
     } catch (_) {
       return null;
     }
+  }
+}
+
+/// The emoji glyph for a [ReactionKind] reaction tile (deck + bursts).
+///
+/// The heart (`❤️`, U+2764 U+FE0F) is special-cased: the app's Inter font
+/// ships a MONOCHROME U+2764 glyph, so Flutter paints the character with the
+/// text color instead of falling back to the platform color-emoji font —
+/// on every device the heart rendered WHITE. Tinting it with [AppColors.badgeRed]
+/// makes the glyph red regardless of which font draws it (the other five
+/// emoji are not covered by Inter, so they render as color emoji naturally).
+class _ReactionEmoji extends StatelessWidget {
+  const _ReactionEmoji({required this.kind, required this.fontSize});
+
+  final ReactionKind kind;
+  final double fontSize;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      reactionEmoji[kind]!,
+      style: TextStyle(
+        fontSize: fontSize,
+        // Inter's monochrome heart glyph inherits this color; the color-emoji
+        // faces of the non-heart reactions are unaffected by it.
+        color: kind == ReactionKind.heart ? AppColors.badgeRed : null,
+      ),
+    );
+  }
+}
+
+/// One tappable reaction slot in a deck: the [kind] emoji, and on tap it both
+/// fires [onReact] and plays the LOCAL burst — a duplicate of the emoji that
+/// grows in place (its own slot) while its opacity ramps, then fades away.
+///
+/// Press feedback: while the finger is DOWN the resting emoji shrinks slightly
+/// (1.0 → 0.9); on release it springs back to its original size at the same
+/// moment the burst plays.
+///
+/// The burst is deliberately self-only feedback on the TAPPING device (the
+/// reaction row's own realtime echo animates the other side later). It honors
+/// the standard reduced-motion contract (`MediaQuery.disableAnimationsOf`) —
+/// with the app-wide ANIM-OFF override removed, animations run and only
+/// OS-level reduced motion suppresses this one.
+class _ReactionDeckButton extends StatefulWidget {
+  const _ReactionDeckButton({
+    required this.kind,
+    required this.fontSize,
+    required this.onReact,
+  });
+
+  final ReactionKind kind;
+  final double fontSize;
+  final VoidCallback onReact;
+
+  @override
+  State<_ReactionDeckButton> createState() => _ReactionDeckButtonState();
+}
+
+class _ReactionDeckButtonState extends State<_ReactionDeckButton>
+    with TickerProviderStateMixin {
+  late final AnimationController _burst = AnimationController(
+    vsync: this,
+    duration: SamayDurations.reactionBurst,
+  );
+
+  /// Press feedback: shrinks the resting emoji slightly (1.0 → 0.9) while the
+  /// finger is down, springs it back on release. Duration = the fast token so
+  /// the emoji reaches ~original size as the burst begins.
+  late final AnimationController _press = AnimationController(
+    vsync: this,
+    duration: SamayDurations.fast,
+  );
+
+  late final Animation<double> _pressScale = Tween<double>(
+    begin: 1.0,
+    end: 0.9,
+  ).animate(CurvedAnimation(parent: _press, curve: SamayDurations.defaultCurve));
+
+  /// Burst scale: 1.0 → ~1.9. Opacity ramps 0 → 1 over the first ~30% then
+  /// fades out, so the duplicate "gets bigger while it becomes more opaque"
+  /// and finally disappears (per the user's spec).
+  late final Animation<double> _scale = Tween<double>(
+    begin: 1.0,
+    end: 1.9,
+  ).animate(CurvedAnimation(parent: _burst, curve: Curves.easeOutCubic));
+
+  late final Animation<double> _opacity = TweenSequence<double>([
+    TweenSequenceItem(
+      tween: Tween(begin: 0.0, end: 1.0)
+          .chain(CurveTween(curve: Curves.easeIn)),
+      weight: 30,
+    ),
+    TweenSequenceItem(
+      tween: Tween(begin: 1.0, end: 0.0)
+          .chain(CurveTween(curve: Curves.easeOut)),
+      weight: 70,
+    ),
+  ]).animate(_burst);
+
+  @override
+  void dispose() {
+    _press.dispose();
+    _burst.dispose();
+    super.dispose();
+  }
+
+  void _handleTapDown(_) {
+    if (MediaQuery.disableAnimationsOf(context)) return;
+    _press.forward();
+  }
+
+  /// Release: the emoji returns to its original size (spring back) at the
+  /// same time the tap fires the react + burst — "goes back AND the animation
+  /// plays at the same time".
+  void _handleTapUp(_) {
+    if (_press.isForwardOrCompleted) _press.reverse();
+  }
+
+  void _handleTapCancel() {
+    if (_press.isForwardOrCompleted) _press.reverse();
+  }
+
+  void _handleTap() {
+    widget.onReact();
+    if (!MediaQuery.disableAnimationsOf(context)) {
+      _burst.forward(from: 0);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: _handleTap,
+      onTapDown: _handleTapDown,
+      onTapUp: _handleTapUp,
+      onTapCancel: _handleTapCancel,
+      borderRadius: BorderRadius.circular(4),
+      child: Padding(
+        padding: const EdgeInsets.all(4),
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            // The resting emoji — scaled down while pressed, springing back
+            // on release (underneath the burst duplicate).
+            ScaleTransition(
+              scale: _pressScale,
+              child: _ReactionEmoji(
+                kind: widget.kind,
+                fontSize: widget.fontSize,
+              ),
+            ),
+            // The burst duplicate — stacked centered on the resting emoji, so
+            // "the emoji in its place duplicates and maintains center".
+            AnimatedBuilder(
+              animation: _burst,
+              builder: (context, child) {
+                return Opacity(
+                  opacity: _opacity.value,
+                  child: Transform.scale(
+                    scale: _scale.value,
+                    child: child,
+                  ),
+                );
+              },
+              child: _ReactionEmoji(kind: widget.kind, fontSize: widget.fontSize),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
 
@@ -1442,16 +1665,10 @@ class _AsyncReactableTileState extends ConsumerState<_AsyncReactableTile> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 for (final kind in reactionEmojiKinds)
-                  InkWell(
-                    onTap: () => _react(context, ref, kind),
-                    borderRadius: BorderRadius.circular(4),
-                    child: Padding(
-                      padding: const EdgeInsets.all(4),
-                      child: Text(
-                        reactionEmoji[kind]!,
-                        style: const TextStyle(fontSize: 20),
-                      ),
-                    ),
+                  _ReactionDeckButton(
+                    kind: kind,
+                    fontSize: 20,
+                    onReact: () => _react(context, ref, kind),
                   ),
               ],
             ),
@@ -1514,16 +1731,10 @@ class _ReactionRow extends ConsumerWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 for (final kind in reactionEmojiKinds)
-                  InkWell(
-                    onTap: () => _react(context, ref, kind),
-                    borderRadius: BorderRadius.circular(4),
-                    child: Padding(
-                      padding: const EdgeInsets.all(4),
-                      child: Text(
-                        reactionEmoji[kind]!,
-                        style: const TextStyle(fontSize: 24),
-                      ),
-                    ),
+                  _ReactionDeckButton(
+                    kind: kind,
+                    fontSize: 24,
+                    onReact: () => _react(context, ref, kind),
                   ),
               ],
             ),

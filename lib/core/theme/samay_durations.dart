@@ -36,6 +36,11 @@ class SamayDurations {
   /// stable duration token; its value is locked by `samay_durations_test`.
   static const auroraDrift = Duration(milliseconds: 10000);
 
+  /// Minigame reaction-burst pop (tap feedback): a duplicate of the tapped
+  /// emoji scales up in its own deck slot while its opacity ramps, then
+  /// vanishes. One-shot, ~700 ms.
+  static const reactionBurst = Duration(milliseconds: 700);
+
   /// [VThinkingDots] per-dot pulse period (up-down alternate, staggered).
   static const thinkingDot = Duration(milliseconds: 900);
 }

@@ -44,6 +44,13 @@ dependencies:
   # Apple Silicon iOS 26+ simulators) to Apple Vision.
   qr_flutter: ^4.1.0
   mobile_scanner: ^7.4.0
+  # Client-side image downscale + JPEG re-encode for every upload (PERF-03 /
+  # M-36): Flutter's dart:ui can decode most formats but only re-encode to PNG,
+  # so the `image` package (pure Dart) does the quality-80 JPEG encode that
+  # slashes storage size and, for E2EE minigame images, decryption time. Used
+  # by ImageProcessor; already a transitive dep of dev tooling, so promoting it
+  # adds zero new packages.
+  image: ^4.8.0
   # Deep-link / universal-link handling for invite links `samay://event/{token}`
   # (EINV — I-66). Already a transitive dep of supabase_flutter (>=6.2.0 <8.0.0)
   # and registered as a native plugin on every platform, so the direct

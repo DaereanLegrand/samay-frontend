@@ -1,30 +1,34 @@
 import 'dart:math' as math;
 import 'dart:typed_data';
-import 'dart:ui' as ui show ImmutableBuffer, ImageByteFormat, ImageDescriptor;
-import 'dart:io';
+import 'dart:ui' as ui show ImageByteFormat, ImmutableBuffer, ImageDescriptor;
 
+import 'package:image/image.dart' as img;
 import 'package:samay/core/errors/app_error.dart';
 
-/// Client-side image downscaling for uploads (finding PERF-03 / M-36).
+/// Client-side image downscaling + JPEG re-encode for uploads (finding
+/// PERF-03 / M-36).
 ///
-/// Flutter's `dart:ui` codec decodes JPEG/PNG/WebP/BMP/WBMP (and HEIC where
-/// the platform supports it) but can only re-encode to **PNG**
-/// (`ui.ImageByteFormat` exposes no JPEG encoder — verified against the
-/// Flutter 3.44.1 `dart:ui` source and API docs). The main win PERF-03 asks
-/// for is the *resolution* cap, so [compress] re-encodes as a PNG at
-/// `maxLongEdge = 1920` px: a 12 MP camera JPEG (5–15 MB) becomes a 1920px
-/// PNG well under a megabyte for typical photos.
+/// Every upload stored on Supabase Storage is a **quality-80 JPEG** capped at
+/// `maxLongEdge = 1920` px, produced on the client so nothing bigger ever
+/// leaves the device:
 ///
-/// ## JPEG limitation (documented)
+/// - **Decode** runs through Flutter's `dart:ui` codec (decodes JPEG/PNG/
+///   WebP/BMP/WBMP and HEIC where the platform supports it).
+/// - **Downscale** happens on the decode (1920px long-edge cap, so a 12 MP
+///   camera photo arrives well under a megabyte).
+/// - **Encode** uses the pure-Dart `image` package ([img.encodeJpg]) at
+///   quality 80 — `dart:ui` exposes no JPEG encoder (`ui.ImageByteFormat` has
+///   only raw/PNG), which is exactly the gap this dependency fills.
 ///
-/// Juega's equivalent reaches ~90% bandwidth savings because it encodes JPEG
-/// at quality 80 via the `image` package. Samay has no JPEG encoder on the
-/// client without adding that dependency (out of scope for I-22 — the `image`
-/// package is not in `pubspec.yaml`). PNG is lossless, so the output is
-/// larger than an 80%-JPEG of the same pixels, but still dramatically smaller
-/// than the full-resolution original. If JPEG quality compression is wanted,
-/// add the `image` package (or a native codec) in a follow-up and swap the
-/// re-encode step — everything else stays.
+/// Unlike the previous PNG-only pipeline, JPEG is lossy at quality 80: for
+/// photos the size saving vs PNG is ~4–8× for the same pixels. The lossy pass
+/// also pays off on the E2EE minigame image path, where the JPEG plaintext is
+/// what gets AES-256-GCM encrypted, stored, downloaded and decrypted per
+/// viewer — a smaller plaintext means a smaller ciphertext and less work on
+/// the decrypt + decode path.
+///
+/// Transparency (PNG alpha) is composited onto white by the JPEG encoder —
+/// fine for photos; a fully transparent PNG becomes a white image.
 ///
 /// ## Threading tradeoff (verified empirically)
 ///
@@ -36,73 +40,27 @@ import 'package:samay/core/errors/app_error.dart';
 /// log, "isolate probe" section). Main-isolate processing therefore wins:
 /// correct everywhere, at the cost of a UI-thread hitch during the resize
 /// (hundreds of ms for a 12 MP photo). If a platform is found where the codec
-/// works in a spawned isolate, reintroduce the worker path behind [compress]
-/// — the single [_process] entry point makes that a local change.
+/// works in a spawned isolate, reintroduce the worker path behind the entry
+/// points below — the single [_encodeJpeg] funnel makes that a local change.
 class ImageProcessor {
   ImageProcessor._();
 
   /// Longest edge, in pixels, of any uploaded image (matches Juega's cap).
   static const int defaultMaxLongEdge = 1920;
 
-  /// Files at or above this many bytes are worth full processing; anything
-  /// below skips decode/re-encode entirely — only a cheap header validation
-  /// runs, so small valid uploads never pay the cost and small junk still
-  /// fails fast.
-  static const int skipThresholdBytes = 512 * 1024;
+  /// JPEG encode quality for the re-encode step (Juega's reference value).
+  static const int jpegQuality = 80;
 
-  /// Whether [image]'s file size justifies processing — the size check
-  /// callers use before scheduling an upload.
-  static bool shouldResize(File image, {int minBytes = skipThresholdBytes}) {
-    if (!image.existsSync()) return false;
-    return image.lengthSync() >= minBytes;
-  }
-
-  /// Reads [image] and returns bytes ready for upload: downscaled to at most
-  /// [maxLongEdge] px on the long edge (PNG) when the file is large enough to
-  /// matter, or the original bytes unchanged when processing is unnecessary.
+  /// Reads [bytes] and returns a **quality-80 JPEG** downscaled to at most
+  /// [maxLongEdge] px on the long edge. Every upload runs through this, so the
+  /// stored object is always a JPEG regardless of the source format or size.
   ///
   /// Throws a [ValidationError]-shaped error for files the codec cannot
   /// decode (corrupt data or a non-image file).
-  static Future<Uint8List> compress(
-    File image, {
-    int maxLongEdge = defaultMaxLongEdge,
-  }) async {
-    final bytes = await image.readAsBytes();
-    return compressBytes(bytes, maxLongEdge: maxLongEdge);
-  }
-
-  /// Bytes-based variant of [compress] for callers that already hold the
-  /// payload (e.g. [MediaService]).
   static Future<Uint8List> compressBytes(
     Uint8List bytes, {
     int maxLongEdge = defaultMaxLongEdge,
   }) async {
-    if (bytes.length < skipThresholdBytes) {
-      // Below the threshold: cheap header-only validation, then pass the
-      // original through untouched.
-      await _validateHeader(bytes);
-      return bytes;
-    }
-    return _process(bytes, maxLongEdge);
-  }
-
-  static Future<void> _validateHeader(Uint8List bytes) async {
-    try {
-      final buffer = await ui.ImmutableBuffer.fromUint8List(bytes);
-      final descriptor = await ui.ImageDescriptor.encoded(buffer);
-      final ok = descriptor.width > 0 && descriptor.height > 0;
-      descriptor.dispose();
-      if (!ok) {
-        throw ValidationError('imagen', 'Imagen no válida o archivo corrupto');
-      }
-    } on ValidationError {
-      rethrow;
-    } catch (_) {
-      throw ValidationError('imagen', 'Imagen no válida o archivo corrupto');
-    }
-  }
-
-  static Future<Uint8List> _process(Uint8List bytes, int maxLongEdge) async {
     try {
       final buffer = await ui.ImmutableBuffer.fromUint8List(bytes);
       final descriptor = await ui.ImageDescriptor.encoded(buffer);
@@ -115,37 +73,35 @@ class ImageProcessor {
       }
 
       final longEdge = math.max(width, height);
-      if (longEdge <= maxLongEdge) {
-        // Dimensions already within the cap — pass the original through.
-        descriptor.dispose();
-        return bytes;
-      }
-
-      final scale = maxLongEdge / longEdge;
-      final targetWidth =
-          (width * scale).round().clamp(1, maxLongEdge).toInt();
-      final targetHeight =
-          (height * scale).round().clamp(1, maxLongEdge).toInt();
+      final scale = longEdge > maxLongEdge ? maxLongEdge / longEdge : 1.0;
+      final targetWidth = (width * scale).round().clamp(1, maxLongEdge);
+      final targetHeight = (height * scale).round().clamp(1, maxLongEdge);
 
       final codec = await descriptor.instantiateCodec(
         targetWidth: targetWidth,
         targetHeight: targetHeight,
       );
       final frame = await codec.getNextFrame();
-      final data = await frame.image.toByteData(
-        format: ui.ImageByteFormat.png,
+      final frameImage = frame.image;
+      final rgba = await frameImage.toByteData(
+        format: ui.ImageByteFormat.rawStraightRgba,
       );
-      frame.image.dispose();
+      frameImage.dispose();
       codec.dispose();
       descriptor.dispose();
 
-      if (data == null) {
-        throw StateError('PNG encode returned no bytes');
+      if (rgba == null) {
+        throw StateError('RGBA read returned no bytes');
       }
-      final processed = data.buffer.asUint8List();
-      // Safety: never *grow* a payload — return the original when the
-      // re-encode did not shrink it.
-      return processed.length < bytes.length ? processed : bytes;
+      return img.encodeJpg(
+        img.Image.fromBytes(
+          width: targetWidth,
+          height: targetHeight,
+          bytes: rgba.buffer,
+          numChannels: 4,
+        ),
+        quality: jpegQuality,
+      );
     } on ValidationError {
       rethrow;
     } catch (e) {

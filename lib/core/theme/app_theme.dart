@@ -86,9 +86,10 @@ class SamayTheme {
       // platform so the iPhone-17-Pro focus carries everywhere. The const
       // builders map keeps `SamayTheme.dark == SamayTheme.dark` (const
       // canonicalization → value equality, pinned by the equality test).
-      // ANIM-OFF (2026-08-14): the [StaticPageTransitionsBuilder] renders
-      // routes with NO transition when `disableAnimations` is set (the app
-      // forces it in `SamayApp`), keeping the Cupertino swipe otherwise.
+      // ANIM-ON (2026-09-03): [StaticPageTransitionsBuilder] renders routes
+      // with the Cupertino swipe, suppressed only under OS-level reduced
+      // motion (`disableAnimations` — the app-wide forced override was
+      // removed from `SamayApp`).
       pageTransitionsTheme: const PageTransitionsTheme(
         builders: {
           TargetPlatform.iOS: StaticPageTransitionsBuilder(),
@@ -230,9 +231,9 @@ class SamayTheme {
   }
 }
 
-/// ANIM-OFF (2026-08-14): page transition that renders routes STATICALLY
-/// when `disableAnimations` is set (the app forces it in `SamayApp`), and
-/// otherwise delegates to the Cupertino swipe (the LUXE v2 route gesture).
+/// Page transition that renders routes STATICALLY under OS-level reduced
+/// motion (`MediaQuery.disableAnimationsOf`) and otherwise delegates to the
+/// Cupertino swipe (the LUXE v2 route gesture).
 class StaticPageTransitionsBuilder extends PageTransitionsBuilder {
   const StaticPageTransitionsBuilder();
 

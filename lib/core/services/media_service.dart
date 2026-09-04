@@ -23,13 +23,14 @@ class MediaService {
   /// Uploads a group cover into the `groups` bucket and returns its public
   /// URL.
   ///
-  /// The payload is downscaled client-side first ([ImageProcessor.compress] —
-  /// finding PERF-03/M-36): full-resolution camera photos become 1920px PNGs,
-  /// slashing upload size. The stored object is always a PNG, so the storage
-  /// path uses the `.png` extension regardless of the source format.
+  /// The payload is downscaled + JPEG-encoded client-side first
+  /// ([ImageProcessor.compressBytes] — finding PERF-03/M-36): full-resolution
+  /// camera photos become 1920px quality-80 JPEGs, slashing upload size. The
+  /// stored object is always a JPEG, so the storage path uses the `.jpg`
+  /// extension regardless of the source format.
   Future<String> uploadGroupCover(Uint8List bytes) async {
     final processed = await ImageProcessor.compressBytes(bytes);
-    final path = 'group_covers/${DateTime.now().millisecondsSinceEpoch}.png';
+    final path = 'group_covers/${DateTime.now().millisecondsSinceEpoch}.jpg';
     await client.storage.from('groups').uploadBinary(path, processed);
     return client.storage.from('groups').getPublicUrl(path);
   }
@@ -37,8 +38,9 @@ class MediaService {
   /// Uploads an event cover into the public `groups` bucket and returns its
   /// public URL (ECRT step 2 — I-54; S-09 bucket bug fixed).
   ///
-  /// Mirrors [uploadGroupCover]: the payload is downscaled client-side first
-  /// ([ImageProcessor.compressBytes]) and the stored object is always a PNG.
+  /// Mirrors [uploadGroupCover]: the payload is downscaled + JPEG-encoded
+  /// client-side first ([ImageProcessor.compressBytes]) and the stored object
+  /// is always a JPEG.
   /// The ECRT spec's `events/{event_id}/cover` layout cannot be used from the
   /// creation form because `event_id` only exists after `createEvent` returns
   /// — the timestamped `event_covers/` layout is uploaded *before* the event
@@ -54,7 +56,7 @@ class MediaService {
   /// like [uploadGroupCover]'s.
   Future<String> uploadEventCover(Uint8List bytes) async {
     final processed = await ImageProcessor.compressBytes(bytes);
-    final path = 'event_covers/${DateTime.now().millisecondsSinceEpoch}.png';
+    final path = 'event_covers/${DateTime.now().millisecondsSinceEpoch}.jpg';
     await client.storage.from('groups').uploadBinary(path, processed);
     return client.storage.from('groups').getPublicUrl(path);
   }
@@ -62,37 +64,37 @@ class MediaService {
   /// Uploads the current user's avatar into the `avatars` bucket and returns
   /// its public URL (PRFL avatar-upload gap — I-36).
   ///
-  /// Mirrors [uploadGroupCover]: the payload is downscaled client-side first
-  /// ([ImageProcessor.compressBytes]), the stored object is always a PNG, and
-  /// the path is namespaced per user so one bucket serves every avatar
-  /// (`<userId>/<timestamp>.png`). The path is relative to the bucket — no
-  /// `avatars/` prefix — because the storage RLS INSERT policy
+  /// Mirrors [uploadGroupCover]: the payload is downscaled + JPEG-encoded
+  /// client-side first ([ImageProcessor.compressBytes]), the stored object is
+  /// always a JPEG, and the path is namespaced per user so one bucket serves
+  /// every avatar (`<userId>/<timestamp>.jpg`). The path is relative to the
+  /// bucket — no `avatars/` prefix — because the storage RLS INSERT policy
   /// (`storage_objects_insert_own`, migration 20260810000007) requires the
   /// first path segment to equal `auth.jwt()->>'sub'`. Requires the `avatars`
   /// storage bucket to exist (creation is out of scope for the app layer —
   /// see the I-36 daily log).
   Future<String> uploadUserAvatar(String userId, Uint8List bytes) async {
     final processed = await ImageProcessor.compressBytes(bytes);
-    final path = '$userId/${DateTime.now().millisecondsSinceEpoch}.png';
+    final path = '$userId/${DateTime.now().millisecondsSinceEpoch}.jpg';
     await client.storage.from('avatars').uploadBinary(path, processed);
     return client.storage.from('avatars').getPublicUrl(path);
   }
 
   /// Uploads an event photo payload into the `events` bucket at
-  /// `{eventId}/photos/{uuid}.png` and records the `event_photos` row (PHUP —
+  /// `{eventId}/photos/{uuid}.jpg` and records the `event_photos` row (PHUP —
   /// I-59).
   ///
   /// This is the bytes variant the image_picker + [ImageProcessor] pipeline
-  /// feeds (I-22): the payload is downscaled client-side first, so the stored
-  /// object is always a PNG like every other MediaService upload. Requires
-  /// the `events` storage bucket + the `event_photos` INSERT policy
-  /// (`eph_insert_own`) to exist.
+  /// feeds (I-22): the payload is downscaled + JPEG-encoded client-side first,
+  /// so the stored object is always a JPEG like every other MediaService
+  /// upload. Requires the `events` storage bucket + the `event_photos` INSERT
+  /// policy (`eph_insert_own`) to exist.
   Future<void> uploadEventPhotoBytes(String eventId, Uint8List bytes) async {
     final user = auth.currentUser;
     if (user == null) throw const UnauthorizedError();
 
     final processed = await ImageProcessor.compressBytes(bytes);
-    final storagePath = '$eventId/photos/${const Uuid().v4()}.png';
+    final storagePath = '$eventId/photos/${const Uuid().v4()}.jpg';
 
     await client.storage.from('events').uploadBinary(storagePath, processed);
     await client.from('event_photos').insert({

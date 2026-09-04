@@ -4,7 +4,6 @@ import 'package:samay/core/models/event_photo.dart';
 import 'package:samay/core/providers/service_providers.dart';
 import 'package:samay/core/services/event_service.dart';
 import 'package:samay/core/services/media_service.dart';
-import 'package:samay/core/utils/image_processor.dart';
 
 /// `app_config` key for the post-event photo upload window (PHUP spec —
 /// seeded as `24` in seed.sql).
@@ -188,10 +187,10 @@ class PhotoUploadState {
   bool get isUploading => status == PhotoUploadStatus.uploading;
 }
 
-/// One-shot upload action (PHUP — I-59): compress (I-22) → bytes upload →
-/// reload the gallery. The picker + permission layer stays in the screen;
-/// this provider owns the pipeline so the flow is testable without the
-/// image_picker plugin.
+/// One-shot upload action (PHUP — I-59): feed raw picked bytes to the
+/// MediaService upload (which downscales + JPEG-encodes) → reload the gallery.
+/// The picker + permission layer stays in the screen; this provider owns the
+/// pipeline so the flow is testable without the image_picker plugin.
 class PhotoUploadNotifier extends AsyncNotifier<PhotoUploadState> {
   @override
   Future<PhotoUploadState> build() async => const PhotoUploadState.idle();
@@ -200,10 +199,9 @@ class PhotoUploadNotifier extends AsyncNotifier<PhotoUploadState> {
     state = const AsyncData(PhotoUploadState.uploading());
     try {
       final bytes = await file.readAsBytes();
-      final processed = await ImageProcessor.compressBytes(bytes);
-      await ref
-          .read(mediaServiceProvider)
-          .uploadEventPhotoBytes(eventId, processed);
+      // [MediaService.uploadEventPhotoBytes] owns the client-side downscale +
+      // JPEG re-encode; the provider only feeds it raw picked bytes.
+      await ref.read(mediaServiceProvider).uploadEventPhotoBytes(eventId, bytes);
       state = const AsyncData(PhotoUploadState.uploaded());
       ref.invalidate(eventPhotosProvider(eventId));
     } catch (e, st) {

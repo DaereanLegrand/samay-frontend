@@ -42,52 +42,47 @@ class SamayApp extends ConsumerWidget {
       // EINV (I-66): the deep-link listener mounts below Localizations (so
       // its snackbar copy resolves) but above the Navigator. Inert when
       // deepLinkStreamProvider is null (default — tests).
-      // ANIM-OFF (2026-08-14): ALL animations are deactivated app-wide —
-      // the MediaQuery override below propagates `disableAnimations: true`
-      // to every route/screen, which every motion widget honors
-      // (`MediaQuery.disableAnimationsOf` → static; zero-duration implicit
-      // animations; static spinners; static page transitions).
+      // ANIM-ON (2026-09-03): the forced `disableAnimations: true` override
+      // (ANIM-OFF 2026-08-14) is REMOVED — animations run and honor the
+      // OS-level reduced-motion preference via `MediaQuery.disableAnimationsOf`
+      // per widget.
       builder: (context, child) {
         final mediaQuery = MediaQuery.of(context);
-        return MediaQuery(
-          data: mediaQuery.copyWith(disableAnimations: true),
-          child: Stack(
-            children: [
-              // Main content fills the screen — no margin push from banners.
-              Positioned.fill(
-                child: Stack(children: [?child, const DeepLinkListener()]),
-              ),
-              // LOGOUT FLUSH (2026-08-14): mounted above the Navigator so
-              // the auth screens are covered too — on logout every
-              // user-scoped provider is invalidated (no stale data survives
-              // an account switch in the same session).
-              const AuthScopeReset(),
-              // FRIENDS CACHE (2026-08-29): fetches the friend list in the
-              // background on auth and persists it to the device DB so the
-              // invite/buscar pickers render friends for empty + <5-char
-              // queries with zero network I/O.
-              const FriendsCacheWarmer(),
-              // I-67: the connectivity banner overlays the top of the screen.
-              const Positioned(
-                top: 0,
+        return Stack(
+          children: [
+            // Main content fills the screen — no margin push from banners.
+            Positioned.fill(
+              child: Stack(children: [?child, const DeepLinkListener()]),
+            ),
+            // LOGOUT FLUSH (2026-08-14): mounted above the Navigator so
+            // the auth screens are covered too — on logout every
+            // user-scoped provider is invalidated (no stale data survives
+            // an account switch in the same session).
+            const AuthScopeReset(),
+            // FRIENDS CACHE (2026-08-29): fetches the friend list in the
+            // background on auth and persists it to the device DB so the
+            // invite/buscar pickers render friends for empty + <5-char
+            // queries with zero network I/O.
+            const FriendsCacheWarmer(),
+            // I-67: the connectivity banner overlays the top of the screen.
+            const Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              child: ConnectivityBanner(),
+            ),
+            // LOG-03: the recovery banner sits above the bottom nav bar,
+            // fully reachable regardless of the OS status bar or Dynamic
+            // Island. Positioned with safe-area inset so it never hides
+            // behind the gesture bar on iOS/home-indicator devices.
+            if (recoveredFromCrash)
+              Positioned(
+                bottom: kBottomNavigationBarHeight + mediaQuery.padding.bottom,
                 left: 0,
                 right: 0,
-                child: ConnectivityBanner(),
+                child: const CrashRecoveryBanner(visible: true),
               ),
-              // LOG-03: the recovery banner sits above the bottom nav bar,
-              // fully reachable regardless of the OS status bar or Dynamic
-              // Island. Positioned with safe-area inset so it never hides
-              // behind the gesture bar on iOS/home-indicator devices.
-              if (recoveredFromCrash)
-                Positioned(
-                  bottom:
-                      kBottomNavigationBarHeight + mediaQuery.padding.bottom,
-                  left: 0,
-                  right: 0,
-                  child: const CrashRecoveryBanner(visible: true),
-                ),
-            ],
-          ),
+          ],
         );
       },
       routerConfig: router,
