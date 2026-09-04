@@ -254,3 +254,219 @@ the non-single variant — the single mixin asserts on the SECOND `createTicker`
 ```bash
 dart analyze lib   # No issues found
 ```
+
+---
+
+## Follow-up: every-device rising-reaction animation in the answer card
+
+Follow-up to the tap burst (2026-09-03, same session): the "on every single
+device participant screen, each reaction appears in the ANSWER CONTAINER moving
+bottom → top" animation. Independent of the deck-slot burst — different
+container, different mechanism; they merely coincide in time on the tapper's
+device.
+
+### What was built
+
+- `_ReactionRiseCanvas` (truth_dare_screen.dart): wraps the by_turns answer
+  card (`buildAnswerCard()` — every card variant: reactor `_WaitingCard`,
+  subject `_SubjectWaitingCard`, both caption layouts) as the rise stage. A
+  `Stack[child, Positioned.fill(IgnorePointer(ClipRect(LayoutBuilder)))]`
+  overlays rising emoji particles clipped to the card — nothing escapes into
+  the list below/above, and the card's own surface/hairline border is not
+  clipped (the `ClipRect` wraps only the overlay).
+- **Diff-driven, no backend change**: each device already receives the full
+  ordered reaction list on the game-state realtime channel
+  (`state.reactions[subjectId]`, server-ordered by `created_at`). The canvas
+  diffs the list between rebuilds under the identity `round`:
+  - a glyph at a brand-new index (a reaction just landed) → spawn a rise;
+  - a CHANGED glyph at an existing index (a re-tap UPSERT replaces the voter's
+    emoji in place — `created_at` unchanged) → spawn the new glyph's rise;
+  - the FIRST sighting of a window (or after a round advance resets
+    `_lastIdentity`) seeds the baseline SILENTLY — a late joiner mid-window
+    never replays the reactions that already landed.
+- `_RisingReactionParticle`: one emoji per reaction event. Starts fully hidden
+  just below the card's bottom edge (`top = height + 4`), floats straight up
+  the full card height, exits fully hidden just above the top edge
+  (`top = -(fontSize + 4)`), `SamayDurations.defaultCurve`. Per user spec it
+  carries a slight random horizontal position (12–88% of card width) and a
+  0–320 ms random stagger; a fade-in/fade-out envelope (18/64/18) blurs the
+  enter/exit. One-shot, 1.6 s. Reduced motion never creates a particle (the
+  canvas gate skips spawns).
+- New duration token `SamayDurations.reactionFloat` (1600 ms).
+- Reuses `_ReactionEmoji` so the monochrome-Inter heart stays red in flight.
+
+### Decisions
+
+- Scope = by_turns answer cards ONLY. The async reactable tiles carry no live
+  tally today and their mirror is SUBJECT-keyed (not per-round), so multi-round
+  async answers from one subject would animate the wrong window; extending the
+  mirror key is a prerequisite for async. Documented on the canvas.
+- Rises ride the realtime echo rather than a separate event stream (no new
+  table/column/channel). The tap-time local burst stays as-is per user
+  ("completely different and independent … just so happen to happen at the
+  same time").
+- Identity = `round` (single window per round; the round's subject can't
+  change mid-round). Diff by index, not by content-set, so re-taps (in-place
+  UPSERT) animate the replacement glyph and the ordered list stays truthful.
+
+### Commands run
+
+```bash
+dart analyze lib   # No issues found
+```
+
+Note: the project is NOT formatted to this Dart 3.12 formatter's defaults — an
+unrelated `dart format` pass rewrote pre-existing chains (headlineSmall etc.);
+those hunks were reverted manually to keep the diff minimal.
+
+---
+
+## Follow-up: per-tap reaction event — every tap animates on every device
+
+Supersedes the diff-driven canvas above (which only animated when the tally
+mirror CONTENT changed). User requirement refined: the rise "must happen each
+time the user taps" AND "users can also react with the same one more than one
+time" — i.e. a SAME-EMOJI re-tap must be visible on every device — "well no
+spam, like maybe some limits".
+
+### The problem (validated)
+
+A same-emoji re-tap UPSERTs the voter's row in place (`ON CONFLICT DO UPDATE`
+keeps `created_at`), so `state.reactions` is byte-identical to the previous
+tap. The diff-driven client could not distinguish "reacted the same emoji
+again" from "nothing" — remote devices never saw the re-tap rise.
+
+### What was built — backend (migration 207, TDD)
+
+`supabase/migrations/207_minigame_reaction_event/reaction_event.sql` (+
+byte-identical `supabase-testing/` mirror) CREATE OR REPLACEs the two reaction
+write RPCs (`submit_minigame_reaction`, `react_minigame_round`) to fold two
+new fields into the SAME atomic mirror UPDATE (one realtime emission):
+
+- `state.reactions_seq` — session-global monotonic bigint, bumped +1 on EVERY
+  write (inline `COALESCE((state->>'reactions_seq')::bigint,0)+1` computed
+  against the pre-UPDATE row). NEVER reset on advance (round identity rides
+  the event's own `round`).
+- `state.reactions_event` — jsonb `{seq, round, reaction, voter_id}`; the
+  exact tapped emoji per tap (NULL reaction = reactor Pasar, no rise).
+
+Tests (2 layers per budget): 8 pgTAP assertions in Section 49r
+(`supabase/tests/schema_test.sql` plan 921→929) + `test/opt-023-minigame-
+reaction-event.sh` (by_turns same-emoji re-tap seq 1→2→3, seq preserved on
+auto-advance, async `react_minigame_round` event carries the target round,
+Pasar → reaction null). Auto-discovered by `run_all_backend.sh` (no
+registration needed).
+
+### What was built — client
+
+- `ReactionEvent` model + `reactionsSeq`/`reactionEvent` on `GameTurnSkeleton`
+  (minigame_engine.dart); `hasEmoji` false for a Pasar.
+- `SamayDurations.reactionTapCooldown` (350 ms) — the per-device spam limit.
+- `_ReactionRiseCanvas` (truth_dare_screen.dart) is now EVENT-driven:
+  - baselines `seq` on first sight of a round AND on every round change (a
+    late joiner never replays history; the session-global counter means the
+    round-change reset is the only place a stale high seq is skipped);
+  - on a row with `seq` > applied AND an event whose `round` == the shown
+    round → spawn the event's emoji. Works for same-emoji re-taps (identical
+    mirror, new seq) and emoji changes alike.
+  - the voter's OWN echo is deduped (`voter_id == me` → no remote rise; the
+    instant local rise already played).
+- Per-session local-rise bus `_localRiseProvider` (NotifierProvider.family):
+  the by_turns `_ReactionRow` deck calls `reserveTap()` (cooldown gate — a tap
+  inside 350 ms is swallowed: no RPC + no rise) then `emit(kind)` for an
+  accepted emoji tap; the canvas consumes it and floats the emoji up the
+  tapper's OWN card INSTANTLY (no realtime round-trip). Pasar emits nothing.
+
+### Decisions
+
+- User chose: tapper gets INSTANT local feedback every accepted tap; every
+  device animates remote taps via the seq event. A backend seq/event was
+  REQUIRED for same-emoji re-taps to be visible on other devices — client-only
+  diffing cannot express it. Scope stays by_turns answer cards (async tiles'
+  mirror is not per-round).
+- Cooldown (350 ms) at the DECK, not the canvas: rapid fire is bounded at the
+  source; deliberate alternating taps each fire. The deck burst is untouched
+  (independent container).
+- `seq` compared, not timestamps: the server serializes writes so seq ordering
+  is exact even for same-millisecond taps.
+- Inline counter (two nested `jsonb_set` reads of the old row) instead of a
+  PL/pgSQL variable: Postgres evaluates the whole UPDATE RHS against the
+  pre-UPDATE snapshot, so `reactions_seq` and `event.seq` are provably the
+  same +1 and the RPC body keeps its exact 204 gates.
+
+### MISTAKE block
+
+**MISTAKE: swallowing the first realtime event as a "late join".** My first
+canvas draft baselined `_lastSeq` only when the first EVENT arrived, which
+silently ate the very first reaction of a window. Fixed: baseline from the
+row's CURRENT `reactions_seq` on first build / round change (`round !=
+_lastRound`), and only diff strictly-greater seqs afterwards.
+
+### Commands run
+
+```bash
+dart analyze lib                                   # No issues found
+bash test/opt-005-seeds-static.sh                  # 45 checks pass
+bash tools/check_migrations.sh                     # parity/layout pass; 1 failure = UNTRACKED migrations (must be committed before apply — inherent contract)
+diff -rq supabase/migrations supabase-testing/migrations   # byte-identical
+bash test/opt-007-compose-static.sh                # migration parity pass; SERVICE_KEY drift is the pre-existing local-.env baseline
+```
+
+---
+
+## Follow-up: bigger swaying rise + emoji ↔ Pasar exclusivity (2026-09-04)
+
+### 1. Rise particle: bigger + random-frequency/amplitude wobble
+
+- `_RisingReactionParticle` (truth_dare_screen.dart) renders the emoji at
+  **44 px** (was 28 — clearly larger than the deck's ~24 px tiles).
+- Horizontal sway is now a **random sinusoid** per particle: `_wobbleCycles` =
+  1.5–3.5 full cycles over the rise (random frequency) and `_wobbleAmplitude` =
+  6–18 px (random amplitude), both drawn once in `initState`. The rise lane
+  `_dx` stays random, plus the 0–320 ms stagger, so a burst looks organic.
+  `Offset(_sway(t), _top.value)` composes the drift with the rise.
+
+### 2. Emoji ↔ Pasar exclusivity (user: "if reacting has chosen emoji then
+can't choose Pasar and vice versa")
+
+- **Server (migration 207, both RPCs)**: before the upsert, each reaction write
+  reads the caller's existing row for the target round. `p_reaction='pasar'`
+  when the voter already emoji-reacted → `already_reacted`; an emoji when the
+  voter already passed → `already_passed`. **Emoji → emoji re-votes remain
+  allowed** (upsert replaces) — the lock is cross-mode only. The mirror also
+  gains `state.reactions.<subject>.voters` (`jsonb_object_agg(voter_id::text,
+  reaction)`, null = pass) so clients can render the exclusivity.
+- **Client (by_turns `_ReactionRow`)**: computes `myEmojiReacted`/`myPassed`
+  from the new `reactionVoters` map (`GameTurnSkeleton.votersFor/hasVoterEmoji-
+  Reacted/hasVoterPassed`). Once the caller passed, every emoji tile is
+  **greyed out (0.35 opacity) and inert** (`_ReactionDeckButton.disabled` — no
+  press/burst/rise); once the caller emoji-reacted, the **Pasar button is
+  disabled**. Async reactable tiles stay server-enforced only (the async mirror
+  is subject-keyed, so a per-round grey-out would be ambiguous for multi-round
+  subjects).
+- New client error mappings for `already_reacted`/`already_passed` in both
+  service methods (ConflictError snackbar).
+- Tests: 5 new pgTAP assertions (Section 49r; plan 929→934) + opt-023 reworked
+  TEST C (emoji-voter's Pasar rejected `already_reacted`, emoji→emoji still
+  advances seq) and new TEST E (passer's emoji rejected `already_passed`, the
+  `voters` mirror carries the passer as null).
+
+### Decisions
+
+- Cross-mode-only lock, not full lock: the user can still change their mind
+  WITHIN a mode (emoji→emoji), which the upsert always supported; only the
+  emoji↔pass boundary is exclusive.
+- `voters` rides the existing mirror (no new table/channel); json null is the
+  pass marker (mirrors the `minigame_reactions.reaction` NULL from 204).
+- Grey-out is server-truth driven (not a local flag) so every device converges;
+  a mid-flight cross-mode tap is additionally rejected by the RPC.
+
+### Commands run
+
+```bash
+dart analyze lib                                   # No issues found
+bash -n test/opt-020-minigame-voting.sh test/opt-021-minigame-play-v2.sh test/opt-023-minigame-reaction-event.sh   # syntax OK
+diff -rq supabase/migrations supabase-testing/migrations   # byte-identical
+diff supabase/tests/schema_test.sql supabase-testing/tests/schema_test.sql   # byte-identical
+bash tools/check_migrations.sh                     # parity/layout pass (UNTRACKED = commit-first contract)
+```

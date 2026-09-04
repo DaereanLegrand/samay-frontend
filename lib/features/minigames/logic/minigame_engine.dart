@@ -215,6 +215,66 @@ ReactionKind? reactionKindFromWire(String? value) {
   };
 }
 
+/// A voter's committed action on a round (207 per-voter `voters` mirror map):
+/// either a specific [kind] emoji or the reactor [pass].
+///
+/// Emoji ↔ Pasar exclusivity (2026-09-04): once a voter has acted they cannot
+/// switch to the OTHER mode — the server rejects the cross-mode tap and the
+/// UI greys out the unavailable mode. Emoji → emoji re-votes stay allowed.
+class ReactionVote {
+  const ReactionVote(this.kind);
+
+  /// The voter's emoji. [ReactionKind.pass] marks the reactor-Pasar sentinel
+  /// (the mirror stores a NULL reaction for a pass).
+  final ReactionKind kind;
+
+  /// The voter PASSED (mirror value null).
+  static const ReactionVote pass = ReactionVote(ReactionKind.pass);
+
+  bool get isPass => kind == ReactionKind.pass;
+
+  ReactionKind get emojiKind => kind;
+}
+
+/// One per-tap reaction EVENT (207_minigame_reaction_event, 2026-09-03):
+/// the last reaction write the server recorded against a session, streamed on
+/// the game-state realtime row as `state.reactions_event`
+/// `{"seq": N, "round": R, "reaction": "<emoji wire>", "voter_id": "<uuid>"}`.
+///
+/// The [seq] is a SESSION-GLOBAL monotonic counter (never reset on round
+/// advance), so two events compare by seq; the [round] tells a consumer
+/// whether the event belongs to the window it is showing (a round advance
+/// leaves a stale last event behind — its round no longer matches). A
+/// reactor Pasar records [kind] = [ReactionKind.pass] (the wire `reaction`
+/// is NULL) — the UI renders no rise for a pass.
+class ReactionEvent {
+  const ReactionEvent({
+    required this.seq,
+    required this.round,
+    required this.kind,
+    required this.voterId,
+  });
+
+  final int seq;
+  final int round;
+  final ReactionKind kind;
+  final String voterId;
+
+  /// Whether this event carries an actual emoji (a Pasar does not).
+  bool get hasEmoji => kind != ReactionKind.pass;
+
+  /// Tolerant parse of a `state.reactions_event` json object (null when the
+  /// payload is absent / malformed).
+  factory ReactionEvent.fromJson(Map<String, dynamic> json) {
+    return ReactionEvent(
+      seq: json['seq'] is num ? (json['seq'] as num).toInt() : 0,
+      round: json['round'] is num ? (json['round'] as num).toInt() : 0,
+      kind: reactionKindFromWire(json['reaction'] as String?) ?? ReactionKind.pass,
+      voterId: json['voter_id'] as String? ?? '',
+    );
+  }
+}
+
 /// The score a subject earns for a round with [reactionCount] emoji
 /// reactions — +1 per emoji, and -1 when they received NONE (the no-
 /// reactions penalty, 201 product contract). The reactor-side Pasar (-0.5
@@ -280,6 +340,7 @@ class GameTurnSkeleton {
     this.reactions = const {},
     this.reactionCounts = const {},
     this.reactionPassCounts = const {},
+    this.reactionVoters = const {},
     this.prizePositions = kDefaultPrizePositions,
     this.nextSubjectId,
     this.promptType,
@@ -292,6 +353,8 @@ class GameTurnSkeleton {
     this.answers = const [],
     this.answer,
     this.keyRequests = const {},
+    this.reactionsSeq = 0,
+    this.reactionEvent,
   });
 
   final int judgeIndex;
@@ -364,6 +427,12 @@ class GameTurnSkeleton {
   /// mirror's `pass` key (204_minigame_pasar; absent/legacy payloads → 0).
   final Map<String, int> reactionPassCounts;
 
+  /// The per-voter action on the CURRENT round, mirror-read
+  /// `{subject_id: {voter_id: <emoji wire> | null}}` (207 — null = the voter
+  /// PASSED). Lets a client grey out the OTHER mode on its own deck once it
+  /// has acted (emoji ↔ Pasar exclusivity, 2026-09-04). Keyed by subject id.
+  final Map<String, Map<String, ReactionVote>> reactionVoters;
+
   /// The distinct-voter reaction count for [subjectId], or null when the
   /// subject has no tally in the current turn.
   int? reactionCount(String subjectId) => reactionCounts[subjectId];
@@ -372,9 +441,44 @@ class GameTurnSkeleton {
   /// `pass` key / the subject has no tally — a legacy payload).
   int reactionPassCount(String subjectId) => reactionPassCounts[subjectId] ?? 0;
 
+  /// The per-voter committed actions on the current round for [subjectId]
+  /// (empty when the mirror carries no `voters` map — a legacy payload or a
+  /// round with no actions yet).
+  Map<String, ReactionVote> votersFor(String subjectId) =>
+      reactionVoters[subjectId] ?? const {};
+
+  /// Whether [voterId] has already emoji-reacted on the current round for
+  /// [subjectId] (the emoji ↔ Pasar exclusivity helper — the deck disables
+  /// Pasar for this voter once true).
+  bool hasVoterEmojiReacted(String subjectId, String voterId) {
+    final vote = votersFor(subjectId)[voterId];
+    return vote != null && !vote.isPass;
+  }
+
+  /// Whether [voterId] has already PASSED on the current round for
+  /// [subjectId] (the deck disables every emoji tile for this voter once
+  /// true).
+  bool hasVoterPassed(String subjectId, String voterId) {
+    final vote = votersFor(subjectId)[voterId];
+    return vote != null && vote.isPass;
+  }
+
   /// The number of paid prize positions N (201_minigame_voting). Defaults to
   /// [kDefaultPrizePositions].
   final int prizePositions;
+
+  /// The per-session monotonic reaction-write counter (207_minigame_reaction_event).
+  /// Bumped by 1 on EVERY reaction write — including a same-emoji re-tap whose
+  /// [reactions] mirror stays byte-identical — so clients can tell "tapped
+  /// again" from "nothing" by comparing seq between realtime rows. Session-
+  /// global: never reset on round advance (the [reactionEvent]'s own round
+  /// disambiguates which window an event belongs to).
+  final int reactionsSeq;
+
+  /// The LAST reaction event the server recorded (207_minigame_reaction_event),
+  /// null when none has happened yet in this session / the payload predates
+  /// the migration.
+  final ReactionEvent? reactionEvent;
 
   /// The server-drawn player whose turn comes after the current one
   /// (authoritative — the "Siguiente: {name}" indicator).
@@ -405,6 +509,7 @@ class GameTurnSkeleton {
       reactions: _parseReactions(json['reactions']),
       reactionCounts: _parseReactionCounts(json['reactions']),
       reactionPassCounts: _parseReactionPassCounts(json['reactions']),
+      reactionVoters: _parseReactionVoters(json['reactions']),
       prizePositions: _asInt(json['prize_positions']) > 0
           ? _asInt(json['prize_positions'])
           : kDefaultPrizePositions,
@@ -427,6 +532,12 @@ class GameTurnSkeleton {
             )
           : null,
       keyRequests: _parseKeyRequests(json['key_requests']),
+      reactionsSeq: _asInt(json['reactions_seq']),
+      reactionEvent: json['reactions_event'] is Map
+          ? ReactionEvent.fromJson(
+              Map<String, dynamic>.from(json['reactions_event'] as Map),
+            )
+          : null,
     );
   }
 
@@ -522,6 +633,40 @@ class GameTurnSkeleton {
       }
     }
     return result;
+  }
+
+  /// Parses the per-voter action map from the mirror shape
+  /// `{subject_id: {"voters": {voter_id: <emoji wire> | null}}}` (207).
+  /// Tolerant — absent `voters` keys / legacy payloads yield no entries. A
+  /// null action value (the JSON pass marker) becomes [ReactionVote.pass].
+  static Map<String, Map<String, ReactionVote>> _parseReactionVoters(
+    Object? value,
+  ) {
+    if (value is! Map) return const {};
+    final result = <String, Map<String, ReactionVote>>{};
+    for (final entry in value.entries) {
+      final raw = entry.value;
+      if (raw is! Map) continue;
+      final voters = raw['voters'];
+      if (voters is! Map) continue;
+      final perVoter = <String, ReactionVote>{};
+      for (final v in voters.entries) {
+        final vote = _voteFromWire(v.value);
+        if (vote != null && v.key is String) {
+          perVoter[v.key.toString()] = vote;
+        }
+      }
+      result[entry.key.toString()] = perVoter;
+    }
+    return result;
+  }
+
+  static ReactionVote? _voteFromWire(Object? value) {
+    // null value = the reactor Pasar marker (a NULL reaction row, 204).
+    if (value == null) return ReactionVote.pass;
+    final kind = reactionKindFromWire(value is String ? value : null);
+    if (kind == null || kind == ReactionKind.pass) return null;
+    return ReactionVote(kind);
   }
 
   /// Coerces a json value (int, double or numeric string) into an int,

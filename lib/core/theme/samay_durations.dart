@@ -43,4 +43,16 @@ class SamayDurations {
 
   /// [VThinkingDots] per-dot pulse period (up-down alternate, staggered).
   static const thinkingDot = Duration(milliseconds: 900);
+
+  /// Minigame reaction rise (realtime echo): an incoming reaction emoji
+  /// floats bottom → top across the by_turns answer card — fully hidden
+  /// below the card's bottom edge to fully hidden above its top edge,
+  /// clipped to the card. One-shot, ~1.6 s (user spec).
+  static const reactionFloat = Duration(milliseconds: 1600);
+
+  /// Minigame reaction-tap cooldown: the minimum gap between two reaction
+  /// taps on ONE device. A tap within this window of the previous is
+  /// swallowed (no RPC, no rise) — the per-device spam guard for "same emoji
+  /// can be re-tapped" (deliberate taps after the window each animate).
+  static const reactionTapCooldown = Duration(milliseconds: 350);
 }

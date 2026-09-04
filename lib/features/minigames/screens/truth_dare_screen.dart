@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'dart:io';
+import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
@@ -251,7 +253,14 @@ class TruthDareScreen extends ConsumerWidget {
                 if (skeleton.playMode == MinigamePlayMode.async)
                   _AsyncPanel(sessionId: sessionId, state: state)
                 else
-                  buildAnswerCard(),
+                  // The by_turns answer card doubles as the reaction-rise
+                  // stage (the current round's live window, watched by every
+                  // participant): incoming reaction emojis float bottom → top
+                  // across it, clipped to its edges.
+                  _ReactionRiseCanvas(
+                    sessionId: sessionId,
+                    child: buildAnswerCard(),
+                  ),
                 // The reaction row renders ONLY when the current round is
                 // reactable (202 answer-first): the subject answered, the
                 // caller is not the subject, phase is playing. Never a
@@ -1379,7 +1388,8 @@ class _AsyncPanel extends ConsumerWidget {
   }
 }
 
-/// The emoji glyph for a [ReactionKind] reaction tile (deck + bursts).
+/// The emoji glyph for a [ReactionKind] reaction tile (deck + bursts + the
+/// reaction-rise particles).
 ///
 /// The heart (`❤️`, U+2764 U+FE0F) is special-cased: the app's Inter font
 /// ships a MONOCHROME U+2764 glyph, so Flutter paints the character with the
@@ -1407,6 +1417,344 @@ class _ReactionEmoji extends StatelessWidget {
   }
 }
 
+/// A single request to float [kind] up the answer card INSTANTLY: emitted by
+/// the by_turns reaction deck (rendered BELOW the card) and consumed by the
+/// rise canvas (wrapping the card ABOVE). [token] increments on every accepted
+/// tap so a consumer sees a NEW request even when the same emoji is tapped
+/// twice in a row.
+class _LocalRiseRequest {
+  const _LocalRiseRequest({required this.token, required this.kind});
+
+  final int token;
+  final ReactionKind kind;
+}
+
+/// Per-session local-rise bus + by_turns per-device tap gate.
+///
+/// * [reserveTap] — the cooldown guard: true when a tap may fire (a tap inside
+///   [SamayDurations.reactionTapCooldown] of the previous is swallowed spam —
+///   no RPC + no rise). The timestamp lives in the notifier so rapid taps
+///   across deck rebuilds share ONE per-session clock.
+/// * [emit] — fires an instant local rise request for the tapped emoji (the
+///   deck writes it, the canvas reads it).
+class _LocalRiseNotifier extends FamilyNotifier<_LocalRiseRequest?, String> {
+  int _token = 0;
+  DateTime? _lastTapAt;
+
+  @override
+  _LocalRiseRequest? build(String sessionId) => null;
+
+  bool reserveTap() {
+    final now = DateTime.now();
+    final last = _lastTapAt;
+    if (last != null &&
+        now.difference(last) < SamayDurations.reactionTapCooldown) {
+      return false;
+    }
+    _lastTapAt = now;
+    return true;
+  }
+
+  void emit(ReactionKind kind) {
+    state = _LocalRiseRequest(token: ++_token, kind: kind);
+  }
+}
+
+/// The per-session local-rise bus (deck → answer-card canvas).
+final _localRiseProvider =
+    NotifierProvider.family<_LocalRiseNotifier, _LocalRiseRequest?, String>(
+      _LocalRiseNotifier.new,
+    );
+
+/// Wraps the by_turns answer card as the reaction-rise stage: a reaction emoji
+/// floats bottom → top ACROSS the card, fully hidden just below its bottom
+/// edge to fully hidden just above its top edge, clipped to the card (202
+/// answer-first — the round's live window that every participant watches on
+/// their own device).
+///
+/// The rise plays through TWO independent channels:
+///
+/// * INSTANT (the tapper's own device): tapping an emoji on the reaction deck
+///   (below the card) emits a local rise via [_localRiseProvider]; the canvas
+///   consumes it and floats the emoji up the tapper's OWN card immediately,
+///   with no realtime round-trip. Spam is bounded per device by
+///   [_LocalRiseNotifier.reserveTap]'s cooldown — deliberate re-taps of the
+///   SAME emoji after the window each animate again.
+/// * REALTIME (every device): the server records each tap as a reaction EVENT
+///   (`state.reactions_event` {seq, round, reaction, voter_id}, 207) on the
+///   existing game-state UPDATE. When the event's seq is newer than the last
+///   applied one AND its round matches the window shown, the tapped emoji
+///   rises — INCLUDING a same-emoji re-tap whose tally mirror is byte-identical
+///   (the exact case the seq exists to signal). The tapper's OWN echo is
+///   deduped (its instant local rise already played); other voters' events
+///   always rise.
+///
+/// Independent of the deck-slot tap burst (a different container + mechanism
+/// — they merely coincide in time). Reduced motion never spawns a particle.
+/// Async reactable tiles carry no per-round mirror, so they stay out of scope.
+class _ReactionRiseCanvas extends ConsumerStatefulWidget {
+  const _ReactionRiseCanvas({required this.sessionId, required this.child});
+
+  final String sessionId;
+  final Widget child;
+
+  @override
+  ConsumerState<_ReactionRiseCanvas> createState() =>
+      _ReactionRiseCanvasState();
+}
+
+class _ReactionRiseCanvasState extends ConsumerState<_ReactionRiseCanvas> {
+  /// The in-flight rising particles (ids grow monotonically so a particle is
+  /// never recycled while still animating).
+  final List<_RiseSpec> _active = [];
+  int _nextId = 0;
+
+  /// The highest reaction-event seq this canvas has applied. Baselines from
+  /// the row's seq on the FIRST sight of a round (null sentinel) and on every
+  /// round change — a late joiner never replays events that landed before its
+  /// device opened the window, and events never cross a round boundary.
+  int? _lastSeq;
+
+  /// The round the canvas is currently showing.
+  int? _lastRound;
+
+  @override
+  Widget build(BuildContext context) {
+    final state = ref.watch(minigameGameStateProvider(widget.sessionId));
+    final myId = ref.watch(authStateProvider).valueOrNull?.user?['id'];
+    final skeleton = state.valueOrNull?.skeleton;
+    final reduced = MediaQuery.disableAnimationsOf(context);
+
+    // Instant local rises: consume deck taps (below the card) as they fire.
+    // The cooldown already ran in the deck; every EMITTED request here is an
+    // accepted tap that must float immediately.
+    ref.listen<_LocalRiseRequest?>(
+      _localRiseProvider(widget.sessionId),
+      (prev, next) {
+        if (next == null || identical(prev, next)) return;
+        if (reduced || !mounted) return;
+        setState(() => _spawn(next.kind));
+      },
+    );
+
+    final round = skeleton?.round;
+    final seq = skeleton?.reactionsSeq ?? 0;
+
+    if (round != _lastRound) {
+      // First build of a round (null sentinel) or a round advance: baseline to
+      // the row's CURRENT seq. The counter is session-global and keeps
+      // climbing across rounds, so this reset is the ONLY place a stale high
+      // seq is skipped; in-flight particles crossing the boundary drop.
+      _lastRound = round;
+      _lastSeq = seq;
+      _active.clear();
+    } else {
+      final event = skeleton?.reactionEvent;
+      final applied = _lastSeq;
+      if (event != null && event.hasEmoji && seq > (applied ?? -1)) {
+        _lastSeq = seq;
+        // Same-emoji re-taps and emoji changes each animate. The voter's OWN
+        // echo is deduped (its instant local rise already played). Only events
+        // for the CURRENT window rise — a stale last-event left from a
+        // previous round is ignored via its own round field.
+        if (!reduced && event.round == round && event.voterId != myId) {
+          _spawn(event.kind);
+        }
+      }
+    }
+
+    return Stack(
+      children: [
+        widget.child,
+        if (_active.isNotEmpty)
+          Positioned.fill(
+            child: IgnorePointer(
+              child: ClipRect(
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final size = constraints.biggest;
+                    return Stack(
+                      children: [
+                        for (final spec in _active)
+                          _RisingReactionParticle(
+                            key: ValueKey(spec.id),
+                            spec: spec,
+                            width: size.width,
+                            height: size.height,
+                            onDone: () {
+                              _active.remove(spec);
+                              if (mounted) setState(() {});
+                            },
+                          ),
+                      ],
+                    );
+                  },
+                ),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  void _spawn(ReactionKind kind) {
+    _active.add(_RiseSpec(id: _nextId++, kind: kind));
+  }
+}
+
+/// The geometry + identity of ONE rising particle (a single reaction event).
+class _RiseSpec {
+  const _RiseSpec({required this.id, required this.kind});
+
+  final int id;
+  final ReactionKind kind;
+}
+
+/// One rising reaction emoji (realtime echo): spawns slightly below the
+/// card's bottom edge, floats straight up the full card height and exits
+/// slightly above the top edge. The glyph's top-left is fully off-canvas at
+/// both extremes so it is fully hidden exactly at start/end; a brief
+/// fade-in/fade-out envelope blurs the enter/exit.
+///
+/// The emoji renders LARGE and, per user spec, sways while it rises: each
+/// particle gets a RANDOM horizontal wobble (frequency + amplitude drawn once
+/// per particle — e.g. ~2.5 ± 1 sinusoidal cycles over the rise with a
+/// ~12 ± 6 px swing) and a random horizontal lane + a small random stagger so
+/// a burst of reactions looks lively rather than a rigid column. One-shot,
+/// [SamayDurations.reactionFloat]. Reduced motion never creates a particle
+/// (the canvas gate skips spawns entirely).
+class _RisingReactionParticle extends StatefulWidget {
+  const _RisingReactionParticle({
+    super.key,
+    required this.spec,
+    required this.width,
+    required this.height,
+    required this.onDone,
+  });
+
+  final _RiseSpec spec;
+  final double width;
+  final double height;
+  final VoidCallback onDone;
+
+  @override
+  State<_RisingReactionParticle> createState() =>
+      _RisingReactionParticleState();
+}
+
+class _RisingReactionParticleState extends State<_RisingReactionParticle>
+    with SingleTickerProviderStateMixin {
+  /// The large render size of a rising reaction emoji (user spec — the rise
+  /// must be clearly bigger than the deck's ~24 px tiles).
+  static const double _fontSize = 44;
+
+  /// How far the glyph must clear the card edge to be FULLY hidden (fully
+  /// on-canvas starts being visible the instant any pixel crosses the edge).
+  static const double _edgeClear = 4;
+
+  /// The horizontal fraction of the card width the glyph's lane sits at — the
+  /// rise starts from a random lane so reactions don't stack in one column.
+  late final double _dx;
+
+  /// Sinusoidal sway frequency: how many full back-and-forth cycles the emoji
+  /// completes over one rise (randomized per particle — "random frequency").
+  late final double _wobbleCycles;
+
+  /// Sinusoidal sway amplitude in logical px (randomized per particle —
+  /// "random amplitude").
+  late final double _wobbleAmplitude;
+
+  late final AnimationController _controller = AnimationController(
+    vsync: this,
+    duration: SamayDurations.reactionFloat,
+  );
+
+  /// Rise path: fully below the bottom edge → fully above the top edge.
+  late final Animation<double> _top =
+      Tween<double>(
+        begin: widget.height + _edgeClear,
+        end: -(_fontSize + _edgeClear),
+      ).animate(
+        CurvedAnimation(
+          parent: _controller,
+          curve: SamayDurations.defaultCurve,
+        ),
+      );
+
+  /// Fade in over the first ~18% of the travel (below → entering), hold, then
+  /// fade out over the last ~18% (exiting → fully hidden above).
+  late final Animation<double> _opacity = TweenSequence<double>([
+    TweenSequenceItem(
+      tween: Tween(
+        begin: 0.0,
+        end: 1.0,
+      ).chain(CurveTween(curve: Curves.easeOut)),
+      weight: 18,
+    ),
+    TweenSequenceItem(tween: ConstantTween(1.0), weight: 64),
+    TweenSequenceItem(
+      tween: Tween(
+        begin: 1.0,
+        end: 0.0,
+      ).chain(CurveTween(curve: Curves.easeIn)),
+      weight: 18,
+    ),
+  ]).animate(_controller);
+
+  Timer? _stagger;
+
+  @override
+  void initState() {
+    super.initState();
+    _dx = 0.12 + Random().nextDouble() * 0.76;
+    // Random wobble per particle: ~1.5–3.5 cycles over the rise and a
+    // ~6–18 px horizontal swing. Both are chosen once so the sway is smooth.
+    _wobbleCycles = 1.5 + Random().nextDouble() * 2.0;
+    _wobbleAmplitude = 6 + Random().nextDouble() * 12;
+    // Small random stagger so a burst of reactions arrives with life rather
+    // than as one rigid column (the canvas is the reduced-motion gate — it
+    // never spawns a particle when animations are disabled).
+    _stagger = Timer(Duration(milliseconds: Random().nextInt(320)), () {
+      if (!mounted) return;
+      _controller.forward().whenCompleteOrCancel(widget.onDone);
+    });
+  }
+
+  @override
+  void dispose() {
+    _stagger?.cancel();
+    _controller.dispose();
+    super.dispose();
+  }
+
+  /// The horizontal sway offset at rise progress [t] (0 → 1): a sinusoid of
+  /// the particle's random frequency × amplitude.
+  double _sway(double t) {
+    return _wobbleAmplitude * sin(2 * pi * _wobbleCycles * t);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Positioned(
+      // Horizontal: fraction of the card width (card can be wide) so the
+      // glyph never hugs the very edges. Width animated freely — the canvas
+      // treats the glyph's top-left as its origin and clips at the edges.
+      left: widget.width * _dx,
+      top: 0,
+      child: AnimatedBuilder(
+        animation: _controller,
+        builder: (context, child) {
+          return Transform.translate(
+            offset: Offset(_sway(_controller.value), _top.value),
+            child: Opacity(opacity: _opacity.value, child: child),
+          );
+        },
+        child: _ReactionEmoji(kind: widget.spec.kind, fontSize: _fontSize),
+      ),
+    );
+  }
+}
+
 /// One tappable reaction slot in a deck: the [kind] emoji, and on tap it both
 /// fires [onReact] and plays the LOCAL burst — a duplicate of the emoji that
 /// grows in place (its own slot) while its opacity ramps, then fades away.
@@ -1415,21 +1763,34 @@ class _ReactionEmoji extends StatelessWidget {
 /// (1.0 → 0.9); on release it springs back to its original size at the same
 /// moment the burst plays.
 ///
-/// The burst is deliberately self-only feedback on the TAPPING device (the
-/// reaction row's own realtime echo animates the other side later). It honors
-/// the standard reduced-motion contract (`MediaQuery.disableAnimationsOf`) —
-/// with the app-wide ANIM-OFF override removed, animations run and only
-/// OS-level reduced motion suppresses this one.
+/// Emoji ↔ Pasar exclusivity (2026-09-04): when [disabled] the tile is greyed
+/// out and inert — no press/burst/rise — because the caller already committed
+/// to the OTHER mode (passed, so emoji tiles lock).
+///
+/// The burst is self-only feedback on the TAPPING device. In the by_turns
+/// deck the tap ALSO triggers the answer-card rise (see [_ReactionRiseCanvas]
+/// — instant locally, and on every device via the server's per-tap reaction
+/// event); those are independent containers that merely coincide in time. The
+/// burst honors the standard reduced-motion contract
+/// (`MediaQuery.disableAnimationsOf`) — with the app-wide ANIM-OFF override
+/// removed, animations run and only OS-level reduced motion suppresses this
+/// one.
 class _ReactionDeckButton extends StatefulWidget {
   const _ReactionDeckButton({
     required this.kind,
     required this.fontSize,
     required this.onReact,
+    this.disabled = false,
   });
 
   final ReactionKind kind;
   final double fontSize;
   final VoidCallback onReact;
+
+  /// Emoji ↔ Pasar exclusivity (2026-09-04): true when this tile's MODE is
+  /// locked for the caller (they already passed, so emoji tiles grey out and
+  /// do not respond).
+  final bool disabled;
 
   @override
   State<_ReactionDeckButton> createState() => _ReactionDeckButtonState();
@@ -1500,6 +1861,7 @@ class _ReactionDeckButtonState extends State<_ReactionDeckButton>
   }
 
   void _handleTap() {
+    if (widget.disabled) return;
     widget.onReact();
     if (!MediaQuery.disableAnimationsOf(context)) {
       _burst.forward(from: 0);
@@ -1510,40 +1872,48 @@ class _ReactionDeckButtonState extends State<_ReactionDeckButton>
   Widget build(BuildContext context) {
     return InkWell(
       onTap: _handleTap,
-      onTapDown: _handleTapDown,
-      onTapUp: _handleTapUp,
-      onTapCancel: _handleTapCancel,
+      onTapDown: widget.disabled ? null : _handleTapDown,
+      onTapUp: widget.disabled ? null : _handleTapUp,
+      onTapCancel: widget.disabled ? null : _handleTapCancel,
       borderRadius: BorderRadius.circular(4),
-      child: Padding(
-        padding: const EdgeInsets.all(4),
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            // The resting emoji — scaled down while pressed, springing back
-            // on release (underneath the burst duplicate).
-            ScaleTransition(
-              scale: _pressScale,
-              child: _ReactionEmoji(
-                kind: widget.kind,
-                fontSize: widget.fontSize,
+      child: Opacity(
+        // Grey out the locked-away mode so the exclusivity reads at a glance
+        // (the caller may still change emojis WITHIN their emoji mode).
+        opacity: widget.disabled ? 0.35 : 1,
+        child: Padding(
+          padding: const EdgeInsets.all(4),
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              // The resting emoji — scaled down while pressed, springing back
+              // on release (underneath the burst duplicate).
+              ScaleTransition(
+                scale: _pressScale,
+                child: _ReactionEmoji(
+                  kind: widget.kind,
+                  fontSize: widget.fontSize,
+                ),
               ),
-            ),
-            // The burst duplicate — stacked centered on the resting emoji, so
-            // "the emoji in its place duplicates and maintains center".
-            AnimatedBuilder(
-              animation: _burst,
-              builder: (context, child) {
-                return Opacity(
-                  opacity: _opacity.value,
-                  child: Transform.scale(
-                    scale: _scale.value,
-                    child: child,
-                  ),
-                );
-              },
-              child: _ReactionEmoji(kind: widget.kind, fontSize: widget.fontSize),
-            ),
-          ],
+              // The burst duplicate — stacked centered on the resting emoji,
+              // so "the emoji in its place duplicates and maintains center".
+              AnimatedBuilder(
+                animation: _burst,
+                builder: (context, child) {
+                  return Opacity(
+                    opacity: _opacity.value,
+                    child: Transform.scale(
+                      scale: _scale.value,
+                      child: child,
+                    ),
+                  );
+                },
+                child: _ReactionEmoji(
+                  kind: widget.kind,
+                  fontSize: widget.fontSize,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -1674,6 +2044,9 @@ class _AsyncReactableTileState extends ConsumerState<_AsyncReactableTile> {
             ),
             // Reactor-side Pasar (204) on the async reactable round — same
             // contract as the by_turns deck: the round's subject takes -0.5.
+            // Exclusivity is enforced SERVER-side here (the async mirror is
+            // subject-keyed, so a per-round grey-out would be ambiguous for
+            // multi-round subjects); a cross-mode tap surfaces a rejection.
             const SizedBox(height: AppSpacing.sm),
             VButton.outlined(
               label: l10n.minigamesPasar,
@@ -1716,6 +2089,21 @@ class _ReactionRow extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
+    final myId = ref.watch(authStateProvider).valueOrNull?.user?['id'];
+    final skeleton =
+        ref.watch(minigameGameStateProvider(sessionId)).valueOrNull?.skeleton;
+    final subjectId = skeleton?.subjectId;
+    // Emoji ↔ Pasar exclusivity (2026-09-04): once the caller has acted they
+    // can only change WITHIN their chosen mode. If they already emoji-reacted,
+    // Pasar is disabled; if they already passed, every emoji tile is disabled.
+    final myEmojiReacted =
+        myId != null && subjectId != null && skeleton != null
+        ? skeleton.hasVoterEmojiReacted(subjectId, myId)
+        : false;
+    final myPassed =
+        myId != null && subjectId != null && skeleton != null
+        ? skeleton.hasVoterPassed(subjectId, myId)
+        : false;
     return VCard(
       child: Padding(
         padding: const EdgeInsets.all(AppSpacing.md),
@@ -1735,15 +2123,19 @@ class _ReactionRow extends ConsumerWidget {
                     kind: kind,
                     fontSize: 24,
                     onReact: () => _react(context, ref, kind),
+                    disabled: myPassed,
                   ),
               ],
             ),
             const SizedBox(height: AppSpacing.md),
             // Reactor-side Pasar (204): the voter opts out of emoji-reacting;
-            // the round's subject scores -0.5 on the leaderboard.
+            // the round's subject scores -0.5 on the leaderboard. Disabled once
+            // the caller has emoji-reacted (exclusivity).
             VButton.outlined(
               label: l10n.minigamesPasar,
-              onPressed: () => _react(context, ref, ReactionKind.pass),
+              onPressed: myEmojiReacted
+                  ? null
+                  : () => _react(context, ref, ReactionKind.pass),
             ),
           ],
         ),
@@ -1756,6 +2148,17 @@ class _ReactionRow extends ConsumerWidget {
     WidgetRef ref,
     ReactionKind kind,
   ) async {
+    // Per-device tap gate (the answer-card rise's spam guard): a tap within
+    // the cooldown of the previous is swallowed — no RPC + no rise. Deliberate
+    // re-taps of the SAME emoji after the window each fire again.
+    final local = ref.read(_localRiseProvider(sessionId).notifier);
+    if (!local.reserveTap()) return;
+    if (kind != ReactionKind.pass) {
+      // INSTANT local feedback: float the tapped emoji up the caller's OWN
+      // answer card immediately (the deck sits BELOW the card; the canvas
+      // above it consumes this bus). A Pasar has no emoji — no rise.
+      local.emit(kind);
+    }
     try {
       await ref.read(minigameGameStateProvider(sessionId).notifier).react(kind);
     } catch (e) {

@@ -871,6 +871,16 @@ RealtimeChannel subscribeToSession(String id) {
         );
       case 'invalid_reaction':
         throw ValidationError('reaction', 'Reacción no válida');
+      case 'already_reacted':
+        throw ConflictError(
+          'Ya reaccionaste con un emoji — no puedes pasar en esta ronda',
+          code: 'already_reacted',
+        );
+      case 'already_passed':
+        throw ConflictError(
+          'Ya pasaste — no puedes reaccionar con un emoji en esta ronda',
+          code: 'already_passed',
+        );
       default:
         throw const ServerError('Unexpected submit_minigame_reaction response');
     }
@@ -1160,6 +1170,16 @@ RealtimeChannel subscribeToSession(String id) {
         );
       case 'invalid_reaction':
         throw ValidationError('reaction', 'Reacción no válida');
+      case 'already_reacted':
+        throw ConflictError(
+          'Ya reaccionaste con un emoji — no puedes pasar en esta ronda',
+          code: 'already_reacted',
+        );
+      case 'already_passed':
+        throw ConflictError(
+          'Ya pasaste — no puedes reaccionar con un emoji en esta ronda',
+          code: 'already_passed',
+        );
       default:
         throw const ServerError('Unexpected react_minigame_round response');
     }
