@@ -47,33 +47,78 @@ class _SocialScreenState extends ConsumerState<SocialScreen>
     final l10n = AppLocalizations.of(context);
     final pendingCount = ref.watch(pendingCountsProvider);
     return Scaffold(
-      body: Column(
-        children: [
-          VHeaderBar(
-            title: l10n.socialTitle,
-            showBack: false,
-            actions: [
-              IconButton(
-                icon: const Icon(Icons.search),
-                tooltip: l10n.socialSearchTooltip,
-                onPressed: () => context.push(RoutePaths.userSearch),
-              ),
-            ],
+      // iOS-style collapsing header ('social' title + pill tab bar pin and
+      // collapse over the tab content as it scrolls — shared mechanism).
+      body: NestedScrollView(
+        headerSliverBuilder: (context, innerBoxIsScrolled) => [
+          SliverOverlapAbsorber(
+            handle: NestedScrollView.sliverOverlapAbsorberHandleFor(context),
+            sliver: VHeaderSliver(
+              title: l10n.socialTitle,
+              actions: [
+                IconButton(
+                  icon: const Icon(Icons.search),
+                  tooltip: l10n.socialSearchTooltip,
+                  onPressed: () => context.push(RoutePaths.userSearch),
+                ),
+              ],
+            ),
           ),
-          _PillTabBar(
-            controller: _tabController,
-            pendingCount: pendingCount,
-            l10n: l10n,
-          ),
-          Expanded(
-            child: TabBarView(
-              controller: _tabController,
-              children: const [GroupsTab(), AmigosTab()],
+          // The pill tab bar stays pinned under the collapsing title.
+          SliverPersistentHeader(
+            pinned: true,
+            delegate: _PillBarDelegate(
+              tabController: _tabController,
+              pendingCount: pendingCount,
+              l10n: l10n,
             ),
           ),
         ],
+        body: TabBarView(
+          controller: _tabController,
+          children: const [GroupsTab(), AmigosTab()],
+        ),
       ),
     );
+  }
+}
+
+/// Pinned sliver holding the pill [TabBar] under the collapsing title.
+class _PillBarDelegate extends SliverPersistentHeaderDelegate {
+  final TabController tabController;
+  final int pendingCount;
+  final AppLocalizations l10n;
+
+  _PillBarDelegate({
+    required this.tabController,
+    required this.pendingCount,
+    required this.l10n,
+  });
+
+  @override
+  double get minExtent => 48;
+
+  @override
+  double get maxExtent => 48;
+
+  @override
+  Widget build(
+    BuildContext context,
+    double shrinkOffset,
+    bool overlapsContent,
+  ) {
+    return _PillTabBar(
+      controller: tabController,
+      pendingCount: pendingCount,
+      l10n: l10n,
+    );
+  }
+
+  @override
+  bool shouldRebuild(covariant _PillBarDelegate oldDelegate) {
+    return tabController != oldDelegate.tabController ||
+        pendingCount != oldDelegate.pendingCount ||
+        l10n != oldDelegate.l10n;
   }
 }
 

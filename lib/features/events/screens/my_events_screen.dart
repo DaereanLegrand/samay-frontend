@@ -16,7 +16,7 @@ import 'package:samay/shared/widgets/v_card.dart';
 import 'package:samay/shared/widgets/state_views.dart';
 import 'package:samay/shared/widgets/v_badge.dart';
 import 'package:samay/shared/widgets/v_button.dart';
-import 'package:samay/shared/widgets/v_display_text.dart';
+import 'package:samay/shared/widgets/v_header_bar.dart';
 import 'package:samay/shared/widgets/v_network_image.dart';
 
 /// The events tab (R1 events sweep): the session's events earliest-first,
@@ -47,91 +47,88 @@ class _MyEventsScreenState extends ConsumerState<MyEventsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
     final eventsAsync = ref.watch(myEventsProvider);
+    final l10n = AppLocalizations.of(context);
 
     return Scaffold(
       // LUXE directive #1: black background always — even outside the theme.
       backgroundColor: AppColors.discoBlack,
-      body: SafeArea(
-        child: eventsAsync.when(
-          // U-22 (§5.8): the first load shows the list skeleton instead of
-          // the bare spinner; pull-to-refresh keeps the list visible.
-          skipLoadingOnRefresh: true,
-          loading: () => const VSkeletonList(rows: 4),
-          error: (e, _) =>
-              ErrorView(message: e.toAppError().message, onRetry: _refresh),
-          data: (events) {
-            return RefreshIndicator(
-              onRefresh: _refresh,
-              child: CustomScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                slivers: [
-                  SliverToBoxAdapter(
-                    child: _EventsHeader(
-                      title: l10n.eventsTabTitle,
-                      onCreate: _openGroupsTab,
+      body: RefreshIndicator(
+        onRefresh: _refresh,
+        child: CustomScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          slivers: [
+            // iOS-style collapsing hero ('mis eventos'), pinned as a neutral
+            // glass bar once scrolled (shared header mechanism).
+            VHeaderSliver(title: l10n.eventsTabTitle),
+            ...eventsAsync.when(
+              // U-22 (§5.8): the first load shows the list skeleton instead
+              // of the bare spinner; pull-to-refresh keeps the list visible.
+              skipLoadingOnRefresh: true,
+              loading: () => const [
+                SliverToBoxAdapter(child: VSkeletonList(rows: 4)),
+              ],
+              error: (e, _) => [
+                SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: ErrorView(
+                    message: e.toAppError().message,
+                    onRetry: _refresh,
+                  ),
+                ),
+              ],
+              data: (events) => [
+                // The create CTA sits right under the hero and scrolls away
+                // with the content (2026-09-04: creation happens from a
+                // group — the CTA explains that).
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(
+                      AppSpacing.screenHorizontal,
+                      AppSpacing.md,
+                      AppSpacing.screenHorizontal,
+                      0,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        VButton.dark(
+                          label: l10n.eventsCreateCta,
+                          onPressed: _openGroupsTab,
+                        ),
+                        const SizedBox(height: AppSpacing.sm),
+                        Text(
+                          l10n.eventsCreateCtaBody,
+                          style: const TextStyle(
+                            color: AppColors.mutedStrong,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  if (events.isEmpty)
-                    SliverFillRemaining(
-                      hasScrollBody: false,
-                      child: VEmptyView(
-                        icon: Icons.event_outlined,
-                        title: l10n.eventsEmpty,
-                        description: l10n.eventsEmptyBody,
-                      ),
-                    )
-                  else
-                    SliverList.builder(
-                      itemCount: events.length,
-                      itemBuilder: (context, index) => _MyEventCard(
-                        event: events[index],
-                        onTap: () => _openEvent(events[index]),
-                      ),
+                ),
+                if (events.isEmpty)
+                  SliverFillRemaining(
+                    hasScrollBody: false,
+                    child: VEmptyView(
+                      icon: Icons.event_outlined,
+                      title: l10n.eventsEmpty,
+                      description: l10n.eventsEmptyBody,
                     ),
-                ],
-              ),
-            );
-          },
+                  )
+                else
+                  SliverList.builder(
+                    itemCount: events.length,
+                    itemBuilder: (context, index) => _MyEventCard(
+                      event: events[index],
+                      onTap: () => _openEvent(events[index]),
+                    ),
+                  ),
+              ],
+            ),
+          ],
         ),
-      ),
-    );
-  }
-}
-
-/// Brand hero + create CTA. ONE hero per screen (directive #8) — the
-/// "MIS EVENTOS" display voice; the CTA explains that creation happens from
-/// a group.
-class _EventsHeader extends StatelessWidget {
-  final String title;
-  final VoidCallback onCreate;
-
-  const _EventsHeader({required this.title, required this.onCreate});
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(
-        AppSpacing.screenHorizontal,
-        AppSpacing.lg,
-        AppSpacing.screenHorizontal,
-        0,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          VDisplayText(text: title, maxLines: 2),
-          const SizedBox(height: AppSpacing.lg),
-          // The create CTA is a primary action.
-          VButton.dark(label: l10n.eventsCreateCta, onPressed: onCreate),
-          const SizedBox(height: AppSpacing.sm),
-          Text(
-            l10n.eventsCreateCtaBody,
-            style: const TextStyle(color: AppColors.mutedStrong, fontSize: 12),
-          ),
-        ],
       ),
     );
   }

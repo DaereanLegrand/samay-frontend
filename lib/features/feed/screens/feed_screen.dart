@@ -24,6 +24,7 @@ import 'package:samay/shared/widgets/v_chip.dart';
 import 'package:samay/shared/widgets/v_count_badge.dart';
 import 'package:samay/shared/widgets/v_display_text.dart';
 import 'package:samay/shared/widgets/v_disco_divider.dart';
+import 'package:samay/shared/widgets/v_header_bar.dart';
 import 'package:samay/shared/widgets/v_network_image.dart';
 
 /// The social feed — the app's landing tab (FEED spec §feed-screen).
@@ -54,32 +55,50 @@ class FeedScreen extends ConsumerWidget {
     return Scaffold(
       // LUXE directive #1: black background always — even outside the theme.
       backgroundColor: AppColors.discoBlack,
-      body: SafeArea(
-        child: feed.when(
-          // U-22 (§5.8): the first load shows the event-card skeleton
-          // instead of the bare spinner; pull-to-refresh keeps the list
-          // visible (skipLoadingOnRefresh — the skeleton only ever stands
-          // in when there is nothing on screen).
-          skipLoadingOnRefresh: true,
-          loading: () => const VSkeletonDetail(),
-          error: (_, _) => ErrorView(
-            message: l10n.feedLoadError,
-            onRetry: () => ref.read(feedProvider.notifier).refresh(),
-          ),
-          data: (events) {
-            final featured = events.where((e) => e.featured).toList();
-            final upcoming = events.where((e) => !e.featured).toList();
-            return RefreshIndicator(
-              onRefresh: () => ref.read(feedProvider.notifier).refresh(),
-              child: CustomScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                slivers: [
-                  SliverToBoxAdapter(
-                    child: _FeedHeader(
-                      title: l10n.feedBrand,
-                      showRadiusFilter: events.isNotEmpty,
-                    ),
+      body: RefreshIndicator(
+        onRefresh: () => ref.read(feedProvider.notifier).refresh(),
+        child: CustomScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          slivers: [
+            // iOS-style collapsing brand hero ('samay'), pinned as a neutral
+            // glass bar once scrolled (shared header mechanism).
+            VHeaderSliver(
+              title: l10n.feedBrand,
+              actions: const [_ChatInboxButton()],
+            ),
+            ...feed.when(
+              // U-22 (§5.8): the first load shows the event-card skeleton
+              // instead of the bare spinner; pull-to-refresh keeps the list
+              // visible (skipLoadingOnRefresh — the skeleton only ever stands
+              // in when there is nothing on screen).
+              skipLoadingOnRefresh: true,
+              loading: () => const [
+                SliverToBoxAdapter(child: VSkeletonDetail()),
+              ],
+              error: (_, _) => [
+                SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: ErrorView(
+                    message: l10n.feedLoadError,
+                    onRetry: () => ref.read(feedProvider.notifier).refresh(),
                   ),
+                ),
+              ],
+              data: (events) {
+                final featured = events.where((e) => e.featured).toList();
+                final upcoming = events.where((e) => !e.featured).toList();
+                return [
+                  if (events.isNotEmpty)
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: const EdgeInsets.only(
+                          top: AppSpacing.sm,
+                          left: AppSpacing.screenHorizontal,
+                          right: AppSpacing.screenHorizontal,
+                        ),
+                        child: _RadiusHeader(l10n: l10n),
+                      ),
+                    ),
                   // Plugged home (2026-08-13): the games quick-access
                   // section sits ON TOP of the feed content, right under
                   // the brand hero — five minigame cards + the Party
@@ -121,9 +140,8 @@ class FeedScreen extends ConsumerWidget {
                   if (upcoming.isNotEmpty)
                     SliverList.builder(
                       itemCount: upcoming.length,
-                      itemBuilder: (context, index) => _EventCard(
-                        event: upcoming[index],
-                      ),
+                      itemBuilder: (context, index) =>
+                          _EventCard(event: upcoming[index]),
                     )
                   else
                     SliverFillRemaining(
@@ -134,60 +152,34 @@ class FeedScreen extends ConsumerWidget {
                         description: l10n.feedNoEventsBody,
                       ),
                     ),
-                ],
-              ),
-            );
-          },
+                ];
+              },
+            ),
+          ],
         ),
       ),
     );
   }
 }
 
-/// Brand hero + radius filter. Monochrome: ONE hero per screen — the
-/// 'samay' wordmark in [VDisplayText] (verbatim copy, flat white glyph
-/// fill). The radius filter and the honest no-location notice stay below
-/// it — functional, unchanged.
-class _FeedHeader extends ConsumerWidget {
-  final String title;
-  final bool showRadiusFilter;
+/// The radius filter block under the brand hero: chips + honest no-location
+/// notice. Scrolls away beneath the pinned [VHeaderSliver] glass.
+class _RadiusHeader extends ConsumerWidget {
+  final AppLocalizations l10n;
 
-  const _FeedHeader({
-    required this.title,
-    required this.showRadiusFilter,
-  });
+  const _RadiusHeader({required this.l10n});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = AppLocalizations.of(context);
     final radius = RadiusFilterBar(l10n: l10n);
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(
-        AppSpacing.screenHorizontal,
-        AppSpacing.lg,
-        AppSpacing.screenHorizontal,
-        0,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: VDisplayText(text: title),
-              ),
-              const _ChatInboxButton(),
-            ],
-          ),
-          if (showRadiusFilter) ...[
-            const SizedBox(height: AppSpacing.lg),
-            radius,
-            const SizedBox(height: AppSpacing.xs),
-            _NoLocationNotice(l10n: l10n),
-          ],
-        ],
-      ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: AppSpacing.lg),
+        radius,
+        const SizedBox(height: AppSpacing.xs),
+        _NoLocationNotice(l10n: l10n),
+      ],
     );
   }
 }
@@ -214,11 +206,7 @@ class _ChatInboxButton extends ConsumerWidget {
           tooltip: l10n.chatInboxTitle,
           onPressed: () => context.push(RoutePaths.chatList),
         ),
-        Positioned(
-          right: -2,
-          top: -2,
-          child: VCountBadge(count: unread),
-        ),
+        Positioned(right: -2, top: -2, child: VCountBadge(count: unread)),
       ],
     );
   }
@@ -325,10 +313,8 @@ class _FeaturedSection extends StatelessWidget {
               ),
               itemCount: events.length,
               separatorBuilder: (_, _) => const SizedBox(width: AppSpacing.md),
-              itemBuilder: (context, index) => _FeaturedCard(
-                event: events[index],
-                badgeLabel: badgeLabel,
-              ),
+              itemBuilder: (context, index) =>
+                  _FeaturedCard(event: events[index], badgeLabel: badgeLabel),
             ),
           ),
         ],
@@ -341,10 +327,7 @@ class _FeaturedCard extends StatelessWidget {
   final Event event;
   final String badgeLabel;
 
-  const _FeaturedCard({
-    required this.event,
-    required this.badgeLabel,
-  });
+  const _FeaturedCard({required this.event, required this.badgeLabel});
 
   @override
   Widget build(BuildContext context) {
@@ -599,9 +582,7 @@ class _GamesSection extends ConsumerWidget {
                   pendingCount:
                       pendingByType[MinigameType.values[index].value] ?? 0,
                   onTap: () => context.push(
-                    RoutePaths.minigame(
-                      MinigameType.values[index].value,
-                    ),
+                    RoutePaths.minigame(MinigameType.values[index].value),
                   ),
                 ),
               ),
@@ -609,9 +590,7 @@ class _GamesSection extends ConsumerWidget {
             const SizedBox(height: AppSpacing.md),
           ],
           if (partyFinderOn)
-            _PartyFinderCard(
-              onTap: () => context.push(RoutePaths.partyFinder),
-            ),
+            _PartyFinderCard(onTap: () => context.push(RoutePaths.partyFinder)),
         ],
       ),
     );

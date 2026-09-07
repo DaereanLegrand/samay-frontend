@@ -91,7 +91,10 @@ class _NotificationCenterScreenState
       _channel = channel;
     } catch (e, st) {
       // Realtime is best-effort by design; the pull-to-refresh path remains.
-      AppLogger.instance.error('notifications realtime subscribe failed: $e', '$st');
+      AppLogger.instance.error(
+        'notifications realtime subscribe failed: $e',
+        '$st',
+      );
     }
   }
 
@@ -114,58 +117,80 @@ class _NotificationCenterScreenState
     final unread = ref.watch(unreadCountProvider);
 
     return Scaffold(
-      body: VHeaderBar(
-        title: l10n.notificationsTitle,
-        showBack: false,
-        actions: [
-          if (unread > 0)
-            TextButton(
-              onPressed: () =>
-                  ref.read(notificationsProvider.notifier).markAllRead(),
-              child: Text(l10n.notificationsMarkAllRead),
+      // Collapsing iOS-style header (shared mechanism); notifications scroll
+      // beneath it.
+      body: RefreshIndicator(
+        onRefresh: () => ref.read(notificationsProvider.notifier).refresh(),
+        child: CustomScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          slivers: [
+            VHeaderSliver(
+              title: l10n.notificationsTitle,
+              actions: [
+                if (unread > 0)
+                  TextButton(
+                    onPressed: () =>
+                        ref.read(notificationsProvider.notifier).markAllRead(),
+                    child: Text(l10n.notificationsMarkAllRead),
+                  ),
+              ],
             ),
-        ],
-        child: notifications.when(
-          // U-22 (§5.8): the first load shows the avatar+lines skeleton
-          // instead of the bare spinner; pull-to-refresh keeps the list
-          // visible (skipLoadingOnRefresh — the skeleton only ever stands in
-          // when there is nothing on screen).
-          skipLoadingOnRefresh: true,
-          loading: () => const VSkeletonList(),
-          error: (error, _) => ErrorView(
+            ..._contentSlivers(context, ref, l10n, notifications),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// The scroll body under the collapsing header, as slivers.
+  List<Widget> _contentSlivers(
+    BuildContext context,
+    WidgetRef ref,
+    AppLocalizations l10n,
+    AsyncValue<List<NotificationItem>> notifications,
+  ) {
+    final refreshing = notifications.isLoading && notifications.hasValue;
+    if (notifications.isLoading && !refreshing) {
+      // U-22 (§5.8): the first load shows the avatar+lines skeleton instead
+      // of the bare spinner; pull-to-refresh keeps the list visible
+      // (skipLoadingOnRefresh — the skeleton only ever stands in when there
+      // is nothing on screen).
+      return [const SliverToBoxAdapter(child: VSkeletonList())];
+    }
+    final error = notifications.hasError ? notifications.error : null;
+    if (error != null) {
+      return [
+        SliverToBoxAdapter(
+          child: ErrorView(
             message: l10n.notificationsLoadError,
             onRetry: () => ref.read(notificationsProvider.notifier).refresh(),
           ),
-          data: (items) => items.isEmpty
-              ? VEmptyView(
-                  icon: Icons.notifications_none,
-                  title: l10n.notificationsEmpty,
-                  description: l10n.notificationsEmptyBody,
-                )
-              : RefreshIndicator(
-                  onRefresh: () =>
-                      ref.read(notificationsProvider.notifier).refresh(),
-                  child: ListView.separated(
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    padding: const EdgeInsets.symmetric(
-                      vertical: AppSpacing.xs,
-                    ),
-                    itemCount: items.length,
-                    separatorBuilder: (_, _) => const SizedBox(
-                      height: AppSpacing.xs,
-                    ),
-                    itemBuilder: (context, index) {
-                      final item = items[index];
-                      return _NotificationTile(
-                        item: item,
-                        onTap: () => _onTap(item),
-                      );
-                    },
-                  ),
-                ),
-              ),
+        ),
+      ];
+    }
+    final items = notifications.valueOrNull ?? const <NotificationItem>[];
+    if (items.isEmpty) {
+      return [
+        SliverFillRemaining(
+          hasScrollBody: false,
+          child: VEmptyView(
+            icon: Icons.notifications_none,
+            title: l10n.notificationsEmpty,
+            description: l10n.notificationsEmptyBody,
+          ),
+        ),
+      ];
+    }
+    return [
+      SliverList.separated(
+        itemCount: items.length,
+        separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.xs),
+        itemBuilder: (context, index) {
+          final item = items[index];
+          return _NotificationTile(item: item, onTap: () => _onTap(item));
+        },
       ),
-    );
+    ];
   }
 }
 
