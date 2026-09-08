@@ -2696,6 +2696,60 @@ abstract class AppLocalizations {
   /// **'Aún no hay anfitriones ni staff'**
   String get eventNoHosts;
 
+  /// Host action that opens the staff picker
+  ///
+  /// In es, this message translates to:
+  /// **'Añadir staff'**
+  String get eventStaffAddButton;
+
+  /// Event staff-picker app bar title
+  ///
+  /// In es, this message translates to:
+  /// **'elegir staff'**
+  String get eventStaffPickerTitle;
+
+  /// Confirm button with the number of selected staff
+  ///
+  /// In es, this message translates to:
+  /// **'Añadir ({count})'**
+  String eventStaffCount(int count);
+
+  /// Snackbar confirming staff were designated
+  ///
+  /// In es, this message translates to:
+  /// **'Staff añadido'**
+  String get eventStaffAdded;
+
+  /// Snackbar confirming a staff member was removed
+  ///
+  /// In es, this message translates to:
+  /// **'Staff eliminado'**
+  String get eventStaffRemoved;
+
+  /// Host action that removes a staff member
+  ///
+  /// In es, this message translates to:
+  /// **'Quitar staff'**
+  String get eventStaffRemove;
+
+  /// Confirm dialog title before removing a staff member
+  ///
+  /// In es, this message translates to:
+  /// **'¿Quitar a @{username}?'**
+  String eventStaffRemoveDialogTitle(String username);
+
+  /// Confirm dialog body before removing a staff member
+  ///
+  /// In es, this message translates to:
+  /// **'Dejará de ser staff y no podrá escanear códigos de asistencia.'**
+  String get eventStaffRemoveDialogBody;
+
+  /// Confirm button of the remove-staff dialog
+  ///
+  /// In es, this message translates to:
+  /// **'Quitar'**
+  String get eventStaffRemoveConfirm;
+
   /// Own invite status line
   ///
   /// In es, this message translates to:

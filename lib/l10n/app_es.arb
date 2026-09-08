@@ -1884,6 +1884,52 @@
   "@eventNoHosts": {
     "description": "Empty hosts state"
   },
+  "eventStaffAddButton": "Añadir staff",
+  "@eventStaffAddButton": {
+    "description": "Host action that opens the staff picker"
+  },
+  "eventStaffPickerTitle": "elegir staff",
+  "@eventStaffPickerTitle": {
+    "description": "Event staff-picker app bar title"
+  },
+  "eventStaffCount": "Añadir ({count})",
+  "@eventStaffCount": {
+    "description": "Confirm button with the number of selected staff",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "eventStaffAdded": "Staff añadido",
+  "@eventStaffAdded": {
+    "description": "Snackbar confirming staff were designated"
+  },
+  "eventStaffRemoved": "Staff eliminado",
+  "@eventStaffRemoved": {
+    "description": "Snackbar confirming a staff member was removed"
+  },
+  "eventStaffRemove": "Quitar staff",
+  "@eventStaffRemove": {
+    "description": "Host action that removes a staff member"
+  },
+  "eventStaffRemoveDialogTitle": "¿Quitar a @{username}?",
+  "@eventStaffRemoveDialogTitle": {
+    "description": "Confirm dialog title before removing a staff member",
+    "placeholders": {
+      "username": {
+        "type": "String"
+      }
+    }
+  },
+  "eventStaffRemoveDialogBody": "Dejará de ser staff y no podrá escanear códigos de asistencia.",
+  "@eventStaffRemoveDialogBody": {
+    "description": "Confirm dialog body before removing a staff member"
+  },
+  "eventStaffRemoveConfirm": "Quitar",
+  "@eventStaffRemoveConfirm": {
+    "description": "Confirm button of the remove-staff dialog"
+  },
   "eventInviteStatus": "Tu invitación: {status}",
   "@eventInviteStatus": {
     "description": "Own invite status line",

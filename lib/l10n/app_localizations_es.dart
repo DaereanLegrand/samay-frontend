@@ -1427,6 +1427,38 @@ class AppLocalizationsEs extends AppLocalizations {
   String get eventNoHosts => 'Aún no hay anfitriones ni staff';
 
   @override
+  String get eventStaffAddButton => 'Añadir staff';
+
+  @override
+  String get eventStaffPickerTitle => 'elegir staff';
+
+  @override
+  String eventStaffCount(int count) {
+    return 'Añadir ($count)';
+  }
+
+  @override
+  String get eventStaffAdded => 'Staff añadido';
+
+  @override
+  String get eventStaffRemoved => 'Staff eliminado';
+
+  @override
+  String get eventStaffRemove => 'Quitar staff';
+
+  @override
+  String eventStaffRemoveDialogTitle(String username) {
+    return '¿Quitar a @$username?';
+  }
+
+  @override
+  String get eventStaffRemoveDialogBody =>
+      'Dejará de ser staff y no podrá escanear códigos de asistencia.';
+
+  @override
+  String get eventStaffRemoveConfirm => 'Quitar';
+
+  @override
   String eventInviteStatus(String status) {
     return 'Tu invitación: $status';
   }

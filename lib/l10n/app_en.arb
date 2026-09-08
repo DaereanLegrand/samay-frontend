@@ -1884,6 +1884,52 @@
   "@eventNoHosts": {
     "description": "Empty hosts state"
   },
+  "eventStaffAddButton": "Add staff",
+  "@eventStaffAddButton": {
+    "description": "Host action that opens the staff picker"
+  },
+  "eventStaffPickerTitle": "pick staff",
+  "@eventStaffPickerTitle": {
+    "description": "Event staff-picker app bar title"
+  },
+  "eventStaffCount": "Add ({count})",
+  "@eventStaffCount": {
+    "description": "Confirm button with the number of selected staff",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "eventStaffAdded": "Staff added",
+  "@eventStaffAdded": {
+    "description": "Snackbar confirming staff were designated"
+  },
+  "eventStaffRemoved": "Staff removed",
+  "@eventStaffRemoved": {
+    "description": "Snackbar confirming a staff member was removed"
+  },
+  "eventStaffRemove": "Remove staff",
+  "@eventStaffRemove": {
+    "description": "Host action that removes a staff member"
+  },
+  "eventStaffRemoveDialogTitle": "Remove @{username}?",
+  "@eventStaffRemoveDialogTitle": {
+    "description": "Confirm dialog title before removing a staff member",
+    "placeholders": {
+      "username": {
+        "type": "String"
+      }
+    }
+  },
+  "eventStaffRemoveDialogBody": "They'll no longer be staff and won't be able to scan attendance codes.",
+  "@eventStaffRemoveDialogBody": {
+    "description": "Confirm dialog body before removing a staff member"
+  },
+  "eventStaffRemoveConfirm": "Remove",
+  "@eventStaffRemoveConfirm": {
+    "description": "Confirm button of the remove-staff dialog"
+  },
   "eventInviteStatus": "Your invitation: {status}",
   "@eventInviteStatus": {
     "description": "Own invite status line",

@@ -1423,6 +1423,38 @@ class AppLocalizationsEn extends AppLocalizations {
   String get eventNoHosts => 'No hosts yet';
 
   @override
+  String get eventStaffAddButton => 'Add staff';
+
+  @override
+  String get eventStaffPickerTitle => 'pick staff';
+
+  @override
+  String eventStaffCount(int count) {
+    return 'Add ($count)';
+  }
+
+  @override
+  String get eventStaffAdded => 'Staff added';
+
+  @override
+  String get eventStaffRemoved => 'Staff removed';
+
+  @override
+  String get eventStaffRemove => 'Remove staff';
+
+  @override
+  String eventStaffRemoveDialogTitle(String username) {
+    return 'Remove @$username?';
+  }
+
+  @override
+  String get eventStaffRemoveDialogBody =>
+      'They\'ll no longer be staff and won\'t be able to scan attendance codes.';
+
+  @override
+  String get eventStaffRemoveConfirm => 'Remove';
+
+  @override
   String eventInviteStatus(String status) {
     return 'Your invitation: $status';
   }

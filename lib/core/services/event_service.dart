@@ -371,4 +371,97 @@ class EventService {
         .order('invited_at', ascending: true);
     return res.map((e) => Map<String, dynamic>.from(e)).toList();
   }
+
+  // ---------------------------------------------------------------------
+  // Stage-3 host/staff management (060_events/06_staff.sql) — the HOST
+  // designates specific users as staff (and removes them). RPCs return jsonb
+  // `status` payloads (I-57 contract), never exceptions.
+  // ---------------------------------------------------------------------
+
+  /// The host designates [staffIds] as staff of [eventId] via the
+  /// `designate_event_staff` SECURITY DEFINER RPC. The server enforces the
+  /// frozen capacity, idempotency (already-privileged users are skipped) and
+  /// the host-only gate, and CONVERTS any existing invite seat (a designated
+  /// guest's invite row is deleted — their seat moves into `event_hosts`, so
+  /// staff never double-count against capacity). Returns the count of NEW
+  /// staff rows. Typed [AppError]s mirror [inviteEventGuests]:
+  ///   not_authenticated → [UnauthorizedError]
+  ///   event_not_found → [NotFoundError]
+  ///   event_closed → [ConflictError] (`event_closed`)
+  ///   not_host → [PermissionError]
+  ///   staff_not_allowed → [ConflictError] (`staff_not_allowed`)
+  ///   too_many_staff → [ConflictError] (`too_many_staff`)
+  ///   capacity_reached → [ConflictError] (`capacity_reached`)
+  Future<int> designateStaff(String eventId, List<String> staffIds) async {
+    final user = auth.currentUser;
+    if (user == null) throw const UnauthorizedError();
+
+    final res = await client.rpc('designate_event_staff', params: {
+      'p_event_id': eventId,
+      'p_staff_ids': staffIds,
+    });
+    final result = res is Map ? Map<String, dynamic>.from(res) : <String, dynamic>{};
+    return switch (result['status']) {
+      'ok' => result['added'] as int? ?? 0,
+      'not_authenticated' => throw const UnauthorizedError(),
+      'event_not_found' => throw const NotFoundError('Evento'),
+      'event_closed' => throw ConflictError(
+        'El evento ya terminó o fue cancelado.',
+        code: 'event_closed',
+      ),
+      'not_host' => throw PermissionError(),
+      'staff_not_allowed' => throw ConflictError(
+        'No puedes añadir a esta persona como staff.',
+        code: 'staff_not_allowed',
+      ),
+      'too_many_staff' => throw ConflictError(
+        'Máximo 20 personas por envío.',
+        code: 'too_many_staff',
+      ),
+      'capacity_reached' => throw ConflictError(
+        'El evento alcanzó su capacidad máxima.',
+        code: 'capacity_reached',
+      ),
+      _ => throw const ServerError('Unexpected designate_event_staff response'),
+    };
+  }
+
+  /// The host removes [staffUserId] from [eventId]'s staff via the
+  /// `remove_event_staff` SECURITY DEFINER RPC (frees their seat). The host
+  /// row can never be removed (`host_not_removable`); removing an already
+  /// removed member is an idempotent `ok`. Typed [AppError]s as in
+  /// [designateStaff]; extra state:
+  ///   host_not_removable → [ConflictError] (`host_not_removable`)
+  Future<void> removeStaff(String eventId, String staffUserId) async {
+    final user = auth.currentUser;
+    if (user == null) throw const UnauthorizedError();
+
+    final res = await client.rpc('remove_event_staff', params: {
+      'p_event_id': eventId,
+      'p_staff_user_id': staffUserId,
+    });
+    final result = res is Map ? Map<String, dynamic>.from(res) : <String, dynamic>{};
+    switch (result['status']) {
+      case 'ok':
+        return;
+      case 'not_authenticated':
+        throw const UnauthorizedError();
+      case 'event_not_found':
+        throw const NotFoundError('Evento');
+      case 'event_closed':
+        throw ConflictError(
+          'El evento ya terminó o fue cancelado.',
+          code: 'event_closed',
+        );
+      case 'not_host':
+        throw PermissionError();
+      case 'host_not_removable':
+        throw ConflictError(
+          'No puedes quitar al anfitrión del evento.',
+          code: 'host_not_removable',
+        );
+      default:
+        throw const ServerError('Unexpected remove_event_staff response');
+    }
+  }
 }

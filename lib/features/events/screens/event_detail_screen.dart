@@ -11,6 +11,7 @@ import 'package:samay/core/router/route_paths.dart';
 import 'package:samay/features/events/logic/event_formatters.dart';
 import 'package:samay/features/events/providers/events_providers.dart';
 import 'package:samay/features/events/screens/event_invite_screen.dart';
+import 'package:samay/features/events/screens/event_staff_screen.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/error_view.dart';
 import 'package:samay/shared/widgets/show_app_error.dart';
@@ -204,7 +205,7 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
             const SizedBox(height: AppSpacing.xl),
             _buildPoolSection(event),
             const SizedBox(height: AppSpacing.xl),
-            _buildHostsSection(hostsAsync),
+            _buildHostsSection(event, hostsAsync, uid),
             if (_isPrivileged(hostsAsync.valueOrNull, uid) &&
                 !_isClosed(event.status)) ...[
               const SizedBox(height: AppSpacing.lg),
@@ -251,7 +252,7 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
     );
   }
 
-  /// Plugged event actions (2026-08-13): the attendee QR, the host
+  /// Plugged event actions (2026-08-13): the attendee QR, the host/staff
   /// scanner and the photo gallery — each flag-gated and hidden once the
   /// event is closed (ended/cancelled).
   Widget _buildLiveActions(
@@ -259,10 +260,9 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
     String? uid,
   ) {
     final l10n = AppLocalizations.of(context);
-    final isHost =
-        uid != null &&
-        hosts != null &&
-        hosts.any((p) => p['user_id'] == uid && p['role'] == 'host');
+    // Scanner visibility (Stage 3): host AND staff scan attendance codes
+    // (`validate_qr_token` gates on role IN host/staff).
+    final canScan = _isPrivileged(hosts, uid);
     final showQr = ref.isEnabled(AppFeatureFlag.qr);
     final showPhotos = ref.isEnabled(AppFeatureFlag.photoUpload);
     if (!showQr && !showPhotos) return const SizedBox.shrink();
@@ -280,7 +280,7 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
                   onPressed: () => context.push(RoutePaths.qr(widget.eventId)),
                 ),
               ),
-              if (isHost) ...[
+              if (canScan) ...[
                 const SizedBox(width: AppSpacing.sm),
                 Expanded(
                   child: VButton.outlined(
@@ -329,9 +329,10 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
     return _canEdit(uid, status, hosts);
   }
 
-  /// Whether the viewer is a host/staff of this event (the guest roster RLS
-  /// `ei_read_event_access` opens invites only to the event's privileged
-  /// people; hosts list read is own-rows-only under `ep_read_own`).
+  /// Whether the viewer is a host/staff of this event. Privileged people see
+  /// the guest roster (RLS `ei_read_event_access`) and can scan (Stage 3,
+  /// `validate_qr_token` role IN host/staff); the full host/staff roster is
+  /// read through `ep_read_event_access` (060_events/06_staff.sql).
   bool _isPrivileged(
     List<Map<String, dynamic>>? hosts,
     String? uid,
@@ -386,6 +387,7 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
   }
 
   bool _inviteBusy = false;
+  bool _staffBusy = false;
 
   Future<void> _acceptInvite(Map<String, dynamic> invite) async {
     final l10n = AppLocalizations.of(context);
@@ -565,15 +567,45 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
     );
   }
 
-  Widget _buildHostsSection(AsyncValue<List<Map<String, dynamic>>> async) {
+  /// Host + staff roster card (Stage 3): the header carries an "Añadir staff"
+  /// action when the viewer is a role=host member and the event is open; each
+  /// STAFF row gets a remove affordance (host only). Staff rows read through
+  /// the `ep_read_event_access` RLS policy — hosts AND staff see the full
+  /// roster, everyone else only their own rows (guests see none here).
+  Widget _buildHostsSection(
+    Event event,
+    AsyncValue<List<Map<String, dynamic>>> async,
+    String? uid,
+  ) {
     final l10n = AppLocalizations.of(context);
+    final hosts = async.valueOrNull;
+    final isHost =
+        uid != null &&
+        (hosts?.any(
+              (p) => p['user_id'] == uid && p['role'] == 'host',
+            ) ??
+            false);
+    final open = !_isClosed(event.status);
+
     return VCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            l10n.eventHosts,
-            style: Theme.of(context).textTheme.labelLarge,
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  l10n.eventHosts,
+                  style: Theme.of(context).textTheme.labelLarge,
+                ),
+              ),
+              if (isHost && open)
+                TextButton.icon(
+                  onPressed: _staffBusy ? null : _openStaffPicker,
+                  icon: const Icon(Icons.person_add_alt, size: 18),
+                  label: Text(l10n.eventStaffAddButton),
+                ),
+            ],
           ),
           const SizedBox(height: AppSpacing.sm),
           async.when(
@@ -582,21 +614,26 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
               l10n.eventHostsError,
               style: Theme.of(context).textTheme.bodySmall,
             ),
-            data: (hosts) => hosts.isEmpty
+            data: (members) => members.isEmpty
                 ? Text(
                     l10n.eventNoHosts,
                     style: Theme.of(context).textTheme.bodyMedium,
                   )
-                : Wrap(
-                    spacing: AppSpacing.md,
-                    runSpacing: AppSpacing.md,
+                : Column(
                     children: [
-                      for (final p in hosts)
-                        _HostAvatar(
+                      for (final p in members)
+                        _HostMemberRow(
                           username:
                               p['users']?['username'] as String? ??
                               '${p['user_id']}'.substring(0, 8),
                           role: p['role'] as String? ?? 'host',
+                          removable:
+                              isHost &&
+                              open &&
+                              (p['role'] as String? ?? '') == 'staff',
+                          busy: _staffBusy,
+                          onRemove: () =>
+                              _confirmRemoveStaff(p, p['users']?['username']),
                         ),
                     ],
                   ),
@@ -604,6 +641,86 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
         ],
       ),
     );
+  }
+
+  /// Opens the staff picker ([EventStaffScreen]); designates the selection
+  /// through the host's roster provider (server-enforced capacity/gates).
+  Future<void> _openStaffPicker() async {
+    final l10n = AppLocalizations.of(context);
+    final picked = await Navigator.of(context).push<List<String>>(
+      MaterialPageRoute(
+        builder: (_) => EventStaffScreen(eventId: widget.eventId),
+      ),
+    );
+    if (picked == null || picked.isEmpty || !mounted) return;
+    setState(() => _staffBusy = true);
+    try {
+      await ref
+          .read(eventHostsProvider(widget.eventId).notifier)
+          .designateStaff(picked);
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.eventStaffAdded)));
+    } catch (e) {
+      if (mounted) showAppError(context, e);
+    } finally {
+      if (mounted) setState(() => _staffBusy = false);
+    }
+  }
+
+  /// Confirm-then-remove a staff member (host only — the server also rejects
+  /// removing the host row). Removals free the staff member's seat.
+  Future<void> _confirmRemoveStaff(
+    Map<String, dynamic> member,
+    Object? rawUsername,
+  ) async {
+    final l10n = AppLocalizations.of(context);
+    final username =
+        rawUsername is String && rawUsername.isNotEmpty
+            ? rawUsername
+            : '${member['user_id']}'.substring(0, 8);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: AppColors.discoBlack,
+        title: Text(
+          l10n.eventStaffRemoveDialogTitle(username),
+          style: const TextStyle(color: AppColors.white),
+        ),
+        content: Text(
+          l10n.eventStaffRemoveDialogBody,
+          style: const TextStyle(color: AppColors.mutedStrong),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: Text(l10n.commonCancel),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: Text(l10n.eventStaffRemoveConfirm),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    final staffUserId = member['user_id'] as String;
+    setState(() => _staffBusy = true);
+    try {
+      await ref
+          .read(eventHostsProvider(widget.eventId).notifier)
+          .removeStaff(staffUserId);
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.eventStaffRemoved)));
+    } catch (e) {
+      if (mounted) showAppError(context, e);
+    } finally {
+      if (mounted) setState(() => _staffBusy = false);
+    }
   }
 
   String _typeLabel(AppLocalizations l10n, String type) {
@@ -657,13 +774,24 @@ class _InfoRow extends StatelessWidget {
   }
 }
 
-/// Host chip — the label carries the state (ESTA §1 / design doc §2.5
-/// rule 5: color is never the only signal); the avatar stays neutral glass.
-class _HostAvatar extends StatelessWidget {
+/// One host/staff roster row — avatar + username + role label, with a
+/// host-only remove affordance for STAFF rows. The label carries the state
+/// (ESTA §1 / design doc §2.5 rule 5: color is never the only signal); the
+/// avatar stays neutral glass.
+class _HostMemberRow extends StatelessWidget {
   final String username;
   final String role;
+  final bool removable;
+  final bool busy;
+  final VoidCallback onRemove;
 
-  const _HostAvatar({required this.username, required this.role});
+  const _HostMemberRow({
+    required this.username,
+    required this.role,
+    required this.removable,
+    required this.busy,
+    required this.onRemove,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -671,23 +799,45 @@ class _HostAvatar extends StatelessWidget {
     final roleLabel = role == 'host'
         ? l10n.eventRoleHost
         : l10n.eventRoleStaff;
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        CircleAvatar(
-          radius: 20,
-          backgroundColor: AppColors.surfaceAlt,
-          child: Text(
-            // U-26 (U-25 F5): an empty (non-null) username would RangeError
-            // on substring — the '?' initial fallback.
-            username.isEmpty ? '?' : username.substring(0, 1).toUpperCase(),
-            style: const TextStyle(fontSize: 16, color: AppColors.white),
+    return Padding(
+      padding: const EdgeInsets.only(top: AppSpacing.xs),
+      child: Row(
+        children: [
+          CircleAvatar(
+            radius: 16,
+            backgroundColor: AppColors.surfaceAlt,
+            child: Text(
+              // U-26 (U-25 F5): an empty (non-null) username would RangeError
+              // on substring — the '?' initial fallback.
+              username.isEmpty ? '?' : username.substring(0, 1).toUpperCase(),
+              style: const TextStyle(fontSize: 13, color: AppColors.white),
+            ),
           ),
-        ),
-        const SizedBox(height: AppSpacing.xs),
-        Text(username, style: Theme.of(context).textTheme.bodySmall),
-        Text(roleLabel, style: Theme.of(context).textTheme.labelSmall),
-      ],
+          const SizedBox(width: AppSpacing.sm),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  username,
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+                Text(
+                  roleLabel,
+                  style: Theme.of(context).textTheme.labelSmall,
+                ),
+              ],
+            ),
+          ),
+          if (removable)
+            IconButton(
+              tooltip: l10n.eventStaffRemove,
+              onPressed: busy ? null : onRemove,
+              icon: const Icon(Icons.person_remove_outlined, size: 20),
+              color: AppColors.mutedStrong,
+            ),
+        ],
+      ),
     );
   }
 }

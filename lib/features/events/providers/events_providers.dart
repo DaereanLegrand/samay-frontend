@@ -69,6 +69,22 @@ class EventHostsNotifier
     if (!shouldRefetch()) return;
     ref.invalidateSelf();
   }
+
+  /// The HOST designates [staffIds] as staff of this event (Stage 3 host
+  /// picker). The server enforces capacity + host-gate + invite-seat
+  /// conversion atomically. Reloads the roster so the new staff rows appear.
+  Future<void> designateStaff(List<String> staffIds) async {
+    if (staffIds.isEmpty) return;
+    await _service.designateStaff(arg, staffIds);
+    await refresh();
+  }
+
+  /// The HOST removes [staffUserId] from this event's staff (frees their
+  /// seat; the host row can never be removed). Reloads the roster.
+  Future<void> removeStaff(String staffUserId) async {
+    await _service.removeStaff(arg, staffUserId);
+    await refresh();
+  }
 }
 
 /// Hosts of an event (rows enriched with `users.username`).
