@@ -171,29 +171,6 @@ class EventService {
     return res.map((e) => e['photo_id'] as String).toList();
   }
 
-  /// The current user's attendance-QR token row for [eventId], or `null` when
-  /// the server has not issued one yet (pre-activation window, or the
-  /// EEDG/QEDG `qr-token-manager` Edge Function is not deployed — QRAT).
-  ///
-  /// Rotation accumulates rows over time, so the query returns the **latest**
-  /// row per user+event (`created_at DESC`); the server always intends the
-  /// newest row to be the valid token, and client-side `expires_at` judges
-  /// whether a rotation happened (I-57 foundation decision).
-  Future<Map<String, dynamic>?> getMyQrToken(String eventId) async {
-    final user = auth.currentUser;
-    if (user == null) throw const UnauthorizedError();
-
-    final res = await client
-        .from('event_qr_tokens')
-        .select()
-        .eq('event_id', eventId)
-        .eq('user_id', user.id)
-        .order('created_at', ascending: false)
-        .limit(1)
-        .maybeSingle();
-    return res == null ? null : Map<String, dynamic>.from(res);
-  }
-
   /// Validates an attendee QR token as a host/staff — QRSC.
   ///
   /// Invokes the `validate_qr_token` RPC (migration 20260809000005, the SQL
@@ -213,18 +190,18 @@ class EventService {
     return Map<String, dynamic>.from(res as Map);
   }
 
-  /// Rotates (or first-issues) the caller's attendance-QR token for
-  /// [eventId] — QRAT.
-  ///
-  /// Invokes the `rotate_qr_token` RPC (migration 20260814000004, the SQL
-  /// stand-in for the blocked `qr-token-manager` Edge Function). The server
-  /// returns the still-valid current token, or atomically invalidates the
-  /// previous one and issues a fresh token (`qr.token_valid_seconds`
-  /// lifetime). Business outcomes are `status` payloads (`not_in_window`,
-  /// `not_invited`, `ok`) — never exceptions; infra failures throw and the
-  /// provider degrades to re-reading the current row.
-  Future<Map<String, dynamic>?> rotateQrToken(String eventId) async {
-    final res = await client.rpc('rotate_qr_token', params: {
+  /// Fetches the caller's swirl session for [eventId] (Stage 4,
+  /// `get_my_swirl_code`, 060_events/07_swirl.sql) — the current 24-hex code
+  /// plus the per-attendee secret and window bounds so the device can derive
+  /// every later 30-s window locally (authenticator style, no per-window
+  /// round-trip). Non-fatal RPC outcomes are returned as jsonb `status`
+  /// payloads (`not_in_window`, `not_invited`, `ok`) — never exceptions;
+  /// infra failures throw and surface through the provider's AsyncError.
+  Future<Map<String, dynamic>?> getMySwirlCode(String eventId) async {
+    final user = auth.currentUser;
+    if (user == null) throw const UnauthorizedError();
+
+    final res = await client.rpc('get_my_swirl_code', params: {
       'p_event_id': eventId,
     });
     return res == null ? null : Map<String, dynamic>.from(res as Map);

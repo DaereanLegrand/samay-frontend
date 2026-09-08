@@ -2080,19 +2080,6 @@
   "@qrEventLoadError": {
     "description": "Attendance QR: event load error message"
   },
-  "qrTokenLoadError": "No se pudo cargar el código QR.",
-  "@qrTokenLoadError": {
-    "description": "Attendance QR: token load error message"
-  },
-  "qrActivatesIn": "El código QR se activará {minutes} minutos antes del evento",
-  "@qrActivatesIn": {
-    "description": "Attendance QR: pre-activation countdown message",
-    "placeholders": {
-      "minutes": {
-        "type": "int"
-      }
-    }
-  },
   "qrActivationCountdown": "Se activa en {time}",
   "@qrActivationCountdown": {
     "description": "Attendance QR: countdown to activation time",
@@ -2110,30 +2097,6 @@
         "type": "int"
       }
     }
-  },
-  "qrEventEnded": "El evento ha finalizado. Ya no es necesario el código QR.",
-  "@qrEventEnded": {
-    "description": "Attendance QR: post-event message"
-  },
-  "qrServerPending": "No se pudo generar el código QR todavía. El servidor aún no está rotando tokens.",
-  "@qrServerPending": {
-    "description": "Attendance QR: server has no token yet (EEDG not deployed)"
-  },
-  "qrServerPendingBody": "Si el problema continúa, presiona Reintentar.",
-  "@qrServerPendingBody": {
-    "description": "Attendance QR: server-pending retry hint"
-  },
-  "qrUpdating": "Actualizando código…",
-  "@qrUpdating": {
-    "description": "Attendance QR: rotating the token"
-  },
-  "qrAttendeeExpired": "El código QR expiró. Generando uno nuevo…",
-  "@qrAttendeeExpired": {
-    "description": "Attendance QR: token expired, regenerating"
-  },
-  "qrAttendeeExpiredBody": "Si el problema continúa, presiona Reintentar.",
-  "@qrAttendeeExpiredBody": {
-    "description": "Attendance QR: expired retry hint"
   },
   "qrScannerTitle": "escáner",
   "@qrScannerTitle": {
@@ -2236,6 +2199,39 @@
   "qrCameraSettingsAction": "Abrir ajustes",
   "@qrCameraSettingsAction": {
     "description": "QR scanner: settings dialog action"
+  },
+  "swirlActivatesIn": "El código se activará {minutes} minutos antes del evento",
+  "@swirlActivatesIn": {
+    "description": "Swirl attendance: pre-activation countdown message",
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "swirlCodeCaption": "Muestra este código a una persona del evento para confirmar tu asistencia.",
+  "@swirlCodeCaption": {
+    "description": "Swirl attendance: caption under the animated code"
+  },
+  "swirlCodeLoadError": "No se pudo cargar tu código.",
+  "@swirlCodeLoadError": {
+    "description": "Swirl attendance: code load error message"
+  },
+  "swirlEventEnded": "El evento finalizó. Ya no se necesita un código de asistencia.",
+  "@swirlEventEnded": {
+    "description": "Swirl attendance: post-event message"
+  },
+  "swirlNotInvited": "No tienes un código para este evento.",
+  "@swirlNotInvited": {
+    "description": "Swirl attendance: caller is not an attendee"
+  },
+  "swirlServerPending": "El servidor aún no emitió tu código.",
+  "@swirlServerPending": {
+    "description": "Swirl attendance: server refused inside the presumed window"
+  },
+  "swirlServerPendingBody": "Si el problema continúa, presiona Reintentar.",
+  "@swirlServerPendingBody": {
+    "description": "Swirl attendance: server-pending retry hint"
   },
   "partyFinderTitle": "Party finder",
   "@partyFinderTitle": {

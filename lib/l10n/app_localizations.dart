@@ -2960,18 +2960,6 @@ abstract class AppLocalizations {
   /// **'No se pudo cargar el evento.'**
   String get qrEventLoadError;
 
-  /// Attendance QR: token load error message
-  ///
-  /// In es, this message translates to:
-  /// **'No se pudo cargar el código QR.'**
-  String get qrTokenLoadError;
-
-  /// Attendance QR: pre-activation countdown message
-  ///
-  /// In es, this message translates to:
-  /// **'El código QR se activará {minutes} minutos antes del evento'**
-  String qrActivatesIn(int minutes);
-
   /// Attendance QR: countdown to activation time
   ///
   /// In es, this message translates to:
@@ -2983,42 +2971,6 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'Nuevo código en: {seconds}'**
   String qrNewCodeIn(int seconds);
-
-  /// Attendance QR: post-event message
-  ///
-  /// In es, this message translates to:
-  /// **'El evento ha finalizado. Ya no es necesario el código QR.'**
-  String get qrEventEnded;
-
-  /// Attendance QR: server has no token yet (EEDG not deployed)
-  ///
-  /// In es, this message translates to:
-  /// **'No se pudo generar el código QR todavía. El servidor aún no está rotando tokens.'**
-  String get qrServerPending;
-
-  /// Attendance QR: server-pending retry hint
-  ///
-  /// In es, this message translates to:
-  /// **'Si el problema continúa, presiona Reintentar.'**
-  String get qrServerPendingBody;
-
-  /// Attendance QR: rotating the token
-  ///
-  /// In es, this message translates to:
-  /// **'Actualizando código…'**
-  String get qrUpdating;
-
-  /// Attendance QR: token expired, regenerating
-  ///
-  /// In es, this message translates to:
-  /// **'El código QR expiró. Generando uno nuevo…'**
-  String get qrAttendeeExpired;
-
-  /// Attendance QR: expired retry hint
-  ///
-  /// In es, this message translates to:
-  /// **'Si el problema continúa, presiona Reintentar.'**
-  String get qrAttendeeExpiredBody;
 
   /// QR scanner screen title
   ///
@@ -3157,6 +3109,48 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'Abrir ajustes'**
   String get qrCameraSettingsAction;
+
+  /// Swirl attendance: pre-activation countdown message
+  ///
+  /// In es, this message translates to:
+  /// **'El código se activará {minutes} minutos antes del evento'**
+  String swirlActivatesIn(int minutes);
+
+  /// Swirl attendance: caption under the animated code
+  ///
+  /// In es, this message translates to:
+  /// **'Muestra este código a una persona del evento para confirmar tu asistencia.'**
+  String get swirlCodeCaption;
+
+  /// Swirl attendance: code load error message
+  ///
+  /// In es, this message translates to:
+  /// **'No se pudo cargar tu código.'**
+  String get swirlCodeLoadError;
+
+  /// Swirl attendance: post-event message
+  ///
+  /// In es, this message translates to:
+  /// **'El evento finalizó. Ya no se necesita un código de asistencia.'**
+  String get swirlEventEnded;
+
+  /// Swirl attendance: caller is not an attendee
+  ///
+  /// In es, this message translates to:
+  /// **'No tienes un código para este evento.'**
+  String get swirlNotInvited;
+
+  /// Swirl attendance: server refused inside the presumed window
+  ///
+  /// In es, this message translates to:
+  /// **'El servidor aún no emitió tu código.'**
+  String get swirlServerPending;
+
+  /// Swirl attendance: server-pending retry hint
+  ///
+  /// In es, this message translates to:
+  /// **'Si el problema continúa, presiona Reintentar.'**
+  String get swirlServerPendingBody;
 
   /// Party Finder screen app bar title (PFND — I-60)
   ///

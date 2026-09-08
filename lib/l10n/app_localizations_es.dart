@@ -1571,14 +1571,6 @@ class AppLocalizationsEs extends AppLocalizations {
   String get qrEventLoadError => 'No se pudo cargar el evento.';
 
   @override
-  String get qrTokenLoadError => 'No se pudo cargar el código QR.';
-
-  @override
-  String qrActivatesIn(int minutes) {
-    return 'El código QR se activará $minutes minutos antes del evento';
-  }
-
-  @override
   String qrActivationCountdown(String time) {
     return 'Se activa en $time';
   }
@@ -1587,28 +1579,6 @@ class AppLocalizationsEs extends AppLocalizations {
   String qrNewCodeIn(int seconds) {
     return 'Nuevo código en: $seconds';
   }
-
-  @override
-  String get qrEventEnded =>
-      'El evento ha finalizado. Ya no es necesario el código QR.';
-
-  @override
-  String get qrServerPending =>
-      'No se pudo generar el código QR todavía. El servidor aún no está rotando tokens.';
-
-  @override
-  String get qrServerPendingBody =>
-      'Si el problema continúa, presiona Reintentar.';
-
-  @override
-  String get qrUpdating => 'Actualizando código…';
-
-  @override
-  String get qrAttendeeExpired => 'El código QR expiró. Generando uno nuevo…';
-
-  @override
-  String get qrAttendeeExpiredBody =>
-      'Si el problema continúa, presiona Reintentar.';
 
   @override
   String get qrScannerTitle => 'escáner';
@@ -1687,6 +1657,32 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get qrCameraSettingsAction => 'Abrir ajustes';
+
+  @override
+  String swirlActivatesIn(int minutes) {
+    return 'El código se activará $minutes minutos antes del evento';
+  }
+
+  @override
+  String get swirlCodeCaption =>
+      'Muestra este código a una persona del evento para confirmar tu asistencia.';
+
+  @override
+  String get swirlCodeLoadError => 'No se pudo cargar tu código.';
+
+  @override
+  String get swirlEventEnded =>
+      'El evento finalizó. Ya no se necesita un código de asistencia.';
+
+  @override
+  String get swirlNotInvited => 'No tienes un código para este evento.';
+
+  @override
+  String get swirlServerPending => 'El servidor aún no emitió tu código.';
+
+  @override
+  String get swirlServerPendingBody =>
+      'Si el problema continúa, presiona Reintentar.';
 
   @override
   String get partyFinderTitle => 'Party finder';

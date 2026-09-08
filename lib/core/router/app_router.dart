@@ -55,7 +55,7 @@ import 'package:samay/features/minigames/screens/minigame_session_detail_screen.
 import 'package:samay/features/minigames/screens/truth_dare_screen.dart';
 import 'package:samay/features/notifications/screens/notification_center_screen.dart';
 import 'package:samay/features/party_finder/screens/party_finder_screen.dart';
-import 'package:samay/features/qr/screens/attendance_qr_screen.dart';
+import 'package:samay/features/qr/screens/attendance_swirl_screen.dart';
 import 'package:samay/features/qr/screens/qr_scanner_screen.dart';
 import 'package:samay/features/shards/screens/shard_ledger_screen.dart';
 import 'package:samay/features/subscriptions/screens/paywall_screen.dart';
@@ -542,14 +542,17 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (_, _) => const BlockedUsersScreen(),
       ),
       GoRoute(
-        // QRAT/QRSC (I-57): gated on the qr flag as the kill-switch knob.
+        // QRAT/QRSC (I-57), Stage-4 swirl attendee surface: gated on the qr
+        // flag as the kill-switch knob. The attendee screen shows the
+        // animated swirl attendance code (AttendanceSwirlScreen); the scanner
+        // (QrScannerScreen) still reads QR codes until Stage 5.
         path: RoutePaths.qr(':eventId'),
         builder: (context, state) => _screenForId(
           state,
           'eventId',
           (eventId) => FlagGate(
             flag: AppFeatureFlag.qr,
-            child: AttendanceQrScreen(eventId: eventId),
+            child: AttendanceSwirlScreen(eventId: eventId),
           ),
           errorMessage: AppLocalizations.of(context).routerEventNotFound,
         ),
