@@ -31,11 +31,15 @@ byte-identical into `supabase-testing/`)
     goes through a **security-barrier view `event_host_access_view`**
     (owner = postgres, rolbypassrls). The view carries NO grants, so no client
     can query it directly — only the RLS policy subquery reaches it.
-- **`rotate_qr_token` / `validate_qr_token`** redefined (CREATE OR REPLACE,
-  ACLs preserved): the attendee gate now admits `event_hosts` members
-  (host + staff) too, not only invited guests — everyone on the event
-  generates their own attendance code and can be confirmed (`event_attendances`
-  records every confirmed person; the invite flip no-ops for host/staff).
+- **The attendance-code attendee gate widened to host/staff** (at the time via
+  the legacy QR-token RPC pair, CREATE OR REPLACE, ACLs preserved):
+  the attendee gate now admits `event_hosts` members (host + staff) too, not
+  only invited guests — everyone on the event generates their own attendance
+  code and can be confirmed (`event_attendances` records every confirmed
+  person; the invite flip no-ops for host/staff). The legacy QR-token surface
+  was later removed when the rotating code flow superseded it
+  (`060_events/07_code.sql`), and the code-family RPCs (`get_my_code` /
+  `validate_code`) carry this host/staff-as-attendee behavior forward.
 
 ### Flutter
 
@@ -48,8 +52,8 @@ byte-identical into `supabase-testing/`)
   host/staff row (avatar + username + role label) instead of bare avatars; a
   role=host member on an open event gets an "Añadir staff" action and a remove
   affordance per STAFF row (confirm dialog). The scanner button now shows for
-  staff too (`_isPrivileged` = host OR staff; `validate_qr_token` already
-  gates role IN host/staff).
+  staff too (`_isPrivileged` = host OR staff; the attendance-code validator
+  `validate_code` already gates role IN host/staff).
 - l10n: 10 new keys (es template + en), regenerated via `flutter gen-l10n`.
 
 ### Tests / baselines
@@ -58,9 +62,11 @@ byte-identical into `supabase-testing/`)
   capacity (cap 7 = 1 host + 6 staff), staff/outsider `not_host`, removal +
   host-not-removable + idempotent re-removal, accepted-guest → staff
   conversion is seat-neutral (`event_seats_used` stays 2), staff/host can
-  rotate a QR token and a host validates a staff token (confirmed, attendance
-  recorded, re-scan `already_scanned`), roster RLS (host reads 3 rows, staff
-  reads 3, outsider reads 0).
+  each obtain their own attendance code and a host validates a staff member's
+  code (confirmed, attendance recorded, re-scan `already_scanned`; opt-026
+  TEST G now exercises the code family — `get_my_code` / `validate_code` —
+  after the legacy QR-token RPCs were removed), roster RLS (host reads 3 rows,
+  staff reads 3, outsider reads 0).
 - pgTAP §20 updated (`event_hosts` policies = ep_read_own + ep_read_event_access)
   + §21c new (designate/remove presence + no-anon-EXECUTE + view + FORCE RLS)
   → **plan(943)**, mirrors synced.

@@ -1611,10 +1611,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get qrScanReady => 'Done';
 
   @override
-  String get qrScanExpired =>
-      'QR code expired. Ask the attendee to refresh their QR.';
-
-  @override
   String get qrScanAlreadyScanned => 'This QR code was already scanned.';
 
   @override
@@ -1629,7 +1625,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'You don\'t have permission to scan at this event.';
 
   @override
-  String get qrScanInvalidToken => 'Invalid QR code.';
+  String get qrScanInvalidCode => 'Invalid QR code.';
 
   @override
   String get qrScanNetworkError => 'Connection error. Retrying...';
@@ -1655,29 +1651,29 @@ class AppLocalizationsEn extends AppLocalizations {
   String get qrCameraSettingsAction => 'Open settings';
 
   @override
-  String swirlActivatesIn(int minutes) {
+  String codeActivatesIn(int minutes) {
     return 'The attendance code will activate $minutes minutes before the event';
   }
 
   @override
-  String get swirlCodeCaption =>
+  String get codeCaption =>
       'Show this code to someone at the event to confirm your attendance.';
 
   @override
-  String get swirlCodeLoadError => 'Could not load your attendance code.';
+  String get codeLoadError => 'Could not load your attendance code.';
 
   @override
-  String get swirlEventEnded =>
+  String get codeEventEnded =>
       'The event has ended. No attendance code is needed.';
 
   @override
-  String get swirlNotInvited => 'You don\'t have a code for this event.';
+  String get codeNotInvited => 'You don\'t have a code for this event.';
 
   @override
-  String get swirlServerPending => 'The server has not issued your code yet.';
+  String get codeServerPending => 'The server has not issued your code yet.';
 
   @override
-  String get swirlServerPendingBody => 'If the problem persists, press Retry.';
+  String get codeServerPendingBody => 'If the problem persists, press Retry.';
 
   @override
   String get partyFinderTitle => 'Party finder';

@@ -113,22 +113,6 @@ class RealtimeService {
     channel.subscribe();
   }
 
-  Future<void> subscribeToQRToken(String eventId, void Function(String) onUpdate) async {
-    final user = auth.currentUser;
-    if (user == null) throw const UnauthorizedError();
-    final channel = client.channel('qr-token:$eventId:${user.id}');
-    channel.onPostgresChanges(
-      event: PostgresChangeEvent.update,
-      schema: 'public',
-      table: 'event_qr_tokens',
-      callback: (payload) {
-        final token = payload.newRecord['token'] as String?;
-        if (token != null) onUpdate(token);
-      },
-    );
-    channel.subscribe();
-  }
-
   /// Group memberships involving the current user — any insert/update/delete.
   ///
   /// postgres_changes cannot OR two columns, so the whole `group_members`

@@ -261,7 +261,7 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
   ) {
     final l10n = AppLocalizations.of(context);
     // Scanner visibility (Stage 3): host AND staff scan attendance codes
-    // (`validate_qr_token` gates on role IN host/staff).
+    // (`validate_code` gates on role IN host/staff).
     final canScan = _isPrivileged(hosts, uid);
     final showQr = ref.isEnabled(AppFeatureFlag.qr);
     final showPhotos = ref.isEnabled(AppFeatureFlag.photoUpload);
@@ -331,7 +331,7 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
 
   /// Whether the viewer is a host/staff of this event. Privileged people see
   /// the guest roster (RLS `ei_read_event_access`) and can scan (Stage 3,
-  /// `validate_qr_token` role IN host/staff); the full host/staff roster is
+  /// `validate_code` role IN host/staff); the full host/staff roster is
   /// read through `ep_read_event_access` (060_events/06_staff.sql).
   bool _isPrivileged(
     List<Map<String, dynamic>>? hosts,

@@ -171,37 +171,37 @@ class EventService {
     return res.map((e) => e['photo_id'] as String).toList();
   }
 
-  /// Validates an attendee QR token as a host/staff — QRSC.
+  /// Validates an attendee's rotating code as a host/staff — QRSC.
   ///
-  /// Invokes the `validate_qr_token` RPC (migration 20260809000005, the SQL
-  /// stand-in for the blocked `validate-attendance` Edge Function). Business
-  /// outcomes are returned as jsonb `status` payloads (never exceptions);
-  /// infra failures (missing RPC PGRST202, network) throw and surface as the
-  /// scanner's retryable banner. Swapping to the Edge Function later is a
-  /// one-line change here.
-  Future<Map<String, dynamic>> validateQrToken(
+  /// The attendee shows the code as a plain QR (`QrImageView`); the scanner
+  /// reads the QR payload and validates the code string here. Invokes the
+  /// `validate_code` RPC (07_code.sql). Business outcomes are returned as
+  /// jsonb `status` payloads (never exceptions); infra failures (missing RPC
+  /// PGRST202, network) throw and surface as the scanner's retryable banner.
+  /// Swapping to the Edge Function later is a one-line change here.
+  Future<Map<String, dynamic>> validateCode(
     String eventId,
-    String token,
+    String code,
   ) async {
-    final res = await client.rpc('validate_qr_token', params: {
+    final res = await client.rpc('validate_code', params: {
       'p_event_id': eventId,
-      'p_token': token,
+      'p_code': code,
     });
     return Map<String, dynamic>.from(res as Map);
   }
 
-  /// Fetches the caller's swirl session for [eventId] (Stage 4,
-  /// `get_my_swirl_code`, 060_events/07_swirl.sql) — the current 24-hex code
-  /// plus the per-attendee secret and window bounds so the device can derive
-  /// every later 30-s window locally (authenticator style, no per-window
-  /// round-trip). Non-fatal RPC outcomes are returned as jsonb `status`
-  /// payloads (`not_in_window`, `not_invited`, `ok`) — never exceptions;
-  /// infra failures throw and surface through the provider's AsyncError.
-  Future<Map<String, dynamic>?> getMySwirlCode(String eventId) async {
+  /// Fetches the caller's code session for [eventId] (Stage 5, `get_my_code`,
+  /// 07_code.sql) — the current 24-hex code plus the per-attendee secret and
+  /// window bounds so the device can derive every later `code.window_seconds`
+  /// window locally (authenticator style, no per-window round-trip). Non-fatal
+  /// RPC outcomes are returned as jsonb `status` payloads
+  /// (`not_in_window`, `not_invited`, `ok`) — never exceptions; infra
+  /// failures throw and surface through the provider's AsyncError.
+  Future<Map<String, dynamic>?> getMyCode(String eventId) async {
     final user = auth.currentUser;
     if (user == null) throw const UnauthorizedError();
 
-    final res = await client.rpc('get_my_swirl_code', params: {
+    final res = await client.rpc('get_my_code', params: {
       'p_event_id': eventId,
     });
     return res == null ? null : Map<String, dynamic>.from(res as Map);

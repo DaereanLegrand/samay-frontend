@@ -74,5 +74,5 @@ Entire codebase (DB, Go, Flutter, opt-tests, pgTAP, docs):
 
 ## Follow-ups (NOT in this session)
 - Staff designation UI (host adds staff), event guest invites reusing the
-  minigame invite mechanism, host/staff swirl attendance codes — later stages.
+  minigame invite mechanism, host/staff QR attendance codes — later stages.
 - Daily event-limit enforcement (`events.*_daily_limit`) still open (ECRT gap).

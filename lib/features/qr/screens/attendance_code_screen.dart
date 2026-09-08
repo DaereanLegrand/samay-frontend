@@ -3,14 +3,14 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/logging/app_logger.dart';
 import 'package:samay/core/theme/samay_durations.dart';
 import 'package:samay/features/events/providers/events_providers.dart';
-import 'package:samay/features/qr/logic/swirl_code.dart';
-import 'package:samay/features/qr/providers/swirl_providers.dart';
-import 'package:samay/features/qr/widgets/swirl_pattern_view.dart';
+import 'package:samay/features/qr/logic/code.dart';
+import 'package:samay/features/qr/providers/code_providers.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/error_view.dart';
 import 'package:samay/shared/widgets/v_header_bar.dart';
@@ -21,36 +21,41 @@ import 'package:samay/shared/widgets/v_button.dart';
 /// contract used to render the pre-activation countdown.
 const int _activationMinutes = 30;
 
-/// Attendee-side animated swirl attendance code (Stage 4).
+/// Attendee-side rotating QR attendance code (Stage 5 pivot).
 ///
-/// Shows the attendee's [SwirlSession] as an animated swirl encoding the
-/// current 24-hex code, regenerating every `swirl.window_seconds` (seed 30)
+/// Shows the attendee's [CodeSession] as a PLAIN QR ([QrImageView]) encoding
+/// the current 24-hex code, regenerating every `code.window_seconds` (seed 30)
 /// like an authenticator — derived LOCALLY from the per-event secret, so
-/// regeneration is seamless and works without a network round-trip. States:
+/// regeneration is seamless and works without a network round-trip. The host/
+/// staff scanner reads the QR's payload and validates the code via the
+/// `validate_code` RPC. States:
 ///
 /// * **ended** — event status `ended` or past `ends_at`: no code needed.
 /// * **notInvited** — caller is neither host/staff nor an invited attendee.
 /// * **notInWindow** — before activation (`starts_at - 30 min`): countdown,
 ///   then re-fetch when the window opens.
-/// * **active** — the animated swirl + countdown ring to the next code; the
-///   code change is morphed inside the swirl (no hard swap).
+/// * **active** — the rotating QR on a white card + countdown ring to the
+///   next code.
 ///
 /// Route: `/qr/:eventId` (feature-flag gated on `AppFeatureFlag.qr`).
-class AttendanceSwirlScreen extends ConsumerStatefulWidget {
-  const AttendanceSwirlScreen({super.key, required this.eventId});
+///
+/// Privacy posture intact: the per-attendee secret is held in memory only and
+/// never persisted or logged; only the rotating code string is rendered.
+class AttendanceCodeScreen extends ConsumerStatefulWidget {
+  const AttendanceCodeScreen({super.key, required this.eventId});
 
   final String eventId;
 
   @override
-  ConsumerState<AttendanceSwirlScreen> createState() =>
-      _AttendanceSwirlScreenState();
+  ConsumerState<AttendanceCodeScreen> createState() =>
+      _AttendanceCodeScreenState();
 }
 
-class _AttendanceSwirlScreenState extends ConsumerState<AttendanceSwirlScreen> {
+class _AttendanceCodeScreenState extends ConsumerState<AttendanceCodeScreen> {
   Timer? _ticker;
 
-  /// Active session + the code currently rendered (morphed on window change).
-  SwirlSession? _session;
+  /// Active session + the code currently rendered (swapped at window change).
+  CodeSession? _session;
   String _code = '';
   int _boundaryMs = 0;
   int _remaining = 0;
@@ -75,7 +80,7 @@ class _AttendanceSwirlScreenState extends ConsumerState<AttendanceSwirlScreen> {
   /// boundary, derives + renders the next code seamlessly.
   void _tick() {
     if (!mounted) return;
-    final session = ref.read(mySwirlSessionProvider(widget.eventId)).valueOrNull;
+    final session = ref.read(myCodeProvider(widget.eventId)).valueOrNull;
     if (session == null || session.session == null) return;
 
     final nowMs = DateTime.now().millisecondsSinceEpoch;
@@ -93,7 +98,7 @@ class _AttendanceSwirlScreenState extends ConsumerState<AttendanceSwirlScreen> {
   }
 
   /// Crossed a window boundary: derive the next code from the secret (local,
-  /// authenticator-style) and hand it to the swirl for a seamless morph.
+  /// authenticator-style); the QR swaps to the new code on the next build.
   Future<void> _advanceWindow(int nowMs, int windowMs) async {
     if (_deriving) return;
     final session = _session;
@@ -109,7 +114,7 @@ class _AttendanceSwirlScreenState extends ConsumerState<AttendanceSwirlScreen> {
         _remaining = math.max(0, ((_boundaryMs - nowMs) / 1000).ceil());
       });
     } catch (e, st) {
-      AppLogger.instance.error('swirl derive failed: $e', '$st');
+      AppLogger.instance.error('code derive failed: $e', '$st');
     } finally {
       _deriving = false;
     }
@@ -118,8 +123,8 @@ class _AttendanceSwirlScreenState extends ConsumerState<AttendanceSwirlScreen> {
   /// Session change seam: (re)anchor the display on a fresh session —
   /// window/activation state, countdown to the current window's end.
   void _onSessionChange(
-    AsyncValue<SwirlFetch>? previous,
-    AsyncValue<SwirlFetch> next,
+    AsyncValue<CodeFetch>? previous,
+    AsyncValue<CodeFetch> next,
   ) {
     final session = next.valueOrNull?.session;
     if (session == null || !mounted) return;
@@ -129,7 +134,7 @@ class _AttendanceSwirlScreenState extends ConsumerState<AttendanceSwirlScreen> {
 
   /// Anchors the display state on [session] (safe to call without setState
   /// from build for the very first frame).
-  void _applySession(SwirlSession session) {
+  void _applySession(CodeSession session) {
     _session = session;
     _code = session.code;
     _boundaryMs = session.windowEnd * 1000;
@@ -137,19 +142,19 @@ class _AttendanceSwirlScreenState extends ConsumerState<AttendanceSwirlScreen> {
     _remaining = math.max(0, ((_boundaryMs - nowMs) / 1000).ceil());
   }
 
-  /// Re-fetch the swirl (retry / activation window opening). Throttled when
+  /// Re-fetch the code (retry / activation window opening). Throttled when
   /// called from the ticker so a still-closed window is not hammered.
   void _refetch() {
-    ref.invalidate(mySwirlSessionProvider(widget.eventId));
+    ref.invalidate(myCodeProvider(widget.eventId));
     _lastRefetch = DateTime.now();
   }
 
   @override
   Widget build(BuildContext context) {
-    ref.listen(mySwirlSessionProvider(widget.eventId), _onSessionChange);
+    ref.listen(myCodeProvider(widget.eventId), _onSessionChange);
     final l10n = AppLocalizations.of(context);
     final eventAsync = ref.watch(eventDetailProvider(widget.eventId));
-    final fetchAsync = ref.watch(mySwirlSessionProvider(widget.eventId));
+    final fetchAsync = ref.watch(myCodeProvider(widget.eventId));
 
     return eventAsync.when(
       loading: () => _scaffold(l10n, const VLoadingView()),
@@ -165,7 +170,7 @@ class _AttendanceSwirlScreenState extends ConsumerState<AttendanceSwirlScreen> {
         if (event.status == 'ended' || now.isAfter(event.endsAt)) {
           return _scaffold(
             l10n,
-            _MessageState(icon: Icons.event_available, message: l10n.swirlEventEnded),
+            _MessageState(icon: Icons.event_available, message: l10n.codeEventEnded),
           );
         }
         return fetchAsync.when(
@@ -173,13 +178,13 @@ class _AttendanceSwirlScreenState extends ConsumerState<AttendanceSwirlScreen> {
           error: (e, _) => _scaffold(
             l10n,
             ErrorView(
-              message: l10n.swirlCodeLoadError,
+              message: l10n.codeLoadError,
               onRetry: _refetch,
             ),
           ),
           data: (fetch) {
             switch (fetch.status) {
-              case SwirlFetchStatus.ok:
+              case CodeFetchStatus.ok:
                 if (_code.isEmpty) {
                   // First frame after the session resolves: anchor inline
                   // (the ref.listen below would fire post-frame — too late
@@ -188,26 +193,26 @@ class _AttendanceSwirlScreenState extends ConsumerState<AttendanceSwirlScreen> {
                 }
                 return _scaffold(
                   l10n,
-                  _ActiveSwirl(
+                  _ActiveCode(
                     code: _code,
                     remaining: _remaining,
                     displayWindow: _session?.windowSeconds ?? 30,
                     l10n: l10n,
                   ),
                 );
-              case SwirlFetchStatus.notInvited:
+              case CodeFetchStatus.notInvited:
                 return _scaffold(
                   l10n,
                   _MessageState(
                     icon: Icons.person_off_outlined,
-                    message: l10n.swirlNotInvited,
+                    message: l10n.codeNotInvited,
                     action: VButton(
                       label: l10n.commonRetry,
                       onPressed: _refetch,
                     ),
                   ),
                 );
-              case SwirlFetchStatus.notInWindow:
+              case CodeFetchStatus.notInWindow:
                 return _buildNotInWindow(l10n, event.startsAt);
             }
           },
@@ -227,7 +232,7 @@ class _AttendanceSwirlScreenState extends ConsumerState<AttendanceSwirlScreen> {
         l10n,
         _MessageState(
           icon: Icons.hourglass_bottom,
-          message: l10n.swirlActivatesIn(minutes),
+          message: l10n.codeActivatesIn(minutes),
           caption: l10n.qrActivationCountdown(_clockString(activationAt.difference(now))),
         ),
       );
@@ -244,8 +249,8 @@ class _AttendanceSwirlScreenState extends ConsumerState<AttendanceSwirlScreen> {
       l10n,
       _MessageState(
         icon: Icons.sync_problem,
-        message: l10n.swirlServerPending,
-        caption: l10n.swirlServerPendingBody,
+        message: l10n.codeServerPending,
+        caption: l10n.codeServerPendingBody,
         action: VButton(label: l10n.commonRetry, onPressed: _refetch),
       ),
     );
@@ -264,10 +269,11 @@ class _AttendanceSwirlScreenState extends ConsumerState<AttendanceSwirlScreen> {
   }
 }
 
-/// Active state: the animated swirl encoding the current 24-hex code + the
-/// countdown ring to the next code + the hex code as a readout.
-class _ActiveSwirl extends StatelessWidget {
-  const _ActiveSwirl({
+/// Active state: a plain QR encoding the current 24-hex code on a white card
+/// (quiet zone for reliable scanning) + the countdown ring to the next code +
+/// the hex code as a readout.
+class _ActiveCode extends StatelessWidget {
+  const _ActiveCode({
     required this.code,
     required this.remaining,
     required this.displayWindow,
@@ -300,7 +306,18 @@ class _ActiveSwirl extends StatelessWidget {
                 constraints: const BoxConstraints(maxWidth: 340),
                 child: AspectRatio(
                   aspectRatio: 1,
-                  child: SwirlPatternView(code: code),
+                  child: Container(
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      color: AppColors.white,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: QrImageView(
+                      data: code,
+                      version: QrVersions.auto,
+                      backgroundColor: AppColors.white,
+                    ),
+                  ),
                 ),
               ),
               const SizedBox(height: AppSpacing.lg),
@@ -322,7 +339,7 @@ class _ActiveSwirl extends StatelessWidget {
               ),
               const SizedBox(height: AppSpacing.sm),
               Text(
-                l10n.swirlCodeCaption,
+                l10n.codeCaption,
                 textAlign: TextAlign.center,
                 style: Theme.of(context)
                     .textTheme

@@ -22,7 +22,6 @@ if gum confirm "Delete ALL user data from local Supabase DB?"; then
   DELETE FROM event_photo_likes;
   DELETE FROM event_photos;
   DELETE FROM event_attendances;
-  DELETE FROM event_qr_tokens;
   DELETE FROM event_invites;
   DELETE FROM event_hosts;
   DELETE FROM minigame_sessions;

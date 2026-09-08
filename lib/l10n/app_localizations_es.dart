@@ -1615,10 +1615,6 @@ class AppLocalizationsEs extends AppLocalizations {
   String get qrScanReady => 'Listo';
 
   @override
-  String get qrScanExpired =>
-      'Código QR expirado. Pide al asistente que actualice su QR.';
-
-  @override
   String get qrScanAlreadyScanned => 'Este código QR ya fue escaneado.';
 
   @override
@@ -1633,7 +1629,7 @@ class AppLocalizationsEs extends AppLocalizations {
       'No tienes permisos para escanear en este evento.';
 
   @override
-  String get qrScanInvalidToken => 'Código QR inválido.';
+  String get qrScanInvalidCode => 'Código QR inválido.';
 
   @override
   String get qrScanNetworkError => 'Error de conexión. Reintentar...';
@@ -1659,29 +1655,29 @@ class AppLocalizationsEs extends AppLocalizations {
   String get qrCameraSettingsAction => 'Abrir ajustes';
 
   @override
-  String swirlActivatesIn(int minutes) {
+  String codeActivatesIn(int minutes) {
     return 'El código se activará $minutes minutos antes del evento';
   }
 
   @override
-  String get swirlCodeCaption =>
+  String get codeCaption =>
       'Muestra este código a una persona del evento para confirmar tu asistencia.';
 
   @override
-  String get swirlCodeLoadError => 'No se pudo cargar tu código.';
+  String get codeLoadError => 'No se pudo cargar tu código.';
 
   @override
-  String get swirlEventEnded =>
+  String get codeEventEnded =>
       'El evento finalizó. Ya no se necesita un código de asistencia.';
 
   @override
-  String get swirlNotInvited => 'No tienes un código para este evento.';
+  String get codeNotInvited => 'No tienes un código para este evento.';
 
   @override
-  String get swirlServerPending => 'El servidor aún no emitió tu código.';
+  String get codeServerPending => 'El servidor aún no emitió tu código.';
 
   @override
-  String get swirlServerPendingBody =>
+  String get codeServerPendingBody =>
       'Si el problema continúa, presiona Reintentar.';
 
   @override

@@ -74,6 +74,6 @@
   hardening statements) after editing both mirrored stacks.
 
 ## Follow-ups (NOT in this session)
-- Stage 3: host designates staff; Stage 4/5: swirl attendance codes + scanning.
+- Stage 3: host designates staff; Stage 4/5: QR attendance codes + scanning.
 - A standalone invite SHARE screen (invite-token deep link) is still pending
   (`EINV`), distinct from this host-facing guest-invite flow.

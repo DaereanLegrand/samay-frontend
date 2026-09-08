@@ -2091,7 +2091,7 @@
   },
   "qrNewCodeIn": "New code in: {seconds}",
   "@qrNewCodeIn": {
-    "description": "Attendance QR: countdown to next token rotation",
+    "description": "Attendance QR: countdown to next code rotation",
     "placeholders": {
       "seconds": {
         "type": "int"
@@ -2129,7 +2129,7 @@
   },
   "qrScanProcessing": "Verifying…",
   "@qrScanProcessing": {
-    "description": "QR scanner: validating a scanned token"
+    "description": "QR scanner: validating a scanned code"
   },
   "qrScanConfirmed": "Attendance confirmed!",
   "@qrScanConfirmed": {
@@ -2148,10 +2148,6 @@
   "@qrScanReady": {
     "description": "QR scanner: ready-state label after confirmation"
   },
-  "qrScanExpired": "QR code expired. Ask the attendee to refresh their QR.",
-  "@qrScanExpired": {
-    "description": "QR scanner: expired token error"
-  },
   "qrScanAlreadyScanned": "This QR code was already scanned.",
   "@qrScanAlreadyScanned": {
     "description": "QR scanner: double-scan error"
@@ -2168,9 +2164,9 @@
   "@qrScanNotHost": {
     "description": "QR scanner: caller lacks host role"
   },
-  "qrScanInvalidToken": "Invalid QR code.",
-  "@qrScanInvalidToken": {
-    "description": "QR scanner: unrecognized token"
+  "qrScanInvalidCode": "Invalid QR code.",
+  "@qrScanInvalidCode": {
+    "description": "QR scanner: unrecognized code"
   },
   "qrScanNetworkError": "Connection error. Retrying...",
   "@qrScanNetworkError": {
@@ -2200,38 +2196,38 @@
   "@qrCameraSettingsAction": {
     "description": "QR scanner: settings dialog action"
   },
-  "swirlActivatesIn": "The attendance code will activate {minutes} minutes before the event",
-  "@swirlActivatesIn": {
-    "description": "Swirl attendance: pre-activation countdown message",
+  "codeActivatesIn": "The attendance code will activate {minutes} minutes before the event",
+  "@codeActivatesIn": {
+    "description": "Attendance code: pre-activation countdown message",
     "placeholders": {
       "minutes": {
         "type": "int"
       }
     }
   },
-  "swirlCodeCaption": "Show this code to someone at the event to confirm your attendance.",
-  "@swirlCodeCaption": {
-    "description": "Swirl attendance: caption under the animated code"
+  "codeCaption": "Show this code to someone at the event to confirm your attendance.",
+  "@codeCaption": {
+    "description": "Attendance code: caption under the QR code"
   },
-  "swirlCodeLoadError": "Could not load your attendance code.",
-  "@swirlCodeLoadError": {
-    "description": "Swirl attendance: code load error message"
+  "codeLoadError": "Could not load your attendance code.",
+  "@codeLoadError": {
+    "description": "Attendance code: code load error message"
   },
-  "swirlEventEnded": "The event has ended. No attendance code is needed.",
-  "@swirlEventEnded": {
-    "description": "Swirl attendance: post-event message"
+  "codeEventEnded": "The event has ended. No attendance code is needed.",
+  "@codeEventEnded": {
+    "description": "Attendance code: post-event message"
   },
-  "swirlNotInvited": "You don't have a code for this event.",
-  "@swirlNotInvited": {
-    "description": "Swirl attendance: caller is not an attendee"
+  "codeNotInvited": "You don't have a code for this event.",
+  "@codeNotInvited": {
+    "description": "Attendance code: caller is not an attendee"
   },
-  "swirlServerPending": "The server has not issued your code yet.",
-  "@swirlServerPending": {
-    "description": "Swirl attendance: server refused inside the presumed window"
+  "codeServerPending": "The server has not issued your code yet.",
+  "@codeServerPending": {
+    "description": "Attendance code: server refused inside the presumed window"
   },
-  "swirlServerPendingBody": "If the problem persists, press Retry.",
-  "@swirlServerPendingBody": {
-    "description": "Swirl attendance: server-pending retry hint"
+  "codeServerPendingBody": "If the problem persists, press Retry.",
+  "@codeServerPendingBody": {
+    "description": "Attendance code: server-pending retry hint"
   },
   "partyFinderTitle": "Party finder",
   "@partyFinderTitle": {

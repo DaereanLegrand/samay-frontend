@@ -14,7 +14,7 @@ import 'package:samay/features/notifications/providers/notifications_providers.d
 import 'package:samay/features/party_finder/providers/party_finder_providers.dart';
 import 'package:samay/features/photos/providers/photos_providers.dart';
 import 'package:samay/features/profile/providers/profile_providers.dart' as profile;
-import 'package:samay/features/qr/providers/swirl_providers.dart';
+import 'package:samay/features/qr/providers/code_providers.dart';
 import 'package:samay/features/shards/providers/shard_ledger_providers.dart';
 
 /// Account-switch staleness fix (2026-08-14).
@@ -75,7 +75,7 @@ class AuthScopeReset extends ConsumerWidget {
     e2eePrekeyServiceProvider,
     e2eeKeyStoreProvider,
     e2eeSessionStoreProvider,
-    mySwirlSessionProvider,
+    myCodeProvider,
     minigameSessionsProvider,
     minigameInviteProvider,
     minigameInviteFriendsOnlyProvider,
