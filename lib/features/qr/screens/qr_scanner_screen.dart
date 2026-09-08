@@ -52,10 +52,10 @@ class _ScanError extends _ScanResult {
   final bool retryable;
 }
 
-/// QRSC — promotor/co_promotor attendance QR scanner.
+/// QRSC — host/staff attendance QR scanner.
 ///
 /// Full-screen camera via `mobile_scanner`, white scan-frame overlay with the
-/// white scan line, promotor event name and "Escanea el código QR
+/// white scan line, host event name and "Escanea el código QR
 /// del asistente" hint (QRSC §Scanner Screen). Camera access goes through
 /// [PermissionService] (`Permission.camera`) with the rationale/settings UX;
 /// the torch toggle is an overlay action (mission extension of QRSC's "no
@@ -246,10 +246,10 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen> {
                 _result = _ScanError(l10n.qrScanNotInWindow, retryable: false),
           );
           _scheduleReady();
-        case QrScanResult.notPromotor:
+        case QrScanResult.notHost:
           setState(
             () =>
-                _result = _ScanError(l10n.qrScanNotPromotor, retryable: false),
+                _result = _ScanError(l10n.qrScanNotHost, retryable: false),
           );
           _scheduleReady();
         case QrScanResult.invalidToken:

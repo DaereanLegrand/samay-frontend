@@ -83,8 +83,8 @@ class GroupsRepository {
   Future<void> kickMember(String groupId, String userId) =>
       _groups.kickMember(groupId, userId);
 
-  Future<void> transferPromotor(String groupId, String newPromotorId) =>
-      _groups.transferPromotor(groupId, newPromotorId);
+  Future<void> transferHost(String groupId, String newHostId) =>
+      _groups.transferHost(groupId, newHostId);
 
   Future<void> setMemberRole(String groupId, String userId, String role) =>
       _groups.setMemberRole(groupId, userId, role);

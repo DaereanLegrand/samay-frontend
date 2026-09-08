@@ -872,16 +872,16 @@ abstract class AppLocalizations {
   /// **'Crea un grupo o únete a uno existente'**
   String get groupsNoneYetSubtitle;
 
-  /// Dialog title when the promotor group limit is reached
+  /// Dialog title when the host group limit is reached
   ///
   /// In es, this message translates to:
   /// **'Límite alcanzado'**
   String get groupsLimitReached;
 
-  /// Dialog body explaining the 5-group promotor limit
+  /// Dialog body explaining the 5-group host limit
   ///
   /// In es, this message translates to:
-  /// **'Has alcanzado el límite de 5 grupos como promotor. Actualiza tu suscripción para crear más.'**
+  /// **'Has alcanzado el límite de 5 grupos como host. Actualiza tu suscripción para crear más.'**
   String get groupsLimitReachedBody;
 
   /// Snackbar after creating a group
@@ -1007,7 +1007,7 @@ abstract class AppLocalizations {
   /// Banner shown on a frozen group
   ///
   /// In es, this message translates to:
-  /// **'Grupo congelado — actualiza tu suscripción o transfiere el rol de promotor'**
+  /// **'Grupo congelado — actualiza tu suscripción o transfiere el rol de host'**
   String get groupsFrozenBanner;
 
   /// Group shard balance
@@ -1094,13 +1094,13 @@ abstract class AppLocalizations {
   /// **'Abandonar'**
   String get groupsAbandon;
 
-  /// Member-actions sheet option that promotes a member to co-promotor (R17)
+  /// Member-actions sheet option that promotes a member to staff (R17)
   ///
   /// In es, this message translates to:
-  /// **'Hacer co-promotor'**
-  String get groupsPromoteCoPromotor;
+  /// **'Hacer staff'**
+  String get groupsPromoteStaff;
 
-  /// Member-actions sheet option that demotes a co-promotor to member (R17)
+  /// Member-actions sheet option that demotes a staff to member (R17)
   ///
   /// In es, this message translates to:
   /// **'Hacer miembro'**
@@ -2507,7 +2507,7 @@ abstract class AppLocalizations {
   /// Event creation: approval join mode helper text
   ///
   /// In es, this message translates to:
-  /// **'El promotor aprueba cada solicitud'**
+  /// **'El host aprueba cada solicitud'**
   String get eventsJoinModeApprovalDescription;
 
   /// Juerga location warning dialog title
@@ -2666,35 +2666,35 @@ abstract class AppLocalizations {
   /// **'Sobrante: {action}'**
   String eventRemainderAction(String action);
 
-  /// Promotores section heading
+  /// Hosts section heading
   ///
   /// In es, this message translates to:
-  /// **'Promotores'**
-  String get eventPromotores;
+  /// **'Anfitrión y staff'**
+  String get eventHosts;
 
-  /// Promotor role badge
+  /// Host role badge
   ///
   /// In es, this message translates to:
-  /// **'Promotor'**
-  String get eventRolePromotor;
+  /// **'Anfitrión'**
+  String get eventRoleHost;
 
-  /// Co-promotor role badge
+  /// Staff role badge
   ///
   /// In es, this message translates to:
-  /// **'Co-promotor'**
-  String get eventRoleCoPromotor;
+  /// **'Staff'**
+  String get eventRoleStaff;
 
-  /// Promotores section error fallback
+  /// Hosts section error fallback
   ///
   /// In es, this message translates to:
-  /// **'No se pudieron cargar los promotores'**
-  String get eventPromotoresError;
+  /// **'No se pudo cargar el anfitrión y staff'**
+  String get eventHostsError;
 
-  /// Empty promotores state
+  /// Empty hosts state
   ///
   /// In es, this message translates to:
-  /// **'Sin promotores'**
-  String get eventNoPromotores;
+  /// **'Aún no hay anfitriones ni staff'**
+  String get eventNoHosts;
 
   /// Own invite status line
   ///
@@ -2747,7 +2747,7 @@ abstract class AppLocalizations {
   /// Cancel-event confirmation dialog body
   ///
   /// In es, this message translates to:
-  /// **'Se devolverán los preshards a los promotores. Los invitados serán notificados.'**
+  /// **'Se devolverán los preshards a los hosts. Los invitados serán notificados.'**
   String get eventCancelDialogBody;
 
   /// Cancel-event confirmation button
@@ -2972,11 +2972,11 @@ abstract class AppLocalizations {
   /// **'El evento no está activo para confirmación de asistencia.'**
   String get qrScanNotInWindow;
 
-  /// QR scanner: caller lacks promotor role
+  /// QR scanner: caller lacks host role
   ///
   /// In es, this message translates to:
   /// **'No tienes permisos para escanear en este evento.'**
-  String get qrScanNotPromotor;
+  String get qrScanNotHost;
 
   /// QR scanner: unrecognized token
   ///
@@ -4040,7 +4040,7 @@ abstract class AppLocalizations {
   /// **'Distribuido en evento'**
   String get preshardsReasonEventPoolConsumed;
 
-  /// Preshard ledger reason: event pool returned to the promotor
+  /// Preshard ledger reason: event pool returned to the host
   ///
   /// In es, this message translates to:
   /// **'Devuelto de evento'**
@@ -4064,11 +4064,35 @@ abstract class AppLocalizations {
   /// **'Crear evento'**
   String get eventsCreateCta;
 
-  /// Events tab helper explaining that event creation lives in a group
+  /// Events tab helper under the create-event CTA
   ///
   /// In es, this message translates to:
-  /// **'El evento se crea dentro de un grupo — elige uno en la pestaña Grupos.'**
+  /// **'Crea tu evento e invita personas — tu plan limita los asistentes.'**
   String get eventsCreateCtaBody;
+
+  /// Create-event capacity section heading
+  ///
+  /// In es, this message translates to:
+  /// **'¿Cuántas personas pueden asistir?'**
+  String get eventsCapacityTitle;
+
+  /// Create-event capacity helper under the stepper
+  ///
+  /// In es, this message translates to:
+  /// **'Personas en total, incluyéndote.'**
+  String get eventsCapacityHint;
+
+  /// Create-event upsell button shown when the plan cap is reached
+  ///
+  /// In es, this message translates to:
+  /// **'¿Quieres más? Contáctanos'**
+  String get eventsCapacityContact;
+
+  /// Snackbar for the static contact-us button
+  ///
+  /// In es, this message translates to:
+  /// **'Muy pronto — te contactaremos.'**
+  String get eventsContactSoon;
 
   /// Events tab empty state heading
   ///

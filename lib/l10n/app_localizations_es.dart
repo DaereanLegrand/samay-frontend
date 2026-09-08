@@ -433,7 +433,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get groupsLimitReachedBody =>
-      'Has alcanzado el límite de 5 grupos como promotor. Actualiza tu suscripción para crear más.';
+      'Has alcanzado el límite de 5 grupos como host. Actualiza tu suscripción para crear más.';
 
   @override
   String get groupsCreatedSnack => 'Grupo creado';
@@ -501,7 +501,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get groupsFrozenBanner =>
-      'Grupo congelado — actualiza tu suscripción o transfiere el rol de promotor';
+      'Grupo congelado — actualiza tu suscripción o transfiere el rol de host';
 
   @override
   String groupsShardsCount(int shards) {
@@ -558,7 +558,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get groupsAbandon => 'Abandonar';
 
   @override
-  String get groupsPromoteCoPromotor => 'Hacer co-promotor';
+  String get groupsPromoteStaff => 'Hacer staff';
 
   @override
   String get groupsDemoteMember => 'Hacer miembro';
@@ -1320,7 +1320,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get eventsJoinModeApprovalDescription =>
-      'El promotor aprueba cada solicitud';
+      'El host aprueba cada solicitud';
 
   @override
   String get eventsJuergaWarningTitle => 'Aviso de ubicación';
@@ -1412,19 +1412,19 @@ class AppLocalizationsEs extends AppLocalizations {
   }
 
   @override
-  String get eventPromotores => 'Promotores';
+  String get eventHosts => 'Anfitrión y staff';
 
   @override
-  String get eventRolePromotor => 'Promotor';
+  String get eventRoleHost => 'Anfitrión';
 
   @override
-  String get eventRoleCoPromotor => 'Co-promotor';
+  String get eventRoleStaff => 'Staff';
 
   @override
-  String get eventPromotoresError => 'No se pudieron cargar los promotores';
+  String get eventHostsError => 'No se pudo cargar el anfitrión y staff';
 
   @override
-  String get eventNoPromotores => 'Sin promotores';
+  String get eventNoHosts => 'Aún no hay anfitriones ni staff';
 
   @override
   String eventInviteStatus(String status) {
@@ -1454,7 +1454,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get eventCancelDialogBody =>
-      'Se devolverán los preshards a los promotores. Los invitados serán notificados.';
+      'Se devolverán los preshards a los hosts. Los invitados serán notificados.';
 
   @override
   String get eventCancelConfirm => 'Sí, cancelar';
@@ -1585,7 +1585,7 @@ class AppLocalizationsEs extends AppLocalizations {
       'El evento no está activo para confirmación de asistencia.';
 
   @override
-  String get qrScanNotPromotor =>
+  String get qrScanNotHost =>
       'No tienes permisos para escanear en este evento.';
 
   @override
@@ -2205,7 +2205,19 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get eventsCreateCtaBody =>
-      'El evento se crea dentro de un grupo — elige uno en la pestaña Grupos.';
+      'Crea tu evento e invita personas — tu plan limita los asistentes.';
+
+  @override
+  String get eventsCapacityTitle => '¿Cuántas personas pueden asistir?';
+
+  @override
+  String get eventsCapacityHint => 'Personas en total, incluyéndote.';
+
+  @override
+  String get eventsCapacityContact => '¿Quieres más? Contáctanos';
+
+  @override
+  String get eventsContactSoon => 'Muy pronto — te contactaremos.';
 
   @override
   String get eventsEmpty => 'Aún no tienes eventos';

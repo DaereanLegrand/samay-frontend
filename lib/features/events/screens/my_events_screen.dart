@@ -20,8 +20,8 @@ import 'package:samay/shared/widgets/v_header_bar.dart';
 import 'package:samay/shared/widgets/v_network_image.dart';
 
 /// The events tab (R1 events sweep): the session's events earliest-first,
-/// with a create CTA that routes to the groups tab (an event is always
-/// created inside a group).
+/// with a create CTA that opens the standalone `/events/create` flow (an
+/// event can be public or group-scoped; group entry points stay reachable).
 ///
 /// Monochrome: flat black/white hero + CTA; the list cards stay neutral
 /// white-only glass.
@@ -37,9 +37,12 @@ class _MyEventsScreenState extends ConsumerState<MyEventsScreen> {
     await ref.read(myEventsProvider.notifier).refresh();
   }
 
-  /// Creation lives inside a group (ECRT — I-54): the CTA lands on the
-  /// groups tab where the user picks one.
-  void _openGroupsTab() => context.go(RoutePaths.mainGroups);
+  /// Creation from the Events tab (2026-09-08): opens the standalone
+  /// `/events/create` flow (events can still be created from a group via
+  /// the group detail route).
+  void _openCreateEvent() {
+    context.push(RoutePaths.eventCreate);
+  }
 
   void _openEvent(Event event) {
     context.push(RoutePaths.eventDetail(event.id));
@@ -79,8 +82,7 @@ class _MyEventsScreenState extends ConsumerState<MyEventsScreen> {
               ],
               data: (events) => [
                 // The create CTA sits right under the hero and scrolls away
-                // with the content (2026-09-04: creation happens from a
-                // group — the CTA explains that).
+                // with the content (2026-09-08: standalone create flow).
                 SliverToBoxAdapter(
                   child: Padding(
                     padding: const EdgeInsets.fromLTRB(
@@ -94,7 +96,7 @@ class _MyEventsScreenState extends ConsumerState<MyEventsScreen> {
                       children: [
                         VButton.dark(
                           label: l10n.eventsCreateCta,
-                          onPressed: _openGroupsTab,
+                          onPressed: _openCreateEvent,
                         ),
                         const SizedBox(height: AppSpacing.sm),
                         Text(

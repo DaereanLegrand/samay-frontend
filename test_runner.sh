@@ -24,7 +24,7 @@ if gum confirm "Delete ALL user data from local Supabase DB?"; then
   DELETE FROM event_attendances;
   DELETE FROM event_qr_tokens;
   DELETE FROM event_invites;
-  DELETE FROM event_promotores;
+  DELETE FROM event_hosts;
   DELETE FROM minigame_sessions;
   DELETE FROM feature_requests;
   DELETE FROM reports;
@@ -98,10 +98,10 @@ tests=(
   "4.9|Groups: Tap \"Chat\" tab|Group chat (empty initially)"
   "4.10|Groups: Tap \"Eventos\" tab|Events tab (empty — Phase 05)"
   "4.11|Groups: Tap \"Abandonar grupo\"|Confirmation dialog → leaves group"
-  "4.12|Groups: Promotor kicks a member|Member removed from group"
+  "4.12|Groups: Host kicks a member|Member removed from group"
 
   "5.1|Limits: Frozen group banner on detail|No banner for normal groups"
-  "5.2|Limits: Free user → 5th promotor group|Blocked or upgrade prompt"
+  "5.2|Limits: Free user → 5th host group|Blocked or upgrade prompt"
 
   "6.1|Donations: Group detail → \"Donar shards\"|Donation screen with amount input"
   "6.2|Donations: Enter amount → boost info text|\"durante 14 días\" shown"
@@ -123,7 +123,7 @@ tests=(
   "8.5|Plugged: Tap Party Finder card on feed|Navigates to /party-finder"
   "8.6|Plugged: Group detail → \"Minijuegos\" button|Navigates to that group's minigames hub"
   "8.7|Plugged: Event detail (live event) → QR attendance button|Navigates to attendee QR screen"
-  "8.8|Plugged: Event detail (live event, promotor) → scanner button|Navigates to QR scanner screen"
+  "8.8|Plugged: Event detail (live event, host) → scanner button|Navigates to QR scanner screen"
   "8.9|Plugged: Event detail (live event) → photo gallery button|Navigates to the event photo gallery"
   "8.10|Plugged: Event detail (ended/cancelled event)|Live-actions row hidden"
   "8.11|Plugged: Photo gallery → collage wall button|Navigates to the auto-collage wall"

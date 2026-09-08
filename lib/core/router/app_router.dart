@@ -367,6 +367,17 @@ final routerProvider = Provider<GoRouter>((ref) {
           errorMessage: AppLocalizations.of(context).routerGroupNotFound,
         ),
       ),
+      // The events-tab "Crear evento" entry (2026-09-08): a standalone public
+      // flow reachable straight from `/main/events`. `/events/create` is
+      // intentionally plural — `/event/:eventId` (registered above) must keep
+      // owning the singular segment. Gated on the events flag.
+      GoRoute(
+        path: RoutePaths.eventCreate,
+        builder: (context, state) => const FlagGate(
+          flag: AppFeatureFlag.events,
+          child: CreateEventScreen(),
+        ),
+      ),
       GoRoute(
         // NOTE (I-54): no standalone `/event/create` path — it would be
         // shadowed by `/event/:eventId` (registered above) unless declared

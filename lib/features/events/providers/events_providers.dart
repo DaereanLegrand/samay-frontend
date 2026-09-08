@@ -51,19 +51,19 @@ final eventByInviteTokenProvider =
       EventByInviteTokenNotifier.new,
     );
 
-class EventPromotoresNotifier
+class EventHostsNotifier
     extends FamilyAsyncNotifier<List<Map<String, dynamic>>, String>
     with ThrottledRefresh {
   EventService get _service => ref.read(eventServiceProvider);
 
   @override
   Future<List<Map<String, dynamic>>> build(String eventId) async {
-    final promotores = await _service.getEventPromotores(eventId);
+    final hosts = await _service.getEventHosts(eventId);
     markFetched();
-    return promotores;
+    return hosts;
   }
 
-  /// Re-runs [build] after promotor-list changes. R20: skipped while the
+  /// Re-runs [build] after host-list changes. R20: skipped while the
   /// last fetch is younger than [refreshThrottle].
   Future<void> refresh() async {
     if (!shouldRefetch()) return;
@@ -71,13 +71,13 @@ class EventPromotoresNotifier
   }
 }
 
-/// Promotores of an event (rows enriched with `users.username`).
-final eventPromotoresProvider =
+/// Hosts of an event (rows enriched with `users.username`).
+final eventHostsProvider =
     AsyncNotifierProvider.family<
-      EventPromotoresNotifier,
+      EventHostsNotifier,
       List<Map<String, dynamic>>,
       String
-    >(EventPromotoresNotifier.new);
+    >(EventHostsNotifier.new);
 
 class MyEventInviteNotifier
     extends FamilyAsyncNotifier<Map<String, dynamic>?, String>

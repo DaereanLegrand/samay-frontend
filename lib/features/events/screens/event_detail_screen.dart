@@ -23,8 +23,8 @@ import 'package:samay/shared/widgets/v_network_image.dart';
 import 'package:samay/shared/widgets/v_shard_icon.dart';
 
 /// Event detail (EDET): header, date/location, preshard pool status,
-/// promotores, own invite status and role-based actions (edit/cancel for
-/// promotores). Invitee actions (accept/decline) and the QR/scanner buttons
+/// hosts, own invite status and role-based actions (edit/cancel for
+/// hosts). Invitee actions (accept/decline) and the QR/scanner buttons
 /// ship with EINV/QRAT.
 class EventDetailScreen extends ConsumerStatefulWidget {
   final String eventId;
@@ -69,7 +69,7 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
     setState(() => _cancelling = true);
     try {
       // NOTE (I-55): the client only flips the status. Returning the pool to
-      // the promotores (preshard_ledger `event_pool_returned` + pool=0) is
+      // the hosts (preshard_ledger `event_pool_returned` + pool=0) is
       // server-side logic (Go admin CancelEvent / EEDG) — see the I-55 daily
       // log for the S-07/EEDG gap flag.
       await ref.read(eventDetailProvider(widget.eventId).notifier).patch({
@@ -101,7 +101,7 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
 
     return detailAsync.when(
       // U-25 (§5.8): the detail is the heaviest events screen (detail +
-      // promotores + invite stacked fetches), so the nothing-on-screen frame
+      // hosts + invite stacked fetches), so the nothing-on-screen frame
       // shows the cover+lines skeleton (U-22's handoff named event_detail →
       // VSkeletonDetail) instead of the bare spinner. `VSkeletonDetail(rows:
       // 1)` is the closest existing skeleton to the hero geometry — the same
@@ -114,18 +114,18 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
         ),
       ),
       data: (event) {
-        final promotoresAsync = ref.watch(
-          eventPromotoresProvider(widget.eventId),
+        final hostsAsync = ref.watch(
+          eventHostsProvider(widget.eventId),
         );
         final inviteAsync = ref.watch(myEventInviteProvider(widget.eventId));
-        return _buildDetail(event, promotoresAsync, inviteAsync);
+        return _buildDetail(event, hostsAsync, inviteAsync);
       },
     );
   }
 
   Widget _buildDetail(
     Event event,
-    AsyncValue<List<Map<String, dynamic>>> promotoresAsync,
+    AsyncValue<List<Map<String, dynamic>>> hostsAsync,
     AsyncValue<Map<String, dynamic>?> inviteAsync,
   ) {
     final l10n = AppLocalizations.of(context);
@@ -203,7 +203,7 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
             const SizedBox(height: AppSpacing.xl),
             _buildPoolSection(event),
             const SizedBox(height: AppSpacing.xl),
-            _buildPromotoresSection(promotoresAsync),
+            _buildHostsSection(hostsAsync),
             if (inviteAsync.valueOrNull case final invite?
                 when invite.isNotEmpty) ...[
               const SizedBox(height: AppSpacing.lg),
@@ -217,7 +217,7 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
                 ),
               ),
             ],
-            if (_canEdit(uid, event.status, promotoresAsync.valueOrNull)) ...[
+            if (_canEdit(uid, event.status, hostsAsync.valueOrNull)) ...[
               const SizedBox(height: AppSpacing.xxl),
               VButton.dark(
                 label: l10n.eventEditButton,
@@ -225,7 +225,7 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
                     context.push(RoutePaths.eventEdit(widget.eventId)),
               ),
             ],
-            if (_canCancel(uid, event.status, promotoresAsync.valueOrNull)) ...[
+            if (_canCancel(uid, event.status, hostsAsync.valueOrNull)) ...[
               const SizedBox(height: AppSpacing.sm),
               VButton.outlined(
                 label: l10n.eventCancelButton,
@@ -234,7 +234,7 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
               ),
             ],
             if (!_isClosed(event.status))
-              _buildLiveActions(promotoresAsync.valueOrNull, uid),
+              _buildLiveActions(hostsAsync.valueOrNull, uid),
             const SizedBox(height: AppSpacing.xl),
           ],
         ),
@@ -242,18 +242,18 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
     );
   }
 
-  /// Plugged event actions (2026-08-13): the attendee QR, the promotor
+  /// Plugged event actions (2026-08-13): the attendee QR, the host
   /// scanner and the photo gallery — each flag-gated and hidden once the
   /// event is closed (ended/cancelled).
   Widget _buildLiveActions(
-    List<Map<String, dynamic>>? promotores,
+    List<Map<String, dynamic>>? hosts,
     String? uid,
   ) {
     final l10n = AppLocalizations.of(context);
-    final isPromotor =
+    final isHost =
         uid != null &&
-        promotores != null &&
-        promotores.any((p) => p['user_id'] == uid && p['role'] == 'promotor');
+        hosts != null &&
+        hosts.any((p) => p['user_id'] == uid && p['role'] == 'host');
     final showQr = ref.isEnabled(AppFeatureFlag.qr);
     final showPhotos = ref.isEnabled(AppFeatureFlag.photoUpload);
     if (!showQr && !showPhotos) return const SizedBox.shrink();
@@ -271,7 +271,7 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
                   onPressed: () => context.push(RoutePaths.qr(widget.eventId)),
                 ),
               ),
-              if (isPromotor) ...[
+              if (isHost) ...[
                 const SizedBox(width: AppSpacing.sm),
                 Expanded(
                   child: VButton.outlined(
@@ -303,21 +303,21 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
   bool _canEdit(
     String? uid,
     String status,
-    List<Map<String, dynamic>>? promotores,
+    List<Map<String, dynamic>>? hosts,
   ) {
-    if (uid == null || promotores == null) return false;
+    if (uid == null || hosts == null) return false;
     if (status == 'ended' || status == 'cancelled') return false;
-    return promotores.any(
-      (p) => p['user_id'] == uid && p['role'] == 'promotor',
+    return hosts.any(
+      (p) => p['user_id'] == uid && p['role'] == 'host',
     );
   }
 
   bool _canCancel(
     String? uid,
     String status,
-    List<Map<String, dynamic>>? promotores,
+    List<Map<String, dynamic>>? hosts,
   ) {
-    return _canEdit(uid, status, promotores);
+    return _canEdit(uid, status, hosts);
   }
 
   Widget _buildPoolSection(Event event) {
@@ -383,38 +383,38 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
     );
   }
 
-  Widget _buildPromotoresSection(AsyncValue<List<Map<String, dynamic>>> async) {
+  Widget _buildHostsSection(AsyncValue<List<Map<String, dynamic>>> async) {
     final l10n = AppLocalizations.of(context);
     return VCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            l10n.eventPromotores,
+            l10n.eventHosts,
             style: Theme.of(context).textTheme.labelLarge,
           ),
           const SizedBox(height: AppSpacing.sm),
           async.when(
             loading: () => const SizedBox.shrink(),
             error: (e, _) => Text(
-              l10n.eventPromotoresError,
+              l10n.eventHostsError,
               style: Theme.of(context).textTheme.bodySmall,
             ),
-            data: (promotores) => promotores.isEmpty
+            data: (hosts) => hosts.isEmpty
                 ? Text(
-                    l10n.eventNoPromotores,
+                    l10n.eventNoHosts,
                     style: Theme.of(context).textTheme.bodyMedium,
                   )
                 : Wrap(
                     spacing: AppSpacing.md,
                     runSpacing: AppSpacing.md,
                     children: [
-                      for (final p in promotores)
-                        _PromotorAvatar(
+                      for (final p in hosts)
+                        _HostAvatar(
                           username:
                               p['users']?['username'] as String? ??
                               '${p['user_id']}'.substring(0, 8),
-                          role: p['role'] as String? ?? 'promotor',
+                          role: p['role'] as String? ?? 'host',
                         ),
                     ],
                   ),
@@ -475,20 +475,20 @@ class _InfoRow extends StatelessWidget {
   }
 }
 
-/// Promotor chip — the label carries the state (ESTA §1 / design doc §2.5
+/// Host chip — the label carries the state (ESTA §1 / design doc §2.5
 /// rule 5: color is never the only signal); the avatar stays neutral glass.
-class _PromotorAvatar extends StatelessWidget {
+class _HostAvatar extends StatelessWidget {
   final String username;
   final String role;
 
-  const _PromotorAvatar({required this.username, required this.role});
+  const _HostAvatar({required this.username, required this.role});
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final roleLabel = role == 'promotor'
-        ? l10n.eventRolePromotor
-        : l10n.eventRoleCoPromotor;
+    final roleLabel = role == 'host'
+        ? l10n.eventRoleHost
+        : l10n.eventRoleStaff;
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [

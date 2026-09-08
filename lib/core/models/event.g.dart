@@ -22,6 +22,7 @@ _Event _$EventFromJson(Map<String, dynamic> json) => _Event(
   featured: json['featured'] as bool? ?? false,
   preshardsDistributed: json['preshards_distributed'] as bool? ?? false,
   preshardsPool: (json['preshards_pool'] as num?)?.toInt() ?? 0,
+  capacity: (json['capacity'] as num?)?.toInt() ?? 0,
   preshardsCapPerUser: (json['preshards_cap_per_user'] as num?)?.toInt(),
   preshardsRemainderAction: json['preshards_remainder_action'] as String?,
 );
@@ -42,6 +43,7 @@ Map<String, dynamic> _$EventToJson(_Event instance) => <String, dynamic>{
   'featured': instance.featured,
   'preshards_distributed': instance.preshardsDistributed,
   'preshards_pool': instance.preshardsPool,
+  'capacity': instance.capacity,
   'preshards_cap_per_user': instance.preshardsCapPerUser,
   'preshards_remainder_action': instance.preshardsRemainderAction,
 };

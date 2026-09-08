@@ -41,7 +41,7 @@ class GroupService {
     await client.from('group_members').insert({
       'group_id': groupId,
       'user_id': user.id,
-      'role': 'promotor',
+      'role': 'host',
     });
 
     await client.from('chats').insert({
@@ -158,19 +158,19 @@ class GroupService {
         .eq('user_id', userId);
   }
 
-  /// Transfers promotor leadership to [newPromotorId].
+  /// Transfers host leadership to [newHostId].
   ///
-  /// OPT-009: routed through the `transfer_promotor` SECURITY DEFINER RPC —
-  /// a single transaction (demote self to co_promotor + promote the new
-  /// promotor), so a partially-applied transfer can never leave a group with
-  /// two promotors or none, and the role-hierarchy RLS (only a promotor may
-  /// create a promotor) cannot be interleaved by a concurrent request.
-  Future<void> transferPromotor(String groupId, String newPromotorId) async {
+  /// OPT-009: routed through the `transfer_host` SECURITY DEFINER RPC —
+  /// a single transaction (demote self to staff + promote the new
+  /// host), so a partially-applied transfer can never leave a group with
+  /// two hosts or none, and the role-hierarchy RLS (only a host may
+  /// create a host) cannot be interleaved by a concurrent request.
+  Future<void> transferHost(String groupId, String newHostId) async {
     final user = auth.currentUser;
     if (user == null) throw const UnauthorizedError();
-    await client.rpc('transfer_promotor', params: {
+    await client.rpc('transfer_host', params: {
       'p_group_id': groupId,
-      'p_new_promotor_id': newPromotorId,
+      'p_new_host_id': newHostId,
     });
   }
 
@@ -189,7 +189,7 @@ class GroupService {
         .from('group_members')
         .select('id')
         .eq('user_id', user.id)
-        .eq('role', 'promotor');
+        .eq('role', 'host');
     return res.length;
   }
 

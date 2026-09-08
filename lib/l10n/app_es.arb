@@ -559,11 +559,11 @@
   },
   "groupsLimitReached": "Límite alcanzado",
   "@groupsLimitReached": {
-    "description": "Dialog title when the promotor group limit is reached"
+    "description": "Dialog title when the host group limit is reached"
   },
-  "groupsLimitReachedBody": "Has alcanzado el límite de 5 grupos como promotor. Actualiza tu suscripción para crear más.",
+  "groupsLimitReachedBody": "Has alcanzado el límite de 5 grupos como host. Actualiza tu suscripción para crear más.",
   "@groupsLimitReachedBody": {
-    "description": "Dialog body explaining the 5-group promotor limit"
+    "description": "Dialog body explaining the 5-group host limit"
   },
   "groupsCreatedSnack": "Grupo creado",
   "@groupsCreatedSnack": {
@@ -650,7 +650,7 @@
   "@groupsLeave": {
     "description": "Leave-group menu item and dialog title"
   },
-  "groupsFrozenBanner": "Grupo congelado — actualiza tu suscripción o transfiere el rol de promotor",
+  "groupsFrozenBanner": "Grupo congelado — actualiza tu suscripción o transfiere el rol de host",
   "@groupsFrozenBanner": {
     "description": "Banner shown on a frozen group"
   },
@@ -738,13 +738,13 @@
   "@groupsAbandon": {
     "description": "Confirm button of the leave-group dialog"
   },
-  "groupsPromoteCoPromotor": "Hacer co-promotor",
-  "@groupsPromoteCoPromotor": {
-    "description": "Member-actions sheet option that promotes a member to co-promotor (R17)"
+  "groupsPromoteStaff": "Hacer staff",
+  "@groupsPromoteStaff": {
+    "description": "Member-actions sheet option that promotes a member to staff (R17)"
   },
   "groupsDemoteMember": "Hacer miembro",
   "@groupsDemoteMember": {
-    "description": "Member-actions sheet option that demotes a co-promotor to member (R17)"
+    "description": "Member-actions sheet option that demotes a staff to member (R17)"
   },
   "groupsKickMember": "Expulsar del grupo",
   "@groupsKickMember": {
@@ -1741,7 +1741,7 @@
   "@eventsJoinModeApproval": {
     "description": "Event creation: approval join mode chip"
   },
-  "eventsJoinModeApprovalDescription": "El promotor aprueba cada solicitud",
+  "eventsJoinModeApprovalDescription": "El host aprueba cada solicitud",
   "@eventsJoinModeApprovalDescription": {
     "description": "Event creation: approval join mode helper text"
   },
@@ -1864,25 +1864,25 @@
       }
     }
   },
-  "eventPromotores": "Promotores",
-  "@eventPromotores": {
-    "description": "Promotores section heading"
+  "eventHosts": "Anfitrión y staff",
+  "@eventHosts": {
+    "description": "Hosts section heading"
   },
-  "eventRolePromotor": "Promotor",
-  "@eventRolePromotor": {
-    "description": "Promotor role badge"
+  "eventRoleHost": "Anfitrión",
+  "@eventRoleHost": {
+    "description": "Host role badge"
   },
-  "eventRoleCoPromotor": "Co-promotor",
-  "@eventRoleCoPromotor": {
-    "description": "Co-promotor role badge"
+  "eventRoleStaff": "Staff",
+  "@eventRoleStaff": {
+    "description": "Staff role badge"
   },
-  "eventPromotoresError": "No se pudieron cargar los promotores",
-  "@eventPromotoresError": {
-    "description": "Promotores section error fallback"
+  "eventHostsError": "No se pudo cargar el anfitrión y staff",
+  "@eventHostsError": {
+    "description": "Hosts section error fallback"
   },
-  "eventNoPromotores": "Sin promotores",
-  "@eventNoPromotores": {
-    "description": "Empty promotores state"
+  "eventNoHosts": "Aún no hay anfitriones ni staff",
+  "@eventNoHosts": {
+    "description": "Empty hosts state"
   },
   "eventInviteStatus": "Tu invitación: {status}",
   "@eventInviteStatus": {
@@ -1921,7 +1921,7 @@
   "@eventCancelDialogTitle": {
     "description": "Cancel-event confirmation dialog title"
   },
-  "eventCancelDialogBody": "Se devolverán los preshards a los promotores. Los invitados serán notificados.",
+  "eventCancelDialogBody": "Se devolverán los preshards a los hosts. Los invitados serán notificados.",
   "@eventCancelDialogBody": {
     "description": "Cancel-event confirmation dialog body"
   },
@@ -2098,9 +2098,9 @@
   "@qrScanNotInWindow": {
     "description": "QR scanner: event outside attendance window"
   },
-  "qrScanNotPromotor": "No tienes permisos para escanear en este evento.",
-  "@qrScanNotPromotor": {
-    "description": "QR scanner: caller lacks promotor role"
+  "qrScanNotHost": "No tienes permisos para escanear en este evento.",
+  "@qrScanNotHost": {
+    "description": "QR scanner: caller lacks host role"
   },
   "qrScanInvalidToken": "Código QR inválido.",
   "@qrScanInvalidToken": {
@@ -2903,7 +2903,7 @@
   },
   "preshardsReasonEventPoolReturned": "Devuelto de evento",
   "@preshardsReasonEventPoolReturned": {
-    "description": "Preshard ledger reason: event pool returned to the promotor"
+    "description": "Preshard ledger reason: event pool returned to the host"
   },
   "preshardsReasonAdminGrant": "Otorgado por Samay",
   "@preshardsReasonAdminGrant": {
@@ -2917,9 +2917,25 @@
   "@eventsCreateCta": {
     "description": "Events tab create-event CTA"
   },
-  "eventsCreateCtaBody": "El evento se crea dentro de un grupo — elige uno en la pestaña Grupos.",
+  "eventsCreateCtaBody": "Crea tu evento e invita personas — tu plan limita los asistentes.",
   "@eventsCreateCtaBody": {
-    "description": "Events tab helper explaining that event creation lives in a group"
+    "description": "Events tab helper under the create-event CTA"
+  },
+  "eventsCapacityTitle": "¿Cuántas personas pueden asistir?",
+  "@eventsCapacityTitle": {
+    "description": "Create-event capacity section heading"
+  },
+  "eventsCapacityHint": "Personas en total, incluyéndote.",
+  "@eventsCapacityHint": {
+    "description": "Create-event capacity helper under the stepper"
+  },
+  "eventsCapacityContact": "¿Quieres más? Contáctanos",
+  "@eventsCapacityContact": {
+    "description": "Create-event upsell button shown when the plan cap is reached"
+  },
+  "eventsContactSoon": "Muy pronto — te contactaremos.",
+  "@eventsContactSoon": {
+    "description": "Snackbar for the static contact-us button"
   },
   "eventsEmpty": "Aún no tienes eventos",
   "@eventsEmpty": {

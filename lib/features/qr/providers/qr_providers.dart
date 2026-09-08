@@ -66,7 +66,7 @@ enum QrScanResult {
   alreadyScanned,
   notInvited,
   notInWindow,
-  notPromotor,
+  notHost,
   invalidToken,
 }
 
@@ -81,7 +81,7 @@ QrScanResult qrScanResultFromMap(Map<String, dynamic>? data) {
     'already_scanned' => QrScanResult.alreadyScanned,
     'not_invited' => QrScanResult.notInvited,
     'not_in_window' => QrScanResult.notInWindow,
-    'not_promotor' => QrScanResult.notPromotor,
+    'not_host' => QrScanResult.notHost,
     _ => QrScanResult.invalidToken,
   };
 }

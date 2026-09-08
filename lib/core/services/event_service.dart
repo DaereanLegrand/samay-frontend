@@ -1,7 +1,6 @@
 import 'package:samay/core/errors/app_error.dart';
 import 'package:samay/core/models/event.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:uuid/uuid.dart';
 
 /// Event lifecycle: creation, listing, updates and photo likes.
 ///
@@ -16,53 +15,40 @@ class EventService {
 
   GoTrueClient get auth => client.auth;
 
+  /// Creates an event and returns `{id, invite_token}`.
+  ///
+  /// The insert now goes through the SECURITY DEFINER `create_event` RPC
+  /// (060_events/04_capacity.sql) which atomically writes the `events` row,
+  /// the creator's `event_hosts` host row and the event `chats` row, while
+  /// the `assert_event_capacity_trigger` freezes `capacity` at (or below) the
+  /// creator's entitlement tier. Business rejections surface as RPC errors
+  /// (e.g. `capacity_exceeds_tier`).
   Future<Map<String, dynamic>> createEvent(Map<String, dynamic> data) async {
-    final eventId = const Uuid().v4();
     final user = auth.currentUser;
     if (user == null) throw const UnauthorizedError();
 
-    final inviteToken = const Uuid().v4();
-    final now = DateTime.now().toIso8601String();
-
-    await client.from('events').insert({
-      'id': eventId,
-      'name': data['name'],
-      'description': data['description'],
-      'cover_url': data['cover_url'],
-      'type': data['type'],
-      'created_by_user_id': user.id,
-      'group_id': data['group_id'],
-      'location_name': data['location_name'],
-      'location_lat': data['location_lat'],
-      'location_lng': data['location_lng'],
-      'starts_at': data['starts_at'],
-      'ends_at': data['ends_at'],
-      'join_mode': data['join_mode'],
-      'preshards_pool': data['preshards_pool'] ?? 0,
-      'preshards_cap_per_user': data['preshards_cap_per_user'],
-      'preshards_remainder_action': data['preshards_remainder_action'],
-      'invite_token': inviteToken,
-      'status': data['status'] ?? 'upcoming',
-      'dynamic_qr_enabled': (data['preshards_pool'] ?? 0) > 0,
-      'created_at': now,
-      'updated_at': now,
+    final res = await client.rpc('create_event', params: {
+      'p_name': data['name'],
+      'p_description': data['description'],
+      'p_type': data['type'],
+      'p_cover_url': data['cover_url'],
+      'p_group_id': data['group_id'],
+      'p_location_name': data['location_name'],
+      'p_location_lat': data['location_lat'],
+      'p_location_lng': data['location_lng'],
+      'p_starts_at': data['starts_at'],
+      'p_ends_at': data['ends_at'],
+      'p_join_mode': data['join_mode'],
+      'p_preshards_pool': data['preshards_pool'] ?? 0,
+      'p_preshards_cap_per_user': data['preshards_cap_per_user'],
+      'p_preshards_remainder_action': data['preshards_remainder_action'],
+      'p_capacity': data['capacity'],
     });
-
-    await client.from('event_promotores').insert({
-      'event_id': eventId,
-      'user_id': user.id,
-      'role': 'promotor',
-      'preshards_contributed': data['preshards_pool'] ?? 0,
-      'added_at': now,
-    });
-
-    await client.from('chats').insert({
-      'type': 'event',
-      'reference_id': eventId,
-      'created_at': now,
-    });
-
-    return {'id': eventId, 'invite_token': inviteToken};
+    final map = Map<String, dynamic>.from(res as Map);
+    return {
+      'id': map['id'] as String,
+      'invite_token': map['inviteToken'] as String,
+    };
   }
 
   Future<List<Event>> listEvents([String? status, String? type]) async {
@@ -94,12 +80,12 @@ class EventService {
     return res == null ? null : Event.fromJson(Map<String, dynamic>.from(res));
   }
 
-  /// Promotores of an event, enriched with `users.username` for display.
-  Future<List<Map<String, dynamic>>> getEventPromotores(String eventId) async {
+  /// Hosts of an event, enriched with `users.username` for display.
+  Future<List<Map<String, dynamic>>> getEventHosts(String eventId) async {
     final res = await client
-        .from('event_promotores')
+        .from('event_hosts')
         // OPT-009: join through the security-barrier user_search_view — the
-        // raw `users` join is own-row-only under RLS (co-promotores' rows
+        // raw `users` join is own-row-only under RLS (staff' rows
         // silently vanished).
         .select(
           'id, event_id, user_id, role, preshards_contributed, added_at, '
@@ -208,7 +194,7 @@ class EventService {
     return res == null ? null : Map<String, dynamic>.from(res);
   }
 
-  /// Validates an attendee QR token as a promotor/co_promotor — QRSC.
+  /// Validates an attendee QR token as a host/staff — QRSC.
   ///
   /// Invokes the `validate_qr_token` RPC (migration 20260809000005, the SQL
   /// stand-in for the blocked `validate-attendance` Edge Function). Business
