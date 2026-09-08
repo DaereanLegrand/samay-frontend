@@ -184,6 +184,15 @@ class VHeaderSliver extends StatelessWidget {
   final VoidCallback? onBack;
   final int? maxLines;
 
+  /// A permanently visible strip pinned at the BOTTOM of the header (e.g. the
+  /// Social pill tab bar). Mirrors `SliverAppBar.bottom`: only the title
+  /// region above it collapses — [bottom] stays fixed. The caller must supply
+  /// its exact [bottomHeight] so the header extents are correct.
+  final Widget? bottom;
+
+  /// Height of [bottom], included in both min and max extents.
+  final double? bottomHeight;
+
   const VHeaderSliver({
     super.key,
     this.title,
@@ -192,6 +201,8 @@ class VHeaderSliver extends StatelessWidget {
     this.showBack = false,
     this.onBack,
     this.maxLines = 1,
+    this.bottom,
+    this.bottomHeight,
   });
 
   @override
@@ -207,6 +218,8 @@ class VHeaderSliver extends StatelessWidget {
         onBack: onBack,
         maxLines: maxLines,
         statusTop: statusTop,
+        bottom: bottom,
+        bottomHeight: bottomHeight ?? 0,
       ),
     );
   }
@@ -222,6 +235,8 @@ class _CollapsingDelegate extends SliverPersistentHeaderDelegate {
   final VoidCallback? onBack;
   final int? maxLines;
   final double statusTop;
+  final Widget? bottom;
+  final double bottomHeight;
 
   _CollapsingDelegate({
     required this.title,
@@ -231,18 +246,21 @@ class _CollapsingDelegate extends SliverPersistentHeaderDelegate {
     required this.onBack,
     required this.maxLines,
     required this.statusTop,
+    required this.bottom,
+    required this.bottomHeight,
   });
 
-  double get _expandedInset =>
+  double get _titleExpandedInset =>
       statusTop + VHeaderMetrics.heroTopPad + VHeaderMetrics.titleRowHeight;
 
-  double get _collapsedInset => statusTop + VHeaderMetrics.collapsedBarHeight;
+  double get _titleCollapsedInset =>
+      statusTop + VHeaderMetrics.collapsedBarHeight;
 
   @override
-  double get minExtent => _collapsedInset;
+  double get minExtent => _titleCollapsedInset + bottomHeight;
 
   @override
-  double get maxExtent => _expandedInset;
+  double get maxExtent => _titleExpandedInset + bottomHeight;
 
   @override
   Widget build(
@@ -253,10 +271,9 @@ class _CollapsingDelegate extends SliverPersistentHeaderDelegate {
     // The status-bar/notch inset. The collapsed glass extends under it (iOS
     // large-title style); the expanded title clears it with [heroTopPad].
     final statusTop = MediaQuery.paddingOf(context).top;
-    final progress = (shrinkOffset / (maxExtent - minExtent))
-        .clamp(0.0, 1.0)
-        .toDouble();
-    final currentHeight = maxExtent - shrinkOffset;
+    final titleRange = maxExtent - minExtent - bottomHeight;
+    final progress = (shrinkOffset / titleRange).clamp(0.0, 1.0).toDouble();
+    final titleCurrentHeight = maxExtent - shrinkOffset - bottomHeight;
 
     // Expanded top-aligned title row (clears the status bar by heroTopPad).
     final expandedTitle = Padding(
@@ -288,7 +305,7 @@ class _CollapsingDelegate extends SliverPersistentHeaderDelegate {
         ),
         child: Container(
           width: double.infinity,
-          height: currentHeight,
+          height: titleCurrentHeight,
           color: VHeaderMetrics.glassFill,
           child: Stack(
             children: [
@@ -297,7 +314,10 @@ class _CollapsingDelegate extends SliverPersistentHeaderDelegate {
                 left: 0,
                 right: 0,
                 top: statusTop,
-                height: (currentHeight - statusTop).clamp(0, double.infinity),
+                height: (titleCurrentHeight - statusTop).clamp(
+                  0,
+                  double.infinity,
+                ),
                 child: Opacity(
                   opacity: progress,
                   child: Center(
@@ -318,7 +338,7 @@ class _CollapsingDelegate extends SliverPersistentHeaderDelegate {
       ),
     );
 
-    return Stack(
+    final titleStack = Stack(
       fit: StackFit.expand,
       children: [
         // Glass is always present; it fades in over scrolling content.
@@ -345,6 +365,15 @@ class _CollapsingDelegate extends SliverPersistentHeaderDelegate {
         ),
       ],
     );
+
+    // The title region (collapsing) sits above the pinned bottom strip.
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        SizedBox(height: titleCurrentHeight, child: titleStack),
+        if (bottom != null) ...[SizedBox(height: bottomHeight, child: bottom)],
+      ],
+    );
   }
 
   @override
@@ -354,6 +383,8 @@ class _CollapsingDelegate extends SliverPersistentHeaderDelegate {
         actions != oldDelegate.actions ||
         showBack != oldDelegate.showBack ||
         maxLines != oldDelegate.maxLines ||
-        statusTop != oldDelegate.statusTop;
+        statusTop != oldDelegate.statusTop ||
+        bottom != oldDelegate.bottom ||
+        bottomHeight != oldDelegate.bottomHeight;
   }
 }

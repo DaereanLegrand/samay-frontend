@@ -48,7 +48,9 @@ class _SocialScreenState extends ConsumerState<SocialScreen>
     final pendingCount = ref.watch(pendingCountsProvider);
     return Scaffold(
       // iOS-style collapsing header ('social' title + pill tab bar pin and
-      // collapse over the tab content as it scrolls — shared mechanism).
+      // collapse over the tab content as it scrolls — shared mechanism). The
+      // pill rides INSIDE the single absorbed header (as `SliverAppBar.bottom`
+      // does) so NestedScrollView's overlap math stays canonical.
       body: NestedScrollView(
         headerSliverBuilder: (context, innerBoxIsScrolled) => [
           SliverOverlapAbsorber(
@@ -62,15 +64,13 @@ class _SocialScreenState extends ConsumerState<SocialScreen>
                   onPressed: () => context.push(RoutePaths.userSearch),
                 ),
               ],
-            ),
-          ),
-          // The pill tab bar stays pinned under the collapsing title.
-          SliverPersistentHeader(
-            pinned: true,
-            delegate: _PillBarDelegate(
-              tabController: _tabController,
-              pendingCount: pendingCount,
-              l10n: l10n,
+              // The pill tab bar pins under the collapsing title.
+              bottomHeight: _kPillTabBarHeight,
+              bottom: _PillTabBar(
+                controller: _tabController,
+                pendingCount: pendingCount,
+                l10n: l10n,
+              ),
             ),
           ),
         ],
@@ -83,44 +83,8 @@ class _SocialScreenState extends ConsumerState<SocialScreen>
   }
 }
 
-/// Pinned sliver holding the pill [TabBar] under the collapsing title.
-class _PillBarDelegate extends SliverPersistentHeaderDelegate {
-  final TabController tabController;
-  final int pendingCount;
-  final AppLocalizations l10n;
-
-  _PillBarDelegate({
-    required this.tabController,
-    required this.pendingCount,
-    required this.l10n,
-  });
-
-  @override
-  double get minExtent => 48;
-
-  @override
-  double get maxExtent => 48;
-
-  @override
-  Widget build(
-    BuildContext context,
-    double shrinkOffset,
-    bool overlapsContent,
-  ) {
-    return _PillTabBar(
-      controller: tabController,
-      pendingCount: pendingCount,
-      l10n: l10n,
-    );
-  }
-
-  @override
-  bool shouldRebuild(covariant _PillBarDelegate oldDelegate) {
-    return tabController != oldDelegate.tabController ||
-        pendingCount != oldDelegate.pendingCount ||
-        l10n != oldDelegate.l10n;
-  }
-}
+/// Height of the pill tab-bar track (40 content + 2 top + 2 bottom margins).
+const double _kPillTabBarHeight = 44;
 
 /// The Juega-style pill TabBar: a rounded `surfaceAlt` track wrapping a
 /// TabBar whose indicator is a white pill (selected label flips to black).
