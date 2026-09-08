@@ -10,6 +10,7 @@ import 'package:samay/core/providers/auth_provider.dart';
 import 'package:samay/core/router/route_paths.dart';
 import 'package:samay/features/events/logic/event_formatters.dart';
 import 'package:samay/features/events/providers/events_providers.dart';
+import 'package:samay/features/events/screens/event_invite_screen.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/error_view.dart';
 import 'package:samay/shared/widgets/show_app_error.dart';
@@ -204,18 +205,26 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
             _buildPoolSection(event),
             const SizedBox(height: AppSpacing.xl),
             _buildHostsSection(hostsAsync),
+            if (_isPrivileged(hostsAsync.valueOrNull, uid) &&
+                !_isClosed(event.status)) ...[
+              const SizedBox(height: AppSpacing.lg),
+              _buildGuestRoster(uid),
+            ],
             if (inviteAsync.valueOrNull case final invite?
                 when invite.isNotEmpty) ...[
               const SizedBox(height: AppSpacing.lg),
-              _InfoRow(
-                icon: Icons.mail_outline,
-                text: l10n.eventInviteStatus(
-                  _inviteStatusLabel(
-                    l10n,
-                    invite['status'] as String? ?? 'pending',
+              if (_isPending(invite) && !_isClosed(event.status))
+                _buildInviteActions(invite)
+              else
+                _InfoRow(
+                  icon: Icons.mail_outline,
+                  text: l10n.eventInviteStatus(
+                    _inviteStatusLabel(
+                      l10n,
+                      invite['status'] as String? ?? 'pending',
+                    ),
                   ),
                 ),
-              ),
             ],
             if (_canEdit(uid, event.status, hostsAsync.valueOrNull)) ...[
               const SizedBox(height: AppSpacing.xxl),
@@ -318,6 +327,179 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
     List<Map<String, dynamic>>? hosts,
   ) {
     return _canEdit(uid, status, hosts);
+  }
+
+  /// Whether the viewer is a host/staff of this event (the guest roster RLS
+  /// `ei_read_event_access` opens invites only to the event's privileged
+  /// people; hosts list read is own-rows-only under `ep_read_own`).
+  bool _isPrivileged(
+    List<Map<String, dynamic>>? hosts,
+    String? uid,
+  ) {
+    if (uid == null || hosts == null) return false;
+    return hosts.any(
+      (p) =>
+          p['user_id'] == uid &&
+          (p['role'] == 'host' || p['role'] == 'staff'),
+    );
+  }
+
+  bool _isPending(Map<String, dynamic> invite) {
+    return (invite['status'] as String? ?? 'pending') == 'pending';
+  }
+
+  /// Invitee accept/decline card for a PENDING invite (Stage 2,
+  /// 060_events/05_manual_invites): the server flips status / frees the seat.
+  Widget _buildInviteActions(Map<String, dynamic> invite) {
+    final l10n = AppLocalizations.of(context);
+    return VCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            l10n.eventInvitePendingBody,
+            style: Theme.of(context).textTheme.bodyLarge,
+          ),
+          const SizedBox(height: AppSpacing.md),
+          Row(
+            children: [
+              Expanded(
+                child: VButton.emphasized(
+                  label: l10n.eventInviteAccept,
+                  loading: _inviteBusy,
+                  onPressed: _inviteBusy ? null : () => _acceptInvite(invite),
+                ),
+              ),
+              const SizedBox(width: AppSpacing.md),
+              Expanded(
+                child: VButton.outlined(
+                  label: l10n.eventInviteDecline,
+                  loading: _inviteBusy,
+                  onPressed: _inviteBusy ? null : () => _declineInvite(invite),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  bool _inviteBusy = false;
+
+  Future<void> _acceptInvite(Map<String, dynamic> invite) async {
+    final l10n = AppLocalizations.of(context);
+    setState(() => _inviteBusy = true);
+    try {
+      await ref.read(myEventInviteProvider(widget.eventId).notifier).accept();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.eventInviteAcceptedSnack)),
+      );
+    } catch (e) {
+      if (mounted) showAppError(context, e);
+    } finally {
+      if (mounted) setState(() => _inviteBusy = false);
+    }
+  }
+
+  Future<void> _declineInvite(Map<String, dynamic> invite) async {
+    final l10n = AppLocalizations.of(context);
+    setState(() => _inviteBusy = true);
+    try {
+      await ref.read(myEventInviteProvider(widget.eventId).notifier).decline();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.eventInviteDeclinedSnack)),
+      );
+    } catch (e) {
+      if (mounted) showAppError(context, e);
+    } finally {
+      if (mounted) setState(() => _inviteBusy = false);
+    }
+  }
+
+  /// Host/staff guest-roster card (Stage 2): "Invitar personas" opens the
+  /// picker (reusing the minigame UserPickerView mechanism); the roster then
+  /// lists every invite row with a per-status label (pending / accepted /
+  /// attended). Invites are server-enforced against the frozen capacity.
+  Widget _buildGuestRoster(String? uid) {
+    final l10n = AppLocalizations.of(context);
+    final guestsAsync = ref.watch(eventGuestsProvider(widget.eventId));
+    final excluded = {
+      ?uid,
+    };
+
+    Future<void> openInvitePicker() async {
+      final picked = await Navigator.of(context).push<List<String>>(
+        MaterialPageRoute(
+          builder: (_) => EventInviteScreen(
+            eventId: widget.eventId,
+            excludedIds: excluded,
+          ),
+        ),
+      );
+      if (picked == null || picked.isEmpty || !mounted) return;
+      try {
+        await ref
+            .read(eventGuestsProvider(widget.eventId).notifier)
+            .inviteGuests(picked);
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.eventsInviteSent)),
+        );
+      } catch (e) {
+        if (mounted) showAppError(context, e);
+      }
+    }
+
+    return VCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  l10n.eventGuestsTitle,
+                  style: Theme.of(context).textTheme.labelLarge,
+                ),
+              ),
+              TextButton.icon(
+                onPressed: openInvitePicker,
+                icon: const Icon(Icons.person_add_alt, size: 18),
+                label: Text(l10n.eventInviteGuestsButton),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          guestsAsync.when(
+            loading: () => const SizedBox.shrink(),
+            error: (e, _) => Text(
+              l10n.eventGuestsLoadError,
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+            data: (guests) => guests.isEmpty
+                ? Text(
+                    l10n.eventGuestsEmpty,
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  )
+                : Column(
+                    children: [
+                      for (final guest in guests)
+                        _GuestRow(
+                          username:
+                              guest['users']?['username'] as String? ??
+                              '${guest['user_id']}'.substring(0, 8),
+                          status:
+                              guest['status'] as String? ?? 'pending',
+                        ),
+                    ],
+                  ),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _buildPoolSection(Event event) {
@@ -506,6 +688,53 @@ class _HostAvatar extends StatelessWidget {
         Text(username, style: Theme.of(context).textTheme.bodySmall),
         Text(roleLabel, style: Theme.of(context).textTheme.labelSmall),
       ],
+    );
+  }
+}
+
+/// One invited-guest row on the event detail roster (Stage 2): the
+/// username + a per-invite-status label — never color-only (design §2.5
+/// rule 5), matching the event invite status wording used elsewhere.
+class _GuestRow extends StatelessWidget {
+  final String username;
+  final String status;
+
+  const _GuestRow({required this.username, required this.status});
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final statusLabel = switch (status) {
+      'accepted' => l10n.eventInviteAccepted,
+      'attended' => l10n.eventInviteAttended,
+      'declined' => l10n.eventInviteDeclined,
+      _ => l10n.eventInvitePending,
+    };
+    return Padding(
+      padding: const EdgeInsets.only(top: AppSpacing.xs),
+      child: Row(
+        children: [
+          CircleAvatar(
+            radius: 12,
+            backgroundColor: AppColors.surfaceAlt,
+            child: Text(
+              username.isEmpty ? '?' : username.substring(0, 1).toUpperCase(),
+              style: const TextStyle(fontSize: 11, color: AppColors.white),
+            ),
+          ),
+          const SizedBox(width: AppSpacing.sm),
+          Expanded(
+            child: Text(
+              username,
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+          ),
+          Text(
+            statusLabel,
+            style: Theme.of(context).textTheme.labelSmall,
+          ),
+        ],
+      ),
     );
   }
 }

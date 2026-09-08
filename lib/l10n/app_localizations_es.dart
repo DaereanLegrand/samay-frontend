@@ -1444,6 +1444,48 @@ class AppLocalizationsEs extends AppLocalizations {
   String get eventInviteAttended => 'asistida';
 
   @override
+  String get eventGuestsTitle => 'Invitados';
+
+  @override
+  String get eventGuestsEmpty => 'Aún no hay invitados';
+
+  @override
+  String get eventGuestsLoadError => 'No se pudieron cargar los invitados';
+
+  @override
+  String get eventInviteGuestsButton => 'Invitar personas';
+
+  @override
+  String get eventsInviteTitle => 'invitar';
+
+  @override
+  String eventsInviteCount(int count) {
+    return 'Invitar ($count)';
+  }
+
+  @override
+  String get eventsInviteSent => 'Invitación enviada';
+
+  @override
+  String get eventsInviteSentTag => 'invitada';
+
+  @override
+  String get eventInvitePendingBody =>
+      'Te invitaron a este evento. Confirma tu asistencia.';
+
+  @override
+  String get eventInviteAccept => 'Aceptar';
+
+  @override
+  String get eventInviteDecline => 'Rechazar';
+
+  @override
+  String get eventInviteAcceptedSnack => 'Asistencia confirmada';
+
+  @override
+  String get eventInviteDeclinedSnack => 'Invitación rechazada';
+
+  @override
   String get eventEditButton => 'Editar';
 
   @override

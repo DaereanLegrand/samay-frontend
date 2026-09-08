@@ -2726,6 +2726,84 @@ abstract class AppLocalizations {
   /// **'asistida'**
   String get eventInviteAttended;
 
+  /// Event guest-roster section heading (host view)
+  ///
+  /// In es, this message translates to:
+  /// **'Invitados'**
+  String get eventGuestsTitle;
+
+  /// Empty guest roster state
+  ///
+  /// In es, this message translates to:
+  /// **'Aún no hay invitados'**
+  String get eventGuestsEmpty;
+
+  /// Guest roster load error fallback
+  ///
+  /// In es, this message translates to:
+  /// **'No se pudieron cargar los invitados'**
+  String get eventGuestsLoadError;
+
+  /// Host action that opens the guest picker
+  ///
+  /// In es, this message translates to:
+  /// **'Invitar personas'**
+  String get eventInviteGuestsButton;
+
+  /// Event guest-picker app bar title
+  ///
+  /// In es, this message translates to:
+  /// **'invitar'**
+  String get eventsInviteTitle;
+
+  /// Confirm button with the number of selected guests
+  ///
+  /// In es, this message translates to:
+  /// **'Invitar ({count})'**
+  String eventsInviteCount(int count);
+
+  /// Snackbar / roster tag confirming an invite was sent
+  ///
+  /// In es, this message translates to:
+  /// **'Invitación enviada'**
+  String get eventsInviteSent;
+
+  /// Picker row tag for users who already hold an invite
+  ///
+  /// In es, this message translates to:
+  /// **'invitada'**
+  String get eventsInviteSentTag;
+
+  /// Pending-invite accept/decline card body
+  ///
+  /// In es, this message translates to:
+  /// **'Te invitaron a este evento. Confirma tu asistencia.'**
+  String get eventInvitePendingBody;
+
+  /// Accept-invite button
+  ///
+  /// In es, this message translates to:
+  /// **'Aceptar'**
+  String get eventInviteAccept;
+
+  /// Decline-invite button
+  ///
+  /// In es, this message translates to:
+  /// **'Rechazar'**
+  String get eventInviteDecline;
+
+  /// Snackbar after accepting an event invite
+  ///
+  /// In es, this message translates to:
+  /// **'Asistencia confirmada'**
+  String get eventInviteAcceptedSnack;
+
+  /// Snackbar after declining an event invite
+  ///
+  /// In es, this message translates to:
+  /// **'Invitación rechazada'**
+  String get eventInviteDeclinedSnack;
+
   /// Edit-event button
   ///
   /// In es, this message translates to:

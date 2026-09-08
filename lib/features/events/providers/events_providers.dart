@@ -97,6 +97,29 @@ class MyEventInviteNotifier
     if (!shouldRefetch()) return;
     ref.invalidateSelf();
   }
+
+  /// Accepts the caller's pending invite to [arg] (the invitee's own
+  /// accept/decline surface — Stage 2, 060_events/05_manual_invites). The
+  /// seat was already reserved by the pending invite, so accept cannot
+  /// exceed the frozen capacity. Reloads the own invite + the host's roster.
+  Future<void> accept() async {
+    final inviteId = (await future)?['id'] as String?;
+    if (inviteId == null) return;
+    await _service.acceptEventInvite(inviteId);
+    await refresh();
+    ref.invalidate(eventGuestsProvider(arg));
+  }
+
+  /// Declines the caller's pending invite to [arg]. The server DELETES the
+  /// row (2026-09-02 directive) so the reserved seat frees for the host to
+  /// re-invite. Reloads the own invite + the host's roster.
+  Future<void> decline() async {
+    final inviteId = (await future)?['id'] as String?;
+    if (inviteId == null) return;
+    await _service.declineEventInvite(inviteId);
+    await refresh();
+    ref.invalidate(eventGuestsProvider(arg));
+  }
 }
 
 /// The current user's invite row for an event (null when not invited).
@@ -106,6 +129,45 @@ final myEventInviteProvider =
       Map<String, dynamic>?,
       String
     >(MyEventInviteNotifier.new);
+
+class EventGuestsNotifier
+    extends FamilyAsyncNotifier<List<Map<String, dynamic>>, String>
+    with ThrottledRefresh {
+  EventService get _service => ref.read(eventServiceProvider);
+
+  @override
+  Future<List<Map<String, dynamic>>> build(String eventId) async {
+    final guests = await _service.getEventGuests(eventId);
+    markFetched();
+    return guests;
+  }
+
+  /// Re-runs [build] after any invite accept/decline/invite (finding SM-09).
+  Future<void> refresh() async {
+    if (!shouldRefetch()) return;
+    ref.invalidateSelf();
+  }
+
+  /// The HOST invites [inviteeIds] into this event (Stage 2 host picker). The
+  /// server enforces capacity + per-invitee gates atomically. Reloads the
+  /// roster so the new pending rows appear.
+  Future<void> inviteGuests(List<String> inviteeIds) async {
+    if (inviteeIds.isEmpty) return;
+    await _service.inviteEventGuests(arg, inviteeIds);
+    await refresh();
+  }
+}
+
+/// The event's guest roster (host/staff view — RLS `ei_read_event_access`),
+/// newest invite first, each row enriched with `users.username`. Invitees
+/// who are not hosts see only their own row here (they use
+/// [myEventInviteProvider] instead).
+final eventGuestsProvider =
+    AsyncNotifierProvider.family<
+      EventGuestsNotifier,
+      List<Map<String, dynamic>>,
+      String
+    >(EventGuestsNotifier.new);
 
 class MyEventsNotifier extends AsyncNotifier<List<Event>>
     with ThrottledRefresh {

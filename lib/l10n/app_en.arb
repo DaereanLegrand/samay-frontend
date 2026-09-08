@@ -1909,6 +1909,63 @@
   "@eventInviteAttended": {
     "description": "Attended invite status"
   },
+  "eventGuestsTitle": "Guests",
+  "@eventGuestsTitle": {
+    "description": "Event guest-roster section heading (host view)"
+  },
+  "eventGuestsEmpty": "No guests yet",
+  "@eventGuestsEmpty": {
+    "description": "Empty guest roster state"
+  },
+  "eventGuestsLoadError": "Couldn't load guests",
+  "@eventGuestsLoadError": {
+    "description": "Guest roster load error fallback"
+  },
+  "eventInviteGuestsButton": "Invite people",
+  "@eventInviteGuestsButton": {
+    "description": "Host action that opens the guest picker"
+  },
+  "eventsInviteTitle": "invite",
+  "@eventsInviteTitle": {
+    "description": "Event guest-picker app bar title"
+  },
+  "eventsInviteCount": "Invite ({count})",
+  "@eventsInviteCount": {
+    "description": "Confirm button with the number of selected guests",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "eventsInviteSent": "Invitation sent",
+  "@eventsInviteSent": {
+    "description": "Snackbar / roster tag confirming an invite was sent"
+  },
+  "eventsInviteSentTag": "invited",
+  "@eventsInviteSentTag": {
+    "description": "Picker row tag for users who already hold an invite"
+  },
+  "eventInvitePendingBody": "You've been invited to this event. Confirm you'll attend.",
+  "@eventInvitePendingBody": {
+    "description": "Pending-invite accept/decline card body"
+  },
+  "eventInviteAccept": "Accept",
+  "@eventInviteAccept": {
+    "description": "Accept-invite button"
+  },
+  "eventInviteDecline": "Decline",
+  "@eventInviteDecline": {
+    "description": "Decline-invite button"
+  },
+  "eventInviteAcceptedSnack": "Attendance confirmed",
+  "@eventInviteAcceptedSnack": {
+    "description": "Snackbar after accepting an event invite"
+  },
+  "eventInviteDeclinedSnack": "Invitation declined",
+  "@eventInviteDeclinedSnack": {
+    "description": "Snackbar after declining an event invite"
+  },
   "eventEditButton": "Edit",
   "@eventEditButton": {
     "description": "Edit-event button"

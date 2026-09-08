@@ -229,4 +229,146 @@ class EventService {
     });
     return res == null ? null : Map<String, dynamic>.from(res as Map);
   }
+
+  // ---------------------------------------------------------------------
+  // Stage-2 manual guest invites (060_events/05_manual_invites.sql) — the
+  // host invites SPECIFIC users (reusing the minigame invite mechanism);
+  // invitees accept/decline and the frozen capacity is enforced server-side.
+  // RPCs return jsonb `status` payloads (I-57 contract), never exceptions.
+  // ---------------------------------------------------------------------
+
+  /// The host invites [inviteeIds] to [eventId] via the `invite_event_guests`
+  /// SECURITY DEFINER RPC. Business outcomes are jsonb `status` payloads; the
+  /// positive result is `ok` carrying the `invited` count (idempotent
+  /// re-invites report 0). Failures map to typed [AppError]s (never raw
+  /// exception text):
+  ///   not_authenticated → [UnauthorizedError]
+  ///   event_not_found → [NotFoundError]
+  ///   event_closed → [ConflictError] (`event_closed`)
+  ///   not_host → [PermissionError]
+  ///   invitee_not_allowed → [ConflictError] (`invitee_not_allowed`)
+  ///   too_many_invitees → [ConflictError] (`too_many_invitees`)
+  ///   capacity_reached → [ConflictError] (`capacity_reached`)
+  Future<int> inviteEventGuests(String eventId, List<String> inviteeIds) async {
+    final user = auth.currentUser;
+    if (user == null) throw const UnauthorizedError();
+
+    final res = await client.rpc('invite_event_guests', params: {
+      'p_event_id': eventId,
+      'p_invitees': inviteeIds,
+    });
+    final result = res is Map ? Map<String, dynamic>.from(res) : <String, dynamic>{};
+    return switch (result['status']) {
+      'ok' => result['invited'] as int? ?? 0,
+      'not_authenticated' => throw const UnauthorizedError(),
+      'event_not_found' => throw const NotFoundError('Evento'),
+      'event_closed' => throw ConflictError(
+        'El evento ya terminó o fue cancelado.',
+        code: 'event_closed',
+      ),
+      'not_host' => throw PermissionError(),
+      'invitee_not_allowed' => throw ConflictError(
+        'No puedes invitar a esta persona.',
+        code: 'invitee_not_allowed',
+      ),
+      'too_many_invitees' => throw ConflictError(
+        'Máximo 20 invitaciones por envío.',
+        code: 'too_many_invitees',
+      ),
+      'capacity_reached' => throw ConflictError(
+        'El evento alcanzó su capacidad máxima.',
+        code: 'capacity_reached',
+      ),
+      _ => throw const ServerError('Unexpected invite_event_guests response'),
+    };
+  }
+
+  /// The invitee accepts [inviteId] via the `accept_event_invite` SECURITY
+  /// DEFINER RPC (self only): pending → accepted (responded_at). Idempotent.
+  /// Typed [AppError]s mirror [inviteEventGuests]; extra states:
+  ///   already_accepted / already_attended → [ConflictError] with that code
+  Future<void> acceptEventInvite(String inviteId) async {
+    final user = auth.currentUser;
+    if (user == null) throw const UnauthorizedError();
+
+    final res = await client.rpc('accept_event_invite', params: {
+      'p_invite_id': inviteId,
+    });
+    final result = res is Map ? Map<String, dynamic>.from(res) : <String, dynamic>{};
+    switch (result['status']) {
+      case 'accepted' || 'already_accepted':
+        return;
+      case 'not_authenticated':
+        throw const UnauthorizedError();
+      case 'invite_not_found':
+        throw const NotFoundError('Invitación');
+      case 'already_attended':
+        throw ConflictError(
+          'Ya asististe a este evento.',
+          code: 'already_attended',
+        );
+      case 'event_closed':
+        throw ConflictError(
+          'El evento ya terminó o fue cancelado.',
+          code: 'event_closed',
+        );
+      default:
+        throw const ServerError('Unexpected accept_event_invite response');
+    }
+  }
+
+  /// The invitee declines [inviteId] via the `decline_event_invite` SECURITY
+  /// DEFINER RPC (self only). The server DELETES the pending row (2026-09-02
+  /// directive: a declined invite is indistinguishable from one that never
+  /// existed) — freeing the reserved seat so the host can invite someone else.
+  /// Typed [AppError]s as in [acceptEventInvite].
+  Future<void> declineEventInvite(String inviteId) async {
+    final user = auth.currentUser;
+    if (user == null) throw const UnauthorizedError();
+
+    final res = await client.rpc('decline_event_invite', params: {
+      'p_invite_id': inviteId,
+    });
+    final result = res is Map ? Map<String, dynamic>.from(res) : <String, dynamic>{};
+    switch (result['status']) {
+      case 'declined':
+        return;
+      case 'not_authenticated':
+        throw const UnauthorizedError();
+      case 'invite_not_found':
+        throw const NotFoundError('Invitación');
+      case 'already_accepted':
+        throw ConflictError(
+          'Ya aceptaste la invitación.',
+          code: 'already_accepted',
+        );
+      case 'already_attended':
+        throw ConflictError(
+          'Ya asististe a este evento.',
+          code: 'already_attended',
+        );
+      default:
+        throw const ServerError('Unexpected decline_event_invite response');
+    }
+  }
+
+  /// The HOST/STAFF view of an event's guest roster — one row per
+  /// `event_invites` entry enriched with `users.username` (via the
+  /// security-barrier `user_search_view`, mirroring [getEventHosts]). The
+  /// `ei_read_event_access` RLS policy (05_manual_invites) bounds this to the
+  /// event's hosts/staff; everyone else sees only their own rows, so this
+  /// method is only mounted where the caller is privileged.
+  Future<List<Map<String, dynamic>>> getEventGuests(String eventId) async {
+    final res = await client
+        .from('event_invites')
+        .select(
+          'id, event_id, user_id, invited_by_user_id, status, invited_at, '
+          // `user_id` is the invitee — disambiguate from the two FKs to users
+          // (user_id + invited_by_user_id) by naming the relationship.
+          'users:user_search_view!event_invites_user_id_fkey(username)',
+        )
+        .eq('event_id', eventId)
+        .order('invited_at', ascending: true);
+    return res.map((e) => Map<String, dynamic>.from(e)).toList();
+  }
 }
