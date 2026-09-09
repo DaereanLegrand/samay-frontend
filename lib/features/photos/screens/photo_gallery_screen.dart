@@ -134,7 +134,7 @@ class _PhotoGalleryScreenState extends ConsumerState<PhotoGalleryScreen> {
 
     return Scaffold(
       body: VHeaderBar(
-        title: l10n.photosTitle,
+        title: l10n.photosTitle.toLowerCase(),
         actions: [
           if (windowOpen)
             IconButton(

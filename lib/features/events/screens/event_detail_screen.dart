@@ -182,6 +182,7 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
                       Localizations.localeOf(context).languageCode,
                     ),
                   ),
+                  const SizedBox(height: AppSpacing.sm),
                   _InfoRow(
                     icon: Icons.place_outlined,
                     text: event.locationName ?? l10n.eventNoLocation,
@@ -202,9 +203,9 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
                 ],
               ),
             ),
-            const SizedBox(height: AppSpacing.xl),
+            const SizedBox(height: AppSpacing.lg),
             _buildPoolSection(event),
-            const SizedBox(height: AppSpacing.xl),
+            const SizedBox(height: AppSpacing.lg),
             _buildHostsSection(event, hostsAsync, uid),
             if (_isPrivileged(hostsAsync.valueOrNull, uid) &&
                 !_isClosed(event.status)) ...[
@@ -228,7 +229,7 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
                 ),
             ],
             if (_canEdit(uid, event.status, hostsAsync.valueOrNull)) ...[
-              const SizedBox(height: AppSpacing.xxl),
+              const SizedBox(height: AppSpacing.lg),
               VButton.dark(
                 label: l10n.eventEditButton,
                 onPressed: () =>
@@ -270,7 +271,7 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const SizedBox(height: AppSpacing.xl),
+        const SizedBox(height: AppSpacing.lg),
         if (showQr) ...[
           Row(
             children: [
@@ -488,14 +489,16 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
                   )
                 : Column(
                     children: [
-                      for (final guest in guests)
+                      for (var i = 0; i < guests.length; i++) ...[
+                        if (i > 0) const SizedBox(height: AppSpacing.xs),
                         _GuestRow(
                           username:
-                              guest['users']?['username'] as String? ??
-                              '${guest['user_id']}'.substring(0, 8),
+                              guests[i]['users']?['username'] as String? ??
+                              '${guests[i]['user_id']}'.substring(0, 8),
                           status:
-                              guest['status'] as String? ?? 'pending',
+                              guests[i]['status'] as String? ?? 'pending',
                         ),
+                      ],
                     ],
                   ),
           ),
@@ -621,20 +624,24 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
                   )
                 : Column(
                     children: [
-                      for (final p in members)
+                      for (var i = 0; i < members.length; i++) ...[
+                        if (i > 0) const SizedBox(height: AppSpacing.xs),
                         _HostMemberRow(
                           username:
-                              p['users']?['username'] as String? ??
-                              '${p['user_id']}'.substring(0, 8),
-                          role: p['role'] as String? ?? 'host',
+                              members[i]['users']?['username'] as String? ??
+                              '${members[i]['user_id']}'.substring(0, 8),
+                          role: members[i]['role'] as String? ?? 'host',
                           removable:
                               isHost &&
                               open &&
-                              (p['role'] as String? ?? '') == 'staff',
+                              (members[i]['role'] as String? ?? '') == 'staff',
                           busy: _staffBusy,
-                          onRemove: () =>
-                              _confirmRemoveStaff(p, p['users']?['username']),
+                          onRemove: () => _confirmRemoveStaff(
+                            members[i],
+                            members[i]['users']?['username'],
+                          ),
                         ),
+                      ],
                     ],
                   ),
           ),
@@ -759,17 +766,14 @@ class _InfoRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(top: AppSpacing.sm),
-      child: Row(
-        children: [
-          Icon(icon, size: 18, color: AppColors.mutedStrong),
-          const SizedBox(width: AppSpacing.sm),
-          Expanded(
-            child: Text(text, style: Theme.of(context).textTheme.bodyMedium),
-          ),
-        ],
-      ),
+    return Row(
+      children: [
+        Icon(icon, size: 18, color: AppColors.mutedStrong),
+        const SizedBox(width: AppSpacing.sm),
+        Expanded(
+          child: Text(text, style: Theme.of(context).textTheme.bodyMedium),
+        ),
+      ],
     );
   }
 }
@@ -799,45 +803,42 @@ class _HostMemberRow extends StatelessWidget {
     final roleLabel = role == 'host'
         ? l10n.eventRoleHost
         : l10n.eventRoleStaff;
-    return Padding(
-      padding: const EdgeInsets.only(top: AppSpacing.xs),
-      child: Row(
-        children: [
-          CircleAvatar(
-            radius: 16,
-            backgroundColor: AppColors.surfaceAlt,
-            child: Text(
-              // U-26 (U-25 F5): an empty (non-null) username would RangeError
-              // on substring — the '?' initial fallback.
-              username.isEmpty ? '?' : username.substring(0, 1).toUpperCase(),
-              style: const TextStyle(fontSize: 13, color: AppColors.white),
-            ),
+    return Row(
+      children: [
+        CircleAvatar(
+          radius: 16,
+          backgroundColor: AppColors.surfaceAlt,
+          child: Text(
+            // U-26 (U-25 F5): an empty (non-null) username would RangeError
+            // on substring — the '?' initial fallback.
+            username.isEmpty ? '?' : username.substring(0, 1).toUpperCase(),
+            style: const TextStyle(fontSize: 13, color: AppColors.white),
           ),
-          const SizedBox(width: AppSpacing.sm),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  username,
-                  style: Theme.of(context).textTheme.bodyMedium,
-                ),
-                Text(
-                  roleLabel,
-                  style: Theme.of(context).textTheme.labelSmall,
-                ),
-              ],
-            ),
+        ),
+        const SizedBox(width: AppSpacing.sm),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                username,
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
+              Text(
+                roleLabel,
+                style: Theme.of(context).textTheme.labelSmall,
+              ),
+            ],
           ),
-          if (removable)
-            IconButton(
-              tooltip: l10n.eventStaffRemove,
-              onPressed: busy ? null : onRemove,
-              icon: const Icon(Icons.person_remove_outlined, size: 20),
-              color: AppColors.mutedStrong,
-            ),
-        ],
-      ),
+        ),
+        if (removable)
+          IconButton(
+            tooltip: l10n.eventStaffRemove,
+            onPressed: busy ? null : onRemove,
+            icon: const Icon(Icons.person_remove_outlined, size: 20),
+            color: AppColors.mutedStrong,
+          ),
+      ],
     );
   }
 }
@@ -860,31 +861,28 @@ class _GuestRow extends StatelessWidget {
       'declined' => l10n.eventInviteDeclined,
       _ => l10n.eventInvitePending,
     };
-    return Padding(
-      padding: const EdgeInsets.only(top: AppSpacing.xs),
-      child: Row(
-        children: [
-          CircleAvatar(
-            radius: 12,
-            backgroundColor: AppColors.surfaceAlt,
-            child: Text(
-              username.isEmpty ? '?' : username.substring(0, 1).toUpperCase(),
-              style: const TextStyle(fontSize: 11, color: AppColors.white),
-            ),
+    return Row(
+      children: [
+        CircleAvatar(
+          radius: 12,
+          backgroundColor: AppColors.surfaceAlt,
+          child: Text(
+            username.isEmpty ? '?' : username.substring(0, 1).toUpperCase(),
+            style: const TextStyle(fontSize: 11, color: AppColors.white),
           ),
-          const SizedBox(width: AppSpacing.sm),
-          Expanded(
-            child: Text(
-              username,
-              style: Theme.of(context).textTheme.bodyMedium,
-            ),
+        ),
+        const SizedBox(width: AppSpacing.sm),
+        Expanded(
+          child: Text(
+            username,
+            style: Theme.of(context).textTheme.bodyMedium,
           ),
-          Text(
-            statusLabel,
-            style: Theme.of(context).textTheme.labelSmall,
-          ),
-        ],
-      ),
+        ),
+        Text(
+          statusLabel,
+          style: Theme.of(context).textTheme.labelSmall,
+        ),
+      ],
     );
   }
 }

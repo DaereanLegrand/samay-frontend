@@ -258,7 +258,7 @@ class _AttendanceCodeScreenState extends ConsumerState<AttendanceCodeScreen> {
 
   Widget _scaffold(AppLocalizations l10n, Widget body) {
     return Scaffold(
-      body: VHeaderBar(title: l10n.qrAttendanceTitle, child: body),
+      body: VHeaderBar(title: l10n.qrAttendanceTitle.toLowerCase(), child: body),
     );
   }
 

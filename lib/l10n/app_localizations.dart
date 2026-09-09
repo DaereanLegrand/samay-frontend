@@ -2021,7 +2021,7 @@ abstract class AppLocalizations {
   /// Event photo gallery app bar title
   ///
   /// In es, this message translates to:
-  /// **'fotos'**
+  /// **'Fotos'**
   String get photosTitle;
 
   /// Empty state heading when the event has no photos
@@ -2951,7 +2951,7 @@ abstract class AppLocalizations {
   /// Attendance QR screen title
   ///
   /// In es, this message translates to:
-  /// **'código'**
+  /// **'Código'**
   String get qrAttendanceTitle;
 
   /// Attendance QR: event load error message
@@ -2975,7 +2975,7 @@ abstract class AppLocalizations {
   /// QR scanner screen title
   ///
   /// In es, this message translates to:
-  /// **'escáner'**
+  /// **'Escáner'**
   String get qrScannerTitle;
 
   /// QR scanner: scan instruction

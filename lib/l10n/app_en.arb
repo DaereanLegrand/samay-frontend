@@ -1397,7 +1397,7 @@
   "@rankInSearch": {
     "description": "Rank bracket label (0-20)"
   },
-  "photosTitle": "photos",
+  "photosTitle": "Photos",
   "@photosTitle": {
     "description": "Event photo gallery app bar title"
   },
@@ -2072,7 +2072,7 @@
   "@eventStatusCancelled": {
     "description": "Cancelled status badge"
   },
-  "qrAttendanceTitle": "qr",
+  "qrAttendanceTitle": "QR",
   "@qrAttendanceTitle": {
     "description": "Attendance QR screen title"
   },
@@ -2098,7 +2098,7 @@
       }
     }
   },
-  "qrScannerTitle": "scan",
+  "qrScannerTitle": "Scanner",
   "@qrScannerTitle": {
     "description": "QR scanner screen title"
   },

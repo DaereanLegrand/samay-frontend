@@ -281,7 +281,7 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen> {
     return Scaffold(
       backgroundColor: AppColors.discoBlack,
       body: VHeaderBar(
-        title: l10n.qrScannerTitle,
+        title: l10n.qrScannerTitle.toLowerCase(),
         actions: [
           if (_cameraStatus == _CameraStatus.granted)
             IconButton(

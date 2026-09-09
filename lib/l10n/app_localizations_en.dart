@@ -1052,7 +1052,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get rankInSearch => 'In the Search';
 
   @override
-  String get photosTitle => 'photos';
+  String get photosTitle => 'Photos';
 
   @override
   String get photosEmpty => 'No photos yet';
@@ -1561,7 +1561,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get eventStatusCancelled => 'Cancelled';
 
   @override
-  String get qrAttendanceTitle => 'qr';
+  String get qrAttendanceTitle => 'QR';
 
   @override
   String get qrEventLoadError => 'Could not load the event.';
@@ -1577,7 +1577,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get qrScannerTitle => 'scan';
+  String get qrScannerTitle => 'Scanner';
 
   @override
   String get qrScanPrompt => 'Scan the attendee\'s QR code';
