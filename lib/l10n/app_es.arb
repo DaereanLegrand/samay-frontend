@@ -1967,6 +1967,18 @@
   "@eventGuestsLoadError": {
     "description": "Guest roster load error fallback"
   },
+  "eventAttendeesTitle": "Asistentes",
+  "@eventAttendeesTitle": {
+    "description": "Confirmed-attendees section heading on the attendee's event detail"
+  },
+  "eventAttendeesEmpty": "Aún no hay asistentes confirmados",
+  "@eventAttendeesEmpty": {
+    "description": "Empty confirmed-attendees state on the attendee's event detail"
+  },
+  "eventAttendeesLoadError": "No se pudieron cargar los asistentes",
+  "@eventAttendeesLoadError": {
+    "description": "Confirmed-attendees load error fallback"
+  },
   "eventInviteGuestsButton": "Invitar personas",
   "@eventInviteGuestsButton": {
     "description": "Host action that opens the guest picker"

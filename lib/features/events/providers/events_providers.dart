@@ -122,7 +122,14 @@ class MyEventInviteNotifier
     final inviteId = (await future)?['id'] as String?;
     if (inviteId == null) return;
     await _service.acceptEventInvite(inviteId);
-    await refresh();
+    // Direct invalidation (NOT the throttled refresh()): the accept's result
+    // must flip the pending card to "aceptada" the moment the RPC returns —
+    // a throttle-skip would leave the stale pending accept/decline card up.
+    ref.invalidateSelf();
+    // Await the reload too: the accept/decline buttons must stay busy-locked
+    // until the card reflects the new server state, so a second tap can never
+    // fire into the stale window (server → already_accepted).
+    await ref.read(myEventInviteProvider(arg).future);
     ref.invalidate(eventGuestsProvider(arg));
   }
 
@@ -133,7 +140,12 @@ class MyEventInviteNotifier
     final inviteId = (await future)?['id'] as String?;
     if (inviteId == null) return;
     await _service.declineEventInvite(inviteId);
-    await refresh();
+    // Direct invalidation (NOT the throttled refresh()): the decline deletes
+    // the row — the stale pending card must go away immediately.
+    ref.invalidateSelf();
+    // Await the reload so the pending card leaves before the caller clears
+    // the busy lock (no stale double-tap window).
+    await ref.read(myEventInviteProvider(arg).future);
     ref.invalidate(eventGuestsProvider(arg));
   }
 }
@@ -174,10 +186,14 @@ class EventGuestsNotifier
   }
 }
 
-/// The event's guest roster (host/staff view — RLS `ei_read_event_access`),
-/// newest invite first, each row enriched with `users.username`. Invitees
-/// who are not hosts see only their own row here (they use
-/// [myEventInviteProvider] instead).
+/// The event's guest roster, newest invite first, each row enriched with
+/// `users.username`. Reads are RLS-scoped by the caller's standing:
+/// hosts/staff (`ei_read_event_access`) get the FULL roster; an event member
+/// (invitee of any standing, `ei_read_confirmed_roster` +
+/// `ei_read_own` — 060_events/09_attendee_roster.sql) gets their own row plus
+/// the event's accepted/attended rows, so `_buildConfirmedRoster` on the
+/// attendee's detail filters to confirmed and shows who is going. Refreshed
+/// live via the event detail's `event-invites:<eventId>` realtime channel.
 final eventGuestsProvider =
     AsyncNotifierProvider.family<
       EventGuestsNotifier,

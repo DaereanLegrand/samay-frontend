@@ -1485,6 +1485,15 @@ class AppLocalizationsEs extends AppLocalizations {
   String get eventGuestsLoadError => 'No se pudieron cargar los invitados';
 
   @override
+  String get eventAttendeesTitle => 'Asistentes';
+
+  @override
+  String get eventAttendeesEmpty => 'Aún no hay asistentes confirmados';
+
+  @override
+  String get eventAttendeesLoadError => 'No se pudieron cargar los asistentes';
+
+  @override
   String get eventInviteGuestsButton => 'Invitar personas';
 
   @override

@@ -5,8 +5,10 @@ import 'package:samay/core/config/feature_flags.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/extensions/error_mapper.dart';
+import 'package:samay/core/logging/app_logger.dart';
 import 'package:samay/core/models/event.dart';
 import 'package:samay/core/providers/auth_provider.dart';
+import 'package:samay/core/providers/service_providers.dart';
 import 'package:samay/core/router/route_paths.dart';
 import 'package:samay/features/events/logic/event_formatters.dart';
 import 'package:samay/features/events/providers/events_providers.dart';
@@ -23,6 +25,7 @@ import 'package:samay/shared/widgets/v_display_text.dart';
 import 'package:samay/shared/widgets/v_header_bar.dart';
 import 'package:samay/shared/widgets/v_network_image.dart';
 import 'package:samay/shared/widgets/v_shard_icon.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' show RealtimeChannel;
 
 /// Event detail (EDET): header, date/location, preshard pool status,
 /// hosts, own invite status and role-based actions (edit/cancel for
@@ -39,6 +42,37 @@ class EventDetailScreen extends ConsumerStatefulWidget {
 
 class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
   bool _cancelling = false;
+
+  /// Live roster channels for this event while the current user BELONGS to it
+  /// (host/staff, or an invitee of any standing — see [_syncRosterRealtime]):
+  /// [`_guestChannel`] streams `event_invites` (invitee accept/decline flips
+  /// the guest list), [`_hostsChannel`] streams `event_hosts` (the host
+  /// designating/removing staff updates the organizer list). Owned and
+  /// unsubscribed on dispose.
+  RealtimeChannel? _guestChannel;
+  RealtimeChannel? _hostsChannel;
+  bool _subscribingRoster = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Fresh entry = fresh roster + own-invite state (the providers are cached
+    // for the session — a host re-opening the detail after an invitee
+    // accepted on their own device must see it). Post-frame: provider writes
+    // are illegal during the widget life-cycle.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      ref.invalidate(eventGuestsProvider(widget.eventId));
+      ref.invalidate(myEventInviteProvider(widget.eventId));
+      _syncRosterRealtime();
+    });
+  }
+
+  @override
+  void dispose() {
+    _unsubscribeRosterChannels();
+    super.dispose();
+  }
 
   Future<void> _cancelEvent() async {
     final l10n = AppLocalizations.of(context);
@@ -88,6 +122,70 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
     }
   }
 
+  /// Subscribes this event's live roster channels while the current user
+  /// belongs to the event — a host/staff member or an invitee of any standing
+  /// (2026-09-09, 060_events/08 + 09). Remote invitee accept/decline flips the
+  /// guest list on the spot (`event_invites`), and the host designating/
+  /// removing staff updates the organizer list (`event_hosts`). Best-effort:
+  /// on failure the entry-refresh + local actions still keep the lists
+  /// usable. Unsubscribes when the user stops being a member or signs out.
+  Future<void> _syncRosterRealtime() async {
+    final uid =
+        ref.read(authStateProvider).valueOrNull?.user?['id'] as String?;
+    final hosts = ref.read(eventHostsProvider(widget.eventId)).valueOrNull;
+    final privileged = uid != null &&
+        (hosts?.any((p) => p['user_id'] == uid) ?? false);
+    final invite = ref.read(myEventInviteProvider(widget.eventId)).valueOrNull;
+    final invited = uid != null && invite != null && invite.isNotEmpty;
+    final member = privileged || invited;
+    if (!member) {
+      _unsubscribeRosterChannels();
+      return;
+    }
+    if (_guestChannel != null && _hostsChannel != null) return;
+    if (_subscribingRoster) return;
+    _subscribingRoster = true;
+    try {
+      final guest = ref
+          .read(realtimeServiceProvider)
+          .subscribeToEventInvites(widget.eventId, (_) {
+            if (!mounted) return;
+            ref.invalidate(eventGuestsProvider(widget.eventId));
+            ref.invalidate(myEventInviteProvider(widget.eventId));
+          });
+      final host = ref
+          .read(realtimeServiceProvider)
+          .subscribeToEventHosts(widget.eventId, (_) {
+            if (!mounted) return;
+            ref.invalidate(eventHostsProvider(widget.eventId));
+          });
+      if (!mounted) {
+        // The screen closed while the joins were in flight — never leak live
+        // channels.
+        await guest.unsubscribe();
+        await host.unsubscribe();
+        return;
+      }
+      _guestChannel = guest;
+      _hostsChannel = host;
+    } catch (e, st) {
+      // Realtime is best-effort; entry-refetch/pull-to-refresh remains.
+      AppLogger.instance.error(
+        'event roster realtime subscribe failed: $e',
+        '$st',
+      );
+    } finally {
+      _subscribingRoster = false;
+    }
+  }
+
+  void _unsubscribeRosterChannels() {
+    _guestChannel?.unsubscribe();
+    _guestChannel = null;
+    _hostsChannel?.unsubscribe();
+    _hostsChannel = null;
+  }
+
   Widget _scaffold(Widget body) {
     return Scaffold(
       body: VHeaderBar(
@@ -100,6 +198,18 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
   @override
   Widget build(BuildContext context) {
     final detailAsync = ref.watch(eventDetailProvider(widget.eventId));
+    // Roster/provider changes (hosts first resolve, staff added/removed, the
+    // own invite resolving/accepting → the user becomes a member) or an
+    // account switch (re)drive the live roster channels.
+    ref.listen(eventHostsProvider(widget.eventId), (_, _) {
+      _syncRosterRealtime();
+    });
+    ref.listen(myEventInviteProvider(widget.eventId), (_, _) {
+      _syncRosterRealtime();
+    });
+    ref.listen(authStateProvider, (_, _) {
+      _syncRosterRealtime();
+    });
 
     return detailAsync.when(
       // U-25 (§5.8): the detail is the heaviest events screen (detail +
@@ -207,6 +317,12 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
             _buildPoolSection(event),
             const SizedBox(height: AppSpacing.lg),
             _buildHostsSection(event, hostsAsync, uid),
+            if (!_isPrivileged(hostsAsync.valueOrNull, uid) &&
+                (inviteAsync.valueOrNull?.isNotEmpty ?? false) &&
+                !_isClosed(event.status)) ...[
+              const SizedBox(height: AppSpacing.lg),
+              _buildConfirmedRoster(),
+            ],
             if (_isPrivileged(hostsAsync.valueOrNull, uid) &&
                 !_isClosed(event.status)) ...[
               const SizedBox(height: AppSpacing.lg),
@@ -507,6 +623,67 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
     );
   }
 
+  /// Read-only "confirmed attendees" card for a NON-privileged event member
+  /// (invitee of any standing — 2026-09-09, 060_events/09_attendee_roster RLS):
+  /// who is actually going. The server only returns the caller's own rows +
+  /// the event's accepted/attended rows to a member (other people's pending
+  /// stays host/own-only), so the pending filter below is belt-and-braces for
+  /// the viewer's own pending row. Hosts/staff keep the full management roster
+  /// in [_buildGuestRoster]; this card is the attendee-side view of the same
+  /// `event_invites` stream and updates live over realtime.
+  Widget _buildConfirmedRoster() {
+    final l10n = AppLocalizations.of(context);
+    final guestsAsync = ref.watch(eventGuestsProvider(widget.eventId));
+
+    return VCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            l10n.eventAttendeesTitle,
+            style: Theme.of(context).textTheme.labelLarge,
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          guestsAsync.when(
+            loading: () => const SizedBox.shrink(),
+            error: (e, _) => Text(
+              l10n.eventAttendeesLoadError,
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+            data: (guests) {
+              final confirmed = guests
+                  .where((g) {
+                    final status = g['status'] as String? ?? 'pending';
+                    return status == 'accepted' || status == 'attended';
+                  })
+                  .toList();
+              if (confirmed.isEmpty) {
+                return Text(
+                  l10n.eventAttendeesEmpty,
+                  style: Theme.of(context).textTheme.bodyMedium,
+                );
+              }
+              return Column(
+                children: [
+                  for (var i = 0; i < confirmed.length; i++) ...[
+                    if (i > 0) const SizedBox(height: AppSpacing.xs),
+                    _GuestRow(
+                      username:
+                          confirmed[i]['users']?['username'] as String? ??
+                          '${confirmed[i]['user_id']}'.substring(0, 8),
+                      status:
+                          confirmed[i]['status'] as String? ?? 'accepted',
+                    ),
+                  ],
+                ],
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildPoolSection(Event event) {
     final l10n = AppLocalizations.of(context);
     final pool = event.preshardsPool;
@@ -572,9 +749,10 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
 
   /// Host + staff roster card (Stage 3): the header carries an "Añadir staff"
   /// action when the viewer is a role=host member and the event is open; each
-  /// STAFF row gets a remove affordance (host only). Staff rows read through
-  /// the `ep_read_event_access` RLS policy — hosts AND staff see the full
-  /// roster, everyone else only their own rows (guests see none here).
+  /// STAFF row gets a remove affordance (host only). Reads through the
+  /// `ep_read_event_access` policy for hosts/staff (full roster) AND, since
+  /// 2026-09-09 (060_events/09_attendee_roster.sql, `ep_read_member_roster`),
+  /// event members (invitees) see the organizer roster read-only.
   Widget _buildHostsSection(
     Event event,
     AsyncValue<List<Map<String, dynamic>>> async,

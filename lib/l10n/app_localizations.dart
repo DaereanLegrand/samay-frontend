@@ -2798,6 +2798,24 @@ abstract class AppLocalizations {
   /// **'No se pudieron cargar los invitados'**
   String get eventGuestsLoadError;
 
+  /// Confirmed-attendees section heading on the attendee's event detail
+  ///
+  /// In es, this message translates to:
+  /// **'Asistentes'**
+  String get eventAttendeesTitle;
+
+  /// Empty confirmed-attendees state on the attendee's event detail
+  ///
+  /// In es, this message translates to:
+  /// **'Aún no hay asistentes confirmados'**
+  String get eventAttendeesEmpty;
+
+  /// Confirmed-attendees load error fallback
+  ///
+  /// In es, this message translates to:
+  /// **'No se pudieron cargar los asistentes'**
+  String get eventAttendeesLoadError;
+
   /// Host action that opens the guest picker
   ///
   /// In es, this message translates to:

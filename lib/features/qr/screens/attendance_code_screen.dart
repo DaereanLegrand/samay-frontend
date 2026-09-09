@@ -77,8 +77,13 @@ class _AttendanceCodeScreenState extends ConsumerState<AttendanceCodeScreen> {
     // Re-issue the session on every entry: get_my_code returns the server's
     // CURRENT window (windowSeconds is config), so a stale in-memory session
     // (e.g. fetched while the window was still seeded 30) can no longer keep
-    // the first QR frozen for a whole stale window.
-    ref.invalidate(myCodeProvider(widget.eventId));
+    // the first QR frozen for a whole stale window. Post-frame: ref writes
+    // (invalidate) are illegal during initState — the element has not joined
+    // the inherited ProviderScope yet (crash seen on a fresh accept entry).
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      ref.invalidate(myCodeProvider(widget.eventId));
+    });
     _ticker = Timer.periodic(const Duration(seconds: 1), (_) => _tick());
   }
 
