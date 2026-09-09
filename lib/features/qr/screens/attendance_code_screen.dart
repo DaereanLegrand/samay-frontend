@@ -26,7 +26,7 @@ const int _activationMinutes = 30;
 /// [_qrRingWidth]. The ring is a WHITE track (same path/dimension as the
 /// border) drawn first; the BLACK countdown border fills over it empty → full
 /// across each window. Sharp corners.
-const double _qrWidgetSide = 300;
+const double _qrWidgetSide = 250;
 const double _qrRingWidth = 3;
 
 /// Attendee-side rotating QR attendance code (Stage 5 pivot).
