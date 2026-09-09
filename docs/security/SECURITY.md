@@ -175,7 +175,7 @@ carried by a **plain rotating QR** on the attendee's own device
   onlooker who reads someone's screen learns nothing about who they are. The
   code → attendee mapping happens only server-side, inside the host/staff-only
   `validate_code` RPC, recomputed per event (no code→user index exists).
-- **Replay is bounded and one-shot.** A code is valid for its 30-s window
+- **Replay is bounded and one-shot.** A code is valid for its 10-s window
   (authenticator semantics, ±1 window clock-skew tolerance) and confirmation
   lands **once** — `event_attendances` is the single-confirmation marker and
   re-scans answer `already_scanned`, so a photographed code cannot double-claim.
@@ -187,7 +187,7 @@ carried by a **plain rotating QR** on the attendee's own device
   with the cascade/event teardown).
 - Enumeration surface: `validate_code` is host/staff-only, window-gated,
   and shape-checked (`^[0-9a-f]{24}$`); an unguessable 96-bit code defeats
-  brute force within a 30-s window.
+  brute force within a 10-s window.
 
 Coverage: `test/opt-027-events-code.sh`, pgTAP Section 21d. The attendee side
 is a rotating QR encoding the current code (derived locally, byte-identical to

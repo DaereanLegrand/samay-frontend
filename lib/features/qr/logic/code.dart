@@ -13,7 +13,7 @@ import 'package:flutter/foundation.dart';
 ///
 /// This MUST byte-match the server derivation in 07_code.sql — the server is
 /// authoritative at validation, so both sides must agree. The code rotates
-/// every `code.window_seconds` (seed 30); the host/staff scanner reads the
+/// every `code.window_seconds` (seed 10); the host/staff scanner reads the
 /// QR's payload and validates it via the `validate_code` RPC.
 /// Domain-separated per the crypto policy (approved: HMAC-SHA256).
 
@@ -48,7 +48,7 @@ class CodeSession {
   /// Time-window counter that [code] belongs to.
   final int counter;
 
-  /// Window length in seconds (code.window_seconds, seed 30).
+  /// Window length in seconds (code.window_seconds, seed 10).
   final int windowSeconds;
 
   /// UTC epoch seconds at which [counter]'s window began.

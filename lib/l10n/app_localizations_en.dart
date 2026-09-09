@@ -1572,11 +1572,6 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String qrNewCodeIn(int seconds) {
-    return 'New code in: $seconds';
-  }
-
-  @override
   String get qrScannerTitle => 'Scanner';
 
   @override
@@ -1651,13 +1646,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get qrCameraSettingsAction => 'Open settings';
 
   @override
-  String codeActivatesIn(int minutes) {
-    return 'The attendance code will activate $minutes minutes before the event';
-  }
-
-  @override
-  String get codeCaption =>
-      'Show this code to someone at the event to confirm your attendance.';
+  String get codeNotReadyYet => 'Your attendance code isn\'t ready yet.';
 
   @override
   String get codeLoadError => 'Could not load your attendance code.';

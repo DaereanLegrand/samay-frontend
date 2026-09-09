@@ -2089,15 +2089,6 @@
       }
     }
   },
-  "qrNewCodeIn": "New code in: {seconds}",
-  "@qrNewCodeIn": {
-    "description": "Attendance QR: countdown to next code rotation",
-    "placeholders": {
-      "seconds": {
-        "type": "int"
-      }
-    }
-  },
   "qrScannerTitle": "Scanner",
   "@qrScannerTitle": {
     "description": "QR scanner screen title"
@@ -2196,18 +2187,9 @@
   "@qrCameraSettingsAction": {
     "description": "QR scanner: settings dialog action"
   },
-  "codeActivatesIn": "The attendance code will activate {minutes} minutes before the event",
-  "@codeActivatesIn": {
-    "description": "Attendance code: pre-activation countdown message",
-    "placeholders": {
-      "minutes": {
-        "type": "int"
-      }
-    }
-  },
-  "codeCaption": "Show this code to someone at the event to confirm your attendance.",
-  "@codeCaption": {
-    "description": "Attendance code: caption under the QR code"
+  "codeNotReadyYet": "Your attendance code isn't ready yet.",
+  "@codeNotReadyYet": {
+    "description": "Attendance code: pre-activation message (code unlocks 30 minutes before the event)"
   },
   "codeLoadError": "Could not load your attendance code.",
   "@codeLoadError": {

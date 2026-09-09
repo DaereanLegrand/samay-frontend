@@ -1576,11 +1576,6 @@ class AppLocalizationsEs extends AppLocalizations {
   }
 
   @override
-  String qrNewCodeIn(int seconds) {
-    return 'Nuevo código en: $seconds';
-  }
-
-  @override
   String get qrScannerTitle => 'Escáner';
 
   @override
@@ -1655,13 +1650,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get qrCameraSettingsAction => 'Abrir ajustes';
 
   @override
-  String codeActivatesIn(int minutes) {
-    return 'El código se activará $minutes minutos antes del evento';
-  }
-
-  @override
-  String get codeCaption =>
-      'Muestra este código a una persona del evento para confirmar tu asistencia.';
+  String get codeNotReadyYet => 'Tu código de asistencia aún no está listo.';
 
   @override
   String get codeLoadError => 'No se pudo cargar tu código.';

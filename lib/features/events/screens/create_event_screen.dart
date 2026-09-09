@@ -100,8 +100,20 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
   int _tierCap = 7;
   bool _capacityEdited = false;
 
-  static DateTime _defaultStarts() =>
-      DateTime.now().add(const Duration(hours: 1));
+  /// Default start: 1 h out, but clamped to TODAY near midnight. A naive
+  /// `now + 1 h` crosses into the next calendar day (e.g. 23:05 → 00:05
+  /// tomorrow), which silently shifted "starts now"-style events ~24 h out
+  /// (2026-09-09). Same-day keeps the event immediate; the server accepts a
+  /// start that has already passed and the code window opens at once.
+  static DateTime _defaultStarts() {
+    final now = DateTime.now();
+    final start = now.add(const Duration(hours: 1));
+    final crossesMidnight = start.year != now.year ||
+        start.month != now.month ||
+        start.day != now.day;
+    return crossesMidnight ? now : start;
+  }
+
   static DateTime _defaultEnds() =>
       _defaultStarts().add(const Duration(hours: 2));
 

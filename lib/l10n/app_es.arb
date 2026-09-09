@@ -2089,15 +2089,6 @@
       }
     }
   },
-  "qrNewCodeIn": "Nuevo código en: {seconds}",
-  "@qrNewCodeIn": {
-    "description": "Attendance QR: countdown to next code rotation",
-    "placeholders": {
-      "seconds": {
-        "type": "int"
-      }
-    }
-  },
   "qrScannerTitle": "Escáner",
   "@qrScannerTitle": {
     "description": "QR scanner screen title"
@@ -2196,18 +2187,9 @@
   "@qrCameraSettingsAction": {
     "description": "QR scanner: settings dialog action"
   },
-  "codeActivatesIn": "El código se activará {minutes} minutos antes del evento",
-  "@codeActivatesIn": {
-    "description": "Attendance code: pre-activation countdown message",
-    "placeholders": {
-      "minutes": {
-        "type": "int"
-      }
-    }
-  },
-  "codeCaption": "Muestra este código a una persona del evento para confirmar tu asistencia.",
-  "@codeCaption": {
-    "description": "Attendance code: caption under the QR code"
+  "codeNotReadyYet": "Tu código de asistencia aún no está listo.",
+  "@codeNotReadyYet": {
+    "description": "Attendance code: pre-activation message (code unlocks 30 minutes before the event)"
   },
   "codeLoadError": "No se pudo cargar tu código.",
   "@codeLoadError": {

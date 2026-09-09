@@ -2966,12 +2966,6 @@ abstract class AppLocalizations {
   /// **'Se activa en {time}'**
   String qrActivationCountdown(String time);
 
-  /// Attendance QR: countdown to next code rotation
-  ///
-  /// In es, this message translates to:
-  /// **'Nuevo código en: {seconds}'**
-  String qrNewCodeIn(int seconds);
-
   /// QR scanner screen title
   ///
   /// In es, this message translates to:
@@ -3104,17 +3098,11 @@ abstract class AppLocalizations {
   /// **'Abrir ajustes'**
   String get qrCameraSettingsAction;
 
-  /// Attendance code: pre-activation countdown message
+  /// Attendance code: pre-activation message (code unlocks 30 minutes before the event)
   ///
   /// In es, this message translates to:
-  /// **'El código se activará {minutes} minutos antes del evento'**
-  String codeActivatesIn(int minutes);
-
-  /// Attendance code: caption under the QR code
-  ///
-  /// In es, this message translates to:
-  /// **'Muestra este código a una persona del evento para confirmar tu asistencia.'**
-  String get codeCaption;
+  /// **'Tu código de asistencia aún no está listo.'**
+  String get codeNotReadyYet;
 
   /// Attendance code: code load error message
   ///

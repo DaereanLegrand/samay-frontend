@@ -1,13 +1,13 @@
 import 'dart:async';
-import 'dart:math' as math;
 
+import 'package:flutter/foundation.dart' show ValueListenable, ValueNotifier;
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart' show Ticker;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/logging/app_logger.dart';
-import 'package:samay/core/theme/samay_durations.dart';
 import 'package:samay/features/events/providers/events_providers.dart';
 import 'package:samay/features/qr/logic/code.dart';
 import 'package:samay/features/qr/providers/code_providers.dart';
@@ -21,10 +21,18 @@ import 'package:samay/shared/widgets/v_button.dart';
 /// contract used to render the pre-activation countdown.
 const int _activationMinutes = 30;
 
+/// Active-state QR geometry (px): no big tile — the QR code sits directly on
+/// the black page and is framed by a thin ring whose width is exactly
+/// [_qrRingWidth]. The ring is a WHITE track (same path/dimension as the
+/// border) drawn first; the BLACK countdown border fills over it empty → full
+/// across each window. Sharp corners.
+const double _qrWidgetSide = 300;
+const double _qrRingWidth = 3;
+
 /// Attendee-side rotating QR attendance code (Stage 5 pivot).
 ///
 /// Shows the attendee's [CodeSession] as a PLAIN QR ([QrImageView]) encoding
-/// the current 24-hex code, regenerating every `code.window_seconds` (seed 30)
+/// the current 24-hex code, regenerating every `code.window_seconds` (seed 10)
 /// like an authenticator — derived LOCALLY from the per-event secret, so
 /// regeneration is seamless and works without a network round-trip. The host/
 /// staff scanner reads the QR's payload and validates the code via the
@@ -34,8 +42,8 @@ const int _activationMinutes = 30;
 /// * **notInvited** — caller is neither host/staff nor an invited attendee.
 /// * **notInWindow** — before activation (`starts_at - 30 min`): countdown,
 ///   then re-fetch when the window opens.
-/// * **active** — the rotating QR on a white card + countdown ring to the
-///   next code.
+/// * **active** — white-module QR on black, framed by a thin ring (white track
+///   + black 3px countdown fill over it) that fills to the next code.
 ///
 /// Route: `/qr/:eventId` (feature-flag gated on `AppFeatureFlag.qr`).
 ///
@@ -58,7 +66,6 @@ class _AttendanceCodeScreenState extends ConsumerState<AttendanceCodeScreen> {
   CodeSession? _session;
   String _code = '';
   int _boundaryMs = 0;
-  int _remaining = 0;
   bool _deriving = false;
 
   /// Throttle for automatic re-fetches after the activation window opens.
@@ -67,6 +74,11 @@ class _AttendanceCodeScreenState extends ConsumerState<AttendanceCodeScreen> {
   @override
   void initState() {
     super.initState();
+    // Re-issue the session on every entry: get_my_code returns the server's
+    // CURRENT window (windowSeconds is config), so a stale in-memory session
+    // (e.g. fetched while the window was still seeded 30) can no longer keep
+    // the first QR frozen for a whole stale window.
+    ref.invalidate(myCodeProvider(widget.eventId));
     _ticker = Timer.periodic(const Duration(seconds: 1), (_) => _tick());
   }
 
@@ -76,8 +88,8 @@ class _AttendanceCodeScreenState extends ConsumerState<AttendanceCodeScreen> {
     super.dispose();
   }
 
-  /// One-second heartbeat: drives the countdown ring and, at the window
-  /// boundary, derives + renders the next code seamlessly.
+  /// One-second heartbeat: at the window boundary, derive + render the next
+  /// code seamlessly. The filling border runs its own per-frame ticker.
   void _tick() {
     if (!mounted) return;
     final session = ref.read(myCodeProvider(widget.eventId)).valueOrNull;
@@ -90,10 +102,6 @@ class _AttendanceCodeScreenState extends ConsumerState<AttendanceCodeScreen> {
     final windowMs = active.windowSeconds * 1000;
     if (nowMs >= _boundaryMs) {
       _advanceWindow(nowMs, windowMs);
-    } else {
-      setState(() {
-        _remaining = math.max(0, ((_boundaryMs - nowMs) / 1000).ceil());
-      });
     }
   }
 
@@ -111,7 +119,6 @@ class _AttendanceCodeScreenState extends ConsumerState<AttendanceCodeScreen> {
       setState(() {
         _code = nextCode;
         _boundaryMs = (targetCounter + 1) * windowMs;
-        _remaining = math.max(0, ((_boundaryMs - nowMs) / 1000).ceil());
       });
     } catch (e, st) {
       AppLogger.instance.error('code derive failed: $e', '$st');
@@ -120,8 +127,7 @@ class _AttendanceCodeScreenState extends ConsumerState<AttendanceCodeScreen> {
     }
   }
 
-  /// Session change seam: (re)anchor the display on a fresh session —
-  /// window/activation state, countdown to the current window's end.
+  /// Session change seam: (re)anchor the display on a fresh session.
   void _onSessionChange(
     AsyncValue<CodeFetch>? previous,
     AsyncValue<CodeFetch> next,
@@ -138,8 +144,6 @@ class _AttendanceCodeScreenState extends ConsumerState<AttendanceCodeScreen> {
     _session = session;
     _code = session.code;
     _boundaryMs = session.windowEnd * 1000;
-    final nowMs = DateTime.now().millisecondsSinceEpoch;
-    _remaining = math.max(0, ((_boundaryMs - nowMs) / 1000).ceil());
   }
 
   /// Re-fetch the code (retry / activation window opening). Throttled when
@@ -191,14 +195,10 @@ class _AttendanceCodeScreenState extends ConsumerState<AttendanceCodeScreen> {
                   // for this build).
                   _applySession(fetch.session!);
                 }
-                return _scaffold(
-                  l10n,
-                  _ActiveCode(
-                    code: _code,
-                    remaining: _remaining,
-                    displayWindow: _session?.windowSeconds ?? 30,
-                    l10n: l10n,
-                  ),
+                return _ActiveCode(
+                  code: _code,
+                  boundaryMs: _boundaryMs,
+                  windowSeconds: _session?.windowSeconds ?? 10,
                 );
               case CodeFetchStatus.notInvited:
                 return _scaffold(
@@ -227,12 +227,11 @@ class _AttendanceCodeScreenState extends ConsumerState<AttendanceCodeScreen> {
     );
     final now = DateTime.now();
     if (now.isBefore(activationAt)) {
-      final minutes = math.max(1, activationAt.difference(now).inMinutes);
       return _scaffold(
         l10n,
         _MessageState(
           icon: Icons.hourglass_bottom,
-          message: l10n.codeActivatesIn(minutes),
+          message: l10n.codeNotReadyYet,
           caption: l10n.qrActivationCountdown(_clockString(activationAt.difference(now))),
         ),
       );
@@ -257,9 +256,7 @@ class _AttendanceCodeScreenState extends ConsumerState<AttendanceCodeScreen> {
   }
 
   Widget _scaffold(AppLocalizations l10n, Widget body) {
-    return Scaffold(
-      body: VHeaderBar(title: l10n.qrAttendanceTitle.toLowerCase(), child: body),
-    );
+    return Scaffold(body: VHeaderBar(child: body));
   }
 
   /// "HH:MM:SS" countdown string for the activation state.
@@ -269,169 +266,216 @@ class _AttendanceCodeScreenState extends ConsumerState<AttendanceCodeScreen> {
   }
 }
 
-/// Active state: a plain QR encoding the current 24-hex code on a white card
-/// (quiet zone for reliable scanning) + the countdown ring to the next code +
-/// the hex code as a readout.
+/// Active state: the rotating 24-hex code as a white-module QR on the black
+/// page, framed by a 3px ring (white track + black countdown fill) that FILLS
+/// over the window — the only timing feedback to the next code.
+///
+/// Full-bleed black scaffold: the QR is centered on the WHOLE screen (the
+/// floating back arrow is the only header), so vertical centering ignores any
+/// header band.
 class _ActiveCode extends StatelessWidget {
   const _ActiveCode({
     required this.code,
-    required this.remaining,
-    required this.displayWindow,
-    required this.l10n,
+    required this.boundaryMs,
+    required this.windowSeconds,
   });
 
   final String code;
-  final int remaining;
-  final int displayWindow;
-  final AppLocalizations l10n;
+  final int boundaryMs;
+  final int windowSeconds;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      color: AppColors.discoBlack,
-      alignment: Alignment.center,
-      padding: const EdgeInsets.all(AppSpacing.lg),
-      child: SingleChildScrollView(
-        child: Container(
-          padding: const EdgeInsets.all(AppSpacing.xl),
-          decoration: BoxDecoration(
-            color: AppColors.surface,
-            border: Border.all(color: AppColors.hairline),
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 340),
-                child: AspectRatio(
-                  aspectRatio: 1,
-                  child: Container(
-                    padding: const EdgeInsets.all(24),
-                    decoration: BoxDecoration(
-                      color: AppColors.white,
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: QrImageView(
-                      data: code,
-                      version: QrVersions.auto,
-                      backgroundColor: AppColors.white,
-                    ),
-                  ),
+    return Scaffold(
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          const ColoredBox(color: AppColors.discoBlack),
+          Center(
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: SizedBox(
+                width: _qrWidgetSide,
+                height: _qrWidgetSide,
+                child: _CountdownQr(
+                  code: code,
+                  boundaryMs: boundaryMs,
+                  windowSeconds: windowSeconds,
                 ),
-              ),
-              const SizedBox(height: AppSpacing.lg),
-              _CountdownRing(
-                remaining: remaining,
-                total: displayWindow,
-                label: l10n.qrNewCodeIn(remaining),
-              ),
-              const SizedBox(height: AppSpacing.md),
-              SelectableText(
-                code,
-                style: const TextStyle(
-                  color: AppColors.mutedStrong,
-                  fontSize: 13,
-                  letterSpacing: 3,
-                  fontFeatures: [FontFeature.tabularFigures()],
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: AppSpacing.sm),
-              Text(
-                l10n.codeCaption,
-                textAlign: TextAlign.center,
-                style: Theme.of(context)
-                    .textTheme
-                    .bodySmall
-                    ?.copyWith(color: AppColors.mutedStrong),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// Circular progress ring for the window countdown — functional timing
-/// feedback (mirrors the pre-Stage-4 QR countdown). The seconds label swaps
-/// with a [SamayDurations.fast] crossfade.
-class _CountdownRing extends StatelessWidget {
-  const _CountdownRing({
-    required this.remaining,
-    required this.total,
-    required this.label,
-  });
-
-  final int remaining;
-  final int total;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    final progress = total <= 0 ? 1.0 : (remaining / total).clamp(0.0, 1.0);
-    return SizedBox(
-      width: 96,
-      height: 96,
-      child: CustomPaint(
-        painter: _RingPainter(progress: progress),
-        child: Center(
-          child: AnimatedSwitcher(
-            // ANIM-OFF (2026-08-14): zero-duration under reduced motion.
-            duration: MediaQuery.disableAnimationsOf(context)
-                ? Duration.zero
-                : SamayDurations.fast,
-            transitionBuilder: (child, animation) =>
-                FadeTransition(opacity: animation, child: child),
-            child: Text(
-              label,
-              key: ValueKey(remaining),
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: AppColors.white,
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
               ),
             ),
           ),
-        ),
+          const Align(
+            alignment: Alignment.topLeft,
+            child: SafeArea(
+              bottom: false,
+              child: Padding(
+                padding: EdgeInsets.only(
+                  top: VHeaderMetrics.heroTopPad,
+                  left: AppSpacing.screenHorizontal,
+                ),
+                child: SizedBox(
+                  height: VHeaderMetrics.titleRowHeight,
+                  width: double.infinity,
+                  child: VHeaderTitleRow(),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
 }
 
-class _RingPainter extends CustomPainter {
-  const _RingPainter({required this.progress});
+/// The QR code plus its framing ring. A per-frame [Ticker] reads the wall
+/// clock against [boundaryMs] so the fill is SILKY (not one 1-s jump per
+/// second) and eases in-and-out: slow right after a new code appears and slow
+/// as the fill completes, fastest mid-window.
+class _CountdownQr extends StatefulWidget {
+  const _CountdownQr({
+    required this.code,
+    required this.boundaryMs,
+    required this.windowSeconds,
+  });
 
-  final double progress;
+  final String code;
+  final int boundaryMs;
+  final int windowSeconds;
+
+  @override
+  State<_CountdownQr> createState() => _CountdownQrState();
+}
+
+class _CountdownQrState extends State<_CountdownQr>
+    with SingleTickerProviderStateMixin {
+  late final Ticker _ticker;
+  final ValueNotifier<double> _progress = ValueNotifier<double>(0.0);
+
+  @override
+  void initState() {
+    super.initState();
+    _ticker = createTicker(_onFrame)..start();
+  }
+
+  @override
+  void dispose() {
+    _ticker.dispose();
+    _progress.dispose();
+    super.dispose();
+  }
+
+  void _onFrame(Duration _) {
+    final windowMs = widget.windowSeconds * 1000;
+    if (windowMs <= 0) return;
+    final nowMs = DateTime.now().millisecondsSinceEpoch;
+    final elapsedMs = nowMs - (widget.boundaryMs - windowMs);
+    final elapsed = (elapsedMs / windowMs).clamp(0.0, 1.0);
+    // Eased fill (easeInOut on the elapsed fraction): the border starts empty
+    // at a fresh code and slows near both the start and the completion.
+    final eased = Curves.easeInOutCubic.transform(elapsed);
+    if ((eased - _progress.value).abs() > 0.0005) {
+      _progress.value = eased;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final qrSide = _qrWidgetSide - 2 * _qrRingWidth;
+    return SizedBox.square(
+      dimension: _qrWidgetSide,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          Center(
+            child: SizedBox.square(
+              dimension: qrSide,
+              child: QrImageView(
+                data: widget.code,
+                version: QrVersions.auto,
+                padding: EdgeInsets.zero,
+                backgroundColor: Colors.transparent,
+                eyeStyle: const QrEyeStyle(
+                  eyeShape: QrEyeShape.square,
+                  color: AppColors.white,
+                ),
+                dataModuleStyle: const QrDataModuleStyle(
+                  dataModuleShape: QrDataModuleShape.square,
+                  color: AppColors.white,
+                ),
+              ),
+            ),
+          ),
+          CustomPaint(painter: _BorderProgressPainter(_progress)),
+        ],
+      ),
+    );
+  }
+}
+
+/// Frames the QR with a ring of exactly [_qrRingWidth]: a WHITE track drawn
+/// along the full path (the QR's only "white padding", same dimension as the
+/// border) with the BLACK countdown fill on top — empty at a fresh code →
+/// full when it rotates. The fill sweeps COUNTER-clockwise from the top-left
+/// corner: left edge → bottom edge → right edge → top edge. [progress] drives
+/// the repaint so only this canvas redraws every frame. Sharp corners, no
+/// tile.
+class _BorderProgressPainter extends CustomPainter {
+  _BorderProgressPainter(this.progress) : super(repaint: progress);
+
+  /// Live fill fraction (0 = empty border, 1 = about to rotate).
+  final ValueListenable<double> progress;
+
+  /// The ring's perimeter, traced from the TOP-LEFT corner down the left edge,
+  /// across the bottom, up the right edge and back along the top (CCW).
+  Path _ringPath(Rect rect) {
+    return Path()
+      ..moveTo(rect.left, rect.top)
+      ..lineTo(rect.left, rect.bottom)
+      ..lineTo(rect.right, rect.bottom)
+      ..lineTo(rect.right, rect.top)
+      ..close();
+  }
 
   @override
   void paint(Canvas canvas, Size size) {
-    const stroke = 4.0;
-    final center = size.center(Offset.zero);
-    final radius = (size.shortestSide - stroke) / 2;
-    final base = Paint()
+    final p = progress.value;
+    final path = _ringPath(_ringRect(size));
+    final metric = path.computeMetrics().first;
+
+    // White track under the whole ring.
+    final track = Paint()
       ..style = PaintingStyle.stroke
-      ..strokeWidth = stroke
-      ..color = AppColors.hairline;
-    canvas.drawCircle(center, radius, base);
-    final arc = Paint()
+      ..strokeWidth = _qrRingWidth
+      ..strokeCap = StrokeCap.butt
+      ..color = AppColors.white;
+    canvas.drawPath(path, track);
+
+    if (p <= 0) return;
+    // Black countdown fill over the track.
+    final fill = Paint()
       ..style = PaintingStyle.stroke
-      ..strokeWidth = stroke
-      ..strokeCap = StrokeCap.round
-      ..color = AppColors.discoCyan;
-    canvas.drawArc(
-      Rect.fromCircle(center: center, radius: radius),
-      -math.pi / 2,
-      math.pi * 2 * progress,
-      false,
-      arc,
+      ..strokeWidth = _qrRingWidth
+      ..strokeCap = StrokeCap.butt
+      ..color = AppColors.discoBlack;
+    final drawn = metric.extractPath(0, metric.length * p);
+    canvas.drawPath(drawn, fill);
+  }
+
+  /// The ring hugs the QR module square: its stroke covers the outer
+  /// [_qrRingWidth] band, flush against the modules (no gap, no tile).
+  Rect _ringRect(Size size) {
+    final inset = _qrRingWidth / 2;
+    return Rect.fromLTRB(
+      inset,
+      inset,
+      size.width - inset,
+      size.height - inset,
     );
   }
 
   @override
-  bool shouldRepaint(_RingPainter oldDelegate) =>
+  bool shouldRepaint(_BorderProgressPainter oldDelegate) =>
       oldDelegate.progress != progress;
 }
 
