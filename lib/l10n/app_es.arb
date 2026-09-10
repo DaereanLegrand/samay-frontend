@@ -2223,13 +2223,13 @@
   "@codeServerPendingBody": {
     "description": "Attendance code: server-pending retry hint"
   },
-  "codeAlreadyAttended": "Ya te registraste",
-  "@codeAlreadyAttended": {
-    "description": "Attendance code: terminal state once the caller is already confirmed"
-  },
   "codeAlreadyAttendedReturn": "Regresar",
   "@codeAlreadyAttendedReturn": {
     "description": "Attendance code: return button on the already-attended terminal state"
+  },
+  "codeAssistedDone": "LISTO",
+  "@codeAssistedDone": {
+    "description": "Attendance code: terminal word revealed under the check mark once assisted"
   },
   "partyFinderTitle": "Party finder",
   "@partyFinderTitle": {

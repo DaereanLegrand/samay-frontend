@@ -4,34 +4,29 @@ import 'package:flutter/foundation.dart' show ValueListenable, ValueNotifier;
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart' show Ticker;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:qr_flutter/qr_flutter.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/logging/app_logger.dart';
+import 'package:samay/core/providers/service_providers.dart';
 import 'package:samay/features/events/providers/events_providers.dart';
 import 'package:samay/features/qr/logic/code.dart';
 import 'package:samay/features/qr/providers/code_providers.dart';
+import 'package:samay/features/qr/widgets/attendance_qr_view.dart';
+import 'package:samay/features/qr/widgets/attendee_assist_animation.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/error_view.dart';
 import 'package:samay/shared/widgets/v_header_bar.dart';
 import 'package:samay/shared/widgets/state_views.dart';
 import 'package:samay/shared/widgets/v_button.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' show RealtimeChannel;
 
 /// Activation-window minutes (`qr.activation_minutes_before`, seed 30) — the
 /// contract used to render the pre-activation countdown.
 const int _activationMinutes = 30;
 
-/// Active-state QR geometry (px): no big tile — the QR code sits directly on
-/// the black page and is framed by a thin ring whose width is exactly
-/// [_qrRingWidth]. The ring is a WHITE track (same path/dimension as the
-/// border) drawn first; the BLACK countdown border fills over it empty → full
-/// across each window. Sharp corners.
-const double _qrWidgetSide = 250;
-const double _qrRingWidth = 3;
-
 /// Attendee-side rotating QR attendance code (Stage 5 pivot).
 ///
-/// Shows the attendee's [CodeSession] as a PLAIN QR ([QrImageView]) encoding
+/// Shows the attendee's [CodeSession] as a PLAIN QR ([AttendanceQrView]) encoding
 /// the current 24-hex code, regenerating every `code.window_seconds` (seed 10)
 /// like an authenticator — derived LOCALLY from the per-event secret, so
 /// regeneration is seamless and works without a network round-trip. The host/
@@ -41,7 +36,10 @@ const double _qrRingWidth = 3;
 /// * **ended** — event status `ended` or past `ends_at`: no code needed.
 /// * **alreadyAttended** — the caller has been confirmed (host/staff scanner
 ///   wrote their `event_attendances` row): the terminal "Ya te registraste"
-///   state replaces the QR forever (2026-09-10, Task C).
+///   state replaces the QR forever (2026-09-10, Task C). A live false → true
+///   flip observed while the QR is on screen plays the assist reveal (QR
+///   expands + fades, check mark pops in, "LISTO"/"DONE" eases in below —
+///   2026-09-10, Task D); opening already assisted renders it directly.
 /// * **notInvited** — caller is neither host/staff nor an invited attendee.
 /// * **notInWindow** — before activation (`starts_at - 30 min`): countdown,
 ///   then re-fetch when the window opens.
@@ -73,6 +71,20 @@ class AttendanceCodeScreen extends ConsumerStatefulWidget {
 
 class _AttendanceCodeScreenState extends ConsumerState<AttendanceCodeScreen> {
   Timer? _ticker;
+
+  /// This event's `event_attendances` stream while the QR is open and the
+  /// caller is NOT yet assisted (2026-09-10, Task D). The scanner's write lands
+  /// here even on a deep-linked `/qr/:eventId` (no detail screen underneath),
+  /// so the terminal reveal fires live. RLS (`ea_read_access`) gates delivery;
+  /// owned and unsubscribed on dispose AND the moment the caller is assisted.
+  RealtimeChannel? _attendanceChannel;
+  bool _subscribingAttendance = false;
+
+  /// True once an active code has actually been anchored on this mount — i.e.
+  /// the QR was rendered. Gates the assist reveal: a false → true attendance
+  /// transition while the QR was on screen animates; opening already assisted
+  /// renders the terminal state directly (no replay).
+  bool _sawLiveQr = false;
 
   /// Monotonic clock anchored at the last [_applySession]. After the initial
   /// server-anchored phase, all rotation and border timing comes from this —
@@ -116,14 +128,55 @@ class _AttendanceCodeScreenState extends ConsumerState<AttendanceCodeScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       ref.invalidate(myAttendanceProvider(widget.eventId));
+      _syncAttendanceRealtime();
     });
   }
 
   @override
   void dispose() {
+    _unsubscribeAttendance();
     _ticker?.cancel();
     _watch.stop();
     super.dispose();
+  }
+
+  /// Owns the assist seam on THIS screen (2026-09-10, Task D): while the QR is
+  /// mounted and the caller is not yet assisted, stream this event's
+  /// `event_attendances` rows and re-read the authoritative own-attendance
+  /// value on any change. This is what makes a deep-linked `/qr/:eventId`
+  /// (no detail screen underneath) flip live when a host/staff scan confirms
+  /// the caller. The same seam the detail already uses; RLS `ea_read_access`
+  /// gates delivery. Best-effort — the entry-refresh still covers failure.
+  void _syncAttendanceRealtime() {
+    if (!mounted) return;
+    final attended =
+        ref.read(myAttendanceProvider(widget.eventId)).valueOrNull == true;
+    if (attended) {
+      _unsubscribeAttendance();
+      return;
+    }
+    if (_attendanceChannel != null || _subscribingAttendance) return;
+    _subscribingAttendance = true;
+    try {
+      _attendanceChannel = ref
+          .read(realtimeServiceProvider)
+          .subscribeToEventAttendances(widget.eventId, (_) {
+            if (!mounted) return;
+            ref.invalidate(myAttendanceProvider(widget.eventId));
+          });
+    } catch (e, st) {
+      AppLogger.instance.error(
+        'attendance realtime subscribe failed: $e',
+        '$st',
+      );
+    } finally {
+      _subscribingAttendance = false;
+    }
+  }
+
+  void _unsubscribeAttendance() {
+    _attendanceChannel?.unsubscribe();
+    _attendanceChannel = null;
   }
 
   /// One-second heartbeat: recompute the counter from the monotonic model and
@@ -228,6 +281,12 @@ class _AttendanceCodeScreenState extends ConsumerState<AttendanceCodeScreen> {
   @override
   Widget build(BuildContext context) {
     ref.listen(myCodeProvider(widget.eventId), _onSessionChange);
+    // The assist seam: when this screen's own subscription (or the detail's)
+    // flips the own-attendance read, drop the QR stream — the terminal state
+    // is authoritative from here on.
+    ref.listen(myAttendanceProvider(widget.eventId), (_, _) {
+      _syncAttendanceRealtime();
+    });
     final l10n = AppLocalizations.of(context);
     final eventAsync = ref.watch(eventDetailProvider(widget.eventId));
     final attendedAsync = ref.watch(myAttendanceProvider(widget.eventId));
@@ -265,10 +324,14 @@ class _AttendanceCodeScreenState extends ConsumerState<AttendanceCodeScreen> {
           ),
           data: (attended) {
             if (attended) {
-              return _AlreadyAttended(
-                message: l10n.codeAlreadyAttended,
+              return AttendeeAssistAnimation(
+                code: _code,
+                title: l10n.codeAssistedDone,
                 returnLabel: l10n.codeAlreadyAttendedReturn,
                 onReturn: () => Navigator.of(context).maybePop(),
+                // Reveal only when the QR was live on THIS mount; a screen
+                // opened already assisted renders the terminal state directly.
+                animate: _sawLiveQr,
               );
             }
             return _buildCode(l10n, fetchAsync, event.startsAt);
@@ -301,6 +364,9 @@ class _AttendanceCodeScreenState extends ConsumerState<AttendanceCodeScreen> {
               // for this build).
               _applySession(fetch.session!, fetch.serverOffsetMs);
             }
+            // A code is now on screen (this branch is only reached while the
+            // caller is NOT assisted) — arm the assist reveal for this mount.
+            _sawLiveQr = true;
             final windowSeconds = _session?.windowSeconds ?? 10;
             return _ActiveCode(
               code: _code,
@@ -408,8 +474,8 @@ class _ActiveCode extends StatelessWidget {
             child: FittedBox(
               fit: BoxFit.scaleDown,
               child: SizedBox(
-                width: _qrWidgetSide,
-                height: _qrWidgetSide,
+                width: kAttendanceQrSide,
+                height: kAttendanceQrSide,
                 child: _CountdownQr(
                   code: code,
                   phaseMs: phaseMs,
@@ -498,31 +564,12 @@ class _CountdownQrState extends State<_CountdownQr>
 
   @override
   Widget build(BuildContext context) {
-    final qrSide = _qrWidgetSide - 2 * _qrRingWidth;
     return SizedBox.square(
-      dimension: _qrWidgetSide,
+      dimension: kAttendanceQrSide,
       child: Stack(
         fit: StackFit.expand,
         children: [
-          Center(
-            child: SizedBox.square(
-              dimension: qrSide,
-              child: QrImageView(
-                data: widget.code,
-                version: QrVersions.auto,
-                padding: EdgeInsets.zero,
-                backgroundColor: Colors.transparent,
-                eyeStyle: const QrEyeStyle(
-                  eyeShape: QrEyeShape.square,
-                  color: AppColors.white,
-                ),
-                dataModuleStyle: const QrDataModuleStyle(
-                  dataModuleShape: QrDataModuleShape.square,
-                  color: AppColors.white,
-                ),
-              ),
-            ),
-          ),
+          Center(child: AttendanceQrView(code: widget.code)),
           CustomPaint(painter: _BorderProgressPainter(_progress)),
         ],
       ),
@@ -530,13 +577,13 @@ class _CountdownQrState extends State<_CountdownQr>
   }
 }
 
-/// Frames the QR with a ring of exactly [_qrRingWidth]: a WHITE track drawn
-/// along the full path (the QR's only "white padding", same dimension as the
-/// border) with the BLACK countdown fill on top — empty at a fresh code →
-/// full when it rotates. The fill sweeps COUNTER-clockwise from the top-left
-/// corner: left edge → bottom edge → right edge → top edge. [progress] drives
-/// the repaint so only this canvas redraws every frame. Sharp corners, no
-/// tile.
+/// Frames the QR with a ring of exactly [kAttendanceQrRingWidth]: a WHITE
+/// track drawn along the full path (the QR's only "white padding", same
+/// dimension as the border) with the BLACK countdown fill on top — empty at a
+/// fresh code → full when it rotates. The fill sweeps COUNTER-clockwise from
+/// the top-left corner: left edge → bottom edge → right edge → top edge.
+/// [progress] drives the repaint so only this canvas redraws every frame.
+/// Sharp corners, no tile.
 class _BorderProgressPainter extends CustomPainter {
   _BorderProgressPainter(this.progress) : super(repaint: progress);
 
@@ -563,7 +610,7 @@ class _BorderProgressPainter extends CustomPainter {
     // White track under the whole ring.
     final track = Paint()
       ..style = PaintingStyle.stroke
-      ..strokeWidth = _qrRingWidth
+      ..strokeWidth = kAttendanceQrRingWidth
       ..strokeCap = StrokeCap.butt
       ..color = AppColors.white;
     canvas.drawPath(path, track);
@@ -572,7 +619,7 @@ class _BorderProgressPainter extends CustomPainter {
     // Black countdown fill over the track.
     final fill = Paint()
       ..style = PaintingStyle.stroke
-      ..strokeWidth = _qrRingWidth
+      ..strokeWidth = kAttendanceQrRingWidth
       ..strokeCap = StrokeCap.butt
       ..color = AppColors.discoBlack;
     final drawn = metric.extractPath(0, metric.length * p);
@@ -580,9 +627,9 @@ class _BorderProgressPainter extends CustomPainter {
   }
 
   /// The ring hugs the QR module square: its stroke covers the outer
-  /// [_qrRingWidth] band, flush against the modules (no gap, no tile).
+  /// [kAttendanceQrRingWidth] band, flush against the modules (no gap, no tile).
   Rect _ringRect(Size size) {
-    final inset = _qrRingWidth / 2;
+    final inset = kAttendanceQrRingWidth / 2;
     return Rect.fromLTRB(
       inset,
       inset,
@@ -594,78 +641,6 @@ class _BorderProgressPainter extends CustomPainter {
   @override
   bool shouldRepaint(_BorderProgressPainter oldDelegate) =>
       oldDelegate.progress != progress;
-}
-
-/// Terminal state once the caller is already assisted for the event: the QR is
-/// never shown again. Full-bleed black consistent with [_ActiveCode] — only
-/// the floating back affordance plus a "Regresar" button below the message.
-/// Entered whenever the caller's own `event_attendances` row exists (host/
-/// staff included), so re-opening Código stays terminal.
-class _AlreadyAttended extends StatelessWidget {
-  const _AlreadyAttended({
-    required this.message,
-    required this.returnLabel,
-    required this.onReturn,
-  });
-
-  final String message;
-  final String returnLabel;
-  final VoidCallback onReturn;
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: Stack(
-        fit: StackFit.expand,
-        children: [
-          const ColoredBox(color: AppColors.discoBlack),
-          Center(
-            child: Padding(
-              padding: const EdgeInsets.all(AppSpacing.xl),
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 420),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      message,
-                      textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.headlineSmall,
-                    ),
-                    const SizedBox(height: AppSpacing.xl),
-                    ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 320),
-                      child: VButton.outlined(
-                        label: returnLabel,
-                        onPressed: onReturn,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-          const Align(
-            alignment: Alignment.topLeft,
-            child: SafeArea(
-              bottom: false,
-              child: Padding(
-                padding: EdgeInsets.only(
-                  top: VHeaderMetrics.heroTopPad,
-                  left: AppSpacing.screenHorizontal,
-                ),
-                child: SizedBox(
-                  height: VHeaderMetrics.titleRowHeight,
-                  width: double.infinity,
-                  child: VHeaderTitleRow(),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 }
 
 /// Simple centered message state — monochrome hairline panel + icon.

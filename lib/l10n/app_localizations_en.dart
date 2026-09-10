@@ -1674,10 +1674,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get codeServerPendingBody => 'If the problem persists, press Retry.';
 
   @override
-  String get codeAlreadyAttended => 'You\'re already checked in';
+  String get codeAlreadyAttendedReturn => 'Go back';
 
   @override
-  String get codeAlreadyAttendedReturn => 'Go back';
+  String get codeAssistedDone => 'DONE';
 
   @override
   String get partyFinderTitle => 'Party finder';
