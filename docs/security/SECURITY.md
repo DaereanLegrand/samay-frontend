@@ -167,10 +167,12 @@ carried by a **plain rotating QR** on the attendee's own device
   only the secret that produces them. That legacy surface was deleted —
   one rotating-code flow remains.
 - **Secrets travel only to their owner.** The RPC is own-attendee-gated
-  (host/staff membership or a live invite); the app holds the secret **in
-  memory only** (never Hive/secure-storage-persisted, never logged) and
-  derives codes locally. A captured API response yields a secret scoped to one
-  (event, user) — it cannot mint codes for other people or events.
+  (host/staff membership or a **CONFIRMED** invite — `status IN
+  ('accepted','attended')`; a merely-*pending* invitee is `not_invited`, mints
+  no code, and is never confirmable); the app holds the secret **in memory
+  only** (never Hive/secure-storage-persisted, never logged) and derives codes
+  locally. A captured API response yields a secret scoped to one (event, user)
+  — it cannot mint codes for other people or events.
 - **Codes carry no identity.** A 24-hex code is 96 bits of HMAC output: an
   onlooker who reads someone's screen learns nothing about who they are. The
   code → attendee mapping happens only server-side, inside the host/staff-only
@@ -188,6 +190,14 @@ carried by a **plain rotating QR** on the attendee's own device
 - Enumeration surface: `validate_code` is host/staff-only, window-gated,
   and shape-checked (`^[0-9a-f]{24}$`); an unguessable 96-bit code defeats
   brute force within a 10-s window.
+- **Confirmed-only membership.** The attendee-side roster opens through the
+  security-barrier `event_roster_membership_view`, which projects only
+  accepted/attended invites (and host/staff); a pending invitee reads neither
+  the organizer roster nor the confirmed roster, and keeps `ei_read_own` for the
+  accept/decline card. A confirmation live-flips an open screen via
+  `event_attendances` on `supabase_realtime` (REPLICA IDENTITY FULL; delivery
+  stays RLS-gated by `ea_read_access`) — the marker is written only by the
+  SECURITY DEFINER `validate_code`, so clients cannot forge it.
 
 Coverage: `test/opt-027-events-code.sh`, pgTAP Section 21d. The attendee side
 is a rotating QR encoding the current code (derived locally, byte-identical to
