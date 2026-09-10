@@ -25,6 +25,7 @@
 library;
 
 import 'dart:math';
+import 'dart:typed_data';
 
 /// Lifecycle phase of a minigame session's play engine.
 enum MinigamePhase {
@@ -839,6 +840,110 @@ class MinigameResult {
                   MinigameResultRow.fromJson(Map<String, dynamic>.from(r)),
             ]
           : const [],
+    );
+  }
+}
+
+/// One answer a player GAVE during a finished match, decrypted ON DEVICE from
+/// the E2EE `minigame_answers` ciphertext (the server never held the keys).
+///
+/// The [text]/[imageBytes] are populated by the player-content provider after
+/// a best-effort local decrypt — both stay null when the round key is gone
+/// (reinstall) or the blob fails to authenticate. A [passed] round has no
+/// answer content by definition (the subject opted out).
+///
+/// [promptBody] is the question shown for this round, resolved from
+/// `minigame_prompts` by [promptId]; null when the prompt could not be loaded
+/// (deactivated/removed) — the card surfaces a load error instead of the
+/// question+answer. [reactions] are the emojis this round RECEIVED, tallied by
+/// kind.
+class MinigamePlayerAnswer {
+  const MinigamePlayerAnswer({
+    required this.round,
+    required this.subjectId,
+    this.promptType,
+    this.promptId,
+    this.promptBody,
+    this.passed = false,
+    this.text,
+    this.imageBytes,
+    this.reactions = const {},
+  });
+
+  final int round;
+  final String subjectId;
+  final String? promptType;
+  final String? promptId;
+
+  /// The resolved question text (null when it could not be loaded).
+  final String? promptBody;
+  final bool passed;
+
+  /// The locally-decrypted answer text (null when unavailable).
+  final String? text;
+
+  /// The locally-decrypted answer image bytes (null when absent/unavailable).
+  final Uint8List? imageBytes;
+
+  /// The emojis this round received, tallied by kind (empty when none).
+  final Map<ReactionKind, int> reactions;
+
+  bool get hasText => text != null && text!.isNotEmpty;
+  bool get hasImage => imageBytes != null && imageBytes!.isNotEmpty;
+  bool get hasPrompt => promptBody != null && promptBody!.isNotEmpty;
+}
+
+/// Everything a finished-match card shows for the players beyond the settled
+/// rank/score/prize: their decrypted answers (grouped by author, each carrying
+/// the question it answered and the reactions it received).
+///
+/// Built by the player-content provider from the participant-readable
+/// `minigame_answers` + `minigame_reactions` tables (and a batch
+/// `minigame_prompts` lookup for the question text). A player with no answers
+/// is simply absent from the map.
+class MinigamePlayerContent {
+  const MinigamePlayerContent({this.answersByPlayer = const {}});
+
+  /// `{subject_id: [answer…]}` — answers each player GAVE, ordered by round
+  /// with passed rounds last.
+  final Map<String, List<MinigamePlayerAnswer>> answersByPlayer;
+
+  List<MinigamePlayerAnswer> answersFor(String participantId) =>
+      answersByPlayer[participantId] ?? const [];
+
+  bool get isEmpty => answersByPlayer.isEmpty;
+
+  /// All prompt ids referenced by the content (the batch prompt lookup keys).
+  Set<String> get promptIds => {
+    for (final answers in answersByPlayer.values)
+      for (final a in answers)
+        if (a.promptId != null && a.promptId!.isNotEmpty) a.promptId!,
+  };
+
+  /// A copy with every answer's [MinigamePlayerAnswer.promptBody] resolved
+  /// from [bodies] (`{prompt_id: body}`). An id absent from [bodies] stays
+  /// null — the card renders its load-error state.
+  MinigamePlayerContent withPromptBodies(Map<String, String> bodies) {
+    return MinigamePlayerContent(
+      answersByPlayer: {
+        for (final entry in answersByPlayer.entries)
+          entry.key: [
+            for (final a in entry.value)
+              MinigamePlayerAnswer(
+                round: a.round,
+                subjectId: a.subjectId,
+                promptType: a.promptType,
+                promptId: a.promptId,
+                promptBody: a.promptId == null
+                    ? null
+                    : bodies[a.promptId],
+                passed: a.passed,
+                text: a.text,
+                imageBytes: a.imageBytes,
+                reactions: a.reactions,
+              ),
+          ],
+      },
     );
   }
 }

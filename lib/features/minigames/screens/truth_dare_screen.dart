@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:math';
 import 'dart:typed_data';
+import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -270,12 +271,6 @@ class TruthDareScreen extends ConsumerWidget {
                   _ReactionRow(sessionId: sessionId),
                 ],
                 const SizedBox(height: AppSpacing.lg),
-                // Anonymous mode: the temp-nickname editor (default
-                // anónimoXXX on accept; realtime update).
-                if (skeleton.anonymous) ...[
-                  _AliasEditor(sessionId: sessionId, state: state),
-                  const SizedBox(height: AppSpacing.lg),
-                ],
               ],
             );
           },
@@ -2252,161 +2247,53 @@ class _ReactionRowState extends ConsumerState<_ReactionRow> {
   }
 }
 
-/// The anonymous-mode temp-nickname editor (202): shows the current alias
-/// (default `anónimoXXX`) with an "update name" button; the update is
-/// encrypted nowhere (it is a display name, not content) and streams realtime
-/// via `minigame_aliases`.
-class _AliasEditor extends ConsumerStatefulWidget {
-  const _AliasEditor({required this.sessionId, required this.state});
-
-  final String sessionId;
-  final MinigameGameState state;
-
-  @override
-  ConsumerState<_AliasEditor> createState() => _AliasEditorState();
-}
-
-class _AliasEditorState extends ConsumerState<_AliasEditor> {
-  final _aliasController = TextEditingController();
-  bool _saving = false;
-
-  @override
-  void dispose() {
-    _aliasController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    final myId = ref.watch(authStateProvider).valueOrNull?.user?['id'];
-    final aliases = ref
-        .watch(minigameAliasesProvider(widget.sessionId))
-        .valueOrNull;
-    final current = myId == null ? null : aliases?[myId];
-
-    return VCard(
-      child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.md),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(
-              l10n.minigamesAliasLabel,
-              style: Theme.of(context).textTheme.titleSmall,
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            Text(
-              current ?? defaultAnonAlias(l10n, seed: myId ?? ''),
-              style: const TextStyle(color: AppColors.mutedStrong),
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            VInput(
-              label: l10n.minigamesAliasLabel,
-              hint: current ?? defaultAnonAlias(l10n, seed: myId ?? ''),
-              controller: _aliasController,
-              maxLines: 1,
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            VButton.outlined(
-              label: l10n.minigamesAliasUpdate,
-              loading: _saving,
-              onPressed: _saving ? null : _saveAlias,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Future<void> _saveAlias() async {
-    final l10n = AppLocalizations.of(context);
-    final alias = _aliasController.text.trim();
-    if (alias.isEmpty) return;
-    setState(() => _saving = true);
-    try {
-      await ref
-          .read(minigameAliasesProvider(widget.sessionId).notifier)
-          .setAlias(widget.sessionId, alias);
-      _aliasController.clear();
-      if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(l10n.minigamesAliasUpdated)));
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(e.toAppError().message)));
-    } finally {
-      if (mounted) setState(() => _saving = false);
-    }
-  }
-}
-
-/// The finished-game leaderboard (201): reads the settled `minigame_results`
-/// row and renders the ranked prize split. In anonymous mode the usernames
-/// are revealed HERE — the only place real names appear during the match.
-class _FinishedLeaderboard extends ConsumerWidget {
+/// The finished-game leaderboard (201/202): a 3D "coverflow" carousel of rank
+/// cards. Every ranked participant gets a card (winners and non-winners
+/// alike), ordered by rank; the selected card sits forward and centered while
+/// its neighbours recede to the sides with a perspective transform, blurring
+/// into and out of mist as the page passes.
+///
+/// Each card shows the player's decrypted answers — QUESTION text + ANSWER —
+/// grouped per round with that round's received reactions. Passed rounds sit
+/// last. When the selected card's current answer image has loaded, THAT
+/// answer's reactions rise at once with random start offsets. In anonymous
+/// mode the usernames are revealed HERE — the only place real names appear
+/// during the match.
+class _FinishedLeaderboard extends ConsumerStatefulWidget {
   const _FinishedLeaderboard({required this.sessionId});
 
   final String sessionId;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = AppLocalizations.of(context);
-    final result = ref.watch(minigameResultProvider(sessionId));
+  ConsumerState<_FinishedLeaderboard> createState() =>
+      _FinishedLeaderboardState();
+}
 
-    return result.when(
-      loading: () => const VLoadingView(),
-      error: (e, _) => ErrorView(message: e.toAppError().message),
-      data: (settled) {
-        if (settled == null || settled.rows.isEmpty) {
-          return Center(
-            child: VDisplayText(text: l10n.minigamesFinished, size: 28),
-          );
-        }
-        final roster =
-            ref.watch(minigameParticipantsProvider(sessionId)).valueOrNull ??
-            const <MinigameParticipant>[];
-        return ListView(
-          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-          children: [
-            VDisplayText(text: l10n.minigamesLeaderboardTitle, size: 28),
-            const SizedBox(height: AppSpacing.md),
-            for (final row in settled.rows)
-              VCard(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.md,
-                    vertical: AppSpacing.sm,
-                  ),
-                  child: Row(
-                    children: [
-                      Text(
-                        '${row.rank}',
-                        style: Theme.of(context).textTheme.titleMedium,
-                      ),
-                      const SizedBox(width: AppSpacing.md),
-                      Expanded(
-                        child: Text(
-                          _usernameFor(row.participantId, roster, l10n),
-                          style: Theme.of(context).textTheme.titleMedium,
-                        ),
-                      ),
-                      Text(
-                        row.prize > 0
-                            ? l10n.minigamesPrizeAmount(row.prize)
-                            : '${row.score}',
-                        style: const TextStyle(color: AppColors.mutedStrong),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-          ],
-        );
-      },
+class _FinishedLeaderboardState extends ConsumerState<_FinishedLeaderboard> {
+  late final PageController _controller = PageController(
+    viewportFraction: 0.7,
+  );
+  int _index = 0;
+
+  /// Bumped on a re-tap of the already-selected card so the celebration can
+  /// replay without a page change.
+  int _replayToken = 0;
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _select(int i) {
+    if (i == _index) {
+      setState(() => _replayToken++);
+      return;
+    }
+    _controller.animateToPage(
+      i,
+      duration: SamayDurations.standard,
+      curve: SamayDurations.defaultCurve,
     );
   }
 
@@ -2422,5 +2309,542 @@ class _FinishedLeaderboard extends ConsumerWidget {
       }
     }
     return l10n.minigamesAnonymousPlayer;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final result = ref.watch(minigameResultProvider(widget.sessionId));
+
+    return result.when(
+      loading: () => const VLoadingView(),
+      error: (e, _) => ErrorView(message: e.toAppError().message),
+      data: (settled) {
+        if (settled == null || settled.rows.isEmpty) {
+          return Center(
+            child: VDisplayText(text: l10n.minigamesFinished, size: 28),
+          );
+        }
+        final roster =
+            ref.watch(minigameParticipantsProvider(widget.sessionId)).valueOrNull ??
+            const <MinigameParticipant>[];
+        final content =
+            ref.watch(minigamePlayerContentProvider(widget.sessionId)).valueOrNull ??
+            const MinigamePlayerContent();
+        final rows = [...settled.rows]..sort((a, b) => a.rank.compareTo(b.rank));
+        final screenWidth = MediaQuery.sizeOf(context).width;
+
+        return LayoutBuilder(
+          builder: (context, constraints) {
+            // A compact, vertically-centered card — tall enough for a question
+            // plus a few answer lines, never the full screen.
+            final cardHeight = min(constraints.maxHeight * 0.54, 440.0);
+            return Center(
+              child: SizedBox(
+                height: cardHeight,
+                child: PageView.builder(
+                  controller: _controller,
+                  clipBehavior: Clip.none,
+                  itemCount: rows.length,
+                  onPageChanged: (i) => setState(() => _index = i),
+                  itemBuilder: (context, i) {
+                    final row = rows[i];
+                    return AnimatedBuilder(
+                      animation: _controller,
+                      builder: (context, child) {
+                        final page =
+                            _controller.hasClients &&
+                                _controller.position.haveDimensions
+                            ? (_controller.page ?? _index.toDouble())
+                            : _index.toDouble();
+                        final delta = (page - i).clamp(-1.0, 1.0);
+                        final absDelta = delta.abs();
+                        final opacity = (1 - absDelta * 0.7).clamp(0.0, 1.0);
+                        final blur = (absDelta * 5).clamp(0.0, 5.0);
+                        final angle = -delta * 0.5;
+                        final scale = 1 - absDelta * 0.28;
+                        final dx = delta * screenWidth * 0.14;
+
+                        final card = Transform.translate(
+                          offset: Offset(dx, 0),
+                          child: Transform(
+                            alignment: Alignment.center,
+                            transform: Matrix4.identity()
+                              ..setEntry(3, 2, 0.0015)
+                              ..rotateY(angle)
+                              ..scaleByDouble(scale, scale, scale, 1.0),
+                            child: child,
+                          ),
+                        );
+                        if (blur < 0.05) {
+                          return Opacity(opacity: opacity, child: card);
+                        }
+                        return Opacity(
+                          opacity: opacity,
+                          child: ImageFiltered(
+                            imageFilter: ImageFilter.blur(
+                              sigmaX: blur,
+                              sigmaY: blur,
+                            ),
+                            child: card,
+                          ),
+                        );
+                      },
+                      child: _RankCard(
+                        row: row,
+                        name: _usernameFor(row.participantId, roster, l10n),
+                        answers: content.answersFor(row.participantId),
+                        selected: _index == i,
+                        replayToken: _replayToken,
+                        onTap: () => _select(i),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+}
+
+/// One player's carousel card: the rank header, then a vertical pager of the
+/// player's answers (question + answer + that round's reactions). The card
+/// itself is the celebration stage — the current answer's reactions rise once
+/// its image has loaded (immediately when there is no image). Tapping the
+/// already-selected card replays via [replayToken].
+class _RankCard extends StatefulWidget {
+  const _RankCard({
+    required this.row,
+    required this.name,
+    required this.answers,
+    required this.selected,
+    required this.replayToken,
+    required this.onTap,
+  });
+
+  final MinigameResultRow row;
+  final String name;
+  final List<MinigamePlayerAnswer> answers;
+  final bool selected;
+  final int replayToken;
+  final VoidCallback onTap;
+
+  @override
+  State<_RankCard> createState() => _RankCardState();
+}
+
+class _RankCardState extends State<_RankCard> {
+  int _answerIndex = 0;
+
+  /// Whether the CURRENT answer's image is ready (true when it has no image).
+  bool _imageReady = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _imageReady = !_currentHasImage;
+  }
+
+  @override
+  void didUpdateWidget(covariant _RankCard old) {
+    super.didUpdateWidget(old);
+    if (!identical(widget.answers, old.answers)) {
+      _answerIndex = 0;
+      _imageReady = !_currentHasImage;
+    }
+  }
+
+  MinigamePlayerAnswer? get _current => widget.answers.isEmpty
+      ? null
+      : widget.answers[_answerIndex.clamp(0, widget.answers.length - 1)];
+
+  bool get _currentHasImage => _current?.hasImage ?? false;
+
+  /// The current answer's received reactions, expanded one kind per count.
+  List<ReactionKind> get _currentReactions {
+    final answer = _current;
+    if (answer == null) return const [];
+    final out = <ReactionKind>[];
+    answer.reactions.forEach((kind, count) {
+      for (var i = 0; i < count; i++) {
+        out.add(kind);
+      }
+    });
+    return out;
+  }
+
+  Color get _rankColor => switch (widget.row.rank) {
+    1 => AppColors.discoGold,
+    2 => AppColors.discoSilver,
+    3 => AppColors.discoBronze,
+    _ => AppColors.white,
+  };
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final answer = _current;
+    return GestureDetector(
+      onTap: widget.onTap,
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          border: Border.all(color: AppColors.hairline),
+        ),
+        child: _LeaderboardEmojiRise(
+          active: widget.selected && _imageReady,
+          trigger: '$_answerIndex:${widget.replayToken}',
+          kinds: _currentReactions,
+          child: Padding(
+            padding: const EdgeInsets.all(AppSpacing.cardPadding),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  children: [
+                    Text(
+                      '${widget.row.rank}',
+                      style: TextStyle(
+                        fontFamily: AppTypography.playfair,
+                        fontSize: 34,
+                        fontWeight: FontWeight.w700,
+                        height: 1,
+                        color: _rankColor,
+                      ),
+                    ),
+                    const SizedBox(width: AppSpacing.md),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            widget.name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: Theme.of(context).textTheme.titleLarge,
+                          ),
+                          const SizedBox(height: AppSpacing.xs),
+                          Text(
+                            widget.row.prize > 0
+                                ? '${widget.row.score}  ·  ${l10n.minigamesPrizeAmount(widget.row.prize)}'
+                                : '${widget.row.score}',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: AppColors.mutedStrong,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                const Divider(height: 1, color: AppColors.hairline),
+                const SizedBox(height: AppSpacing.sm),
+                Expanded(
+                  child: answer == null
+                      ? Center(
+                          child: Text(
+                            l10n.minigamesPromptLoadError,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              color: AppColors.mutedStrong,
+                              fontSize: 13,
+                            ),
+                          ),
+                        )
+                      : PageView.builder(
+                          scrollDirection: Axis.vertical,
+                          itemCount: widget.answers.length,
+                          onPageChanged: (i) => setState(() {
+                            _answerIndex = i;
+                            _imageReady = !widget.answers[i].hasImage;
+                          }),
+                          itemBuilder: (context, i) {
+                            final a = widget.answers[i];
+                            return _AnswerView(
+                              answer: a,
+                              l10n: l10n,
+                              // Only the CURRENT page's image gates the
+                              // celebration (a neighbour's load must not arm
+                              // it early).
+                              onImageLoaded: i == _answerIndex
+                                  ? () {
+                                      if (mounted && !_imageReady) {
+                                        setState(() => _imageReady = true);
+                                      }
+                                    }
+                                  : null,
+                            );
+                          },
+                        ),
+                ),
+                if (answer != null && answer.reactions.isNotEmpty) ...[
+                  const SizedBox(height: AppSpacing.xs),
+                  _ReactionTally(reactions: answer.reactions),
+                ],
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// One answer page: the QUESTION (type label + body) above the ANSWER content
+/// (text/image, or the "pasó" line). A question that cannot be resolved
+/// (deactivated/removed prompt) renders [AppLocalizations.minigamesPromptLoadError]
+/// INSTEAD of the question+answer. [onImageLoaded] fires when a picture
+/// answer's first frame is ready (null for non-current pages).
+class _AnswerView extends StatelessWidget {
+  const _AnswerView({
+    required this.answer,
+    required this.l10n,
+    this.onImageLoaded,
+  });
+
+  final MinigamePlayerAnswer answer;
+  final AppLocalizations l10n;
+  final VoidCallback? onImageLoaded;
+
+  @override
+  Widget build(BuildContext context) {
+    if (!answer.hasPrompt) {
+      return Center(
+        child: Text(
+          l10n.minigamesPromptLoadError,
+          textAlign: TextAlign.center,
+          style: const TextStyle(
+            color: AppColors.badgeRed,
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            letterSpacing: 0.5,
+          ),
+        ),
+      );
+    }
+    final kind = truthDareKindFromWire(answer.promptType);
+    final label = kind == null ? null : truthDareKindLabel(l10n, kind);
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        if (label != null) ...[
+          Text(
+            label.toUpperCase(),
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              color: AppColors.mutedStrong,
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 1.2,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.xs),
+        ],
+        Text(
+          answer.promptBody!,
+          textAlign: TextAlign.center,
+          maxLines: 3,
+          overflow: TextOverflow.ellipsis,
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+            fontFamily: AppTypography.quicksand,
+            color: AppColors.mutedStrong,
+            height: 1.3,
+          ),
+        ),
+        const SizedBox(height: AppSpacing.md),
+        if (answer.passed)
+          Text(
+            l10n.minigamesPasarSkipped,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontFamily: AppTypography.quicksand,
+              fontSize: 20,
+              fontStyle: FontStyle.italic,
+              letterSpacing: 2,
+              color: AppColors.mutedStrong,
+            ),
+          )
+        else ...[
+          if (answer.hasText)
+            Flexible(
+              child: Text(
+                answer.text!,
+                textAlign: TextAlign.center,
+                maxLines: 5,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontFamily: AppTypography.quicksand,
+                  fontSize: 20,
+                  height: 1.5,
+                  letterSpacing: 1.2,
+                  color: AppColors.white,
+                ),
+              ),
+            ),
+          if (answer.hasImage) ...[
+            if (answer.hasText) const SizedBox(height: AppSpacing.sm),
+            Flexible(
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: Image.memory(
+                  answer.imageBytes!,
+                  fit: BoxFit.contain,
+                  frameBuilder: (context, child, frame, syncLoaded) {
+                    if ((frame != null || syncLoaded) &&
+                        onImageLoaded != null) {
+                      final cb = onImageLoaded!;
+                      WidgetsBinding.instance.addPostFrameCallback((_) => cb());
+                    }
+                    return child;
+                  },
+                ),
+              ),
+            ),
+          ],
+          if (!answer.hasText && !answer.hasImage)
+            const Text(
+              '—',
+              style: TextStyle(color: AppColors.muted, fontSize: 24),
+            ),
+        ],
+      ],
+    );
+  }
+}
+
+/// The reactions ONE answer received, as emoji + count chips (most received
+/// first). Rendered under the answer pager.
+class _ReactionTally extends StatelessWidget {
+  const _ReactionTally({required this.reactions});
+
+  final Map<ReactionKind, int> reactions;
+
+  @override
+  Widget build(BuildContext context) {
+    final entries = reactions.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+    return Wrap(
+      alignment: WrapAlignment.center,
+      spacing: AppSpacing.md,
+      runSpacing: AppSpacing.xs,
+      children: [
+        for (final e in entries)
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _ReactionEmoji(kind: e.key, fontSize: 18),
+              const SizedBox(width: 2),
+              Text(
+                '${e.value}',
+                style: const TextStyle(
+                  color: AppColors.mutedStrong,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+      ],
+    );
+  }
+}
+
+/// Wraps a rank card as the celebration stage: when [active] turns on (or a
+/// new [trigger] arrives while active) the current answer's [kinds] spawn at
+/// once. Each particle keeps its own random lane, wobble and 0–320 ms start
+/// offset (see [_RisingReactionParticle]), so the burst reads as lively rather
+/// than a rigid column. Reduced motion spawns nothing; no kinds → nothing.
+class _LeaderboardEmojiRise extends StatefulWidget {
+  const _LeaderboardEmojiRise({
+    required this.active,
+    required this.trigger,
+    required this.kinds,
+    required this.child,
+  });
+
+  final bool active;
+  final String trigger;
+  final List<ReactionKind> kinds;
+  final Widget child;
+
+  @override
+  State<_LeaderboardEmojiRise> createState() => _LeaderboardEmojiRiseState();
+}
+
+class _LeaderboardEmojiRiseState extends State<_LeaderboardEmojiRise> {
+  final List<_RiseSpec> _active = [];
+  int _nextId = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.active) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _burst();
+      });
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant _LeaderboardEmojiRise old) {
+    super.didUpdateWidget(old);
+    if (widget.active &&
+        (!old.active || widget.trigger != old.trigger)) {
+      _burst();
+    }
+  }
+
+  void _burst() {
+    if (widget.kinds.isEmpty) return;
+    if (MediaQuery.disableAnimationsOf(context)) return;
+    setState(() {
+      for (final kind in widget.kinds) {
+        _active.add(_RiseSpec(id: _nextId++, kind: kind));
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      children: [
+        widget.child,
+        if (_active.isNotEmpty)
+          Positioned.fill(
+            child: IgnorePointer(
+              child: ClipRect(
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final size = constraints.biggest;
+                    return Stack(
+                      children: [
+                        for (final spec in List.of(_active))
+                          _RisingReactionParticle(
+                            key: ValueKey('leaderboard-rise-${spec.id}'),
+                            spec: spec,
+                            width: size.width,
+                            height: size.height,
+                            onDone: () {
+                              _active.remove(spec);
+                              if (mounted) setState(() {});
+                            },
+                          ),
+                      ],
+                    );
+                  },
+                ),
+              ),
+            ),
+          ),
+      ],
+    );
   }
 }

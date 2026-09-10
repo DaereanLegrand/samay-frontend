@@ -13,6 +13,7 @@ import 'package:samay/core/router/route_paths.dart';
 import 'package:samay/core/services/minigame_service.dart';
 import 'package:samay/features/minigames/logic/minigame_engine.dart';
 import 'package:samay/features/minigames/logic/minigame_meta.dart';
+import 'package:samay/features/minigames/logic/truth_dare.dart';
 import 'package:samay/features/minigames/providers/minigames_providers.dart';
 import 'package:samay/features/minigames/screens/minigame_invite_screen.dart';
 import 'package:samay/features/minigames/screens/minigames_screen.dart'
@@ -26,6 +27,7 @@ import 'package:samay/shared/widgets/v_card.dart';
 import 'package:samay/shared/widgets/v_chip.dart';
 import 'package:samay/shared/widgets/v_display_text.dart';
 import 'package:samay/shared/widgets/v_header_bar.dart';
+import 'package:samay/shared/widgets/v_input.dart';
 
 /// Partida lobby (180_minigame_lobby) — the session detail screen, now the
 /// game's pre-play room. Shows the game (the AppBar is its LOWERCASE name,
@@ -510,6 +512,13 @@ class _LobbySection extends ConsumerWidget {
                 ],
               ),
             ),
+        // Anonymous mode: the temp nickname lives in the LOBBY (never during
+        // the match). A button opens a popup; the current name shows inline
+        // and streams live to every lobby member via minigame_aliases.
+        if ((skeleton?.anonymous ?? false) && !isPlaying) ...[
+          const SizedBox(height: AppSpacing.md),
+          _AliasButton(sessionId: sessionId),
+        ],
         const SizedBox(height: AppSpacing.lg),
         if (!finished) ...[
           // 2026-09-02: the match is already RUNNING (a participant reopened
@@ -934,6 +943,140 @@ class _CountdownOverlayState extends ConsumerState<_CountdownOverlay> {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// The anonymous-mode nickname control for the LOBBY (2026-09-10 move): shows
+/// the caller's current temp nickname and an "update name" button that opens
+/// [_AliasDialog]. The nickname is a display name (never encrypted) and
+/// streams live to every lobby member via `minigame_aliases`; the server
+/// enforces session-uniqueness (`set_minigame_alias` → `alias_taken`).
+class _AliasButton extends ConsumerWidget {
+  const _AliasButton({required this.sessionId});
+
+  final String sessionId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+    final myId = ref.watch(authStateProvider).valueOrNull?.user?['id'];
+    final current = myId == null
+        ? null
+        : ref.watch(minigameAliasesProvider(sessionId)).valueOrNull?[myId];
+    final display = current ?? defaultAnonAlias(l10n, seed: myId ?? '');
+
+    return VCard(
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  l10n.minigamesAliasLabel,
+                  style: Theme.of(context).textTheme.titleSmall,
+                ),
+                const SizedBox(height: AppSpacing.xs),
+                Text(
+                  display,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(color: AppColors.mutedStrong),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: AppSpacing.md),
+          VButton.outlined(
+            label: l10n.minigamesAliasUpdate,
+            onPressed: () => showDialog<void>(
+              context: context,
+              builder: (_) => _AliasDialog(sessionId: sessionId, current: display),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// The nickname popup: one field + a confirm that shows a spinner until the
+/// RPC answers. On success it pops and the live `minigame_aliases` stream
+/// updates every lobby; on `alias_taken` / any error it stays open and shows
+/// the message.
+class _AliasDialog extends ConsumerStatefulWidget {
+  const _AliasDialog({required this.sessionId, required this.current});
+
+  final String sessionId;
+  final String current;
+
+  @override
+  ConsumerState<_AliasDialog> createState() => _AliasDialogState();
+}
+
+class _AliasDialogState extends ConsumerState<_AliasDialog> {
+  late final TextEditingController _controller =
+      TextEditingController(text: widget.current);
+  bool _saving = false;
+  String? _error;
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  Future<void> _save() async {
+    final alias = _controller.text.trim();
+    if (alias.isEmpty) return;
+    setState(() {
+      _saving = true;
+      _error = null;
+    });
+    try {
+      await ref
+          .read(minigameAliasesProvider(widget.sessionId).notifier)
+          .setAlias(widget.sessionId, alias);
+      if (!mounted) return;
+      Navigator.of(context).pop();
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _saving = false;
+        _error = e.toAppError().message;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return AlertDialog(
+      title: Text(l10n.minigamesAliasLabel),
+      content: VInput(
+        label: l10n.minigamesAliasLabel,
+        hint: widget.current,
+        controller: _controller,
+        errorText: _error,
+        maxLines: 1,
+      ),
+      actions: [
+        TextButton(
+          onPressed: _saving ? null : () => Navigator.of(context).pop(),
+          child: Text(l10n.commonCancel),
+        ),
+        TextButton(
+          onPressed: _saving ? null : _save,
+          child: _saving
+              ? const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : Text(l10n.minigamesAliasUpdate),
+        ),
+      ],
     );
   }
 }

@@ -3758,6 +3758,12 @@ abstract class AppLocalizations {
   /// **'Hecho'**
   String get minigamesPromptDone;
 
+  /// Shown on the finished leaderboard in place of a question+answer when the prompt can no longer be resolved (deactivated/removed)
+  ///
+  /// In es, this message translates to:
+  /// **'ERROR AL CARGAR LA PREGUNTA'**
+  String get minigamesPromptLoadError;
+
   /// Button the subject taps to skip the prompt — the round closes and the turn advances
   ///
   /// In es, this message translates to:
@@ -4003,12 +4009,6 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'Reacciona al turno:'**
   String get minigamesReactionsTitle;
-
-  /// Finished-game leaderboard title (201_minigame_voting)
-  ///
-  /// In es, this message translates to:
-  /// **'Clasificación'**
-  String get minigamesLeaderboardTitle;
 
   /// Leaderboard fallback name when the winner username is missing
   ///

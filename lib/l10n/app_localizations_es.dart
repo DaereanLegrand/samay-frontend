@@ -2031,6 +2031,9 @@ class AppLocalizationsEs extends AppLocalizations {
   String get minigamesPromptDone => 'Hecho';
 
   @override
+  String get minigamesPromptLoadError => 'ERROR AL CARGAR LA PREGUNTA';
+
+  @override
   String get minigamesPromptSkip => 'Saltar';
 
   @override
@@ -2167,9 +2170,6 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get minigamesReactionsTitle => 'Reacciona al turno:';
-
-  @override
-  String get minigamesLeaderboardTitle => 'Clasificación';
 
   @override
   String get minigamesAnonymousPlayer => 'Jugador';

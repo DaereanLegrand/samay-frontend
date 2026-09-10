@@ -389,6 +389,62 @@ class MinigameService {
     return MinigameResult.fromJson(Map<String, dynamic>.from(res));
   }
 
+  /// The raw E2EE answer rows of [sessionId] (ciphertext only), ordered by
+  /// round ascending — the finished-leaderboard content source. RLS
+  /// `mgs_answers_read` bounds the read to participants/invitees/group
+  /// members; the app decrypts each `answer_ciphertext` locally.
+  Future<List<Map<String, dynamic>>> getSessionAnswers(
+    String sessionId,
+  ) async {
+    final user = auth.currentUser;
+    if (user == null) throw const UnauthorizedError();
+    final res = await client
+        .from('minigame_answers')
+        .select(
+          'round, subject_id, prompt_type, prompt_id, '
+          'answer_ciphertext, image_storage_path, passed',
+        )
+        .eq('session_id', sessionId)
+        .order('round', ascending: true);
+    return [for (final row in res) Map<String, dynamic>.from(row)];
+  }
+
+  /// The raw reaction rows of [sessionId], ordered by round ascending — the
+  /// per-subject reaction tallies on the finished leaderboard. RLS
+  /// `mgs_reactions_read` bounds the read to participants/invitees/group
+  /// members. A NULL `reaction` is a reactor Pasar (no emoji).
+  Future<List<Map<String, dynamic>>> getSessionReactions(
+    String sessionId,
+  ) async {
+    final user = auth.currentUser;
+    if (user == null) throw const UnauthorizedError();
+    final res = await client
+        .from('minigame_reactions')
+        .select('round, voter_id, reaction')
+        .eq('session_id', sessionId)
+        .order('round', ascending: true);
+    return [for (final row in res) Map<String, dynamic>.from(row)];
+  }
+
+  /// Resolves prompt ids to their question text — `{id: body}` — via one
+  /// batched `minigame_prompts` read. RLS `mgs_prompts_select` exposes only
+  /// `is_active = true` rows, so a deactivated/removed prompt is simply
+  /// absent and the caller surfaces its load-error state.
+  Future<Map<String, String>> getPromptsByIds(Set<String> ids) async {
+    final user = auth.currentUser;
+    if (user == null) throw const UnauthorizedError();
+    if (ids.isEmpty) return const {};
+    final res = await client
+        .from('minigame_prompts')
+        .select('id, body')
+        .inFilter('id', ids.toList());
+    return {
+      for (final row in res)
+        if (row['id'] is String && row['body'] is String)
+          row['id'] as String: row['body'] as String,
+    };
+  }
+
   /// The current user's invite row for [sessionId] (null when they have
   /// none). RLS `mi_read_own` limits the read to the caller's own invites,
   /// so the `invitee_id` filter is belt-and-suspenders.
@@ -1226,6 +1282,8 @@ RealtimeChannel subscribeToSession(String id) {
         );
       case 'invalid_alias':
         throw ValidationError('alias', 'Apodo no válido');
+      case 'alias_taken':
+        throw ValidationError('alias', 'Ese apodo ya está en uso');
       default:
         throw const ServerError('Unexpected set_minigame_alias response');
     }

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:typed_data';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:samay/core/logging/app_logger.dart';
@@ -969,8 +970,14 @@ class MinigameGameStateNotifier
 }
 
 /// The temp nicknames of one session (202_minigame_play_v2 anonymous mode) —
-/// `{participant_id: alias}` read from `minigame_aliases`, refreshed after
-/// every set/update so the realtime stream and the local write stay in sync.
+/// `{participant_id: alias}` read from `minigame_aliases`, with every live
+/// set/update merged in so the realtime stream and the local write stay in
+/// sync.
+///
+/// The subscription listens to ALL postgres changes: a nickname's FIRST save
+/// is an INSERT, later renames are UPDATEs, and both must reach the other
+/// lobby members. Deletes/other tables are filtered out by the row guards
+/// below (an event's `newRecord` is not a valid alias row).
 class MinigameAliasesNotifier
     extends FamilyAsyncNotifier<Map<String, String>, String> {
   MinigameService get _service => ref.read(minigameServiceProvider);
@@ -978,13 +985,13 @@ class MinigameAliasesNotifier
   @override
   Future<Map<String, String>> build(String sessionId) {
     // Live alias updates ride the I-52 realtime lifecycle provider: a
-    // participant's nickname change streams in on the minigame_aliases
+    // participant's nickname set/change streams in on the minigame_aliases
     // channel and merges into the map (anonymous mode, 202_minigame_play_v2).
     ref.listen<AsyncValue<Map<String, dynamic>>>(
       realtimeChannelProvider((
         channelName: 'minigame-aliases:$sessionId',
         table: 'minigame_aliases',
-        event: PostgresChangeEvent.update,
+        event: PostgresChangeEvent.all,
       )),
       (_, next) {
         final row = next.valueOrNull;
@@ -1051,6 +1058,112 @@ final minigameResultProvider =
       MinigameResult?,
       String
     >(MinigameResultNotifier.new);
+
+/// The finished-match player content of one session — each player's
+/// decrypted answers, each carrying the question it answered and the
+/// reactions it received. Built from the participant-readable tables
+/// (`minigame_answers`, `minigame_reactions`) plus a batch `minigame_prompts`
+/// lookup for the question text: answers are decrypted locally through
+/// [minigameCipherProvider] and grouped by author, reactions are tallied per
+/// round (one subject per round) and attached to that round's answer.
+///
+/// Best-effort by design: an undecryptable answer (the device lost the round
+/// key) simply carries no text/image, and an unresolvable prompt stays null —
+/// neither ever fails the whole screen.
+class MinigamePlayerContentNotifier
+    extends FamilyAsyncNotifier<MinigamePlayerContent, String> {
+  MinigameService get _service => ref.read(minigameServiceProvider);
+
+  @override
+  Future<MinigamePlayerContent> build(String sessionId) async {
+    final rawAnswers = await _service.getSessionAnswers(sessionId);
+    final rawReactions = await _service.getSessionReactions(sessionId);
+    final cipher = ref.read(minigameCipherProvider(sessionId));
+
+    final answersByPlayer = <String, List<MinigamePlayerAnswer>>{};
+
+    // Reactions first, keyed by round — each round has exactly one subject, so
+    // a round's reactions belong to the answer that round produced.
+    final reactionsByRound = <int, Map<ReactionKind, int>>{};
+    for (final row in rawReactions) {
+      final round = row['round'] is num ? (row['round'] as num).toInt() : 0;
+      final kind = reactionKindFromWire(row['reaction'] as String?);
+      if (kind == null || kind == ReactionKind.pass) continue;
+      final tally = reactionsByRound[round] ??= <ReactionKind, int>{};
+      tally[kind] = (tally[kind] ?? 0) + 1;
+    }
+
+    for (final row in rawAnswers) {
+      final round = row['round'] is num ? (row['round'] as num).toInt() : 0;
+      final subjectId = row['subject_id'] as String? ?? '';
+      if (subjectId.isEmpty) continue;
+
+      final passed = row['passed'] == true;
+      final cipherText = row['answer_ciphertext'] as String?;
+      final imagePath = row['image_storage_path'] as String?;
+
+      String? text;
+      Uint8List? imageBytes;
+      if (!passed) {
+        if (cipherText != null && cipherText.isNotEmpty) {
+          text = await cipher.decryptAnswerText(cipherText, round);
+        }
+        if (imagePath != null && imagePath.isNotEmpty) {
+          final rawBytes = await _service.downloadMinigameImageBytes(imagePath);
+          if (rawBytes != null) {
+            imageBytes = await cipher.decryptAnswerImageBytes(rawBytes, round);
+          }
+        }
+      }
+
+      (answersByPlayer[subjectId] ??= <MinigamePlayerAnswer>[]).add(
+        MinigamePlayerAnswer(
+          round: round,
+          subjectId: subjectId,
+          promptType: row['prompt_type'] as String?,
+          promptId: row['prompt_id'] as String?,
+          passed: passed,
+          text: text,
+          imageBytes: imageBytes,
+          reactions: reactionsByRound[round] ?? const {},
+        ),
+      );
+    }
+
+    // Order each player's answers: real answers by round ascending, PASSED
+    // rounds last (they carry no content and must sit at the bottom).
+    for (final answers in answersByPlayer.values) {
+      answers.sort((a, b) {
+        if (a.passed != b.passed) return a.passed ? 1 : -1;
+        return a.round.compareTo(b.round);
+      });
+    }
+
+    // Resolve the question text in ONE batch (client join to
+    // `minigame_prompts`). A prompt that fails to resolve (deactivated/
+    // removed) stays null — the card shows its load-error state, never a
+    // question with no answer.
+    var content = MinigamePlayerContent(answersByPlayer: answersByPlayer);
+    final ids = content.promptIds;
+    if (ids.isNotEmpty) {
+      final bodies = await _service.getPromptsByIds(ids);
+      content = content.withPromptBodies(bodies);
+    }
+    return content;
+  }
+
+  /// Re-runs [build] (e.g. after key recovery completes).
+  Future<void> refresh() async => ref.invalidateSelf();
+}
+
+/// One session's finished-match player content (family by session id; empty
+/// before the game ends / while loading).
+final minigamePlayerContentProvider =
+    AsyncNotifierProvider.family<
+      MinigamePlayerContentNotifier,
+      MinigamePlayerContent,
+      String
+    >(MinigamePlayerContentNotifier.new);
 
 /// One lobby participant row — the id + profile from
 /// [MinigameService.getMinigameParticipants] with the LIVE ready flag merged

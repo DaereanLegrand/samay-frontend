@@ -2685,6 +2685,10 @@
   "@minigamesPromptDone": {
     "description": "Button the subject taps once the truth is answered / dare is done — closes the round and moves on"
   },
+  "minigamesPromptLoadError": "ERROR AL CARGAR LA PREGUNTA",
+  "@minigamesPromptLoadError": {
+    "description": "Shown on the finished leaderboard in place of a question+answer when the prompt can no longer be resolved (deactivated/removed)"
+  },
   "minigamesPromptSkip": "Saltar",
   "@minigamesPromptSkip": {
     "description": "Button the subject taps to skip the prompt — the round closes and the turn advances"
@@ -2873,10 +2877,6 @@
   "minigamesReactionsTitle": "Reacciona al turno:",
   "@minigamesReactionsTitle": {
     "description": "Voting row header: each non-subject taps one emoji on the current round (201_minigame_voting)"
-  },
-  "minigamesLeaderboardTitle": "Clasificación",
-  "@minigamesLeaderboardTitle": {
-    "description": "Finished-game leaderboard title (201_minigame_voting)"
   },
   "minigamesAnonymousPlayer": "Jugador",
   "@minigamesAnonymousPlayer": {
