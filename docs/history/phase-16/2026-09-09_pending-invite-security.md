@@ -105,3 +105,18 @@ adb -s localhost:5565 shell monkey -p com.qallariy.samay -c android.intent.categ
 - Concurrent minigame session's uncommitted hunks (`207`, `minigame_service`,
   `opt-020/021/023`, `DATABASE.md`, the `plan(948)`/`last_tap_at` README text)
   were preserved; only the lines this change needs were edited.
+
+## Follow-up (2026-09-09/10) — pending Código/Fotos buttons stay visible
+
+Explicit user directive: the event detail must NOT hide the **Código** and
+**Fotos** actions from a pending invitee, so the server-side block can be
+exercised from the UI (tap Código, observe `not_invited`). The UI was never the
+security boundary — the RPC gates (`get_my_code` → `not_invited`,
+`validate_code` refuses) and the confirmed-only roster RLS do the enforcing.
+
+- `event_detail_screen.dart`: removed the `!privileged && pending →
+  SizedBox.shrink()` early-return in `_buildLiveActions`; the now-unused
+  `invite` parameter was dropped. The scanner remains host/staff-only, the
+  organizer/confirmed roster stays hidden from pending (RLS + UI), and the
+  assisted gate still disables Código.
+- Server gates and RLS from this session are unchanged.

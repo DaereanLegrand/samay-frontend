@@ -396,7 +396,7 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
               ),
             ],
             if (!_isClosed(event.status))
-              _buildLiveActions(hostsAsync.valueOrNull, uid, invite, assisted),
+              _buildLiveActions(hostsAsync.valueOrNull, uid, assisted),
             const SizedBox(height: AppSpacing.xl),
           ],
         ),
@@ -406,23 +406,22 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
 
   /// Plugged event actions (2026-08-13): the attendee QR, the host/staff
   /// scanner and the photo gallery — each flag-gated and hidden once the
-  /// event is closed (ended/cancelled). A PENDING invitee sees none of these
-  /// (only the accept/decline card, 2026-09-09 security fix). An ASSISTED
-  /// attendee ([assisted]) keeps the Scanner (host/staff) and Fotos but the
-  /// Código action is permanently disabled — no navigation (2026-09-10).
+  /// event is closed (ended/cancelled). The **Código** and **Fotos** actions
+  /// stay visible to a PENDING invitee too (2026-09-10, explicit directive):
+  /// the UI is not the security boundary — the server denies a pending invitee
+  /// (`get_my_code` → `not_invited`, `validate_code` never confirms), so
+  /// keeping the buttons lets the block be observed. The scanner stays
+  /// host/staff-only, and the assist gate below still disables Código for an
+  /// ASSISTED attendee ([assisted]).
   Widget _buildLiveActions(
     List<Map<String, dynamic>>? hosts,
     String? uid,
-    Map<String, dynamic>? invite,
     bool assisted,
   ) {
     final l10n = AppLocalizations.of(context);
     // Scanner visibility (Stage 3): host AND staff scan attendance codes
     // (`validate_code` gates on role IN host/staff).
     final privileged = _isPrivileged(hosts, uid);
-    if (!privileged && _isPendingInvite(invite)) {
-      return const SizedBox.shrink();
-    }
     final canScan = privileged;
     final showQr = ref.isEnabled(AppFeatureFlag.qr);
     final showPhotos = ref.isEnabled(AppFeatureFlag.photoUpload);
