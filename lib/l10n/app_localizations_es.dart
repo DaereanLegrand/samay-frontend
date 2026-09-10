@@ -1679,6 +1679,12 @@ class AppLocalizationsEs extends AppLocalizations {
       'Si el problema continúa, presiona Reintentar.';
 
   @override
+  String get codeAlreadyAttended => 'Ya te registraste';
+
+  @override
+  String get codeAlreadyAttendedReturn => 'Regresar';
+
+  @override
   String get partyFinderTitle => 'Party finder';
 
   @override

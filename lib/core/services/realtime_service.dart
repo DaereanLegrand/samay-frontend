@@ -247,4 +247,34 @@ class RealtimeService {
       ),
     );
   }
+
+  /// One event's `event_attendances` rows — insert/update/delete.
+  ///
+  /// The assist flip seam (2026-09-10, Task C): when the host/staff scanner
+  /// confirms an attendee on another device, an already-open detail screen (or
+  /// the QR screen pushed over it) must flip to the terminal "Ya te registraste"
+  /// state without a re-entry. Host/staff have no invite row, so the
+  /// `event_invites` channel cannot observe their confirmation — only
+  /// `event_attendances` does. Filtered to `event_id = <uuid>`; RLS gates
+  /// delivery (`ea_read_access`: a caller receives their own row everywhere,
+  /// plus all the event's rows when they are host/staff or a group member).
+  /// REPLICA IDENTITY FULL ships event_id in UPDATE/DELETE records.
+  ///
+  /// Returns the channel — the caller owns the unsubscribe handle.
+  RealtimeChannel subscribeToEventAttendances(
+    String eventId,
+    void Function(Map<String, dynamic>) onChange,
+  ) {
+    return subscribeToChannel(
+      'event-attendances:$eventId',
+      PostgresChangeEvent.all,
+      'event_attendances',
+      onChange,
+      filter: PostgresChangeFilter(
+        type: PostgresChangeFilterType.eq,
+        column: 'event_id',
+        value: eventId,
+      ),
+    );
+  }
 }

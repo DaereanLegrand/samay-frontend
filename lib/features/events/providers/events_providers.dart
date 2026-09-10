@@ -150,6 +150,32 @@ class MyEventInviteNotifier
   }
 }
 
+class MyAttendanceNotifier
+    extends AutoDisposeFamilyAsyncNotifier<bool, String> {
+  EventService get _service => ref.read(eventServiceProvider);
+
+  /// Whether the caller has been assisted into [eventId] — the authoritative
+  /// own `event_attendances` read (RLS `ea_read_access`). True once the host/
+  /// staff scanner confirms them, for guests and host/staff alike.
+  @override
+  Future<bool> build(String eventId) => _service.isAttended(eventId);
+}
+
+/// Whether the current user is already assisted for [eventId] (confirmed via
+/// `validate_code`). Drives the terminal "Ya te registraste" state and the
+/// disabled Código action. Backend-authoritative: the value is the caller's
+/// own `event_attendances` row read through RLS, never a client guess.
+///
+/// `autoDispose` (matching `myCodeProvider`): a fresh entry always re-reads,
+/// so a notification deep-link to `/qr/:eventId` that bypasses the detail
+/// screen can never render a stale QR from an earlier `false`. The QR and
+/// detail screens also invalidate it on entry (belt-and-braces while the
+/// screen stays mounted under a pushed route).
+final myAttendanceProvider = AsyncNotifierProvider.autoDispose
+    .family<MyAttendanceNotifier, bool, String>(
+      MyAttendanceNotifier.new,
+    );
+
 /// The current user's invite row for an event (null when not invited).
 final myEventInviteProvider =
     AsyncNotifierProvider.family<
@@ -188,8 +214,8 @@ class EventGuestsNotifier
 
 /// The event's guest roster, newest invite first, each row enriched with
 /// `users.username`. Reads are RLS-scoped by the caller's standing:
-/// hosts/staff (`ei_read_event_access`) get the FULL roster; an event member
-/// (invitee of any standing, `ei_read_confirmed_roster` +
+/// hosts/staff (`ei_read_event_access`) get the FULL roster; a CONFIRMED event
+/// member (accepted/attended invitee, `ei_read_confirmed_roster` +
 /// `ei_read_own` — 060_events/09_attendee_roster.sql) gets their own row plus
 /// the event's accepted/attended rows, so `_buildConfirmedRoster` on the
 /// attendee's detail filters to confirmed and shows who is going. Refreshed

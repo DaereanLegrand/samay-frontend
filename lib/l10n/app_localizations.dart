@@ -3152,6 +3152,18 @@ abstract class AppLocalizations {
   /// **'Si el problema continúa, presiona Reintentar.'**
   String get codeServerPendingBody;
 
+  /// Attendance code: terminal state once the caller is already confirmed
+  ///
+  /// In es, this message translates to:
+  /// **'Ya te registraste'**
+  String get codeAlreadyAttended;
+
+  /// Attendance code: return button on the already-attended terminal state
+  ///
+  /// In es, this message translates to:
+  /// **'Regresar'**
+  String get codeAlreadyAttendedReturn;
+
   /// Party Finder screen app bar title (PFND — I-60)
   ///
   /// In es, this message translates to:

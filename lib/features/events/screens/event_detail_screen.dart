@@ -44,13 +44,16 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
   bool _cancelling = false;
 
   /// Live roster channels for this event while the current user BELONGS to it
-  /// (host/staff, or an invitee of any standing — see [_syncRosterRealtime]):
+  /// (host/staff, or a CONFIRMED invitee — see [_syncRosterRealtime]):
   /// [`_guestChannel`] streams `event_invites` (invitee accept/decline flips
   /// the guest list), [`_hostsChannel`] streams `event_hosts` (the host
-  /// designating/removing staff updates the organizer list). Owned and
-  /// unsubscribed on dispose.
+  /// designating/removing staff updates the organizer list),
+  /// [`_attendancesChannel`] streams `event_attendances` (the scanner's
+  /// confirmation flips the caller's own row → terminal "Ya te registraste").
+  /// Owned and unsubscribed on dispose.
   RealtimeChannel? _guestChannel;
   RealtimeChannel? _hostsChannel;
+  RealtimeChannel? _attendancesChannel;
   bool _subscribingRoster = false;
 
   @override
@@ -64,6 +67,7 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
       if (!mounted) return;
       ref.invalidate(eventGuestsProvider(widget.eventId));
       ref.invalidate(myEventInviteProvider(widget.eventId));
+      ref.invalidate(myAttendanceProvider(widget.eventId));
       _syncRosterRealtime();
     });
   }
@@ -123,12 +127,15 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
   }
 
   /// Subscribes this event's live roster channels while the current user
-  /// belongs to the event — a host/staff member or an invitee of any standing
-  /// (2026-09-09, 060_events/08 + 09). Remote invitee accept/decline flips the
-  /// guest list on the spot (`event_invites`), and the host designating/
-  /// removing staff updates the organizer list (`event_hosts`). Best-effort:
-  /// on failure the entry-refresh + local actions still keep the lists
-  /// usable. Unsubscribes when the user stops being a member or signs out.
+  /// belongs to the event — a host/staff member or a CONFIRMED invitee
+  /// (accepted/attended — 2026-09-09, 060_events/08 + 09; tightened 2026-09-09
+  /// so a PENDING invitee subscribes to nothing). Remote invitee accept/decline
+  /// flips the guest list on the spot (`event_invites`), the host
+  /// designating/removing staff updates the organizer list (`event_hosts`),
+  /// and the scanner confirming the caller writes `event_attendances` → the
+  /// terminal "Ya te registraste" state (host/staff included — 2026-09-10).
+  /// Best-effort: on failure the entry-refresh + local actions still keep the
+  /// lists usable. Unsubscribes when the user stops being a member or signs out.
   Future<void> _syncRosterRealtime() async {
     final uid =
         ref.read(authStateProvider).valueOrNull?.user?['id'] as String?;
@@ -136,13 +143,16 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
     final privileged = uid != null &&
         (hosts?.any((p) => p['user_id'] == uid) ?? false);
     final invite = ref.read(myEventInviteProvider(widget.eventId)).valueOrNull;
-    final invited = uid != null && invite != null && invite.isNotEmpty;
-    final member = privileged || invited;
+    final member = privileged || _isConfirmedMember(invite);
     if (!member) {
       _unsubscribeRosterChannels();
       return;
     }
-    if (_guestChannel != null && _hostsChannel != null) return;
+    if (_guestChannel != null &&
+        _hostsChannel != null &&
+        _attendancesChannel != null) {
+      return;
+    }
     if (_subscribingRoster) return;
     _subscribingRoster = true;
     try {
@@ -159,15 +169,27 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
             if (!mounted) return;
             ref.invalidate(eventHostsProvider(widget.eventId));
           });
+      // The scanner's confirmation (guest OR host/staff) writes the caller's
+      // `event_attendances` row — the authoritative assist signal. Re-read it
+      // so an open detail (or the QR screen pushed over it) flips terminal
+      // without a re-entry (2026-09-10, Task C).
+      final attendances = ref
+          .read(realtimeServiceProvider)
+          .subscribeToEventAttendances(widget.eventId, (_) {
+            if (!mounted) return;
+            ref.invalidate(myAttendanceProvider(widget.eventId));
+          });
       if (!mounted) {
         // The screen closed while the joins were in flight — never leak live
         // channels.
         await guest.unsubscribe();
         await host.unsubscribe();
+        await attendances.unsubscribe();
         return;
       }
       _guestChannel = guest;
       _hostsChannel = host;
+      _attendancesChannel = attendances;
     } catch (e, st) {
       // Realtime is best-effort; entry-refetch/pull-to-refresh remains.
       AppLogger.instance.error(
@@ -184,6 +206,8 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
     _guestChannel = null;
     _hostsChannel?.unsubscribe();
     _hostsChannel = null;
+    _attendancesChannel?.unsubscribe();
+    _attendancesChannel = null;
   }
 
   Widget _scaffold(Widget body) {
@@ -243,6 +267,17 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
     final l10n = AppLocalizations.of(context);
     final uid =
         ref.watch(authStateProvider).valueOrNull?.user?['id'] as String?;
+    final hosts = hostsAsync.valueOrNull;
+    final invite = inviteAsync.valueOrNull;
+    final privileged = _isPrivileged(hosts, uid);
+    // A PENDING invitee (and not host/staff) may only accept/decline: no
+    // Código, no Fotos, no roster cards (2026-09-09 security fix).
+    final pendingInvite = !privileged && _isPendingInvite(invite);
+    // Assisted (scanned/confirmed) — the authoritative own `event_attendances`
+    // read, uniform for guests and host/staff. Once true the Código action is
+    // permanently disabled for this event (2026-09-10, Task C).
+    final assisted =
+        ref.watch(myAttendanceProvider(widget.eventId)).valueOrNull == true;
 
     return Scaffold(
       body: VHeaderBar(
@@ -315,21 +350,21 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
             ),
             const SizedBox(height: AppSpacing.lg),
             _buildPoolSection(event),
-            const SizedBox(height: AppSpacing.lg),
-            _buildHostsSection(event, hostsAsync, uid),
-            if (!_isPrivileged(hostsAsync.valueOrNull, uid) &&
-                (inviteAsync.valueOrNull?.isNotEmpty ?? false) &&
+            if (!pendingInvite) ...[
+              const SizedBox(height: AppSpacing.lg),
+              _buildHostsSection(event, hostsAsync, uid),
+            ],
+            if (!privileged &&
+                _isConfirmedMember(invite) &&
                 !_isClosed(event.status)) ...[
               const SizedBox(height: AppSpacing.lg),
               _buildConfirmedRoster(),
             ],
-            if (_isPrivileged(hostsAsync.valueOrNull, uid) &&
-                !_isClosed(event.status)) ...[
+            if (privileged && !_isClosed(event.status)) ...[
               const SizedBox(height: AppSpacing.lg),
               _buildGuestRoster(uid),
             ],
-            if (inviteAsync.valueOrNull case final invite?
-                when invite.isNotEmpty) ...[
+            if (invite != null && invite.isNotEmpty) ...[
               const SizedBox(height: AppSpacing.lg),
               if (_isPending(invite) && !_isClosed(event.status))
                 _buildInviteActions(invite)
@@ -361,7 +396,7 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
               ),
             ],
             if (!_isClosed(event.status))
-              _buildLiveActions(hostsAsync.valueOrNull, uid),
+              _buildLiveActions(hostsAsync.valueOrNull, uid, invite, assisted),
             const SizedBox(height: AppSpacing.xl),
           ],
         ),
@@ -371,15 +406,24 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
 
   /// Plugged event actions (2026-08-13): the attendee QR, the host/staff
   /// scanner and the photo gallery — each flag-gated and hidden once the
-  /// event is closed (ended/cancelled).
+  /// event is closed (ended/cancelled). A PENDING invitee sees none of these
+  /// (only the accept/decline card, 2026-09-09 security fix). An ASSISTED
+  /// attendee ([assisted]) keeps the Scanner (host/staff) and Fotos but the
+  /// Código action is permanently disabled — no navigation (2026-09-10).
   Widget _buildLiveActions(
     List<Map<String, dynamic>>? hosts,
     String? uid,
+    Map<String, dynamic>? invite,
+    bool assisted,
   ) {
     final l10n = AppLocalizations.of(context);
     // Scanner visibility (Stage 3): host AND staff scan attendance codes
     // (`validate_code` gates on role IN host/staff).
-    final canScan = _isPrivileged(hosts, uid);
+    final privileged = _isPrivileged(hosts, uid);
+    if (!privileged && _isPendingInvite(invite)) {
+      return const SizedBox.shrink();
+    }
+    final canScan = privileged;
     final showQr = ref.isEnabled(AppFeatureFlag.qr);
     final showPhotos = ref.isEnabled(AppFeatureFlag.photoUpload);
     if (!showQr && !showPhotos) return const SizedBox.shrink();
@@ -394,7 +438,11 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
               Expanded(
                 child: VButton.outlined(
                   label: l10n.qrAttendanceTitle,
-                  onPressed: () => context.push(RoutePaths.qr(widget.eventId)),
+                  // Assisted → terminal: the button stays visible but disabled
+                  // (no navigation). Re-entry never re-mints a QR.
+                  onPressed: assisted
+                      ? null
+                      : () => context.push(RoutePaths.qr(widget.eventId)),
                 ),
               ),
               if (canScan) ...[
@@ -464,6 +512,20 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
 
   bool _isPending(Map<String, dynamic> invite) {
     return (invite['status'] as String? ?? 'pending') == 'pending';
+  }
+
+  /// A CONFIRMED member is an invitee whose invite is accepted/attended
+  /// (2026-09-09). Host/staff are handled separately by [_isPrivileged]. Only
+  /// confirmed members read the roster / mint a code.
+  bool _isConfirmedMember(Map<String, dynamic>? invite) {
+    final status = invite?['status'] as String?;
+    return status == 'accepted' || status == 'attended';
+  }
+
+  /// Whether the caller holds a live PENDING invite. A pending invitee is not
+  /// yet an attendee: they may only accept/decline (2026-09-09 security fix).
+  bool _isPendingInvite(Map<String, dynamic>? invite) {
+    return invite != null && invite.isNotEmpty && _isPending(invite);
   }
 
   /// Invitee accept/decline card for a PENDING invite (Stage 2,
@@ -623,12 +685,12 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
     );
   }
 
-  /// Read-only "confirmed attendees" card for a NON-privileged event member
-  /// (invitee of any standing — 2026-09-09, 060_events/09_attendee_roster RLS):
-  /// who is actually going. The server only returns the caller's own rows +
-  /// the event's accepted/attended rows to a member (other people's pending
-  /// stays host/own-only), so the pending filter below is belt-and-braces for
-  /// the viewer's own pending row. Hosts/staff keep the full management roster
+  /// Read-only "confirmed attendees" card for a NON-privileged CONFIRMED event
+  /// member (invite status accepted/attended — 2026-09-09, 060_events/09
+  /// `ei_read_confirmed_roster` RLS): who is actually going. The server only
+  /// returns the caller's own rows + the event's accepted/attended rows to a
+  /// confirmed member (other people's pending stays host/own-only); the
+  /// confirmed filter below is belt-and-braces. Hosts/staff keep the full management roster
   /// in [_buildGuestRoster]; this card is the attendee-side view of the same
   /// `event_invites` stream and updates live over realtime.
   Widget _buildConfirmedRoster() {

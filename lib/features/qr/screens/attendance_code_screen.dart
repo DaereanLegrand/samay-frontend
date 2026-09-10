@@ -39,6 +39,9 @@ const double _qrRingWidth = 3;
 /// `validate_code` RPC. States:
 ///
 /// * **ended** — event status `ended` or past `ends_at`: no code needed.
+/// * **alreadyAttended** — the caller has been confirmed (host/staff scanner
+///   wrote their `event_attendances` row): the terminal "Ya te registraste"
+///   state replaces the QR forever (2026-09-10, Task C).
 /// * **notInvited** — caller is neither host/staff nor an invited attendee.
 /// * **notInWindow** — before activation (`starts_at - 30 min`): countdown,
 ///   then re-fetch when the window opens.
@@ -103,6 +106,17 @@ class _AttendanceCodeScreenState extends ConsumerState<AttendanceCodeScreen> {
   void initState() {
     super.initState();
     _ticker = Timer.periodic(const Duration(seconds: 1), (_) => _tick());
+    // Every open re-reads the authoritative assist state. A notification
+    // deep-link lands here WITHOUT the detail screen, so its entry-refresh
+    // never runs; and when this screen is pushed over the detail both stay
+    // mounted (autoDispose keeps the cached value alive). Invalidating on
+    // entry forces the fresh `event_attendances` read either way — never a
+    // stale QR. Post-frame: provider writes are illegal during the widget
+    // life-cycle.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      ref.invalidate(myAttendanceProvider(widget.eventId));
+    });
   }
 
   @override
@@ -216,6 +230,7 @@ class _AttendanceCodeScreenState extends ConsumerState<AttendanceCodeScreen> {
     ref.listen(myCodeProvider(widget.eventId), _onSessionChange);
     final l10n = AppLocalizations.of(context);
     final eventAsync = ref.watch(eventDetailProvider(widget.eventId));
+    final attendedAsync = ref.watch(myAttendanceProvider(widget.eventId));
     final fetchAsync = ref.watch(myCodeProvider(widget.eventId));
 
     return eventAsync.when(
@@ -235,48 +250,79 @@ class _AttendanceCodeScreenState extends ConsumerState<AttendanceCodeScreen> {
             _MessageState(icon: Icons.event_available, message: l10n.codeEventEnded),
           );
         }
-        return fetchAsync.when(
+        // Assisted users get the terminal state instead of a QR. The
+        // authoritative own-attendance read gates BEFORE any code resolves,
+        // so a code (in flight or cached) can never surface a QR again.
+        return attendedAsync.when(
           loading: () => _scaffold(l10n, const VLoadingView()),
           error: (e, _) => _scaffold(
             l10n,
             ErrorView(
               message: l10n.codeLoadError,
-              onRetry: _refetch,
+              onRetry: () =>
+                  ref.invalidate(myAttendanceProvider(widget.eventId)),
             ),
           ),
-          data: (fetch) {
-            switch (fetch.status) {
-              case CodeFetchStatus.ok:
-                if (_code.isEmpty) {
-                  // First frame after the session resolves: anchor inline
-                  // (the ref.listen below would fire post-frame — too late
-                  // for this build).
-                  _applySession(fetch.session!, fetch.serverOffsetMs);
-                }
-                final windowSeconds = _session?.windowSeconds ?? 10;
-                return _ActiveCode(
-                  code: _code,
-                  phaseMs: _phaseMs,
-                  windowSeconds: windowSeconds,
-                  watch: _watch,
-                );
-              case CodeFetchStatus.notInvited:
-                return _scaffold(
-                  l10n,
-                  _MessageState(
-                    icon: Icons.person_off_outlined,
-                    message: l10n.codeNotInvited,
-                    action: VButton(
-                      label: l10n.commonRetry,
-                      onPressed: _refetch,
-                    ),
-                  ),
-                );
-              case CodeFetchStatus.notInWindow:
-                return _buildNotInWindow(l10n, event.startsAt);
+          data: (attended) {
+            if (attended) {
+              return _AlreadyAttended(
+                message: l10n.codeAlreadyAttended,
+                returnLabel: l10n.codeAlreadyAttendedReturn,
+                onReturn: () => Navigator.of(context).maybePop(),
+              );
             }
+            return _buildCode(l10n, fetchAsync, event.startsAt);
           },
         );
+      },
+    );
+  }
+
+  Widget _buildCode(
+    AppLocalizations l10n,
+    AsyncValue<CodeFetch> fetchAsync,
+    DateTime startsAt,
+  ) {
+    return fetchAsync.when(
+      loading: () => _scaffold(l10n, const VLoadingView()),
+      error: (e, _) => _scaffold(
+        l10n,
+        ErrorView(
+          message: l10n.codeLoadError,
+          onRetry: _refetch,
+        ),
+      ),
+      data: (fetch) {
+        switch (fetch.status) {
+          case CodeFetchStatus.ok:
+            if (_code.isEmpty) {
+              // First frame after the session resolves: anchor inline
+              // (the ref.listen below would fire post-frame — too late
+              // for this build).
+              _applySession(fetch.session!, fetch.serverOffsetMs);
+            }
+            final windowSeconds = _session?.windowSeconds ?? 10;
+            return _ActiveCode(
+              code: _code,
+              phaseMs: _phaseMs,
+              windowSeconds: windowSeconds,
+              watch: _watch,
+            );
+          case CodeFetchStatus.notInvited:
+            return _scaffold(
+              l10n,
+              _MessageState(
+                icon: Icons.person_off_outlined,
+                message: l10n.codeNotInvited,
+                action: VButton(
+                  label: l10n.commonRetry,
+                  onPressed: _refetch,
+                ),
+              ),
+            );
+          case CodeFetchStatus.notInWindow:
+            return _buildNotInWindow(l10n, startsAt);
+        }
       },
     );
   }
@@ -548,6 +594,78 @@ class _BorderProgressPainter extends CustomPainter {
   @override
   bool shouldRepaint(_BorderProgressPainter oldDelegate) =>
       oldDelegate.progress != progress;
+}
+
+/// Terminal state once the caller is already assisted for the event: the QR is
+/// never shown again. Full-bleed black consistent with [_ActiveCode] — only
+/// the floating back affordance plus a "Regresar" button below the message.
+/// Entered whenever the caller's own `event_attendances` row exists (host/
+/// staff included), so re-opening Código stays terminal.
+class _AlreadyAttended extends StatelessWidget {
+  const _AlreadyAttended({
+    required this.message,
+    required this.returnLabel,
+    required this.onReturn,
+  });
+
+  final String message;
+  final String returnLabel;
+  final VoidCallback onReturn;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          const ColoredBox(color: AppColors.discoBlack),
+          Center(
+            child: Padding(
+              padding: const EdgeInsets.all(AppSpacing.xl),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 420),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      message,
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.headlineSmall,
+                    ),
+                    const SizedBox(height: AppSpacing.xl),
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 320),
+                      child: VButton.outlined(
+                        label: returnLabel,
+                        onPressed: onReturn,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          const Align(
+            alignment: Alignment.topLeft,
+            child: SafeArea(
+              bottom: false,
+              child: Padding(
+                padding: EdgeInsets.only(
+                  top: VHeaderMetrics.heroTopPad,
+                  left: AppSpacing.screenHorizontal,
+                ),
+                child: SizedBox(
+                  height: VHeaderMetrics.titleRowHeight,
+                  width: double.infinity,
+                  child: VHeaderTitleRow(),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 /// Simple centered message state — monochrome hairline panel + icon.

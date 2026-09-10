@@ -108,6 +108,27 @@ class EventService {
     return res == null ? null : Map<String, dynamic>.from(res);
   }
 
+  /// Whether the CALLER has been assisted (scanned/confirmed) into [eventId].
+  ///
+  /// Reads the caller's own `event_attendances` row — the single-confirmation
+  /// marker written by `validate_code` (07_code.sql). It is the authoritative
+  /// "already attended" signal and is uniform across roles: a guest's invite
+  /// also flips to `attended`, but host/staff have no invite row and are only
+  /// recorded here. The read is RLS-scoped by `ea_read_access`
+  /// (`user_id = auth.uid()`), so the client can neither see nor forge another
+  /// attendee's row. `false` when not signed in or not yet assisted.
+  Future<bool> isAttended(String eventId) async {
+    final user = auth.currentUser;
+    if (user == null) return false;
+    final res = await client
+        .from('event_attendances')
+        .select('id')
+        .eq('event_id', eventId)
+        .eq('user_id', user.id)
+        .maybeSingle();
+    return res != null;
+  }
+
   Future<void> updateEvent(String id, Map<String, dynamic> patch) async {
     final data = Map<String, dynamic>.from(patch);
     data['updated_at'] = DateTime.now().toIso8601String();
