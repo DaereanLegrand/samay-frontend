@@ -36,6 +36,7 @@ class CodeSession {
     required this.windowSeconds,
     required this.windowStart,
     required this.windowEnd,
+    required this.serverNowMs,
   });
 
   /// The 24-hex code for [counter].
@@ -57,6 +58,11 @@ class CodeSession {
   /// UTC epoch seconds at which [counter]'s window ends (code regenerates).
   final int windowEnd;
 
+  /// The SERVER's UTC epoch milliseconds when this session was issued
+  /// (`get_my_code`). The device anchors its (possibly skewed) wall clock to
+  /// this so rotation and the border ring agree with the server's lattice.
+  final int serverNowMs;
+
   factory CodeSession.fromJson(Map<String, dynamic> json) {
     return CodeSession(
       code: json['code'] as String,
@@ -65,6 +71,7 @@ class CodeSession {
       windowSeconds: (json['windowSeconds'] as num).toInt(),
       windowStart: (json['windowStart'] as num).toInt(),
       windowEnd: (json['windowEnd'] as num).toInt(),
+      serverNowMs: (json['serverNowMs'] as num).toInt(),
     );
   }
 
@@ -82,23 +89,31 @@ enum CodeFetchStatus { ok, notInWindow, notInvited }
 /// non-fatal state (pre-activation / not invited) otherwise.
 @immutable
 class CodeFetch {
-  const CodeFetch.ok(this.session) : status = CodeFetchStatus.ok;
+  const CodeFetch.ok(this.session, this.serverOffsetMs)
+      : status = CodeFetchStatus.ok;
   const CodeFetch.notInWindow()
       : status = CodeFetchStatus.notInWindow,
-        session = null;
+        session = null,
+        serverOffsetMs = 0;
   const CodeFetch.notInvited()
       : status = CodeFetchStatus.notInvited,
-        session = null;
+        session = null,
+        serverOffsetMs = 0;
 
   final CodeFetchStatus status;
   final CodeSession? session;
 
+  /// Server-clock minus device-wall-clock at fetch time, in milliseconds
+  /// (measured as `serverNowMs - deviceMidpoint` around the RPC). 0 for every
+  /// non-ok state. The screen adds it to `DateTime.now()` to read server time.
+  final int serverOffsetMs;
+
   /// Maps the RPC jsonb payload to a [CodeFetch]; infra failures surface as
   /// thrown exceptions from the caller (provider AsyncError), never here.
-  factory CodeFetch.fromRpc(Map<String, dynamic>? json) {
+  factory CodeFetch.fromRpc(Map<String, dynamic>? json, int serverOffsetMs) {
     final status = json?['status'] as String? ?? 'not_in_window';
     return switch (status) {
-      'ok' => CodeFetch.ok(CodeSession.fromJson(json!)),
+      'ok' => CodeFetch.ok(CodeSession.fromJson(json!), serverOffsetMs),
       'not_invited' => const CodeFetch.notInvited(),
       _ => const CodeFetch.notInWindow(),
     };

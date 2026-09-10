@@ -17,14 +17,30 @@ import 'package:samay/features/qr/logic/code.dart';
 /// fetch the screen needs: it derives every later window locally from the
 /// secret (authenticator style), so no per-window network round-trip happens
 /// inside an event.
-class MyCodeSessionNotifier extends FamilyAsyncNotifier<CodeFetch, String> {
+///
+/// The fetch also measures the device wall clock around the RPC and stores
+/// `serverNowMs - deviceMidpoint` on the [CodeFetch], so the screen can rotate
+/// on the SERVER's lattice even when the device clock is skewed (the elapsed
+/// half-round-trip is the only error). `autoDispose` so a fresh entry always
+/// re-anchors on the server's current time.
+class MyCodeSessionNotifier
+    extends AutoDisposeFamilyAsyncNotifier<CodeFetch, String> {
   @override
   Future<CodeFetch> build(String eventId) async {
+    final t0 = DateTime.now().millisecondsSinceEpoch;
     final rpc = await ref.read(eventServiceProvider).getMyCode(eventId);
-    return CodeFetch.fromRpc(rpc);
+    final t1 = DateTime.now().millisecondsSinceEpoch;
+    if (rpc == null || rpc['status'] != 'ok') {
+      return CodeFetch.fromRpc(rpc, 0);
+    }
+    final session = CodeSession.fromJson(rpc);
+    final offsetMs = session.serverNowMs - ((t0 + t1) ~/ 2);
+    return CodeFetch.ok(session, offsetMs);
   }
 }
 
 /// The current user's code session for [eventId].
-final myCodeProvider = AsyncNotifierProvider.family<
-    MyCodeSessionNotifier, CodeFetch, String>(MyCodeSessionNotifier.new);
+final myCodeProvider = AsyncNotifierProvider.autoDispose
+    .family<MyCodeSessionNotifier, CodeFetch, String>(
+  MyCodeSessionNotifier.new,
+);

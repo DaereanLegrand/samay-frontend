@@ -45,6 +45,15 @@ const double _qrRingWidth = 3;
 /// * **active** — white-module QR on black, framed by a thin ring (white track
 ///   + black 3px countdown fill over it) that fills to the next code.
 ///
+/// **Server-clock anchoring (2026-09-09, hardened with a monotonic clock):**
+/// devices can drift tens of seconds from the server, so the screen never uses
+/// the raw device epoch to pick a window. `get_my_code` returns `serverNowMs`;
+/// at apply the screen records the server phase into the window
+/// (`serverNowMs - counter * windowMs`) and starts a monotonic [Stopwatch].
+/// Rotation and the border ring then advance from that phase plus elapsed
+/// monotonic time, so both device clock skew AND mid-session NTP corrections
+/// cannot move the code or the border off the server's lattice.
+///
 /// Route: `/qr/:eventId` (feature-flag gated on `AppFeatureFlag.qr`).
 ///
 /// Privacy posture intact: the per-attendee secret is held in memory only and
@@ -62,93 +71,137 @@ class AttendanceCodeScreen extends ConsumerStatefulWidget {
 class _AttendanceCodeScreenState extends ConsumerState<AttendanceCodeScreen> {
   Timer? _ticker;
 
+  /// Monotonic clock anchored at the last [_applySession]. After the initial
+  /// server-anchored phase, all rotation and border timing comes from this —
+  /// never from the device wall clock — so an Android NTP correction mid-
+  /// session cannot jump the derived window.
+  final Stopwatch _watch = Stopwatch();
+
+  /// Server phase into the current window at anchor time
+  /// (`serverNowMs - counter * windowMs`), 0..windowMs exclusive.
+  int _phaseMs = 0;
+
   /// Active session + the code currently rendered (swapped at window change).
   CodeSession? _session;
   String _code = '';
-  int _boundaryMs = 0;
-  bool _deriving = false;
+  int _counter = -1;
+  bool _advancing = false;
+  int _advanceSeq = 0;
+
+  /// Newest counter requested while a derive was in flight; processed once the
+  /// in-flight derive completes, so a tick is queued rather than dropped.
+  int? _pendingCounter;
 
   /// Throttle for automatic re-fetches after the activation window opens.
   DateTime _lastRefetch = DateTime.fromMillisecondsSinceEpoch(0);
 
+  /// Milliseconds elapsed into the anchored window on the monotonic clock.
+  /// Grows without bound; callers reduce modulo the window length.
+  int get _elapsedInWindowMs => _phaseMs + _watch.elapsedMilliseconds;
+
   @override
   void initState() {
     super.initState();
-    // Re-issue the session on every entry: get_my_code returns the server's
-    // CURRENT window (windowSeconds is config), so a stale in-memory session
-    // (e.g. fetched while the window was still seeded 30) can no longer keep
-    // the first QR frozen for a whole stale window. Post-frame: ref writes
-    // (invalidate) are illegal during initState — the element has not joined
-    // the inherited ProviderScope yet (crash seen on a fresh accept entry).
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      ref.invalidate(myCodeProvider(widget.eventId));
-    });
     _ticker = Timer.periodic(const Duration(seconds: 1), (_) => _tick());
   }
 
   @override
   void dispose() {
     _ticker?.cancel();
+    _watch.stop();
     super.dispose();
   }
 
-  /// One-second heartbeat: at the window boundary, derive + render the next
-  /// code seamlessly. The filling border runs its own per-frame ticker.
+  /// One-second heartbeat: recompute the counter from the monotonic model and
+  /// swap the code if it moved. Recomputing (rather than tracking a boundary)
+  /// means any late/missed tick self-corrects instantly — authenticator-style.
+  /// The filling border runs its own per-frame ticker on the same clock.
   void _tick() {
     if (!mounted) return;
-    final session = ref.read(myCodeProvider(widget.eventId)).valueOrNull;
-    if (session == null || session.session == null) return;
-
-    final nowMs = DateTime.now().millisecondsSinceEpoch;
-    final active = _session;
-    if (active == null) return;
-
-    final windowMs = active.windowSeconds * 1000;
-    if (nowMs >= _boundaryMs) {
-      _advanceWindow(nowMs, windowMs);
-    }
-  }
-
-  /// Crossed a window boundary: derive the next code from the secret (local,
-  /// authenticator-style); the QR swaps to the new code on the next build.
-  Future<void> _advanceWindow(int nowMs, int windowMs) async {
-    if (_deriving) return;
     final session = _session;
     if (session == null) return;
-    _deriving = true;
+    final counter = _currentCounter(session);
+    if (counter != _counter) _advanceTo(counter);
+  }
+
+  /// Counter derived from the anchored monotonic position: the server counter
+  /// at apply plus the whole windows elapsed since.
+  int _currentCounter(CodeSession session) {
+    final windowMs = session.windowSeconds * 1000;
+    return session.counter + _elapsedInWindowMs ~/ windowMs;
+  }
+
+  /// Derives the code for [counter] from the session secret (local,
+  /// authenticator-style) and swaps the QR to it. A sequence token guards
+  /// against a stale derive landing after a re-anchor; a newer counter
+  /// requested mid-derive is queued and processed when the current derive
+  /// completes (never silently dropped).
+  Future<void> _advanceTo(int counter) async {
+    if (_advancing) {
+      _pendingCounter = counter;
+      return;
+    }
+    final session = _session;
+    if (session == null) return;
+    _advancing = true;
+    _pendingCounter = null;
+    final seq = ++_advanceSeq;
     try {
-      final targetCounter = (nowMs ~/ 1000) ~/ session.windowSeconds;
-      final nextCode = await session.codeFor(targetCounter);
-      if (!mounted) return;
-      setState(() {
-        _code = nextCode;
-        _boundaryMs = (targetCounter + 1) * windowMs;
-      });
+      var target = counter;
+      while (mounted && seq == _advanceSeq) {
+        final nextCode = await session.codeFor(target);
+        if (!mounted || seq != _advanceSeq) return;
+        setState(() {
+          _code = nextCode;
+          _counter = target;
+        });
+        final pending = _pendingCounter;
+        _pendingCounter = null;
+        if (pending == null || pending == target) break;
+        target = pending;
+      }
     } catch (e, st) {
       AppLogger.instance.error('code derive failed: $e', '$st');
     } finally {
-      _deriving = false;
+      _advancing = false;
     }
   }
 
-  /// Session change seam: (re)anchor the display on a fresh session.
+  /// Session change seam: re-anchor whenever the server-issued session moves —
+  /// new window boundaries, a config change in window length, OR a fresh
+  /// `serverNowMs` (so a re-fetch re-syncs even within the same window).
   void _onSessionChange(
     AsyncValue<CodeFetch>? previous,
     AsyncValue<CodeFetch> next,
   ) {
-    final session = next.valueOrNull?.session;
+    final fetch = next.valueOrNull;
+    final session = fetch?.session;
     if (session == null || !mounted) return;
-    if (session.code == _code && _session != null) return;
-    setState(() => _applySession(session));
+    if (session.windowEnd == _session?.windowEnd &&
+        session.windowSeconds == _session?.windowSeconds &&
+        session.serverNowMs == _session?.serverNowMs) {
+      return;
+    }
+    setState(() => _applySession(session, fetch!.serverOffsetMs));
   }
 
-  /// Anchors the display state on [session] (safe to call without setState
-  /// from build for the very first frame).
-  void _applySession(CodeSession session) {
+  /// Anchors the display on [session]: records the server phase into the
+  /// window and restarts the monotonic [Stopwatch] at this instant. [offsetMs]
+  /// is carried from the fetch contract (serverNowMs - device midpoint);
+  /// rotation and border use the monotonic phase, never the device clock.
+  /// Bumps the sequence so any derive in flight from a previous session is
+  /// discarded.
+  void _applySession(CodeSession session, int offsetMs) {
     _session = session;
     _code = session.code;
-    _boundaryMs = session.windowEnd * 1000;
+    _counter = session.counter;
+    final windowMs = session.windowSeconds * 1000;
+    _phaseMs = session.serverNowMs - session.counter * windowMs;
+    _pendingCounter = null;
+    _watch
+      ..reset()
+      ..start();
+    _advanceSeq++;
   }
 
   /// Re-fetch the code (retry / activation window opening). Throttled when
@@ -198,12 +251,14 @@ class _AttendanceCodeScreenState extends ConsumerState<AttendanceCodeScreen> {
                   // First frame after the session resolves: anchor inline
                   // (the ref.listen below would fire post-frame — too late
                   // for this build).
-                  _applySession(fetch.session!);
+                  _applySession(fetch.session!, fetch.serverOffsetMs);
                 }
+                final windowSeconds = _session?.windowSeconds ?? 10;
                 return _ActiveCode(
                   code: _code,
-                  boundaryMs: _boundaryMs,
-                  windowSeconds: _session?.windowSeconds ?? 10,
+                  phaseMs: _phaseMs,
+                  windowSeconds: windowSeconds,
+                  watch: _watch,
                 );
               case CodeFetchStatus.notInvited:
                 return _scaffold(
@@ -281,13 +336,20 @@ class _AttendanceCodeScreenState extends ConsumerState<AttendanceCodeScreen> {
 class _ActiveCode extends StatelessWidget {
   const _ActiveCode({
     required this.code,
-    required this.boundaryMs,
+    required this.phaseMs,
     required this.windowSeconds,
+    required this.watch,
   });
 
   final String code;
-  final int boundaryMs;
+
+  /// Server phase into the window at anchor time (0..windowMs exclusive).
+  final int phaseMs;
   final int windowSeconds;
+
+  /// Monotonic clock anchored at `_applySession` — shared with the rotation so
+  /// the border and the QR never disagree.
+  final Stopwatch watch;
 
   @override
   Widget build(BuildContext context) {
@@ -304,8 +366,9 @@ class _ActiveCode extends StatelessWidget {
                 height: _qrWidgetSide,
                 child: _CountdownQr(
                   code: code,
-                  boundaryMs: boundaryMs,
+                  phaseMs: phaseMs,
                   windowSeconds: windowSeconds,
+                  watch: watch,
                 ),
               ),
             ),
@@ -333,20 +396,23 @@ class _ActiveCode extends StatelessWidget {
   }
 }
 
-/// The QR code plus its framing ring. A per-frame [Ticker] reads the wall
-/// clock against [boundaryMs] so the fill is SILKY (not one 1-s jump per
-/// second) and eases in-and-out: slow right after a new code appears and slow
-/// as the fill completes, fastest mid-window.
+/// The QR code plus its framing ring. A per-frame [Ticker] reads the monotonic
+/// [watch] plus the anchored [phaseMs] so the fill is SILKY (not one 1-s jump
+/// per second) and eases in-and-out: slow right after a new code appears and
+/// slow as the fill completes, fastest mid-window. The border uses the SAME
+/// clock as the rotation, so they can never disagree.
 class _CountdownQr extends StatefulWidget {
   const _CountdownQr({
     required this.code,
-    required this.boundaryMs,
+    required this.phaseMs,
     required this.windowSeconds,
+    required this.watch,
   });
 
   final String code;
-  final int boundaryMs;
+  final int phaseMs;
   final int windowSeconds;
+  final Stopwatch watch;
 
   @override
   State<_CountdownQr> createState() => _CountdownQrState();
@@ -373,9 +439,9 @@ class _CountdownQrState extends State<_CountdownQr>
   void _onFrame(Duration _) {
     final windowMs = widget.windowSeconds * 1000;
     if (windowMs <= 0) return;
-    final nowMs = DateTime.now().millisecondsSinceEpoch;
-    final elapsedMs = nowMs - (widget.boundaryMs - windowMs);
-    final elapsed = (elapsedMs / windowMs).clamp(0.0, 1.0);
+    final elapsedInWindow = widget.phaseMs + widget.watch.elapsedMilliseconds;
+    final progress = (elapsedInWindow % windowMs) / windowMs;
+    final elapsed = progress.clamp(0.0, 1.0);
     // Eased fill (easeInOut on the elapsed fraction): the border starts empty
     // at a fresh code and slows near both the start and the completion.
     final eased = Curves.easeInOutCubic.transform(elapsed);
