@@ -16,6 +16,9 @@ class VDisplayText extends StatelessWidget {
   /// Glyph size in logical px (default 40 — [AppTypography.displayMedium]).
   final double size;
 
+  /// Default glyph size in logical px ([AppTypography.displayMedium]).
+  static const double defaultSize = 40;
+
   /// Optional alignment (the parent may already center the text).
   final TextAlign? textAlign;
 
@@ -25,7 +28,7 @@ class VDisplayText extends StatelessWidget {
   const VDisplayText({
     super.key,
     required this.text,
-    this.size = 40,
+    this.size = defaultSize,
     this.textAlign,
     this.maxLines,
   });
@@ -41,11 +44,10 @@ class VDisplayText extends StatelessWidget {
     );
   }
 
-  /// Playfair Display bold at [VDisplayText.size] — the display roles when
-  /// the size matches a §3.3 token, otherwise a same-metric custom style
-  /// (no italics — user directive 2026-08-14). Neutral tracking — the
-  /// display voice breathes; cramped tracking reads "old".
-  TextStyle _displayStyle() {
+  /// The display style for [size] — the exact mapping [VDisplayText] paints, so
+  /// callers (e.g. the header's optical alignment) can measure the same glyph
+  /// metrics. Returns the glow-free white Playfair base.
+  static TextStyle styleFor(double size) {
     final base = switch (size) {
       64 => AppTypography.displayLarge,
       40 => AppTypography.displayMedium,
@@ -61,4 +63,10 @@ class VDisplayText extends StatelessWidget {
     };
     return base.copyWith(color: AppColors.white);
   }
+
+  /// Playfair Display bold at [VDisplayText.size] — the display roles when
+  /// the size matches a §3.3 token, otherwise a same-metric custom style
+  /// (no italics — user directive 2026-08-14). Neutral tracking — the
+  /// display voice breathes; cramped tracking reads "old".
+  TextStyle _displayStyle() => styleFor(size);
 }

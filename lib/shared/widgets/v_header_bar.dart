@@ -1,9 +1,8 @@
-import 'dart:ui' as ui;
 import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart' show RenderParagraph;
 import 'package:samay/core/design_tokens/app_spacing.dart';
+import 'package:samay/core/design_tokens/app_typography.dart';
 import 'package:samay/shared/widgets/v_display_text.dart';
 
 /// Single source of truth for every top-header dimension in the app.
@@ -46,320 +45,86 @@ abstract final class VHeaderMetrics {
   /// Backdrop blur sigma of the glass (matches the nav pill).
   static const double glassBlur = 20;
 
-  /// Playfair's hhea optical correction for the leading BACK ARROW — the glyph
-  /// ink centers above the geometric center, so the arrow is nudged down to
-  /// read centered with the title. [VHeaderTitleRow] applies it to every
-  /// header; callers never specify it.
-  static const double backArrowNudge = 6;
+  /// The typographic band that defines the header's SHARED optical centerline.
+  /// Every element in [VHeaderTitleRow] (back arrow, title, actions) is
+  /// centered on this one line, measured from the title font's real metrics, so
+  /// the alignment is identical at ANY font size (app-wide standard).
+  static const HeaderOpticalReference opticalReference =
+      HeaderOpticalReference.xHeight;
 
-  /// Playfair's hhea optical correction for trailing ACTIONS (icon or text) —
-  /// same optical reason as [backArrowNudge]. Applied to every action of every
-  /// header by [VHeaderTitleRow]; callers never specify it.
-  static const double actionNudge = 6;
+  /// Fine-tune (px, down-positive) applied to the back arrow AFTER optical
+  /// centering. 0 by default — the optical band does the alignment.
+  static const double backArrowNudge = 0;
+
+  /// Fine-tune (px, down-positive) applied to every action AFTER optical
+  /// centering. 0 by default.
+  static const double actionNudge = 0;
 }
 
-// =============================================================================
-// TEMP DEBUG — header layout probe (2026-09-11). Flip [kDebugHeaderLayout] to
-// false (or delete this block + the `_dbg`/`_nudged` calls) when tuning is done.
-//
-//   blue   → header band dimension (VHeaderMetrics.barHeight)
-//   orange → back-arrow dimension
-//   green  → action dimension(s)
-//   purple → back-arrow nudge band (VHeaderMetrics.backArrowNudge)
-//   cyan   → action nudge band (VHeaderMetrics.actionNudge)
-//   red    → padding region
-//   sky    → margin / spacing region
-//   mix    → a parent container blends its children's colors
-//   black  → bottom dimension line of each of the three elements
-//            (back arrow / title / action)
-//   red    → x-height band of the title font, both edges + middle (TOP of
-//            letters like v/e/a/x, MIDDLE, and BOTTOM = the baseline where
-//            g/p/q descend)
-//   neon   → glyph guides (top/middle/bottom) of the back arrow and each
-//            action glyph (icon or text label)
-// =============================================================================
-const bool kDebugHeaderLayout = true;
-
-const Color _dbgHeader = Color(0x802196F3); // blue
-const Color _dbgArrow = Color(0x80FF9800); // orange
-const Color _dbgAction = Color(0x804CAF50); // green
-const Color _dbgBackNudge = Color(0x809C27B0); // purple
-const Color _dbgActionNudge = Color(0x8000BCD4); // cyan
-const Color _dbgPad = Color(0x80F44336); // red
-const Color _dbgMargin = Color(0x8003A9F4); // sky
-
-/// Average (50% lerp) of two child colors — the parent-container "mix".
-Color _dbgMix(Color a, Color b) => Color.lerp(a, b, 0.5)!;
-
-/// Wraps [child] in a translucent [color] band when the probe is on; a no-op
-/// passthrough when off, so layout is byte-identical to production.
-Widget _dbg(Widget child, Color color) {
-  if (!kDebugHeaderLayout) return child;
-  return Container(color: color, child: child);
-}
-
-/// A 1px solid black line along the bottom edge of [child] — the bottom
-/// dimension line of one header element (back arrow / title / action). A
-/// no-op passthrough when the probe is off.
-Widget _dbgBottomLine(Widget child) {
-  if (!kDebugHeaderLayout) return child;
-  return Container(
-    decoration: const BoxDecoration(
-      border: Border(bottom: BorderSide(color: Color(0xFF000000), width: 1)),
-    ),
-    child: child,
-  );
-}
-
-// ── glyph guides ────────────────────────────────────────────────────────────
-// Anchored to the ACTUAL rendered paragraph (RenderParagraph.getBoxesForSelection
-// with BoxHeightStyle.tight = the run's tight box), NOT a separately-created
-// TextPainter (whose baseline drifted from the real glyphs). A probe walks the
-// subtree to find the first RenderParagraph (so it also works for the icon
-// glyph inside a BackButton/IconButton and for a text button label).
-//
-// Playfair Display has USE_TYPO_METRICS set, so the title run box = ascent 1082
-// / descent 251 (unitsPerEm 1000). Within that box:
-//   baseline   = 1082 / (1082+251) = 0.8117
-//   x-height top ('x'=515, 'e'/'a'=529) = (1082-529)/1333 = 0.4149
-//   middle     = midpoint of the two above
-// Fraction lists are tunable — nudge these if the lines must sit differently.
-const List<double> _titleGuideFractions = [0.4149, 0.6133, 0.8117];
-
-/// Neon guides for the back arrow and the action glyphs — top / middle / bottom
-/// of the measured glyph box (fractions 0 / 0.5 / 1).
-const List<double> _glyphGuideFractions = [0.0, 0.5, 1.0];
-const Color _dbgNeon = Color(0xFF39FF14); // neon green
-
-/// First [RenderParagraph] in the subtree rooted at [root] (or [root] itself)
-/// — finds the icon glyph / text label inside a button.
-RenderParagraph? _firstParagraph(RenderObject root) {
-  if (root is RenderParagraph) return root;
-  RenderParagraph? found;
-  void visit(RenderObject child) {
-    if (found != null) return;
-    if (child is RenderParagraph) {
-      found = child;
-      return;
-    }
-    child.visitChildren(visit);
-  }
-
-  root.visitChildren(visit);
-  return found;
-}
-
-/// The tight TEXT box of [p]'s single run — correct for letter glyphs (Playfair
-/// carries its ascent/descent on the run). NOT the visual ink for icons.
-Rect? _tightTextBox(RenderParagraph p) {
-  final text = p.text.toPlainText();
-  if (text.isEmpty) return null;
-  final boxes = p.getBoxesForSelection(
-    TextSelection(baseOffset: 0, extentOffset: text.length),
-    boxHeightStyle: ui.BoxHeightStyle.tight,
-  );
-  if (boxes.isEmpty) return null;
-  final b = boxes.first;
-  return Rect.fromLTRB(b.left, b.top, b.right, b.bottom);
-}
-
-/// The glyph's ACTUAL ink box: re-paint the paragraph's span offscreen and scan
-/// the alpha channel. Neither the layout box nor [BoxHeightStyle.tight] yields
-/// the visual bounds of an icon glyph (both carry the icon font's line metrics),
-/// so icons measure the rasterized pixels instead. Rasterizes at the device
-/// pixel ratio ([dpr]) so the offscreen glyph hinting matches the on-screen
-/// one, and returns logical local coordinates.
-Future<Rect?> _measureInk(RenderParagraph p, TextScaler scaler, double dpr) async {
-  final painter = TextPainter(
-    text: p.text,
-    textDirection: p.textDirection,
-    textScaler: scaler,
-    textAlign: p.textAlign,
-    maxLines: 1,
-  )..layout();
-  final w = painter.width.ceil();
-  final h = painter.height.ceil();
-  if (w <= 0 || h <= 0) return null;
-  final pw = (w * dpr).ceil();
-  final ph = (h * dpr).ceil();
-  final recorder = ui.PictureRecorder();
-  final canvas = Canvas(recorder)..scale(dpr, dpr);
-  painter.paint(canvas, Offset.zero);
-  final picture = recorder.endRecording();
-  final ui.Image image;
-  try {
-    image = picture.toImageSync(pw, ph);
-  } catch (_) {
-    picture.dispose();
-    return null;
-  }
-  final data = await image.toByteData(format: ui.ImageByteFormat.rawRgba);
-  image.dispose();
-  picture.dispose();
-  if (data == null) return null;
-  final bytes = data.buffer.asUint8List();
-  var minX = pw, minY = ph, maxX = -1, maxY = -1;
-  for (var y = 0; y < ph; y++) {
-    for (var x = 0; x < pw; x++) {
-      if (bytes[(y * pw + x) * 4 + 3] > 180) {
-        if (x < minX) minX = x;
-        if (x > maxX) maxX = x;
-        if (y < minY) minY = y;
-        if (y > maxY) maxY = y;
-      }
-    }
-  }
-  if (maxX < 0 || maxY < 0) return null;
-  return Rect.fromLTRB(
-    minX / dpr,
-    minY / dpr,
-    (maxX + 1) / dpr,
-    (maxY + 1) / dpr,
-  );
-}
-
-/// Wraps [child] so a painter can read the ACTUAL rendered [RenderParagraph]
-/// and draw guide lines (top/middle/bottom at [fractions] of the measured box)
-/// in the same coordinate space as the painted glyphs. No-op when off.
+/// Which typographic band defines the header's shared optical centerline.
 ///
-/// [ink] selects the measured box:
-///   * `true`  — the tight TEXT box (letters; Playfair's run box).
-///   * `false` — the rasterized glyph INK box (icons) — the visual bounds.
-class _GuideProbe extends StatefulWidget {
-  const _GuideProbe({
-    required this.child,
-    required this.fractions,
-    required this.color,
-    this.ink = true,
-  });
+/// Model A (Apple's approach): the three elements keep their native heights;
+/// only their centers are forced onto one band centerline. Because the band is
+/// derived from the font's own metrics (not from the glyphs of a particular
+/// string), it is stable across text and font size.
+enum HeaderOpticalReference {
+  /// Cap height — Apple's default reference for aligning symbols to text.
+  capHeight,
 
-  final Widget child;
-  final List<double> fractions;
-  final Color color;
-  final bool ink;
-
-  @override
-  State<_GuideProbe> createState() => _GuideProbeState();
+  /// x-height — the lowercase body (v/e/a/x), ignoring ascenders/descenders.
+  xHeight,
 }
 
-class _GuideProbeState extends State<_GuideProbe> {
-  final _key = GlobalKey();
-  Rect? _inkRect;
+// ── Optical alignment (Model A) ──────────────────────────────────────────────
+//
+// One shared centerline per header: the title's reference band center (cap- or
+// x-height, per [VHeaderMetrics.opticalReference]). The band is derived from
+// the title FONT's metrics plus the real laid-out baseline, so it is stable at
+// any font size and for any title string. Each element (back arrow, title,
+// action) is centered on that one line.
 
-  @override
-  void initState() {
-    super.initState();
-    if (kDebugHeaderLayout && !widget.ink) {
-      WidgetsBinding.instance.addPostFrameCallback((_) => _measure());
-    }
-  }
+/// The cap/x-height ratio for [family] for the configured reference band.
+double _referenceRatio(String? family) =>
+    VHeaderMetrics.opticalReference == HeaderOpticalReference.capHeight
+    ? AppTypography.capHeightRatioFor(family)
+    : AppTypography.xHeightRatioFor(family);
 
-  Future<void> _measure() async {
-    final context = _key.currentContext;
-    if (context == null || !mounted) return;
-    final root = context.findRenderObject();
-    if (root == null) return;
-    final paragraph = _firstParagraph(root);
-    if (paragraph == null) return;
-    final scaler = MediaQuery.textScalerOf(context);
-    final dpr = MediaQuery.devicePixelRatioOf(context);
-    final local = await _measureInk(paragraph, scaler, dpr);
-    if (local == null || !mounted) return;
-    final shift = paragraph.localToGlobal(Offset.zero, ancestor: root);
-    debugPrint(
-      '[hdrink] dpr=$dpr paragraph=${paragraph.size} local=$local '
-      'shift=$shift global=${local.shift(shift)}',
-    );
-    setState(() => _inkRect = local.shift(shift));
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    if (!kDebugHeaderLayout) return widget.child;
-    return CustomPaint(
-      foregroundPainter: _GuidePainter(
-        _key,
-        widget.fractions,
-        widget.color,
-        widget.ink,
-        _inkRect,
-      ),
-      child: KeyedSubtree(key: _key, child: widget.child),
-    );
-  }
+/// The baseline position (from the top of the single-line box) for a line at
+/// [fontSize] with [style]'s line-height, using the font's natural typo metrics.
+///
+/// Flutter centers the font's NATURAL run inside a shorter line box (and scales
+/// it up when the box is taller):
+///   natural line = fontSize·(ascent+descent)
+///   shorter box → baseline = (box − natural)/2 + fontSize·ascent
+///   taller  box → baseline = box · ascent/(ascent+descent)
+/// An analytic [TextPainter] does NOT reproduce this for a compressed box, so
+/// computing it here keeps the header shift exact at any font/size.
+double _baselineInBox(TextStyle style, double fontSize) {
+  final family = style.fontFamily;
+  final boxH = fontSize * (style.height ?? 1.0);
+  final asc = AppTypography.ascentRatioFor(family);
+  final desc = AppTypography.descentRatioFor(family);
+  final naturalH = fontSize * (asc + desc);
+  if (boxH <= naturalH) return (boxH - naturalH) / 2 + fontSize * asc;
+  return boxH * asc / (asc + desc);
 }
 
-class _GuidePainter extends CustomPainter {
-  _GuidePainter(
-    this.textKey,
-    this.fractions,
-    this.color,
-    this.ink,
-    this.inkRect,
-  );
-
-  final GlobalKey textKey;
-  final List<double> fractions;
-  final Color color;
-
-  /// `null` is tolerated only so a hot-reloaded instance created before this
-  /// field existed cannot crash [shouldRepaint]; treated as the default `true`.
-  final bool? ink;
-
-  /// Measured glyph-ink box in painter space (icons), or null until measured.
-  final Rect? inkRect;
-
-  bool get _ink => ink ?? true;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final root = textKey.currentContext?.findRenderObject();
-    final paragraph = root == null ? null : _firstParagraph(root);
-    Offset? shift;
-    if (paragraph != null && root != null) {
-      shift = paragraph.localToGlobal(Offset.zero, ancestor: root);
-    }
-    final layoutBox = (paragraph != null && shift != null)
-        ? (Offset.zero & paragraph.size).shift(shift)
-        : null;
-    final tightLocal = paragraph == null ? null : _tightTextBox(paragraph);
-    final tightBox = (tightLocal != null && shift != null)
-        ? tightLocal.shift(shift)
-        : null;
-    final box = _ink
-        ? (tightBox ?? layoutBox ?? (Offset.zero & size))
-        : (inkRect ?? layoutBox ?? (Offset.zero & size));
-    final height = box.height;
-    final guide = Paint()
-      ..color = color
-      ..strokeWidth = 1;
-    for (final f in fractions) {
-      final y = box.top + height * f;
-      canvas.drawLine(Offset(0, y), Offset(size.width, y), guide);
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant _GuidePainter oldDelegate) =>
-      oldDelegate.textKey != textKey ||
-      oldDelegate.color != color ||
-      oldDelegate.ink != ink ||
-      oldDelegate.inkRect != inkRect ||
-      !identical(oldDelegate.fractions, fractions);
+/// Down-positive offset that centers [style]'s reference band inside its own
+/// laid-out line box, at the ambient text scale. Adding it makes the Row's
+/// default center alignment land every element's band center on the same line.
+double _opticalShift(BuildContext context, TextStyle style) {
+  final fontSize = MediaQuery.textScalerOf(context).scale(style.fontSize ?? 14);
+  final baseline = _baselineInBox(style, fontSize);
+  final bandCenter =
+      baseline - fontSize * _referenceRatio(style.fontFamily) / 2;
+  final boxH = fontSize * (style.height ?? 1.0);
+  return boxH / 2 - bandCenter;
 }
 
-/// Applies [nudge] below [child] and paints [nudgeColor] around it. The
-/// nudge band stays at the un-nudged layout rect while the inner [dimColor]
-/// box shifts, so the offset itself is visible.
-Widget _nudged(Widget child, double nudge, Color nudgeColor, Color dimColor) {
-  return _dbg(
-    Transform.translate(
-      offset: Offset(0, nudge),
-      child: _dbg(_dbgBottomLine(child), dimColor),
-    ),
-    nudgeColor,
-  );
-}
+/// The label style used to align a TEXT action (buttons). Icons are aligned by
+/// their box; text buttons by their label's optical band.
+TextStyle _actionLabelStyle(BuildContext context) =>
+    Theme.of(context).textTheme.labelLarge ?? const TextStyle(fontSize: 14);
 
 /// The single shared title row used by every header presentation: an optional
 /// back arrow, the title (plain [VDisplayText] or a custom [titleWidget] such
@@ -386,56 +151,61 @@ class VHeaderTitleRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final children = <Widget>[
-      if (showBack)
-        _nudged(
-          _GuideProbe(
-            fractions: _glyphGuideFractions,
-            color: _dbgNeon,
-            ink: false,
-            child: BackButton(
-              onPressed: onBack ?? () => Navigator.of(context).maybePop(),
-            ),
-          ),
-          VHeaderMetrics.backArrowNudge,
-          _dbgBackNudge,
-          _dbgArrow,
-        ),
-      if (showBack && (title != null || titleWidget != null))
-        _dbg(const SizedBox(width: AppSpacing.xs), _dbgMargin),
-      if (titleWidget != null)
-        Expanded(child: _dbgBottomLine(titleWidget!))
-      else if (title != null)
-        Expanded(
-          child: _dbgBottomLine(
-            _GuideProbe(
-              fractions: _titleGuideFractions,
-              color: const Color(0xFFFF0000),
-              child: VDisplayText(text: title!, maxLines: maxLines),
-            ),
-          ),
-        ),
-      // Every action inherits the shared action nudge — no call-site offset.
-      ...?actions?.map(
-        (action) => _nudged(
-          _GuideProbe(
-            fractions: _glyphGuideFractions,
-            color: _dbgNeon,
-            ink: false,
-            child: action,
-          ),
-          VHeaderMetrics.actionNudge,
-          _dbgActionNudge,
-          _dbgAction,
-        ),
-      ),
-    ];
+    // Model A — one shared optical centerline. The Row's own center is the
+    // centerline; each element is shifted so its reference band center lands
+    // there: icons by their grid-balanced box, text by its font-metric band.
+    final titleStyle = VDisplayText.styleFor(VDisplayText.defaultSize);
+    final titleShift = title != null && titleWidget == null
+        ? _opticalShift(context, titleStyle)
+        : 0.0;
+    final labelShift = _opticalShift(context, _actionLabelStyle(context));
+    final hasTitle = title != null || titleWidget != null;
 
     return SizedBox(
       height: height,
-      child: _dbg(Row(children: children), _dbgMix(_dbgArrow, _dbgAction)),
+      child: Row(
+        children: [
+          if (showBack)
+            Transform.translate(
+              offset: const Offset(0, VHeaderMetrics.backArrowNudge),
+              child: BackButton(
+                onPressed: onBack ?? () => Navigator.of(context).maybePop(),
+              ),
+            ),
+          if (showBack && hasTitle) const SizedBox(width: AppSpacing.xs),
+          if (titleWidget != null)
+            Expanded(child: titleWidget!)
+          else if (title != null)
+            Expanded(
+              child: Transform.translate(
+                offset: Offset(0, titleShift),
+                child: VDisplayText(text: title!, maxLines: maxLines),
+              ),
+            ),
+          // Actions: icons align by box center, text buttons by their label
+          // band. Fine-tune rides `actionNudge` — callers never offset.
+          ...?actions?.map((action) {
+            final shift =
+                (_actionIsText(action) ? labelShift : 0.0) +
+                VHeaderMetrics.actionNudge;
+            return Transform.translate(offset: Offset(0, shift), child: action);
+          }),
+        ],
+      ),
     );
   }
+}
+
+/// Whether [action] is a text-labeled button (align by its label band) vs an
+/// icon/composite (align by box center). Unwraps a single [Padding] so a padded
+/// [TextButton] still counts. Icons and composite rows (icon + text) use the
+/// box center — their internal content is grid-balanced by construction.
+bool _actionIsText(Widget action) {
+  Widget? w = action;
+  while (w is Padding) {
+    w = w.child;
+  }
+  return w is ButtonStyleButton;
 }
 
 /// Unified top bar — one definition for every pushed screen's header.
@@ -472,29 +242,22 @@ class VHeaderBar extends StatelessWidget {
       children: [
         SizedBox(
           height: VHeaderMetrics.barHeight,
-          child: _dbg(
-            Container(
-              padding: VHeaderMetrics.titleInset,
-              color: kDebugHeaderLayout ? _dbgPad : null,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  _dbg(
-                    const SizedBox(height: VHeaderMetrics.heroTopPad),
-                    _dbgMargin,
-                  ),
-                  VHeaderTitleRow(
-                    title: title,
-                    titleWidget: titleWidget,
-                    actions: actions,
-                    showBack: showBack,
-                    onBack: onBack,
-                    maxLines: maxLines,
-                  ),
-                ],
-              ),
+          child: Padding(
+            padding: VHeaderMetrics.titleInset,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const SizedBox(height: VHeaderMetrics.heroTopPad),
+                VHeaderTitleRow(
+                  title: title,
+                  titleWidget: titleWidget,
+                  actions: actions,
+                  showBack: showBack,
+                  onBack: onBack,
+                  maxLines: maxLines,
+                ),
+              ],
             ),
-            _dbgHeader,
           ),
         ),
         ?bottom,
