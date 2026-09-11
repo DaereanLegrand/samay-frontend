@@ -206,3 +206,11 @@ Build in layers so the next feature slots in without a rewrite:
   Authoritative per-step statuses: `docs/specs/steps/cross-references.md`;
   open work items: specs kept under `docs/specs/steps/` for unimplemented steps.
 - **Security posture + open items:** [`docs/security/SECURITY.md`](docs/security/SECURITY.md).
+
+## License
+
+Samay is released under the **GNU Affero General Public License, version 3**
+(AGPL-3.0). The full text is in [`LICENSE`](LICENSE); third-party components and
+disclosures are listed in [`NOTICE`](NOTICE). AGPL-3.0 requires that anyone who
+runs a modified version of this software as a network service offers its
+corresponding source to the users of that service.
