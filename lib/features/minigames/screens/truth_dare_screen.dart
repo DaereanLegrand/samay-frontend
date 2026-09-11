@@ -2337,14 +2337,19 @@ class _FinishedLeaderboardState extends ConsumerState<_FinishedLeaderboard> {
         return LayoutBuilder(
           builder: (context, constraints) {
             // A compact, vertically-centered card — tall enough for a question
-            // plus a few answer lines, never the full screen.
-            final cardHeight = min(constraints.maxHeight * 0.54, 440.0);
+            // plus a few answer lines, never the full screen. Clamped to a
+            // sane minimum so a transient zero/degenerate height (e.g. the
+            // first frame before the header settles) can never hand the
+            // PageView a zero-size viewport.
+            final rawHeight = constraints.maxHeight * 0.54;
+            final cardHeight = rawHeight.isFinite
+                ? rawHeight.clamp(220.0, 440.0)
+                : 440.0;
             return Center(
               child: SizedBox(
                 height: cardHeight,
                 child: PageView.builder(
                   controller: _controller,
-                  clipBehavior: Clip.none,
                   itemCount: rows.length,
                   onPageChanged: (i) => setState(() => _index = i),
                   itemBuilder: (context, i) {
@@ -2360,7 +2365,12 @@ class _FinishedLeaderboardState extends ConsumerState<_FinishedLeaderboard> {
                         final delta = (page - i).clamp(-1.0, 1.0);
                         final absDelta = delta.abs();
                         final opacity = (1 - absDelta * 0.7).clamp(0.0, 1.0);
-                        final blur = (absDelta * 5).clamp(0.0, 5.0);
+                        // Blur only while a card is actually on screen mid-
+                        // transition; a fully receded card is effectively
+                        // invisible, so skip the offscreen filter compositing.
+                        final blur = absDelta < 0.98
+                            ? (absDelta * 5).clamp(0.0, 5.0)
+                            : 0.0;
                         final angle = -delta * 0.5;
                         final scale = 1 - absDelta * 0.28;
                         final dx = delta * screenWidth * 0.14;
@@ -2390,13 +2400,20 @@ class _FinishedLeaderboardState extends ConsumerState<_FinishedLeaderboard> {
                           ),
                         );
                       },
-                      child: _RankCard(
-                        row: row,
-                        name: _usernameFor(row.participantId, roster, l10n),
-                        answers: content.answersFor(row.participantId),
-                        selected: _index == i,
-                        replayToken: _replayToken,
-                        onTap: () => _select(i),
+                      // RepaintBoundary isolates the card's own scrollable
+                      // from the perspective blur compositing — without it the
+                      // offscreen filter path could composite the nested
+                      // viewport before its sliver was laid out, crashing
+                      // RenderViewportBase with a null sliver geometry.
+                      child: RepaintBoundary(
+                        child: _RankCard(
+                          row: row,
+                          name: _usernameFor(row.participantId, roster, l10n),
+                          answers: content.answersFor(row.participantId),
+                          selected: _index == i,
+                          replayToken: _replayToken,
+                          onTap: () => _select(i),
+                        ),
                       ),
                     );
                   },
@@ -2814,7 +2831,14 @@ class _LeaderboardEmojiRiseState extends State<_LeaderboardEmojiRise> {
 
   @override
   Widget build(BuildContext context) {
+    // StackFit.passthrough is REQUIRED: the default StackFit.loose loosens the
+    // tight height the outer PageView hands the card, leaving the card's
+    // `Expanded` answer pager with unbounded height — a flex layout exception
+    // that aborts the viewport layout and surfaces as a null `geometry!` crash
+    // in RenderViewportBase. Passthrough preserves the incoming constraints so
+    // the child lays out exactly as it would without the celebration overlay.
     return Stack(
+      fit: StackFit.passthrough,
       children: [
         widget.child,
         if (_active.isNotEmpty)
