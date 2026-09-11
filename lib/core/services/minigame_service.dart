@@ -907,6 +907,16 @@ RealtimeChannel subscribeToSession(String id) {
     switch (result['status']) {
       case 'submitted':
         return;
+      case 'advanced':
+        // The caller's was the LAST required reaction: `submit_minigame_reaction`
+      // recorded it AND closed the round by delegating to
+      // `_minigame_advance_round` (207), which returns `advanced` (or the
+      // `finished` / `already_finished` variants at the round target). The
+      // write succeeded — the caller's notifier refreshes into the next round.
+      // Not an error (defect: the last reactor saw a bogus snackbar).
+      case 'finished':
+      case 'already_finished':
+        return;
       case 'too_fast':
         // Controlled-spam window: the server dropped the write (no seq bump,
         // no event). The tapper's local rise already played — stay silent,
@@ -929,6 +939,13 @@ RealtimeChannel subscribeToSession(String id) {
         throw ConflictError(
           'La partida aún no empieza',
           code: 'not_started',
+        );
+      case 'own_round':
+        throw PermissionError();
+      case 'answer_pending':
+        throw ConflictError(
+          'La ronda aún no se puede valorar',
+          code: 'answer_pending',
         );
       case 'invalid_reaction':
         throw ValidationError('reaction', 'Reacción no válida');
@@ -1035,6 +1052,11 @@ RealtimeChannel subscribeToSession(String id) {
     switch (result['status']) {
       case 'advanced':
         return;
+      // The pass closed the FINAL round (`_minigame_advance_round` delegates to
+      // `finish_minigame_game` at the round target) — a success, not an error.
+      case 'finished':
+      case 'already_finished':
+        return;
       case 'not_authenticated':
         throw const MinigameSessionRejectedException(
           MinigameSessionRejection.notAuthenticated,
@@ -1100,6 +1122,11 @@ RealtimeChannel subscribeToSession(String id) {
         : <String, dynamic>{};
     switch (result['status']) {
       case 'submitted':
+        return;
+      // The async answer completed the FINAL round and settled the game
+      // (`finish_minigame_game`) — a success, not an error.
+      case 'finished':
+      case 'already_finished':
         return;
       case 'not_authenticated':
         throw const MinigameSessionRejectedException(

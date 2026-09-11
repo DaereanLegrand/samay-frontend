@@ -2,11 +2,13 @@ import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:samay/core/config/app_constants.dart';
 import 'package:samay/core/logging/app_logger.dart';
 import 'package:samay/core/providers/auth_provider.dart';
 import 'package:samay/core/providers/realtime_provider.dart';
 import 'package:samay/core/providers/service_providers.dart';
 import 'package:samay/core/services/minigame_service.dart';
+import 'package:samay/core/utils/async_ops.dart';
 import 'package:samay/features/chat/providers/chat_providers.dart';
 import 'package:samay/features/minigames/logic/minigame_cipher.dart';
 import 'package:samay/features/minigames/logic/minigame_engine.dart';
@@ -1075,7 +1077,17 @@ class MinigamePlayerContentNotifier
   MinigameService get _service => ref.read(minigameServiceProvider);
 
   @override
-  Future<MinigamePlayerContent> build(String sessionId) async {
+  Future<MinigamePlayerContent> build(String sessionId) {
+    // The finished leaderboard must never hang on the answer content: a slow
+    // or stuck download surfaces as an error after a short, tunable window so
+    // the card can offer a discreet retry (2026-09-11 user directive).
+    return withTimeout(
+      () => _load(sessionId),
+      timeout: AppConstants.leaderboardAnswersTimeout,
+    );
+  }
+
+  Future<MinigamePlayerContent> _load(String sessionId) async {
     final rawAnswers = await _service.getSessionAnswers(sessionId);
     final rawReactions = await _service.getSessionReactions(sessionId);
     final cipher = ref.read(minigameCipherProvider(sessionId));

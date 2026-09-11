@@ -2889,6 +2889,21 @@
       "amount": { "type": "int" }
     }
   },
+  "minigamesPointsAmount": "{count} puntos",
+  "@minigamesPointsAmount": {
+    "description": "Leaderboard score label per ranked player",
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "minigamesAnswersLoadError": "Ups, no pudimos cargar las respuestas de la partida. Inténtalo más tarde.",
+  "@minigamesAnswersLoadError": {
+    "description": "Discreet retry prompt inside a leaderboard card when the decrypted answers fail to load"
+  },
+  "minigamesNoAnswers": "Sin respuestas registradas",
+  "@minigamesNoAnswers": {
+    "description": "Neutral leaderboard card state for a player with no recorded answers"
+  },
   "minigamesErrorLoadGame": "No se pudo cargar el juego",
   "@minigamesErrorLoadGame": {
     "description": "Error state on the play screen when the game state fails to load"

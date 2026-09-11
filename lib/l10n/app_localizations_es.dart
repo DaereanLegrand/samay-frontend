@@ -2180,6 +2180,18 @@ class AppLocalizationsEs extends AppLocalizations {
   }
 
   @override
+  String minigamesPointsAmount(int count) {
+    return '$count puntos';
+  }
+
+  @override
+  String get minigamesAnswersLoadError =>
+      'Ups, no pudimos cargar las respuestas de la partida. Inténtalo más tarde.';
+
+  @override
+  String get minigamesNoAnswers => 'Sin respuestas registradas';
+
+  @override
   String get minigamesErrorLoadGame => 'No se pudo cargar el juego';
 
   @override

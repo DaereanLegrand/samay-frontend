@@ -4022,6 +4022,24 @@ abstract class AppLocalizations {
   /// **'{amount} shards'**
   String minigamesPrizeAmount(int amount);
 
+  /// Leaderboard score label per ranked player
+  ///
+  /// In es, this message translates to:
+  /// **'{count} puntos'**
+  String minigamesPointsAmount(int count);
+
+  /// Discreet retry prompt inside a leaderboard card when the decrypted answers fail to load
+  ///
+  /// In es, this message translates to:
+  /// **'Ups, no pudimos cargar las respuestas de la partida. Inténtalo más tarde.'**
+  String get minigamesAnswersLoadError;
+
+  /// Neutral leaderboard card state for a player with no recorded answers
+  ///
+  /// In es, this message translates to:
+  /// **'Sin respuestas registradas'**
+  String get minigamesNoAnswers;
+
   /// Error state on the play screen when the game state fails to load
   ///
   /// In es, this message translates to:
