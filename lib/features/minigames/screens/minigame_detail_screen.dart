@@ -672,28 +672,23 @@ class _NewPartidaScreenState extends ConsumerState<_NewPartidaScreen> {
         actions: [
           Padding(
             padding: const EdgeInsets.only(right: AppSpacing.md),
-            child: Transform.translate(
-              // Playfair's hhea box is top-heavy (ascent 1082 / descent
-              // -251): like the back arrow (v_header_bar.dart:72), nudge the
-              // shard number+symbol down so it reads optically centered with
-              // the title.
-              offset: const Offset(0, 6),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const VShardIcon(size: AppIconSizes.sm),
-                  const SizedBox(width: AppSpacing.xs),
-                  Text(
-                    // Just the number — the shard icon already conveys the unit.
-                    '$balance',
-                    style: const TextStyle(
-                      color: AppColors.white,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                    ),
+            // The shard number+symbol shares the header's default action
+            // nudge (VHeaderMetrics.actionNudge) — no local offset.
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const VShardIcon(size: AppIconSizes.sm),
+                const SizedBox(width: AppSpacing.xs),
+                Text(
+                  // Just the number — the shard icon already conveys the unit.
+                  '$balance',
+                  style: const TextStyle(
+                    color: AppColors.white,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         ],

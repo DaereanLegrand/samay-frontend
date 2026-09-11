@@ -597,7 +597,7 @@ class AppLocalizationsEs extends AppLocalizations {
   }
 
   @override
-  String get groupsSearchUsersHint => 'Buscar usuarios por username...';
+  String get groupsSearchUsersHint => 'Busca aquí...';
 
   @override
   String get groupsMinCharsHint => 'Escribe al menos 2 caracteres para buscar';

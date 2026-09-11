@@ -201,14 +201,11 @@ class _MinigameSessionDetailScreenState
         // right while waiting — inviting is done AFTER the match exists.
         actions: [
           if (isCreator && !isFinished)
-            Padding(
-              padding: const EdgeInsets.only(right: AppSpacing.md),
-              child: IconButton(
-                icon: const Icon(Icons.person_add_alt),
-                tooltip: l10n.minigamesInviteTitle,
-                color: AppColors.white,
-                onPressed: () => _invite(context, ref, l10n),
-              ),
+            IconButton(
+              icon: const Icon(Icons.person_add_alt),
+              tooltip: l10n.minigamesInviteTitle,
+              color: AppColors.white,
+              onPressed: () => _invite(context, ref, l10n),
             ),
         ],
         child: session.when(

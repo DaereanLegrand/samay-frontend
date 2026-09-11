@@ -1163,7 +1163,7 @@ abstract class AppLocalizations {
   /// Search field hint on the invite screen
   ///
   /// In es, this message translates to:
-  /// **'Buscar usuarios por username...'**
+  /// **'Busca aquí...'**
   String get groupsSearchUsersHint;
 
   /// Helper text before the search query is long enough
