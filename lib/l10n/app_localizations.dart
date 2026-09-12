@@ -3152,12 +3152,6 @@ abstract class AppLocalizations {
   /// **'Si el problema continúa, presiona Reintentar.'**
   String get codeServerPendingBody;
 
-  /// Attendance code: return button on the already-attended terminal state
-  ///
-  /// In es, this message translates to:
-  /// **'Regresar'**
-  String get codeAlreadyAttendedReturn;
-
   /// Attendance code: terminal word revealed under the check mark once assisted
   ///
   /// In es, this message translates to:

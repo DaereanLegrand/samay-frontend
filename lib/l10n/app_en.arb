@@ -2223,10 +2223,6 @@
   "@codeServerPendingBody": {
     "description": "Attendance code: server-pending retry hint"
   },
-  "codeAlreadyAttendedReturn": "Go back",
-  "@codeAlreadyAttendedReturn": {
-    "description": "Attendance code: return button on the already-attended terminal state"
-  },
   "codeAssistedDone": "DONE",
   "@codeAssistedDone": {
     "description": "Attendance code: terminal word revealed under the check mark once assisted"

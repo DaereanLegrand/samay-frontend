@@ -56,9 +56,11 @@ class SamayDurations {
   /// can be re-tapped" (deliberate taps after the window each animate).
   static const reactionTapCooldown = Duration(milliseconds: 350);
 
-  /// Attendee assist reveal (2026-09-10, Task D): once the host/staff scan
-  /// confirms an attendee, an OPEN QR screen expands+fades its code out
-  /// (easeInCubic), then pops a check mark in its place (easeOutBack) and
-  /// eases the "LISTO"/"DONE" word in below (easeOutCubic). One-shot, ~1.6 s.
-  static const assistReveal = Duration(milliseconds: 1600);
+  /// Attendee assist reveal (2026-09-10, Task D; reworked 2026-09-11): once the
+  /// host/staff scan confirms an attendee, an OPEN QR screen keeps the code
+  /// pinned and DISSOLVES it in place (opacity 1→0, blur 0→max,
+  /// easeInOutCubic); halfway through, a check mark and the "LISTO"/"DONE" word
+  /// condense in at the QR's centre as the inverse dissolve (opacity 0→1,
+  /// blur max→0, easeInOutCubic). One-shot, ~2 s.
+  static const assistReveal = Duration(milliseconds: 2000);
 }

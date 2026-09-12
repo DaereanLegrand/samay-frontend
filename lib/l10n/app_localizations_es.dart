@@ -1679,9 +1679,6 @@ class AppLocalizationsEs extends AppLocalizations {
       'Si el problema continúa, presiona Reintentar.';
 
   @override
-  String get codeAlreadyAttendedReturn => 'Regresar';
-
-  @override
   String get codeAssistedDone => 'LISTO';
 
   @override

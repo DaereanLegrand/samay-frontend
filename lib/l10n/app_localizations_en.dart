@@ -1674,9 +1674,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get codeServerPendingBody => 'If the problem persists, press Retry.';
 
   @override
-  String get codeAlreadyAttendedReturn => 'Go back';
-
-  @override
   String get codeAssistedDone => 'DONE';
 
   @override
