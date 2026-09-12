@@ -275,7 +275,7 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
   }
 
   Future<void> signIn(String email, String password) async {
-    state = state.copyWithPrevious(const AsyncLoading());
+    state = const AsyncLoading<AuthState>().copyWithPrevious(state);
     try {
       await resilient(
         () => _service.signIn(email, password),
@@ -300,7 +300,7 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
   }
 
   Future<void> sendOtp(String email) async {
-    state = state.copyWithPrevious(const AsyncLoading());
+    state = const AsyncLoading<AuthState>().copyWithPrevious(state);
     try {
       await resilient(
         () => _service.sendOtp(email),
@@ -330,7 +330,7 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
   /// anti-enumeration contract: the response never reveals whether the email
   /// has an account — the screen always lands on its success state).
   Future<void> resetPasswordForEmail(String email) async {
-    state = state.copyWithPrevious(const AsyncLoading());
+    state = const AsyncLoading<AuthState>().copyWithPrevious(state);
     try {
       await resilient(
         () => _service.resetPasswordForEmail(email),
@@ -345,7 +345,7 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
   }
 
   Future<void> verifyOtp(String email, String token, [String? password]) async {
-    state = state.copyWithPrevious(const AsyncLoading());
+    state = const AsyncLoading<AuthState>().copyWithPrevious(state);
     try {
       await resilient(
         () => _service.verifyOtp(email, token),
@@ -376,7 +376,7 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
   }
 
   Future<void> signUp(String email, String password) async {
-    state = state.copyWithPrevious(const AsyncLoading());
+    state = const AsyncLoading<AuthState>().copyWithPrevious(state);
     try {
       await _service.signUp(email, password);
       final user = _service.getCurrentUser();
@@ -391,7 +391,7 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
   }
 
   Future<void> createProfile(String username, {String? dateOfBirth}) async {
-    state = state.copyWithPrevious(const AsyncLoading());
+    state = const AsyncLoading<AuthState>().copyWithPrevious(state);
     try {
       await resilient(
         () => _service.createUserProfile(
