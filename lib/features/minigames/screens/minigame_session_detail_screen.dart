@@ -157,6 +157,17 @@ class _MinigameSessionDetailScreenState
     // the partida is still active — 205_minigame_invite_lobby).
     final isFinished = session.valueOrNull?['status'] == 'finished';
 
+    // 209_minigame_invite_context (2026-09-11): the authoritative "am I in
+    // this session" switch. A non-participant is a pending invitee or a
+    // stranger — neither may ever render `_LobbySection`, whose roster RPC is
+    // readable to a pending invitee (that was the pre-accept roster flash).
+    final isParticipant = myId != null && participantIds.contains(myId);
+    // Only a non-participant needs the inviter context (the host has no invite
+    // row), so participants never pay for the extra RPC.
+    final inviteContext = (!isParticipant && !isFinished)
+        ? ref.watch(minigameInviteContextProvider(_sessionId))
+        : const AsyncValue<Map<String, dynamic>?>.data(null);
+
     // 190_minigame_countdown: when the server flips countdown → playing (the
     // 5s deadline passed and the host did not cancel), EVERY participant is
     // taken to the play screen together — the countdown overlay is replaced
@@ -228,6 +239,36 @@ class _MinigameSessionDetailScreenState
             final countdown = gameState.valueOrNull?.skeleton.isCountdown ??
                 false;
 
+            // 209_minigame_invite_context (2026-09-11): a not-yet-accepted
+            // invitee must never see the roster. `isParticipant` gates the
+            // lobby; a non-participant waits on the invite/context load and
+            // then renders ONLY the inviter ("INVITADO POR").
+            final Widget inviteOrLobby;
+            if (isParticipant) {
+              inviteOrLobby = _LobbySection(
+                sessionId: _sessionId,
+                finished: finished,
+              );
+            } else if (invite.isLoading ||
+                (isPending && inviteContext.isLoading)) {
+              inviteOrLobby = const Padding(
+                padding: EdgeInsets.all(AppSpacing.xl),
+                child: VLoadingView(),
+              );
+            } else if (isPending) {
+              inviteOrLobby = _InviteCard(
+                inviter: inviteContext.valueOrNull?['inviter']
+                    as Map<String, dynamic>?,
+                groupName: inviteContext.valueOrNull?['groupName'] as String?,
+                onAccept: () => _accept(context, ref, l10n),
+                onDecline: () => _decline(context, ref, l10n),
+              );
+            } else {
+              // No invite and not a participant (stranger), or a pending
+              // invite on a finished session: nothing may be revealed.
+              inviteOrLobby = VCard(child: Text(l10n.minigamesInviteClosed));
+            }
+
             return Stack(
               children: [
                 ListView(
@@ -272,15 +313,7 @@ class _MinigameSessionDetailScreenState
                       ),
                     ),
                     const SizedBox(height: AppSpacing.lg),
-                    if (isPending)
-                      _InviteCard(
-                        onAccept: () => _accept(context, ref, l10n),
-                        onDecline: () => _decline(context, ref, l10n),
-                      )
-                    else if (inviteStatus == 'pending' && finished)
-                      VCard(child: Text(l10n.minigamesInviteClosed))
-                    else
-                      _LobbySection(sessionId: _sessionId, finished: finished),
+                    inviteOrLobby,
                   ],
                 ),
                 // 190: the full-screen pre-play countdown overlay (all
@@ -400,9 +433,25 @@ class _MinigameSessionDetailScreenState
   }
 }
 
-/// The accept/decline pair for a PENDING invitee (unchanged 140 behavior).
+/// The accept/decline card for a PENDING invitee. Shows the inviter as an
+/// "INVITADO POR" row — avatar + username + subtitle, the same voice as a
+/// [_ParticipantRow] — and NOTHING else about the roster
+/// (209_minigame_invite_context). On accept `isParticipant` flips and this
+/// card is replaced by the lobby, so the label disappears on RPC confirmation.
 class _InviteCard extends StatelessWidget {
-  const _InviteCard({required this.onAccept, required this.onDecline});
+  const _InviteCard({
+    required this.inviter,
+    this.groupName,
+    required this.onAccept,
+    required this.onDecline,
+  });
+
+  /// The inviter's `{id, username, avatar_url}` from
+  /// `get_minigame_invite_context` (null when the profile is deleted/blocked).
+  final Map<String, dynamic>? inviter;
+
+  /// The group name for a GROUP session, null for a direct one.
+  final String? groupName;
 
   final VoidCallback onAccept;
   final VoidCallback onDecline;
@@ -410,6 +459,11 @@ class _InviteCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final username = (inviter?['username'] as String?)?.trim();
+    final avatarUrl = inviter?['avatar_url'] as String?;
+    final hasName = username != null && username.isNotEmpty;
+    final initials = hasName ? username[0] : '?';
+
     return VCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -418,6 +472,49 @@ class _InviteCard extends StatelessWidget {
             l10n.minigamesInvitePendingBody,
             style: Theme.of(context).textTheme.bodyLarge,
           ),
+          const SizedBox(height: AppSpacing.md),
+          // INVITADO POR — the inviter alone, styled like a participant row.
+          Row(
+            children: [
+              ProfileAvatar(
+                size: 36,
+                initials: initials,
+                imageUrl: avatarUrl,
+              ),
+              const SizedBox(width: AppSpacing.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      hasName ? username : l10n.minigamesInvitedBy,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    if (hasName)
+                      Text(
+                        l10n.minigamesInvitedBy,
+                        style: const TextStyle(
+                          color: AppColors.mutedStrong,
+                          fontSize: 11,
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          if (groupName != null && groupName!.isNotEmpty) ...[
+            const SizedBox(height: AppSpacing.sm),
+            Text(
+              l10n.minigamesInviteFromGroup(groupName!),
+              style: const TextStyle(
+                color: AppColors.mutedStrong,
+                fontSize: 12,
+              ),
+            ),
+          ],
           const SizedBox(height: AppSpacing.md),
           Row(
             children: [

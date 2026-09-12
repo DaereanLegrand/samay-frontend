@@ -4349,7 +4349,7 @@ abstract class AppLocalizations {
   /// App bar confirm action for the minigame player picker
   ///
   /// In es, this message translates to:
-  /// **'Invitar ({count})'**
+  /// **'Enviar ({count})'**
   String minigamesInviteCount(int count);
 
   /// App bar title of the minigame session detail
@@ -4531,6 +4531,12 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'Grupo {name}'**
   String minigamesInviteFromGroup(String name);
+
+  /// Session detail pending invite: subtitle under the inviter's username (mirrors the participant 'Anfitrión' subtitle)
+  ///
+  /// In es, this message translates to:
+  /// **'Invitado por'**
+  String get minigamesInvitedBy;
 
   /// Session detail: accept the pending invite button
   ///

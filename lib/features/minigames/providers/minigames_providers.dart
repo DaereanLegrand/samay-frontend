@@ -365,6 +365,7 @@ class MinigameInviteNotifier
     await refresh();
     ref.invalidate(sessionStatusProvider(arg));
     ref.invalidate(minigameParticipantsProvider(arg));
+    ref.invalidate(minigameInviteContextProvider(arg));
     ref.invalidate(myPendingInvitesProvider);
     await _markInviteNotificationRead(inviteId);
     await _distributeKeysOnAccept();
@@ -419,6 +420,7 @@ class MinigameInviteNotifier
     if (inviteId == null) return;
     await _service.declineInvite(inviteId);
     await refresh();
+    ref.invalidate(minigameInviteContextProvider(arg));
     ref.invalidate(myPendingInvitesProvider);
     await _markInviteNotificationRead(inviteId);
   }
@@ -461,6 +463,35 @@ final minigameInviteProvider =
       Map<String, dynamic>?,
       String
     >(MinigameInviteNotifier.new);
+
+/// The narrow pending-invite CONTEXT for one session (family by session id):
+/// the inviter's `{id, username, avatar_url}` + group name, or null when the
+/// caller holds no invite. Backed by `get_minigame_invite_context`
+/// (209_minigame_invite_context).
+///
+/// The pending lobby renders ONLY this — never `minigameParticipantsProvider`,
+/// whose invite gate would otherwise stream the full roster into the client
+/// before the invitee accepts (2026-09-11 directive).
+class MinigameInviteContextNotifier
+    extends FamilyAsyncNotifier<Map<String, dynamic>?, String> {
+  MinigameService get _service => ref.read(minigameServiceProvider);
+
+  @override
+  Future<Map<String, dynamic>?> build(String sessionId) {
+    return _service.getInviteContext(sessionId);
+  }
+
+  /// Re-runs [build] after an accept/decline (finding SM-09).
+  Future<void> refresh() async => ref.invalidateSelf();
+}
+
+/// The pending-invite context (inviter + group name) for one session.
+final minigameInviteContextProvider =
+    AsyncNotifierProvider.family<
+      MinigameInviteContextNotifier,
+      Map<String, dynamic>?,
+      String
+    >(MinigameInviteContextNotifier.new);
 
 /// The HOST-side per-invitee invite state for one session
 /// (`{invitee_id: status}`) — the lobby picker's "enviada/sent" tag

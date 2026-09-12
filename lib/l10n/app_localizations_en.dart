@@ -2458,6 +2458,9 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get minigamesInvitedBy => 'Invited by';
+
+  @override
   String get minigamesInviteAccept => 'Accept';
 
   @override

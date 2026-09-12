@@ -2359,7 +2359,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String minigamesInviteCount(int count) {
-    return 'Invitar ($count)';
+    return 'Enviar ($count)';
   }
 
   @override
@@ -2464,6 +2464,9 @@ class AppLocalizationsEs extends AppLocalizations {
   String minigamesInviteFromGroup(String name) {
     return 'Grupo $name';
   }
+
+  @override
+  String get minigamesInvitedBy => 'Invitado por';
 
   @override
   String get minigamesInviteAccept => 'Aceptar';

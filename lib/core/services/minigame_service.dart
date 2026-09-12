@@ -460,6 +460,40 @@ class MinigameService {
     return res == null ? null : Map<String, dynamic>.from(res);
   }
 
+  /// The narrow INVITE CONTEXT for [sessionId] when the caller holds an
+  /// invite (`209_minigame_invite_context`): the inviter's
+  /// `{id, username, avatar_url}` plus the group name (null for a direct
+  /// session). Returns null when the caller has no invite for the session
+  /// (`invite_not_found`).
+  ///
+  /// This is deliberately the ONLY identity a pending invitee may resolve:
+  /// `get_minigame_participants` would leak the whole roster into the client
+  /// before the invitee accepts (2026-09-11 directive — a not-yet-accepted
+  /// invitee must never see the player list).
+  Future<Map<String, dynamic>?> getInviteContext(String sessionId) async {
+    final user = auth.currentUser;
+    if (user == null) throw const UnauthorizedError();
+    final res = await client.rpc(
+      'get_minigame_invite_context',
+      params: {'p_session_id': sessionId},
+    );
+    final result = res is Map
+        ? Map<String, dynamic>.from(res)
+        : <String, dynamic>{};
+    switch (result['status']) {
+      case 'ok':
+        return result;
+      case 'invite_not_found':
+        return null;
+      case 'not_authenticated':
+        throw const UnauthorizedError();
+      default:
+        throw const ServerError(
+          'Unexpected get_minigame_invite_context response',
+        );
+    }
+  }
+
   /// The HOST-side invite state for [sessionId], keyed by invitee id — the
   /// lobby picker's "already invited" tag (2026-09-02). RLS `mi_read_own`
   /// bounds the read to invites the caller CREATED, so only the host sees

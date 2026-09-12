@@ -3126,7 +3126,7 @@
   "@minigamesInviteTitle": {
     "description": "App bar title of the minigame player picker"
   },
-  "minigamesInviteCount": "Invitar ({count})",
+  "minigamesInviteCount": "Enviar ({count})",
   "@minigamesInviteCount": {
     "description": "App bar confirm action for the minigame player picker",
     "placeholders": {
@@ -3269,6 +3269,10 @@
         "type": "String"
       }
     }
+  },
+  "minigamesInvitedBy": "Invitado por",
+  "@minigamesInvitedBy": {
+    "description": "Session detail pending invite: subtitle under the inviter's username (mirrors the participant 'Anfitrión' subtitle)"
   },
   "minigamesInviteAccept": "Aceptar",
   "@minigamesInviteAccept": {
