@@ -537,11 +537,20 @@ class MinigameGameStateNotifier
   Future<MinigameGameState> build(String sessionId) async {
     // Live updates ride the I-52 realtime lifecycle provider (mirror of
     // MinigameSessionStatusNotifier); the game-state row key is session_id.
+    //
+    // event: .all (not .update) — 2026-09-08 fix: `init_minigame_game_state`
+    // INSERTs the very first row for a session that never had a Ready toggle
+    // pressed (nobody upserted the row yet). An UPDATE-only subscription
+    // never fires for that first write, so every OTHER participant's
+    // countdown overlay silently never appears — only the host (who reads
+    // its own RPC result directly, not via realtime) sees it. Subsequent
+    // writes are UPDATEs either way, so widening to .all changes nothing for
+    // the already-working path.
     ref.listen<AsyncValue<Map<String, dynamic>>>(
       realtimeChannelProvider((
         channelName: 'minigame-game-state:$sessionId',
         table: 'minigame_game_state',
-        event: PostgresChangeEvent.update,
+        event: PostgresChangeEvent.all,
       )),
       (_, next) {
         final row = next.valueOrNull;
@@ -736,6 +745,19 @@ class MinigameGameStateNotifier
   /// recomputes.
   Future<void> setReady(bool ready) async {
     await _service.setReady(arg, ready);
+    await refresh();
+  }
+
+  /// Drunk bottle (208_minigame_drunk_bottle): spins or stops the bottle for
+  /// the whole lobby — any current participant may call this (host-only
+  /// gating is a follow-up). Reloads the state so the caller's own screen
+  /// updates immediately; every other viewer gets it over realtime.
+  Future<void> setBottleSpin({required bool spinning, String? selectedId}) async {
+    await _service.setDrunkBottleSpin(
+      arg,
+      spinning: spinning,
+      selectedId: selectedId,
+    );
     await refresh();
   }
 
