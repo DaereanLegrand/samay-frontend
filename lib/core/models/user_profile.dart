@@ -14,6 +14,7 @@ abstract class UserProfile with _$UserProfile {
     @Default(0) int personalShards,
     @Default(0) int preshards,
     @Default('free') String subscriptionTier,
+    @Default('free') String entitlementTier,
     DateTime? deletedAt,
     DateTime? dateOfBirth,
   }) = _UserProfile;

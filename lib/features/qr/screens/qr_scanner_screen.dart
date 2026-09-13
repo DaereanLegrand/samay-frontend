@@ -48,25 +48,26 @@ class _ScanError extends _ScanResult {
   final String message;
 
   /// Network/server failures keep the banner with a retry button; business
-  /// rejections (expired/already scanned/…) auto-clear after ~2s.
+  /// rejections (invalid code / already scanned/…) auto-clear after ~2s.
   final bool retryable;
 }
 
-/// QRSC — promotor/co_promotor attendance QR scanner.
+/// QRSC — host/staff attendance QR scanner.
 ///
 /// Full-screen camera via `mobile_scanner`, white scan-frame overlay with the
-/// white scan line, promotor event name and "Escanea el código QR
+/// white scan line, host event name and "Escanea el código QR
 /// del asistente" hint (QRSC §Scanner Screen). Camera access goes through
 /// [PermissionService] (`Permission.camera`) with the rationale/settings UX;
 /// the torch toggle is an overlay action (mission extension of QRSC's "no
 /// torch" note — phone screens don't glare, the toggle is off by default).
 ///
-/// On scan: `EventService.validateQrToken(eventId, token)` (the
-/// `validate_qr_token` RPC — migration 20260809000005, the SQL stand-in for
-/// the blocked `validate-attendance` Edge Function). Confirmed → ✓ animation
-/// + attendee name, "Listo" after ~2s, scanner returns to ready. Business
-/// rejections show the QRSC-spec copy and auto-clear. A missing/unreachable
-/// RPC (PGRST202 — EEDG not deployed) shows a retryable network error.
+/// On scan: `EventService.validateCode(eventId, code)` (the `validate_code`
+/// RPC — 07_code.sql). The attendee QR encodes the rotating 24-hex code, so
+/// the scanner validates the read payload as that code. Confirmed → ✓
+/// animation + attendee name, "Listo" after ~2s, scanner returns to ready.
+/// Business rejections (invalid code / not in window / already scanned / …)
+/// show the QRSC-spec copy and auto-clear. A missing/unreachable RPC
+/// (PGRST202) shows a retryable network error.
 ///
 /// Route: `/scanner/:eventId` (feature-flag gated on `AppFeatureFlag.qr`).
 class QrScannerScreen extends ConsumerStatefulWidget {
@@ -116,7 +117,7 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen> {
   MobileScannerController? _scannerController;
   bool _torchOn = false;
   bool _scanning = false;
-  String? _lastToken;
+  String? _lastCode;
   _ScanResult? _result;
   Timer? _resultTimer;
 
@@ -198,34 +199,29 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen> {
     });
   }
 
-  void _onScan(String token) {
+  void _onScan(String code) {
     final l10n = AppLocalizations.of(context);
     if (_scanning) return;
-    if (token.isEmpty) return;
-    _lastToken = token;
+    if (code.isEmpty) return;
+    _lastCode = code;
     _scanning = true;
     setState(() => _result = const _Processing());
 
     // Fire-and-forget: the async continuation re-checks `mounted` and the
     // result state; the banner UI is driven by `_result`.
-    _validate(token, l10n);
+    _validate(code, l10n);
   }
 
-  Future<void> _validate(String token, AppLocalizations l10n) async {
+  Future<void> _validate(String code, AppLocalizations l10n) async {
     try {
       final data = await ref
           .read(eventServiceProvider)
-          .validateQrToken(widget.eventId, token);
+          .validateCode(widget.eventId, code);
       if (!mounted) return;
       final outcome = qrScanResultFromMap(data);
       switch (outcome) {
         case QrScanResult.confirmed:
           setState(() => _result = _Confirmed(data['attendeeName'] as String?));
-          _scheduleReady();
-        case QrScanResult.expired:
-          setState(
-            () => _result = _ScanError(l10n.qrScanExpired, retryable: false),
-          );
           _scheduleReady();
         case QrScanResult.alreadyScanned:
           setState(
@@ -246,23 +242,23 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen> {
                 _result = _ScanError(l10n.qrScanNotInWindow, retryable: false),
           );
           _scheduleReady();
-        case QrScanResult.notPromotor:
+        case QrScanResult.notHost:
           setState(
             () =>
-                _result = _ScanError(l10n.qrScanNotPromotor, retryable: false),
+                _result = _ScanError(l10n.qrScanNotHost, retryable: false),
           );
           _scheduleReady();
-        case QrScanResult.invalidToken:
+        case QrScanResult.invalidCode:
           setState(
             () =>
-                _result = _ScanError(l10n.qrScanInvalidToken, retryable: false),
+                _result = _ScanError(l10n.qrScanInvalidCode, retryable: false),
           );
           _scheduleReady();
       }
     } catch (e, st) {
-      // RPC missing (PGRST202 — EEDG not deployed) or transport failure:
-      // keep the retryable banner until the user retries or taps away.
-      AppLogger.instance.error('validateQrToken error: $e', '$st');
+      // RPC missing (PGRST202) or transport failure: keep the retryable
+      // banner until the user retries or taps away.
+      AppLogger.instance.error('validateCode error: $e', '$st');
       if (!mounted) return;
       setState(() {
         _scanning = false;
@@ -272,8 +268,8 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen> {
   }
 
   void _retryLastScan() {
-    final token = _lastToken;
-    if (token != null) _onScan(token);
+    final code = _lastCode;
+    if (code != null) _onScan(code);
   }
 
   @override
@@ -285,7 +281,7 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen> {
     return Scaffold(
       backgroundColor: AppColors.discoBlack,
       body: VHeaderBar(
-        title: l10n.qrScannerTitle,
+        title: l10n.qrScannerTitle.toLowerCase(),
         actions: [
           if (_cameraStatus == _CameraStatus.granted)
             IconButton(

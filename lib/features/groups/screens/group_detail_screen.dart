@@ -447,7 +447,7 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen>
     final myRole = myId == null
         ? 'member'
         : members.where((m) => m.userId == myId).firstOrNull?.role ?? 'member';
-    final isAdmin = myRole == 'promotor' || myRole == 'co_promotor';
+    final isAdmin = myRole == 'host' || myRole == 'staff';
     // Descriptor rows: only row *data* is materialized here; widgets are
     // created lazily per visible row by the builder (PERF-01).
     final rows = <_MembersRow>[
@@ -475,7 +475,7 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen>
           username: m.username ?? m.userId.substring(0, 8),
           role: role,
           avatarUrl: m.users?['avatar_url'] as String?,
-          canAct: isAdmin && m.userId != myId && role != 'promotor',
+          canAct: isAdmin && m.userId != myId && role != 'host',
         );
       }),
     ];

@@ -851,6 +851,11 @@ RealtimeChannel subscribeToSession(String id) {
     switch (result['status']) {
       case 'submitted':
         return;
+      case 'too_fast':
+        // Controlled-spam window: the server dropped the write (no seq bump,
+        // no event). The tapper's local rise already played — stay silent,
+        // never surface an "already reacted"-style snackbar.
+        return;
       case 'not_authenticated':
         throw const MinigameSessionRejectedException(
           MinigameSessionRejection.notAuthenticated,
@@ -1158,6 +1163,9 @@ RealtimeChannel subscribeToSession(String id) {
           'La partida ya terminó',
           code: 'session_not_active',
         );
+      case 'too_fast':
+        // Controlled-spam window (see submitReaction): the write was dropped.
+        return;
       case 'answer_pending':
         throw ConflictError(
           'La ronda aún no se puede valorar',

@@ -14,6 +14,7 @@ _UserProfile _$UserProfileFromJson(Map<String, dynamic> json) => _UserProfile(
   personalShards: (json['personal_shards'] as num?)?.toInt() ?? 0,
   preshards: (json['preshards'] as num?)?.toInt() ?? 0,
   subscriptionTier: json['subscription_tier'] as String? ?? 'free',
+  entitlementTier: json['entitlement_tier'] as String? ?? 'free',
   deletedAt: json['deleted_at'] == null
       ? null
       : DateTime.parse(json['deleted_at'] as String),
@@ -31,6 +32,7 @@ Map<String, dynamic> _$UserProfileToJson(_UserProfile instance) =>
       'personal_shards': instance.personalShards,
       'preshards': instance.preshards,
       'subscription_tier': instance.subscriptionTier,
+      'entitlement_tier': instance.entitlementTier,
       'deleted_at': instance.deletedAt?.toIso8601String(),
       'date_of_birth': instance.dateOfBirth?.toIso8601String(),
     };

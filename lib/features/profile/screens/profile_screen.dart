@@ -16,7 +16,6 @@ import 'package:samay/shared/widgets/error_view.dart';
 import 'package:samay/shared/widgets/skeletons.dart';
 import 'package:samay/shared/widgets/v_card.dart';
 import 'package:samay/shared/widgets/state_views.dart';
-import 'package:samay/shared/widgets/v_display_text.dart';
 import 'package:samay/shared/widgets/v_header_bar.dart';
 import 'package:samay/shared/widgets/v_shard_icon.dart';
 
@@ -63,148 +62,177 @@ class ProfileScreen extends ConsumerWidget {
         .toUpperCase();
 
     return Scaffold(
-      body: VHeaderBar(
-        title: l10n.profileTitle,
-        showBack: false,
-        actions: [
-          // U-26 (4.1.2): the gear is icon-only — the tooltip is its
-          // accessibility name for screen readers.
-          IconButton(
-            icon: const Icon(Icons.settings),
-            tooltip: l10n.profileSettingsTitle,
-            onPressed: () => context.push(RoutePaths.settings),
-          ),
-        ],
-        child: showLoading
-            // U-22 handoff (U-23): the profile hero loads with the
-            // `VSkeletonProfile` skeleton (avatar circle + name/handle/body
-            // lines, §5.8/§6.3) instead of the bare spinner — the screen has
-            // real geometry to mirror (the U-21 `VLoadingView` was the only
-            // remaining default here).
-            ? const VSkeletonProfile()
-            : error != null
-            ? ErrorView(
-                message: error.toAppError().message,
-                onRetry: () => _refresh(ref),
-              )
-            : RefreshIndicator(
-                onRefresh: () => _refresh(ref),
-                child: ListView(
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  // Bottom inset clears the floating nav pill (extendBody)
-                  // so the last row is never hidden under it (2026-08-27).
-                  padding: EdgeInsets.fromLTRB(
-                    24,
-                    24,
-                    24,
-                    24 + MainShell.navBarInset(context),
-                  ),
-                  children: [
-                    // U-15 R8 (F18 ADAPTED): the header is the edit
-                    // affordance — tapping the avatar OR the username pushes
-                    // the edit screen (Juega edits inline from the profile;
-                    // the pushed screen is the Samay-shaped editor, and the
-                    // avatar gains the affordance it only had inside edit).
-                    Center(
-                      child: Tooltip(
-                        message: l10n.profileEditTitle,
-                        child: InkWell(
-                          customBorder: const CircleBorder(),
-                          onTap: () => context.push(RoutePaths.profileEdit),
-                          child: ProfileAvatar(
-                            initials: initials,
-                            imageUrl: profile?['avatar_url'] as String?,
-                          ),
-                        ),
-                      ),
+      // Collapsing iOS-style header (shared mechanism) with the profile body
+      // scrolling beneath it. Pull-to-refresh wraps the whole scroll view.
+      body: RefreshIndicator(
+        onRefresh: () => _refresh(ref),
+        child: CustomScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          slivers: [
+            VHeaderSliver(
+              title: l10n.profileTitle,
+              actions: [
+                // U-26 (4.1.2): the gear is icon-only — the tooltip is its
+                // accessibility name for screen readers.
+                IconButton(
+                  icon: const Icon(Icons.settings),
+                  tooltip: l10n.profileSettingsTitle,
+                  onPressed: () => context.push(RoutePaths.settings),
+                ),
+              ],
+            ),
+            SliverToBoxAdapter(
+              child: showLoading
+                  // U-22 handoff (U-23): the profile hero loads with the
+                  // `VSkeletonProfile` skeleton (avatar circle + name/handle/body
+                  // lines, §5.8/§6.3) instead of the bare spinner — the screen has
+                  // real geometry to mirror (the U-21 `VLoadingView` was the only
+                  // remaining default here).
+                  ? const VSkeletonProfile()
+                  : error != null
+                  ? ErrorView(
+                      message: error.toAppError().message,
+                      onRetry: () => _refresh(ref),
+                    )
+                  : _buildProfile(
+                      context,
+                      ref,
+                      l10n,
+                      profile,
+                      groups,
+                      displayName,
+                      initials,
                     ),
-                    const SizedBox(height: 16),
-                    Center(
-                      child: InkWell(
-                        onTap: () => context.push(RoutePaths.profileEdit),
-                        // The username is the hero — white VDisplayText
-                        // (uppercase Playfair, flat fill, monochrome). No
-                        // other title on the screen — one hero per screen.
-                        child: VDisplayText(text: displayName, size: 28),
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                    _BalanceCard(
-                      personalShards: profile?['personal_shards'] as int? ?? 0,
-                      preshards: profile?['preshards'] as int? ?? 0,
-                      // SLED (I-64): the balance card opens the shard/preshard
-                      // ledger history at `/shards/ledger`.
-                      onTap: () => context.push(RoutePaths.shardsLedger),
-                    ),
-                    if (profile?['bio'] != null &&
-                        (profile!['bio'] as String).isNotEmpty) ...[
-                      const SizedBox(height: 16),
-                      Text(
-                        profile['bio'] as String,
-                        // §2.4: secondary text at body size must be
-                        // mutedStrong (7.37:1 AA) — never muted.
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: AppColors.mutedStrong,
-                        ),
-                      ),
-                    ],
-                    const SizedBox(height: 24),
-                    // LUXE v2 (XL-08): the groups header is the §3.3
-                    // sectionLabel overline voice (uppercase Inter,
-                    // letter-spaced) — not a title.
-                    Text(
-                      l10n.profileMyGroups.toUpperCase(),
-                      style: AppTypography.sectionLabel,
-                    ),
-                    const SizedBox(height: 8),
-                    groups.isEmpty
-                        // U-15 R9 (F2 DIRECT): the 60px bare Text becomes the
-                        // icon+title+hint voice — still inside the ListView, so
-                        // the empty state stays pull-to-refreshable.
-                        ? VEmptyView(
-                            icon: Icons.group_outlined,
-                            title: l10n.profileNoGroupsYet,
-                            description: l10n.profileNoGroupsHint,
-                          )
-                        : Column(
-                            children: [
-                              // U-19: the fixed-height 120px nested box
-                              // (U-09 flag) is gone — §7.3 forbids hard
-                              // heights on text containers. The tiles now
-                              // render inline so every row grows with the
-                              // text scale and the outer ListView scrolls
-                              // naturally (no inner viewport, no clipping).
-                              for (var i = 0; i < groups.length; i++)
-                                _GroupTile(
-                                  name: groups[i]['name'] as String? ?? '',
-                                  shards: l10n.groupsShardsCountShort(
-                                    (groups[i]['group_shards'] as num?)
-                                            ?.toInt() ??
-                                        0,
-                                  ),
-                                  showDivider: i > 0,
-                                ),
-                            ],
-                          ),
-                    // PRFL cosmetics entry point (I-36 foundation → I-62):
-                    // flag-gated (I-49 release gating); the row navigates
-                    // to the cosmetics shop at `/cosmetics` (COSM spec).
-                    if (ref.watch(featureFlagsProvider).cosmeticsSection) ...[
-                      const SizedBox(height: 32),
-                      ListTile(
-                        contentPadding: EdgeInsets.zero,
-                        leading: const Icon(Icons.style, size: 20),
-                        title: Text(
-                          l10n.profileCosmetics,
-                          style: Theme.of(context).textTheme.labelLarge,
-                        ),
-                        trailing: const Icon(Icons.chevron_right, size: 20),
-                        onTap: () => context.push(RoutePaths.cosmetics),
-                      ),
-                    ],
-                  ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildProfile(
+    BuildContext context,
+    WidgetRef ref,
+    AppLocalizations l10n,
+    Map<String, dynamic>? profile,
+    List<Map<String, dynamic>> groups,
+    String displayName,
+    String initials,
+  ) {
+    return Padding(
+      padding: EdgeInsets.fromLTRB(
+        24,
+        24,
+        24,
+        24 + MainShell.navBarInset(context),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // U-15 R8 (F18 ADAPTED): the avatar is the edit
+          // affordance — tapping it pushes the edit screen (the
+          // pushed screen is the Samay-shaped editor). One hero per
+          // screen: the top 'perfil' title owns the display voice,
+          // so the username renders as a non-hero handle below the
+          // avatar (2026-09-03 unification).
+          Center(
+            child: Tooltip(
+              message: l10n.profileEditTitle,
+              child: InkWell(
+                customBorder: const CircleBorder(),
+                onTap: () => context.push(RoutePaths.profileEdit),
+                child: ProfileAvatar(
+                  initials: initials,
+                  imageUrl: profile?['avatar_url'] as String?,
                 ),
               ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Center(
+            child: InkWell(
+              onTap: () => context.push(RoutePaths.profileEdit),
+              child: Text(
+                displayName,
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(color: AppColors.white),
+              ),
+            ),
+          ),
+          const SizedBox(height: 24),
+          _BalanceCard(
+            personalShards: profile?['personal_shards'] as int? ?? 0,
+            preshards: profile?['preshards'] as int? ?? 0,
+            // SLED (I-64): the balance card opens the shard/preshard
+            // ledger history at `/shards/ledger`.
+            onTap: () => context.push(RoutePaths.shardsLedger),
+          ),
+          if (profile?['bio'] != null &&
+              (profile!['bio'] as String).isNotEmpty) ...[
+            const SizedBox(height: 16),
+            Text(
+              profile['bio'] as String,
+              // §2.4: secondary text at body size must be
+              // mutedStrong (7.37:1 AA) — never muted.
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(color: AppColors.mutedStrong),
+            ),
+          ],
+          const SizedBox(height: 24),
+          // LUXE v2 (XL-08): the groups header is the §3.3
+          // sectionLabel overline voice (uppercase Inter,
+          // letter-spaced) — not a title.
+          Text(
+            l10n.profileMyGroups.toUpperCase(),
+            style: AppTypography.sectionLabel,
+          ),
+          const SizedBox(height: 8),
+          groups.isEmpty
+              // U-15 R9 (F2 DIRECT): the 60px bare Text becomes the
+              // icon+title+hint voice — still inside the ListView, so
+              // the empty state stays pull-to-refreshable.
+              ? VEmptyView(
+                  icon: Icons.group_outlined,
+                  title: l10n.profileNoGroupsYet,
+                  description: l10n.profileNoGroupsHint,
+                )
+              : Column(
+                  children: [
+                    // U-19: the fixed-height 120px nested box
+                    // (U-09 flag) is gone — §7.3 forbids hard
+                    // heights on text containers. The tiles now
+                    // render inline so every row grows with the
+                    // text scale and the outer ListView scrolls
+                    // naturally (no inner viewport, no clipping).
+                    for (var i = 0; i < groups.length; i++)
+                      _GroupTile(
+                        name: groups[i]['name'] as String? ?? '',
+                        shards: l10n.groupsShardsCountShort(
+                          (groups[i]['group_shards'] as num?)?.toInt() ?? 0,
+                        ),
+                        showDivider: i > 0,
+                      ),
+                  ],
+                ),
+          // PRFL cosmetics entry point (I-36 foundation → I-62):
+          // flag-gated (I-49 release gating); the row navigates
+          // to the cosmetics shop at `/cosmetics` (COSM spec).
+          if (ref.watch(featureFlagsProvider).cosmeticsSection) ...[
+            const SizedBox(height: 32),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.style, size: 20),
+              title: Text(
+                l10n.profileCosmetics,
+                style: Theme.of(context).textTheme.labelLarge,
+              ),
+              trailing: const Icon(Icons.chevron_right, size: 20),
+              onTap: () => context.push(RoutePaths.cosmetics),
+            ),
+          ],
+        ],
       ),
     );
   }

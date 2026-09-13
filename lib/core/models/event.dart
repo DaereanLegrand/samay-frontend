@@ -25,6 +25,7 @@ abstract class Event with _$Event {
     @Default(false) bool featured,
     @Default(false) bool preshardsDistributed,
     @Default(0) int preshardsPool,
+    @Default(0) int capacity,
     int? preshardsCapPerUser,
     String? preshardsRemainderAction,
   }) = _Event;

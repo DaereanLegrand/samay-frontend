@@ -37,7 +37,7 @@ dependencies:
   flutter_cache_manager: ^3.4.1
   unorm_dart: ^0.3.2
   uuid: ^4.5.3
-  # QR attendance + promotor scanner (I-57 re-add per DEP-02/DEP-03
+  # QR attendance + host scanner (I-57 re-add per DEP-02/DEP-03
   # re-adoption — removed by I-23 as dead when QR was unbuilt; the
   # phase-06 QRAT/QRSC foundations import them). 7.x: iOS backend moved
   # from MLKit (no arm64-simulator slice — blocked `flutter run` on

@@ -72,6 +72,7 @@ class EventFormData {
     this.joinMode = EventJoinMode.open,
     this.preshardsPool = 0,
     this.preshardsCapPerUser,
+    this.capacity,
     this.remainderAction,
     this.juergaLocationConfirmed = false,
   });
@@ -91,6 +92,12 @@ class EventFormData {
   final EventJoinMode? joinMode;
   final int preshardsPool;
   final int? preshardsCapPerUser;
+
+  /// Total people allowed at the event (host + staff + guests), capped by
+  /// the creator's entitlement tier. Null until the create screen resolves
+  /// the tier cap; `toPayload` omits it so the server fills the allowed max.
+  final int? capacity;
+
   final EventRemainderAction? remainderAction;
 
   /// ECRT step 4: the Juerga location warning must be explicitly confirmed.
@@ -113,6 +120,7 @@ class EventFormData {
     Object? joinMode = _unset,
     int? preshardsPool,
     Object? preshardsCapPerUser = _unset,
+    Object? capacity = _unset,
     Object? remainderAction = _unset,
     bool? juergaLocationConfirmed,
   }) {
@@ -132,6 +140,7 @@ class EventFormData {
       preshardsCapPerUser: identical(preshardsCapPerUser, _unset)
           ? this.preshardsCapPerUser
           : preshardsCapPerUser as int?,
+      capacity: identical(capacity, _unset) ? this.capacity : capacity as int?,
       remainderAction: identical(remainderAction, _unset)
           ? this.remainderAction
           : remainderAction as EventRemainderAction?,
@@ -187,7 +196,7 @@ class EventFormData {
   }
 
   /// The payload handed to `EventService.createEvent` — matches the service's
-  /// insert shape (events + event_promotores + chats) and the schema columns
+  /// insert shape (events + event_hosts + chats) and the schema columns
   /// of `events` (§3.10). `cover_url` is appended by the screen after the
   /// optional cover upload, mirroring `CreateGroupScreen`.
   Map<String, dynamic> toPayload() {
@@ -206,6 +215,7 @@ class EventFormData {
       // for the DB CHECK constraint).
       'preshards_pool': type == EventType.casual ? 0 : preshardsPool,
       'preshards_cap_per_user': preshardsCapPerUser,
+      'capacity': capacity,
       'preshards_remainder_action': remainderAction?.wire,
     };
   }

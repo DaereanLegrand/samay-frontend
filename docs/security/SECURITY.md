@@ -150,6 +150,60 @@ on `user_search_view` stays granted — five non-search surfaces read it
 limiter covers that raw path. Coverage: `test/opt-015-search-rpc.sh`,
 pgTAP Section 61. `app_config`-driven generic thresholds remain open (O1).
 
+### 2.9 Attendance codes / dynamic QR (2026-09-08)
+
+The event attendance code is an **authenticator-style time-windowed code**
+carried by a **plain rotating QR** on the attendee's own device
+(`attendance_code_screen.dart`, route `/qr/:eventId`). Privacy posture:
+
+- **No per-window codes are stored.** `event_code_keys` holds ONE random
+  32-byte HMAC secret per (event, attendee), FORCE RLS with **zero client
+  policies and zero table grants** — the only handle is the SECURITY DEFINER
+  RPC (`get_my_code`). The displayed 24-hex code is a *pure function*
+  `left(hex(hmac_sha256("samay.code.v1:<counter>", secret)), 24)` recomputed
+  on demand; no code ever lands on disk server-side.
+  **Why:** the legacy QR-token surface stored every rotated token (an
+  unbounded, replayable row history); derived codes keep the server holding
+  only the secret that produces them. That legacy surface was deleted —
+  one rotating-code flow remains.
+- **Secrets travel only to their owner.** The RPC is own-attendee-gated
+  (host/staff membership or a **CONFIRMED** invite — `status IN
+  ('accepted','attended')`; a merely-*pending* invitee is `not_invited`, mints
+  no code, and is never confirmable); the app holds the secret **in memory
+  only** (never Hive/secure-storage-persisted, never logged) and derives codes
+  locally. A captured API response yields a secret scoped to one (event, user)
+  — it cannot mint codes for other people or events.
+- **Codes carry no identity.** A 24-hex code is 96 bits of HMAC output: an
+  onlooker who reads someone's screen learns nothing about who they are. The
+  code → attendee mapping happens only server-side, inside the host/staff-only
+  `validate_code` RPC, recomputed per event (no code→user index exists).
+- **Replay is bounded and one-shot.** A code is valid for its 10-s window
+  (authenticator semantics, ±1 window clock-skew tolerance) and confirmation
+  lands **once** — `event_attendances` is the single-confirmation marker and
+  re-scans answer `already_scanned`, so a photographed code cannot double-claim.
+- **Revocation kills the code instantly.** Declining an invite deletes the
+  invite row; removing staff deletes the host row; both deletions fire the
+  code-key purge triggers (`code_key_purge_on_invite_delete` /
+  `code_key_purge_on_host_delete`), so a revoked attendee's code stops
+  validating the moment their seat is gone (and their secret row is deleted
+  with the cascade/event teardown).
+- Enumeration surface: `validate_code` is host/staff-only, window-gated,
+  and shape-checked (`^[0-9a-f]{24}$`); an unguessable 96-bit code defeats
+  brute force within a 10-s window.
+- **Confirmed-only membership.** The attendee-side roster opens through the
+  security-barrier `event_roster_membership_view`, which projects only
+  accepted/attended invites (and host/staff); a pending invitee reads neither
+  the organizer roster nor the confirmed roster, and keeps `ei_read_own` for the
+  accept/decline card. A confirmation live-flips an open screen via
+  `event_attendances` on `supabase_realtime` (REPLICA IDENTITY FULL; delivery
+  stays RLS-gated by `ea_read_access`) — the marker is written only by the
+  SECURITY DEFINER `validate_code`, so clients cannot forge it.
+
+Coverage: `test/opt-027-events-code.sh`, pgTAP Section 21d. The attendee side
+is a rotating QR encoding the current code (derived locally, byte-identical to
+`event_code`); host/staff read it with the in-app camera QR scanner
+(`qr_scanner_screen.dart`) and confirm via `validate_code`.
+
 ---
 
 ## 3. Client-side precautions

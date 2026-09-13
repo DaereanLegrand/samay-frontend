@@ -559,11 +559,11 @@
   },
   "groupsLimitReached": "Limit reached",
   "@groupsLimitReached": {
-    "description": "Dialog title when the promotor group limit is reached"
+    "description": "Dialog title when the host group limit is reached"
   },
-  "groupsLimitReachedBody": "You've reached the limit of 5 groups as a promotor. Upgrade your subscription to create more.",
+  "groupsLimitReachedBody": "You've reached the limit of 5 groups as a host. Upgrade your subscription to create more.",
   "@groupsLimitReachedBody": {
-    "description": "Dialog body explaining the 5-group promotor limit"
+    "description": "Dialog body explaining the 5-group host limit"
   },
   "groupsCreatedSnack": "Group created",
   "@groupsCreatedSnack": {
@@ -650,7 +650,7 @@
   "@groupsLeave": {
     "description": "Leave-group menu item and dialog title"
   },
-  "groupsFrozenBanner": "Frozen group — upgrade your subscription or transfer the promotor role",
+  "groupsFrozenBanner": "Frozen group — upgrade your subscription or transfer the host role",
   "@groupsFrozenBanner": {
     "description": "Banner shown on a frozen group"
   },
@@ -738,13 +738,13 @@
   "@groupsAbandon": {
     "description": "Confirm button on the leave-group dialog"
   },
-  "groupsPromoteCoPromotor": "Make co-promoter",
-  "@groupsPromoteCoPromotor": {
-    "description": "Member-actions sheet option that promotes a member to co-promotor (R17)"
+  "groupsPromoteStaff": "Make staff",
+  "@groupsPromoteStaff": {
+    "description": "Member-actions sheet option that promotes a member to staff (R17)"
   },
   "groupsDemoteMember": "Make member",
   "@groupsDemoteMember": {
-    "description": "Member-actions sheet option that demotes a co-promotor to member (R17)"
+    "description": "Member-actions sheet option that demotes a staff to member (R17)"
   },
   "groupsKickMember": "Remove from group",
   "@groupsKickMember": {
@@ -1397,7 +1397,7 @@
   "@rankInSearch": {
     "description": "Rank bracket label (0-20)"
   },
-  "photosTitle": "photos",
+  "photosTitle": "Photos",
   "@photosTitle": {
     "description": "Event photo gallery app bar title"
   },
@@ -1741,7 +1741,7 @@
   "@eventsJoinModeApproval": {
     "description": "Event creation: approval join mode chip"
   },
-  "eventsJoinModeApprovalDescription": "The promotor approves each request",
+  "eventsJoinModeApprovalDescription": "The host approves each request",
   "@eventsJoinModeApprovalDescription": {
     "description": "Event creation: approval join mode helper text"
   },
@@ -1864,25 +1864,71 @@
       }
     }
   },
-  "eventPromotores": "Promotores",
-  "@eventPromotores": {
-    "description": "Promotores section heading"
+  "eventHosts": "Host & staff",
+  "@eventHosts": {
+    "description": "Hosts section heading"
   },
-  "eventRolePromotor": "Promotor",
-  "@eventRolePromotor": {
-    "description": "Promotor role badge"
+  "eventRoleHost": "Host",
+  "@eventRoleHost": {
+    "description": "Host role badge"
   },
-  "eventRoleCoPromotor": "Co-promotor",
-  "@eventRoleCoPromotor": {
-    "description": "Co-promotor role badge"
+  "eventRoleStaff": "Staff",
+  "@eventRoleStaff": {
+    "description": "Staff role badge"
   },
-  "eventPromotoresError": "Couldn't load promotores",
-  "@eventPromotoresError": {
-    "description": "Promotores section error fallback"
+  "eventHostsError": "Couldn't load host & staff",
+  "@eventHostsError": {
+    "description": "Hosts section error fallback"
   },
-  "eventNoPromotores": "No promotores",
-  "@eventNoPromotores": {
-    "description": "Empty promotores state"
+  "eventNoHosts": "No hosts yet",
+  "@eventNoHosts": {
+    "description": "Empty hosts state"
+  },
+  "eventStaffAddButton": "Add staff",
+  "@eventStaffAddButton": {
+    "description": "Host action that opens the staff picker"
+  },
+  "eventStaffPickerTitle": "pick staff",
+  "@eventStaffPickerTitle": {
+    "description": "Event staff-picker app bar title"
+  },
+  "eventStaffCount": "Add ({count})",
+  "@eventStaffCount": {
+    "description": "Confirm button with the number of selected staff",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "eventStaffAdded": "Staff added",
+  "@eventStaffAdded": {
+    "description": "Snackbar confirming staff were designated"
+  },
+  "eventStaffRemoved": "Staff removed",
+  "@eventStaffRemoved": {
+    "description": "Snackbar confirming a staff member was removed"
+  },
+  "eventStaffRemove": "Remove staff",
+  "@eventStaffRemove": {
+    "description": "Host action that removes a staff member"
+  },
+  "eventStaffRemoveDialogTitle": "Remove @{username}?",
+  "@eventStaffRemoveDialogTitle": {
+    "description": "Confirm dialog title before removing a staff member",
+    "placeholders": {
+      "username": {
+        "type": "String"
+      }
+    }
+  },
+  "eventStaffRemoveDialogBody": "They'll no longer be staff and won't be able to scan attendance codes.",
+  "@eventStaffRemoveDialogBody": {
+    "description": "Confirm dialog body before removing a staff member"
+  },
+  "eventStaffRemoveConfirm": "Remove",
+  "@eventStaffRemoveConfirm": {
+    "description": "Confirm button of the remove-staff dialog"
   },
   "eventInviteStatus": "Your invitation: {status}",
   "@eventInviteStatus": {
@@ -1909,6 +1955,75 @@
   "@eventInviteAttended": {
     "description": "Attended invite status"
   },
+  "eventGuestsTitle": "Guests",
+  "@eventGuestsTitle": {
+    "description": "Event guest-roster section heading (host view)"
+  },
+  "eventGuestsEmpty": "No guests yet",
+  "@eventGuestsEmpty": {
+    "description": "Empty guest roster state"
+  },
+  "eventGuestsLoadError": "Couldn't load guests",
+  "@eventGuestsLoadError": {
+    "description": "Guest roster load error fallback"
+  },
+  "eventAttendeesTitle": "Attendees",
+  "@eventAttendeesTitle": {
+    "description": "Confirmed-attendees section heading on the attendee's event detail"
+  },
+  "eventAttendeesEmpty": "No confirmed attendees yet",
+  "@eventAttendeesEmpty": {
+    "description": "Empty confirmed-attendees state on the attendee's event detail"
+  },
+  "eventAttendeesLoadError": "Couldn't load attendees",
+  "@eventAttendeesLoadError": {
+    "description": "Confirmed-attendees load error fallback"
+  },
+  "eventInviteGuestsButton": "Invite people",
+  "@eventInviteGuestsButton": {
+    "description": "Host action that opens the guest picker"
+  },
+  "eventsInviteTitle": "invite",
+  "@eventsInviteTitle": {
+    "description": "Event guest-picker app bar title"
+  },
+  "eventsInviteCount": "Invite ({count})",
+  "@eventsInviteCount": {
+    "description": "Confirm button with the number of selected guests",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "eventsInviteSent": "Invitation sent",
+  "@eventsInviteSent": {
+    "description": "Snackbar / roster tag confirming an invite was sent"
+  },
+  "eventsInviteSentTag": "invited",
+  "@eventsInviteSentTag": {
+    "description": "Picker row tag for users who already hold an invite"
+  },
+  "eventInvitePendingBody": "You've been invited to this event. Confirm you'll attend.",
+  "@eventInvitePendingBody": {
+    "description": "Pending-invite accept/decline card body"
+  },
+  "eventInviteAccept": "Accept",
+  "@eventInviteAccept": {
+    "description": "Accept-invite button"
+  },
+  "eventInviteDecline": "Decline",
+  "@eventInviteDecline": {
+    "description": "Decline-invite button"
+  },
+  "eventInviteAcceptedSnack": "Attendance confirmed",
+  "@eventInviteAcceptedSnack": {
+    "description": "Snackbar after accepting an event invite"
+  },
+  "eventInviteDeclinedSnack": "Invitation declined",
+  "@eventInviteDeclinedSnack": {
+    "description": "Snackbar after declining an event invite"
+  },
   "eventEditButton": "Edit",
   "@eventEditButton": {
     "description": "Edit-event button"
@@ -1921,7 +2036,7 @@
   "@eventCancelDialogTitle": {
     "description": "Cancel-event confirmation dialog title"
   },
-  "eventCancelDialogBody": "The preshards will be returned to the promotores. Invitees will be notified.",
+  "eventCancelDialogBody": "The preshards will be returned to the hosts. Invitees will be notified.",
   "@eventCancelDialogBody": {
     "description": "Cancel-event confirmation dialog body"
   },
@@ -1969,26 +2084,13 @@
   "@eventStatusCancelled": {
     "description": "Cancelled status badge"
   },
-  "qrAttendanceTitle": "qr",
+  "qrAttendanceTitle": "QR",
   "@qrAttendanceTitle": {
     "description": "Attendance QR screen title"
   },
   "qrEventLoadError": "Could not load the event.",
   "@qrEventLoadError": {
     "description": "Attendance QR: event load error message"
-  },
-  "qrTokenLoadError": "Could not load the QR code.",
-  "@qrTokenLoadError": {
-    "description": "Attendance QR: token load error message"
-  },
-  "qrActivatesIn": "The QR code will activate {minutes} minutes before the event",
-  "@qrActivatesIn": {
-    "description": "Attendance QR: pre-activation countdown message",
-    "placeholders": {
-      "minutes": {
-        "type": "int"
-      }
-    }
   },
   "qrActivationCountdown": "Activates in {time}",
   "@qrActivationCountdown": {
@@ -1999,40 +2101,7 @@
       }
     }
   },
-  "qrNewCodeIn": "New code in: {seconds}",
-  "@qrNewCodeIn": {
-    "description": "Attendance QR: countdown to next token rotation",
-    "placeholders": {
-      "seconds": {
-        "type": "int"
-      }
-    }
-  },
-  "qrEventEnded": "The event has ended. The QR code is no longer needed.",
-  "@qrEventEnded": {
-    "description": "Attendance QR: post-event message"
-  },
-  "qrServerPending": "The QR code could not be generated yet. The server is not rotating tokens yet.",
-  "@qrServerPending": {
-    "description": "Attendance QR: server has no token yet (EEDG not deployed)"
-  },
-  "qrServerPendingBody": "If the problem persists, press Retry.",
-  "@qrServerPendingBody": {
-    "description": "Attendance QR: server-pending retry hint"
-  },
-  "qrUpdating": "Updating code…",
-  "@qrUpdating": {
-    "description": "Attendance QR: rotating the token"
-  },
-  "qrAttendeeExpired": "The QR code expired. Generating a new one…",
-  "@qrAttendeeExpired": {
-    "description": "Attendance QR: token expired, regenerating"
-  },
-  "qrAttendeeExpiredBody": "If the problem persists, press Retry.",
-  "@qrAttendeeExpiredBody": {
-    "description": "Attendance QR: expired retry hint"
-  },
-  "qrScannerTitle": "scan",
+  "qrScannerTitle": "Scanner",
   "@qrScannerTitle": {
     "description": "QR scanner screen title"
   },
@@ -2063,7 +2132,7 @@
   },
   "qrScanProcessing": "Verifying…",
   "@qrScanProcessing": {
-    "description": "QR scanner: validating a scanned token"
+    "description": "QR scanner: validating a scanned code"
   },
   "qrScanConfirmed": "Attendance confirmed!",
   "@qrScanConfirmed": {
@@ -2082,10 +2151,6 @@
   "@qrScanReady": {
     "description": "QR scanner: ready-state label after confirmation"
   },
-  "qrScanExpired": "QR code expired. Ask the attendee to refresh their QR.",
-  "@qrScanExpired": {
-    "description": "QR scanner: expired token error"
-  },
   "qrScanAlreadyScanned": "This QR code was already scanned.",
   "@qrScanAlreadyScanned": {
     "description": "QR scanner: double-scan error"
@@ -2098,13 +2163,13 @@
   "@qrScanNotInWindow": {
     "description": "QR scanner: event outside attendance window"
   },
-  "qrScanNotPromotor": "You don't have permission to scan at this event.",
-  "@qrScanNotPromotor": {
-    "description": "QR scanner: caller lacks promotor role"
+  "qrScanNotHost": "You don't have permission to scan at this event.",
+  "@qrScanNotHost": {
+    "description": "QR scanner: caller lacks host role"
   },
-  "qrScanInvalidToken": "Invalid QR code.",
-  "@qrScanInvalidToken": {
-    "description": "QR scanner: unrecognized token"
+  "qrScanInvalidCode": "Invalid QR code.",
+  "@qrScanInvalidCode": {
+    "description": "QR scanner: unrecognized code"
   },
   "qrScanNetworkError": "Connection error. Retrying...",
   "@qrScanNetworkError": {
@@ -2133,6 +2198,38 @@
   "qrCameraSettingsAction": "Open settings",
   "@qrCameraSettingsAction": {
     "description": "QR scanner: settings dialog action"
+  },
+  "codeNotReadyYet": "Your attendance code isn't ready yet.",
+  "@codeNotReadyYet": {
+    "description": "Attendance code: pre-activation message (code unlocks 30 minutes before the event)"
+  },
+  "codeLoadError": "Could not load your attendance code.",
+  "@codeLoadError": {
+    "description": "Attendance code: code load error message"
+  },
+  "codeEventEnded": "The event has ended. No attendance code is needed.",
+  "@codeEventEnded": {
+    "description": "Attendance code: post-event message"
+  },
+  "codeNotInvited": "You don't have a code for this event.",
+  "@codeNotInvited": {
+    "description": "Attendance code: caller is not an attendee"
+  },
+  "codeServerPending": "The server has not issued your code yet.",
+  "@codeServerPending": {
+    "description": "Attendance code: server refused inside the presumed window"
+  },
+  "codeServerPendingBody": "If the problem persists, press Retry.",
+  "@codeServerPendingBody": {
+    "description": "Attendance code: server-pending retry hint"
+  },
+  "codeAlreadyAttendedReturn": "Go back",
+  "@codeAlreadyAttendedReturn": {
+    "description": "Attendance code: return button on the already-attended terminal state"
+  },
+  "codeAssistedDone": "DONE",
+  "@codeAssistedDone": {
+    "description": "Attendance code: terminal word revealed under the check mark once assisted"
   },
   "partyFinderTitle": "Party finder",
   "@partyFinderTitle": {
@@ -2903,7 +3000,7 @@
   },
   "preshardsReasonEventPoolReturned": "Returned from event",
   "@preshardsReasonEventPoolReturned": {
-    "description": "Preshard ledger reason: event pool returned to the promotor"
+    "description": "Preshard ledger reason: event pool returned to the host"
   },
   "preshardsReasonAdminGrant": "Granted by Samay",
   "@preshardsReasonAdminGrant": {
@@ -2917,9 +3014,25 @@
   "@eventsCreateCta": {
     "description": "Events tab create-event CTA"
   },
-  "eventsCreateCtaBody": "Events are created inside a group — pick one in the Groups tab.",
+  "eventsCreateCtaBody": "Create your event and invite people — your plan caps attendance.",
   "@eventsCreateCtaBody": {
-    "description": "Events tab helper explaining that event creation lives in a group"
+    "description": "Events tab helper under the create-event CTA"
+  },
+  "eventsCapacityTitle": "How many people can attend?",
+  "@eventsCapacityTitle": {
+    "description": "Create-event capacity section heading"
+  },
+  "eventsCapacityHint": "Total people, including you.",
+  "@eventsCapacityHint": {
+    "description": "Create-event capacity helper under the stepper"
+  },
+  "eventsCapacityContact": "Want more? Contact us",
+  "@eventsCapacityContact": {
+    "description": "Create-event upsell button shown when the plan cap is reached"
+  },
+  "eventsContactSoon": "Coming soon — we will be in touch.",
+  "@eventsContactSoon": {
+    "description": "Snackbar for the static contact-us button"
   },
   "eventsEmpty": "No events yet",
   "@eventsEmpty": {

@@ -432,7 +432,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get groupsLimitReachedBody =>
-      'You\'ve reached the limit of 5 groups as a promotor. Upgrade your subscription to create more.';
+      'You\'ve reached the limit of 5 groups as a host. Upgrade your subscription to create more.';
 
   @override
   String get groupsCreatedSnack => 'Group created';
@@ -500,7 +500,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get groupsFrozenBanner =>
-      'Frozen group — upgrade your subscription or transfer the promotor role';
+      'Frozen group — upgrade your subscription or transfer the host role';
 
   @override
   String groupsShardsCount(int shards) {
@@ -557,7 +557,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get groupsAbandon => 'Leave';
 
   @override
-  String get groupsPromoteCoPromotor => 'Make co-promoter';
+  String get groupsPromoteStaff => 'Make staff';
 
   @override
   String get groupsDemoteMember => 'Make member';
@@ -1052,7 +1052,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get rankInSearch => 'In the Search';
 
   @override
-  String get photosTitle => 'photos';
+  String get photosTitle => 'Photos';
 
   @override
   String get photosEmpty => 'No photos yet';
@@ -1317,7 +1317,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get eventsJoinModeApprovalDescription =>
-      'The promotor approves each request';
+      'The host approves each request';
 
   @override
   String get eventsJuergaWarningTitle => 'Location warning';
@@ -1408,19 +1408,51 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get eventPromotores => 'Promotores';
+  String get eventHosts => 'Host & staff';
 
   @override
-  String get eventRolePromotor => 'Promotor';
+  String get eventRoleHost => 'Host';
 
   @override
-  String get eventRoleCoPromotor => 'Co-promotor';
+  String get eventRoleStaff => 'Staff';
 
   @override
-  String get eventPromotoresError => 'Couldn\'t load promotores';
+  String get eventHostsError => 'Couldn\'t load host & staff';
 
   @override
-  String get eventNoPromotores => 'No promotores';
+  String get eventNoHosts => 'No hosts yet';
+
+  @override
+  String get eventStaffAddButton => 'Add staff';
+
+  @override
+  String get eventStaffPickerTitle => 'pick staff';
+
+  @override
+  String eventStaffCount(int count) {
+    return 'Add ($count)';
+  }
+
+  @override
+  String get eventStaffAdded => 'Staff added';
+
+  @override
+  String get eventStaffRemoved => 'Staff removed';
+
+  @override
+  String get eventStaffRemove => 'Remove staff';
+
+  @override
+  String eventStaffRemoveDialogTitle(String username) {
+    return 'Remove @$username?';
+  }
+
+  @override
+  String get eventStaffRemoveDialogBody =>
+      'They\'ll no longer be staff and won\'t be able to scan attendance codes.';
+
+  @override
+  String get eventStaffRemoveConfirm => 'Remove';
 
   @override
   String eventInviteStatus(String status) {
@@ -1440,6 +1472,57 @@ class AppLocalizationsEn extends AppLocalizations {
   String get eventInviteAttended => 'attended';
 
   @override
+  String get eventGuestsTitle => 'Guests';
+
+  @override
+  String get eventGuestsEmpty => 'No guests yet';
+
+  @override
+  String get eventGuestsLoadError => 'Couldn\'t load guests';
+
+  @override
+  String get eventAttendeesTitle => 'Attendees';
+
+  @override
+  String get eventAttendeesEmpty => 'No confirmed attendees yet';
+
+  @override
+  String get eventAttendeesLoadError => 'Couldn\'t load attendees';
+
+  @override
+  String get eventInviteGuestsButton => 'Invite people';
+
+  @override
+  String get eventsInviteTitle => 'invite';
+
+  @override
+  String eventsInviteCount(int count) {
+    return 'Invite ($count)';
+  }
+
+  @override
+  String get eventsInviteSent => 'Invitation sent';
+
+  @override
+  String get eventsInviteSentTag => 'invited';
+
+  @override
+  String get eventInvitePendingBody =>
+      'You\'ve been invited to this event. Confirm you\'ll attend.';
+
+  @override
+  String get eventInviteAccept => 'Accept';
+
+  @override
+  String get eventInviteDecline => 'Decline';
+
+  @override
+  String get eventInviteAcceptedSnack => 'Attendance confirmed';
+
+  @override
+  String get eventInviteDeclinedSnack => 'Invitation declined';
+
+  @override
   String get eventEditButton => 'Edit';
 
   @override
@@ -1450,7 +1533,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get eventCancelDialogBody =>
-      'The preshards will be returned to the promotores. Invitees will be notified.';
+      'The preshards will be returned to the hosts. Invitees will be notified.';
 
   @override
   String get eventCancelConfirm => 'Yes, cancel';
@@ -1487,18 +1570,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get eventStatusCancelled => 'Cancelled';
 
   @override
-  String get qrAttendanceTitle => 'qr';
+  String get qrAttendanceTitle => 'QR';
 
   @override
   String get qrEventLoadError => 'Could not load the event.';
-
-  @override
-  String get qrTokenLoadError => 'Could not load the QR code.';
-
-  @override
-  String qrActivatesIn(int minutes) {
-    return 'The QR code will activate $minutes minutes before the event';
-  }
 
   @override
   String qrActivationCountdown(String time) {
@@ -1506,32 +1581,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String qrNewCodeIn(int seconds) {
-    return 'New code in: $seconds';
-  }
-
-  @override
-  String get qrEventEnded =>
-      'The event has ended. The QR code is no longer needed.';
-
-  @override
-  String get qrServerPending =>
-      'The QR code could not be generated yet. The server is not rotating tokens yet.';
-
-  @override
-  String get qrServerPendingBody => 'If the problem persists, press Retry.';
-
-  @override
-  String get qrUpdating => 'Updating code…';
-
-  @override
-  String get qrAttendeeExpired => 'The QR code expired. Generating a new one…';
-
-  @override
-  String get qrAttendeeExpiredBody => 'If the problem persists, press Retry.';
-
-  @override
-  String get qrScannerTitle => 'scan';
+  String get qrScannerTitle => 'Scanner';
 
   @override
   String get qrScanPrompt => 'Scan the attendee\'s QR code';
@@ -1565,10 +1615,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get qrScanReady => 'Done';
 
   @override
-  String get qrScanExpired =>
-      'QR code expired. Ask the attendee to refresh their QR.';
-
-  @override
   String get qrScanAlreadyScanned => 'This QR code was already scanned.';
 
   @override
@@ -1579,11 +1625,11 @@ class AppLocalizationsEn extends AppLocalizations {
       'The event is not active for attendance confirmation.';
 
   @override
-  String get qrScanNotPromotor =>
+  String get qrScanNotHost =>
       'You don\'t have permission to scan at this event.';
 
   @override
-  String get qrScanInvalidToken => 'Invalid QR code.';
+  String get qrScanInvalidCode => 'Invalid QR code.';
 
   @override
   String get qrScanNetworkError => 'Connection error. Retrying...';
@@ -1607,6 +1653,31 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get qrCameraSettingsAction => 'Open settings';
+
+  @override
+  String get codeNotReadyYet => 'Your attendance code isn\'t ready yet.';
+
+  @override
+  String get codeLoadError => 'Could not load your attendance code.';
+
+  @override
+  String get codeEventEnded =>
+      'The event has ended. No attendance code is needed.';
+
+  @override
+  String get codeNotInvited => 'You don\'t have a code for this event.';
+
+  @override
+  String get codeServerPending => 'The server has not issued your code yet.';
+
+  @override
+  String get codeServerPendingBody => 'If the problem persists, press Retry.';
+
+  @override
+  String get codeAlreadyAttendedReturn => 'Go back';
+
+  @override
+  String get codeAssistedDone => 'DONE';
 
   @override
   String get partyFinderTitle => 'Party finder';
@@ -2208,7 +2279,19 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get eventsCreateCtaBody =>
-      'Events are created inside a group — pick one in the Groups tab.';
+      'Create your event and invite people — your plan caps attendance.';
+
+  @override
+  String get eventsCapacityTitle => 'How many people can attend?';
+
+  @override
+  String get eventsCapacityHint => 'Total people, including you.';
+
+  @override
+  String get eventsCapacityContact => 'Want more? Contact us';
+
+  @override
+  String get eventsContactSoon => 'Coming soon — we will be in touch.';
 
   @override
   String get eventsEmpty => 'No events yet';

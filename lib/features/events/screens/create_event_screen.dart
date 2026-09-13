@@ -8,10 +8,13 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/core/design_tokens/app_typography.dart';
 import 'package:samay/core/logging/app_logger.dart';
+import 'package:samay/core/providers/config_provider.dart';
 import 'package:samay/core/providers/service_providers.dart';
+import 'package:samay/core/providers/user_provider.dart';
 import 'package:samay/core/router/route_paths.dart';
 import 'package:samay/core/services/permission_service.dart';
 import 'package:samay/features/events/logic/event_form_data.dart';
+import 'package:samay/features/events/providers/events_providers.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/show_app_error.dart';
 import 'package:samay/shared/widgets/v_button.dart';
@@ -29,14 +32,14 @@ typedef EventCoverPicker = Future<XFile?> Function(ImageSource source);
 /// Single-scroll form covering the spec's steps 1–5 and 7: type selector
 /// (Casual/Juerga/Tono), details (name, description, date/time pickers,
 /// location, optional cover), visibility (public vs group-scoped from the
-/// user's promotor groups), join mode (public only), the Juerga location
+/// user's host groups), join mode (public only), the Juerga location
 /// warning modal, and the preshards section (Juerga/Tono only — pool, per-user
 /// cap, remainder action; hidden and forced to 0 for Casual, mirroring the
 /// DB CHECK constraint `check_casual_no_preshards`).
 ///
-/// Step 6 (invite promotores) and step 7's daily-limit check + static QR are
+/// Step 6 (invite hosts) and step 7's daily-limit check + static QR are
 /// tracked separately (I-55 / EINV / EEDG); the creator is auto-inserted as
-/// promotor by `EventService.createEvent`.
+/// host by `EventService.createEvent`.
 ///
 /// Route: `/group/:groupId/create-event` (group-scoped prefill). A standalone
 /// `/event/create` path was deliberately NOT added — see the I-54 daily log
@@ -91,8 +94,26 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
   List<Map<String, dynamic>> _myGroups = [];
   bool _groupsError = false;
 
-  static DateTime _defaultStarts() =>
-      DateTime.now().add(const Duration(hours: 1));
+  /// Attendee capacity (host + staff + guests). The server freezes the real
+  /// cap; the stepper is bounded to the creator's entitlement-tier max.
+  int _capacity = 7;
+  int _tierCap = 7;
+  bool _capacityEdited = false;
+
+  /// Default start: 1 h out, but clamped to TODAY near midnight. A naive
+  /// `now + 1 h` crosses into the next calendar day (e.g. 23:05 → 00:05
+  /// tomorrow), which silently shifted "starts now"-style events ~24 h out
+  /// (2026-09-09). Same-day keeps the event immediate; the server accepts a
+  /// start that has already passed and the code window opens at once.
+  static DateTime _defaultStarts() {
+    final now = DateTime.now();
+    final start = now.add(const Duration(hours: 1));
+    final crossesMidnight = start.year != now.year ||
+        start.month != now.month ||
+        start.day != now.day;
+    return crossesMidnight ? now : start;
+  }
+
   static DateTime _defaultEnds() =>
       _defaultStarts().add(const Duration(hours: 2));
 
@@ -100,6 +121,7 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
   void initState() {
     super.initState();
     _loadMyGroups();
+    _loadEntitlement();
   }
 
   @override
@@ -112,7 +134,7 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
     super.dispose();
   }
 
-  /// The user's promotor/co_promotor groups for the group-scoped selector.
+  /// The user's host/staff groups for the group-scoped selector.
   /// Failures are non-blocking: the route-prefilled group (if any) stays
   /// usable and public events never need this list.
   Future<void> _loadMyGroups() async {
@@ -125,6 +147,38 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
       if (!mounted) return;
       setState(() => _groupsError = true);
     }
+  }
+
+  /// Resolves the creator's entitlement-tier attendance cap from
+  /// app_config (`events.{free,t2,t1,t0}_max_attendees`). Falls back to the
+  /// seeded free value (7) while the profile/config are loading or missing.
+  Future<void> _loadEntitlement() async {
+    try {
+      final profile = await ref.read(currentUserProvider.future);
+      final tier = profile?.entitlementTier ?? 'free';
+      final cfg = await ref.read(appConfigProvider.future);
+      final cap = int.tryParse(
+            cfg['events.${tier}_max_attendees'] ?? '',
+          ) ??
+          _fallbackCap(tier);
+      if (!mounted) return;
+      setState(() {
+        _tierCap = cap;
+        if (!_capacityEdited) _capacity = cap;
+        _form = _form.copyWith(capacity: _capacity);
+      });
+    } catch (e, st) {
+      AppLogger.instance.error('create event: resolve capacity error: $e', '$st');
+    }
+  }
+
+  static int _fallbackCap(String tier) {
+    return switch (tier) {
+      't2' => 14,
+      't1' => 56,
+      't0' => 1120,
+      _ => 7,
+    };
   }
 
   Future<void> _pickImage() async {
@@ -269,6 +323,7 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
           preshardsCapPerUser: _capController.text.trim().isEmpty
               ? null
               : int.tryParse(_capController.text),
+          capacity: _capacity.clamp(1, _tierCap).toInt(),
         )
         .sanitized();
     final errors = form.validate();
@@ -294,6 +349,8 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
       final created = await ref.read(eventServiceProvider).createEvent(payload);
       setState(() => _loading = false);
       if (!mounted) return;
+      // The events tab list is cached — invalidate so the new event shows.
+      ref.invalidate(myEventsProvider);
       // EDET (I-55) owns the real detail screen; until then the route keeps
       // its coming-soon placeholder — navigation shape is already final.
       context.push(RoutePaths.eventDetail(created['id'] as String));
@@ -421,6 +478,36 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
               label: l10n.eventsLocationLabel,
             ),
             const SizedBox(height: 24),
+            _sectionLabel(l10n.eventsCapacityTitle),
+            const SizedBox(height: 12),
+            _buildCapacityStepper(context),
+            const SizedBox(height: 8),
+            Text(
+              l10n.eventsCapacityHint,
+              style: const TextStyle(
+                color: AppColors.mutedStrong,
+                fontSize: 12,
+              ),
+            ),
+            if (_capacity >= _tierCap) ...[
+              const SizedBox(height: 4),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton.icon(
+                  onPressed: _contactUs,
+                  icon: const Icon(
+                    Icons.mail_outline,
+                    size: 18,
+                    color: AppColors.glowPink,
+                  ),
+                  label: Text(
+                    l10n.eventsCapacityContact,
+                    style: const TextStyle(color: AppColors.glowPink),
+                  ),
+                ),
+              ),
+            ],
+            const SizedBox(height: 24),
             _sectionLabel(l10n.eventsVisibilityLabel),
             const SizedBox(height: 8),
             Wrap(
@@ -542,6 +629,58 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
 
   Widget _sectionLabel(String text) {
     return Text(text, style: AppTypography.sectionLabel);
+  }
+
+  /// "¿Quieres más? Contáctanos" — static for now; the billing/contact
+  /// pipeline is not built yet.
+  void _contactUs() {
+    final l10n = AppLocalizations.of(context);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(l10n.eventsContactSoon)),
+    );
+  }
+
+  void _setCapacity(int value) {
+    final next = value.clamp(1, _tierCap).toInt();
+    setState(() {
+      _capacityEdited = true;
+      _capacity = next;
+      _form = _form.copyWith(capacity: next);
+    });
+  }
+
+  Widget _buildCapacityStepper(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceAlt,
+        border: Border.all(color: AppColors.border),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          IconButton(
+            onPressed: _capacity > 1 ? () => _setCapacity(_capacity - 1) : null,
+            icon: const Icon(Icons.remove, color: AppColors.mutedStrong),
+          ),
+          Text(
+            '$_capacity',
+            style: const TextStyle(
+              color: AppColors.white,
+              fontSize: 22,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          IconButton(
+            onPressed: _capacity < _tierCap
+                ? () => _setCapacity(_capacity + 1)
+                : null,
+            icon: const Icon(Icons.add, color: AppColors.mutedStrong),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _dateRow(BuildContext context, {required bool starts}) {
