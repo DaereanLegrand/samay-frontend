@@ -62,6 +62,10 @@ abstract final class RoutePaths {
   /// the :sessionId hub is never shadowed.
   static String drunkBottle(String sessionId) =>
       '/minigames/play/drunk-bottle/$sessionId';
+  /// The Charadas play screen for a session (211_minigame_charades) — a
+  /// fixed `/play/charades` segment so the :sessionId hub is never shadowed.
+  static String charades(String sessionId) =>
+      '/minigames/play/charades/$sessionId';
   /// Direct (group-less) minigames hub — registered BEFORE the :groupId hub
   /// so the static path can never be shadowed (direct-minigames 2026-08-27).
   static const minigamesDirect = '/minigames';

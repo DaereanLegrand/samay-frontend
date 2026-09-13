@@ -500,6 +500,11 @@ class _GameCard extends StatelessWidget {
       (l) => l.minigamesGameChallenge,
       (l) => l.minigamesGameChallengeTagline,
     ),
+    MinigameType.charades => (
+      minigameIcon(type),
+      (l) => l.minigamesGameCharades,
+      (l) => l.minigamesGameCharadesTagline,
+    ),
   };
 
   @override

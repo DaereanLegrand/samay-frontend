@@ -14,6 +14,8 @@ import 'package:samay/core/services/minigame_service.dart';
 import 'package:samay/features/minigames/logic/minigame_engine.dart';
 import 'package:samay/features/minigames/logic/minigame_meta.dart';
 import 'package:samay/features/minigames/providers/minigames_providers.dart';
+import 'package:samay/features/minigames/screens/drunk_bottle_screen.dart'
+    show kDrunkBottleMinPlayers;
 import 'package:samay/features/minigames/screens/minigame_invite_screen.dart';
 import 'package:samay/features/minigames/screens/minigames_screen.dart'
     show minigameRejectionMessage;
@@ -26,6 +28,18 @@ import 'package:samay/shared/widgets/v_card.dart';
 import 'package:samay/shared/widgets/v_chip.dart';
 import 'package:samay/shared/widgets/v_display_text.dart';
 import 'package:samay/shared/widgets/v_header_bar.dart';
+
+
+/// The play-screen route for [gameType]: Botella (208/209) and Charadas
+/// (211) join truth_dare as concrete games. Anything else falls back to
+/// Verdad o Reto so existing sessions keep working.
+String _playRoute(String? gameType, String sessionId) {
+  return switch (gameType) {
+    'drunk_bottle' => RoutePaths.drunkBottle(sessionId),
+    'charades' => RoutePaths.charades(sessionId),
+    _ => RoutePaths.truthDare(sessionId),
+  };
+}
 
 /// Partida lobby (180_minigame_lobby) — the session detail screen, now the
 /// game's pre-play room. Shows the game (the AppBar is its LOWERCASE name,
@@ -43,20 +57,6 @@ import 'package:samay/shared/widgets/v_header_bar.dart';
 /// [minigameGameStateProvider], both streaming through their realtime
 /// channels); participant joins/removes arrive via the `minigame_sessions`
 /// realtime stream feeding [sessionStatusProvider].
-/// The play-screen route for [gameType] (208_minigame_drunk_bottle adds a
-/// second concrete game alongside truth_dare) — falls back to Verdad o Reto
-/// for any other/unset type so existing sessions keep working.
-String _playRoute(String? gameType, String sessionId) {
-  return gameType == 'drunk_bottle'
-      ? RoutePaths.drunkBottle(sessionId)
-      : RoutePaths.truthDare(sessionId);
-}
-
-/// Drunk bottle (208_minigame_drunk_bottle): the minimum roster size a
-/// partida needs before the host can start it — the game reads badly with
-/// fewer players around the circle.
-const int kDrunkBottleMinPlayers = 6;
-
 class MinigameSessionDetailScreen extends ConsumerStatefulWidget {
   const MinigameSessionDetailScreen({super.key, required this.sessionId});
 
@@ -530,6 +530,13 @@ class _LobbySection extends ConsumerWidget {
               ),
             ),
         const SizedBox(height: AppSpacing.lg),
+        // 210_minigame_public: the host publishes the partida to the open
+        // lobby so anyone in the app can find it and join without an invite.
+        if (isCreator && !finished && session?['group_id'] == null)
+          _PublishSwitch(
+            sessionId: sessionId,
+            isPublic: session?['is_public'] == true,
+          ),
         if (!finished) ...[
           // 2026-09-02: the match is already RUNNING (a participant reopened
           // the partida after leaving the app / losing connection mid-play —
@@ -662,6 +669,84 @@ class _LobbySection extends ConsumerWidget {
         context,
       ).showSnackBar(SnackBar(content: Text(e.toAppError().message)));
     }
+  }
+}
+
+/// The host's open-lobby switch (210_minigame_public): flipping it on makes
+/// the partida visible to every signed-in user, who can then join without an
+/// invite. Backend-enforced host-only (`not_creator`).
+class _PublishSwitch extends ConsumerStatefulWidget {
+  const _PublishSwitch({required this.sessionId, required this.isPublic});
+
+  final String sessionId;
+  final bool isPublic;
+
+  @override
+  ConsumerState<_PublishSwitch> createState() => _PublishSwitchState();
+}
+
+class _PublishSwitchState extends ConsumerState<_PublishSwitch> {
+  bool _busy = false;
+
+  Future<void> _toggle(bool next) async {
+    if (_busy) return;
+    setState(() => _busy = true);
+    try {
+      await ref
+          .read(sessionStatusProvider(widget.sessionId).notifier)
+          .setPublic(next);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e.toAppError().message)));
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSpacing.lg),
+      child: VCard(
+        child: Row(
+          children: [
+            Icon(
+              widget.isPublic ? Icons.public : Icons.lock_outline,
+              size: 20,
+              color: widget.isPublic ? AppColors.white : AppColors.mutedStrong,
+            ),
+            const SizedBox(width: AppSpacing.md),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    l10n.minigamesPublishTitle,
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    l10n.minigamesPublishSubtitle,
+                    style: const TextStyle(
+                      color: AppColors.mutedStrong,
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Switch(
+              value: widget.isPublic,
+              onChanged: _busy ? null : _toggle,
+              activeThumbColor: AppColors.white,
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
 

@@ -358,6 +358,22 @@ class GameTurnSkeleton {
     this.bottleSpinning = false,
     this.bottleSelectedId,
     this.bottleSeq = 0,
+    this.bottleSeats = const [],
+    this.bottleAngle,
+    this.bottleDare,
+    this.bottleDareCategory,
+    this.bottleSpunBy,
+    this.charadesPhase,
+    this.charadesTurnId,
+    this.charadesWord,
+    this.charadesCategory,
+    this.charadesEndsAt,
+    this.charadesSeconds = 60,
+    this.charadesHits = 0,
+    this.charadesMisses = 0,
+    this.charadesScores = const {},
+    this.charadesLog = const [],
+    this.charadesSeq = 0,
   });
 
   final int judgeIndex;
@@ -495,6 +511,81 @@ class GameTurnSkeleton {
   /// client can tell a fresh spin/stop from a same-value re-delivery.
   final int bottleSeq;
 
+  /// Drunk bottle "pizza" (209_minigame_bottle_pizza): the seating order the
+  /// server dealt for the CURRENT spin. Sector k of the pie (k * 360/n
+  /// degrees wide) belongs to `bottleSeats[k]`, so the drawn
+  /// [bottleAngle] and the announced [bottleSelectedId] always agree. The
+  /// server reshuffles this on every spin — players change seats each throw.
+  final List<String> bottleSeats;
+
+  /// Drunk bottle: the resting angle in degrees `[0, 360)` the server drew
+  /// for the last stop (null while spinning / before the first stop). The
+  /// sector containing it owns the round.
+  final double? bottleAngle;
+
+  /// Drunk bottle: the reto the server drew for the selected player.
+  final String? bottleDare;
+
+  /// Drunk bottle: the reto's category (`suave` / `medio` / `picante` /
+  /// `castigo`) — the UI tags the card with it.
+  final String? bottleDareCategory;
+
+  /// Drunk bottle: who launched the current spin.
+  final String? bottleSpunBy;
+
+  /// The pizza sector index owned by [participantId] for the current spin,
+  /// or -1 when they hold no seat (not dealt in yet).
+  int bottleSeatOf(String participantId) => bottleSeats.indexOf(participantId);
+
+  // ── Charadas (211_minigame_charades) ────────────────────────────────
+  // One player holds the phone on their forehead while the room acts the
+  // word out; the turn runs against a SERVER-anchored deadline.
+
+  /// `idle` (nobody playing) / `playing` (a turn is running) / `summary`
+  /// (the turn closed and its score is on the board). Null before the first
+  /// turn of the session.
+  final String? charadesPhase;
+
+  /// The player holding the phone this turn.
+  final String? charadesTurnId;
+
+  /// The word currently on screen (the guesser must not look).
+  final String? charadesWord;
+
+  /// The category the turn was started with (null = every category).
+  final String? charadesCategory;
+
+  /// The SERVER-anchored deadline of the running turn — the client counts
+  /// down against this, never against a locally chosen start time.
+  final DateTime? charadesEndsAt;
+
+  /// The turn length in seconds the starter chose.
+  final int charadesSeconds;
+
+  /// Words guessed in the CURRENT turn.
+  final int charadesHits;
+
+  /// Words skipped in the CURRENT turn.
+  final int charadesMisses;
+
+  /// Session scoreboard `{participant_id: total hits}`, banked per closed
+  /// turn.
+  final Map<String, int> charadesScores;
+
+  /// The current turn's word-by-word record: `{word, correct}` entries, in
+  /// play order — the summary lists them back.
+  final List<({String word, bool correct})> charadesLog;
+
+  /// Monotonic per-write counter for the charades state.
+  final int charadesSeq;
+
+  /// Whether a charades turn is running right now.
+  bool get charadesIsPlaying => charadesPhase == 'playing';
+
+  /// Whether [participantId] is the one holding the phone.
+  bool charadesIsMyTurn(String? participantId) =>
+      participantId != null && participantId == charadesTurnId;
+
   /// The server-drawn player whose turn comes after the current one
   /// (authoritative — the "Siguiente: {name}" indicator).
   final String? nextSubjectId;
@@ -556,7 +647,45 @@ class GameTurnSkeleton {
       bottleSpinning: json['bottle_spinning'] == true,
       bottleSelectedId: json['bottle_selected_id'] as String?,
       bottleSeq: _asInt(json['bottle_seq']),
+      bottleSeats: json['bottle_seats'] is List
+          ? [
+              for (final s in json['bottle_seats'] as List)
+                if (s is String && s.isNotEmpty) s,
+            ]
+          : const [],
+      bottleAngle: json['bottle_angle'] is num
+          ? (json['bottle_angle'] as num).toDouble()
+          : null,
+      bottleDare: json['bottle_dare'] as String?,
+      bottleDareCategory: json['bottle_dare_category'] as String?,
+      bottleSpunBy: json['bottle_spun_by'] as String?,
+      charadesPhase: json['charades_phase'] as String?,
+      charadesTurnId: json['charades_turn_id'] as String?,
+      charadesWord: json['charades_word'] as String?,
+      charadesCategory: json['charades_category'] as String?,
+      charadesEndsAt: DateTime.tryParse(
+        json['charades_ends_at'] as String? ?? '',
+      ),
+      charadesSeconds: _asInt(json['charades_seconds']) > 0
+          ? _asInt(json['charades_seconds'])
+          : 60,
+      charadesHits: _asInt(json['charades_hits']),
+      charadesMisses: _asInt(json['charades_misses']),
+      charadesScores: _parseRoundMap(json['charades_scores']),
+      charadesLog: _parseCharadesLog(json['charades_log']),
+      charadesSeq: _asInt(json['charades_seq']),
     );
+  }
+
+  /// Parses the `charades_log` array of `{word, correct}` entries
+  /// (tolerant — malformed entries drop).
+  static List<({String word, bool correct})> _parseCharadesLog(Object? value) {
+    if (value is! List) return const [];
+    return [
+      for (final e in value)
+        if (e is Map && e['word'] is String)
+          (word: e['word'] as String, correct: e['correct'] == true),
+    ];
   }
 
   /// Parses the `state.key_requests` jsonb uuid[] (206_minigame_key_request)

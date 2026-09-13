@@ -15,7 +15,8 @@ enum MinigameType {
   questions('questions'),
   truthDare('truth_dare'),
   drunkBottle('drunk_bottle'),
-  challenge('challenge');
+  challenge('challenge'),
+  charades('charades');
 
   const MinigameType(this.value);
 
@@ -117,7 +118,7 @@ class MinigameService {
 
   static const _columns =
       'id, group_id, game_type, status, shard_wager, player_limit, '
-      'participants, winner_id, created_at, name, auto_name';
+      'participants, winner_id, created_at, name, auto_name, is_public';
 
   /// All sessions of [groupId], newest first (RLS `ms_read_group_member` —
   /// group members only).
@@ -1396,26 +1397,151 @@ RealtimeChannel subscribeToSession(String id) {
     }
   }
 
-  /// `set_drunk_bottle_spin` SECURITY DEFINER RPC (208_minigame_drunk_bottle)
-  /// — any current participant may spin/stop the bottle; the result rides
-  /// the `minigame_game_state` row and streams to the lobby over the
-  /// existing realtime channel.
-  Future<void> setDrunkBottleSpin(
-    String sessionId, {
-    required bool spinning,
-    String? selectedId,
+  /// `set_minigame_public` SECURITY DEFINER RPC (210_minigame_public) — the
+  /// HOST publishes the partida to the open lobby (or takes it back down).
+  /// A published partida is readable and joinable by ANY signed-in user; the
+  /// player cap, the active gate and the wager escrow still apply.
+  Future<void> setMinigamePublic(String sessionId, bool isPublic) async {
+    final user = auth.currentUser;
+    if (user == null) throw const UnauthorizedError();
+
+    final res = await client.rpc(
+      'set_minigame_public',
+      params: {'p_session_id': sessionId, 'p_is_public': isPublic},
+    );
+    final result = res is Map
+        ? Map<String, dynamic>.from(res)
+        : <String, dynamic>{};
+    switch (result['status']) {
+      case 'ok':
+        return;
+      case 'not_authenticated':
+        throw const UnauthorizedError();
+      case 'session_not_found':
+        throw const NotFoundError('Partida');
+      case 'not_creator':
+        throw PermissionError();
+      case 'group_session':
+        throw ConflictError(
+          'Las partidas de grupo no se publican',
+          code: 'group_session',
+        );
+      case 'session_not_active':
+        throw ConflictError('La partida ya terminó', code: 'session_not_active');
+      default:
+        throw const ServerError('Unexpected set_minigame_public response');
+    }
+  }
+
+  /// `list_public_minigames` SECURITY DEFINER RPC (210_minigame_public) — the
+  /// open lobby feed: published, still-open direct partidas (newest first,
+  /// host username resolved server-side). [gameType] narrows it to one game.
+  Future<List<Map<String, dynamic>>> listPublicMinigames({
+    String? gameType,
   }) async {
     final user = auth.currentUser;
     if (user == null) throw const UnauthorizedError();
 
     final res = await client.rpc(
-      'set_drunk_bottle_spin',
+      'list_public_minigames',
+      params: {'p_game_type': gameType},
+    );
+    final result = res is Map
+        ? Map<String, dynamic>.from(res)
+        : <String, dynamic>{};
+    if (result['status'] != 'ok') {
+      throw const ServerError('Unexpected list_public_minigames response');
+    }
+    final rows = result['sessions'];
+    if (rows is! List) return const [];
+    return [
+      for (final r in rows)
+        if (r is Map) Map<String, dynamic>.from(r),
+    ];
+  }
+
+  /// `spin_drunk_bottle` SECURITY DEFINER RPC (209_minigame_bottle_pizza) —
+  /// any participant launches a spin. The server RESEATS the roster (a fresh
+  /// pizza order every throw) and clears the previous result; the whole table
+  /// sees it over the game-state realtime channel.
+  Future<void> spinDrunkBottle(String sessionId) async {
+    final user = auth.currentUser;
+    if (user == null) throw const UnauthorizedError();
+
+    final res = await client.rpc(
+      'spin_drunk_bottle',
+      params: {'p_session_id': sessionId},
+    );
+    _checkBottleStatus(res, 'spin_drunk_bottle');
+  }
+
+  /// `stop_drunk_bottle` SECURITY DEFINER RPC (209_minigame_bottle_pizza) —
+  /// any participant stops the spin. The SERVER draws the resting angle,
+  /// derives the winner from the pizza sector that angle lands in and draws
+  /// the reto, so every device renders the same outcome.
+  Future<void> stopDrunkBottle(String sessionId) async {
+    final user = auth.currentUser;
+    if (user == null) throw const UnauthorizedError();
+
+    final res = await client.rpc(
+      'stop_drunk_bottle',
+      params: {'p_session_id': sessionId},
+    );
+    _checkBottleStatus(res, 'stop_drunk_bottle');
+  }
+
+  /// `start_charades_turn` RPC (211_minigame_charades) — the caller takes
+  /// the phone: the server draws the first word of [category] and starts the
+  /// server-clock deadline the whole table counts down against.
+  Future<void> startCharadesTurn(
+    String sessionId, {
+    String? category,
+    int seconds = 60,
+  }) async {
+    final user = auth.currentUser;
+    if (user == null) throw const UnauthorizedError();
+
+    final res = await client.rpc(
+      'start_charades_turn',
       params: {
         'p_session_id': sessionId,
-        'p_spinning': spinning,
-        'p_selected_id': selectedId,
+        'p_category': category,
+        'p_seconds': seconds,
       },
     );
+    _checkCharadesStatus(res, 'start_charades_turn');
+  }
+
+  /// `charades_answer` RPC — scores the word on screen ([correct] = guessed)
+  /// and draws the next one. Turn holder only, and only before the deadline.
+  Future<void> charadesAnswer(String sessionId, {required bool correct}) async {
+    final user = auth.currentUser;
+    if (user == null) throw const UnauthorizedError();
+
+    final res = await client.rpc(
+      'charades_answer',
+      params: {'p_session_id': sessionId, 'p_correct': correct},
+    );
+    _checkCharadesStatus(res, 'charades_answer');
+  }
+
+  /// `end_charades_turn` RPC — closes the turn and banks its hits on the
+  /// scoreboard. The turn holder may stop early; anyone may close a turn
+  /// whose clock already ran out, so a player who walked away never freezes
+  /// the table.
+  Future<void> endCharadesTurn(String sessionId) async {
+    final user = auth.currentUser;
+    if (user == null) throw const UnauthorizedError();
+
+    final res = await client.rpc(
+      'end_charades_turn',
+      params: {'p_session_id': sessionId},
+    );
+    _checkCharadesStatus(res, 'end_charades_turn');
+  }
+
+  /// Shared typed-status mapping for the charades RPCs (I-57 contract).
+  void _checkCharadesStatus(Object? res, String rpc) {
     final result = res is Map
         ? Map<String, dynamic>.from(res)
         : <String, dynamic>{};
@@ -1429,12 +1555,53 @@ RealtimeChannel subscribeToSession(String id) {
       case 'not_allowed':
         throw PermissionError();
       case 'session_not_active':
+        throw ConflictError('La partida ya terminó', code: 'session_not_active');
+      case 'not_your_turn':
         throw ConflictError(
-          'La partida ya terminó',
-          code: 'session_not_active',
+          'Le toca a otro jugador',
+          code: 'not_your_turn',
         );
+      case 'no_words':
+        throw ConflictError(
+          'No hay palabras en esa categoría',
+          code: 'no_words',
+        );
+      // The clock ran out (or the turn already closed) between the tap and
+      // the write — the UI is about to render the summary either way.
+      case 'time_up':
+      case 'not_playing':
+        return;
       default:
-        throw const ServerError('Unexpected set_drunk_bottle_spin response');
+        throw ServerError('Unexpected $rpc response');
+    }
+  }
+
+  /// Shared typed-status mapping for the bottle RPCs (I-57 contract).
+  void _checkBottleStatus(Object? res, String rpc) {
+    final result = res is Map
+        ? Map<String, dynamic>.from(res)
+        : <String, dynamic>{};
+    switch (result['status']) {
+      case 'ok':
+        return;
+      case 'not_authenticated':
+        throw const UnauthorizedError();
+      case 'session_not_found':
+        throw const NotFoundError('Partida');
+      case 'not_allowed':
+        throw PermissionError();
+      case 'session_not_active':
+        throw ConflictError('La partida ya terminó', code: 'session_not_active');
+      case 'not_enough_players':
+        throw ConflictError(
+          'La botella necesita al menos 3 jugadores',
+          code: 'not_enough_players',
+        );
+      case 'not_spinning':
+        // A second Parar tap that lost the race — the round already resolved.
+        return;
+      default:
+        throw ServerError('Unexpected $rpc response');
     }
   }
 
