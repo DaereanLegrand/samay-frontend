@@ -113,22 +113,6 @@ class RealtimeService {
     channel.subscribe();
   }
 
-  Future<void> subscribeToQRToken(String eventId, void Function(String) onUpdate) async {
-    final user = auth.currentUser;
-    if (user == null) throw const UnauthorizedError();
-    final channel = client.channel('qr-token:$eventId:${user.id}');
-    channel.onPostgresChanges(
-      event: PostgresChangeEvent.update,
-      schema: 'public',
-      table: 'event_qr_tokens',
-      callback: (payload) {
-        final token = payload.newRecord['token'] as String?;
-        if (token != null) onUpdate(token);
-      },
-    );
-    channel.subscribe();
-  }
-
   /// Group memberships involving the current user — any insert/update/delete.
   ///
   /// postgres_changes cannot OR two columns, so the whole `group_members`
@@ -204,6 +188,93 @@ class RealtimeService {
       PostgresChangeEvent.all,
       'minigame_sessions',
       onChange,
+    );
+  }
+
+  /// One event's `event_invites` rows — any insert/update/delete.
+  ///
+  /// The host/staff guest-roster seam (2026-09-09, 060_events/08_realtime.sql):
+  /// when an invitee accepts/declines on their own device, the event detail's
+  /// cached roster would otherwise go stale with no refresh. The channel is
+  /// FILTERED to `event_id = <uuid>` (a fixed value per screen) so a host only
+  /// hears about this event's invite rows; RLS still gates delivery — the
+  /// event's hosts/staff receive the full roster rows (`ei_read_event_access`),
+  /// an invitee only their own row (`ei_read_own`). REPLICA IDENTITY FULL ships
+  /// event_id in every UPDATE/DELETE record so the filter always matches.
+  ///
+  /// Returns the channel — the caller owns the unsubscribe handle.
+  RealtimeChannel subscribeToEventInvites(
+    String eventId,
+    void Function(Map<String, dynamic>) onChange,
+  ) {
+    return subscribeToChannel(
+      'event-invites:$eventId',
+      PostgresChangeEvent.all,
+      'event_invites',
+      onChange,
+      filter: PostgresChangeFilter(
+        type: PostgresChangeFilterType.eq,
+        column: 'event_id',
+        value: eventId,
+      ),
+    );
+  }
+
+  /// One event's `event_hosts` rows — any insert/update/delete.
+  ///
+  /// The organizer-roster seam (2026-09-09, 060_events/09_attendee_roster.sql):
+  /// when the host designates/removes staff, everyone who belongs to the event
+  /// (hosts/staff + invited members) sees the "Anfitrión y staff" list update
+  /// live. Filtered to `event_id = <uuid>`; RLS gates delivery (hosts/staff
+  /// full rows; event invitees the roster of the events they belong to via the
+  /// ep_read_member_roster policy). REPLICA IDENTITY FULL ships event_id in
+  /// every UPDATE/DELETE record so the filter always matches.
+  ///
+  /// Returns the channel — the caller owns the unsubscribe handle.
+  RealtimeChannel subscribeToEventHosts(
+    String eventId,
+    void Function(Map<String, dynamic>) onChange,
+  ) {
+    return subscribeToChannel(
+      'event-hosts:$eventId',
+      PostgresChangeEvent.all,
+      'event_hosts',
+      onChange,
+      filter: PostgresChangeFilter(
+        type: PostgresChangeFilterType.eq,
+        column: 'event_id',
+        value: eventId,
+      ),
+    );
+  }
+
+  /// One event's `event_attendances` rows — insert/update/delete.
+  ///
+  /// The assist flip seam (2026-09-10, Task C): when the host/staff scanner
+  /// confirms an attendee on another device, an already-open detail screen (or
+  /// the QR screen pushed over it) must flip to the terminal "Ya te registraste"
+  /// state without a re-entry. Host/staff have no invite row, so the
+  /// `event_invites` channel cannot observe their confirmation — only
+  /// `event_attendances` does. Filtered to `event_id = <uuid>`; RLS gates
+  /// delivery (`ea_read_access`: a caller receives their own row everywhere,
+  /// plus all the event's rows when they are host/staff or a group member).
+  /// REPLICA IDENTITY FULL ships event_id in UPDATE/DELETE records.
+  ///
+  /// Returns the channel — the caller owns the unsubscribe handle.
+  RealtimeChannel subscribeToEventAttendances(
+    String eventId,
+    void Function(Map<String, dynamic>) onChange,
+  ) {
+    return subscribeToChannel(
+      'event-attendances:$eventId',
+      PostgresChangeEvent.all,
+      'event_attendances',
+      onChange,
+      filter: PostgresChangeFilter(
+        type: PostgresChangeFilterType.eq,
+        column: 'event_id',
+        value: eventId,
+      ),
     );
   }
 }

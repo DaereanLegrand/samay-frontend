@@ -1429,14 +1429,18 @@ class _LocalRiseRequest {
   final ReactionKind kind;
 }
 
-/// Per-session local-rise bus + by_turns per-device tap gate.
+/// Per-session local-rise bus + per-device SIGNAL gate.
 ///
-/// * [reserveTap] — the cooldown guard: true when a tap may fire (a tap inside
-///   [SamayDurations.reactionTapCooldown] of the previous is swallowed spam —
-///   no RPC + no rise). The timestamp lives in the notifier so rapid taps
-///   across deck rebuilds share ONE per-session clock.
+/// * [reserveTap] — the signal cooldown: true when a tap may be sent to the
+///   server now (a tap inside [SamayDurations.reactionTapCooldown] of the
+///   previous accepted send is not signalled yet; the deck holds the latest
+///   tap and flushes it when the window opens). The timestamp lives in the
+///   notifier so rapid taps across deck/async rebuilds share ONE per-session
+///   clock.
 /// * [emit] — fires an instant local rise request for the tapped emoji (the
-///   deck writes it, the canvas reads it).
+///   deck writes it, the canvas reads it). Called on EVERY emoji tap, BEFORE
+///   the signal gate, so the tapper's own device always animates — controlled
+///   spam: many local rises, at most one server signal per window.
 class _LocalRiseNotifier extends FamilyNotifier<_LocalRiseRequest?, String> {
   int _token = 0;
   DateTime? _lastTapAt;
@@ -1475,19 +1479,22 @@ final _localRiseProvider =
 /// The rise plays through TWO independent channels:
 ///
 /// * INSTANT (the tapper's own device): tapping an emoji on the reaction deck
-///   (below the card) emits a local rise via [_localRiseProvider]; the canvas
-///   consumes it and floats the emoji up the tapper's OWN card immediately,
-///   with no realtime round-trip. Spam is bounded per device by
-///   [_LocalRiseNotifier.reserveTap]'s cooldown — deliberate re-taps of the
-///   SAME emoji after the window each animate again.
-/// * REALTIME (every device): the server records each tap as a reaction EVENT
-///   (`state.reactions_event` {seq, round, reaction, voter_id}, 207) on the
-///   existing game-state UPDATE. When the event's seq is newer than the last
-///   applied one AND its round matches the window shown, the tapped emoji
-///   rises — INCLUDING a same-emoji re-tap whose tally mirror is byte-identical
-///   (the exact case the seq exists to signal). The tapper's OWN echo is
-///   deduped (its instant local rise already played); other voters' events
-///   always rise.
+///   (below the card) emits a local rise via [_localRiseProvider] on EVERY
+///   tap; the canvas consumes it and floats the emoji up the tapper's OWN card
+///   immediately, with no realtime round-trip. The per-device cooldown gates
+///   only the SIGNAL to other devices (see `_ReactionRowState`), so a burst
+///   animates fully here while the server sees at most one write per window.
+/// * REALTIME (every device): the server records each accepted tap as a
+///   reaction EVENT (`state.reactions_event` {seq, round, reaction, voter_id},
+///   207) on the existing game-state UPDATE. When the event's seq is newer than
+///   the last applied one AND its round matches the window shown, the tapped
+///   emoji rises — INCLUDING a same-emoji re-tap whose tally mirror is
+///   byte-identical (the exact case the seq exists to signal). The tapper's OWN
+///   echo is deduped (its instant local rise already played); other voters'
+///   events always rise. The event that CLOSES a round rides `reactions_event`
+///   through the advance, so a device that never applied it (realtime
+///   coalesced the reaction UPDATE with the advance) still replays the closing
+///   rise when the next round appears.
 ///
 /// Independent of the deck-slot tap burst (a different container + mechanism
 /// — they merely coincide in time). Reduced motion never spawns a particle.
@@ -1539,27 +1546,41 @@ class _ReactionRiseCanvasState extends ConsumerState<_ReactionRiseCanvas> {
 
     final round = skeleton?.round;
     final seq = skeleton?.reactionsSeq ?? 0;
+    final event = skeleton?.reactionEvent;
 
     if (round != _lastRound) {
-      // First build of a round (null sentinel) or a round advance: baseline to
-      // the row's CURRENT seq. The counter is session-global and keeps
-      // climbing across rounds, so this reset is the ONLY place a stale high
-      // seq is skipped; in-flight particles crossing the boundary drop.
+      // A round flip. In-flight particles are NOT cleared — the reaction that
+      // CLOSED the previous round is often delivered together with (or just
+      // before) the advance, so dropping particles here would erase the
+      // closing rise on every non-tapper device. Each particle self-removes
+      // via its own onDone (bounded by stagger + reactionFloat).
+      //
+      // Recover the closing event when this device never applied it for the
+      // previous window (realtime coalesced the reaction UPDATE + advance into
+      // one row, or the advance arrived first). `reactions_event` survives the
+      // advance (only the `reactions` mirror is cleared) and its own `round`
+      // says which window it belongs to; `appliedBefore` guards a double rise
+      // when the reaction UPDATE was already applied before the flip.
+      final prevRound = _lastRound;
+      final appliedBefore = _lastSeq;
       _lastRound = round;
       _lastSeq = seq;
-      _active.clear();
-    } else {
-      final event = skeleton?.reactionEvent;
-      final applied = _lastSeq;
-      if (event != null && event.hasEmoji && seq > (applied ?? -1)) {
-        _lastSeq = seq;
-        // Same-emoji re-taps and emoji changes each animate. The voter's OWN
-        // echo is deduped (its instant local rise already played). Only events
-        // for the CURRENT window rise — a stale last-event left from a
-        // previous round is ignored via its own round field.
-        if (!reduced && event.round == round && event.voterId != myId) {
-          _spawn(event.kind);
-        }
+      if (!reduced &&
+          event != null &&
+          event.hasEmoji &&
+          event.voterId != myId &&
+          event.round == prevRound &&
+          seq > (appliedBefore ?? -1)) {
+        _spawn(event.kind);
+      }
+    } else if (event != null && event.hasEmoji && seq > (_lastSeq ?? -1)) {
+      // Same window: a fresh event — same-emoji re-taps and emoji changes each
+      // animate. The voter's OWN echo is deduped (its instant local rise
+      // already played); a stale event from a previous round is ignored via
+      // its own round field.
+      _lastSeq = seq;
+      if (!reduced && event.round == round && event.voterId != myId) {
+        _spawn(event.kind);
       }
     }
 
@@ -2063,6 +2084,11 @@ class _AsyncReactableTileState extends ConsumerState<_AsyncReactableTile> {
     WidgetRef ref,
     ReactionKind kind,
   ) async {
+    // Controlled spam: the async reactable tile shares the session's per-device
+    // signal window with the by_turns deck. Rapid re-taps keep their local
+    // deck-slot burst, but only one reaches the server per window.
+    final local = ref.read(_localRiseProvider(widget.sessionId).notifier);
+    if (!local.reserveTap()) return;
     try {
       await ref
           .read(minigameGameStateProvider(widget.sessionId).notifier)
@@ -2078,24 +2104,45 @@ class _AsyncReactableTileState extends ConsumerState<_AsyncReactableTile> {
 
 /// The realtime reaction voting row (201 + 202 answer-first): rendered ONLY
 /// when the current round is reactable (the subject answered, caller is not
-/// the subject). One emoji per voter; the live tally streams back. Below the
-/// emoji deck sits the reactor-side Pasar (204): passing gives the round's
-/// subject -0.5 on the leaderboard.
-class _ReactionRow extends ConsumerWidget {
+/// the subject). Every emoji tap floats the emoji up the caller's own card
+/// immediately; the live tally streams back. Below the emoji deck sits the
+/// reactor-side Pasar (204): passing gives the round's subject -0.5 on the
+/// leaderboard.
+class _ReactionRow extends ConsumerStatefulWidget {
   const _ReactionRow({required this.sessionId});
 
   final String sessionId;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_ReactionRow> createState() => _ReactionRowState();
+}
+
+class _ReactionRowState extends ConsumerState<_ReactionRow> {
+  /// The latest emoji tapped while the per-device signal window was closed.
+  /// It is flushed when the window opens so a burst's closing tap (which may
+  /// be the one that completes the round) is never lost.
+  ReactionKind? _pending;
+  Timer? _flushTimer;
+
+  @override
+  void dispose() {
+    _flushTimer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final myId = ref.watch(authStateProvider).valueOrNull?.user?['id'];
-    final skeleton =
-        ref.watch(minigameGameStateProvider(sessionId)).valueOrNull?.skeleton;
+    final skeleton = ref
+        .watch(minigameGameStateProvider(widget.sessionId))
+        .valueOrNull
+        ?.skeleton;
     final subjectId = skeleton?.subjectId;
-    // Emoji ↔ Pasar exclusivity (2026-09-04): once the caller has acted they
+    // Emoji ↔ Pasar exclusivity (2026-09-09): once the caller has acted they
     // can only change WITHIN their chosen mode. If they already emoji-reacted,
-    // Pasar is disabled; if they already passed, every emoji tile is disabled.
+    // Pasar is locked and greyed; if they already passed, EVERY option is
+    // locked and greyed (emoji tiles AND Pasar).
     final myEmojiReacted =
         myId != null && subjectId != null && skeleton != null
         ? skeleton.hasVoterEmojiReacted(subjectId, myId)
@@ -2122,20 +2169,21 @@ class _ReactionRow extends ConsumerWidget {
                   _ReactionDeckButton(
                     kind: kind,
                     fontSize: 24,
-                    onReact: () => _react(context, ref, kind),
+                    onReact: () => _react(kind),
                     disabled: myPassed,
                   ),
               ],
             ),
             const SizedBox(height: AppSpacing.md),
             // Reactor-side Pasar (204): the voter opts out of emoji-reacting;
-            // the round's subject scores -0.5 on the leaderboard. Disabled once
-            // the caller has emoji-reacted (exclusivity).
+            // the round's subject scores -0.5 on the leaderboard. Locked once
+            // the caller has emoji-reacted OR already passed (exclusivity —
+            // a passed voter has nothing left to choose).
             VButton.outlined(
               label: l10n.minigamesPasar,
-              onPressed: myEmojiReacted
+              onPressed: (myEmojiReacted || myPassed)
                   ? null
-                  : () => _react(context, ref, ReactionKind.pass),
+                  : () => _react(ReactionKind.pass),
             ),
           ],
         ),
@@ -2143,26 +2191,60 @@ class _ReactionRow extends ConsumerWidget {
     );
   }
 
-  Future<void> _react(
-    BuildContext context,
-    WidgetRef ref,
-    ReactionKind kind,
-  ) async {
-    // Per-device tap gate (the answer-card rise's spam guard): a tap within
-    // the cooldown of the previous is swallowed — no RPC + no rise. Deliberate
-    // re-taps of the SAME emoji after the window each fire again.
-    final local = ref.read(_localRiseProvider(sessionId).notifier);
-    if (!local.reserveTap()) return;
-    if (kind != ReactionKind.pass) {
-      // INSTANT local feedback: float the tapped emoji up the caller's OWN
-      // answer card immediately (the deck sits BELOW the card; the canvas
-      // above it consumes this bus). A Pasar has no emoji — no rise.
-      local.emit(kind);
+  /// Every EMOJI tap floats the emoji up the caller's own card IMMEDIATELY
+  /// (controlled spam: the local device always animates). The per-device
+  /// timer only throttles the SIGNAL to other devices: taps past the window
+  /// send a fresh reaction event right away; taps inside it collapse into one
+  /// trailing send of the latest emoji, flushed when the window opens.
+  ///
+  /// A Pasar is a mode commit (no emoji, no rise): it bypasses the timer and
+  /// cancels any pending emoji flush so it can never race the mode switch.
+  Future<void> _react(ReactionKind kind) async {
+    final local = ref.read(_localRiseProvider(widget.sessionId).notifier);
+    if (kind == ReactionKind.pass) {
+      _flushTimer?.cancel();
+      _pending = null;
+      await _send(kind);
+      return;
     }
+    // INSTANT local feedback: the deck sits BELOW the card; the canvas above
+    // it consumes this bus. Every accepted tap animates on this device.
+    local.emit(kind);
+    if (local.reserveTap()) {
+      _flushTimer?.cancel();
+      _pending = null;
+      await _send(kind);
+    } else {
+      // Inside the window: remember the latest tap and flush it when the
+      // window opens (a burst that ends the round still reaches the server).
+      _pending = kind;
+      _scheduleFlush();
+    }
+  }
+
+  void _scheduleFlush() {
+    _flushTimer?.cancel();
+    _flushTimer = Timer(SamayDurations.reactionTapCooldown, () async {
+      final pending = _pending;
+      if (pending == null || !mounted) return;
+      final local = ref.read(_localRiseProvider(widget.sessionId).notifier);
+      if (!local.reserveTap()) {
+        // Clock edge: retry on the next window rather than dropping the tap.
+        _scheduleFlush();
+        return;
+      }
+      _pending = null;
+      await _send(pending);
+    });
+  }
+
+  Future<void> _send(ReactionKind kind) async {
     try {
-      await ref.read(minigameGameStateProvider(sessionId).notifier).react(kind);
+      await ref
+          .read(minigameGameStateProvider(widget.sessionId).notifier)
+          .react(kind);
     } catch (e) {
-      if (!context.mounted) return;
+      if (!mounted) return;
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(e.toAppError().message)));

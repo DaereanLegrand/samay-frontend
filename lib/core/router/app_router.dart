@@ -56,7 +56,7 @@ import 'package:samay/features/minigames/screens/drunk_bottle_screen.dart';
 import 'package:samay/features/minigames/screens/truth_dare_screen.dart';
 import 'package:samay/features/notifications/screens/notification_center_screen.dart';
 import 'package:samay/features/party_finder/screens/party_finder_screen.dart';
-import 'package:samay/features/qr/screens/attendance_qr_screen.dart';
+import 'package:samay/features/qr/screens/attendance_code_screen.dart';
 import 'package:samay/features/qr/screens/qr_scanner_screen.dart';
 import 'package:samay/features/shards/screens/shard_ledger_screen.dart';
 import 'package:samay/features/subscriptions/screens/paywall_screen.dart';
@@ -368,6 +368,17 @@ final routerProvider = Provider<GoRouter>((ref) {
           errorMessage: AppLocalizations.of(context).routerGroupNotFound,
         ),
       ),
+      // The events-tab "Crear evento" entry (2026-09-08): a standalone public
+      // flow reachable straight from `/main/events`. `/events/create` is
+      // intentionally plural — `/event/:eventId` (registered above) must keep
+      // owning the singular segment. Gated on the events flag.
+      GoRoute(
+        path: RoutePaths.eventCreate,
+        builder: (context, state) => const FlagGate(
+          flag: AppFeatureFlag.events,
+          child: CreateEventScreen(),
+        ),
+      ),
       GoRoute(
         // NOTE (I-54): no standalone `/event/create` path — it would be
         // shadowed by `/event/:eventId` (registered above) unless declared
@@ -546,14 +557,18 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (_, _) => const BlockedUsersScreen(),
       ),
       GoRoute(
-        // QRAT/QRSC (I-57): gated on the qr flag as the kill-switch knob.
+        // QRAT/QRSC (I-57), Stage-5 rotating-QR attendee surface: gated on the
+        // qr flag as the kill-switch knob. The attendee screen shows a plain
+        // QR encoding the rotating 24-hex attendance code
+        // (AttendanceCodeScreen); the scanner (QrScannerScreen) reads that QR
+        // and validates the code via validate_code.
         path: RoutePaths.qr(':eventId'),
         builder: (context, state) => _screenForId(
           state,
           'eventId',
           (eventId) => FlagGate(
             flag: AppFeatureFlag.qr,
-            child: AttendanceQrScreen(eventId: eventId),
+            child: AttendanceCodeScreen(eventId: eventId),
           ),
           errorMessage: AppLocalizations.of(context).routerEventNotFound,
         ),

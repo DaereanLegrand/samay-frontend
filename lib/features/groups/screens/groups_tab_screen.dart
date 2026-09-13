@@ -12,7 +12,6 @@ import 'package:samay/shared/widgets/error_view.dart';
 import 'package:samay/shared/widgets/skeletons.dart';
 import 'package:samay/shared/widgets/state_views.dart';
 import 'package:samay/shared/widgets/v_badge.dart';
-import 'package:samay/shared/widgets/v_refreshable.dart';
 import 'package:samay/shared/widgets/v_shard_icon.dart';
 
 /// The Grupos sub-tab of the Social screen (C-social, 2026-08-18): the
@@ -30,59 +29,65 @@ class GroupsTab extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
-    return Column(
-      children: [
-        SocialActionsRow(
-          children: [
-            SocialActionTile(
-              icon: Icons.group_add_outlined,
-              label: l10n.groupsCreateGroup,
-              onTap: () async {
-                await context.push(RoutePaths.groupCreate);
-                ref.invalidate(myGroupsProvider);
-              },
+    return RefreshIndicator(
+      onRefresh: () => ref.read(myGroupsProvider.notifier).refresh(),
+      child: CustomScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        slivers: [
+          SliverOverlapInjector(
+            handle: NestedScrollView.sliverOverlapAbsorberHandleFor(context),
+          ),
+          SliverToBoxAdapter(
+            child: SocialActionsRow(
+              children: [
+                SocialActionTile(
+                  icon: Icons.group_add_outlined,
+                  label: l10n.groupsCreateGroup,
+                  onTap: () async {
+                    await context.push(RoutePaths.groupCreate);
+                    ref.invalidate(myGroupsProvider);
+                  },
+                ),
+                SocialActionTile(
+                  icon: Icons.leaderboard_outlined,
+                  label: l10n.groupsRanking,
+                  onTap: () => context.push(RoutePaths.groupsLeaderboard),
+                ),
+              ],
             ),
-            SocialActionTile(
-              icon: Icons.leaderboard_outlined,
-              label: l10n.groupsRanking,
-              onTap: () => context.push(RoutePaths.groupsLeaderboard),
-            ),
-          ],
-        ),
-        const Divider(),
-        Expanded(
-          child: ref
+          ),
+          const SliverToBoxAdapter(child: Divider(height: 1)),
+          ...ref
               .watch(myGroupsProvider)
               .when(
-                // U-22 (§5.8): the first load shows the avatar+lines skeleton
-                // instead of the bare spinner; pull-to-refresh keeps the list
-                // visible (skipLoadingOnRefresh — the skeleton only ever
-                // stands in when there is nothing on screen).
                 skipLoadingOnRefresh: true,
-                loading: () => const VSkeletonList(),
-                error: (e, _) => ErrorView(
-                  message: e.toAppError().message,
-                  onRetry: () => ref.invalidate(myGroupsProvider),
-                ),
+                loading: () => const [
+                  SliverToBoxAdapter(child: VSkeletonList()),
+                ],
+                error: (e, _) => [
+                  SliverFillRemaining(
+                    hasScrollBody: false,
+                    child: ErrorView(
+                      message: e.toAppError().message,
+                      onRetry: () => ref.invalidate(myGroupsProvider),
+                    ),
+                  ),
+                ],
                 data: (groups) {
-                  // R13 (F3): pull-to-refresh on the groups list AND its
-                  // empty state.
-                  Future<void> onRefresh() =>
-                      ref.read(myGroupsProvider.notifier).refresh();
                   if (groups.isEmpty) {
-                    return VRefreshable(
-                      onRefresh: onRefresh,
-                      child: VEmptyView(
-                        icon: Icons.group_outlined,
-                        title: l10n.groupsNoneYet,
-                        description: l10n.groupsNoneYetSubtitle,
+                    return [
+                      SliverFillRemaining(
+                        hasScrollBody: false,
+                        child: VEmptyView(
+                          icon: Icons.group_outlined,
+                          title: l10n.groupsNoneYet,
+                          description: l10n.groupsNoneYetSubtitle,
+                        ),
                       ),
-                    );
+                    ];
                   }
-                  return RefreshIndicator(
-                    onRefresh: onRefresh,
-                    child: ListView.separated(
-                      physics: const AlwaysScrollableScrollPhysics(),
+                  return [
+                    SliverList.separated(
                       itemCount: groups.length,
                       separatorBuilder: (_, _) => const Divider(height: 1),
                       itemBuilder: (_, i) {
@@ -131,11 +136,11 @@ class GroupsTab extends ConsumerWidget {
                         );
                       },
                     ),
-                  );
+                  ];
                 },
               ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }

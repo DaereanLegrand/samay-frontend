@@ -47,35 +47,44 @@ class _SocialScreenState extends ConsumerState<SocialScreen>
     final l10n = AppLocalizations.of(context);
     final pendingCount = ref.watch(pendingCountsProvider);
     return Scaffold(
-      body: Column(
-        children: [
-          VHeaderBar(
-            title: l10n.socialTitle,
-            showBack: false,
-            actions: [
-              IconButton(
-                icon: const Icon(Icons.search),
-                tooltip: l10n.socialSearchTooltip,
-                onPressed: () => context.push(RoutePaths.userSearch),
+      // iOS-style collapsing header ('social' title + pill tab bar pin and
+      // collapse over the tab content as it scrolls — shared mechanism). The
+      // pill rides INSIDE the single absorbed header (as `SliverAppBar.bottom`
+      // does) so NestedScrollView's overlap math stays canonical.
+      body: NestedScrollView(
+        headerSliverBuilder: (context, innerBoxIsScrolled) => [
+          SliverOverlapAbsorber(
+            handle: NestedScrollView.sliverOverlapAbsorberHandleFor(context),
+            sliver: VHeaderSliver(
+              title: l10n.socialTitle,
+              actions: [
+                IconButton(
+                  icon: const Icon(Icons.search),
+                  tooltip: l10n.socialSearchTooltip,
+                  onPressed: () => context.push(RoutePaths.userSearch),
+                ),
+              ],
+              // The pill tab bar pins under the collapsing title.
+              bottomHeight: _kPillTabBarHeight,
+              bottom: _PillTabBar(
+                controller: _tabController,
+                pendingCount: pendingCount,
+                l10n: l10n,
               ),
-            ],
-          ),
-          _PillTabBar(
-            controller: _tabController,
-            pendingCount: pendingCount,
-            l10n: l10n,
-          ),
-          Expanded(
-            child: TabBarView(
-              controller: _tabController,
-              children: const [GroupsTab(), AmigosTab()],
             ),
           ),
         ],
+        body: TabBarView(
+          controller: _tabController,
+          children: const [GroupsTab(), AmigosTab()],
+        ),
       ),
     );
   }
 }
+
+/// Height of the pill tab-bar track (40 content + 2 top + 2 bottom margins).
+const double _kPillTabBarHeight = 44;
 
 /// The Juega-style pill TabBar: a rounded `surfaceAlt` track wrapping a
 /// TabBar whose indicator is a white pill (selected label flips to black).

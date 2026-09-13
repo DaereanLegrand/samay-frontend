@@ -872,16 +872,16 @@ abstract class AppLocalizations {
   /// **'Crea un grupo o únete a uno existente'**
   String get groupsNoneYetSubtitle;
 
-  /// Dialog title when the promotor group limit is reached
+  /// Dialog title when the host group limit is reached
   ///
   /// In es, this message translates to:
   /// **'Límite alcanzado'**
   String get groupsLimitReached;
 
-  /// Dialog body explaining the 5-group promotor limit
+  /// Dialog body explaining the 5-group host limit
   ///
   /// In es, this message translates to:
-  /// **'Has alcanzado el límite de 5 grupos como promotor. Actualiza tu suscripción para crear más.'**
+  /// **'Has alcanzado el límite de 5 grupos como host. Actualiza tu suscripción para crear más.'**
   String get groupsLimitReachedBody;
 
   /// Snackbar after creating a group
@@ -1007,7 +1007,7 @@ abstract class AppLocalizations {
   /// Banner shown on a frozen group
   ///
   /// In es, this message translates to:
-  /// **'Grupo congelado — actualiza tu suscripción o transfiere el rol de promotor'**
+  /// **'Grupo congelado — actualiza tu suscripción o transfiere el rol de host'**
   String get groupsFrozenBanner;
 
   /// Group shard balance
@@ -1094,13 +1094,13 @@ abstract class AppLocalizations {
   /// **'Abandonar'**
   String get groupsAbandon;
 
-  /// Member-actions sheet option that promotes a member to co-promotor (R17)
+  /// Member-actions sheet option that promotes a member to staff (R17)
   ///
   /// In es, this message translates to:
-  /// **'Hacer co-promotor'**
-  String get groupsPromoteCoPromotor;
+  /// **'Hacer staff'**
+  String get groupsPromoteStaff;
 
-  /// Member-actions sheet option that demotes a co-promotor to member (R17)
+  /// Member-actions sheet option that demotes a staff to member (R17)
   ///
   /// In es, this message translates to:
   /// **'Hacer miembro'**
@@ -2021,7 +2021,7 @@ abstract class AppLocalizations {
   /// Event photo gallery app bar title
   ///
   /// In es, this message translates to:
-  /// **'fotos'**
+  /// **'Fotos'**
   String get photosTitle;
 
   /// Empty state heading when the event has no photos
@@ -2507,7 +2507,7 @@ abstract class AppLocalizations {
   /// Event creation: approval join mode helper text
   ///
   /// In es, this message translates to:
-  /// **'El promotor aprueba cada solicitud'**
+  /// **'El host aprueba cada solicitud'**
   String get eventsJoinModeApprovalDescription;
 
   /// Juerga location warning dialog title
@@ -2666,35 +2666,89 @@ abstract class AppLocalizations {
   /// **'Sobrante: {action}'**
   String eventRemainderAction(String action);
 
-  /// Promotores section heading
+  /// Hosts section heading
   ///
   /// In es, this message translates to:
-  /// **'Promotores'**
-  String get eventPromotores;
+  /// **'Anfitrión y staff'**
+  String get eventHosts;
 
-  /// Promotor role badge
+  /// Host role badge
   ///
   /// In es, this message translates to:
-  /// **'Promotor'**
-  String get eventRolePromotor;
+  /// **'Anfitrión'**
+  String get eventRoleHost;
 
-  /// Co-promotor role badge
+  /// Staff role badge
   ///
   /// In es, this message translates to:
-  /// **'Co-promotor'**
-  String get eventRoleCoPromotor;
+  /// **'Staff'**
+  String get eventRoleStaff;
 
-  /// Promotores section error fallback
+  /// Hosts section error fallback
   ///
   /// In es, this message translates to:
-  /// **'No se pudieron cargar los promotores'**
-  String get eventPromotoresError;
+  /// **'No se pudo cargar el anfitrión y staff'**
+  String get eventHostsError;
 
-  /// Empty promotores state
+  /// Empty hosts state
   ///
   /// In es, this message translates to:
-  /// **'Sin promotores'**
-  String get eventNoPromotores;
+  /// **'Aún no hay anfitriones ni staff'**
+  String get eventNoHosts;
+
+  /// Host action that opens the staff picker
+  ///
+  /// In es, this message translates to:
+  /// **'Añadir staff'**
+  String get eventStaffAddButton;
+
+  /// Event staff-picker app bar title
+  ///
+  /// In es, this message translates to:
+  /// **'elegir staff'**
+  String get eventStaffPickerTitle;
+
+  /// Confirm button with the number of selected staff
+  ///
+  /// In es, this message translates to:
+  /// **'Añadir ({count})'**
+  String eventStaffCount(int count);
+
+  /// Snackbar confirming staff were designated
+  ///
+  /// In es, this message translates to:
+  /// **'Staff añadido'**
+  String get eventStaffAdded;
+
+  /// Snackbar confirming a staff member was removed
+  ///
+  /// In es, this message translates to:
+  /// **'Staff eliminado'**
+  String get eventStaffRemoved;
+
+  /// Host action that removes a staff member
+  ///
+  /// In es, this message translates to:
+  /// **'Quitar staff'**
+  String get eventStaffRemove;
+
+  /// Confirm dialog title before removing a staff member
+  ///
+  /// In es, this message translates to:
+  /// **'¿Quitar a @{username}?'**
+  String eventStaffRemoveDialogTitle(String username);
+
+  /// Confirm dialog body before removing a staff member
+  ///
+  /// In es, this message translates to:
+  /// **'Dejará de ser staff y no podrá escanear códigos de asistencia.'**
+  String get eventStaffRemoveDialogBody;
+
+  /// Confirm button of the remove-staff dialog
+  ///
+  /// In es, this message translates to:
+  /// **'Quitar'**
+  String get eventStaffRemoveConfirm;
 
   /// Own invite status line
   ///
@@ -2726,6 +2780,102 @@ abstract class AppLocalizations {
   /// **'asistida'**
   String get eventInviteAttended;
 
+  /// Event guest-roster section heading (host view)
+  ///
+  /// In es, this message translates to:
+  /// **'Invitados'**
+  String get eventGuestsTitle;
+
+  /// Empty guest roster state
+  ///
+  /// In es, this message translates to:
+  /// **'Aún no hay invitados'**
+  String get eventGuestsEmpty;
+
+  /// Guest roster load error fallback
+  ///
+  /// In es, this message translates to:
+  /// **'No se pudieron cargar los invitados'**
+  String get eventGuestsLoadError;
+
+  /// Confirmed-attendees section heading on the attendee's event detail
+  ///
+  /// In es, this message translates to:
+  /// **'Asistentes'**
+  String get eventAttendeesTitle;
+
+  /// Empty confirmed-attendees state on the attendee's event detail
+  ///
+  /// In es, this message translates to:
+  /// **'Aún no hay asistentes confirmados'**
+  String get eventAttendeesEmpty;
+
+  /// Confirmed-attendees load error fallback
+  ///
+  /// In es, this message translates to:
+  /// **'No se pudieron cargar los asistentes'**
+  String get eventAttendeesLoadError;
+
+  /// Host action that opens the guest picker
+  ///
+  /// In es, this message translates to:
+  /// **'Invitar personas'**
+  String get eventInviteGuestsButton;
+
+  /// Event guest-picker app bar title
+  ///
+  /// In es, this message translates to:
+  /// **'invitar'**
+  String get eventsInviteTitle;
+
+  /// Confirm button with the number of selected guests
+  ///
+  /// In es, this message translates to:
+  /// **'Invitar ({count})'**
+  String eventsInviteCount(int count);
+
+  /// Snackbar / roster tag confirming an invite was sent
+  ///
+  /// In es, this message translates to:
+  /// **'Invitación enviada'**
+  String get eventsInviteSent;
+
+  /// Picker row tag for users who already hold an invite
+  ///
+  /// In es, this message translates to:
+  /// **'invitada'**
+  String get eventsInviteSentTag;
+
+  /// Pending-invite accept/decline card body
+  ///
+  /// In es, this message translates to:
+  /// **'Te invitaron a este evento. Confirma tu asistencia.'**
+  String get eventInvitePendingBody;
+
+  /// Accept-invite button
+  ///
+  /// In es, this message translates to:
+  /// **'Aceptar'**
+  String get eventInviteAccept;
+
+  /// Decline-invite button
+  ///
+  /// In es, this message translates to:
+  /// **'Rechazar'**
+  String get eventInviteDecline;
+
+  /// Snackbar after accepting an event invite
+  ///
+  /// In es, this message translates to:
+  /// **'Asistencia confirmada'**
+  String get eventInviteAcceptedSnack;
+
+  /// Snackbar after declining an event invite
+  ///
+  /// In es, this message translates to:
+  /// **'Invitación rechazada'**
+  String get eventInviteDeclinedSnack;
+
   /// Edit-event button
   ///
   /// In es, this message translates to:
@@ -2747,7 +2897,7 @@ abstract class AppLocalizations {
   /// Cancel-event confirmation dialog body
   ///
   /// In es, this message translates to:
-  /// **'Se devolverán los preshards a los promotores. Los invitados serán notificados.'**
+  /// **'Se devolverán los preshards a los hosts. Los invitados serán notificados.'**
   String get eventCancelDialogBody;
 
   /// Cancel-event confirmation button
@@ -2819,7 +2969,7 @@ abstract class AppLocalizations {
   /// Attendance QR screen title
   ///
   /// In es, this message translates to:
-  /// **'código'**
+  /// **'Código'**
   String get qrAttendanceTitle;
 
   /// Attendance QR: event load error message
@@ -2828,70 +2978,16 @@ abstract class AppLocalizations {
   /// **'No se pudo cargar el evento.'**
   String get qrEventLoadError;
 
-  /// Attendance QR: token load error message
-  ///
-  /// In es, this message translates to:
-  /// **'No se pudo cargar el código QR.'**
-  String get qrTokenLoadError;
-
-  /// Attendance QR: pre-activation countdown message
-  ///
-  /// In es, this message translates to:
-  /// **'El código QR se activará {minutes} minutos antes del evento'**
-  String qrActivatesIn(int minutes);
-
   /// Attendance QR: countdown to activation time
   ///
   /// In es, this message translates to:
   /// **'Se activa en {time}'**
   String qrActivationCountdown(String time);
 
-  /// Attendance QR: countdown to next token rotation
-  ///
-  /// In es, this message translates to:
-  /// **'Nuevo código en: {seconds}'**
-  String qrNewCodeIn(int seconds);
-
-  /// Attendance QR: post-event message
-  ///
-  /// In es, this message translates to:
-  /// **'El evento ha finalizado. Ya no es necesario el código QR.'**
-  String get qrEventEnded;
-
-  /// Attendance QR: server has no token yet (EEDG not deployed)
-  ///
-  /// In es, this message translates to:
-  /// **'No se pudo generar el código QR todavía. El servidor aún no está rotando tokens.'**
-  String get qrServerPending;
-
-  /// Attendance QR: server-pending retry hint
-  ///
-  /// In es, this message translates to:
-  /// **'Si el problema continúa, presiona Reintentar.'**
-  String get qrServerPendingBody;
-
-  /// Attendance QR: rotating the token
-  ///
-  /// In es, this message translates to:
-  /// **'Actualizando código…'**
-  String get qrUpdating;
-
-  /// Attendance QR: token expired, regenerating
-  ///
-  /// In es, this message translates to:
-  /// **'El código QR expiró. Generando uno nuevo…'**
-  String get qrAttendeeExpired;
-
-  /// Attendance QR: expired retry hint
-  ///
-  /// In es, this message translates to:
-  /// **'Si el problema continúa, presiona Reintentar.'**
-  String get qrAttendeeExpiredBody;
-
   /// QR scanner screen title
   ///
   /// In es, this message translates to:
-  /// **'escáner'**
+  /// **'Escáner'**
   String get qrScannerTitle;
 
   /// QR scanner: scan instruction
@@ -2924,7 +3020,7 @@ abstract class AppLocalizations {
   /// **'Apagar linterna'**
   String get qrTorchOff;
 
-  /// QR scanner: validating a scanned token
+  /// QR scanner: validating a scanned code
   ///
   /// In es, this message translates to:
   /// **'Verificando…'**
@@ -2948,12 +3044,6 @@ abstract class AppLocalizations {
   /// **'Listo'**
   String get qrScanReady;
 
-  /// QR scanner: expired token error
-  ///
-  /// In es, this message translates to:
-  /// **'Código QR expirado. Pide al asistente que actualice su QR.'**
-  String get qrScanExpired;
-
   /// QR scanner: double-scan error
   ///
   /// In es, this message translates to:
@@ -2972,17 +3062,17 @@ abstract class AppLocalizations {
   /// **'El evento no está activo para confirmación de asistencia.'**
   String get qrScanNotInWindow;
 
-  /// QR scanner: caller lacks promotor role
+  /// QR scanner: caller lacks host role
   ///
   /// In es, this message translates to:
   /// **'No tienes permisos para escanear en este evento.'**
-  String get qrScanNotPromotor;
+  String get qrScanNotHost;
 
-  /// QR scanner: unrecognized token
+  /// QR scanner: unrecognized code
   ///
   /// In es, this message translates to:
   /// **'Código QR inválido.'**
-  String get qrScanInvalidToken;
+  String get qrScanInvalidCode;
 
   /// QR scanner: connection/RPC error with retry
   ///
@@ -3025,6 +3115,54 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'Abrir ajustes'**
   String get qrCameraSettingsAction;
+
+  /// Attendance code: pre-activation message (code unlocks 30 minutes before the event)
+  ///
+  /// In es, this message translates to:
+  /// **'Tu código de asistencia aún no está listo.'**
+  String get codeNotReadyYet;
+
+  /// Attendance code: code load error message
+  ///
+  /// In es, this message translates to:
+  /// **'No se pudo cargar tu código.'**
+  String get codeLoadError;
+
+  /// Attendance code: post-event message
+  ///
+  /// In es, this message translates to:
+  /// **'El evento finalizó. Ya no se necesita un código de asistencia.'**
+  String get codeEventEnded;
+
+  /// Attendance code: caller is not an attendee
+  ///
+  /// In es, this message translates to:
+  /// **'No tienes un código para este evento.'**
+  String get codeNotInvited;
+
+  /// Attendance code: server refused inside the presumed window
+  ///
+  /// In es, this message translates to:
+  /// **'El servidor aún no emitió tu código.'**
+  String get codeServerPending;
+
+  /// Attendance code: server-pending retry hint
+  ///
+  /// In es, this message translates to:
+  /// **'Si el problema continúa, presiona Reintentar.'**
+  String get codeServerPendingBody;
+
+  /// Attendance code: return button on the already-attended terminal state
+  ///
+  /// In es, this message translates to:
+  /// **'Regresar'**
+  String get codeAlreadyAttendedReturn;
+
+  /// Attendance code: terminal word revealed under the check mark once assisted
+  ///
+  /// In es, this message translates to:
+  /// **'LISTO'**
+  String get codeAssistedDone;
 
   /// Party Finder screen app bar title (PFND — I-60)
   ///
@@ -4058,7 +4196,7 @@ abstract class AppLocalizations {
   /// **'Distribuido en evento'**
   String get preshardsReasonEventPoolConsumed;
 
-  /// Preshard ledger reason: event pool returned to the promotor
+  /// Preshard ledger reason: event pool returned to the host
   ///
   /// In es, this message translates to:
   /// **'Devuelto de evento'**
@@ -4082,11 +4220,35 @@ abstract class AppLocalizations {
   /// **'Crear evento'**
   String get eventsCreateCta;
 
-  /// Events tab helper explaining that event creation lives in a group
+  /// Events tab helper under the create-event CTA
   ///
   /// In es, this message translates to:
-  /// **'El evento se crea dentro de un grupo — elige uno en la pestaña Grupos.'**
+  /// **'Crea tu evento e invita personas — tu plan limita los asistentes.'**
   String get eventsCreateCtaBody;
+
+  /// Create-event capacity section heading
+  ///
+  /// In es, this message translates to:
+  /// **'¿Cuántas personas pueden asistir?'**
+  String get eventsCapacityTitle;
+
+  /// Create-event capacity helper under the stepper
+  ///
+  /// In es, this message translates to:
+  /// **'Personas en total, incluyéndote.'**
+  String get eventsCapacityHint;
+
+  /// Create-event upsell button shown when the plan cap is reached
+  ///
+  /// In es, this message translates to:
+  /// **'¿Quieres más? Contáctanos'**
+  String get eventsCapacityContact;
+
+  /// Snackbar for the static contact-us button
+  ///
+  /// In es, this message translates to:
+  /// **'Muy pronto — te contactaremos.'**
+  String get eventsContactSoon;
 
   /// Events tab empty state heading
   ///

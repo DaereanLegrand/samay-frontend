@@ -766,7 +766,7 @@ class ChatService {
   ///
   /// Goes through the `create_direct_chat` SECURITY DEFINER RPC (migration
   /// 20260814000001 — the SQL stand-in while EEDG stays blocked, same
-  /// pattern as `validate_qr_token`): `chats_insert_related` forbids
+  /// pattern as the events `validate_code` RPC): `chats_insert_related` forbids
   /// client-side direct-chat inserts (the caller is not a participant yet),
   /// so the RPC creates the chat row + both participant rows atomically and
   /// returns the existing chat when the pair already has one. This is the

@@ -55,4 +55,10 @@ class SamayDurations {
   /// swallowed (no RPC, no rise) — the per-device spam guard for "same emoji
   /// can be re-tapped" (deliberate taps after the window each animate).
   static const reactionTapCooldown = Duration(milliseconds: 350);
+
+  /// Attendee assist reveal (2026-09-10, Task D): once the host/staff scan
+  /// confirms an attendee, an OPEN QR screen expands+fades its code out
+  /// (easeInCubic), then pops a check mark in its place (easeOutBack) and
+  /// eases the "LISTO"/"DONE" word in below (easeOutCubic). One-shot, ~1.6 s.
+  static const assistReveal = Duration(milliseconds: 1600);
 }

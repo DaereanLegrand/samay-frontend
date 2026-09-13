@@ -15,7 +15,7 @@ import 'package:samay/shared/widgets/state_views.dart';
 import 'package:samay/shared/widgets/v_button.dart';
 import 'package:samay/shared/widgets/v_input.dart';
 
-/// Event editor (EDET — promotores only, pre-live). Core details are always
+/// Event editor (EDET — hosts only, pre-live). Core details are always
 /// editable until the event goes live; the preshard pool/cap/remainder are
 /// editable until `starts_at` (MVP spec §6.3 edit flow). Post-live the screen
 /// only supports status changes from the detail screen.

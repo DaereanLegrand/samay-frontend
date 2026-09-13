@@ -51,12 +51,12 @@ class _GroupMembersScreenState extends ConsumerState<GroupMembersScreen> {
   }
 
   /// R17 (F9 ADAPTED): rows are admin-gated — the current user's own
-  /// membership row carries their role; `promotor`/`co_promotor` can act on
+  /// membership row carries their role; `host`/`staff` can act on
   /// everyone except themselves and the owner.
   bool _canAct(String myRole, String targetUserId, String targetRole) =>
-      (myRole == 'promotor' || myRole == 'co_promotor') &&
+      (myRole == 'host' || myRole == 'staff') &&
       targetUserId != ref.read(authServiceProvider).auth.currentUser?.id &&
-      targetRole != 'promotor';
+      targetRole != 'host';
 
   Future<void> _openActions(Map<String, dynamic> member) =>
       showMemberActionsSheet(

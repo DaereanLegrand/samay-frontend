@@ -15,9 +15,9 @@ import 'package:samay/shared/widgets/show_app_error.dart';
 /// byte-identical to the pre-LUXE sharp sheet) with role-fitting options for
 /// the target member:
 ///
-/// * `member` → promote to co-promotor, kick.
-/// * `co_promotor` → demote to member, kick.
-/// * `promotor` (owner) → no options (callers do not open the sheet).
+/// * `member` → promote to staff, kick.
+/// * `staff` → demote to member, kick.
+/// * `host` (owner) → no options (callers do not open the sheet).
 ///
 /// Kick is confirmed through a dialog first (F8 — danger reads better in a
 /// dialog). Every action resolves through the existing `GroupsRepository`
@@ -80,13 +80,13 @@ Future<void> showMemberActionsSheet(
                 type: MaterialType.transparency,
                 child: ListTile(
                   leading: const Icon(Icons.arrow_upward, size: 20),
-                  title: Text(l10n.groupsPromoteCoPromotor),
+                  title: Text(l10n.groupsPromoteStaff),
                   onTap: () => _runRoleChange(
                     sheetContext,
                     ref: ref,
                     groupId: groupId,
                     userId: userId,
-                    role: 'co_promotor',
+                    role: 'staff',
                     onChanged: onChanged,
                   ),
                 ),

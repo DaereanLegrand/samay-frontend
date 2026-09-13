@@ -37,6 +37,7 @@ abstract final class RoutePaths {
   static String eventPhotos(String eventId) => '/event/$eventId/photos';
   static String eventCollage(String eventId) => '/event/$eventId/collage';
   static String eventInviteToken(String token) => '/event/$token';
+  static const eventCreate = '/events/create';
   static String groupDetail(String groupId) => '/group/$groupId';
   static String groupMembers(String groupId) => '/group/$groupId/members';
   static String donateToGroup(String groupId) => '/group/$groupId/donate';
