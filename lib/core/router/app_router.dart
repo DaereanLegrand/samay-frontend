@@ -52,6 +52,7 @@ import 'package:samay/features/minigames/logic/minigame_meta.dart';
 import 'package:samay/features/minigames/screens/minigame_detail_screen.dart';
 import 'package:samay/features/minigames/screens/minigames_screen.dart';
 import 'package:samay/features/minigames/screens/minigame_session_detail_screen.dart';
+import 'package:samay/features/minigames/screens/drunk_bottle_screen.dart';
 import 'package:samay/features/minigames/screens/truth_dare_screen.dart';
 import 'package:samay/features/notifications/screens/notification_center_screen.dart';
 import 'package:samay/features/party_finder/screens/party_finder_screen.dart';
@@ -470,6 +471,20 @@ final routerProvider = Provider<GoRouter>((ref) {
           (sessionId) => FlagGate(
             flag: AppFeatureFlag.minigames,
             child: TruthDareScreen(sessionId: sessionId),
+          ),
+          errorMessage: AppLocalizations.of(context).routerGroupNotFound,
+        ),
+      ),
+      GoRoute(
+        // The Botella (drunk bottle) play screen (208_minigame_drunk_bottle).
+        // A fixed segment keeps the :groupId hub from shadowing it.
+        path: RoutePaths.drunkBottle(':sessionId'),
+        builder: (context, state) => _screenForId(
+          state,
+          'sessionId',
+          (sessionId) => FlagGate(
+            flag: AppFeatureFlag.minigames,
+            child: DrunkBottleScreen(sessionId: sessionId),
           ),
           errorMessage: AppLocalizations.of(context).routerGroupNotFound,
         ),

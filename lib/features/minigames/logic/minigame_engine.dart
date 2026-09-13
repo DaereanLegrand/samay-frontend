@@ -355,6 +355,9 @@ class GameTurnSkeleton {
     this.keyRequests = const {},
     this.reactionsSeq = 0,
     this.reactionEvent,
+    this.bottleSpinning = false,
+    this.bottleSelectedId,
+    this.bottleSeq = 0,
   });
 
   final int judgeIndex;
@@ -480,6 +483,18 @@ class GameTurnSkeleton {
   /// the migration.
   final ReactionEvent? reactionEvent;
 
+  /// Drunk bottle (208_minigame_drunk_bottle): whether the bottle is
+  /// currently spinning on every viewer's screen.
+  final bool bottleSpinning;
+
+  /// Drunk bottle: the participant id the bottle landed on when it last
+  /// stopped (null before the first spin).
+  final String? bottleSelectedId;
+
+  /// Drunk bottle: monotonic per-write counter (mirrors [reactionsSeq]) so a
+  /// client can tell a fresh spin/stop from a same-value re-delivery.
+  final int bottleSeq;
+
   /// The server-drawn player whose turn comes after the current one
   /// (authoritative — the "Siguiente: {name}" indicator).
   final String? nextSubjectId;
@@ -538,6 +553,9 @@ class GameTurnSkeleton {
               Map<String, dynamic>.from(json['reactions_event'] as Map),
             )
           : null,
+      bottleSpinning: json['bottle_spinning'] == true,
+      bottleSelectedId: json['bottle_selected_id'] as String?,
+      bottleSeq: _asInt(json['bottle_seq']),
     );
   }
 

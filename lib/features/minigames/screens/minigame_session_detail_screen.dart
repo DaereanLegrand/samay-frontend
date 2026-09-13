@@ -43,6 +43,20 @@ import 'package:samay/shared/widgets/v_header_bar.dart';
 /// [minigameGameStateProvider], both streaming through their realtime
 /// channels); participant joins/removes arrive via the `minigame_sessions`
 /// realtime stream feeding [sessionStatusProvider].
+/// The play-screen route for [gameType] (208_minigame_drunk_bottle adds a
+/// second concrete game alongside truth_dare) — falls back to Verdad o Reto
+/// for any other/unset type so existing sessions keep working.
+String _playRoute(String? gameType, String sessionId) {
+  return gameType == 'drunk_bottle'
+      ? RoutePaths.drunkBottle(sessionId)
+      : RoutePaths.truthDare(sessionId);
+}
+
+/// Drunk bottle (208_minigame_drunk_bottle): the minimum roster size a
+/// partida needs before the host can start it — the game reads badly with
+/// fewer players around the circle.
+const int kDrunkBottleMinPlayers = 6;
+
 class MinigameSessionDetailScreen extends ConsumerStatefulWidget {
   const MinigameSessionDetailScreen({super.key, required this.sessionId});
 
@@ -178,7 +192,9 @@ class _MinigameSessionDetailScreenState
             wasCountdown &&
             phase == MinigamePhase.playing &&
             context.mounted) {
-          context.push(RoutePaths.truthDare(_sessionId));
+          final gameType = ref.read(sessionStatusProvider(_sessionId))
+              .valueOrNull?['game_type'] as String?;
+          context.push(_playRoute(gameType, _sessionId));
         }
       },
     );
@@ -464,6 +480,9 @@ class _LobbySection extends ConsumerWidget {
     final skeleton = gameState.valueOrNull?.skeleton;
     final isPlaying = skeleton?.phase == MinigamePhase.playing;
     final isCountdown = skeleton?.isCountdown ?? false;
+    final gameType = session?['game_type'] as String?;
+    final tooFewForBottle =
+        gameType == 'drunk_bottle' && participantIds.length < kDrunkBottleMinPlayers;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -524,14 +543,29 @@ class _LobbySection extends ConsumerWidget {
               label: l10n.minigamesRejoin,
               onPressed: () => _rejoin(context, ref),
             )
-          else if (isCreator)
+          else if (isCreator) ...[
+            if (tooFewForBottle)
+              Padding(
+                padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+                child: Text(
+                  l10n.minigamesBottleMinPlayers(
+                    kDrunkBottleMinPlayers,
+                    participantIds.length,
+                  ),
+                  style: const TextStyle(color: AppColors.mutedStrong),
+                ),
+              ),
             VButton.emphasized(
               label: l10n.minigamesStart,
               loading: gameState.isLoading,
               // Start is disabled while the countdown runs — the host
-              // cancels instead (190_minigame_countdown).
-              onPressed: isCountdown ? null : () => _start(context, ref),
-            )
+              // cancels instead (190_minigame_countdown) — or while a
+              // drunk_bottle roster is under kDrunkBottleMinPlayers.
+              onPressed: isCountdown || tooFewForBottle
+                  ? null
+                  : () => _start(context, ref),
+            ),
+          ]
           else if (!isCountdown)
             _ReadyToggle(
               isReady: gameState.valueOrNull?.isReady(myId ?? '') ?? false,
@@ -547,7 +581,9 @@ class _LobbySection extends ConsumerWidget {
   /// game-state row is already `playing` and holds the current round, so
   /// TruthDareScreen picks up the right subject/prompt/reactions.
   void _rejoin(BuildContext context, WidgetRef ref) {
-    context.push(RoutePaths.truthDare(sessionId));
+    final gameType = ref.read(sessionStatusProvider(sessionId))
+        .valueOrNull?['game_type'] as String?;
+    context.push(_playRoute(gameType, sessionId));
   }
 
   Future<void> _toggleReady(BuildContext context, WidgetRef ref) async {
