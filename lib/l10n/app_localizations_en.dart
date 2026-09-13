@@ -1770,6 +1770,17 @@ class AppLocalizationsEn extends AppLocalizations {
       'Spin the bottle: whoever it points to has to take it on. Perfect for hangouts with friends.';
 
   @override
+  String get minigamesBottleSpin => 'Girar';
+
+  @override
+  String get minigamesBottleStop => 'Parar';
+
+  @override
+  String minigamesBottleMinPlayers(int min, int count) {
+    return 'La botella necesita al menos $min jugadores (tienes $count)';
+  }
+
+  @override
   String get minigamesGameChallenge => 'Challenges';
 
   @override

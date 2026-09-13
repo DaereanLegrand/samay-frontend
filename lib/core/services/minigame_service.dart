@@ -1388,6 +1388,48 @@ RealtimeChannel subscribeToSession(String id) {
     }
   }
 
+  /// `set_drunk_bottle_spin` SECURITY DEFINER RPC (208_minigame_drunk_bottle)
+  /// — any current participant may spin/stop the bottle; the result rides
+  /// the `minigame_game_state` row and streams to the lobby over the
+  /// existing realtime channel.
+  Future<void> setDrunkBottleSpin(
+    String sessionId, {
+    required bool spinning,
+    String? selectedId,
+  }) async {
+    final user = auth.currentUser;
+    if (user == null) throw const UnauthorizedError();
+
+    final res = await client.rpc(
+      'set_drunk_bottle_spin',
+      params: {
+        'p_session_id': sessionId,
+        'p_spinning': spinning,
+        'p_selected_id': selectedId,
+      },
+    );
+    final result = res is Map
+        ? Map<String, dynamic>.from(res)
+        : <String, dynamic>{};
+    switch (result['status']) {
+      case 'ok':
+        return;
+      case 'not_authenticated':
+        throw const UnauthorizedError();
+      case 'session_not_found':
+        throw const NotFoundError('Partida');
+      case 'not_allowed':
+        throw PermissionError();
+      case 'session_not_active':
+        throw ConflictError(
+          'La partida ya terminó',
+          code: 'session_not_active',
+        );
+      default:
+        throw const ServerError('Unexpected set_drunk_bottle_spin response');
+    }
+  }
+
   /// The partida lobby's presence roster for [sessionId]
   /// (180_minigame_lobby): `{id, username, avatar_url}` rows for every
   /// participant, resolved in ONE round trip through the security-barrier

@@ -3302,6 +3302,24 @@ abstract class AppLocalizations {
   /// **'Gira la botella: a quien apunte le toca cumplir. Ideal para reuniones con amigos.'**
   String get minigamesGameDrunkBottleExplanation;
 
+  /// Drunk bottle: button that starts the spin
+  ///
+  /// In es, this message translates to:
+  /// **'Girar'**
+  String get minigamesBottleSpin;
+
+  /// Drunk bottle: button that stops the spin
+  ///
+  /// In es, this message translates to:
+  /// **'Parar'**
+  String get minigamesBottleStop;
+
+  /// Drunk bottle: minimum-player gate message on the lobby's Start button
+  ///
+  /// In es, this message translates to:
+  /// **'La botella necesita al menos {min} jugadores (tienes {count})'**
+  String minigamesBottleMinPlayers(int min, int count);
+
   /// Game #5 name (Challenges)
   ///
   /// In es, this message translates to:

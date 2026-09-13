@@ -2341,6 +2341,22 @@
   "@minigamesGameDrunkBottleExplanation": {
     "description": "Game #4 explanation on the dedicated game page"
   },
+  "minigamesBottleSpin": "Girar",
+  "@minigamesBottleSpin": {
+    "description": "Drunk bottle: button that starts the spin"
+  },
+  "minigamesBottleStop": "Parar",
+  "@minigamesBottleStop": {
+    "description": "Drunk bottle: button that stops the spin"
+  },
+  "minigamesBottleMinPlayers": "La botella necesita al menos {min} jugadores (tienes {count})",
+  "@minigamesBottleMinPlayers": {
+    "description": "Drunk bottle: minimum-player gate message on the lobby's Start button",
+    "placeholders": {
+      "min": {"type": "int"},
+      "count": {"type": "int"}
+    }
+  },
   "minigamesGameChallenge": "Retos",
   "@minigamesGameChallenge": {
     "description": "Game #5 name (Challenges)"
