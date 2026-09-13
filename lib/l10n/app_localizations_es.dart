@@ -1855,6 +1855,182 @@ class AppLocalizationsEs extends AppLocalizations {
   String get minigamesBottleStop => 'Parar';
 
   @override
+  String get minigamesGameCharades => 'Charadas';
+
+  @override
+  String get minigamesGameCharadesTagline =>
+      'Celular en la frente y que adivinen';
+
+  @override
+  String get minigamesGameCharadesExplanation =>
+      'Te pones el celular en la frente sin mirar la pantalla. El grupo actúa la palabra que aparece y tú adivinas. Cada acierto suma un punto y, cuando se acaba el tiempo, le toca al siguiente.';
+
+  @override
+  String get charadesRulesTitle => 'Cómo se juega';
+
+  @override
+  String get charadesRule1 =>
+      'Pon el celular en tu frente, con la pantalla hacia el grupo. No mires.';
+
+  @override
+  String get charadesRule2 =>
+      'El grupo actúa la palabra sin decirla ni deletrearla.';
+
+  @override
+  String get charadesRule3 =>
+      'Si adivinas, toca Acerté. Si se complica, toca Paso.';
+
+  @override
+  String get charadesRule4 =>
+      'Al terminar el tiempo se cuentan tus aciertos y pasa el turno.';
+
+  @override
+  String get charadesPickCategory => 'Elige una categoría';
+
+  @override
+  String get charadesDuration => 'Duración';
+
+  @override
+  String charadesSeconds(int count) {
+    return '$count s';
+  }
+
+  @override
+  String get charadesStartTurn => 'Empezar mi turno';
+
+  @override
+  String get charadesHit => 'Acerté';
+
+  @override
+  String get charadesPass => 'Paso';
+
+  @override
+  String get charadesFinish => 'Terminar turno';
+
+  @override
+  String charadesPlayingBy(String name) {
+    return 'Está jugando $name';
+  }
+
+  @override
+  String get charadesActNow => '¡Actúen la palabra!';
+
+  @override
+  String get charadesTimeUp => '¡Se acabó el tiempo!';
+
+  @override
+  String charadesTurnScore(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count aciertos',
+      one: '1 acierto',
+      zero: 'Sin aciertos',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get charadesScoreboard => 'Marcador';
+
+  @override
+  String get charadesNextPlayer => 'Que juegue otro';
+
+  @override
+  String get charadesWaitingTurn => 'Nadie está jugando todavía';
+
+  @override
+  String get charadesCategoryAll => 'Todas';
+
+  @override
+  String get charadesCategoryPeliculas => 'Películas';
+
+  @override
+  String get charadesCategoryAnimales => 'Animales';
+
+  @override
+  String get charadesCategoryAcciones => 'Acciones';
+
+  @override
+  String get charadesCategoryObjetos => 'Objetos';
+
+  @override
+  String get charadesCategoryFamosos => 'Famosos';
+
+  @override
+  String get charadesCategoryFiesta => 'Fiesta';
+
+  @override
+  String get minigamesPublishTitle => 'Partida abierta';
+
+  @override
+  String get minigamesPublishSubtitle =>
+      'Cualquiera en la app puede verla y unirse sin invitación';
+
+  @override
+  String get minigamesPublicLobbyTitle => 'Partidas abiertas';
+
+  @override
+  String get minigamesPublicJoin => 'Unirme';
+
+  @override
+  String get minigamesPublicJoined => 'Te uniste a la partida';
+
+  @override
+  String get minigamesPublicAlreadyIn => 'Ya estás dentro';
+
+  @override
+  String get minigamesPublicEmpty =>
+      'Todavía nadie publicó una partida. Crea una y ábrela para que se sumen.';
+
+  @override
+  String minigamesPublicHostedBy(String name) {
+    return 'de $name';
+  }
+
+  @override
+  String minigamesPublicPlayers(int count, int limit) {
+    return '$count/$limit jugadores';
+  }
+
+  @override
+  String get minigamesPublicFull => 'Llena';
+
+  @override
+  String get minigamesBottleSpinning => 'Girando…';
+
+  @override
+  String get minigamesBottleTapToSpin => 'Toca Girar y que decida la botella';
+
+  @override
+  String minigamesBottleLandedOn(String name) {
+    return 'Le tocó a $name';
+  }
+
+  @override
+  String get minigamesBottleYourTurn => '¡Te tocó a ti!';
+
+  @override
+  String get minigamesBottleDareTitle => 'Tu reto';
+
+  @override
+  String minigamesBottleSpunBy(String name) {
+    return 'Giró $name';
+  }
+
+  @override
+  String get minigamesBottleCategorySuave => 'suave';
+
+  @override
+  String get minigamesBottleCategoryMedio => 'medio';
+
+  @override
+  String get minigamesBottleCategoryPicante => 'picante';
+
+  @override
+  String get minigamesBottleCategoryCastigo => 'castigo';
+
+  @override
   String minigamesBottleMinPlayers(int min, int count) {
     return 'La botella necesita al menos $min jugadores (tienes $count)';
   }

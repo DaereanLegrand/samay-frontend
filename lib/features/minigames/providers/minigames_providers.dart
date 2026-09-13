@@ -267,6 +267,44 @@ final myMinigameSessionsProvider =
       List<Map<String, dynamic>>
     >(MyMinigameSessionsNotifier.new);
 
+/// The OPEN LOBBY (210_minigame_public): published partidas anyone can see
+/// and join, keyed by game_type wire value (empty string = every game).
+class PublicMinigamesNotifier
+    extends FamilyAsyncNotifier<List<Map<String, dynamic>>, String> {
+  MinigameService get _service => ref.read(minigameServiceProvider);
+
+  @override
+  Future<List<Map<String, dynamic>>> build(String gameType) {
+    return _service.listPublicMinigames(
+      gameType: gameType.isEmpty ? null : gameType,
+    );
+  }
+
+  Future<void> refresh() async {
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(
+      () => _service.listPublicMinigames(
+        gameType: arg.isEmpty ? null : arg,
+      ),
+    );
+  }
+
+  /// Joins a published partida (no invite needed) and refreshes the feed.
+  Future<void> join(String sessionId) async {
+    await _service.joinSession(sessionId);
+    ref.invalidate(myMinigameSessionsProvider);
+    await refresh();
+  }
+}
+
+/// Open-lobby feed for [gameType] (the wire value, or '' for all games).
+final publicMinigamesProvider =
+    AsyncNotifierProvider.family<
+      PublicMinigamesNotifier,
+      List<Map<String, dynamic>>,
+      String
+    >(PublicMinigamesNotifier.new);
+
 /// Live status of one session: the initial row from [MinigameService.getSession]
 /// merged with realtime row changes on the session's channel (I-52
 /// `realtimeChannelProvider` lifecycle — the GMCR Realtime sync contract).
@@ -308,6 +346,16 @@ class MinigameSessionStatusNotifier
     final row = await _service.getSession(sessionId);
     if (row == null) throw Exception('Session not found');
     return row;
+  }
+
+  /// Publishes / unpublishes the partida to the open lobby
+  /// (210_minigame_public, host-only — backend-enforced via `not_creator`)
+  /// and reloads the row so the lobby switch reflects the server truth.
+  Future<void> setPublic(bool isPublic) async {
+    await _service.setMinigamePublic(arg, isPublic);
+    final row = await _service.getSession(arg);
+    if (row != null) state = AsyncData(row);
+    ref.invalidate(publicMinigamesProvider);
   }
 }
 
@@ -748,16 +796,38 @@ class MinigameGameStateNotifier
     await refresh();
   }
 
-  /// Drunk bottle (208_minigame_drunk_bottle): spins or stops the bottle for
-  /// the whole lobby — any current participant may call this (host-only
-  /// gating is a follow-up). Reloads the state so the caller's own screen
-  /// updates immediately; every other viewer gets it over realtime.
-  Future<void> setBottleSpin({required bool spinning, String? selectedId}) async {
-    await _service.setDrunkBottleSpin(
-      arg,
-      spinning: spinning,
-      selectedId: selectedId,
-    );
+  /// Drunk bottle (209_minigame_bottle_pizza): launches a spin. The server
+  /// reseats the roster, so every device redraws the pizza in the new order.
+  /// Reloads so the caller's own screen updates immediately; the rest of the
+  /// table gets it over realtime.
+  Future<void> spinBottle() async {
+    await _service.spinDrunkBottle(arg);
+    await refresh();
+  }
+
+  /// Drunk bottle: stops the spin. The server draws the angle, the winning
+  /// sector and the reto — the client only renders what comes back.
+  Future<void> stopBottle() async {
+    await _service.stopDrunkBottle(arg);
+    await refresh();
+  }
+
+  /// Charadas (211_minigame_charades): the caller takes the phone for a turn
+  /// of [seconds] on [category] (null = every category).
+  Future<void> startCharadesTurn({String? category, int seconds = 60}) async {
+    await _service.startCharadesTurn(arg, category: category, seconds: seconds);
+    await refresh();
+  }
+
+  /// Charadas: scores the word on screen and draws the next one.
+  Future<void> charadesAnswer({required bool correct}) async {
+    await _service.charadesAnswer(arg, correct: correct);
+    await refresh();
+  }
+
+  /// Charadas: closes the running turn and banks its hits.
+  Future<void> endCharadesTurn() async {
+    await _service.endCharadesTurn(arg);
     await refresh();
   }
 

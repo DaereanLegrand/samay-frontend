@@ -14,6 +14,7 @@ String minigameGameName(AppLocalizations l10n, String? gameType) {
     'truth_dare' => l10n.minigamesGameTruthDare,
     'drunk_bottle' => l10n.minigamesGameDrunkBottle,
     'challenge' => l10n.minigamesGameChallenge,
+    'charades' => l10n.minigamesGameCharades,
     _ => gameType ?? l10n.minigamesTitle,
   };
 }
@@ -38,6 +39,7 @@ IconData minigameIcon(MinigameType type) => switch (type) {
   MinigameType.truthDare => Icons.psychology,
   MinigameType.drunkBottle => Icons.sports_bar,
   MinigameType.challenge => Icons.emoji_events,
+  MinigameType.charades => Icons.theater_comedy,
 };
 
 /// How a minigame is meant to be played — the "con amigos / solo" fact every
@@ -65,6 +67,7 @@ extension MinigameMeta on MinigameType {
     MinigameType.truthDare => l10n.minigamesGameTruthDareExplanation,
     MinigameType.drunkBottle => l10n.minigamesGameDrunkBottleExplanation,
     MinigameType.challenge => l10n.minigamesGameChallengeExplanation,
+    MinigameType.charades => l10n.minigamesGameCharadesExplanation,
   };
 
   /// Whether the game is played with friends, solo, or both.
@@ -74,6 +77,7 @@ extension MinigameMeta on MinigameType {
     MinigameType.truthDare => MinigameAudience.friends,
     MinigameType.drunkBottle => MinigameAudience.friends,
     MinigameType.challenge => MinigameAudience.both,
+    MinigameType.charades => MinigameAudience.friends,
   };
 
   /// Localized audience label ("Para jugar con amigos", "Para jugar solo",
@@ -91,6 +95,7 @@ extension MinigameMeta on MinigameType {
     MinigameType.truthDare => l10n.minigamesGameTruthDareTagline,
     MinigameType.drunkBottle => l10n.minigamesGameDrunkBottleTagline,
     MinigameType.challenge => l10n.minigamesGameChallengeTagline,
+    MinigameType.charades => l10n.minigamesGameCharadesTagline,
   };
 }
 
@@ -103,6 +108,7 @@ MinigameType? minigameTypeFromString(String? gameType) {
     'truth_dare' => MinigameType.truthDare,
     'drunk_bottle' => MinigameType.drunkBottle,
     'challenge' => MinigameType.challenge,
+    'charades' => MinigameType.charades,
     _ => null,
   };
 }
