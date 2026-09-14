@@ -53,6 +53,7 @@ import 'package:samay/features/minigames/screens/minigame_detail_screen.dart';
 import 'package:samay/features/minigames/screens/minigames_screen.dart';
 import 'package:samay/features/minigames/screens/minigame_session_detail_screen.dart';
 import 'package:samay/features/minigames/screens/truth_dare_screen.dart';
+import 'package:samay/features/minigames/screens/two_lies_screen.dart';
 import 'package:samay/features/notifications/screens/notification_center_screen.dart';
 import 'package:samay/features/party_finder/screens/party_finder_screen.dart';
 import 'package:samay/features/qr/screens/attendance_qr_screen.dart';
@@ -470,6 +471,19 @@ final routerProvider = Provider<GoRouter>((ref) {
           (sessionId) => FlagGate(
             flag: AppFeatureFlag.minigames,
             child: TruthDareScreen(sessionId: sessionId),
+          ),
+          errorMessage: AppLocalizations.of(context).routerGroupNotFound,
+        ),
+      ),
+      GoRoute(
+        // The Two Lies, One Truth play screen (206_minigame_two_lies_one_truth).
+        path: RoutePaths.twoLiesOneTruth(':sessionId'),
+        builder: (context, state) => _screenForId(
+          state,
+          'sessionId',
+          (sessionId) => FlagGate(
+            flag: AppFeatureFlag.minigames,
+            child: TwoLiesScreen(sessionId: sessionId),
           ),
           errorMessage: AppLocalizations.of(context).routerGroupNotFound,
         ),

@@ -2353,6 +2353,18 @@
   "@minigamesGameChallengeExplanation": {
     "description": "Game #5 explanation on the dedicated game page"
   },
+  "minigamesGameTwoLiesOneTruth": "2 Mentiras, 1 Verdad",
+  "@minigamesGameTwoLiesOneTruth": {
+    "description": "Game #6 name (Two Lies, One Truth)"
+  },
+  "minigamesGameTwoLiesOneTruthTagline": "Adivina cuál es la única verdad",
+  "@minigamesGameTwoLiesOneTruthTagline": {
+    "description": "Game #6 one-line tagline"
+  },
+  "minigamesGameTwoLiesOneTruthExplanation": "El protagonista escribe 3 afirmaciones sobre sí mismo: 2 mentiras y 1 verdad. Los demás deben adivinar cuál es la real.",
+  "@minigamesGameTwoLiesOneTruthExplanation": {
+    "description": "Game #6 explanation on the dedicated game page"
+  },
   "minigamesAudienceFriends": "Para jugar con amigos",
   "@minigamesAudienceFriends": {
     "description": "Per-game page: the game is meant to be played with friends"
@@ -3137,5 +3149,87 @@
   "minigamesInviteFriendsOnlySaveError": "No se pudo guardar la preferencia.",
   "@minigamesInviteFriendsOnlySaveError": {
     "description": "Settings snackbar when persisting the friends-only invite switch fails"
+  },
+
+  "minigamesInviteSent": "¡Invitación enviada con éxito!",
+  "@minigamesInviteSent": {
+    "description": "Lobby: snackbar confirmation after inviting friends"
+  },
+  "minigamesGoToGame": "Ir a la partida",
+  "@minigamesGoToGame": {
+    "description": "Button to navigate to an ongoing game from the lobby"
+  },
+  "minigamesTwoLiesInstructions": "Escribe 3 afirmaciones sobre ti: 2 mentiras y 1 verdad. Marca cuál es la verdad.",
+  "@minigamesTwoLiesInstructions": {
+    "description": "Instruction for the subject composing their statements"
+  },
+  "minigamesTwoLiesStatementNumber": "Afirmación {number}",
+  "@minigamesTwoLiesStatementNumber": {
+    "description": "Header for each statement input",
+    "placeholders": {
+      "number": { "type": "int" }
+    }
+  },
+  "minigamesTwoLiesStatementPlaceholder": "Escribe aquí la afirmación...",
+  "@minigamesTwoLiesStatementPlaceholder": {
+    "description": "Placeholder for each statement text field"
+  },
+  "minigamesTwoLiesMarkTruth": "Esta es la verdad",
+  "@minigamesTwoLiesMarkTruth": {
+    "description": "Radio button / chip label marking a statement as the truth"
+  },
+  "minigamesTwoLiesSubmitStatements": "Enviar afirmaciones",
+  "@minigamesTwoLiesSubmitStatements": {
+    "description": "Submit button for the subject's statements"
+  },
+  "minigamesTwoLiesGuessPrompt": "¿Cuál de estas 3 afirmaciones es LA VERDAD?",
+  "@minigamesTwoLiesGuessPrompt": {
+    "description": "Header for voters asking which statement is the truth"
+  },
+  "minigamesTwoLiesVoteConfirm": "Votar por esta opción",
+  "@minigamesTwoLiesVoteConfirm": {
+    "description": "Button to confirm vote for the selected statement"
+  },
+  "minigamesTwoLiesVoteConfirmed": "Tu voto está registrado",
+  "@minigamesTwoLiesVoteConfirmed": {
+    "description": "Badge showing that voter's guess has been recorded"
+  },
+  "minigamesTwoLiesTruthBadge": "LA VERDAD",
+  "@minigamesTwoLiesTruthBadge": {
+    "description": "Badge marking the revealed true statement"
+  },
+  "minigamesTwoLiesLieBadge": "MENTIRA",
+  "@minigamesTwoLiesLieBadge": {
+    "description": "Badge marking a revealed lie statement"
+  },
+  "minigamesTwoLiesWaitingSubject": "{name} está escribiendo sus 3 afirmaciones...",
+  "@minigamesTwoLiesWaitingSubject": {
+    "description": "Waiting message shown to non-subjects while subject is writing",
+    "placeholders": {
+      "name": { "type": "String" }
+    }
+  },
+  "minigamesTwoLiesWaitingVotes": "Esperando los votos de los demás... ({voted}/{total})",
+  "@minigamesTwoLiesWaitingVotes": {
+    "description": "Tally shown to the subject after submitting",
+    "placeholders": {
+      "voted": { "type": "int" },
+      "total": { "type": "int" }
+    }
+  },
+  "minigamesTwoLiesTopicLabel": "Tema sugerido: {topic}",
+  "@minigamesTwoLiesTopicLabel": {
+    "description": "Inspirational topic prompt badge",
+    "placeholders": {
+      "topic": { "type": "String" }
+    }
+  },
+  "minigamesTwoLiesFillAllError": "Debes completar las 3 afirmaciones",
+  "@minigamesTwoLiesFillAllError": {
+    "description": "Validation error when some statements are empty"
+  },
+  "minigamesTwoLiesSelectTruthError": "Debes marcar exactamente una afirmación como verdad",
+  "@minigamesTwoLiesSelectTruthError": {
+    "description": "Validation error when truth index is not selected"
   }
 }

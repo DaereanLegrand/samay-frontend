@@ -56,6 +56,9 @@ abstract final class RoutePaths {
   /// shadowed.
   static String truthDare(String sessionId) =>
       '/minigames/play/truth-dare/$sessionId';
+  /// The Two Lies, One Truth play screen (206_minigame_two_lies_one_truth).
+  static String twoLiesOneTruth(String sessionId) =>
+      '/minigames/play/two-lies/$sessionId';
   /// Direct (group-less) minigames hub — registered BEFORE the :groupId hub
   /// so the static path can never be shadowed (direct-minigames 2026-08-27).
   static const minigamesDirect = '/minigames';

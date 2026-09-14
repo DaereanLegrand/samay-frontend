@@ -411,24 +411,43 @@ class _MinigamesScreenState extends ConsumerState<MinigamesScreen> {
       error: (error, _) => _fillState(
         ErrorView(message: l10n.minigamesErrorLoad, onRetry: _refreshSessions),
       ),
-      data: (rows) => rows.isEmpty
-          ? _fillState(
-              VEmptyView(
-                icon: Icons.sports_esports,
-                title: direct ? l10n.minigamesDirectEmpty : l10n.minigamesEmpty,
-                description: direct
-                    ? l10n.minigamesDirectEmptyBody
-                    : l10n.minigamesEmptyBody,
-              ),
-            )
-          : ListView.separated(
-              itemCount: rows.length,
-              separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.xs),
-              itemBuilder: (_, i) => _SessionCard(
-                session: rows[i],
-                onTap: () => _showDetail(rows[i]['id'] as String),
-              ),
+      data: (rows) {
+        final pending = direct
+            ? (ref.watch(myPendingInvitesProvider).valueOrNull ??
+                const <Map<String, dynamic>>[])
+            : const <Map<String, dynamic>>[];
+        final rowIds = rows
+            .map((r) => r['id'] as String?)
+            .whereType<String>()
+            .toSet();
+        final uniquePending =
+            pending.where((p) => !rowIds.contains(p['id'])).toList();
+        final all = [...uniquePending, ...rows];
+
+        if (all.isEmpty) {
+          return _fillState(
+            VEmptyView(
+              icon: Icons.sports_esports,
+              title: direct ? l10n.minigamesDirectEmpty : l10n.minigamesEmpty,
+              description: direct
+                  ? l10n.minigamesDirectEmptyBody
+                  : l10n.minigamesEmptyBody,
             ),
+          );
+        }
+        return ListView.separated(
+          itemCount: all.length,
+          separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.xs),
+          itemBuilder: (_, i) {
+            final isPending = i < uniquePending.length;
+            return _SessionCard(
+              session: all[i],
+              isPending: isPending,
+              onTap: () => _showDetail(all[i]['id'] as String),
+            );
+          },
+        );
+      },
     );
   }
 
@@ -450,6 +469,7 @@ class _MinigamesScreenState extends ConsumerState<MinigamesScreen> {
   Future<void> _refreshSessions() async {
     if (_scope == MinigameScope.direct) {
       await ref.read(myMinigameSessionsProvider.notifier).refresh();
+      ref.invalidate(myPendingInvitesProvider);
     } else {
       await ref
           .read(minigameSessionsProvider(_selectedGroupId!).notifier)
@@ -499,6 +519,11 @@ class _GameCard extends StatelessWidget {
       minigameIcon(type),
       (l) => l.minigamesGameChallenge,
       (l) => l.minigamesGameChallengeTagline,
+    ),
+    MinigameType.twoLiesOneTruth => (
+      minigameIcon(type),
+      (l) => l.minigamesGameTwoLiesOneTruth,
+      (l) => l.minigamesGameTwoLiesOneTruthTagline,
     ),
   };
 
@@ -551,8 +576,13 @@ class _GameCard extends StatelessWidget {
 class _SessionCard extends StatelessWidget {
   final Map<String, dynamic> session;
   final VoidCallback onTap;
+  final bool isPending;
 
-  const _SessionCard({required this.session, required this.onTap});
+  const _SessionCard({
+    required this.session,
+    required this.onTap,
+    this.isPending = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -560,6 +590,7 @@ class _SessionCard extends StatelessWidget {
     final status = session['status'] as String?;
     final wager = (session['shard_wager'] as num?)?.toInt() ?? 0;
     final participants = (session['participants'] as List?)?.length ?? 0;
+    final inviterName = session['inviterName'] as String?;
 
     return InkWell(
       onTap: onTap,
@@ -581,9 +612,13 @@ class _SessionCard extends StatelessWidget {
                     ),
                     const SizedBox(height: AppSpacing.xs),
                     Text(
-                      wager > 0
-                          ? l10n.minigamesWagerPerPerson(wager)
-                          : l10n.minigamesParticipants(participants),
+                      isPending
+                          ? (inviterName != null
+                              ? l10n.minigamesInviteFromDirect(inviterName)
+                              : l10n.minigamesInvitePendingBody)
+                          : (wager > 0
+                              ? l10n.minigamesWagerPerPerson(wager)
+                              : l10n.minigamesParticipants(participants)),
                       style: const TextStyle(color: AppColors.mutedStrong),
                     ),
                   ],
@@ -591,10 +626,12 @@ class _SessionCard extends StatelessWidget {
               ),
               const SizedBox(width: AppSpacing.md),
               VChip(
-                label: status == 'finished'
-                    ? l10n.minigamesStatusFinished
-                    : l10n.minigamesStatusActive,
-                selected: status != 'finished',
+                label: isPending
+                    ? l10n.groupsInvitePending
+                    : (status == 'finished'
+                        ? l10n.minigamesStatusFinished
+                        : l10n.minigamesStatusActive),
+                selected: isPending || status != 'finished',
               ),
             ],
           ),

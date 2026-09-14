@@ -178,7 +178,14 @@ class _MinigameSessionDetailScreenState
             wasCountdown &&
             phase == MinigamePhase.playing &&
             context.mounted) {
-          context.push(RoutePaths.truthDare(_sessionId));
+          final gameType = ref
+              .read(sessionStatusProvider(_sessionId))
+              .valueOrNull?['game_type'] as String?;
+          final route = switch (gameType) {
+            'two_lies_one_truth' => RoutePaths.twoLiesOneTruth(_sessionId),
+            _ => RoutePaths.truthDare(_sessionId),
+          };
+          context.push(route);
         }
       },
     );
@@ -506,15 +513,26 @@ class _LobbySection extends ConsumerWidget {
             ),
         const SizedBox(height: AppSpacing.lg),
         if (!finished) ...[
-          if (isCreator)
+          if (isPlaying)
+            VButton.emphasized(
+              label: l10n.minigamesGoToGame,
+              onPressed: () {
+                final gameType = session?['game_type'] as String?;
+                final route = switch (gameType) {
+                  'two_lies_one_truth' =>
+                    RoutePaths.twoLiesOneTruth(sessionId),
+                  _ => RoutePaths.truthDare(sessionId),
+                };
+                context.push(route);
+              },
+            )
+          else if (isCreator)
             VButton.emphasized(
               label: l10n.minigamesStart,
               loading: gameState.isLoading,
               // Start is disabled while the countdown runs — the host
               // cancels instead (190_minigame_countdown).
-              onPressed: isPlaying || isCountdown
-                  ? null
-                  : () => _start(context, ref),
+              onPressed: isCountdown ? null : () => _start(context, ref),
             )
           else if (!isCountdown)
             _ReadyToggle(
@@ -537,6 +555,18 @@ class _LobbySection extends ConsumerWidget {
   }
 
   Future<void> _start(BuildContext context, WidgetRef ref) async {
+    final l10n = AppLocalizations.of(context);
+    final session = ref.read(sessionStatusProvider(sessionId)).valueOrNull;
+    final participantIds =
+        (session?['participants'] as List?)?.cast<String?>() ?? const [];
+    final type = minigameTypeFromString(session?['game_type'] as String?);
+    final isMultiplayerOnly = type?.audience == MinigameAudience.friends;
+    if (isMultiplayerOnly && participantIds.length < 2) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.minigamesWaitingForPlayers)),
+      );
+      return;
+    }
     try {
       // 190_minigame_countdown: Start only triggers the server signal — the
       // countdown overlay appears for everyone and navigation happens on the

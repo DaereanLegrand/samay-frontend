@@ -3320,6 +3320,24 @@ abstract class AppLocalizations {
   /// **'Completa el reto antes de que se acabe el tiempo. Puedes jugarlo solo o competir con amigos.'**
   String get minigamesGameChallengeExplanation;
 
+  /// Game #6 name (Two Lies, One Truth)
+  ///
+  /// In es, this message translates to:
+  /// **'2 Mentiras, 1 Verdad'**
+  String get minigamesGameTwoLiesOneTruth;
+
+  /// Game #6 one-line tagline
+  ///
+  /// In es, this message translates to:
+  /// **'Adivina cuál es la única verdad'**
+  String get minigamesGameTwoLiesOneTruthTagline;
+
+  /// Game #6 explanation on the dedicated game page
+  ///
+  /// In es, this message translates to:
+  /// **'El protagonista escribe 3 afirmaciones sobre sí mismo: 2 mentiras y 1 verdad. Los demás deben adivinar cuál es la real.'**
+  String get minigamesGameTwoLiesOneTruthExplanation;
+
   /// Per-game page: the game is meant to be played with friends
   ///
   /// In es, this message translates to:
@@ -4316,12 +4334,6 @@ abstract class AppLocalizations {
   /// **'Invitación rechazada'**
   String get minigamesInviteDeclined;
 
-  /// Snackbar after the HOST invites players from the lobby (205_minigame_invite_lobby)
-  ///
-  /// In es, this message translates to:
-  /// **'Invitación enviada'**
-  String get minigamesInviteSent;
-
   /// Session detail: the invite can no longer be accepted because the game finished
   ///
   /// In es, this message translates to:
@@ -4351,6 +4363,108 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'No se pudo guardar la preferencia.'**
   String get minigamesInviteFriendsOnlySaveError;
+
+  /// Lobby: snackbar confirmation after inviting friends
+  ///
+  /// In es, this message translates to:
+  /// **'¡Invitación enviada con éxito!'**
+  String get minigamesInviteSent;
+
+  /// Button to navigate to an ongoing game from the lobby
+  ///
+  /// In es, this message translates to:
+  /// **'Ir a la partida'**
+  String get minigamesGoToGame;
+
+  /// Instruction for the subject composing their statements
+  ///
+  /// In es, this message translates to:
+  /// **'Escribe 3 afirmaciones sobre ti: 2 mentiras y 1 verdad. Marca cuál es la verdad.'**
+  String get minigamesTwoLiesInstructions;
+
+  /// Header for each statement input
+  ///
+  /// In es, this message translates to:
+  /// **'Afirmación {number}'**
+  String minigamesTwoLiesStatementNumber(int number);
+
+  /// Placeholder for each statement text field
+  ///
+  /// In es, this message translates to:
+  /// **'Escribe aquí la afirmación...'**
+  String get minigamesTwoLiesStatementPlaceholder;
+
+  /// Radio button / chip label marking a statement as the truth
+  ///
+  /// In es, this message translates to:
+  /// **'Esta es la verdad'**
+  String get minigamesTwoLiesMarkTruth;
+
+  /// Submit button for the subject's statements
+  ///
+  /// In es, this message translates to:
+  /// **'Enviar afirmaciones'**
+  String get minigamesTwoLiesSubmitStatements;
+
+  /// Header for voters asking which statement is the truth
+  ///
+  /// In es, this message translates to:
+  /// **'¿Cuál de estas 3 afirmaciones es LA VERDAD?'**
+  String get minigamesTwoLiesGuessPrompt;
+
+  /// Button to confirm vote for the selected statement
+  ///
+  /// In es, this message translates to:
+  /// **'Votar por esta opción'**
+  String get minigamesTwoLiesVoteConfirm;
+
+  /// Badge showing that voter's guess has been recorded
+  ///
+  /// In es, this message translates to:
+  /// **'Tu voto está registrado'**
+  String get minigamesTwoLiesVoteConfirmed;
+
+  /// Badge marking the revealed true statement
+  ///
+  /// In es, this message translates to:
+  /// **'LA VERDAD'**
+  String get minigamesTwoLiesTruthBadge;
+
+  /// Badge marking a revealed lie statement
+  ///
+  /// In es, this message translates to:
+  /// **'MENTIRA'**
+  String get minigamesTwoLiesLieBadge;
+
+  /// Waiting message shown to non-subjects while subject is writing
+  ///
+  /// In es, this message translates to:
+  /// **'{name} está escribiendo sus 3 afirmaciones...'**
+  String minigamesTwoLiesWaitingSubject(String name);
+
+  /// Tally shown to the subject after submitting
+  ///
+  /// In es, this message translates to:
+  /// **'Esperando los votos de los demás... ({voted}/{total})'**
+  String minigamesTwoLiesWaitingVotes(int voted, int total);
+
+  /// Inspirational topic prompt badge
+  ///
+  /// In es, this message translates to:
+  /// **'Tema sugerido: {topic}'**
+  String minigamesTwoLiesTopicLabel(String topic);
+
+  /// Validation error when some statements are empty
+  ///
+  /// In es, this message translates to:
+  /// **'Debes completar las 3 afirmaciones'**
+  String get minigamesTwoLiesFillAllError;
+
+  /// Validation error when truth index is not selected
+  ///
+  /// In es, this message translates to:
+  /// **'Debes marcar exactamente una afirmación como verdad'**
+  String get minigamesTwoLiesSelectTruthError;
 }
 
 class _AppLocalizationsDelegate

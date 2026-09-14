@@ -1790,6 +1790,17 @@ class AppLocalizationsEs extends AppLocalizations {
       'Completa el reto antes de que se acabe el tiempo. Puedes jugarlo solo o competir con amigos.';
 
   @override
+  String get minigamesGameTwoLiesOneTruth => '2 Mentiras, 1 Verdad';
+
+  @override
+  String get minigamesGameTwoLiesOneTruthTagline =>
+      'Adivina cuál es la única verdad';
+
+  @override
+  String get minigamesGameTwoLiesOneTruthExplanation =>
+      'El protagonista escribe 3 afirmaciones sobre sí mismo: 2 mentiras y 1 verdad. Los demás deben adivinar cuál es la real.';
+
+  @override
   String get minigamesAudienceFriends => 'Para jugar con amigos';
 
   @override
@@ -2353,9 +2364,6 @@ class AppLocalizationsEs extends AppLocalizations {
   String get minigamesInviteDeclined => 'Invitación rechazada';
 
   @override
-  String get minigamesInviteSent => 'Invitación enviada';
-
-  @override
   String get minigamesInviteClosed =>
       'Esta partida ya terminó. Ya no puedes aceptar la invitación.';
 
@@ -2372,4 +2380,68 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get minigamesInviteFriendsOnlySaveError =>
       'No se pudo guardar la preferencia.';
+
+  @override
+  String get minigamesInviteSent => '¡Invitación enviada con éxito!';
+
+  @override
+  String get minigamesGoToGame => 'Ir a la partida';
+
+  @override
+  String get minigamesTwoLiesInstructions =>
+      'Escribe 3 afirmaciones sobre ti: 2 mentiras y 1 verdad. Marca cuál es la verdad.';
+
+  @override
+  String minigamesTwoLiesStatementNumber(int number) {
+    return 'Afirmación $number';
+  }
+
+  @override
+  String get minigamesTwoLiesStatementPlaceholder =>
+      'Escribe aquí la afirmación...';
+
+  @override
+  String get minigamesTwoLiesMarkTruth => 'Esta es la verdad';
+
+  @override
+  String get minigamesTwoLiesSubmitStatements => 'Enviar afirmaciones';
+
+  @override
+  String get minigamesTwoLiesGuessPrompt =>
+      '¿Cuál de estas 3 afirmaciones es LA VERDAD?';
+
+  @override
+  String get minigamesTwoLiesVoteConfirm => 'Votar por esta opción';
+
+  @override
+  String get minigamesTwoLiesVoteConfirmed => 'Tu voto está registrado';
+
+  @override
+  String get minigamesTwoLiesTruthBadge => 'LA VERDAD';
+
+  @override
+  String get minigamesTwoLiesLieBadge => 'MENTIRA';
+
+  @override
+  String minigamesTwoLiesWaitingSubject(String name) {
+    return '$name está escribiendo sus 3 afirmaciones...';
+  }
+
+  @override
+  String minigamesTwoLiesWaitingVotes(int voted, int total) {
+    return 'Esperando los votos de los demás... ($voted/$total)';
+  }
+
+  @override
+  String minigamesTwoLiesTopicLabel(String topic) {
+    return 'Tema sugerido: $topic';
+  }
+
+  @override
+  String get minigamesTwoLiesFillAllError =>
+      'Debes completar las 3 afirmaciones';
+
+  @override
+  String get minigamesTwoLiesSelectTruthError =>
+      'Debes marcar exactamente una afirmación como verdad';
 }
