@@ -1,0 +1,47 @@
+Samay — client (Flutter)
+========================
+
+Copyright (C) 2026 Qallariy Wasi E.I.R.L.
+
+This program is free software: you can redistribute it and/or modify it under
+the terms of the GNU Affero General Public License as published by the Free
+Software Foundation, version 3 of the License. The full text is in LICENSE.
+There is no warranty, to the extent permitted by law.
+
+Network use: AGPL-3.0 section 13 requires that users interacting with a
+modified version over a network be offered its corresponding source. That
+obligation comes from the license itself and is not restated here.
+
+
+AI assistance
+-------------
+Parts of this code were written with the assistance of AI tools. AI-assisted
+code is covered by the same license as the rest of the work.
+
+
+Prior commits
+-------------
+No license was in place for commits made before the LICENSE file was added, and
+no contributor consent was sought for that period. This notice does not claim
+that the license applies retroactively to those commits.
+
+
+Third-party assets
+------------------
+Fonts — assets/fonts/:
+  Inter-Variable.ttf            SIL Open Font License 1.1 (OFL-Inter.txt)
+  Quicksand-Variable.ttf        SIL Open Font License 1.1 (OFL-Quicksand.txt)
+  PlayfairDisplay-*.ttf         SIL Open Font License 1.1 (OFL-PlayfairDisplay.txt)
+
+  The SIL Open Font License is compatible with AGPL-3.0. The license text ships
+  next to each font and is not duplicated here.
+
+Brand artwork — assets/icons/:
+  Google "G" and the Apple logo-only sign-in artwork, with provenance,
+  trademark notes and usage requirements. See assets/icons/NOTICE.
+
+Android dependencies — android/:
+  Apache License 2.0 texts and dependency notices. See android/NOTICE.
+
+Flutter/Dart package dependencies are declared in pubspec.yaml and carry their
+own licenses in the resolved package sources.
