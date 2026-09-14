@@ -138,6 +138,15 @@ extension ObjectX on Object {
       if (status == '404' || error == 'objectnotfound') {
         return const NotFoundError();
       }
+      // Transient server/timeout failures: the raw storage message is
+      // English, so return the generic Spanish ServerError instead of leaking
+      // it. The retry layer may still recover these before the user sees them.
+      final numericStatus = int.tryParse(status ?? '');
+      if ((numericStatus != null && numericStatus >= 500) ||
+          error.contains('timeout') ||
+          msg.contains('timeout')) {
+        return const ServerError();
+      }
       // Anything else keeps the storage message (already user-safe), never
       // the generic fallback.
       return ServerError(e.message);

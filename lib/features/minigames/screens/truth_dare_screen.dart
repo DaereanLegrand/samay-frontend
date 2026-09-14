@@ -600,7 +600,7 @@ class _AnswerCardState extends ConsumerState<_AnswerCard> {
           widget.l10n.minigamesAnswerTitle,
           style: Theme.of(context).textTheme.titleSmall,
         ),
-        const SizedBox(height: AppSpacing.sm),
+        const SizedBox(height: AppSpacing.xs),
         VInput(
           label: widget.l10n.minigamesAnswerPlaceholder,
           controller: _answerController,
@@ -609,7 +609,7 @@ class _AnswerCardState extends ConsumerState<_AnswerCard> {
           fontFamily: AppTypography.quicksand,
         ),
         if (isDare) ...[
-          const SizedBox(height: AppSpacing.md),
+          const SizedBox(height: AppSpacing.sm),
           if (_image == null)
             VButton.outlined(
               onPressed: _pickImage,
@@ -623,15 +623,11 @@ class _AnswerCardState extends ConsumerState<_AnswerCard> {
               ),
             )
           else ...[
-            // Preview the picked image (2026-09-01 fix): previously only the
-            // filename rendered — the app-wide picked-image convention is the
-            // actual image (create_group_screen / create_event_screen), so
-            // show Image.file over the XFile path. No filename shown (image
-            // metadata stays out of the UI); the remove (×) control overlays
-            // the image's top-right corner.
-            // Center → Stack hugs the photo: the rounded clip (below) now
-            // lands on the photo's own corners, not on a letterboxed frame
-            // (the remove (×) overlays the photo's top-right corner).
+            // Preview the picked image (2026-09-01 fix): show the actual
+            // Image.file over the XFile path — no filename (image metadata
+            // stays out of the UI). Center → Stack hugs the photo so the clip
+            // lands on the photo's own corners; the remove (×) control
+            // overlays the photo's top-right corner.
             Center(
               child: Stack(
                 children: [
@@ -640,7 +636,7 @@ class _AnswerCardState extends ConsumerState<_AnswerCard> {
                     child: GestureDetector(
                       onTap: _previewPickedImage,
                       child: ConstrainedBox(
-                        constraints: const BoxConstraints(maxHeight: 160),
+                        constraints: const BoxConstraints(maxHeight: 240),
                         child: Image.file(
                           File(_image!.path),
                           fit: BoxFit.contain,
@@ -649,15 +645,29 @@ class _AnswerCardState extends ConsumerState<_AnswerCard> {
                     ),
                   ),
                   Positioned(
-                    top: 4,
-                    right: 4,
+                    top: AppSpacing.xs,
+                    right: AppSpacing.xs,
                     child: IconButton(
                       onPressed: () => setState(() => _image = null),
                       tooltip: widget.l10n.minigamesAnswerRemoveImage,
-                      icon: const Icon(Icons.close, size: 18),
-                      style: IconButton.styleFrom(
-                        backgroundColor: AppColors.surface,
-                        foregroundColor: AppColors.white,
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints.tightFor(
+                        width: 44,
+                        height: 44,
+                      ),
+                      icon: Container(
+                        width: 24,
+                        height: 24,
+                        decoration: BoxDecoration(
+                          color: AppColors.surface,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: AppColors.border),
+                        ),
+                        child: const Icon(
+                          Icons.close,
+                          size: 13,
+                          color: AppColors.white,
+                        ),
                       ),
                     ),
                   ),
@@ -666,7 +676,7 @@ class _AnswerCardState extends ConsumerState<_AnswerCard> {
             ),
           ],
         ],
-        const SizedBox(height: AppSpacing.md),
+        const SizedBox(height: AppSpacing.sm),
         Text(
           widget.l10n.minigamesAnswerPasarLine,
           textAlign: TextAlign.center,

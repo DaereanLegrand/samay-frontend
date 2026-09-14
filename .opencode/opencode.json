@@ -3,7 +3,8 @@
   "instructions": [
     "AGENTS.md",
     "docs/process/DEVELOPMENT-WORKFLOW.md",
-    "docs/process/FILE-OWNERSHIP.md"
+    "docs/process/FILE-OWNERSHIP.md",
+    ".opencode/DEV-SERVER.md"
   ],
   "permission": {
     "bash": {
@@ -14,12 +15,13 @@
       "git am*": "deny",
       "git cherry-pick*": "deny",
       "git rebase*": "deny",
-      "git merge*": "deny",
       "git reset*": "deny",
       "git checkout*": "deny",
       "git switch*": "deny",
       "git clean*": "deny",
-      "git stash*": "deny"
+      "git stash*": "deny",
+      "pkill*": "deny",
+      "kill*": "deny"
     }
   }
 }

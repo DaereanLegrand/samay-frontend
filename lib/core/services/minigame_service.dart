@@ -1,7 +1,9 @@
 import 'dart:typed_data';
 
+import 'package:samay/core/config/app_constants.dart';
 import 'package:samay/core/errors/app_error.dart';
 import 'package:samay/core/services/realtime_service.dart';
+import 'package:samay/core/utils/async_ops.dart';
 import 'package:samay/features/minigames/logic/minigame_engine.dart';
 import 'package:samay/features/minigames/logic/truth_dare.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -1214,7 +1216,16 @@ RealtimeChannel subscribeToSession(String id) {
     final user = auth.currentUser;
     if (user == null) throw const UnauthorizedError();
     final path = '$sessionId/$round/${const Uuid().v4()}.bin';
-    await client.storage.from('minigame_images').uploadBinary(path, ciphertextBytes);
+    await resilient(
+      () => client
+          .storage
+          .from('minigame_images')
+          .uploadBinary(path, ciphertextBytes),
+      timeout: AppConstants.minigameImageUploadTimeout,
+      maxRetries: AppConstants.minigameImageUploadMaxRetries,
+      initialDelay: AppConstants.minigameImageUploadRetryInitialDelay,
+      backoffFactor: AppConstants.minigameImageUploadRetryBackoffFactor,
+    );
     return path;
   }
 

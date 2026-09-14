@@ -10,4 +10,21 @@ abstract final class AppConstants {
   /// to their prompts) before giving up and offering a discreet retry in place
   /// of the answer area. 5s per the user directive (2026-09-11).
   static const Duration leaderboardAnswersTimeout = Duration(seconds: 5);
+
+  /// Per-attempt timeout for uploading an encrypted minigame answer image to
+  /// the private `minigame_images` bucket. A hung storage request consumes at
+  /// most this long before `resilient` retries it.
+  static const Duration minigameImageUploadTimeout = Duration(seconds: 20);
+
+  /// Extra attempts for the minigame answer-image upload after the first
+  /// failure (transient storage errors only — see `defaultShouldRetry`).
+  static const int minigameImageUploadMaxRetries = 3;
+
+  /// Delay before the first minigame answer-image retry; later retries grow by
+  /// [minigameImageUploadRetryBackoffFactor] with full jitter.
+  static const Duration minigameImageUploadRetryInitialDelay =
+      Duration(seconds: 1);
+
+  /// Exponential backoff multiplier between minigame answer-image retries.
+  static const double minigameImageUploadRetryBackoffFactor = 2;
 }
