@@ -3281,7 +3281,7 @@
   },
   "minigamesGroupMessage": "New {game} match",
   "@minigamesGroupMessage": {
-    "description": "Group chat notice bubble: a group match was created (210_minigame_group_message)",
+    "description": "Group chat notice bubble: a group match was created (216_minigame_group_message)",
     "placeholders": {
       "game": {
         "type": "String"

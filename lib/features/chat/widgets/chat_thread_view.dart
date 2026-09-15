@@ -983,7 +983,7 @@ class _MinigameEntry {
   const _MinigameEntry(this.row);
 }
 
-/// The group-chat "match created" bubble (210_minigame_group_message): the
+/// The group-chat "match created" bubble (216_minigame_group_message): the
 /// game name plus a direct-access action that opens the partida. The session
 /// detail resolves the caller's state (participant lobby, pending-invite
 /// accept card, or finished summary), so one destination covers all cases.

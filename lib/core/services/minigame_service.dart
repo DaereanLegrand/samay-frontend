@@ -464,7 +464,7 @@ class MinigameService {
   }
 
   /// The narrow INVITE CONTEXT for [sessionId] when the caller holds an
-  /// invite (`209_minigame_invite_context`): the inviter's
+  /// invite (`215_minigame_invite_context`): the inviter's
   /// `{id, username, avatar_url}` plus the group name (null for a direct
   /// session). Returns null when the caller has no invite for the session
   /// (`invite_not_found`).

@@ -4538,7 +4538,7 @@ abstract class AppLocalizations {
   /// **'Grupo {name}'**
   String minigamesInviteFromGroup(String name);
 
-  /// Group chat notice bubble: a group match was created (210_minigame_group_message)
+  /// Group chat notice bubble: a group match was created (216_minigame_group_message)
   ///
   /// In es, this message translates to:
   /// **'Nueva partida de {game}'**

@@ -204,7 +204,7 @@ final minigameSessionsProvider =
       String
     >(MinigameSessionsNotifier.new);
 
-/// One group's chat notices (210_minigame_group_message, 2026-09-15) — the
+/// One group's chat notices (216_minigame_group_message, 2026-09-15) — the
 /// "match created" bubbles [ChatThreadView] renders inline as a direct access
 /// to the minigame. Family over the group id; invalidated by
 /// [MinigameSessionsRealtimeListener] on any session row event (the notice is
@@ -494,7 +494,7 @@ final minigameInviteProvider =
 /// The narrow pending-invite CONTEXT for one session (family by session id):
 /// the inviter's `{id, username, avatar_url}` + group name, or null when the
 /// caller holds no invite. Backed by `get_minigame_invite_context`
-/// (209_minigame_invite_context).
+/// (215_minigame_invite_context).
 ///
 /// The pending lobby renders ONLY this — never `minigameParticipantsProvider`,
 /// whose invite gate would otherwise stream the full roster into the client

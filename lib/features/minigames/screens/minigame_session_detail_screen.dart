@@ -168,7 +168,7 @@ class _MinigameSessionDetailScreenState
     // the partida is still active — 205_minigame_invite_lobby).
     final isFinished = session.valueOrNull?['status'] == 'finished';
 
-    // 209_minigame_invite_context (2026-09-11): the authoritative "am I in
+    // 215_minigame_invite_context (2026-09-11): the authoritative "am I in
     // this session" switch. A non-participant is a pending invitee or a
     // stranger — neither may ever render `_LobbySection`, whose roster RPC is
     // readable to a pending invitee (that was the pre-accept roster flash).
@@ -259,7 +259,7 @@ class _MinigameSessionDetailScreenState
             final countdown = gameState.valueOrNull?.skeleton.isCountdown ??
                 false;
 
-            // 209_minigame_invite_context (2026-09-11): a not-yet-accepted
+            // 215_minigame_invite_context (2026-09-11): a not-yet-accepted
             // invitee must never see the roster. `isParticipant` gates the
             // lobby; a non-participant waits on the invite/context load and
             // then renders ONLY the inviter ("INVITADO POR").
@@ -466,7 +466,7 @@ class _MinigameSessionDetailScreenState
 /// The accept/decline card for a PENDING invitee. Shows the inviter as an
 /// "INVITADO POR" row — avatar + username + subtitle, the same voice as a
 /// [_ParticipantRow] — and NOTHING else about the roster
-/// (209_minigame_invite_context). On accept `isParticipant` flips and this
+/// (215_minigame_invite_context). On accept `isParticipant` flips and this
 /// card is replaced by the lobby, so the label disappears on RPC confirmation.
 class _InviteCard extends StatelessWidget {
   const _InviteCard({
