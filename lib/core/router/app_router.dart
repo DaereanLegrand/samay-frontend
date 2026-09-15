@@ -52,6 +52,8 @@ import 'package:samay/features/minigames/logic/minigame_meta.dart';
 import 'package:samay/features/minigames/screens/minigame_detail_screen.dart';
 import 'package:samay/features/minigames/screens/minigames_screen.dart';
 import 'package:samay/features/minigames/screens/minigame_session_detail_screen.dart';
+import 'package:samay/features/minigames/screens/charades_screen.dart';
+import 'package:samay/features/minigames/screens/drunk_bottle_screen.dart';
 import 'package:samay/features/minigames/screens/truth_dare_screen.dart';
 import 'package:samay/features/minigames/screens/two_lies_screen.dart';
 import 'package:samay/features/notifications/screens/notification_center_screen.dart';
@@ -487,7 +489,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         ),
       ),
       GoRoute(
-        // The Two Lies, One Truth play screen (206_minigame_two_lies_one_truth).
+        // The Two Lies, One Truth play screen (208_minigame_two_lies_one_truth).
         path: RoutePaths.twoLiesOneTruth(':sessionId'),
         builder: (context, state) => _screenForId(
           state,
@@ -495,6 +497,33 @@ final routerProvider = Provider<GoRouter>((ref) {
           (sessionId) => FlagGate(
             flag: AppFeatureFlag.minigames,
             child: TwoLiesScreen(sessionId: sessionId),
+          ),
+          errorMessage: AppLocalizations.of(context).routerGroupNotFound,
+        ),
+      ),
+      GoRoute(
+        // The Botella (drunk bottle) play screen (209_minigame_drunk_bottle).
+        // A fixed segment keeps the :groupId hub from shadowing it.
+        path: RoutePaths.drunkBottle(':sessionId'),
+        builder: (context, state) => _screenForId(
+          state,
+          'sessionId',
+          (sessionId) => FlagGate(
+            flag: AppFeatureFlag.minigames,
+            child: DrunkBottleScreen(sessionId: sessionId),
+          ),
+          errorMessage: AppLocalizations.of(context).routerGroupNotFound,
+        ),
+      ),
+      GoRoute(
+        // The Charadas play screen (212_minigame_charades).
+        path: RoutePaths.charades(':sessionId'),
+        builder: (context, state) => _screenForId(
+          state,
+          'sessionId',
+          (sessionId) => FlagGate(
+            flag: AppFeatureFlag.minigames,
+            child: CharadesScreen(sessionId: sessionId),
           ),
           errorMessage: AppLocalizations.of(context).routerGroupNotFound,
         ),

@@ -2438,6 +2438,165 @@
   "@minigamesGameDrunkBottleExplanation": {
     "description": "Game #4 explanation on the dedicated game page"
   },
+  "minigamesBottleSpin": "Girar",
+  "@minigamesBottleSpin": {
+    "description": "Drunk bottle: button that starts the spin"
+  },
+  "minigamesBottleStop": "Parar",
+  "@minigamesBottleStop": {
+    "description": "Drunk bottle: button that stops the spin"
+  },
+  "minigamesGameCharades": "Charadas",
+  "@minigamesGameCharades": {"description": "Game #6 name (Charades)"},
+  "minigamesGameCharadesTagline": "Celular en la frente y que adivinen",
+  "@minigamesGameCharadesTagline": {"description": "Game #6 one-line tagline"},
+  "minigamesGameCharadesExplanation": "Te pones el celular en la frente sin mirar la pantalla. El grupo actúa la palabra que aparece y tú adivinas. Cada acierto suma un punto y, cuando se acaba el tiempo, le toca al siguiente.",
+  "@minigamesGameCharadesExplanation": {"description": "Game #6 explanation on the dedicated game page"},
+  "charadesRulesTitle": "Cómo se juega",
+  "@charadesRulesTitle": {"description": "Charades: rules card heading"},
+  "charadesRule1": "Pon el celular en tu frente, con la pantalla hacia el grupo. No mires.",
+  "@charadesRule1": {"description": "Charades rule 1"},
+  "charadesRule2": "El grupo actúa la palabra sin decirla ni deletrearla.",
+  "@charadesRule2": {"description": "Charades rule 2"},
+  "charadesRule3": "Si adivinas, toca Acerté. Si se complica, toca Paso.",
+  "@charadesRule3": {"description": "Charades rule 3"},
+  "charadesRule4": "Al terminar el tiempo se cuentan tus aciertos y pasa el turno.",
+  "@charadesRule4": {"description": "Charades rule 4"},
+  "charadesPickCategory": "Elige una categoría",
+  "@charadesPickCategory": {"description": "Charades: category picker heading"},
+  "charadesDuration": "Duración",
+  "@charadesDuration": {"description": "Charades: turn duration label"},
+  "charadesSeconds": "{count} s",
+  "@charadesSeconds": {
+    "description": "Charades: a duration in seconds",
+    "placeholders": {"count": {"type": "int"}}
+  },
+  "charadesStartTurn": "Empezar mi turno",
+  "@charadesStartTurn": {"description": "Charades: start button"},
+  "charadesHit": "Acerté",
+  "@charadesHit": {"description": "Charades: correct button"},
+  "charadesPass": "Paso",
+  "@charadesPass": {"description": "Charades: skip button"},
+  "charadesFinish": "Terminar turno",
+  "@charadesFinish": {"description": "Charades: end turn early"},
+  "charadesPlayingBy": "Está jugando {name}",
+  "@charadesPlayingBy": {
+    "description": "Charades: spectator banner naming the active player",
+    "placeholders": {"name": {"type": "String"}}
+  },
+  "charadesActNow": "¡Actúen la palabra!",
+  "@charadesActNow": {"description": "Charades: spectator instruction while a turn runs"},
+  "charadesTimeUp": "¡Se acabó el tiempo!",
+  "@charadesTimeUp": {"description": "Charades: time over heading"},
+  "charadesTurnScore": "{count, plural, =0{Sin aciertos} =1{1 acierto} other{{count} aciertos}}",
+  "@charadesTurnScore": {
+    "description": "Charades: hits in the closed turn",
+    "placeholders": {"count": {"type": "int"}}
+  },
+  "charadesScoreboard": "Marcador",
+  "@charadesScoreboard": {"description": "Charades: scoreboard heading"},
+  "charadesNextPlayer": "Que juegue otro",
+  "@charadesNextPlayer": {"description": "Charades: hand the turn over"},
+  "charadesWaitingTurn": "Nadie está jugando todavía",
+  "@charadesWaitingTurn": {"description": "Charades: idle heading"},
+  "charadesCategoryAll": "Todas",
+  "@charadesCategoryAll": {"description": "Charades category: every category"},
+  "charadesCategoryPeliculas": "Películas",
+  "@charadesCategoryPeliculas": {"description": "Charades category: movies"},
+  "charadesCategoryAnimales": "Animales",
+  "@charadesCategoryAnimales": {"description": "Charades category: animals"},
+  "charadesCategoryAcciones": "Acciones",
+  "@charadesCategoryAcciones": {"description": "Charades category: actions"},
+  "charadesCategoryObjetos": "Objetos",
+  "@charadesCategoryObjetos": {"description": "Charades category: objects"},
+  "charadesCategoryFamosos": "Famosos",
+  "@charadesCategoryFamosos": {"description": "Charades category: celebrities"},
+  "charadesCategoryFiesta": "Fiesta",
+  "@charadesCategoryFiesta": {"description": "Charades category: party"},
+  "minigamesPublishTitle": "Partida abierta",
+  "@minigamesPublishTitle": {
+    "description": "Lobby: label of the host-only publish switch"
+  },
+  "minigamesPublishSubtitle": "Cualquiera en la app puede verla y unirse sin invitación",
+  "@minigamesPublishSubtitle": {
+    "description": "Lobby: helper text under the publish switch"
+  },
+  "minigamesPublicLobbyTitle": "Partidas abiertas",
+  "@minigamesPublicLobbyTitle": {
+    "description": "Open lobby section heading"
+  },
+  "minigamesPublicJoin": "Unirme",
+  "@minigamesPublicJoin": {
+    "description": "Open lobby: join button"
+  },
+  "minigamesPublicJoined": "Te uniste a la partida",
+  "@minigamesPublicJoined": {
+    "description": "Open lobby: confirmation after joining"
+  },
+  "minigamesPublicAlreadyIn": "Ya estás dentro",
+  "@minigamesPublicAlreadyIn": {
+    "description": "Open lobby: tag on a partida the user already belongs to"
+  },
+  "minigamesPublicEmpty": "Todavía nadie publicó una partida. Crea una y ábrela para que se sumen.",
+  "@minigamesPublicEmpty": {
+    "description": "Open lobby: empty state"
+  },
+  "minigamesPublicHostedBy": "de {name}",
+  "@minigamesPublicHostedBy": {
+    "description": "Open lobby: who hosts the partida",
+    "placeholders": {"name": {"type": "String"}}
+  },
+  "minigamesPublicPlayers": "{count}/{limit} jugadores",
+  "@minigamesPublicPlayers": {
+    "description": "Open lobby: roster size against the cap",
+    "placeholders": {"count": {"type": "int"}, "limit": {"type": "int"}}
+  },
+  "minigamesPublicFull": "Llena",
+  "@minigamesPublicFull": {
+    "description": "Open lobby: tag on a partida at its player cap"
+  },
+  "minigamesBottleSpinning": "Girando…",
+  "@minigamesBottleSpinning": {
+    "description": "Drunk bottle: status line while the bottle spins"
+  },
+  "minigamesBottleTapToSpin": "Toca Girar y que decida la botella",
+  "@minigamesBottleTapToSpin": {
+    "description": "Drunk bottle: idle status line before the first spin"
+  },
+  "minigamesBottleLandedOn": "Le tocó a {name}",
+  "@minigamesBottleLandedOn": {
+    "description": "Drunk bottle: status line naming the player the bottle landed on",
+    "placeholders": {"name": {"type": "String"}}
+  },
+  "minigamesBottleYourTurn": "¡Te tocó a ti!",
+  "@minigamesBottleYourTurn": {
+    "description": "Drunk bottle: status line when the bottle landed on the current user"
+  },
+  "minigamesBottleDareTitle": "Tu reto",
+  "@minigamesBottleDareTitle": {
+    "description": "Drunk bottle: heading of the dare card"
+  },
+  "minigamesBottleSpunBy": "Giró {name}",
+  "@minigamesBottleSpunBy": {
+    "description": "Drunk bottle: who launched the current spin",
+    "placeholders": {"name": {"type": "String"}}
+  },
+  "minigamesBottleCategorySuave": "suave",
+  "@minigamesBottleCategorySuave": {"description": "Drunk bottle dare category: mild"},
+  "minigamesBottleCategoryMedio": "medio",
+  "@minigamesBottleCategoryMedio": {"description": "Drunk bottle dare category: medium"},
+  "minigamesBottleCategoryPicante": "picante",
+  "@minigamesBottleCategoryPicante": {"description": "Drunk bottle dare category: spicy"},
+  "minigamesBottleCategoryCastigo": "castigo",
+  "@minigamesBottleCategoryCastigo": {"description": "Drunk bottle dare category: penalty"},
+  "minigamesBottleMinPlayers": "La botella necesita al menos {min} jugadores (tienes {count})",
+  "@minigamesBottleMinPlayers": {
+    "description": "Drunk bottle: minimum-player gate message on the lobby's Start button",
+    "placeholders": {
+      "min": {"type": "int"},
+      "count": {"type": "int"}
+    }
+  },
   "minigamesGameChallenge": "Retos",
   "@minigamesGameChallenge": {
     "description": "Game #5 name (Challenges)"

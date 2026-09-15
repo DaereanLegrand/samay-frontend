@@ -14,6 +14,8 @@ import 'package:samay/core/services/minigame_service.dart';
 import 'package:samay/features/minigames/logic/minigame_engine.dart';
 import 'package:samay/features/minigames/logic/minigame_meta.dart';
 import 'package:samay/features/minigames/providers/minigames_providers.dart';
+import 'package:samay/features/minigames/screens/drunk_bottle_screen.dart'
+    show kDrunkBottleMinPlayers;
 import 'package:samay/features/minigames/screens/minigame_invite_screen.dart';
 import 'package:samay/features/minigames/screens/minigames_screen.dart'
     show minigameRejectionMessage;
@@ -26,6 +28,20 @@ import 'package:samay/shared/widgets/v_card.dart';
 import 'package:samay/shared/widgets/v_chip.dart';
 import 'package:samay/shared/widgets/v_display_text.dart';
 import 'package:samay/shared/widgets/v_header_bar.dart';
+
+
+/// The play-screen route for [gameType] — the single lobby → game dispatch
+/// point: Two Lies (208), Botella (209/210) and Charadas (212) join truth_dare
+/// as concrete games. Anything else falls back to Verdad o Reto so existing
+/// sessions keep working.
+String _playRoute(String? gameType, String sessionId) {
+  return switch (gameType) {
+    'two_lies_one_truth' => RoutePaths.twoLiesOneTruth(sessionId),
+    'drunk_bottle' => RoutePaths.drunkBottle(sessionId),
+    'charades' => RoutePaths.charades(sessionId),
+    _ => RoutePaths.truthDare(sessionId),
+  };
+}
 
 /// Partida lobby (180_minigame_lobby) — the session detail screen, now the
 /// game's pre-play room. Shows the game (the AppBar is its LOWERCASE name,
@@ -178,14 +194,9 @@ class _MinigameSessionDetailScreenState
             wasCountdown &&
             phase == MinigamePhase.playing &&
             context.mounted) {
-          final gameType = ref
-              .read(sessionStatusProvider(_sessionId))
+          final gameType = ref.read(sessionStatusProvider(_sessionId))
               .valueOrNull?['game_type'] as String?;
-          final route = switch (gameType) {
-            'two_lies_one_truth' => RoutePaths.twoLiesOneTruth(_sessionId),
-            _ => RoutePaths.truthDare(_sessionId),
-          };
-          context.push(route);
+          context.push(_playRoute(gameType, _sessionId));
         }
       },
     );
@@ -471,6 +482,9 @@ class _LobbySection extends ConsumerWidget {
     final skeleton = gameState.valueOrNull?.skeleton;
     final isPlaying = skeleton?.phase == MinigamePhase.playing;
     final isCountdown = skeleton?.isCountdown ?? false;
+    final gameType = session?['game_type'] as String?;
+    final tooFewForBottle =
+        gameType == 'drunk_bottle' && participantIds.length < kDrunkBottleMinPlayers;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -518,6 +532,13 @@ class _LobbySection extends ConsumerWidget {
               ),
             ),
         const SizedBox(height: AppSpacing.lg),
+        // 210_minigame_public: the host publishes the partida to the open
+        // lobby so anyone in the app can find it and join without an invite.
+        if (isCreator && !finished && session?['group_id'] == null)
+          _PublishSwitch(
+            sessionId: sessionId,
+            isPublic: session?['is_public'] == true,
+          ),
         if (!finished) ...[
           // 2026-09-02: the match is already RUNNING (a participant reopened
           // the partida after leaving the app / losing connection mid-play —
@@ -530,14 +551,29 @@ class _LobbySection extends ConsumerWidget {
               label: l10n.minigamesRejoin,
               onPressed: () => _rejoin(context, ref),
             )
-          else if (isCreator)
+          else if (isCreator) ...[
+            if (tooFewForBottle)
+              Padding(
+                padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+                child: Text(
+                  l10n.minigamesBottleMinPlayers(
+                    kDrunkBottleMinPlayers,
+                    participantIds.length,
+                  ),
+                  style: const TextStyle(color: AppColors.mutedStrong),
+                ),
+              ),
             VButton.emphasized(
               label: l10n.minigamesStart,
               loading: gameState.isLoading,
               // Start is disabled while the countdown runs — the host
-              // cancels instead (190_minigame_countdown).
-              onPressed: isCountdown ? null : () => _start(context, ref),
-            )
+              // cancels instead (190_minigame_countdown) — or while a
+              // drunk_bottle roster is under kDrunkBottleMinPlayers.
+              onPressed: isCountdown || tooFewForBottle
+                  ? null
+                  : () => _start(context, ref),
+            ),
+          ]
           else if (!isCountdown)
             _ReadyToggle(
               isReady: gameState.valueOrNull?.isReady(myId ?? '') ?? false,
@@ -554,18 +590,9 @@ class _LobbySection extends ConsumerWidget {
   /// holds the current round, so the play screen picks up the right
   /// subject/prompt/reactions.
   void _rejoin(BuildContext context, WidgetRef ref) {
-    context.push(_playRouteFor(ref));
-  }
-
-  /// Play-screen route for the session's game type — the single dispatch
-  /// point for every lobby → game CTA (extend the switch when a new game
-  /// ships instead of adding another inline switch).
-  String _playRouteFor(WidgetRef ref) {
-    final session = ref.read(sessionStatusProvider(sessionId)).valueOrNull;
-    return switch (session?['game_type'] as String?) {
-      'two_lies_one_truth' => RoutePaths.twoLiesOneTruth(sessionId),
-      _ => RoutePaths.truthDare(sessionId),
-    };
+    final gameType = ref.read(sessionStatusProvider(sessionId))
+        .valueOrNull?['game_type'] as String?;
+    context.push(_playRoute(gameType, sessionId));
   }
 
   Future<void> _toggleReady(BuildContext context, WidgetRef ref) async {
@@ -656,6 +683,84 @@ class _LobbySection extends ConsumerWidget {
         context,
       ).showSnackBar(SnackBar(content: Text(e.toAppError().message)));
     }
+  }
+}
+
+/// The host's open-lobby switch (210_minigame_public): flipping it on makes
+/// the partida visible to every signed-in user, who can then join without an
+/// invite. Backend-enforced host-only (`not_creator`).
+class _PublishSwitch extends ConsumerStatefulWidget {
+  const _PublishSwitch({required this.sessionId, required this.isPublic});
+
+  final String sessionId;
+  final bool isPublic;
+
+  @override
+  ConsumerState<_PublishSwitch> createState() => _PublishSwitchState();
+}
+
+class _PublishSwitchState extends ConsumerState<_PublishSwitch> {
+  bool _busy = false;
+
+  Future<void> _toggle(bool next) async {
+    if (_busy) return;
+    setState(() => _busy = true);
+    try {
+      await ref
+          .read(sessionStatusProvider(widget.sessionId).notifier)
+          .setPublic(next);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e.toAppError().message)));
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSpacing.lg),
+      child: VCard(
+        child: Row(
+          children: [
+            Icon(
+              widget.isPublic ? Icons.public : Icons.lock_outline,
+              size: 20,
+              color: widget.isPublic ? AppColors.white : AppColors.mutedStrong,
+            ),
+            const SizedBox(width: AppSpacing.md),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    l10n.minigamesPublishTitle,
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    l10n.minigamesPublishSubtitle,
+                    style: const TextStyle(
+                      color: AppColors.mutedStrong,
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Switch(
+              value: widget.isPublic,
+              onChanged: _busy ? null : _toggle,
+              activeThumbColor: AppColors.white,
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
 

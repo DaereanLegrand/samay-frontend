@@ -267,6 +267,44 @@ final myMinigameSessionsProvider =
       List<Map<String, dynamic>>
     >(MyMinigameSessionsNotifier.new);
 
+/// The OPEN LOBBY (210_minigame_public): published partidas anyone can see
+/// and join, keyed by game_type wire value (empty string = every game).
+class PublicMinigamesNotifier
+    extends FamilyAsyncNotifier<List<Map<String, dynamic>>, String> {
+  MinigameService get _service => ref.read(minigameServiceProvider);
+
+  @override
+  Future<List<Map<String, dynamic>>> build(String gameType) {
+    return _service.listPublicMinigames(
+      gameType: gameType.isEmpty ? null : gameType,
+    );
+  }
+
+  Future<void> refresh() async {
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(
+      () => _service.listPublicMinigames(
+        gameType: arg.isEmpty ? null : arg,
+      ),
+    );
+  }
+
+  /// Joins a published partida (no invite needed) and refreshes the feed.
+  Future<void> join(String sessionId) async {
+    await _service.joinSession(sessionId);
+    ref.invalidate(myMinigameSessionsProvider);
+    await refresh();
+  }
+}
+
+/// Open-lobby feed for [gameType] (the wire value, or '' for all games).
+final publicMinigamesProvider =
+    AsyncNotifierProvider.family<
+      PublicMinigamesNotifier,
+      List<Map<String, dynamic>>,
+      String
+    >(PublicMinigamesNotifier.new);
+
 /// Live status of one session: the initial row from [MinigameService.getSession]
 /// merged with realtime row changes on the session's channel (I-52
 /// `realtimeChannelProvider` lifecycle — the GMCR Realtime sync contract).
@@ -308,6 +346,16 @@ class MinigameSessionStatusNotifier
     final row = await _service.getSession(sessionId);
     if (row == null) throw Exception('Session not found');
     return row;
+  }
+
+  /// Publishes / unpublishes the partida to the open lobby
+  /// (210_minigame_public, host-only — backend-enforced via `not_creator`)
+  /// and reloads the row so the lobby switch reflects the server truth.
+  Future<void> setPublic(bool isPublic) async {
+    await _service.setMinigamePublic(arg, isPublic);
+    final row = await _service.getSession(arg);
+    if (row != null) state = AsyncData(row);
+    ref.invalidate(publicMinigamesProvider);
   }
 }
 
@@ -537,11 +585,20 @@ class MinigameGameStateNotifier
   Future<MinigameGameState> build(String sessionId) async {
     // Live updates ride the I-52 realtime lifecycle provider (mirror of
     // MinigameSessionStatusNotifier); the game-state row key is session_id.
+    //
+    // event: .all (not .update) — 2026-09-08 fix: `init_minigame_game_state`
+    // INSERTs the very first row for a session that never had a Ready toggle
+    // pressed (nobody upserted the row yet). An UPDATE-only subscription
+    // never fires for that first write, so every OTHER participant's
+    // countdown overlay silently never appears — only the host (who reads
+    // its own RPC result directly, not via realtime) sees it. Subsequent
+    // writes are UPDATEs either way, so widening to .all changes nothing for
+    // the already-working path.
     ref.listen<AsyncValue<Map<String, dynamic>>>(
       realtimeChannelProvider((
         channelName: 'minigame-game-state:$sessionId',
         table: 'minigame_game_state',
-        event: PostgresChangeEvent.update,
+        event: PostgresChangeEvent.all,
       )),
       (_, next) {
         final row = next.valueOrNull;
@@ -736,6 +793,41 @@ class MinigameGameStateNotifier
   /// recomputes.
   Future<void> setReady(bool ready) async {
     await _service.setReady(arg, ready);
+    await refresh();
+  }
+
+  /// Drunk bottle (209_minigame_bottle_pizza): launches a spin. The server
+  /// reseats the roster, so every device redraws the pizza in the new order.
+  /// Reloads so the caller's own screen updates immediately; the rest of the
+  /// table gets it over realtime.
+  Future<void> spinBottle() async {
+    await _service.spinDrunkBottle(arg);
+    await refresh();
+  }
+
+  /// Drunk bottle: stops the spin. The server draws the angle, the winning
+  /// sector and the reto — the client only renders what comes back.
+  Future<void> stopBottle() async {
+    await _service.stopDrunkBottle(arg);
+    await refresh();
+  }
+
+  /// Charadas (211_minigame_charades): the caller takes the phone for a turn
+  /// of [seconds] on [category] (null = every category).
+  Future<void> startCharadesTurn({String? category, int seconds = 60}) async {
+    await _service.startCharadesTurn(arg, category: category, seconds: seconds);
+    await refresh();
+  }
+
+  /// Charadas: scores the word on screen and draws the next one.
+  Future<void> charadesAnswer({required bool correct}) async {
+    await _service.charadesAnswer(arg, correct: correct);
+    await refresh();
+  }
+
+  /// Charadas: closes the running turn and banks its hits.
+  Future<void> endCharadesTurn() async {
+    await _service.endCharadesTurn(arg);
     await refresh();
   }
 

@@ -15,6 +15,7 @@ String minigameGameName(AppLocalizations l10n, String? gameType) {
     'drunk_bottle' => l10n.minigamesGameDrunkBottle,
     'challenge' => l10n.minigamesGameChallenge,
     'two_lies_one_truth' => l10n.minigamesGameTwoLiesOneTruth,
+    'charades' => l10n.minigamesGameCharades,
     _ => gameType ?? l10n.minigamesTitle,
   };
 }
@@ -40,6 +41,7 @@ IconData minigameIcon(MinigameType type) => switch (type) {
   MinigameType.drunkBottle => Icons.sports_bar,
   MinigameType.challenge => Icons.emoji_events,
   MinigameType.twoLiesOneTruth => Icons.psychology_alt,
+  MinigameType.charades => Icons.theater_comedy,
 };
 
 /// How a minigame is meant to be played — the "con amigos / solo" fact every
@@ -68,6 +70,7 @@ extension MinigameMeta on MinigameType {
     MinigameType.drunkBottle => l10n.minigamesGameDrunkBottleExplanation,
     MinigameType.challenge => l10n.minigamesGameChallengeExplanation,
     MinigameType.twoLiesOneTruth => l10n.minigamesGameTwoLiesOneTruthExplanation,
+    MinigameType.charades => l10n.minigamesGameCharadesExplanation,
   };
 
   /// Whether the game is played with friends, solo, or both.
@@ -78,6 +81,7 @@ extension MinigameMeta on MinigameType {
     MinigameType.drunkBottle => MinigameAudience.friends,
     MinigameType.challenge => MinigameAudience.both,
     MinigameType.twoLiesOneTruth => MinigameAudience.friends,
+    MinigameType.charades => MinigameAudience.friends,
   };
 
   /// Localized audience label ("Para jugar con amigos", "Para jugar solo",
@@ -96,6 +100,7 @@ extension MinigameMeta on MinigameType {
     MinigameType.drunkBottle => l10n.minigamesGameDrunkBottleTagline,
     MinigameType.challenge => l10n.minigamesGameChallengeTagline,
     MinigameType.twoLiesOneTruth => l10n.minigamesGameTwoLiesOneTruthTagline,
+    MinigameType.charades => l10n.minigamesGameCharadesTagline,
   };
 }
 
@@ -109,6 +114,7 @@ MinigameType? minigameTypeFromString(String? gameType) {
     'drunk_bottle' => MinigameType.drunkBottle,
     'challenge' => MinigameType.challenge,
     'two_lies_one_truth' => MinigameType.twoLiesOneTruth,
+    'charades' => MinigameType.charades,
     _ => null,
   };
 }
