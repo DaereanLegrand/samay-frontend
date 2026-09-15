@@ -168,18 +168,30 @@ class _MinigameDetailScreenState extends ConsumerState<MinigameDetailScreen> {
   /// (PERF-01: data-derived rows must be lazily built). Loading/error/empty
   /// collapse the list to the hero block alone.
   int _listItemCount(AppLocalizations l10n) {
-    final sessions = ref.watch(myMinigameSessionsProvider);
-    final data = sessions.valueOrNull;
-    if (data == null) return 1; // loading / error → hero block only
+    // Block 1: hero + CTA + "en curso" heading (+ its empty/loading state).
+    // Then one item per ongoing/pending partida.
+    // Then block 2: the "abiertas" heading (+ its empty/loading state), and
+    // one item per published partida (210_minigame_public).
+    return 1 + _ownRows.length + 1 + _publicRows.length;
+  }
+
+  /// The caller's ongoing partidas of this game followed by the pending
+  /// invites of this game — the rows block 1 lists.
+  List<Map<String, dynamic>> get _ownRows {
+    final data = ref.watch(myMinigameSessionsProvider).valueOrNull;
+    if (data == null) return const [];
     final ongoing = data
         .where((row) => row['status'] != 'finished')
         .where((row) => row['game_type'] == _type.value)
-        .length;
-    final pendingInvites = _pendingInvitesOfThisGame;
-    // +1 header block; ongoing + pending rows render as their own items (when
-    // empty the header block embeds the empty view).
-    return 1 + ongoing + pendingInvites.length;
+        .toList();
+    return [...ongoing, ..._pendingInvitesOfThisGame];
   }
+
+  /// The published partidas of this game (210_minigame_public) — the rows
+  /// block 2 lists. Empty while loading / on error (the heading block shows
+  /// the state).
+  List<Map<String, dynamic>> get _publicRows =>
+      ref.watch(publicMinigamesProvider(_type.value)).valueOrNull ?? const [];
 
   /// Pending invited sessions of THIS game (170_minigame_invite_badges): the
   /// invitee-side rows the user was invited to but has not accepted yet. They
@@ -220,32 +232,63 @@ class _MinigameDetailScreenState extends ConsumerState<MinigameDetailScreen> {
         ],
       );
     }
-    final sessions = ref.watch(myMinigameSessionsProvider).valueOrNull;
-    final ongoing = sessions
-            ?.where((row) => row['status'] != 'finished')
-            .where((row) => row['game_type'] == _type.value)
-            .toList() ??
-        const <Map<String, dynamic>>[];
-    final pendingInvites = _pendingInvitesOfThisGame;
-    final combined = [...ongoing, ...pendingInvites];
+    final ownRows = _ownRows;
+    final ongoingCount = ownRows.length - _pendingInvitesOfThisGame.length;
     final rowIndex = index - 1;
-    if (rowIndex >= combined.length) return const SizedBox.shrink();
-    final session = combined[rowIndex];
-    final isPending = rowIndex >= ongoing.length;
+
+    // Block 1 rows: the caller's ongoing partidas + their pending invites.
+    if (rowIndex < ownRows.length) {
+      final session = ownRows[rowIndex];
+      final isPending = rowIndex >= ongoingCount;
+      return Padding(
+        padding: const EdgeInsets.only(bottom: AppSpacing.xs),
+        child: _SessionRow(
+          session: session,
+          index: rowIndex,
+          pendingInvite: isPending,
+          busy: _busySessionIds.contains(session['id']),
+          onTap: () => _showDetail(session['id'] as String),
+          onAccept: isPending
+              ? () => _acceptInvite(session['id'] as String)
+              : null,
+          onDecline: isPending
+              ? () => _declineInvite(session['id'] as String)
+              : null,
+        ),
+      );
+    }
+
+    // Block 2 heading: the open lobby (210_minigame_public).
+    final publicIndex = rowIndex - ownRows.length;
+    if (publicIndex == 0) {
+      return Padding(
+        padding: const EdgeInsets.only(top: AppSpacing.xl),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              l10n.minigamesPublicLobbyTitle.toUpperCase(),
+              style: Theme.of(context).textTheme.titleSmall,
+            ),
+            const SizedBox(height: AppSpacing.md),
+            _buildPublicLobbyState(l10n),
+          ],
+        ),
+      );
+    }
+
+    // Block 2 rows: one published partida each.
+    final publicRows = _publicRows;
+    final pIndex = publicIndex - 1;
+    if (pIndex >= publicRows.length) return const SizedBox.shrink();
+    final row = publicRows[pIndex];
     return Padding(
       padding: const EdgeInsets.only(bottom: AppSpacing.xs),
-      child: _SessionRow(
-        session: session,
-        index: rowIndex,
-        pendingInvite: isPending,
-        busy: _busySessionIds.contains(session['id']),
-        onTap: () => _showDetail(session['id'] as String),
-        onAccept: isPending
-            ? () => _acceptInvite(session['id'] as String)
-            : null,
-        onDecline: isPending
-            ? () => _declineInvite(session['id'] as String)
-            : null,
+      child: _PublicSessionRow(
+        session: row,
+        busy: _busySessionIds.contains(row['id']),
+        onOpen: () => _showDetail(row['id'] as String),
+        onJoin: () => _joinPublic(row['id'] as String),
       ),
     );
   }
@@ -280,6 +323,66 @@ class _MinigameDetailScreenState extends ConsumerState<MinigameDetailScreen> {
   /// default). Loading/error render inline; the empty view renders in the
   /// header block; the rows themselves are lazily built items of the outer
   /// [ListView.builder] (PERF-01).
+  /// The open lobby's non-row state (210_minigame_public): the loader, the
+  /// error retry or the empty line. The rows themselves are their own lazy
+  /// list items, so this never has to size an unbounded child.
+  Widget _buildPublicLobbyState(AppLocalizations l10n) {
+    final feed = ref.watch(publicMinigamesProvider(_type.value));
+    return feed.when(
+      loading: () => const Padding(
+        padding: EdgeInsets.symmetric(vertical: AppSpacing.md),
+        child: VSpinner(),
+      ),
+      error: (error, _) => ErrorView(
+        message: l10n.minigamesErrorLoad,
+        onRetry: () =>
+            ref.read(publicMinigamesProvider(_type.value).notifier).refresh(),
+      ),
+      data: (rows) => rows.isEmpty
+          ? Padding(
+              padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+              child: Text(
+                l10n.minigamesPublicEmpty,
+                style: const TextStyle(
+                  color: AppColors.mutedStrong,
+                  fontSize: 13,
+                  height: 1.35,
+                ),
+              ),
+            )
+          : const SizedBox.shrink(),
+    );
+  }
+
+  /// Joins a published partida and drops the caller straight into its lobby.
+  Future<void> _joinPublic(String sessionId) async {
+    if (_busySessionIds.contains(sessionId)) return;
+    setState(() => _busySessionIds.add(sessionId));
+    final l10n = AppLocalizations.of(context);
+    try {
+      await ref
+          .read(publicMinigamesProvider(_type.value).notifier)
+          .join(sessionId);
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.minigamesPublicJoined)));
+      _showDetail(sessionId);
+    } on MinigameSessionRejectedException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(minigameRejectionMessage(l10n, e.rejection))),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e.toAppError().message)));
+    } finally {
+      if (mounted) setState(() => _busySessionIds.remove(sessionId));
+    }
+  }
+
   Widget _buildSessions(AppLocalizations l10n) {
     final sessions = ref.watch(myMinigameSessionsProvider);
 
@@ -466,6 +569,91 @@ class _SessionRow extends StatelessWidget {
 /// fill, black icon; the x is the outlined voice — transparent fill, white
 /// border + icon. While the RPC is in flight both turn into a single spinner
 /// and ignore taps (double-tap guard).
+/// One row of the open lobby (210_minigame_public): the partida's name, who
+/// hosts it and how full it is, with a Join button for anyone not in it yet.
+class _PublicSessionRow extends StatelessWidget {
+  const _PublicSessionRow({
+    required this.session,
+    required this.busy,
+    required this.onOpen,
+    required this.onJoin,
+  });
+
+  final Map<String, dynamic> session;
+  final bool busy;
+  final VoidCallback onOpen;
+  final VoidCallback onJoin;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final isMember = session['is_member'] == true;
+    final count = (session['player_count'] as num?)?.toInt() ?? 0;
+    final limit = (session['player_limit'] as num?)?.toInt() ?? 0;
+    final full = limit > 0 && count >= limit;
+    final host = session['host_username'] as String? ?? '';
+    final name =
+        (session['name'] as String?)?.trim().isNotEmpty == true
+            ? session['name'] as String
+            : session['auto_name'] as String? ?? '';
+
+    return InkWell(
+      onTap: isMember ? onOpen : null,
+      child: Container(
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.md,
+          vertical: AppSpacing.sm,
+        ),
+        decoration: BoxDecoration(
+          color: AppColors.surfaceAlt,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: AppColors.hairline),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    name,
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    '${l10n.minigamesPublicHostedBy(host)} · '
+                    '${l10n.minigamesPublicPlayers(count, limit)}',
+                    style: const TextStyle(
+                      color: AppColors.mutedStrong,
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: AppSpacing.sm),
+            if (isMember)
+              VChip(label: l10n.minigamesPublicAlreadyIn, selected: false, compact: true)
+            else if (full)
+              VChip(label: l10n.minigamesPublicFull, selected: false, compact: true)
+            else
+              // VButton sizes itself to double.infinity, so inside a Row it
+              // needs an explicit width box.
+              SizedBox(
+                width: 104,
+                child: VButton.outlined(
+                  label: l10n.minigamesPublicJoin,
+                  loading: busy,
+                  onPressed: onJoin,
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _PendingInviteActions extends StatelessWidget {
   final bool busy;
   final VoidCallback? onAccept;

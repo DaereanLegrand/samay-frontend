@@ -525,6 +525,11 @@ class _GameCard extends StatelessWidget {
       (l) => l.minigamesGameTwoLiesOneTruth,
       (l) => l.minigamesGameTwoLiesOneTruthTagline,
     ),
+    MinigameType.charades => (
+      minigameIcon(type),
+      (l) => l.minigamesGameCharades,
+      (l) => l.minigamesGameCharadesTagline,
+    ),
   };
 
   @override

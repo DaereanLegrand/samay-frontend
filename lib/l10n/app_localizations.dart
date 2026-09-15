@@ -3440,6 +3440,318 @@ abstract class AppLocalizations {
   /// **'Gira la botella: a quien apunte le toca cumplir. Ideal para reuniones con amigos.'**
   String get minigamesGameDrunkBottleExplanation;
 
+  /// Drunk bottle: button that starts the spin
+  ///
+  /// In es, this message translates to:
+  /// **'Girar'**
+  String get minigamesBottleSpin;
+
+  /// Drunk bottle: button that stops the spin
+  ///
+  /// In es, this message translates to:
+  /// **'Parar'**
+  String get minigamesBottleStop;
+
+  /// Game #6 name (Charades)
+  ///
+  /// In es, this message translates to:
+  /// **'Charadas'**
+  String get minigamesGameCharades;
+
+  /// Game #6 one-line tagline
+  ///
+  /// In es, this message translates to:
+  /// **'Celular en la frente y que adivinen'**
+  String get minigamesGameCharadesTagline;
+
+  /// Game #6 explanation on the dedicated game page
+  ///
+  /// In es, this message translates to:
+  /// **'Te pones el celular en la frente sin mirar la pantalla. El grupo actúa la palabra que aparece y tú adivinas. Cada acierto suma un punto y, cuando se acaba el tiempo, le toca al siguiente.'**
+  String get minigamesGameCharadesExplanation;
+
+  /// Charades: rules card heading
+  ///
+  /// In es, this message translates to:
+  /// **'Cómo se juega'**
+  String get charadesRulesTitle;
+
+  /// Charades rule 1
+  ///
+  /// In es, this message translates to:
+  /// **'Pon el celular en tu frente, con la pantalla hacia el grupo. No mires.'**
+  String get charadesRule1;
+
+  /// Charades rule 2
+  ///
+  /// In es, this message translates to:
+  /// **'El grupo actúa la palabra sin decirla ni deletrearla.'**
+  String get charadesRule2;
+
+  /// Charades rule 3
+  ///
+  /// In es, this message translates to:
+  /// **'Si adivinas, toca Acerté. Si se complica, toca Paso.'**
+  String get charadesRule3;
+
+  /// Charades rule 4
+  ///
+  /// In es, this message translates to:
+  /// **'Al terminar el tiempo se cuentan tus aciertos y pasa el turno.'**
+  String get charadesRule4;
+
+  /// Charades: category picker heading
+  ///
+  /// In es, this message translates to:
+  /// **'Elige una categoría'**
+  String get charadesPickCategory;
+
+  /// Charades: turn duration label
+  ///
+  /// In es, this message translates to:
+  /// **'Duración'**
+  String get charadesDuration;
+
+  /// Charades: a duration in seconds
+  ///
+  /// In es, this message translates to:
+  /// **'{count} s'**
+  String charadesSeconds(int count);
+
+  /// Charades: start button
+  ///
+  /// In es, this message translates to:
+  /// **'Empezar mi turno'**
+  String get charadesStartTurn;
+
+  /// Charades: correct button
+  ///
+  /// In es, this message translates to:
+  /// **'Acerté'**
+  String get charadesHit;
+
+  /// Charades: skip button
+  ///
+  /// In es, this message translates to:
+  /// **'Paso'**
+  String get charadesPass;
+
+  /// Charades: end turn early
+  ///
+  /// In es, this message translates to:
+  /// **'Terminar turno'**
+  String get charadesFinish;
+
+  /// Charades: spectator banner naming the active player
+  ///
+  /// In es, this message translates to:
+  /// **'Está jugando {name}'**
+  String charadesPlayingBy(String name);
+
+  /// Charades: spectator instruction while a turn runs
+  ///
+  /// In es, this message translates to:
+  /// **'¡Actúen la palabra!'**
+  String get charadesActNow;
+
+  /// Charades: time over heading
+  ///
+  /// In es, this message translates to:
+  /// **'¡Se acabó el tiempo!'**
+  String get charadesTimeUp;
+
+  /// Charades: hits in the closed turn
+  ///
+  /// In es, this message translates to:
+  /// **'{count, plural, =0{Sin aciertos} =1{1 acierto} other{{count} aciertos}}'**
+  String charadesTurnScore(int count);
+
+  /// Charades: scoreboard heading
+  ///
+  /// In es, this message translates to:
+  /// **'Marcador'**
+  String get charadesScoreboard;
+
+  /// Charades: hand the turn over
+  ///
+  /// In es, this message translates to:
+  /// **'Que juegue otro'**
+  String get charadesNextPlayer;
+
+  /// Charades: idle heading
+  ///
+  /// In es, this message translates to:
+  /// **'Nadie está jugando todavía'**
+  String get charadesWaitingTurn;
+
+  /// Charades category: every category
+  ///
+  /// In es, this message translates to:
+  /// **'Todas'**
+  String get charadesCategoryAll;
+
+  /// Charades category: movies
+  ///
+  /// In es, this message translates to:
+  /// **'Películas'**
+  String get charadesCategoryPeliculas;
+
+  /// Charades category: animals
+  ///
+  /// In es, this message translates to:
+  /// **'Animales'**
+  String get charadesCategoryAnimales;
+
+  /// Charades category: actions
+  ///
+  /// In es, this message translates to:
+  /// **'Acciones'**
+  String get charadesCategoryAcciones;
+
+  /// Charades category: objects
+  ///
+  /// In es, this message translates to:
+  /// **'Objetos'**
+  String get charadesCategoryObjetos;
+
+  /// Charades category: celebrities
+  ///
+  /// In es, this message translates to:
+  /// **'Famosos'**
+  String get charadesCategoryFamosos;
+
+  /// Charades category: party
+  ///
+  /// In es, this message translates to:
+  /// **'Fiesta'**
+  String get charadesCategoryFiesta;
+
+  /// Lobby: label of the host-only publish switch
+  ///
+  /// In es, this message translates to:
+  /// **'Partida abierta'**
+  String get minigamesPublishTitle;
+
+  /// Lobby: helper text under the publish switch
+  ///
+  /// In es, this message translates to:
+  /// **'Cualquiera en la app puede verla y unirse sin invitación'**
+  String get minigamesPublishSubtitle;
+
+  /// Open lobby section heading
+  ///
+  /// In es, this message translates to:
+  /// **'Partidas abiertas'**
+  String get minigamesPublicLobbyTitle;
+
+  /// Open lobby: join button
+  ///
+  /// In es, this message translates to:
+  /// **'Unirme'**
+  String get minigamesPublicJoin;
+
+  /// Open lobby: confirmation after joining
+  ///
+  /// In es, this message translates to:
+  /// **'Te uniste a la partida'**
+  String get minigamesPublicJoined;
+
+  /// Open lobby: tag on a partida the user already belongs to
+  ///
+  /// In es, this message translates to:
+  /// **'Ya estás dentro'**
+  String get minigamesPublicAlreadyIn;
+
+  /// Open lobby: empty state
+  ///
+  /// In es, this message translates to:
+  /// **'Todavía nadie publicó una partida. Crea una y ábrela para que se sumen.'**
+  String get minigamesPublicEmpty;
+
+  /// Open lobby: who hosts the partida
+  ///
+  /// In es, this message translates to:
+  /// **'de {name}'**
+  String minigamesPublicHostedBy(String name);
+
+  /// Open lobby: roster size against the cap
+  ///
+  /// In es, this message translates to:
+  /// **'{count}/{limit} jugadores'**
+  String minigamesPublicPlayers(int count, int limit);
+
+  /// Open lobby: tag on a partida at its player cap
+  ///
+  /// In es, this message translates to:
+  /// **'Llena'**
+  String get minigamesPublicFull;
+
+  /// Drunk bottle: status line while the bottle spins
+  ///
+  /// In es, this message translates to:
+  /// **'Girando…'**
+  String get minigamesBottleSpinning;
+
+  /// Drunk bottle: idle status line before the first spin
+  ///
+  /// In es, this message translates to:
+  /// **'Toca Girar y que decida la botella'**
+  String get minigamesBottleTapToSpin;
+
+  /// Drunk bottle: status line naming the player the bottle landed on
+  ///
+  /// In es, this message translates to:
+  /// **'Le tocó a {name}'**
+  String minigamesBottleLandedOn(String name);
+
+  /// Drunk bottle: status line when the bottle landed on the current user
+  ///
+  /// In es, this message translates to:
+  /// **'¡Te tocó a ti!'**
+  String get minigamesBottleYourTurn;
+
+  /// Drunk bottle: heading of the dare card
+  ///
+  /// In es, this message translates to:
+  /// **'Tu reto'**
+  String get minigamesBottleDareTitle;
+
+  /// Drunk bottle: who launched the current spin
+  ///
+  /// In es, this message translates to:
+  /// **'Giró {name}'**
+  String minigamesBottleSpunBy(String name);
+
+  /// Drunk bottle dare category: mild
+  ///
+  /// In es, this message translates to:
+  /// **'suave'**
+  String get minigamesBottleCategorySuave;
+
+  /// Drunk bottle dare category: medium
+  ///
+  /// In es, this message translates to:
+  /// **'medio'**
+  String get minigamesBottleCategoryMedio;
+
+  /// Drunk bottle dare category: spicy
+  ///
+  /// In es, this message translates to:
+  /// **'picante'**
+  String get minigamesBottleCategoryPicante;
+
+  /// Drunk bottle dare category: penalty
+  ///
+  /// In es, this message translates to:
+  /// **'castigo'**
+  String get minigamesBottleCategoryCastigo;
+
+  /// Drunk bottle: minimum-player gate message on the lobby's Start button
+  ///
+  /// In es, this message translates to:
+  /// **'La botella necesita al menos {min} jugadores (tienes {count})'**
+  String minigamesBottleMinPlayers(int min, int count);
+
   /// Game #5 name (Challenges)
   ///
   /// In es, this message translates to:
