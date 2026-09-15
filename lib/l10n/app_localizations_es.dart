@@ -1967,6 +1967,9 @@ class AppLocalizationsEs extends AppLocalizations {
   String get minigamesStatusFinished => 'Terminada';
 
   @override
+  String get minigamesViewLeaderboard => 'Ver clasificación';
+
+  @override
   String minigamesParticipants(int count) {
     return 'Participantes: $count';
   }

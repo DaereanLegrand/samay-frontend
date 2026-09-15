@@ -3644,6 +3644,12 @@ abstract class AppLocalizations {
   /// **'Terminada'**
   String get minigamesStatusFinished;
 
+  /// Button on a finished match's session detail that opens the finished leaderboard
+  ///
+  /// In es, this message translates to:
+  /// **'Ver clasificación'**
+  String get minigamesViewLeaderboard;
+
   /// Session card subtitle with the participant count
   ///
   /// In es, this message translates to:

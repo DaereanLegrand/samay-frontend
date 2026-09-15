@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
+import 'package:samay/core/design_tokens/app_typography.dart';
 import 'package:samay/core/extensions/error_mapper.dart';
 import 'package:samay/core/logging/app_logger.dart';
 import 'package:samay/core/providers/auth_provider.dart';
@@ -590,6 +591,18 @@ class _LobbySection extends ConsumerWidget {
     final isPlaying = skeleton?.phase == MinigamePhase.playing;
     final isCountdown = skeleton?.isCountdown ?? false;
 
+    // Finished sessions carry the settled ranking (TODO F): each participant
+    // row shows its rank/score and taps through to the leaderboard focused on
+    // that player. Null (not yet settled / still loading) simply leaves the
+    // rows in roster order with no ranking.
+    final result = finished
+        ? ref.watch(minigameResultProvider(sessionId)).valueOrNull
+        : null;
+    final rankByPlayer = <String, MinigameResultRow>{
+      if (result != null)
+        for (final r in result.rows) r.participantId: r,
+    };
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -610,30 +623,50 @@ class _LobbySection extends ConsumerWidget {
                 onRetry: () =>
                     ref.invalidate(minigameParticipantsProvider(sessionId)),
               ),
-              data: (participants) => Column(
-                children: [
-                  // The HOST marker resolves from the AUTHORITATIVE
-                  // participant[0] id (null-safe). The roster may briefly lag
-                  // that array after a join/remove (hot reload preserves
-                  // provider state) — a mismatch must mark the wrong player,
-                  // never crash a row (2026-08-30).
-                  for (var i = 0; i < participants.length; i++) ...[
-                    if (i > 0) const Divider(height: 1),
-                    _ParticipantRow(
-                      participant: participants[i],
-                      isCreator: participantIds.isNotEmpty &&
-                          participants[i].id == participantIds.first,
-                      canRemove:
-                          isCreator && participants[i].id != myId && !finished,
-                      // The "Listo" ready chip is pre-play semantics — once
-                      // the match is running it means nothing (2026-09-02).
-                      showReadyChip: !isPlaying,
-                      onRemove: () =>
-                          _confirmRemove(context, ref, participants[i]),
-                    ),
+              data: (participants) {
+                // Finished: order the roster by settled rank (unranked last).
+                final ordered = finished && rankByPlayer.isNotEmpty
+                    ? ([...participants]..sort((a, b) {
+                        final ra = rankByPlayer[a.id]?.rank ?? 1 << 30;
+                        final rb = rankByPlayer[b.id]?.rank ?? 1 << 30;
+                        return ra.compareTo(rb);
+                      }))
+                    : participants;
+                return Column(
+                  children: [
+                    // The HOST marker resolves from the AUTHORITATIVE
+                    // participant[0] id (null-safe). The roster may briefly lag
+                    // that array after a join/remove (hot reload preserves
+                    // provider state) — a mismatch must mark the wrong player,
+                    // never crash a row (2026-08-30).
+                    for (var i = 0; i < ordered.length; i++) ...[
+                      if (i > 0) const Divider(height: 1),
+                      _ParticipantRow(
+                        participant: ordered[i],
+                        isCreator: participantIds.isNotEmpty &&
+                            ordered[i].id == participantIds.first,
+                        canRemove:
+                            isCreator && ordered[i].id != myId && !finished,
+                        // The "Listo" ready chip is pre-play semantics — once
+                        // the match is running it means nothing (2026-09-02).
+                        showReadyChip: !isPlaying,
+                        rank: rankByPlayer[ordered[i].id]?.rank,
+                        score: rankByPlayer[ordered[i].id]?.score,
+                        onTap: finished
+                            ? () => context.push(
+                                RoutePaths.minigameLeaderboard(
+                                  sessionId,
+                                  participantId: ordered[i].id,
+                                ),
+                              )
+                            : null,
+                        onRemove: () =>
+                            _confirmRemove(context, ref, ordered[i]),
+                      ),
+                    ],
                   ],
-                ],
-              ),
+                );
+              },
             ),
         // Anonymous mode: the temp nickname lives in the LOBBY (never during
         // the match). A button opens a popup; the current name shows inline
@@ -643,7 +676,14 @@ class _LobbySection extends ConsumerWidget {
           _AliasButton(sessionId: sessionId),
         ],
         const SizedBox(height: AppSpacing.lg),
-        if (!finished) ...[
+        if (finished)
+          // TODO F: a settled match's entry point to the finished leaderboard.
+          VButton.emphasized(
+            label: l10n.minigamesViewLeaderboard,
+            onPressed: () =>
+                context.push(RoutePaths.minigameLeaderboard(sessionId)),
+          )
+        else ...[
           // 2026-09-02: the match is already RUNNING (a participant reopened
           // the partida after leaving the app / losing connection mid-play —
           // they never left the roster). Empezar/¿Listo? are pre-play
@@ -775,6 +815,9 @@ class _ParticipantRow extends StatelessWidget {
     required this.canRemove,
     this.showReadyChip = true,
     required this.onRemove,
+    this.rank,
+    this.score,
+    this.onTap,
   });
 
   final MinigameParticipant participant;
@@ -783,6 +826,21 @@ class _ParticipantRow extends StatelessWidget {
   final bool showReadyChip;
   final VoidCallback onRemove;
 
+  /// The settled rank/score (finished sessions only) — null while the match is
+  /// still active. When present the row shows the ranking and becomes tappable
+  /// to open the leaderboard focused on this player (TODO F).
+  final int? rank;
+  final int? score;
+  final VoidCallback? onTap;
+
+  /// Podium accent for the rank numeral (gold/silver/bronze, white otherwise).
+  Color get _rankColor => switch (rank) {
+    1 => AppColors.discoGold,
+    2 => AppColors.discoSilver,
+    3 => AppColors.discoBronze,
+    _ => AppColors.white,
+  };
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
@@ -790,13 +848,30 @@ class _ParticipantRow extends StatelessWidget {
         ? '?'
         : participant.username[0];
 
-    return Padding(
+    final row = Padding(
       padding: const EdgeInsets.symmetric(
         horizontal: AppSpacing.md,
         vertical: AppSpacing.sm,
       ),
       child: Row(
         children: [
+          if (rank != null) ...[
+            // Fixed slot so every name starts on the same x.
+            SizedBox(
+              width: 30,
+              child: Text(
+                '$rank',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontFamily: AppTypography.playfair,
+                  fontSize: 22,
+                  fontWeight: FontWeight.w700,
+                  color: _rankColor,
+                ),
+              ),
+            ),
+            const SizedBox(width: AppSpacing.sm),
+          ],
           ProfileAvatar(
             size: 36,
             initials: initials,
@@ -811,7 +886,15 @@ class _ParticipantRow extends StatelessWidget {
                   participant.username,
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
-                if (isCreator)
+                if (score != null)
+                  Text(
+                    l10n.minigamesPointsAmount(score!),
+                    style: const TextStyle(
+                      color: AppColors.mutedStrong,
+                      fontSize: 12,
+                    ),
+                  )
+                else if (isCreator)
                   Text(
                     l10n.minigamesCreator,
                     style: const TextStyle(
@@ -828,6 +911,12 @@ class _ParticipantRow extends StatelessWidget {
           // entirely once the match is running (2026-09-02).
           if (showReadyChip && !isCreator && participant.ready)
             VChip(label: l10n.minigamesReady, selected: false, compact: true),
+          if (onTap != null)
+            const Icon(
+              Icons.chevron_right,
+              size: 18,
+              color: AppColors.mutedStrong,
+            ),
           if (canRemove) ...[
             const SizedBox(width: AppSpacing.xs),
             IconButton(
@@ -842,6 +931,9 @@ class _ParticipantRow extends StatelessWidget {
         ],
       ),
     );
+
+    if (onTap == null) return row;
+    return InkWell(onTap: onTap, child: row);
   }
 }
 

@@ -44,7 +44,8 @@ import 'package:samay/shared/widgets/v_spinner.dart';
 /// wizard lets the player switch to a Group. Direct sessions come from
 /// [myMinigameSessionsProvider]; group sessions from the scoped
 /// [minigameSessionsProvider]. The list is filtered to [gameType] and shows
-/// only ACTIVE (ongoing) partidas — finished ones drop off.
+/// the caller's partidas — ongoing first, then finished (user directive
+/// 2026-09-15: a settled match stays in the list instead of dropping off).
 class MinigameDetailScreen extends ConsumerStatefulWidget {
   const MinigameDetailScreen({super.key, required this.gameType});
 
@@ -169,16 +170,34 @@ class _MinigameDetailScreenState extends ConsumerState<MinigameDetailScreen> {
   /// collapse the list to the hero block alone.
   int _listItemCount(AppLocalizations l10n) {
     final sessions = ref.watch(myMinigameSessionsProvider);
-    final data = sessions.valueOrNull;
-    if (data == null) return 1; // loading / error → hero block only
-    final ongoing = data
-        .where((row) => row['status'] != 'finished')
-        .where((row) => row['game_type'] == _type.value)
-        .length;
+    if (sessions.valueOrNull == null) return 1; // loading / error → hero only
+    final partidas = _partidasOfThisGame().length;
     final pendingInvites = _pendingInvitesOfThisGame;
-    // +1 header block; ongoing + pending rows render as their own items (when
+    // +1 header block; partidas + pending rows render as their own items (when
     // empty the header block embeds the empty view).
-    return 1 + ongoing + pendingInvites.length;
+    return 1 + partidas + pendingInvites.length;
+  }
+
+  /// Every partida of this game the caller can see — ongoing AND finished.
+  /// Ongoing rows come first, finished ones after, each newest first, so a
+  /// settled match stays reachable at the foot of the list (user directive
+  /// 2026-09-15) without pushing the live games down.
+  List<Map<String, dynamic>> _partidasOfThisGame() {
+    final sessions = ref.watch(myMinigameSessionsProvider).valueOrNull;
+    if (sessions == null) return const [];
+    final rows = sessions
+        .where((row) => row['game_type'] == _type.value)
+        .toList();
+    int finishedRank(Map<String, dynamic> row) =>
+        row['status'] == 'finished' ? 1 : 0;
+    rows.sort((a, b) {
+      final byStatus = finishedRank(a).compareTo(finishedRank(b));
+      if (byStatus != 0) return byStatus;
+      final ac = a['created_at'] as String? ?? '';
+      final bc = b['created_at'] as String? ?? '';
+      return bc.compareTo(ac);
+    });
+    return rows;
   }
 
   /// Pending invited sessions of THIS game (170_minigame_invite_badges): the
@@ -220,18 +239,13 @@ class _MinigameDetailScreenState extends ConsumerState<MinigameDetailScreen> {
         ],
       );
     }
-    final sessions = ref.watch(myMinigameSessionsProvider).valueOrNull;
-    final ongoing = sessions
-            ?.where((row) => row['status'] != 'finished')
-            .where((row) => row['game_type'] == _type.value)
-            .toList() ??
-        const <Map<String, dynamic>>[];
+    final partidas = _partidasOfThisGame();
     final pendingInvites = _pendingInvitesOfThisGame;
-    final combined = [...ongoing, ...pendingInvites];
+    final combined = [...partidas, ...pendingInvites];
     final rowIndex = index - 1;
     if (rowIndex >= combined.length) return const SizedBox.shrink();
     final session = combined[rowIndex];
-    final isPending = rowIndex >= ongoing.length;
+    final isPending = rowIndex >= partidas.length;
     return Padding(
       padding: const EdgeInsets.only(bottom: AppSpacing.xs),
       child: _SessionRow(
@@ -295,13 +309,10 @@ class _MinigameDetailScreenState extends ConsumerState<MinigameDetailScreen> {
           onRetry: _refresh,
         ),
       ),
-      data: (rows) {
-        final ongoing = rows
-            .where((row) => row['status'] != 'finished')
-            .where((row) => row['game_type'] == _type.value)
-            .toList();
+      data: (_) {
+        final partidas = _partidasOfThisGame();
         final pendingInvites = _pendingInvitesOfThisGame;
-        if (ongoing.isEmpty && pendingInvites.isEmpty) {
+        if (partidas.isEmpty && pendingInvites.isEmpty) {
           return Padding(
             padding: const EdgeInsets.symmetric(vertical: AppSpacing.xl),
             child: VEmptyView(

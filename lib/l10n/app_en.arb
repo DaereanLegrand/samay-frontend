@@ -2594,6 +2594,10 @@
   "@minigamesStatusFinished": {
     "description": "Lifecycle chip label for finished sessions"
   },
+  "minigamesViewLeaderboard": "View leaderboard",
+  "@minigamesViewLeaderboard": {
+    "description": "Button on a finished match's session detail that opens the finished leaderboard"
+  },
   "minigamesParticipants": "Participants: {count}",
   "@minigamesParticipants": {
     "description": "Session card subtitle with the participant count",

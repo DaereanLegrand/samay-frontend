@@ -15,6 +15,7 @@ import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/error_view.dart';
 import 'package:samay/shared/widgets/state_views.dart';
 import 'package:samay/shared/widgets/v_display_text.dart';
+import 'package:samay/shared/widgets/v_header_bar.dart';
 import 'package:samay/shared/widgets/v_shard_icon.dart';
 import 'package:samay/shared/widgets/v_spinner.dart';
 
@@ -25,19 +26,30 @@ import 'package:samay/shared/widgets/v_spinner.dart';
 /// Every ranked participant gets a card (winners and non-winners alike),
 /// ordered by rank; the selected card sits forward and centered while its
 /// neighbours recede to the sides with a perspective transform, blurring into
-/// and out of mist as the page passes. Each card shows the player's decrypted
-/// answers — QUESTION text + ANSWER — grouped per round with that round's
-/// received reactions (passed rounds last), paged vertically with a discreet
-/// page rail so the affordance is obvious. In anonymous mode the usernames are
-/// revealed HERE — the only place real names appear during the match.
+/// and out of mist as the page passes. Every card fills the same
+/// viewport-sized box: the prompt rides at the top, the answer body centers,
+/// and the identity block (RANK + USERNAME, then POINTS · SHARDS) is pinned to
+/// the card floor. A picture answer becomes the card's full-bleed background
+/// under a bottom gradient, so an image card and a text card share one
+/// container. Rounds page vertically with a discreet rail so the affordance is
+/// obvious; in anonymous mode the usernames are revealed HERE — the only place
+/// real names appear during the match.
 ///
 /// This widget is the provider seam: it resolves the settled result, the
 /// roster and the decrypted player content, then hands plain data to
 /// [LeaderboardCarousel] (the pure, screenshot-friendly view).
 class FinishedLeaderboard extends ConsumerWidget {
-  const FinishedLeaderboard({super.key, required this.sessionId});
+  const FinishedLeaderboard({
+    super.key,
+    required this.sessionId,
+    this.initialParticipantId,
+  });
 
   final String sessionId;
+
+  /// When given, the carousel opens focused on this participant's card
+  /// (TODO F: tapping a player in the finished session detail lands here).
+  final String? initialParticipantId;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -67,6 +79,7 @@ class FinishedLeaderboard extends ConsumerWidget {
           contentError: contentAsync.hasError,
           onRetryContent: () =>
               ref.invalidate(minigamePlayerContentProvider(sessionId)),
+          initialParticipantId: initialParticipantId,
         );
       },
     );
@@ -99,11 +112,15 @@ class LeaderboardCarousel extends StatefulWidget {
     required this.contentLoading,
     required this.contentError,
     required this.onRetryContent,
+    this.initialParticipantId,
   });
 
   final List<MinigameResultRow> rows;
   final String Function(String participantId) nameFor;
   final MinigamePlayerContent content;
+
+  /// The participant whose card opens first (null → rank 1 / first row).
+  final String? initialParticipantId;
 
   /// Whether the decrypted answer content is still resolving.
   final bool contentLoading;
@@ -119,12 +136,31 @@ class LeaderboardCarousel extends StatefulWidget {
 }
 
 class _LeaderboardCarouselState extends State<LeaderboardCarousel> {
-  final PageController _controller = PageController(viewportFraction: 0.8);
-  int _index = 0;
+  late final PageController _controller;
+  late int _index;
 
   /// Bumped on a re-tap of the already-selected card so the celebration can
   /// replay without a page change.
   int _replayToken = 0;
+
+  /// The vertical answer page each participant was last viewing. Lives only as
+  /// long as this carousel (the leaderboard screen): leaving and re-entering
+  /// resets everyone to their first answer, per the 2026-09-15 directive.
+  final Map<String, int> _answerIndexByParticipant = {};
+
+  @override
+  void initState() {
+    super.initState();
+    _index = _firstIndexOf(widget.initialParticipantId);
+    _controller = PageController(initialPage: _index);
+  }
+
+  /// The page index of [participantId] (0 / rank 1 when absent or unknown).
+  int _firstIndexOf(String? participantId) {
+    if (participantId == null || participantId.isEmpty) return 0;
+    final i = widget.rows.indexWhere((r) => r.participantId == participantId);
+    return i < 0 ? 0 : i;
+  }
 
   @override
   void dispose() {
@@ -147,20 +183,14 @@ class _LeaderboardCarouselState extends State<LeaderboardCarousel> {
   @override
   Widget build(BuildContext context) {
     final rows = widget.rows;
-    final screenWidth = MediaQuery.sizeOf(context).width;
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        // ONE carousel viewport height. Every card HUGS its content inside it
-        // (no reserved band → no dead space inside a card) and is centered, so
-        // a short text/passed answer renders a compact card while an image
-        // answer renders a taller one — both vertically centered on the whole
-        // viewport. The viewport is the MAX a card may reach; clamped so a
-        // transient zero/degenerate height can never hand the PageView a
-        // zero-size viewport.
-        final rawHeight = constraints.maxHeight * 0.72;
-        final cardHeight = rawHeight.isFinite
-            ? rawHeight.clamp(300.0, 620.0)
+        // FULL SCREEN: every page fills the whole viewport (no neighbour peek,
+        // no card frame), so a picture answer is edge-to-edge. The height falls
+        // back to a sane value only for a transient degenerate layout pass.
+        final cardHeight = constraints.maxHeight.isFinite
+            ? constraints.maxHeight
             : 620.0;
         return Center(
           child: SizedBox(
@@ -188,22 +218,22 @@ class _LeaderboardCarouselState extends State<LeaderboardCarousel> {
                     final blur = (absDelta * 2.5).clamp(0.0, 2.5);
                     final angle = -delta * 0.5;
                     final scale = 1 - absDelta * 0.28;
-                    final dx = delta * screenWidth * 0.14;
 
-                    final card = Transform.translate(
-                      offset: Offset(dx, 0),
-                      child: Transform(
-                        alignment: Alignment.center,
-                        transform: Matrix4.identity()
-                          ..setEntry(3, 2, 0.0015)
-                          ..rotateY(angle)
-                          ..scaleByDouble(scale, scale, scale, 1.0),
-                        child: child,
-                      ),
+                    final card = Transform(
+                      alignment: Alignment.center,
+                      transform: Matrix4.identity()
+                        ..setEntry(3, 2, 0.0015)
+                        ..rotateY(angle)
+                        ..scaleByDouble(scale, scale, scale, 1.0),
+                      child: child,
                     );
-                    if (blur < 0.05) {
-                      return Opacity(opacity: opacity, child: card);
-                    }
+                    // ALWAYS wrap in ImageFiltered, even at sigma 0. Keeping the
+                    // element-tree shape CONSTANT is load-bearing: the old
+                    // `if (blur < 0.05)` branch inserted the wrapper the instant
+                    // a horizontal drag began, which reparented the
+                    // RepaintBoundary/_RankCard, destroyed `_RankCardState` and
+                    // made its vertical pager snap back to the first answer
+                    // mid-swipe.
                     return Opacity(
                       opacity: opacity,
                       child: ImageFiltered(
@@ -221,19 +251,21 @@ class _LeaderboardCarouselState extends State<LeaderboardCarousel> {
                   // sliver was laid out, crashing RenderViewportBase with a null
                   // sliver geometry.
                   child: RepaintBoundary(
-                    child: Center(
-                      child: _RankCard(
-                        row: row,
-                        name: widget.nameFor(row.participantId),
-                        answers: widget.content.answersFor(row.participantId),
-                        contentLoading: widget.contentLoading,
-                        contentError: widget.contentError,
-                        onRetryContent: widget.onRetryContent,
-                        selected: _index == i,
-                        replayToken: _replayToken,
-                        onTap: () => _select(i),
-                        maxHeight: cardHeight,
-                      ),
+                    child: _RankCard(
+                      key: ValueKey(row.participantId),
+                      row: row,
+                      name: widget.nameFor(row.participantId),
+                      answers: widget.content.answersFor(row.participantId),
+                      contentLoading: widget.contentLoading,
+                      contentError: widget.contentError,
+                      onRetryContent: widget.onRetryContent,
+                      selected: _index == i,
+                      replayToken: _replayToken,
+                      onTap: () => _select(i),
+                      initialAnswerIndex:
+                          _answerIndexByParticipant[row.participantId] ?? 0,
+                      onAnswerChanged: (i) =>
+                          _answerIndexByParticipant[row.participantId] = i,
                     ),
                   ),
                 );
@@ -246,13 +278,15 @@ class _LeaderboardCarouselState extends State<LeaderboardCarousel> {
   }
 }
 
-/// One player's carousel card: the rank header, then a vertical pager of the
-/// player's answers (question + answer + that round's reactions). The card
-/// itself is the celebration stage — the current answer's reactions rise once
-/// its image has loaded (immediately when there is no image). Tapping the
+/// One player's carousel card: the current round's prompt on top, its answer
+/// in the middle (a picture answer is the full-bleed backdrop instead), the
+/// round's reactions, then the identity block pinned to the floor. The card is
+/// the celebration stage — the current answer's reactions rise once its image
+/// has loaded (immediately when there is no image). Tapping the
 /// already-selected card replays via [replayToken].
 class _RankCard extends StatefulWidget {
   const _RankCard({
+    super.key,
     required this.row,
     required this.name,
     required this.answers,
@@ -262,7 +296,8 @@ class _RankCard extends StatefulWidget {
     required this.selected,
     required this.replayToken,
     required this.onTap,
-    required this.maxHeight,
+    required this.initialAnswerIndex,
+    required this.onAnswerChanged,
   });
 
   final MinigameResultRow row;
@@ -275,18 +310,20 @@ class _RankCard extends StatefulWidget {
   final int replayToken;
   final VoidCallback onTap;
 
-  /// The carousel viewport height — the MAX the card may reach. A single
-  /// answer card hugs its content below this; a multi-answer card bounds its
-  /// vertical pager at half of it.
-  final double maxHeight;
+  /// The vertical answer page to open on (remembered by the carousel for the
+  /// lifetime of the leaderboard screen).
+  final int initialAnswerIndex;
+
+  /// Reports the page the player scrolls to so the carousel can remember it.
+  final ValueChanged<int> onAnswerChanged;
 
   @override
   State<_RankCard> createState() => _RankCardState();
 }
 
 class _RankCardState extends State<_RankCard> {
-  final PageController _pager = PageController();
-  int _answerIndex = 0;
+  late final PageController _pager;
+  late int _answerIndex;
 
   /// Whether the CURRENT answer's image is ready (true when it has no image).
   bool _imageReady = true;
@@ -294,16 +331,22 @@ class _RankCardState extends State<_RankCard> {
   @override
   void initState() {
     super.initState();
+    _answerIndex = _clampIndex(widget.initialAnswerIndex);
+    _pager = PageController(initialPage: _answerIndex);
     _imageReady = !_currentHasImage;
   }
 
   @override
   void didUpdateWidget(covariant _RankCard old) {
     super.didUpdateWidget(old);
-    if (!identical(widget.answers, old.answers)) {
-      _answerIndex = 0;
+    // Reset ONLY when the answer SET genuinely changes (async content arriving
+    // — empty → populated). Never by list identity: the provider may hand back
+    // an equal-but-new list on a plain rebuild, and resetting then would throw
+    // away the answer the player is on.
+    if (_signature(widget) != _signature(old)) {
+      _answerIndex = _clampIndex(_answerIndex);
       _imageReady = !_currentHasImage;
-      if (_pager.hasClients) _pager.jumpToPage(0);
+      if (_pager.hasClients) _pager.jumpToPage(_answerIndex);
     }
   }
 
@@ -312,6 +355,18 @@ class _RankCardState extends State<_RankCard> {
     _pager.dispose();
     super.dispose();
   }
+
+  int _clampIndex(int index) => widget.answers.isEmpty
+      ? 0
+      : index.clamp(0, widget.answers.length - 1);
+
+  /// A stable identity of a card's answer set (participant + per-answer round
+  /// and content flags) used to decide whether a rebuild is a real content
+  /// change.
+  static String _signature(_RankCard w) =>
+      '${w.row.participantId}|${w.answers.length}|'
+      '${w.answers.map((a) => '${a.round}${a.passed ? 'p' : ''}'
+          '${a.hasText ? 't' : ''}${a.hasImage ? 'i' : ''}').join(',')}';
 
   MinigamePlayerAnswer? get _current => widget.answers.isEmpty
       ? null
@@ -339,157 +394,186 @@ class _RankCardState extends State<_RankCard> {
     _ => AppColors.white,
   };
 
+  /// Arms the celebration once the CURRENT answer's picture has loaded.
+  void _armOnImageLoaded() {
+    if (mounted && !_imageReady) setState(() => _imageReady = true);
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    const insets = EdgeInsets.fromLTRB(
+      AppSpacing.cardPadding,
+      VHeaderMetrics.heroTopPad + VHeaderMetrics.titleRowHeight,
+      AppSpacing.cardPadding,
+      AppSpacing.cardPadding,
+    );
     return GestureDetector(
       onTap: widget.onTap,
       child: Container(
         width: double.infinity,
-        margin: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
-        decoration: const BoxDecoration(
-          color: AppColors.surface,
-          border: Border.symmetric(
-            horizontal: BorderSide(color: AppColors.hairline),
-          ),
-        ),
+        // Full-bleed, frameless page: no margin, radius or border.
+        clipBehavior: Clip.hardEdge,
+        decoration: const BoxDecoration(color: AppColors.discoBlack),
         child: _LeaderboardEmojiRise(
           active: widget.selected && _imageReady,
           trigger: '$_answerIndex:${widget.replayToken}',
           kinds: _currentReactions,
-          child: Padding(
-            padding: const EdgeInsets.all(AppSpacing.cardPadding),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                _CardHeader(
-                  rank: widget.row.rank,
-                  rankColor: _rankColor,
-                  name: widget.name,
-                  score: widget.row.score,
-                  prize: widget.row.prize,
-                  l10n: l10n,
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              // LAYER 1 — the answers. Full-card pages, so a picture is
+              // full-bleed (behind the pinned prompt AND footer) and translates
+              // WITH the finger via the stock PageView physics.
+              if (widget.answers.isNotEmpty) _buildPager(l10n),
+
+              // LAYER 2 — everything decorative, under ONE IgnorePointer. This
+              // is load-bearing: a gradient `DecoratedBox` hit-tests TRUE over
+              // its whole rectangle (`BoxDecoration.hitTest`), so an unignored
+              // scrim would swallow the vertical drag and the pager would never
+              // move.
+              IgnorePointer(
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    if (_currentHasImage) ...[
+                      const DecoratedBox(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [
+                              Colors.transparent,
+                              Colors.transparent,
+                              Color(0xFF000000),
+                            ],
+                            stops: [0, 0.55, 1],
+                          ),
+                        ),
+                      ),
+                      const DecoratedBox(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [Color(0xCC000000), Colors.transparent],
+                            stops: [0, 0.3],
+                          ),
+                        ),
+                      ),
+                    ],
+                    SafeArea(
+                      child: Padding(
+                        padding: insets,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            if (_current != null)
+                              _PromptHeader(answer: _current!, l10n: l10n),
+                            const Spacer(),
+                            if (_current?.reactions.isNotEmpty ?? false) ...[
+                              _ReactionTally(reactions: _current!.reactions),
+                              const SizedBox(height: AppSpacing.md),
+                            ],
+                            _CardFooter(
+                              rank: widget.row.rank,
+                              rankColor: _rankColor,
+                              name: widget.name,
+                              score: widget.row.score,
+                              prize: widget.row.prize,
+                              l10n: l10n,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    if (widget.answers.length > 1)
+                      Positioned(
+                        top: 0,
+                        bottom: 0,
+                        right: AppSpacing.sm,
+                        child: _AnswerRail(
+                          count: widget.answers.length,
+                          index: _answerIndex,
+                        ),
+                      ),
+                  ],
                 ),
-                const SizedBox(height: AppSpacing.md),
-                const Divider(height: 1, color: AppColors.hairline),
-                const SizedBox(height: AppSpacing.md),
-                _buildAnswerArea(l10n),
-              ],
-            ),
+              ),
+
+              // LAYER 3 — content state (loading / error / empty). Interactive,
+              // so it is NOT inside the IgnorePointer layer — the retry button
+              // must stay tappable.
+              if (widget.answers.isEmpty)
+                Padding(padding: insets, child: _buildStatePanel(l10n)),
+            ],
           ),
         ),
       ),
     );
   }
 
-  Widget _buildAnswerArea(AppLocalizations l10n) {
-    // A state panel (loading / error / no-answers) gets a deliberate minimum
-    // height so a lone spinner or retry reads as an intentional block rather
-    // than a collapsed, broken card.
-    const stateHeight = 160.0;
-    if (widget.contentLoading && widget.answers.isEmpty) {
-      return const SizedBox(
-        height: stateHeight,
-        child: Center(child: VSpinner(size: 24)),
+  /// The answers as full-card pages: one static page for a single answer, or a
+  /// vertical `PageView` for several (its own physics — the page follows the
+  /// finger naturally). Each page owns its picture, so an image answer moves
+  /// with the finger exactly like a text answer.
+  Widget _buildPager(AppLocalizations l10n) {
+    if (widget.answers.length == 1) {
+      return _AnswerPage(
+        answer: widget.answers.first,
+        l10n: l10n,
+        onImageLoaded: _armOnImageLoaded,
       );
     }
+    return PageView.builder(
+      controller: _pager,
+      scrollDirection: Axis.vertical,
+      itemCount: widget.answers.length,
+      onPageChanged: (i) {
+        widget.onAnswerChanged(i);
+        setState(() {
+          _answerIndex = i;
+          _imageReady = !widget.answers[i].hasImage;
+        });
+      },
+      itemBuilder: (context, i) => _AnswerPage(
+        answer: widget.answers[i],
+        l10n: l10n,
+        // Only the CURRENT page's image may arm the celebration.
+        onImageLoaded: i == _answerIndex ? _armOnImageLoaded : null,
+      ),
+    );
+  }
+
+  /// The centered state panel for a card with no answers yet.
+  Widget _buildStatePanel(AppLocalizations l10n) {
+    if (widget.contentLoading) {
+      return const Center(child: VSpinner(size: 24));
+    }
     if (widget.contentError) {
-      return SizedBox(
-        height: stateHeight,
+      return Center(
         child: _AnswersRetry(
           message: l10n.minigamesAnswersLoadError,
           onRetry: widget.onRetryContent,
         ),
       );
     }
-    if (widget.answers.isEmpty) {
-      return SizedBox(
-        height: stateHeight,
-        child: Center(
-          child: Text(
-            l10n.minigamesNoAnswers,
-            textAlign: TextAlign.center,
-            style: const TextStyle(color: AppColors.mutedStrong, fontSize: 13),
-          ),
-        ),
-      );
-    }
-    // A single answer needs no pager.
-    if (widget.answers.length == 1) {
-      return _AnswerView(
-        answer: widget.answers.first,
-        l10n: l10n,
-        onImageLoaded: () {
-          if (mounted && !_imageReady) setState(() => _imageReady = true);
-        },
-      );
-    }
-    // Multiple answers page VERTICALLY inside a bounded area. The bound tracks
-    // the CURRENT answer: an image wants a tall pager, a text/passed answer a
-    // compact one — so the card never reserves a big empty area for short
-    // content. The affordance is a vertical rail OVERLAID on the trailing edge
-    // (so centered content stays truly centered — a Row would shift it left by
-    // the rail width). Vertical segments are the axis-correct affordance for a
-    // vertically-paged card.
-    final pagerHeight = ((_currentHasImage ? widget.maxHeight - 150 : 210.0))
-        .clamp(180.0, (widget.maxHeight - 150).clamp(200.0, 460.0));
-    return SizedBox(
-      height: pagerHeight,
-      child: Stack(
-        children: [
-          Positioned.fill(
-            child: Padding(
-              // Reserve a trailing gutter so long question/answer lines never
-              // run under the overlaid rail.
-              padding: const EdgeInsets.only(right: AppSpacing.md),
-              child: PageView.builder(
-                controller: _pager,
-                scrollDirection: Axis.vertical,
-                itemCount: widget.answers.length,
-                onPageChanged: (i) => setState(() {
-                  _answerIndex = i;
-                  _imageReady = !widget.answers[i].hasImage;
-                }),
-                itemBuilder: (context, i) {
-                  final a = widget.answers[i];
-                  return _AnswerView(
-                    answer: a,
-                    l10n: l10n,
-                    bounded: true,
-                    // Only the CURRENT page's image gates the celebration (a
-                    // neighbour's load must not arm it early).
-                    onImageLoaded: i == _answerIndex
-                        ? () {
-                            if (mounted && !_imageReady) {
-                              setState(() => _imageReady = true);
-                            }
-                          }
-                        : null,
-                  );
-                },
-              ),
-            ),
-          ),
-          Positioned(
-            top: 0,
-            bottom: 0,
-            right: 0,
-            child: _AnswerRail(
-              count: widget.answers.length,
-              index: _answerIndex,
-            ),
-          ),
-        ],
+    return Center(
+      child: Text(
+        l10n.minigamesNoAnswers,
+        textAlign: TextAlign.center,
+        style: const TextStyle(color: AppColors.mutedStrong, fontSize: 13),
       ),
     );
   }
 }
 
-/// The card's top block: the rank glyph sized to the full two-row height of
-/// the identity beside it, then the username and the score/prize line.
-class _CardHeader extends StatelessWidget {
-  const _CardHeader({
+/// The card's bottom block: the RANK and USERNAME on one line, with the
+/// POINTS and SHARDS line tucked directly beneath the username. Pinned to the
+/// card floor so the identity reads the same on every card regardless of what
+/// the answer region holds.
+class _CardFooter extends StatelessWidget {
+  const _CardFooter({
     required this.rank,
     required this.rankColor,
     required this.name,
@@ -510,31 +594,23 @@ class _CardHeader extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        // Fixed-width rank column: the glyph is scaled to the full two-row
-        // height of the identity beside it and right-aligned, so every card's
-        // username starts on the SAME x (a real leaderboard grid, not a ragged
-        // left edge). The fixed slot also keeps 1–2 digit ranks aligned.
+        // Fixed-width rank column: the glyph is enlarged and right-aligned so
+        // every card's username starts on the SAME x (a real leaderboard grid,
+        // not a ragged left edge) and 1–2 digit ranks stay aligned.
         SizedBox(
-          width: 44,
-          child: IntrinsicHeight(
-            child: Align(
-              alignment: Alignment.centerRight,
-              child: FittedBox(
-                fit: BoxFit.fitHeight,
-                alignment: Alignment.centerRight,
-                child: Text(
-                  '$rank',
-                  style: TextStyle(
-                    fontFamily: AppTypography.playfair,
-                    fontSize: 38,
-                    fontWeight: FontWeight.w700,
-                    // Playfair's ascender/descender padding makes the fitted
-                    // glyph read smaller than the two-row block; a tight line
-                    // height lets the numeral's cap fill it.
-                    height: 0.72,
-                    color: rankColor,
-                  ),
-                ),
+          width: 64,
+          child: Align(
+            alignment: Alignment.centerRight,
+            child: Text(
+              '$rank',
+              style: TextStyle(
+                fontFamily: AppTypography.playfair,
+                fontSize: 58,
+                fontWeight: FontWeight.w700,
+                // Playfair's ascender/descender padding makes the glyph read
+                // smaller; a tight line height lets the numeral's cap dominate.
+                height: 0.9,
+                color: rankColor,
               ),
             ),
           ),
@@ -543,6 +619,7 @@ class _CardHeader extends StatelessWidget {
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text(
@@ -598,49 +675,33 @@ class _CardHeader extends StatelessWidget {
   }
 }
 
-/// One answer page: the QUESTION (type label + body) pinned to the top, then
-/// the ANSWER filling the remaining height (text and/or image, or the "pasó"
-/// line). A question that cannot be resolved (deactivated/removed prompt)
-/// renders [AppLocalizations.minigamesPromptLoadError] INSTEAD of the
-/// question+answer. [onImageLoaded] fires when a picture answer's first frame
-/// is ready (null for non-current pages).
-class _AnswerView extends StatelessWidget {
-  const _AnswerView({
-    required this.answer,
-    required this.l10n,
-    this.onImageLoaded,
-    this.bounded = false,
-  });
+/// The prompt header for the current answer: the type label (RETO / VERDAD)
+/// and the question body, centered at the top of the card. A question that
+/// cannot be resolved (deactivated/removed prompt) renders
+/// [AppLocalizations.minigamesPromptLoadError] instead.
+class _PromptHeader extends StatelessWidget {
+  const _PromptHeader({required this.answer, required this.l10n});
 
   final MinigamePlayerAnswer answer;
   final AppLocalizations l10n;
-  final VoidCallback? onImageLoaded;
-
-  /// True when the view sits inside a fixed-height pager: the picture then
-  /// shrinks (Flexible) to fit that bound instead of forcing its intrinsic
-  /// 4:3 height. False (single-answer card) → the picture takes its 4:3 box
-  /// and the card hugs it.
-  final bool bounded;
 
   @override
   Widget build(BuildContext context) {
     if (!answer.hasPrompt) {
-      return Center(
-        child: Text(
-          l10n.minigamesPromptLoadError,
-          textAlign: TextAlign.center,
-          style: const TextStyle(
-            color: AppColors.badgeRed,
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-            letterSpacing: 0.5,
-          ),
+      return Text(
+        l10n.minigamesPromptLoadError,
+        textAlign: TextAlign.center,
+        style: const TextStyle(
+          color: AppColors.badgeRed,
+          fontSize: 13,
+          fontWeight: FontWeight.w600,
+          letterSpacing: 0.5,
         ),
       );
     }
     final kind = truthDareKindFromWire(answer.promptType);
     final label = kind == null ? null : truthDareKindLabel(l10n, kind);
-    final content = Column(
+    return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -668,117 +729,120 @@ class _AnswerView extends StatelessWidget {
             height: 1.25,
           ),
         ),
-        const SizedBox(height: AppSpacing.md),
-        // The answer + its reaction tally sit as ONE tight group directly
-        // below the question: the tally is bonded to the answer (never
-        // detached at the card floor) and a picture grows to the largest size
-        // that fits — no dead band opens between question, answer, reactions.
-        _buildAnswer(context),
       ],
     );
-    // Inside a fixed-height pager, center the whole page so a short answer
-    // leaves symmetric breathing room instead of a top-heavy void.
-    return bounded ? Center(child: content) : content;
   }
+}
 
-  /// The answer body plus its reaction tally.
-  Widget _buildAnswer(BuildContext context) {
-    final tally = answer.reactions.isEmpty
-        ? const SizedBox.shrink()
-        : Padding(
-            padding: const EdgeInsets.only(top: AppSpacing.md),
-            child: _ReactionTally(reactions: answer.reactions),
-          );
+/// One answer page: the picture (with an opaque blurred, vertically-mirrored
+/// copy filling its letterbox bands and the complete image drawn `contain` on
+/// top) or a plain black ground, plus the centered body (text / "pasó" / "—").
+/// It lives inside the vertical [PageView], so the picture moves with the
+/// finger exactly like a text answer. [onImageLoaded] fires when the picture's
+/// first frame is ready (null for non-current pages).
+class _AnswerPage extends StatelessWidget {
+  const _AnswerPage({
+    required this.answer,
+    required this.l10n,
+    this.onImageLoaded,
+  });
 
-    if (answer.passed) {
-      return Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text(
-            l10n.minigamesPasarSkipped,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              fontFamily: AppTypography.quicksand,
-              fontSize: 22,
-              fontStyle: FontStyle.italic,
-              letterSpacing: 2,
-              color: AppColors.mutedStrong,
+  final MinigamePlayerAnswer answer;
+  final AppLocalizations l10n;
+  final VoidCallback? onImageLoaded;
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        if (answer.hasImage) ...[
+          // Opaque blurred, vertically-mirrored copy so the letterbox bands it
+          // leaves read as one full-bleed surface. Over-scaled to hide the
+          // blur's transparent edge fringe.
+          ImageFiltered(
+            imageFilter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
+            child: Transform.scale(
+              scale: 1.3,
+              child: Transform.flip(
+                flipY: true,
+                child: Image.memory(
+                  answer.imageBytes!,
+                  fit: BoxFit.cover,
+                  width: double.infinity,
+                  height: double.infinity,
+                  gaplessPlayback: true,
+                ),
+              ),
             ),
           ),
-          tally,
+          // The complete picture (BoxFit.contain — never cropped, so a
+          // landscape photo stays landscape).
+          Image.memory(
+            answer.imageBytes!,
+            fit: BoxFit.contain,
+            width: double.infinity,
+            height: double.infinity,
+            gaplessPlayback: true,
+            frameBuilder: (context, child, frame, syncLoaded) {
+              if ((frame != null || syncLoaded) && onImageLoaded != null) {
+                final cb = onImageLoaded!;
+                WidgetsBinding.instance.addPostFrameCallback((_) => cb());
+              }
+              return child;
+            },
+          ),
         ],
-      );
-    }
-
-    final text = answer.hasText
-        ? Text(
-            answer.text!,
-            textAlign: TextAlign.center,
-            maxLines: 6,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              fontFamily: AppTypography.quicksand,
-              fontSize: 20,
-              height: 1.4,
-              letterSpacing: 1.1,
-              color: AppColors.white,
+        // The body centers in the space the pinned prompt/footer leave open (the
+        // picture itself stays full-bleed behind them).
+        SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.cardPadding,
+              VHeaderMetrics.heroTopPad + VHeaderMetrics.titleRowHeight,
+              AppSpacing.cardPadding,
+              AppSpacing.cardPadding,
             ),
-          )
-        : null;
-    if (answer.hasImage) {
-      final picture = ClipRRect(
-        borderRadius: BorderRadius.circular(8),
-        child: Image.memory(
-          answer.imageBytes!,
-          fit: BoxFit.cover,
-          frameBuilder: (context, child, frame, syncLoaded) {
-            if ((frame != null || syncLoaded) && onImageLoaded != null) {
-              final cb = onImageLoaded!;
-              WidgetsBinding.instance.addPostFrameCallback((_) => cb());
-            }
-            return child;
-          },
+            child: Center(child: _buildBody()),
+          ),
         ),
-      );
-      // A 4:3 box with `cover` makes a challenge photo fill a large,
-      // predictable area (no letterbox void). Inside a fixed-height pager the
-      // picture is Flexible so it shrinks to fit rather than overflowing.
-      final image = bounded
-          ? Flexible(child: AspectRatio(aspectRatio: 4 / 3, child: picture))
-          : AspectRatio(aspectRatio: 4 / 3, child: picture);
-      return Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          if (text != null) ...[
-            text,
-            const SizedBox(height: AppSpacing.md),
-          ],
-          image,
-          tally,
-        ],
-      );
-    }
-
-    if (text != null) {
-      return Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [text, tally],
-      );
-    }
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        const Text(
-          '—',
-          textAlign: TextAlign.center,
-          style: TextStyle(color: AppColors.muted, fontSize: 24),
-        ),
-        tally,
       ],
+    );
+  }
+
+  Widget _buildBody() {
+    if (answer.passed) {
+      return Text(
+        l10n.minigamesPasarSkipped,
+        textAlign: TextAlign.center,
+        style: const TextStyle(
+          fontFamily: AppTypography.quicksand,
+          fontSize: 22,
+          fontStyle: FontStyle.italic,
+          letterSpacing: 2,
+          color: AppColors.mutedStrong,
+        ),
+      );
+    }
+    if (answer.hasText) {
+      return Text(
+        answer.text!,
+        textAlign: TextAlign.center,
+        maxLines: 6,
+        overflow: TextOverflow.ellipsis,
+        style: const TextStyle(
+          fontFamily: AppTypography.quicksand,
+          fontSize: 20,
+          height: 1.4,
+          letterSpacing: 1.1,
+          color: AppColors.white,
+        ),
+      );
+    }
+    return const Text(
+      '—',
+      textAlign: TextAlign.center,
+      style: TextStyle(color: AppColors.muted, fontSize: 24),
     );
   }
 }

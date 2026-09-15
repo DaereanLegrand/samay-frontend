@@ -79,30 +79,29 @@ class TruthDareScreen extends ConsumerWidget {
     );
 
     // The finished match is rendered full-bleed: the carousel centers on the
-    // WHOLE viewport and the title rides as a floating overlay (mirroring the
-    // attendance QR screen), so the header band never eats into the vertical
-    // centering. The creator's "complete" action is pointless once the match is
-    // already settled, so it is dropped here — the back arrow is the exit.
+    // WHOLE viewport and the floating back arrow is the only header (mirroring
+    // the attendance QR screen), so nothing eats into the vertical centering.
+    // The creator's "complete" action is pointless once the match is already
+    // settled, so it is dropped here — the back arrow exits.
     if (game.valueOrNull?.isFinished ?? false) {
       return Scaffold(
         body: Stack(
           fit: StackFit.expand,
           children: [
             FinishedLeaderboard(sessionId: sessionId),
-            Align(
+            const Align(
               alignment: Alignment.topLeft,
               child: SafeArea(
                 bottom: false,
                 child: Padding(
-                  padding: const EdgeInsets.only(
+                  padding: EdgeInsets.only(
                     top: VHeaderMetrics.heroTopPad,
                     left: AppSpacing.screenHorizontal,
-                    right: AppSpacing.screenHorizontal,
                   ),
                   child: SizedBox(
                     height: VHeaderMetrics.titleRowHeight,
                     width: double.infinity,
-                    child: VHeaderTitleRow(titleWidget: headerTitle),
+                    child: VHeaderTitleRow(),
                   ),
                 ),
               ),
