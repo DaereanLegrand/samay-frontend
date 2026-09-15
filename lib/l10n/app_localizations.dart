@@ -1022,6 +1022,12 @@ abstract class AppLocalizations {
   /// **'{members} / {limit} miembros'**
   String groupsMemberCount(int members, int limit);
 
+  /// Group detail: member count without the cap (user directive 2026-09-15)
+  ///
+  /// In es, this message translates to:
+  /// **'{count} miembros'**
+  String groupsMembersCountShort(int count);
+
   /// Current user's active contribution to the group
   ///
   /// In es, this message translates to:
@@ -1163,7 +1169,7 @@ abstract class AppLocalizations {
   /// Search field hint on the invite screen
   ///
   /// In es, this message translates to:
-  /// **'Buscar usuarios por username...'**
+  /// **'Busca aquí...'**
   String get groupsSearchUsersHint;
 
   /// Helper text before the search query is long enough
@@ -3152,12 +3158,6 @@ abstract class AppLocalizations {
   /// **'Si el problema continúa, presiona Reintentar.'**
   String get codeServerPendingBody;
 
-  /// Attendance code: return button on the already-attended terminal state
-  ///
-  /// In es, this message translates to:
-  /// **'Regresar'**
-  String get codeAlreadyAttendedReturn;
-
   /// Attendance code: terminal word revealed under the check mark once assisted
   ///
   /// In es, this message translates to:
@@ -3974,6 +3974,12 @@ abstract class AppLocalizations {
   /// **'Terminada'**
   String get minigamesStatusFinished;
 
+  /// Button on a finished match's session detail that opens the finished leaderboard
+  ///
+  /// In es, this message translates to:
+  /// **'Ver clasificación'**
+  String get minigamesViewLeaderboard;
+
   /// Session card subtitle with the participant count
   ///
   /// In es, this message translates to:
@@ -4087,6 +4093,12 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'Hecho'**
   String get minigamesPromptDone;
+
+  /// Shown on the finished leaderboard in place of a question+answer when the prompt can no longer be resolved (deactivated/removed)
+  ///
+  /// In es, this message translates to:
+  /// **'ERROR AL CARGAR LA PREGUNTA'**
+  String get minigamesPromptLoadError;
 
   /// Button the subject taps to skip the prompt — the round closes and the turn advances
   ///
@@ -4334,12 +4346,6 @@ abstract class AppLocalizations {
   /// **'Reacciona al turno:'**
   String get minigamesReactionsTitle;
 
-  /// Finished-game leaderboard title (201_minigame_voting)
-  ///
-  /// In es, this message translates to:
-  /// **'Clasificación'**
-  String get minigamesLeaderboardTitle;
-
   /// Leaderboard fallback name when the winner username is missing
   ///
   /// In es, this message translates to:
@@ -4351,6 +4357,24 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'{amount} shards'**
   String minigamesPrizeAmount(int amount);
+
+  /// Leaderboard score label per ranked player
+  ///
+  /// In es, this message translates to:
+  /// **'{count} puntos'**
+  String minigamesPointsAmount(int count);
+
+  /// Discreet retry prompt inside a leaderboard card when the decrypted answers fail to load
+  ///
+  /// In es, this message translates to:
+  /// **'Ups, no pudimos cargar las respuestas de la partida. Inténtalo más tarde.'**
+  String get minigamesAnswersLoadError;
+
+  /// Neutral leaderboard card state for a player with no recorded answers
+  ///
+  /// In es, this message translates to:
+  /// **'Sin respuestas registradas'**
+  String get minigamesNoAnswers;
 
   /// Error state on the play screen when the game state fails to load
   ///
@@ -4661,7 +4685,7 @@ abstract class AppLocalizations {
   /// App bar confirm action for the minigame player picker
   ///
   /// In es, this message translates to:
-  /// **'Invitar ({count})'**
+  /// **'Enviar ({count})'**
   String minigamesInviteCount(int count);
 
   /// App bar title of the minigame session detail
@@ -4844,6 +4868,30 @@ abstract class AppLocalizations {
   /// **'Grupo {name}'**
   String minigamesInviteFromGroup(String name);
 
+  /// Group chat notice bubble: a group match was created (216_minigame_group_message)
+  ///
+  /// In es, this message translates to:
+  /// **'Nueva partida de {game}'**
+  String minigamesGroupMessage(String game);
+
+  /// Group chat notice: direct access to the minigame
+  ///
+  /// In es, this message translates to:
+  /// **'Unirse'**
+  String get minigamesJoin;
+
+  /// Group chat notice: view a finished minigame
+  ///
+  /// In es, this message translates to:
+  /// **'Ver'**
+  String get minigamesView;
+
+  /// Session detail pending invite: subtitle under the inviter's username (mirrors the participant 'Anfitrión' subtitle)
+  ///
+  /// In es, this message translates to:
+  /// **'Invitado por'**
+  String get minigamesInvitedBy;
+
   /// Session detail: accept the pending invite button
   ///
   /// In es, this message translates to:
@@ -5005,6 +5053,18 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'Debes marcar exactamente una afirmación como verdad'**
   String get minigamesTwoLiesSelectTruthError;
+
+  /// Attendance code: return button on the already-attended terminal state
+  ///
+  /// In es, this message translates to:
+  /// **'Regresar'**
+  String get codeAlreadyAttendedReturn;
+
+  /// Finished-game leaderboard title (201_minigame_voting)
+  ///
+  /// In es, this message translates to:
+  /// **'Clasificación'**
+  String get minigamesLeaderboardTitle;
 }
 
 class _AppLocalizationsDelegate

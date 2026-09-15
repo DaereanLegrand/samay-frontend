@@ -46,6 +46,14 @@ token changes in code, change it here in the same commit.
   `AppColors.error`/`errorFill` semantics.
 - **Display copy routes through `VDisplayText`** — verbatim case, white
   glyphs, size-token mapping (64/40/32/28).
+- **Header vertical alignment is optical, not geometric.** Every header routes
+  its back arrow / title / actions through `VHeaderTitleRow`, which centers all
+  three on **one shared optical centerline** derived from the title font's
+  natural metrics (cap- or x-height; switch in `VHeaderMetrics.opticalReference`).
+  Icons align by their grid-balanced box, text by its font band, so it holds at
+  any font size. Never add per-screen vertical nudges; the fine-tune knobs are
+  `VHeaderMetrics.backArrowNudge` / `actionNudge`. Full rationale in
+  `docs/history/phase-16/2026-09-11_header-optical-alignment.md`.
 - **Primary CTA voice is `VButton.dark`** (black fill, white text, white
   hairline); `emphasized` (white fill, black text) for auth-form submits;
   `outlined` for secondary actions.

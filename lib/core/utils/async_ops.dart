@@ -10,9 +10,15 @@ import 'package:samay/core/errors/app_error.dart';
 ///
 /// Retries: [SocketException], [HttpException], [TimeoutException],
 /// [AuthRetryableFetchException] (gotrue's canonical "retry me" signal for
-/// network failures and >=500 responses), [AppError.NetworkError], and
+/// network failures and >=500 responses), [AppError.NetworkError],
 /// [PostgrestException] with a connection-class SQLSTATE code (`28*` —
-/// consistent with `error_mapper.dart`).
+/// consistent with `error_mapper.dart`), and transient [StorageException]s
+/// (status >= 500, or a `timeout` in the error code/message).
+///
+/// StorageException rules: 400/401/403/404 and the permanent
+/// `ObjectNotFound` / `AccessDenied` / `InvalidKey` codes are never retried;
+/// a >=500 status or a `timeout` code/message is retried; anything else is
+/// treated as permanent.
 ///
 /// Never retries: user-facing or permanent failures such as
 /// [ValidationError], [NotFoundError], [PermissionError], [UnauthorizedError]
@@ -24,6 +30,21 @@ bool defaultShouldRetry(Object error) {
   if (error is SocketException || error is HttpException) return true;
   if (error is TimeoutException) return true;
   if (error is AuthRetryableFetchException) return true;
+  if (error is StorageException) {
+    final status = int.tryParse(error.statusCode ?? '');
+    final code = error.error?.toLowerCase() ?? '';
+    // Permanent client/permission/missing-object failures.
+    if (status == 400 || status == 401 || status == 403 || status == 404) {
+      return false;
+    }
+    const permanent = {'objectnotfound', 'accessdenied', 'invalidkey'};
+    if (permanent.contains(code)) return false;
+    // Transient server / timeout failures.
+    if (status != null && status >= 500) return true;
+    final message = error.message.toLowerCase();
+    if (code.contains('timeout') || message.contains('timeout')) return true;
+    return false;
+  }
   if (error is PostgrestException) {
     // SQLSTATE class 28 (connection) — the same set error_mapper.dart maps
     // to NetworkError. Permanent PostgREST errors (23505, 42501, PGRST301…)

@@ -25,6 +25,7 @@ class LoginScreen extends ConsumerStatefulWidget {
 class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  bool _submitting = false;
 
   @override
   void initState() {
@@ -45,6 +46,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 
   Future<void> _login() async {
+    if (_submitting) return;
     final email = _emailController.text.trim();
     final password = _passwordController.text;
     final formState = form_validators.FormState()
@@ -58,25 +60,30 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     if (!formState.isValid) return;
     final l10n = AppLocalizations.of(context);
     final loginErrors = ref.read(loginErrorProvider.notifier)..clear();
+    setState(() => _submitting = true);
     try {
       await ref.read(authStateProvider.notifier).signIn(email, password);
-      if (mounted &&
-          ref.read(authStateProvider).valueOrNull?.authenticated == true) {
+      if (!mounted) return;
+      if (ref.read(authStateProvider).valueOrNull?.authenticated == true) {
         context.go(RoutePaths.mainFeed);
         return;
       }
+      setState(() => _submitting = false);
       // Own-action scoping: capture THIS attempt's failure — the global auth
       // stream is never mirrored into the field.
       final message =
           ref.read(authStateProvider).errorMessage ??
           l10n.authUnknownLoginError;
       loginErrors.set(message);
-      if (mounted) showAppError(context, message, blocking: true);
+      showAppError(context, message, blocking: true);
     } catch (e, st) {
       AppLogger.instance.error('login error: $e', '$st');
       final message = e.toAppError().message;
       loginErrors.set(message);
-      if (mounted) showAppError(context, message, blocking: true);
+      if (mounted) {
+        setState(() => _submitting = false);
+        showAppError(context, message, blocking: true);
+      }
     }
   }
 
@@ -145,7 +152,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       // No family gradient on the login CTA.
                       VButton.dark(
                         label: l10n.commonSignIn,
-                        loading: ref.watch(authStateProvider).isLoading,
+                        loading:
+                            _submitting ||
+                            ref.watch(authStateProvider).isLoading,
                         onPressed: _login,
                       ),
                       const SizedBox(height: 12),

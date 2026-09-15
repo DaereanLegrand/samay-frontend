@@ -675,6 +675,15 @@
       }
     }
   },
+  "groupsMembersCountShort": "{count} members",
+  "@groupsMembersCountShort": {
+    "description": "Group detail: member count without the cap (user directive 2026-09-15)",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "groupsMyContribution": "My contribution: {shards} active shards",
   "@groupsMyContribution": {
     "description": "Current user's active contribution to the group",
@@ -797,7 +806,7 @@
       }
     }
   },
-  "groupsSearchUsersHint": "Search users by username...",
+  "groupsSearchUsersHint": "Search here...",
   "@groupsSearchUsersHint": {
     "description": "Search field hint on the invite screen"
   },
@@ -2223,10 +2232,6 @@
   "@codeServerPendingBody": {
     "description": "Attendance code: server-pending retry hint"
   },
-  "codeAlreadyAttendedReturn": "Go back",
-  "@codeAlreadyAttendedReturn": {
-    "description": "Attendance code: return button on the already-attended terminal state"
-  },
   "codeAssistedDone": "DONE",
   "@codeAssistedDone": {
     "description": "Attendance code: terminal word revealed under the check mark once assisted"
@@ -2601,6 +2606,10 @@
   "@minigamesStatusFinished": {
     "description": "Lifecycle chip label for finished sessions"
   },
+  "minigamesViewLeaderboard": "View leaderboard",
+  "@minigamesViewLeaderboard": {
+    "description": "Button on a finished match's session detail that opens the finished leaderboard"
+  },
   "minigamesParticipants": "Participants: {count}",
   "@minigamesParticipants": {
     "description": "Session card subtitle with the participant count",
@@ -2696,6 +2705,10 @@
   "minigamesPromptDone": "Done",
   "@minigamesPromptDone": {
     "description": "Button the subject taps once the truth is answered / dare is done — closes the round and moves on"
+  },
+  "minigamesPromptLoadError": "ERROR LOADING PROMPT",
+  "@minigamesPromptLoadError": {
+    "description": "Shown on the finished leaderboard in place of a question+answer when the prompt can no longer be resolved (deactivated/removed)"
   },
   "minigamesPromptSkip": "Skip",
   "@minigamesPromptSkip": {
@@ -2886,10 +2899,6 @@
   "@minigamesReactionsTitle": {
     "description": "Voting row header: each non-subject taps one emoji on the current round (201_minigame_voting)"
   },
-  "minigamesLeaderboardTitle": "Leaderboard",
-  "@minigamesLeaderboardTitle": {
-    "description": "Finished-game leaderboard title (201_minigame_voting)"
-  },
   "minigamesAnonymousPlayer": "Player",
   "@minigamesAnonymousPlayer": {
     "description": "Leaderboard fallback name when the winner username is missing"
@@ -2900,6 +2909,21 @@
     "placeholders": {
       "amount": { "type": "int" }
     }
+  },
+  "minigamesPointsAmount": "{count} points",
+  "@minigamesPointsAmount": {
+    "description": "Leaderboard score label per ranked player",
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "minigamesAnswersLoadError": "Oops, we couldn't load the match answers. Try again later.",
+  "@minigamesAnswersLoadError": {
+    "description": "Discreet retry prompt inside a leaderboard card when the decrypted answers fail to load"
+  },
+  "minigamesNoAnswers": "No answers recorded",
+  "@minigamesNoAnswers": {
+    "description": "Neutral leaderboard card state for a player with no recorded answers"
   },
   "minigamesErrorLoadGame": "Could not load the game",
   "@minigamesErrorLoadGame": {
@@ -3266,6 +3290,27 @@
         "type": "String"
       }
     }
+  },
+  "minigamesGroupMessage": "New {game} match",
+  "@minigamesGroupMessage": {
+    "description": "Group chat notice bubble: a group match was created (216_minigame_group_message)",
+    "placeholders": {
+      "game": {
+        "type": "String"
+      }
+    }
+  },
+  "minigamesJoin": "JOIN",
+  "@minigamesJoin": {
+    "description": "Group chat notice: direct access to the minigame"
+  },
+  "minigamesView": "View",
+  "@minigamesView": {
+    "description": "Group chat notice: view a finished minigame"
+  },
+  "minigamesInvitedBy": "Invited by",
+  "@minigamesInvitedBy": {
+    "description": "Session detail pending invite: subtitle under the inviter's username (mirrors the participant 'Host' subtitle)"
   },
   "minigamesInviteAccept": "Accept",
   "@minigamesInviteAccept": {
@@ -3641,5 +3686,13 @@
         "type": "int"
       }
     }
+  },
+  "codeAlreadyAttendedReturn": "Go back",
+  "@codeAlreadyAttendedReturn": {
+    "description": "Attendance code: return button on the already-attended terminal state"
+  },
+  "minigamesLeaderboardTitle": "Leaderboard",
+  "@minigamesLeaderboardTitle": {
+    "description": "Finished-game leaderboard title (201_minigame_voting)"
   }
 }

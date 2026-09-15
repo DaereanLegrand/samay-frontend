@@ -413,7 +413,7 @@ install:
 	if [ "$(TARGET)" = "all" ]; then \
 		for t in android waydroid ios-adhoc simulator; do \
 			echo "━━━ install to $$t ━━━"; \
-			make install TARGET=$$t NO_PUB=$(NO_PUB) || true; \
+			make install TARGET=$$t NO_PUB=$(NO_PUB) ALL_SIMS=1 || true; \
 		done; \
 	elif [ "$$UNAME" = "Darwin" ] && [ "$(TARGET)" = "android" ]; then \
 		$(call tunnel-android, adb -s localhost:$(TUNNEL_ANDROID_PORT) install -r $(APK)); \
@@ -438,20 +438,35 @@ install:
 			echo "❌  Simulator app not found at $$APP. Run 'make build TARGET=simulator' first."; \
 			exit 1; \
 		fi; \
-		DEVS=$$(xcrun simctl list devices booted | awk -F '[()]' '/Booted/ {print $$2}'); \
-		if [ -z "$$DEVS" ]; then \
-			DEV=$$(xcrun simctl list devices available | awk -F '[()]' '/iPhone/ {print $$2; exit}'); \
-			xcrun simctl boot "$$DEV"; \
-			open -a Simulator; \
-		elif [ $$(echo "$$DEVS" | wc -l | tr -d ' ') -eq 1 ]; then \
-			DEV=$$DEVS; \
+		if [ "$(ALL_SIMS)" = "1" ]; then \
+			DEVS=$$(xcrun simctl list devices booted | awk -F '[()]' '/Booted/ {print $$2}'); \
+			if [ -z "$$DEVS" ]; then \
+				DEV=$$(xcrun simctl list devices available | awk -F '[()]' '/iPhone/ {print $$2; exit}'); \
+				xcrun simctl boot "$$DEV"; \
+				open -a Simulator; \
+				DEVS="$$DEV"; \
+			fi; \
+			for DEV in $$DEVS; do \
+				echo "📱  Installing $$APP to simulator: $$DEV"; \
+				xcrun simctl install "$$DEV" "$$APP" && \
+				echo "✅  Installed to simulator $$DEV"; \
+			done; \
 		else \
-			echo "$$DEVS" | gum choose --header "Pick a simulator:" > /tmp/_sim_pick && \
-			DEV=$$(cat /tmp/_sim_pick); \
+			DEVS=$$(xcrun simctl list devices booted | awk -F '[()]' '/Booted/ {print $$2}'); \
+			if [ -z "$$DEVS" ]; then \
+				DEV=$$(xcrun simctl list devices available | awk -F '[()]' '/iPhone/ {print $$2; exit}'); \
+				xcrun simctl boot "$$DEV"; \
+				open -a Simulator; \
+			elif [ $$(echo "$$DEVS" | wc -l | tr -d ' ') -eq 1 ]; then \
+				DEV=$$DEVS; \
+			else \
+				echo "$$DEVS" | gum choose --header "Pick a simulator:" > /tmp/_sim_pick && \
+				DEV=$$(cat /tmp/_sim_pick); \
+			fi; \
+			echo "📱  Installing $$APP to simulator: $$DEV"; \
+			xcrun simctl install "$$DEV" "$$APP" && \
+			echo "✅  Installed to simulator $$DEV"; \
 		fi; \
-		echo "📱  Installing $$APP to simulator: $$DEV"; \
-		xcrun simctl install "$$DEV" "$$APP" && \
-		echo "✅  Installed to simulator $$DEV"; \
 	elif [ "$(TARGET)" = "waydroid" ]; then \
 		IP=$$($(call waydroid-preflight)); \
 		adb connect "$$IP:5555" && adb -s "$$IP:5555" install -r $(APK); \
@@ -708,7 +723,7 @@ in-db:
 	@bash -c 'nc -z 127.0.0.1 $${POSTGRES_PORT:-54382} 2>/dev/null' || { echo "❌  PostgreSQL not reachable on $${POSTGRES_PORT:-54382} — start the stack first: make supabase-docker-start"; exit 1; }
 	PGPASSWORD=postgres psql -h localhost -p $${POSTGRES_PORT:-54382} -U postgres -d postgres
 
-# pgTAP schema tests (908 assertions, supabase/tests/schema_test.sql) against
+# pgTAP schema tests (994 assertions, supabase/tests/schema_test.sql) against
 # the SELF-HOSTED stack — `supabase db test --db-url` connects to the running
 # compose DB on the approved port (verified: CLI enables pgtap, then runs
 # pg_prove via the supabase/pg_prove:3.36 docker image; first run pulls that

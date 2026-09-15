@@ -44,7 +44,8 @@ import 'package:samay/shared/widgets/v_spinner.dart';
 /// wizard lets the player switch to a Group. Direct sessions come from
 /// [myMinigameSessionsProvider]; group sessions from the scoped
 /// [minigameSessionsProvider]. The list is filtered to [gameType] and shows
-/// only ACTIVE (ongoing) partidas — finished ones drop off.
+/// the caller's partidas — ongoing first, then finished (user directive
+/// 2026-09-15: a settled match stays in the list instead of dropping off).
 class MinigameDetailScreen extends ConsumerStatefulWidget {
   const MinigameDetailScreen({super.key, required this.gameType});
 
@@ -169,22 +170,37 @@ class _MinigameDetailScreenState extends ConsumerState<MinigameDetailScreen> {
   /// collapse the list to the hero block alone.
   int _listItemCount(AppLocalizations l10n) {
     // Block 1: hero + CTA + "en curso" heading (+ its empty/loading state).
-    // Then one item per ongoing/pending partida.
+    // Then one item per partida (ongoing first, then finished) plus one per
+    // pending invite.
     // Then block 2: the "abiertas" heading (+ its empty/loading state), and
     // one item per published partida (210_minigame_public).
-    return 1 + _ownRows.length + 1 + _publicRows.length;
+    return 1 +
+        _partidasOfThisGame().length +
+        _pendingInvitesOfThisGame.length +
+        1 +
+        _publicRows.length;
   }
 
-  /// The caller's ongoing partidas of this game followed by the pending
-  /// invites of this game — the rows block 1 lists.
-  List<Map<String, dynamic>> get _ownRows {
-    final data = ref.watch(myMinigameSessionsProvider).valueOrNull;
-    if (data == null) return const [];
-    final ongoing = data
-        .where((row) => row['status'] != 'finished')
+  /// Every partida of this game the caller can see — ongoing AND finished.
+  /// Ongoing rows come first, finished ones after, each newest first, so a
+  /// settled match stays reachable at the foot of the list (user directive
+  /// 2026-09-15) without pushing the live games down.
+  List<Map<String, dynamic>> _partidasOfThisGame() {
+    final sessions = ref.watch(myMinigameSessionsProvider).valueOrNull;
+    if (sessions == null) return const [];
+    final rows = sessions
         .where((row) => row['game_type'] == _type.value)
         .toList();
-    return [...ongoing, ..._pendingInvitesOfThisGame];
+    int finishedRank(Map<String, dynamic> row) =>
+        row['status'] == 'finished' ? 1 : 0;
+    rows.sort((a, b) {
+      final byStatus = finishedRank(a).compareTo(finishedRank(b));
+      if (byStatus != 0) return byStatus;
+      final ac = a['created_at'] as String? ?? '';
+      final bc = b['created_at'] as String? ?? '';
+      return bc.compareTo(ac);
+    });
+    return rows;
   }
 
   /// The published partidas of this game (210_minigame_public) — the rows
@@ -232,14 +248,16 @@ class _MinigameDetailScreenState extends ConsumerState<MinigameDetailScreen> {
         ],
       );
     }
-    final ownRows = _ownRows;
-    final ongoingCount = ownRows.length - _pendingInvitesOfThisGame.length;
+    final partidas = _partidasOfThisGame();
+    final pendingInvites = _pendingInvitesOfThisGame;
+    final combined = [...partidas, ...pendingInvites];
     final rowIndex = index - 1;
 
-    // Block 1 rows: the caller's ongoing partidas + their pending invites.
-    if (rowIndex < ownRows.length) {
-      final session = ownRows[rowIndex];
-      final isPending = rowIndex >= ongoingCount;
+    // Block 1 rows: the caller's partidas (ongoing, then finished) + pending
+    // invites.
+    if (rowIndex < combined.length) {
+      final session = combined[rowIndex];
+      final isPending = rowIndex >= partidas.length;
       return Padding(
         padding: const EdgeInsets.only(bottom: AppSpacing.xs),
         child: _SessionRow(
@@ -259,7 +277,7 @@ class _MinigameDetailScreenState extends ConsumerState<MinigameDetailScreen> {
     }
 
     // Block 2 heading: the open lobby (210_minigame_public).
-    final publicIndex = rowIndex - ownRows.length;
+    final publicIndex = rowIndex - combined.length;
     if (publicIndex == 0) {
       return Padding(
         padding: const EdgeInsets.only(top: AppSpacing.xl),
@@ -280,7 +298,9 @@ class _MinigameDetailScreenState extends ConsumerState<MinigameDetailScreen> {
     // Block 2 rows: one published partida each.
     final publicRows = _publicRows;
     final pIndex = publicIndex - 1;
-    if (pIndex >= publicRows.length) return const SizedBox.shrink();
+    if (pIndex < 0 || pIndex >= publicRows.length) {
+      return const SizedBox.shrink();
+    }
     final row = publicRows[pIndex];
     return Padding(
       padding: const EdgeInsets.only(bottom: AppSpacing.xs),
@@ -398,13 +418,10 @@ class _MinigameDetailScreenState extends ConsumerState<MinigameDetailScreen> {
           onRetry: _refresh,
         ),
       ),
-      data: (rows) {
-        final ongoing = rows
-            .where((row) => row['status'] != 'finished')
-            .where((row) => row['game_type'] == _type.value)
-            .toList();
+      data: (_) {
+        final partidas = _partidasOfThisGame();
         final pendingInvites = _pendingInvitesOfThisGame;
-        if (ongoing.isEmpty && pendingInvites.isEmpty) {
+        if (partidas.isEmpty && pendingInvites.isEmpty) {
           return Padding(
             padding: const EdgeInsets.symmetric(vertical: AppSpacing.xl),
             child: VEmptyView(
@@ -467,7 +484,7 @@ class _AudienceTag extends StatelessWidget {
 ///     the session detail for the accept/decline pair.
 ///
 /// Tapping the row body still deep-links to the accept/decline detail.
-class _SessionRow extends StatelessWidget {
+class _SessionRow extends ConsumerWidget {
   final Map<String, dynamic> session;
   final int index;
   final bool pendingInvite;
@@ -487,19 +504,32 @@ class _SessionRow extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final status = session['status'] as String?;
     final wager = (session['shard_wager'] as num?)?.toInt() ?? 0;
     final participants = (session['participants'] as List?)?.length ?? 0;
     final name = minigameSessionName(l10n, session, index: index);
     final inviterName = session['inviterName'] as String?;
-    final groupName = session['groupName'] as String?;
+    final payloadGroupName = session['groupName'] as String?;
     final groupId = session['group_id'] as String?;
-    // Who invited me: a GROUP session shows the group name; a DIRECT session
-    // shows the inviter's username (both ride the notification payload — RLS
-    // hides the underlying rows from a non-member invitee).
-    final fromLabel = pendingInvite && groupId != null
+    // Who invited me / which group: a GROUP session shows the group name; a
+    // DIRECT session shows the inviter's username (both ride the notification
+    // payload for a PENDING row — RLS hides the underlying rows from a
+    // non-member invitee). An ONGOING group row has no invite payload, so its
+    // name is resolved from the caller's groups (1, 2026-09-15) to carry the
+    // group tag in PARTIDAS EN CURSO.
+    final groupName = pendingInvite
+        ? payloadGroupName
+        : groupId == null
+        ? null
+        : ref
+              .watch(myGroupsProvider)
+              .valueOrNull
+              ?.where((g) => g.id == groupId)
+              .firstOrNull
+              ?.name;
+    final fromLabel = groupId != null
         ? groupName == null || groupName.isEmpty
               ? null
               : l10n.minigamesInviteFromGroup(groupName)
@@ -767,6 +797,14 @@ class _NewPartidaScreenState extends ConsumerState<_NewPartidaScreen> {
     final ongoing = sessions
             ?.where((row) => row['status'] != 'finished')
             .where((row) => row['game_type'] == widget.gameType.value)
+            // 1 (2026-09-15): myMinigameSessionsProvider now also carries GROUP
+            // rows; the DIRECT auto-name still counts only direct games. The
+            // group scope reads its own per-group provider, so this is a no-op
+            // there.
+            .where(
+              (row) =>
+                  _scope == MinigameScope.group || row['group_id'] == null,
+            )
             .length ??
         0;
     return l10n.minigamesAutoName(ongoing + 1);
@@ -860,28 +898,23 @@ class _NewPartidaScreenState extends ConsumerState<_NewPartidaScreen> {
         actions: [
           Padding(
             padding: const EdgeInsets.only(right: AppSpacing.md),
-            child: Transform.translate(
-              // Playfair's hhea box is top-heavy (ascent 1082 / descent
-              // -251): like the back arrow (v_header_bar.dart:72), nudge the
-              // shard number+symbol down so it reads optically centered with
-              // the title.
-              offset: const Offset(0, 6),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const VShardIcon(size: AppIconSizes.sm),
-                  const SizedBox(width: AppSpacing.xs),
-                  Text(
-                    // Just the number — the shard icon already conveys the unit.
-                    '$balance',
-                    style: const TextStyle(
-                      color: AppColors.white,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                    ),
+            // The shard number+symbol shares the header's default action
+            // nudge (VHeaderMetrics.actionNudge) — no local offset.
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const VShardIcon(size: AppIconSizes.sm),
+                const SizedBox(width: AppSpacing.xs),
+                Text(
+                  // Just the number — the shard icon already conveys the unit.
+                  '$balance',
+                  style: const TextStyle(
+                    color: AppColors.white,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         ],

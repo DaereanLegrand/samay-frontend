@@ -5,17 +5,17 @@
 /// ≥90 → b90_100, ≥80 → b80_90, ≥60 → b60_80, ≥40 → b40_60, ≥20 → b20_40,
 /// else b0_20.
 ///
-/// Labels are Spanish constants by design (BuildContext-free, same rationale
-/// as error strings in `lib/core/errors/**` — M-15); the app is es-first and
-/// [RankBadge] renders them uppercased. They are allowlisted in
-/// `test/l10n/l10n_extraction_test.dart`.
+/// Labels are single ranking letters (user directive 2026-09-15): S is the
+/// top bracket, E the bottom. BuildContext-free constants by design (same
+/// rationale as error strings in `lib/core/errors/**` — M-15); the app is
+/// es-first and [RankBadge] renders them uppercased.
 const _bracketLabels = <String, String>{
-  'b90_100': 'Full Vibe',
-  'b80_90': 'Leyendas de la Vibra',
-  'b60_80': 'Creadores de la Vibra',
-  'b40_60': 'Seguidores de la Vibra',
-  'b20_40': 'Buscadores de la Vibra',
-  'b0_20': 'En la Búsqueda',
+  'b90_100': 'S',
+  'b80_90': 'A',
+  'b60_80': 'B',
+  'b40_60': 'C',
+  'b20_40': 'D',
+  'b0_20': 'E',
 };
 
 /// The display label for a rank bracket, falling back to the raw bracket key
