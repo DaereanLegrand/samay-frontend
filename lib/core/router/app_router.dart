@@ -474,15 +474,26 @@ final routerProvider = Provider<GoRouter>((ref) {
         // play engine's first concrete game. Gated on the minigames flag as
         // the kill-switch knob. A fixed segment keeps the :groupId hub from
         // shadowing it.
+        //
+        // OPAQUE/INSTANT transition (D, 2026-09-15): the countdown→playing
+        // handoff pushes this route while the lobby sits underneath. A sliding
+        // transition exposed BOTH screens for ~250ms; a NoTransitionPage makes
+        // the match screen the only screen that ever paints (the lobby cover is
+        // held by MinigameSessionDetailScreen until this page commits). The
+        // name is preserved for the telemetry observer (U-29).
         path: RoutePaths.truthDare(':sessionId'),
-        builder: (context, state) => _screenForId(
-          state,
-          'sessionId',
-          (sessionId) => FlagGate(
-            flag: AppFeatureFlag.minigames,
-            child: TruthDareScreen(sessionId: sessionId),
+        pageBuilder: (context, state) => NoTransitionPage(
+          key: state.pageKey,
+          name: state.name ?? state.path,
+          child: _screenForId(
+            state,
+            'sessionId',
+            (sessionId) => FlagGate(
+              flag: AppFeatureFlag.minigames,
+              child: TruthDareScreen(sessionId: sessionId),
+            ),
+            errorMessage: AppLocalizations.of(context).routerGroupNotFound,
           ),
-          errorMessage: AppLocalizations.of(context).routerGroupNotFound,
         ),
       ),
       GoRoute(

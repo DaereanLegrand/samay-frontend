@@ -64,6 +64,16 @@ class _MinigameSessionDetailScreenState
   bool _kickedShown = false;
   Timer? _kickPoller;
 
+  /// D (2026-09-15): true from the countdown→playing flip until the opaque
+  /// play route has committed. The countdown overlay is dropped in the same
+  /// rebuild that triggers the push; without this cover the lobby showed
+  /// through the play screen's transition.
+  bool _startingNavigation = false;
+
+  /// Guards the countdown→playing auto-push against realtime re-emissions so
+  /// the play screen is pushed exactly once per countdown.
+  bool _navigatedToMatch = false;
+
   String get _sessionId => widget.sessionId;
 
   @override
@@ -190,8 +200,17 @@ class _MinigameSessionDetailScreenState
         if (isParticipant &&
             wasCountdown &&
             phase == MinigamePhase.playing &&
-            context.mounted) {
+            context.mounted &&
+            !_navigatedToMatch) {
+          _navigatedToMatch = true;
+          // D: cover the lobby in the same frame the countdown overlay drops,
+          // then push the opaque play route. The cover holds until that route
+          // has committed, so only the match screen is ever visible.
+          setState(() => _startingNavigation = true);
           context.push(RoutePaths.truthDare(_sessionId));
+          Future<void>.delayed(const Duration(milliseconds: 400), () {
+            if (mounted) setState(() => _startingNavigation = false);
+          });
         }
       },
     );
@@ -323,6 +342,16 @@ class _MinigameSessionDetailScreenState
                     child: _CountdownOverlay(
                       sessionId: _sessionId,
                       isCreator: isCreator,
+                    ),
+                  )
+                else if (_startingNavigation)
+                  // D: the countdown just ended and the opaque play route is
+                  // being pushed — hold a full-screen cover so the lobby is
+                  // never exposed during the handoff.
+                  const Positioned.fill(
+                    child: ColoredBox(
+                      color: AppColors.surface,
+                      child: VLoadingView(),
                     ),
                   ),
               ],
