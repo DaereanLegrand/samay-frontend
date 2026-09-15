@@ -37,9 +37,10 @@ const int _activationMinutes = 30;
 /// * **alreadyAttended** — the caller has been confirmed (host/staff scanner
 ///   wrote their `event_attendances` row): the terminal "Ya te registraste"
 ///   state replaces the QR forever (2026-09-10, Task C). A live false → true
-///   flip observed while the QR is on screen plays the assist reveal (QR
-///   expands + fades, check mark pops in, "LISTO"/"DONE" eases in below —
-///   2026-09-10, Task D); opening already assisted renders it directly.
+///   flip observed while the QR is on screen plays the assist reveal (the code
+///   dissolves in place, then a check mark + "LISTO"/"DONE" condense in as the
+///   inverse — 2026-09-11, Task D); opening already assisted renders it
+///   directly.
 /// * **notInvited** — caller is neither host/staff nor an invited attendee.
 /// * **notInWindow** — before activation (`starts_at - 30 min`): countdown,
 ///   then re-fetch when the window opens.
@@ -327,8 +328,6 @@ class _AttendanceCodeScreenState extends ConsumerState<AttendanceCodeScreen> {
               return AttendeeAssistAnimation(
                 code: _code,
                 title: l10n.codeAssistedDone,
-                returnLabel: l10n.codeAlreadyAttendedReturn,
-                onReturn: () => Navigator.of(context).maybePop(),
                 // Reveal only when the QR was live on THIS mount; a screen
                 // opened already assisted renders the terminal state directly.
                 animate: _sawLiveQr,

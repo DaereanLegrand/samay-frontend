@@ -69,6 +69,16 @@ abstract final class RoutePaths {
   /// fixed `/play/charades` segment so the :sessionId hub is never shadowed.
   static String charades(String sessionId) =>
       '/minigames/play/charades/$sessionId';
+
+  /// The finished-match leaderboard for a session (TODO F) — a fixed
+  /// `/leaderboard` segment so the hub routes are never shadowed. When
+  /// [participantId] is given the carousel opens focused on that player.
+  static String minigameLeaderboard(String sessionId, {String? participantId}) {
+    final base = '/minigames/leaderboard/$sessionId';
+    return participantId == null || participantId.isEmpty
+        ? base
+        : '$base?p=$participantId';
+  }
   /// Direct (group-less) minigames hub — registered BEFORE the :groupId hub
   /// so the static path can never be shadowed (direct-minigames 2026-08-27).
   static const minigamesDirect = '/minigames';

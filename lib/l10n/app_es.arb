@@ -675,6 +675,15 @@
       }
     }
   },
+  "groupsMembersCountShort": "{count} miembros",
+  "@groupsMembersCountShort": {
+    "description": "Group detail: member count without the cap (user directive 2026-09-15)",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "groupsMyContribution": "Mi contribución: {shards} shards activos",
   "@groupsMyContribution": {
     "description": "Current user's active contribution to the group",
@@ -797,7 +806,7 @@
       }
     }
   },
-  "groupsSearchUsersHint": "Buscar usuarios por username...",
+  "groupsSearchUsersHint": "Busca aquí...",
   "@groupsSearchUsersHint": {
     "description": "Search field hint on the invite screen"
   },
@@ -2223,10 +2232,6 @@
   "@codeServerPendingBody": {
     "description": "Attendance code: server-pending retry hint"
   },
-  "codeAlreadyAttendedReturn": "Regresar",
-  "@codeAlreadyAttendedReturn": {
-    "description": "Attendance code: return button on the already-attended terminal state"
-  },
   "codeAssistedDone": "LISTO",
   "@codeAssistedDone": {
     "description": "Attendance code: terminal word revealed under the check mark once assisted"
@@ -2760,6 +2765,10 @@
   "@minigamesStatusFinished": {
     "description": "Lifecycle chip label for finished sessions"
   },
+  "minigamesViewLeaderboard": "Ver clasificación",
+  "@minigamesViewLeaderboard": {
+    "description": "Button on a finished match's session detail that opens the finished leaderboard"
+  },
   "minigamesParticipants": "Participantes: {count}",
   "@minigamesParticipants": {
     "description": "Session card subtitle with the participant count",
@@ -2855,6 +2864,10 @@
   "minigamesPromptDone": "Hecho",
   "@minigamesPromptDone": {
     "description": "Button the subject taps once the truth is answered / dare is done — closes the round and moves on"
+  },
+  "minigamesPromptLoadError": "ERROR AL CARGAR LA PREGUNTA",
+  "@minigamesPromptLoadError": {
+    "description": "Shown on the finished leaderboard in place of a question+answer when the prompt can no longer be resolved (deactivated/removed)"
   },
   "minigamesPromptSkip": "Saltar",
   "@minigamesPromptSkip": {
@@ -3045,10 +3058,6 @@
   "@minigamesReactionsTitle": {
     "description": "Voting row header: each non-subject taps one emoji on the current round (201_minigame_voting)"
   },
-  "minigamesLeaderboardTitle": "Clasificación",
-  "@minigamesLeaderboardTitle": {
-    "description": "Finished-game leaderboard title (201_minigame_voting)"
-  },
   "minigamesAnonymousPlayer": "Jugador",
   "@minigamesAnonymousPlayer": {
     "description": "Leaderboard fallback name when the winner username is missing"
@@ -3059,6 +3068,21 @@
     "placeholders": {
       "amount": { "type": "int" }
     }
+  },
+  "minigamesPointsAmount": "{count} puntos",
+  "@minigamesPointsAmount": {
+    "description": "Leaderboard score label per ranked player",
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "minigamesAnswersLoadError": "Ups, no pudimos cargar las respuestas de la partida. Inténtalo más tarde.",
+  "@minigamesAnswersLoadError": {
+    "description": "Discreet retry prompt inside a leaderboard card when the decrypted answers fail to load"
+  },
+  "minigamesNoAnswers": "Sin respuestas registradas",
+  "@minigamesNoAnswers": {
+    "description": "Neutral leaderboard card state for a player with no recorded answers"
   },
   "minigamesErrorLoadGame": "No se pudo cargar el juego",
   "@minigamesErrorLoadGame": {
@@ -3282,7 +3306,7 @@
   "@minigamesInviteTitle": {
     "description": "App bar title of the minigame player picker"
   },
-  "minigamesInviteCount": "Invitar ({count})",
+  "minigamesInviteCount": "Enviar ({count})",
   "@minigamesInviteCount": {
     "description": "App bar confirm action for the minigame player picker",
     "placeholders": {
@@ -3426,6 +3450,27 @@
       }
     }
   },
+  "minigamesGroupMessage": "Nueva partida de {game}",
+  "@minigamesGroupMessage": {
+    "description": "Group chat notice bubble: a group match was created (216_minigame_group_message)",
+    "placeholders": {
+      "game": {
+        "type": "String"
+      }
+    }
+  },
+  "minigamesJoin": "Unirse",
+  "@minigamesJoin": {
+    "description": "Group chat notice: direct access to the minigame"
+  },
+  "minigamesView": "Ver",
+  "@minigamesView": {
+    "description": "Group chat notice: view a finished minigame"
+  },
+  "minigamesInvitedBy": "Invitado por",
+  "@minigamesInvitedBy": {
+    "description": "Session detail pending invite: subtitle under the inviter's username (mirrors the participant 'Anfitrión' subtitle)"
+  },
   "minigamesInviteAccept": "Aceptar",
   "@minigamesInviteAccept": {
     "description": "Session detail: accept the pending invite button"
@@ -3546,5 +3591,13 @@
   "minigamesTwoLiesSelectTruthError": "Debes marcar exactamente una afirmación como verdad",
   "@minigamesTwoLiesSelectTruthError": {
     "description": "Validation error when truth index is not selected"
+  },
+  "codeAlreadyAttendedReturn": "Regresar",
+  "@codeAlreadyAttendedReturn": {
+    "description": "Attendance code: return button on the already-attended terminal state"
+  },
+  "minigamesLeaderboardTitle": "Clasificación",
+  "@minigamesLeaderboardTitle": {
+    "description": "Finished-game leaderboard title (201_minigame_voting)"
   }
 }

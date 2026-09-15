@@ -514,6 +514,11 @@ class AppLocalizationsEs extends AppLocalizations {
   }
 
   @override
+  String groupsMembersCountShort(int count) {
+    return '$count miembros';
+  }
+
+  @override
   String groupsMyContribution(int shards) {
     return 'Mi contribución: $shards shards activos';
   }
@@ -597,7 +602,7 @@ class AppLocalizationsEs extends AppLocalizations {
   }
 
   @override
-  String get groupsSearchUsersHint => 'Buscar usuarios por username...';
+  String get groupsSearchUsersHint => 'Busca aquí...';
 
   @override
   String get groupsMinCharsHint => 'Escribe al menos 2 caracteres para buscar';
@@ -1679,9 +1684,6 @@ class AppLocalizationsEs extends AppLocalizations {
       'Si el problema continúa, presiona Reintentar.';
 
   @override
-  String get codeAlreadyAttendedReturn => 'Regresar';
-
-  @override
   String get codeAssistedDone => 'LISTO';
 
   @override
@@ -2163,6 +2165,9 @@ class AppLocalizationsEs extends AppLocalizations {
   String get minigamesStatusFinished => 'Terminada';
 
   @override
+  String get minigamesViewLeaderboard => 'Ver clasificación';
+
+  @override
   String minigamesParticipants(int count) {
     return 'Participantes: $count';
   }
@@ -2227,6 +2232,9 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get minigamesPromptDone => 'Hecho';
+
+  @override
+  String get minigamesPromptLoadError => 'ERROR AL CARGAR LA PREGUNTA';
 
   @override
   String get minigamesPromptSkip => 'Saltar';
@@ -2367,15 +2375,24 @@ class AppLocalizationsEs extends AppLocalizations {
   String get minigamesReactionsTitle => 'Reacciona al turno:';
 
   @override
-  String get minigamesLeaderboardTitle => 'Clasificación';
-
-  @override
   String get minigamesAnonymousPlayer => 'Jugador';
 
   @override
   String minigamesPrizeAmount(int amount) {
     return '$amount shards';
   }
+
+  @override
+  String minigamesPointsAmount(int count) {
+    return '$count puntos';
+  }
+
+  @override
+  String get minigamesAnswersLoadError =>
+      'Ups, no pudimos cargar las respuestas de la partida. Inténtalo más tarde.';
+
+  @override
+  String get minigamesNoAnswers => 'Sin respuestas registradas';
 
   @override
   String get minigamesErrorLoadGame => 'No se pudo cargar el juego';
@@ -2545,7 +2562,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String minigamesInviteCount(int count) {
-    return 'Invitar ($count)';
+    return 'Enviar ($count)';
   }
 
   @override
@@ -2652,6 +2669,20 @@ class AppLocalizationsEs extends AppLocalizations {
   }
 
   @override
+  String minigamesGroupMessage(String game) {
+    return 'Nueva partida de $game';
+  }
+
+  @override
+  String get minigamesJoin => 'Unirse';
+
+  @override
+  String get minigamesView => 'Ver';
+
+  @override
+  String get minigamesInvitedBy => 'Invitado por';
+
+  @override
   String get minigamesInviteAccept => 'Aceptar';
 
   @override
@@ -2747,4 +2778,10 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get minigamesTwoLiesSelectTruthError =>
       'Debes marcar exactamente una afirmación como verdad';
+
+  @override
+  String get codeAlreadyAttendedReturn => 'Regresar';
+
+  @override
+  String get minigamesLeaderboardTitle => 'Clasificación';
 }

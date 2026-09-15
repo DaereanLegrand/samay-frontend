@@ -1,7 +1,9 @@
 import 'dart:typed_data';
 
+import 'package:samay/core/config/app_constants.dart';
 import 'package:samay/core/errors/app_error.dart';
 import 'package:samay/core/services/realtime_service.dart';
+import 'package:samay/core/utils/async_ops.dart';
 import 'package:samay/features/minigames/logic/minigame_engine.dart';
 import 'package:samay/features/minigames/logic/truth_dare.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -132,18 +134,19 @@ class MinigameService {
     return res.map((e) => Map<String, dynamic>.from(e)).toList();
   }
 
-  /// The current user's DIRECT sessions (group_id IS NULL), newest first —
-  /// the direct-play hub list. RLS `ms_read_direct_participant` bounds the
-  /// read to sessions where the caller is a participant (the creator is
-  /// participant[0]); the `group_id IS NULL` + `participants @> {uid}`
-  /// filters mirror that server contract client-side.
+  /// The current user's sessions — DIRECT and GROUP — newest first, where the
+  /// caller is a participant (the creator is participant[0]). RLS bounds the
+  /// read (`ms_read_direct_participant` for direct rows, `ms_read_group_member`
+  /// for group rows); the `participants @> {uid}` filter keeps it to the
+  /// caller's OWN games. This is the source for the per-game PARTIDAS EN CURSO
+  /// list and the direct hub, so both scopes surface here — each group row
+  /// carries its `group_id` for the group tag.
   Future<List<Map<String, dynamic>>> listMySessions() async {
     final user = auth.currentUser;
     if (user == null) throw const UnauthorizedError();
     final res = await client
         .from('minigame_sessions')
         .select(_columns)
-        .isFilter('group_id', null)
         .contains('participants', [user.id])
         .order('created_at', ascending: false);
     return res.map((e) => Map<String, dynamic>.from(e)).toList();
@@ -391,6 +394,62 @@ class MinigameService {
     return MinigameResult.fromJson(Map<String, dynamic>.from(res));
   }
 
+  /// The raw E2EE answer rows of [sessionId] (ciphertext only), ordered by
+  /// round ascending — the finished-leaderboard content source. RLS
+  /// `mgs_answers_read` bounds the read to participants/invitees/group
+  /// members; the app decrypts each `answer_ciphertext` locally.
+  Future<List<Map<String, dynamic>>> getSessionAnswers(
+    String sessionId,
+  ) async {
+    final user = auth.currentUser;
+    if (user == null) throw const UnauthorizedError();
+    final res = await client
+        .from('minigame_answers')
+        .select(
+          'round, subject_id, prompt_type, prompt_id, '
+          'answer_ciphertext, image_storage_path, passed',
+        )
+        .eq('session_id', sessionId)
+        .order('round', ascending: true);
+    return [for (final row in res) Map<String, dynamic>.from(row)];
+  }
+
+  /// The raw reaction rows of [sessionId], ordered by round ascending — the
+  /// per-subject reaction tallies on the finished leaderboard. RLS
+  /// `mgs_reactions_read` bounds the read to participants/invitees/group
+  /// members. A NULL `reaction` is a reactor Pasar (no emoji).
+  Future<List<Map<String, dynamic>>> getSessionReactions(
+    String sessionId,
+  ) async {
+    final user = auth.currentUser;
+    if (user == null) throw const UnauthorizedError();
+    final res = await client
+        .from('minigame_reactions')
+        .select('round, voter_id, reaction')
+        .eq('session_id', sessionId)
+        .order('round', ascending: true);
+    return [for (final row in res) Map<String, dynamic>.from(row)];
+  }
+
+  /// Resolves prompt ids to their question text — `{id: body}` — via one
+  /// batched `minigame_prompts` read. RLS `mgs_prompts_select` exposes only
+  /// `is_active = true` rows, so a deactivated/removed prompt is simply
+  /// absent and the caller surfaces its load-error state.
+  Future<Map<String, String>> getPromptsByIds(Set<String> ids) async {
+    final user = auth.currentUser;
+    if (user == null) throw const UnauthorizedError();
+    if (ids.isEmpty) return const {};
+    final res = await client
+        .from('minigame_prompts')
+        .select('id, body')
+        .inFilter('id', ids.toList());
+    return {
+      for (final row in res)
+        if (row['id'] is String && row['body'] is String)
+          row['id'] as String: row['body'] as String,
+    };
+  }
+
   /// The current user's invite row for [sessionId] (null when they have
   /// none). RLS `mi_read_own` limits the read to the caller's own invites,
   /// so the `invitee_id` filter is belt-and-suspenders.
@@ -404,6 +463,40 @@ class MinigameService {
         .eq('invitee_id', user.id)
         .maybeSingle();
     return res == null ? null : Map<String, dynamic>.from(res);
+  }
+
+  /// The narrow INVITE CONTEXT for [sessionId] when the caller holds an
+  /// invite (`215_minigame_invite_context`): the inviter's
+  /// `{id, username, avatar_url}` plus the group name (null for a direct
+  /// session). Returns null when the caller has no invite for the session
+  /// (`invite_not_found`).
+  ///
+  /// This is deliberately the ONLY identity a pending invitee may resolve:
+  /// `get_minigame_participants` would leak the whole roster into the client
+  /// before the invitee accepts (2026-09-11 directive — a not-yet-accepted
+  /// invitee must never see the player list).
+  Future<Map<String, dynamic>?> getInviteContext(String sessionId) async {
+    final user = auth.currentUser;
+    if (user == null) throw const UnauthorizedError();
+    final res = await client.rpc(
+      'get_minigame_invite_context',
+      params: {'p_session_id': sessionId},
+    );
+    final result = res is Map
+        ? Map<String, dynamic>.from(res)
+        : <String, dynamic>{};
+    switch (result['status']) {
+      case 'ok':
+        return result;
+      case 'invite_not_found':
+        return null;
+      case 'not_authenticated':
+        throw const UnauthorizedError();
+      default:
+        throw const ServerError(
+          'Unexpected get_minigame_invite_context response',
+        );
+    }
   }
 
   /// The HOST-side invite state for [sessionId], keyed by invitee id — the
@@ -462,6 +555,26 @@ class MinigameService {
       if (session != null) sessions.add(session);
     }
     return sessions;
+  }
+
+  /// The group-chat "match created" notices for [groupId] (210,
+  /// 2026-09-15) — one row per group partida, written server-side on creation
+  /// by the `notify_minigame_group_message` trigger. The embedded session row
+  /// (RLS `ms_read_group_member`) gives the thread everything it needs to
+  /// render the direct-access bubble. RLS `mgm_read_group_member` bounds the
+  /// read to active group members.
+  Future<List<Map<String, dynamic>>> listGroupMinigameMessages(
+    String groupId,
+  ) async {
+    final res = await client
+        .from('minigame_group_messages')
+        .select(
+          'id, session_id, actor_id, created_at, '
+          'session:minigame_sessions(id, game_type, status, name, auto_name, participants)',
+        )
+        .eq('group_id', groupId)
+        .order('created_at', ascending: true);
+    return res.map((e) => Map<String, dynamic>.from(e)).toList();
   }
 
   /// Accepts [inviteId] via the `accept_minigame_invite` SECURITY DEFINER RPC
@@ -853,6 +966,16 @@ RealtimeChannel subscribeToSession(String id) {
     switch (result['status']) {
       case 'submitted':
         return;
+      case 'advanced':
+        // The caller's was the LAST required reaction: `submit_minigame_reaction`
+      // recorded it AND closed the round by delegating to
+      // `_minigame_advance_round` (207), which returns `advanced` (or the
+      // `finished` / `already_finished` variants at the round target). The
+      // write succeeded — the caller's notifier refreshes into the next round.
+      // Not an error (defect: the last reactor saw a bogus snackbar).
+      case 'finished':
+      case 'already_finished':
+        return;
       case 'too_fast':
         // Controlled-spam window: the server dropped the write (no seq bump,
         // no event). The tapper's local rise already played — stay silent,
@@ -875,6 +998,13 @@ RealtimeChannel subscribeToSession(String id) {
         throw ConflictError(
           'La partida aún no empieza',
           code: 'not_started',
+        );
+      case 'own_round':
+        throw PermissionError();
+      case 'answer_pending':
+        throw ConflictError(
+          'La ronda aún no se puede valorar',
+          code: 'answer_pending',
         );
       case 'invalid_reaction':
         throw ValidationError('reaction', 'Reacción no válida');
@@ -981,6 +1111,11 @@ RealtimeChannel subscribeToSession(String id) {
     switch (result['status']) {
       case 'advanced':
         return;
+      // The pass closed the FINAL round (`_minigame_advance_round` delegates to
+      // `finish_minigame_game` at the round target) — a success, not an error.
+      case 'finished':
+      case 'already_finished':
+        return;
       case 'not_authenticated':
         throw const MinigameSessionRejectedException(
           MinigameSessionRejection.notAuthenticated,
@@ -1047,6 +1182,11 @@ RealtimeChannel subscribeToSession(String id) {
     switch (result['status']) {
       case 'submitted':
         return;
+      // The async answer completed the FINAL round and settled the game
+      // (`finish_minigame_game`) — a success, not an error.
+      case 'finished':
+      case 'already_finished':
+        return;
       case 'not_authenticated':
         throw const MinigameSessionRejectedException(
           MinigameSessionRejection.notAuthenticated,
@@ -1099,7 +1239,16 @@ RealtimeChannel subscribeToSession(String id) {
     final user = auth.currentUser;
     if (user == null) throw const UnauthorizedError();
     final path = '$sessionId/$round/${const Uuid().v4()}.bin';
-    await client.storage.from('minigame_images').uploadBinary(path, ciphertextBytes);
+    await resilient(
+      () => client
+          .storage
+          .from('minigame_images')
+          .uploadBinary(path, ciphertextBytes),
+      timeout: AppConstants.minigameImageUploadTimeout,
+      maxRetries: AppConstants.minigameImageUploadMaxRetries,
+      initialDelay: AppConstants.minigameImageUploadRetryInitialDelay,
+      backoffFactor: AppConstants.minigameImageUploadRetryBackoffFactor,
+    );
     return path;
   }
 
@@ -1228,6 +1377,8 @@ RealtimeChannel subscribeToSession(String id) {
         );
       case 'invalid_alias':
         throw ValidationError('alias', 'Apodo no válido');
+      case 'alias_taken':
+        throw ValidationError('alias', 'Ese apodo ya está en uso');
       default:
         throw const ServerError('Unexpected set_minigame_alias response');
     }

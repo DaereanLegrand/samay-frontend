@@ -513,6 +513,11 @@ class ChatInboxItem {
     this.lastMessageSenderId,
     this.lastMessageContent,
     this.lastMessageAt,
+    this.lastActivityAt,
+    this.lastActivityKind,
+    this.lastNoticeSessionId,
+    this.lastNoticeGameType,
+    this.lastNoticeStatus,
     required this.unreadCount,
     this.decryptFailed = false,
   });
@@ -531,6 +536,18 @@ class ChatInboxItem {
   final String? lastMessageSenderId;
   final String? lastMessageContent;
   final DateTime? lastMessageAt;
+
+  /// The chat's most recent activity timestamp (a real message OR a minigame
+  /// group notice, 210/P1) — the row's sort/time label.
+  final DateTime? lastActivityAt;
+
+  /// `message` | `minigame_notice` (210/P1). When `minigame_notice`, the tile
+  /// previews the minigame notice instead of the (empty) message preview.
+  final String? lastActivityKind;
+  final String? lastNoticeSessionId;
+  final String? lastNoticeGameType;
+  final String? lastNoticeStatus;
+
   final int unreadCount;
 
   /// Whether the last-message envelope could not be decrypted (the UI
@@ -556,6 +573,13 @@ class ChatInboxItem {
           ? null
           : row['last_message_content'] as String?,
       lastMessageAt: lastAt is String ? DateTime.tryParse(lastAt) : null,
+      lastActivityAt: row['last_activity_at'] is String
+          ? DateTime.tryParse(row['last_activity_at'] as String)
+          : null,
+      lastActivityKind: row['last_activity_kind'] as String?,
+      lastNoticeSessionId: row['last_notice_session_id'] as String?,
+      lastNoticeGameType: row['last_notice_game_type'] as String?,
+      lastNoticeStatus: row['last_notice_status'] as String?,
       unreadCount: (row['unread_count'] as num?)?.toInt() ?? 0,
       decryptFailed: !needsSession && row['last_message_decrypt_failed'] == true,
     );
@@ -573,6 +597,11 @@ class ChatInboxItem {
       lastMessageSenderId: lastMessageSenderId,
       lastMessageContent: lastMessageContent,
       lastMessageAt: lastMessageAt,
+      lastActivityAt: lastActivityAt,
+      lastActivityKind: lastActivityKind,
+      lastNoticeSessionId: lastNoticeSessionId,
+      lastNoticeGameType: lastNoticeGameType,
+      lastNoticeStatus: lastNoticeStatus,
       unreadCount: unreadCount ?? this.unreadCount,
       decryptFailed: decryptFailed ?? this.decryptFailed,
     );

@@ -50,6 +50,7 @@ import 'package:samay/features/social/screens/social_screen.dart';
 import 'package:samay/features/social/screens/user_ranking_screen.dart';
 import 'package:samay/features/minigames/logic/minigame_meta.dart';
 import 'package:samay/features/minigames/screens/minigame_detail_screen.dart';
+import 'package:samay/features/minigames/screens/minigame_leaderboard_screen.dart';
 import 'package:samay/features/minigames/screens/minigames_screen.dart';
 import 'package:samay/features/minigames/screens/minigame_session_detail_screen.dart';
 import 'package:samay/features/minigames/screens/charades_screen.dart';
@@ -477,13 +478,42 @@ final routerProvider = Provider<GoRouter>((ref) {
         // play engine's first concrete game. Gated on the minigames flag as
         // the kill-switch knob. A fixed segment keeps the :groupId hub from
         // shadowing it.
+        //
+        // OPAQUE/INSTANT transition (D, 2026-09-15): the countdown→playing
+        // handoff pushes this route while the lobby sits underneath. A sliding
+        // transition exposed BOTH screens for ~250ms; a NoTransitionPage makes
+        // the match screen the only screen that ever paints (the lobby cover is
+        // held by MinigameSessionDetailScreen until this page commits). The
+        // name is preserved for the telemetry observer (U-29).
         path: RoutePaths.truthDare(':sessionId'),
+        pageBuilder: (context, state) => NoTransitionPage(
+          key: state.pageKey,
+          name: state.name ?? state.path,
+          child: _screenForId(
+            state,
+            'sessionId',
+            (sessionId) => FlagGate(
+              flag: AppFeatureFlag.minigames,
+              child: TruthDareScreen(sessionId: sessionId),
+            ),
+            errorMessage: AppLocalizations.of(context).routerGroupNotFound,
+          ),
+        ),
+      ),
+      GoRoute(
+        // Finished-match leaderboard (TODO F): the dedicated screen wrapping
+        // FinishedLeaderboard, optionally focused on one participant via `?p=`.
+        // A fixed `/leaderboard` segment keeps the hub routes unshadowed.
+        path: RoutePaths.minigameLeaderboard(':sessionId'),
         builder: (context, state) => _screenForId(
           state,
           'sessionId',
           (sessionId) => FlagGate(
             flag: AppFeatureFlag.minigames,
-            child: TruthDareScreen(sessionId: sessionId),
+            child: MinigameLeaderboardScreen(
+              sessionId: sessionId,
+              initialParticipantId: state.uri.queryParameters['p'],
+            ),
           ),
           errorMessage: AppLocalizations.of(context).routerGroupNotFound,
         ),

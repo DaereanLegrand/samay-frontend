@@ -34,6 +34,57 @@ abstract final class AppTypography {
   /// copy within the play cards.
   static const String quicksand = 'Quicksand';
 
+  // ── Font optical metrics (from each font file's OS/2 table) ────────────────
+  //
+  // Used for OPTICAL vertical alignment: a text's cap/x-height band (measured
+  // from the real baseline) is the visual center, not the line box. Ratios are
+  // per-family because Playfair/Inter/Quicksand differ. Keep in sync with the
+  // assets under `assets/fonts/` (unitsPerEm-normalized).
+  static const double playfairCapHeightRatio = 0.708;
+  static const double playfairXHeightRatio = 0.514;
+  static const double interCapHeightRatio = 0.728;
+  static const double interXHeightRatio = 0.546;
+  static const double quicksandCapHeightRatio = 0.700;
+  static const double quicksandXHeightRatio = 0.503;
+
+  // Natural vertical metrics (em ratios; OS/2 typo ascender/descender, which
+  // these fonts mark with USE_TYPO_METRICS). ascent/descent sum to the natural
+  // line height; ascent/(ascent+descent) is the baseline's position in that run.
+  static const double playfairAscentRatio = 1.082;
+  static const double playfairDescentRatio = 0.251;
+  static const double interAscentRatio = 0.9688;
+  static const double interDescentRatio = 0.2412;
+  static const double quicksandAscentRatio = 1.0;
+  static const double quicksandDescentRatio = 0.25;
+
+  /// Cap-height ratio for [family] (falls back to Inter).
+  static double capHeightRatioFor(String? family) => switch (family) {
+    playfair => playfairCapHeightRatio,
+    quicksand => quicksandCapHeightRatio,
+    _ => interCapHeightRatio,
+  };
+
+  /// x-height ratio for [family] (falls back to Inter).
+  static double xHeightRatioFor(String? family) => switch (family) {
+    playfair => playfairXHeightRatio,
+    quicksand => quicksandXHeightRatio,
+    _ => interXHeightRatio,
+  };
+
+  /// Typo-ascender em ratio for [family] (falls back to Inter).
+  static double ascentRatioFor(String? family) => switch (family) {
+    playfair => playfairAscentRatio,
+    quicksand => quicksandAscentRatio,
+    _ => interAscentRatio,
+  };
+
+  /// Typo-descender em ratio for [family] (falls back to Inter).
+  static double descentRatioFor(String? family) => switch (family) {
+    playfair => playfairDescentRatio,
+    quicksand => quicksandDescentRatio,
+    _ => interDescentRatio,
+  };
+
   // ── Monochrome display-voice contract (2026-08-26) ────────────────────────
   //
   // The display voices (displayLarge/displayMedium/displaySmall and

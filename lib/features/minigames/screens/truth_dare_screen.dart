@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:io';
-import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
@@ -19,13 +18,15 @@ import 'package:samay/features/minigames/logic/minigame_engine.dart';
 import 'package:samay/features/minigames/logic/minigame_meta.dart';
 import 'package:samay/features/minigames/logic/truth_dare.dart';
 import 'package:samay/features/minigames/providers/minigames_providers.dart';
+import 'package:samay/features/minigames/widgets/finished_leaderboard.dart';
 import 'package:samay/features/minigames/widgets/minigame_header_title.dart';
+import 'package:samay/features/minigames/widgets/reaction_rise.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/error_view.dart';
+import 'package:samay/shared/widgets/full_screen_image.dart';
 import 'package:samay/shared/widgets/state_views.dart';
 import 'package:samay/shared/widgets/v_button.dart';
 import 'package:samay/shared/widgets/v_card.dart';
-import 'package:samay/shared/widgets/v_display_text.dart';
 import 'package:samay/shared/widgets/v_header_bar.dart';
 import 'package:samay/shared/widgets/v_input.dart';
 import 'package:samay/shared/widgets/v_spinner.dart';
@@ -77,6 +78,39 @@ class TruthDareScreen extends ConsumerWidget {
       l10n: l10n,
     );
 
+    // The finished match is rendered full-bleed: the carousel centers on the
+    // WHOLE viewport and the floating back arrow is the only header (mirroring
+    // the attendance QR screen), so nothing eats into the vertical centering.
+    // The creator's "complete" action is pointless once the match is already
+    // settled, so it is dropped here — the back arrow exits.
+    if (game.valueOrNull?.isFinished ?? false) {
+      return Scaffold(
+        body: Stack(
+          fit: StackFit.expand,
+          children: [
+            FinishedLeaderboard(sessionId: sessionId),
+            const Align(
+              alignment: Alignment.topLeft,
+              child: SafeArea(
+                bottom: false,
+                child: Padding(
+                  padding: EdgeInsets.only(
+                    top: VHeaderMetrics.heroTopPad,
+                    left: AppSpacing.screenHorizontal,
+                  ),
+                  child: SizedBox(
+                    height: VHeaderMetrics.titleRowHeight,
+                    width: double.infinity,
+                    child: VHeaderTitleRow(),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
     return Scaffold(
       body: VHeaderBar(
         titleWidget: headerTitle,
@@ -96,10 +130,6 @@ class TruthDareScreen extends ConsumerWidget {
             onRetry: () => ref.invalidate(minigameGameStateProvider(sessionId)),
           ),
           data: (state) {
-            if (state.isFinished) {
-              return _FinishedLeaderboard(sessionId: sessionId);
-            }
-
             final skeleton = state.skeleton;
             final subjectId = skeleton.subjectId;
             final isMyTurn = subjectId != null && subjectId == myId;
@@ -270,12 +300,6 @@ class TruthDareScreen extends ConsumerWidget {
                   _ReactionRow(sessionId: sessionId),
                 ],
                 const SizedBox(height: AppSpacing.lg),
-                // Anonymous mode: the temp-nickname editor (default
-                // anónimoXXX on accept; realtime update).
-                if (skeleton.anonymous) ...[
-                  _AliasEditor(sessionId: sessionId, state: state),
-                  const SizedBox(height: AppSpacing.lg),
-                ],
               ],
             );
           },
@@ -459,47 +483,8 @@ class TruthDareScreen extends ConsumerWidget {
 /// An X at the top-right dismisses it; tapping the image, the backdrop, or
 /// the system back gesture also closes it.
 void _showFullAnswerImage(BuildContext context, Uint8List bytes) {
-  showDialog<void>(
-    context: context,
-    barrierColor: AppColors.discoBlack,
-    builder: (dialogContext) => Dialog(
-      backgroundColor: AppColors.discoBlack,
-      insetPadding: EdgeInsets.zero,
-      child: SizedBox.expand(
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            GestureDetector(
-              onTap: () => Navigator.of(dialogContext).pop(),
-              child: Image.memory(
-                bytes,
-                fit: BoxFit.contain,
-                gaplessPlayback: true,
-                errorBuilder: (_, _, _) => const SizedBox.shrink(),
-              ),
-            ),
-            SafeArea(
-              child: Align(
-                alignment: Alignment.topRight,
-                child: Padding(
-                  padding: const EdgeInsets.all(AppSpacing.sm),
-                  child: IconButton(
-                    onPressed: () => Navigator.of(dialogContext).pop(),
-                    tooltip: AppLocalizations.of(dialogContext).commonClose,
-                    icon: const Icon(Icons.close),
-                    style: IconButton.styleFrom(
-                      backgroundColor: AppColors.surface,
-                      foregroundColor: AppColors.white,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    ),
-  );
+  // Shared full-screen viewer (zoomable) — see `showFullScreenImage`.
+  showFullScreenImage(context, bytes: bytes);
 }
 
 /// A tiny BuildContext holder used by the anonymous default-alias resolver.
@@ -576,7 +561,7 @@ class _AnswerCardState extends ConsumerState<_AnswerCard> {
           widget.l10n.minigamesAnswerTitle,
           style: Theme.of(context).textTheme.titleSmall,
         ),
-        const SizedBox(height: AppSpacing.sm),
+        const SizedBox(height: AppSpacing.xs),
         VInput(
           label: widget.l10n.minigamesAnswerPlaceholder,
           controller: _answerController,
@@ -585,7 +570,7 @@ class _AnswerCardState extends ConsumerState<_AnswerCard> {
           fontFamily: AppTypography.quicksand,
         ),
         if (isDare) ...[
-          const SizedBox(height: AppSpacing.md),
+          const SizedBox(height: AppSpacing.sm),
           if (_image == null)
             VButton.outlined(
               onPressed: _pickImage,
@@ -599,15 +584,11 @@ class _AnswerCardState extends ConsumerState<_AnswerCard> {
               ),
             )
           else ...[
-            // Preview the picked image (2026-09-01 fix): previously only the
-            // filename rendered — the app-wide picked-image convention is the
-            // actual image (create_group_screen / create_event_screen), so
-            // show Image.file over the XFile path. No filename shown (image
-            // metadata stays out of the UI); the remove (×) control overlays
-            // the image's top-right corner.
-            // Center → Stack hugs the photo: the rounded clip (below) now
-            // lands on the photo's own corners, not on a letterboxed frame
-            // (the remove (×) overlays the photo's top-right corner).
+            // Preview the picked image (2026-09-01 fix): show the actual
+            // Image.file over the XFile path — no filename (image metadata
+            // stays out of the UI). Center → Stack hugs the photo so the clip
+            // lands on the photo's own corners; the remove (×) control
+            // overlays the photo's top-right corner.
             Center(
               child: Stack(
                 children: [
@@ -616,7 +597,7 @@ class _AnswerCardState extends ConsumerState<_AnswerCard> {
                     child: GestureDetector(
                       onTap: _previewPickedImage,
                       child: ConstrainedBox(
-                        constraints: const BoxConstraints(maxHeight: 160),
+                        constraints: const BoxConstraints(maxHeight: 240),
                         child: Image.file(
                           File(_image!.path),
                           fit: BoxFit.contain,
@@ -625,15 +606,29 @@ class _AnswerCardState extends ConsumerState<_AnswerCard> {
                     ),
                   ),
                   Positioned(
-                    top: 4,
-                    right: 4,
+                    top: AppSpacing.xs,
+                    right: AppSpacing.xs,
                     child: IconButton(
                       onPressed: () => setState(() => _image = null),
                       tooltip: widget.l10n.minigamesAnswerRemoveImage,
-                      icon: const Icon(Icons.close, size: 18),
-                      style: IconButton.styleFrom(
-                        backgroundColor: AppColors.surface,
-                        foregroundColor: AppColors.white,
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints.tightFor(
+                        width: 44,
+                        height: 44,
+                      ),
+                      icon: Container(
+                        width: 24,
+                        height: 24,
+                        decoration: BoxDecoration(
+                          color: AppColors.surface,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: AppColors.border),
+                        ),
+                        child: const Icon(
+                          Icons.close,
+                          size: 13,
+                          color: AppColors.white,
+                        ),
                       ),
                     ),
                   ),
@@ -642,7 +637,7 @@ class _AnswerCardState extends ConsumerState<_AnswerCard> {
             ),
           ],
         ],
-        const SizedBox(height: AppSpacing.md),
+        const SizedBox(height: AppSpacing.sm),
         Text(
           widget.l10n.minigamesAnswerPasarLine,
           textAlign: TextAlign.center,
@@ -1397,26 +1392,6 @@ class _AsyncPanel extends ConsumerWidget {
 /// on every device the heart rendered WHITE. Tinting it with [AppColors.badgeRed]
 /// makes the glyph red regardless of which font draws it (the other five
 /// emoji are not covered by Inter, so they render as color emoji naturally).
-class _ReactionEmoji extends StatelessWidget {
-  const _ReactionEmoji({required this.kind, required this.fontSize});
-
-  final ReactionKind kind;
-  final double fontSize;
-
-  @override
-  Widget build(BuildContext context) {
-    return Text(
-      reactionEmoji[kind]!,
-      style: TextStyle(
-        fontSize: fontSize,
-        // Inter's monochrome heart glyph inherits this color; the color-emoji
-        // faces of the non-heart reactions are unaffected by it.
-        color: kind == ReactionKind.heart ? AppColors.badgeRed : null,
-      ),
-    );
-  }
-}
-
 /// A single request to float [kind] up the answer card INSTANTLY: emitted by
 /// the by_turns reaction deck (rendered BELOW the card) and consumed by the
 /// rise canvas (wrapping the card ABOVE). [token] increments on every accepted
@@ -1513,7 +1488,7 @@ class _ReactionRiseCanvas extends ConsumerStatefulWidget {
 class _ReactionRiseCanvasState extends ConsumerState<_ReactionRiseCanvas> {
   /// The in-flight rising particles (ids grow monotonically so a particle is
   /// never recycled while still animating).
-  final List<_RiseSpec> _active = [];
+  final List<RiseSpec> _active = [];
   int _nextId = 0;
 
   /// The highest reaction-event seq this canvas has applied. Baselines from
@@ -1597,7 +1572,7 @@ class _ReactionRiseCanvasState extends ConsumerState<_ReactionRiseCanvas> {
                     return Stack(
                       children: [
                         for (final spec in _active)
-                          _RisingReactionParticle(
+                          RisingReactionParticle(
                             key: ValueKey(spec.id),
                             spec: spec,
                             width: size.width,
@@ -1619,160 +1594,7 @@ class _ReactionRiseCanvasState extends ConsumerState<_ReactionRiseCanvas> {
   }
 
   void _spawn(ReactionKind kind) {
-    _active.add(_RiseSpec(id: _nextId++, kind: kind));
-  }
-}
-
-/// The geometry + identity of ONE rising particle (a single reaction event).
-class _RiseSpec {
-  const _RiseSpec({required this.id, required this.kind});
-
-  final int id;
-  final ReactionKind kind;
-}
-
-/// One rising reaction emoji (realtime echo): spawns slightly below the
-/// card's bottom edge, floats straight up the full card height and exits
-/// slightly above the top edge. The glyph's top-left is fully off-canvas at
-/// both extremes so it is fully hidden exactly at start/end; a brief
-/// fade-in/fade-out envelope blurs the enter/exit.
-///
-/// The emoji renders LARGE and, per user spec, sways while it rises: each
-/// particle gets a RANDOM horizontal wobble (frequency + amplitude drawn once
-/// per particle — e.g. ~2.5 ± 1 sinusoidal cycles over the rise with a
-/// ~12 ± 6 px swing) and a random horizontal lane + a small random stagger so
-/// a burst of reactions looks lively rather than a rigid column. One-shot,
-/// [SamayDurations.reactionFloat]. Reduced motion never creates a particle
-/// (the canvas gate skips spawns entirely).
-class _RisingReactionParticle extends StatefulWidget {
-  const _RisingReactionParticle({
-    super.key,
-    required this.spec,
-    required this.width,
-    required this.height,
-    required this.onDone,
-  });
-
-  final _RiseSpec spec;
-  final double width;
-  final double height;
-  final VoidCallback onDone;
-
-  @override
-  State<_RisingReactionParticle> createState() =>
-      _RisingReactionParticleState();
-}
-
-class _RisingReactionParticleState extends State<_RisingReactionParticle>
-    with SingleTickerProviderStateMixin {
-  /// The large render size of a rising reaction emoji (user spec — the rise
-  /// must be clearly bigger than the deck's ~24 px tiles).
-  static const double _fontSize = 44;
-
-  /// How far the glyph must clear the card edge to be FULLY hidden (fully
-  /// on-canvas starts being visible the instant any pixel crosses the edge).
-  static const double _edgeClear = 4;
-
-  /// The horizontal fraction of the card width the glyph's lane sits at — the
-  /// rise starts from a random lane so reactions don't stack in one column.
-  late final double _dx;
-
-  /// Sinusoidal sway frequency: how many full back-and-forth cycles the emoji
-  /// completes over one rise (randomized per particle — "random frequency").
-  late final double _wobbleCycles;
-
-  /// Sinusoidal sway amplitude in logical px (randomized per particle —
-  /// "random amplitude").
-  late final double _wobbleAmplitude;
-
-  late final AnimationController _controller = AnimationController(
-    vsync: this,
-    duration: SamayDurations.reactionFloat,
-  );
-
-  /// Rise path: fully below the bottom edge → fully above the top edge.
-  late final Animation<double> _top =
-      Tween<double>(
-        begin: widget.height + _edgeClear,
-        end: -(_fontSize + _edgeClear),
-      ).animate(
-        CurvedAnimation(
-          parent: _controller,
-          curve: SamayDurations.defaultCurve,
-        ),
-      );
-
-  /// Fade in over the first ~18% of the travel (below → entering), hold, then
-  /// fade out over the last ~18% (exiting → fully hidden above).
-  late final Animation<double> _opacity = TweenSequence<double>([
-    TweenSequenceItem(
-      tween: Tween(
-        begin: 0.0,
-        end: 1.0,
-      ).chain(CurveTween(curve: Curves.easeOut)),
-      weight: 18,
-    ),
-    TweenSequenceItem(tween: ConstantTween(1.0), weight: 64),
-    TweenSequenceItem(
-      tween: Tween(
-        begin: 1.0,
-        end: 0.0,
-      ).chain(CurveTween(curve: Curves.easeIn)),
-      weight: 18,
-    ),
-  ]).animate(_controller);
-
-  Timer? _stagger;
-
-  @override
-  void initState() {
-    super.initState();
-    _dx = 0.12 + Random().nextDouble() * 0.76;
-    // Random wobble per particle: ~1.5–3.5 cycles over the rise and a
-    // ~6–18 px horizontal swing. Both are chosen once so the sway is smooth.
-    _wobbleCycles = 1.5 + Random().nextDouble() * 2.0;
-    _wobbleAmplitude = 6 + Random().nextDouble() * 12;
-    // Small random stagger so a burst of reactions arrives with life rather
-    // than as one rigid column (the canvas is the reduced-motion gate — it
-    // never spawns a particle when animations are disabled).
-    _stagger = Timer(Duration(milliseconds: Random().nextInt(320)), () {
-      if (!mounted) return;
-      _controller.forward().whenCompleteOrCancel(widget.onDone);
-    });
-  }
-
-  @override
-  void dispose() {
-    _stagger?.cancel();
-    _controller.dispose();
-    super.dispose();
-  }
-
-  /// The horizontal sway offset at rise progress [t] (0 → 1): a sinusoid of
-  /// the particle's random frequency × amplitude.
-  double _sway(double t) {
-    return _wobbleAmplitude * sin(2 * pi * _wobbleCycles * t);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Positioned(
-      // Horizontal: fraction of the card width (card can be wide) so the
-      // glyph never hugs the very edges. Width animated freely — the canvas
-      // treats the glyph's top-left as its origin and clips at the edges.
-      left: widget.width * _dx,
-      top: 0,
-      child: AnimatedBuilder(
-        animation: _controller,
-        builder: (context, child) {
-          return Transform.translate(
-            offset: Offset(_sway(_controller.value), _top.value),
-            child: Opacity(opacity: _opacity.value, child: child),
-          );
-        },
-        child: _ReactionEmoji(kind: widget.spec.kind, fontSize: _fontSize),
-      ),
-    );
+    _active.add(RiseSpec(id: _nextId++, kind: kind));
   }
 }
 
@@ -1910,7 +1732,7 @@ class _ReactionDeckButtonState extends State<_ReactionDeckButton>
               // on release (underneath the burst duplicate).
               ScaleTransition(
                 scale: _pressScale,
-                child: _ReactionEmoji(
+                child: ReactionEmoji(
                   kind: widget.kind,
                   fontSize: widget.fontSize,
                 ),
@@ -1928,7 +1750,7 @@ class _ReactionDeckButtonState extends State<_ReactionDeckButton>
                     ),
                   );
                 },
-                child: _ReactionEmoji(
+                child: ReactionEmoji(
                   kind: widget.kind,
                   fontSize: widget.fontSize,
                 ),
@@ -2249,178 +2071,5 @@ class _ReactionRowState extends ConsumerState<_ReactionRow> {
         context,
       ).showSnackBar(SnackBar(content: Text(e.toAppError().message)));
     }
-  }
-}
-
-/// The anonymous-mode temp-nickname editor (202): shows the current alias
-/// (default `anónimoXXX`) with an "update name" button; the update is
-/// encrypted nowhere (it is a display name, not content) and streams realtime
-/// via `minigame_aliases`.
-class _AliasEditor extends ConsumerStatefulWidget {
-  const _AliasEditor({required this.sessionId, required this.state});
-
-  final String sessionId;
-  final MinigameGameState state;
-
-  @override
-  ConsumerState<_AliasEditor> createState() => _AliasEditorState();
-}
-
-class _AliasEditorState extends ConsumerState<_AliasEditor> {
-  final _aliasController = TextEditingController();
-  bool _saving = false;
-
-  @override
-  void dispose() {
-    _aliasController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    final myId = ref.watch(authStateProvider).valueOrNull?.user?['id'];
-    final aliases = ref
-        .watch(minigameAliasesProvider(widget.sessionId))
-        .valueOrNull;
-    final current = myId == null ? null : aliases?[myId];
-
-    return VCard(
-      child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.md),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(
-              l10n.minigamesAliasLabel,
-              style: Theme.of(context).textTheme.titleSmall,
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            Text(
-              current ?? defaultAnonAlias(l10n, seed: myId ?? ''),
-              style: const TextStyle(color: AppColors.mutedStrong),
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            VInput(
-              label: l10n.minigamesAliasLabel,
-              hint: current ?? defaultAnonAlias(l10n, seed: myId ?? ''),
-              controller: _aliasController,
-              maxLines: 1,
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            VButton.outlined(
-              label: l10n.minigamesAliasUpdate,
-              loading: _saving,
-              onPressed: _saving ? null : _saveAlias,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Future<void> _saveAlias() async {
-    final l10n = AppLocalizations.of(context);
-    final alias = _aliasController.text.trim();
-    if (alias.isEmpty) return;
-    setState(() => _saving = true);
-    try {
-      await ref
-          .read(minigameAliasesProvider(widget.sessionId).notifier)
-          .setAlias(widget.sessionId, alias);
-      _aliasController.clear();
-      if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(l10n.minigamesAliasUpdated)));
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(e.toAppError().message)));
-    } finally {
-      if (mounted) setState(() => _saving = false);
-    }
-  }
-}
-
-/// The finished-game leaderboard (201): reads the settled `minigame_results`
-/// row and renders the ranked prize split. In anonymous mode the usernames
-/// are revealed HERE — the only place real names appear during the match.
-class _FinishedLeaderboard extends ConsumerWidget {
-  const _FinishedLeaderboard({required this.sessionId});
-
-  final String sessionId;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = AppLocalizations.of(context);
-    final result = ref.watch(minigameResultProvider(sessionId));
-
-    return result.when(
-      loading: () => const VLoadingView(),
-      error: (e, _) => ErrorView(message: e.toAppError().message),
-      data: (settled) {
-        if (settled == null || settled.rows.isEmpty) {
-          return Center(
-            child: VDisplayText(text: l10n.minigamesFinished, size: 28),
-          );
-        }
-        final roster =
-            ref.watch(minigameParticipantsProvider(sessionId)).valueOrNull ??
-            const <MinigameParticipant>[];
-        return ListView(
-          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-          children: [
-            VDisplayText(text: l10n.minigamesLeaderboardTitle, size: 28),
-            const SizedBox(height: AppSpacing.md),
-            for (final row in settled.rows)
-              VCard(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.md,
-                    vertical: AppSpacing.sm,
-                  ),
-                  child: Row(
-                    children: [
-                      Text(
-                        '${row.rank}',
-                        style: Theme.of(context).textTheme.titleMedium,
-                      ),
-                      const SizedBox(width: AppSpacing.md),
-                      Expanded(
-                        child: Text(
-                          _usernameFor(row.participantId, roster, l10n),
-                          style: Theme.of(context).textTheme.titleMedium,
-                        ),
-                      ),
-                      Text(
-                        row.prize > 0
-                            ? l10n.minigamesPrizeAmount(row.prize)
-                            : '${row.score}',
-                        style: const TextStyle(color: AppColors.mutedStrong),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-          ],
-        );
-      },
-    );
-  }
-
-  String _usernameFor(
-    String userId,
-    List<MinigameParticipant> roster,
-    AppLocalizations l10n,
-  ) {
-    for (final p in roster) {
-      if (p.id == userId) {
-        final name = p.username.trim();
-        if (name.isNotEmpty) return name;
-      }
-    }
-    return l10n.minigamesAnonymousPlayer;
   }
 }

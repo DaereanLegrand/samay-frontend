@@ -1,11 +1,14 @@
 import 'dart:async';
+import 'dart:typed_data';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:samay/core/config/app_constants.dart';
 import 'package:samay/core/logging/app_logger.dart';
 import 'package:samay/core/providers/auth_provider.dart';
 import 'package:samay/core/providers/realtime_provider.dart';
 import 'package:samay/core/providers/service_providers.dart';
 import 'package:samay/core/services/minigame_service.dart';
+import 'package:samay/core/utils/async_ops.dart';
 import 'package:samay/features/chat/providers/chat_providers.dart';
 import 'package:samay/features/minigames/logic/minigame_cipher.dart';
 import 'package:samay/features/minigames/logic/minigame_engine.dart';
@@ -201,11 +204,38 @@ final minigameSessionsProvider =
       String
     >(MinigameSessionsNotifier.new);
 
-/// The current user's DIRECT sessions (group_id IS NULL), newest first —
-/// the direct-play hub (direct-minigames 2026-08-27). RLS
-/// `ms_read_direct_participant` bounds the read to sessions where the caller
-/// is a participant (creator is participant[0]); the group-scoped
-/// [minigameSessionsProvider] stays for the group hub.
+/// One group's chat notices (216_minigame_group_message, 2026-09-15) — the
+/// "match created" bubbles [ChatThreadView] renders inline as a direct access
+/// to the minigame. Family over the group id; invalidated by
+/// [MinigameSessionsRealtimeListener] on any session row event (the notice is
+/// written in the same transaction as the session insert).
+class GroupMinigameMessagesNotifier
+    extends FamilyAsyncNotifier<List<Map<String, dynamic>>, String> {
+  MinigameService get _service => ref.read(minigameServiceProvider);
+
+  @override
+  Future<List<Map<String, dynamic>>> build(String groupId) {
+    return _service.listGroupMinigameMessages(groupId);
+  }
+
+  /// Re-runs [build] (finding SM-09).
+  Future<void> refresh() async => ref.invalidateSelf();
+}
+
+final groupMinigameMessagesProvider =
+    AsyncNotifierProvider.family<
+      GroupMinigameMessagesNotifier,
+      List<Map<String, dynamic>>,
+      String
+    >(GroupMinigameMessagesNotifier.new);
+
+/// The current user's sessions — DIRECT and GROUP — newest first, where the
+/// caller is a participant (creator is participant[0]). RLS bounds the read
+/// (`ms_read_direct_participant` / `ms_read_group_member`); the client-side
+/// `participants @> {uid}` filter keeps it to the caller's own games. This is
+/// the direct hub's list AND the per-game PARTIDAS EN CURSO source, so group
+/// partidas surface there too (each row keeps its `group_id` for the group
+/// tag); the group-scoped [minigameSessionsProvider] stays for the group hub.
 class MyMinigameSessionsNotifier
     extends AsyncNotifier<List<Map<String, dynamic>>> {
   MinigameService get _service => ref.read(minigameServiceProvider);
@@ -410,6 +440,7 @@ class MinigameInviteNotifier
     await refresh();
     ref.invalidate(sessionStatusProvider(arg));
     ref.invalidate(minigameParticipantsProvider(arg));
+    ref.invalidate(minigameInviteContextProvider(arg));
     ref.invalidate(myPendingInvitesProvider);
     await _markInviteNotificationRead(inviteId);
     await _distributeKeysOnAccept();
@@ -464,6 +495,7 @@ class MinigameInviteNotifier
     if (inviteId == null) return;
     await _service.declineInvite(inviteId);
     await refresh();
+    ref.invalidate(minigameInviteContextProvider(arg));
     ref.invalidate(myPendingInvitesProvider);
     await _markInviteNotificationRead(inviteId);
   }
@@ -506,6 +538,35 @@ final minigameInviteProvider =
       Map<String, dynamic>?,
       String
     >(MinigameInviteNotifier.new);
+
+/// The narrow pending-invite CONTEXT for one session (family by session id):
+/// the inviter's `{id, username, avatar_url}` + group name, or null when the
+/// caller holds no invite. Backed by `get_minigame_invite_context`
+/// (215_minigame_invite_context).
+///
+/// The pending lobby renders ONLY this — never `minigameParticipantsProvider`,
+/// whose invite gate would otherwise stream the full roster into the client
+/// before the invitee accepts (2026-09-11 directive).
+class MinigameInviteContextNotifier
+    extends FamilyAsyncNotifier<Map<String, dynamic>?, String> {
+  MinigameService get _service => ref.read(minigameServiceProvider);
+
+  @override
+  Future<Map<String, dynamic>?> build(String sessionId) {
+    return _service.getInviteContext(sessionId);
+  }
+
+  /// Re-runs [build] after an accept/decline (finding SM-09).
+  Future<void> refresh() async => ref.invalidateSelf();
+}
+
+/// The pending-invite context (inviter + group name) for one session.
+final minigameInviteContextProvider =
+    AsyncNotifierProvider.family<
+      MinigameInviteContextNotifier,
+      Map<String, dynamic>?,
+      String
+    >(MinigameInviteContextNotifier.new);
 
 /// The HOST-side per-invitee invite state for one session
 /// (`{invitee_id: status}`) — the lobby picker's "enviada/sent" tag
@@ -1061,8 +1122,14 @@ class MinigameGameStateNotifier
 }
 
 /// The temp nicknames of one session (202_minigame_play_v2 anonymous mode) —
-/// `{participant_id: alias}` read from `minigame_aliases`, refreshed after
-/// every set/update so the realtime stream and the local write stay in sync.
+/// `{participant_id: alias}` read from `minigame_aliases`, with every live
+/// set/update merged in so the realtime stream and the local write stay in
+/// sync.
+///
+/// The subscription listens to ALL postgres changes: a nickname's FIRST save
+/// is an INSERT, later renames are UPDATEs, and both must reach the other
+/// lobby members. Deletes/other tables are filtered out by the row guards
+/// below (an event's `newRecord` is not a valid alias row).
 class MinigameAliasesNotifier
     extends FamilyAsyncNotifier<Map<String, String>, String> {
   MinigameService get _service => ref.read(minigameServiceProvider);
@@ -1070,13 +1137,13 @@ class MinigameAliasesNotifier
   @override
   Future<Map<String, String>> build(String sessionId) {
     // Live alias updates ride the I-52 realtime lifecycle provider: a
-    // participant's nickname change streams in on the minigame_aliases
+    // participant's nickname set/change streams in on the minigame_aliases
     // channel and merges into the map (anonymous mode, 202_minigame_play_v2).
     ref.listen<AsyncValue<Map<String, dynamic>>>(
       realtimeChannelProvider((
         channelName: 'minigame-aliases:$sessionId',
         table: 'minigame_aliases',
-        event: PostgresChangeEvent.update,
+        event: PostgresChangeEvent.all,
       )),
       (_, next) {
         final row = next.valueOrNull;
@@ -1143,6 +1210,122 @@ final minigameResultProvider =
       MinigameResult?,
       String
     >(MinigameResultNotifier.new);
+
+/// The finished-match player content of one session — each player's
+/// decrypted answers, each carrying the question it answered and the
+/// reactions it received. Built from the participant-readable tables
+/// (`minigame_answers`, `minigame_reactions`) plus a batch `minigame_prompts`
+/// lookup for the question text: answers are decrypted locally through
+/// [minigameCipherProvider] and grouped by author, reactions are tallied per
+/// round (one subject per round) and attached to that round's answer.
+///
+/// Best-effort by design: an undecryptable answer (the device lost the round
+/// key) simply carries no text/image, and an unresolvable prompt stays null —
+/// neither ever fails the whole screen.
+class MinigamePlayerContentNotifier
+    extends FamilyAsyncNotifier<MinigamePlayerContent, String> {
+  MinigameService get _service => ref.read(minigameServiceProvider);
+
+  @override
+  Future<MinigamePlayerContent> build(String sessionId) {
+    // The finished leaderboard must never hang on the answer content: a slow
+    // or stuck download surfaces as an error after a short, tunable window so
+    // the card can offer a discreet retry (2026-09-11 user directive).
+    return withTimeout(
+      () => _load(sessionId),
+      timeout: AppConstants.leaderboardAnswersTimeout,
+    );
+  }
+
+  Future<MinigamePlayerContent> _load(String sessionId) async {
+    final rawAnswers = await _service.getSessionAnswers(sessionId);
+    final rawReactions = await _service.getSessionReactions(sessionId);
+    final cipher = ref.read(minigameCipherProvider(sessionId));
+
+    final answersByPlayer = <String, List<MinigamePlayerAnswer>>{};
+
+    // Reactions first, keyed by round — each round has exactly one subject, so
+    // a round's reactions belong to the answer that round produced.
+    final reactionsByRound = <int, Map<ReactionKind, int>>{};
+    for (final row in rawReactions) {
+      final round = row['round'] is num ? (row['round'] as num).toInt() : 0;
+      final kind = reactionKindFromWire(row['reaction'] as String?);
+      if (kind == null || kind == ReactionKind.pass) continue;
+      final tally = reactionsByRound[round] ??= <ReactionKind, int>{};
+      tally[kind] = (tally[kind] ?? 0) + 1;
+    }
+
+    for (final row in rawAnswers) {
+      final round = row['round'] is num ? (row['round'] as num).toInt() : 0;
+      final subjectId = row['subject_id'] as String? ?? '';
+      if (subjectId.isEmpty) continue;
+
+      final passed = row['passed'] == true;
+      final cipherText = row['answer_ciphertext'] as String?;
+      final imagePath = row['image_storage_path'] as String?;
+
+      String? text;
+      Uint8List? imageBytes;
+      if (!passed) {
+        if (cipherText != null && cipherText.isNotEmpty) {
+          text = await cipher.decryptAnswerText(cipherText, round);
+        }
+        if (imagePath != null && imagePath.isNotEmpty) {
+          final rawBytes = await _service.downloadMinigameImageBytes(imagePath);
+          if (rawBytes != null) {
+            imageBytes = await cipher.decryptAnswerImageBytes(rawBytes, round);
+          }
+        }
+      }
+
+      (answersByPlayer[subjectId] ??= <MinigamePlayerAnswer>[]).add(
+        MinigamePlayerAnswer(
+          round: round,
+          subjectId: subjectId,
+          promptType: row['prompt_type'] as String?,
+          promptId: row['prompt_id'] as String?,
+          passed: passed,
+          text: text,
+          imageBytes: imageBytes,
+          reactions: reactionsByRound[round] ?? const {},
+        ),
+      );
+    }
+
+    // Order each player's answers: real answers by round ascending, PASSED
+    // rounds last (they carry no content and must sit at the bottom).
+    for (final answers in answersByPlayer.values) {
+      answers.sort((a, b) {
+        if (a.passed != b.passed) return a.passed ? 1 : -1;
+        return a.round.compareTo(b.round);
+      });
+    }
+
+    // Resolve the question text in ONE batch (client join to
+    // `minigame_prompts`). A prompt that fails to resolve (deactivated/
+    // removed) stays null — the card shows its load-error state, never a
+    // question with no answer.
+    var content = MinigamePlayerContent(answersByPlayer: answersByPlayer);
+    final ids = content.promptIds;
+    if (ids.isNotEmpty) {
+      final bodies = await _service.getPromptsByIds(ids);
+      content = content.withPromptBodies(bodies);
+    }
+    return content;
+  }
+
+  /// Re-runs [build] (e.g. after key recovery completes).
+  Future<void> refresh() async => ref.invalidateSelf();
+}
+
+/// One session's finished-match player content (family by session id; empty
+/// before the game ends / while loading).
+final minigamePlayerContentProvider =
+    AsyncNotifierProvider.family<
+      MinigamePlayerContentNotifier,
+      MinigamePlayerContent,
+      String
+    >(MinigamePlayerContentNotifier.new);
 
 /// One lobby participant row — the id + profile from
 /// [MinigameService.getMinigameParticipants] with the LIVE ready flag merged
