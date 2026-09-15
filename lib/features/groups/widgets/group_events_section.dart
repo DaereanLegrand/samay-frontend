@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
-import 'package:samay/core/design_tokens/app_icon_sizes.dart';
+import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/extensions/error_mapper.dart';
 import 'package:samay/core/models/event.dart';
 import 'package:samay/core/providers/service_providers.dart';
@@ -12,22 +12,20 @@ import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/error_view.dart';
 import 'package:samay/shared/widgets/state_views.dart';
 
-/// Group events tab (R2 — replaces the "Eventos próximamente" placeholder).
-///
-/// Lists the group's events from [EventService.listEvents], filtered by the
-/// `group_id` column (events carry the group FK, see `createEvent`).
-/// Loading / error / empty / list states are real; tapping an event pushes
-/// the event-detail route.
-class GroupEventsTab extends ConsumerStatefulWidget {
+/// The group's events rendered INLINE (non-scrolling) — the group detail is
+/// one scroll now (Phase A, 2026-09-15): the Events tab is gone and this
+/// section feeds the parent scroll. Loading/error/empty are handled here; an
+/// empty group hides the section entirely.
+class GroupEventsSection extends ConsumerStatefulWidget {
+  const GroupEventsSection({super.key, required this.groupId});
+
   final String groupId;
 
-  const GroupEventsTab({super.key, required this.groupId});
-
   @override
-  ConsumerState<GroupEventsTab> createState() => _GroupEventsTabState();
+  ConsumerState<GroupEventsSection> createState() => _GroupEventsSectionState();
 }
 
-class _GroupEventsTabState extends ConsumerState<GroupEventsTab> {
+class _GroupEventsSectionState extends ConsumerState<GroupEventsSection> {
   bool _loading = true;
   Object? _error;
   List<Event> _events = const [];
@@ -60,51 +58,38 @@ class _GroupEventsTabState extends ConsumerState<GroupEventsTab> {
     }
   }
 
-  Widget _scrollable(Widget child) {
-    return LayoutBuilder(
-      builder: (context, constraints) => RefreshIndicator(
-        onRefresh: _load,
-        child: SingleChildScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          child: ConstrainedBox(
-            constraints: BoxConstraints(minHeight: constraints.maxHeight),
-            child: child,
-          ),
-        ),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    if (_loading) return _scrollable(const VLoadingView());
+    if (_loading) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: AppSpacing.lg),
+        child: VLoadingView(),
+      );
+    }
     if (_error != null) {
-      return _scrollable(
-        ErrorView(message: _error!.toAppError().message, onRetry: _load),
-      );
+      return ErrorView(message: _error!.toAppError().message, onRetry: _load);
     }
-    if (_events.isEmpty) {
-      return _scrollable(
-        VEmptyView(
-          icon: Icons.event_outlined,
-          title: l10n.groupsEventsEmptyTitle,
-          description: l10n.groupsEventsEmptyBody,
+    if (_events.isEmpty) return const SizedBox.shrink();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          l10n.groupsTabEvents.toUpperCase(),
+          style: Theme.of(context).textTheme.titleSmall,
         ),
-      );
-    }
-    return _scrollable(
-      Column(children: [for (final event in _events) _EventRow(event: event)]),
+        const SizedBox(height: AppSpacing.md),
+        for (final event in _events) _EventRow(event: event),
+      ],
     );
   }
 }
 
-/// One group-event row (hairline style, mirroring the members tab rows):
-/// name, date range and location; tap → event detail.
+/// One group-event row: name, date range and location; tap → event detail.
 class _EventRow extends StatelessWidget {
-  final Event event;
-
   const _EventRow({required this.event});
+
+  final Event event;
 
   @override
   Widget build(BuildContext context) {
@@ -120,11 +105,7 @@ class _EventRow extends StatelessWidget {
         children: [
           ListTile(
             contentPadding: EdgeInsets.zero,
-            leading: const Icon(
-              Icons.event,
-              size: AppIconSizes.md,
-              color: AppColors.mutedStrong,
-            ),
+            leading: const Icon(Icons.event, color: AppColors.mutedStrong),
             title: Text(event.name, maxLines: 1, overflow: TextOverflow.ellipsis),
             subtitle: Column(
               crossAxisAlignment: CrossAxisAlignment.start,

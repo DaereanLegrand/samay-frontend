@@ -67,9 +67,10 @@ class RecentFriendsNotifier extends AsyncNotifier<List<UserSearchResult>> {
     return map;
   }
 
-  /// Peer id → their latest DIRECT minigame session `created_at` from the
-  /// CACHED sessions list (`ref.exists` guard, no fetch). Only sessions the
-  /// current user participates in are listed; peers are the other ids.
+  /// Peer id → their latest minigame session `created_at` (direct or group)
+  /// from the CACHED sessions list (`ref.exists` guard, no fetch). Only
+  /// sessions the current user participates in are listed; peers are the other
+  /// ids.
   Map<String, DateTime> _minigameRecency() {
     if (!ref.exists(myMinigameSessionsProvider)) return const {};
     final sessions =

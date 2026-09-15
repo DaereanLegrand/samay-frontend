@@ -11,6 +11,7 @@ import 'package:samay/core/providers/service_providers.dart';
 import 'package:samay/core/router/route_paths.dart';
 import 'package:samay/core/services/chat_service.dart';
 import 'package:samay/features/chat/providers/chat_providers.dart';
+import 'package:samay/features/minigames/logic/minigame_meta.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/error_view.dart';
 import 'package:samay/shared/widgets/state_views.dart';
@@ -146,8 +147,17 @@ class _ChatListTile extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final mine =
         item.lastMessageSenderId != null && item.lastMessageSenderId == me;
+    // 210/P1: a minigame group notice is the chat's latest activity — preview
+    // it instead of the (empty) message preview and use its timestamp.
+    final isNotice =
+        item.lastActivityKind == 'minigame_notice' &&
+        item.lastNoticeGameType != null;
     final String preview;
-    if (item.lastMessageContent == null) {
+    if (isNotice) {
+      preview = l10n.minigamesGroupMessage(
+        minigameGameName(l10n, item.lastNoticeGameType),
+      );
+    } else if (item.lastMessageContent == null) {
       preview = '';
     } else if (item.decryptFailed) {
       preview = mine
@@ -157,7 +167,10 @@ class _ChatListTile extends StatelessWidget {
       preview =
           '${mine ? l10n.chatInboxPreviewOwn : ''}${item.lastMessageContent}';
     }
-    final timeLabel = _relativeTime(item.lastMessageAt, l10n);
+    final timeLabel = _relativeTime(
+      item.lastActivityAt ?? item.lastMessageAt,
+      l10n,
+    );
     final avatarUrl = item.peerAvatarUrl;
 
     return InkWell(

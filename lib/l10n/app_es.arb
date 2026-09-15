@@ -675,6 +675,15 @@
       }
     }
   },
+  "groupsMembersCountShort": "{count} miembros",
+  "@groupsMembersCountShort": {
+    "description": "Group detail: member count without the cap (user directive 2026-09-15)",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "groupsMyContribution": "Mi contribución: {shards} shards activos",
   "@groupsMyContribution": {
     "description": "Current user's active contribution to the group",
@@ -3265,6 +3274,23 @@
         "type": "String"
       }
     }
+  },
+  "minigamesGroupMessage": "Nueva partida de {game}",
+  "@minigamesGroupMessage": {
+    "description": "Group chat notice bubble: a group match was created (210_minigame_group_message)",
+    "placeholders": {
+      "game": {
+        "type": "String"
+      }
+    }
+  },
+  "minigamesJoin": "Unirse",
+  "@minigamesJoin": {
+    "description": "Group chat notice: direct access to the minigame"
+  },
+  "minigamesView": "Ver",
+  "@minigamesView": {
+    "description": "Group chat notice: view a finished minigame"
   },
   "minigamesInvitedBy": "Invitado por",
   "@minigamesInvitedBy": {

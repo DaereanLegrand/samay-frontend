@@ -364,7 +364,7 @@ class _AudienceTag extends StatelessWidget {
 ///     the session detail for the accept/decline pair.
 ///
 /// Tapping the row body still deep-links to the accept/decline detail.
-class _SessionRow extends StatelessWidget {
+class _SessionRow extends ConsumerWidget {
   final Map<String, dynamic> session;
   final int index;
   final bool pendingInvite;
@@ -384,19 +384,32 @@ class _SessionRow extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final status = session['status'] as String?;
     final wager = (session['shard_wager'] as num?)?.toInt() ?? 0;
     final participants = (session['participants'] as List?)?.length ?? 0;
     final name = minigameSessionName(l10n, session, index: index);
     final inviterName = session['inviterName'] as String?;
-    final groupName = session['groupName'] as String?;
+    final payloadGroupName = session['groupName'] as String?;
     final groupId = session['group_id'] as String?;
-    // Who invited me: a GROUP session shows the group name; a DIRECT session
-    // shows the inviter's username (both ride the notification payload — RLS
-    // hides the underlying rows from a non-member invitee).
-    final fromLabel = pendingInvite && groupId != null
+    // Who invited me / which group: a GROUP session shows the group name; a
+    // DIRECT session shows the inviter's username (both ride the notification
+    // payload for a PENDING row — RLS hides the underlying rows from a
+    // non-member invitee). An ONGOING group row has no invite payload, so its
+    // name is resolved from the caller's groups (1, 2026-09-15) to carry the
+    // group tag in PARTIDAS EN CURSO.
+    final groupName = pendingInvite
+        ? payloadGroupName
+        : groupId == null
+        ? null
+        : ref
+              .watch(myGroupsProvider)
+              .valueOrNull
+              ?.where((g) => g.id == groupId)
+              .firstOrNull
+              ?.name;
+    final fromLabel = groupId != null
         ? groupName == null || groupName.isEmpty
               ? null
               : l10n.minigamesInviteFromGroup(groupName)
@@ -579,6 +592,14 @@ class _NewPartidaScreenState extends ConsumerState<_NewPartidaScreen> {
     final ongoing = sessions
             ?.where((row) => row['status'] != 'finished')
             .where((row) => row['game_type'] == widget.gameType.value)
+            // 1 (2026-09-15): myMinigameSessionsProvider now also carries GROUP
+            // rows; the DIRECT auto-name still counts only direct games. The
+            // group scope reads its own per-group provider, so this is a no-op
+            // there.
+            .where(
+              (row) =>
+                  _scope == MinigameScope.group || row['group_id'] == null,
+            )
             .length ??
         0;
     return l10n.minigamesAutoName(ongoing + 1);

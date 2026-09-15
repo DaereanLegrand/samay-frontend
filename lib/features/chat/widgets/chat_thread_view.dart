@@ -17,9 +17,13 @@ import 'package:samay/core/services/chat_service.dart';
 import 'package:samay/core/theme/samay_durations.dart';
 import 'package:samay/features/chat/providers/chat_providers.dart';
 import 'package:samay/features/groups/providers/groups_providers.dart';
+import 'package:samay/features/minigames/logic/minigame_meta.dart';
+import 'package:samay/features/minigames/providers/minigames_providers.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/error_view.dart';
 import 'package:samay/shared/widgets/state_views.dart';
+import 'package:samay/shared/widgets/v_button.dart';
+import 'package:samay/shared/widgets/v_card.dart';
 import 'package:samay/shared/widgets/v_spinner.dart';
 import 'package:samay/shared/widgets/v_input.dart';
 import 'package:samay/shared/widgets/v_thinking_dots.dart';
@@ -650,6 +654,13 @@ class _ChatThreadViewState extends ConsumerState<ChatThreadView> {
     final l10n = AppLocalizations.of(context);
     final messages = ref.watch(chatMessagesProvider(widget.chatId));
     final currentUserId = ref.watch(authStateProvider).valueOrNull?.user?['id'];
+    // 210 (2026-09-15): group-chat "match created" notices render inline with
+    // the thread as a direct access to the minigame. Group threads only.
+    final groupId = widget.groupId;
+    final notices = groupId == null
+        ? const <Map<String, dynamic>>[]
+        : ref.watch(groupMinigameMessagesProvider(groupId)).valueOrNull ??
+              const <Map<String, dynamic>>[];
 
     // First successful thread load → the user is reading it: mark the chat
     // read so the feed badge drops (see [_markRead]), stamp read receipts,
@@ -688,14 +699,14 @@ class _ChatThreadViewState extends ConsumerState<ChatThreadView> {
                   ref.invalidate(chatMessagesProvider(widget.chatId)),
             ),
             data: (state) {
-              if (state.messages.isEmpty) {
+              if (state.messages.isEmpty && notices.isEmpty) {
                 return VEmptyView(
                   icon: Icons.chat_bubble_outline,
                   title: l10n.chatEmpty,
                 );
               }
               final showHeader = state.hasMore || state.loadingOlder;
-              final entries = _buildThreadEntries(state.messages);
+              final entries = _buildThreadEntries(state.messages, notices);
               return ListView.builder(
                 controller: _scrollController,
                 padding: const EdgeInsets.all(AppSpacing.lg),
@@ -707,6 +718,9 @@ class _ChatThreadViewState extends ConsumerState<ChatThreadView> {
                   final entry = entries[index - (showHeader ? 1 : 0)];
                   if (entry is _DateEntry) {
                     return _DateChip(label: entry.label(l10n));
+                  }
+                  if (entry is _MinigameEntry) {
+                    return _MinigameNoticeCard(row: entry.row);
                   }
                   final row = (entry as _MessageEntry).row;
                   final isOwn =
@@ -751,11 +765,28 @@ class _ChatThreadViewState extends ConsumerState<ChatThreadView> {
 
   /// The thread as display entries: a date separator ([_DateEntry]) before
   /// the first message of each day, then every message. Dates are compared
-  /// in local time.
-  List<Object> _buildThreadEntries(List<Map<String, dynamic>> rows) {
+  /// in local time. Group-chat minigame notices (210) are merged in by
+  /// `created_at` and rendered as [_MinigameEntry].
+  List<Object> _buildThreadEntries(
+    List<Map<String, dynamic>> rows,
+    List<Map<String, dynamic>> notices,
+  ) {
+    final combined = <Map<String, dynamic>>[
+      ...rows,
+      for (final notice in notices) {...notice, '_minigameNotice': true},
+    ];
+    // Stable chronological order: real messages and notices interleave by
+    // creation time (messages already arrive ordered; the sort keeps the
+    // merged stream honest).
+    combined.sort((a, b) {
+      final ca = _createdOf(a);
+      final cb = _createdOf(b);
+      if (ca == null || cb == null) return 0;
+      return ca.compareTo(cb);
+    });
     final entries = <Object>[];
     DateTime? lastDay;
-    for (final row in rows) {
+    for (final row in combined) {
       final created = _createdOf(row);
       final day = created == null
           ? null
@@ -764,7 +795,9 @@ class _ChatThreadViewState extends ConsumerState<ChatThreadView> {
         entries.add(_DateEntry(day));
         lastDay = day;
       }
-      entries.add(_MessageEntry(row));
+      entries.add(
+        row['_minigameNotice'] == true ? _MinigameEntry(row) : _MessageEntry(row),
+      );
     }
     return entries;
   }
@@ -940,6 +973,68 @@ class _MessageEntry {
   final Map<String, dynamic> row;
 
   const _MessageEntry(this.row);
+}
+
+/// A 210 group-chat notice entry ("match created") — see
+/// [_MinigameNoticeCard].
+class _MinigameEntry {
+  final Map<String, dynamic> row;
+
+  const _MinigameEntry(this.row);
+}
+
+/// The group-chat "match created" bubble (210_minigame_group_message): the
+/// game name plus a direct-access action that opens the partida. The session
+/// detail resolves the caller's state (participant lobby, pending-invite
+/// accept card, or finished summary), so one destination covers all cases.
+class _MinigameNoticeCard extends StatelessWidget {
+  const _MinigameNoticeCard({required this.row});
+
+  final Map<String, dynamic> row;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final sessionId = row['session_id'] as String?;
+    final rawSession = row['session'];
+    final session = rawSession is Map
+        ? Map<String, dynamic>.from(rawSession)
+        : null;
+    final finished = session?['status'] == 'finished';
+    final gameName = session == null
+        ? l10n.minigamesTitle
+        : minigameGameName(l10n, session['game_type'] as String?);
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 320),
+          child: VCard(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.sports_esports, color: AppColors.white),
+                const SizedBox(height: AppSpacing.sm),
+                Text(
+                  l10n.minigamesGroupMessage(gameName),
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+                const SizedBox(height: AppSpacing.md),
+                if (sessionId != null)
+                  VButton.emphasized(
+                    label: finished ? l10n.minigamesView : l10n.minigamesJoin,
+                    onPressed: () =>
+                        context.push(RoutePaths.minigameSession(sessionId)),
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 /// A centered day chip ("Today" / "Yesterday" / dd/MM/yyyy) separating the

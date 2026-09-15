@@ -23,6 +23,7 @@ import 'package:samay/features/minigames/widgets/minigame_header_title.dart';
 import 'package:samay/features/minigames/widgets/reaction_rise.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/error_view.dart';
+import 'package:samay/shared/widgets/full_screen_image.dart';
 import 'package:samay/shared/widgets/state_views.dart';
 import 'package:samay/shared/widgets/v_button.dart';
 import 'package:samay/shared/widgets/v_card.dart';
@@ -483,47 +484,8 @@ class TruthDareScreen extends ConsumerWidget {
 /// An X at the top-right dismisses it; tapping the image, the backdrop, or
 /// the system back gesture also closes it.
 void _showFullAnswerImage(BuildContext context, Uint8List bytes) {
-  showDialog<void>(
-    context: context,
-    barrierColor: AppColors.discoBlack,
-    builder: (dialogContext) => Dialog(
-      backgroundColor: AppColors.discoBlack,
-      insetPadding: EdgeInsets.zero,
-      child: SizedBox.expand(
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            GestureDetector(
-              onTap: () => Navigator.of(dialogContext).pop(),
-              child: Image.memory(
-                bytes,
-                fit: BoxFit.contain,
-                gaplessPlayback: true,
-                errorBuilder: (_, _, _) => const SizedBox.shrink(),
-              ),
-            ),
-            SafeArea(
-              child: Align(
-                alignment: Alignment.topRight,
-                child: Padding(
-                  padding: const EdgeInsets.all(AppSpacing.sm),
-                  child: IconButton(
-                    onPressed: () => Navigator.of(dialogContext).pop(),
-                    tooltip: AppLocalizations.of(dialogContext).commonClose,
-                    icon: const Icon(Icons.close),
-                    style: IconButton.styleFrom(
-                      backgroundColor: AppColors.surface,
-                      foregroundColor: AppColors.white,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    ),
-  );
+  // Shared full-screen viewer (zoomable) — see `showFullScreenImage`.
+  showFullScreenImage(context, bytes: bytes);
 }
 
 /// A tiny BuildContext holder used by the anonymous default-alias resolver.

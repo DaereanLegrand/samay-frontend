@@ -10,6 +10,7 @@ import 'package:samay/core/providers/service_providers.dart';
 import 'package:samay/core/services/permission_service.dart';
 import 'package:samay/core/utils/form_validators.dart';
 import 'package:samay/core/utils/input_sanitizer.dart';
+import 'package:samay/features/chat/providers/chat_providers.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/show_app_error.dart';
 import 'package:samay/shared/widgets/v_button.dart';
@@ -108,6 +109,9 @@ class _CreateGroupScreenState extends ConsumerState<CreateGroupScreen> {
         'description': description,
         'cover_url': coverUrl,
       });
+      // The group's chat row is created with it (group_service) — refresh the
+      // inbox so the new group chat shows immediately (P1, 2026-09-15).
+      ref.invalidate(chatInboxProvider);
       setState(() => _loading = false);
       if (mounted) {
         ScaffoldMessenger.of(

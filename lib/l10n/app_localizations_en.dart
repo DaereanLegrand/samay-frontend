@@ -513,6 +513,11 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String groupsMembersCountShort(int count) {
+    return '$count members';
+  }
+
+  @override
   String groupsMyContribution(int shards) {
     return 'My contribution: $shards active shards';
   }
@@ -2453,6 +2458,17 @@ class AppLocalizationsEn extends AppLocalizations {
   String minigamesInviteFromGroup(String name) {
     return 'Group $name';
   }
+
+  @override
+  String minigamesGroupMessage(String game) {
+    return 'New $game match';
+  }
+
+  @override
+  String get minigamesJoin => 'JOIN';
+
+  @override
+  String get minigamesView => 'View';
 
   @override
   String get minigamesInvitedBy => 'Invited by';

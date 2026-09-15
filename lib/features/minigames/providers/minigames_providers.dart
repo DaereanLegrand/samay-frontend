@@ -204,11 +204,38 @@ final minigameSessionsProvider =
       String
     >(MinigameSessionsNotifier.new);
 
-/// The current user's DIRECT sessions (group_id IS NULL), newest first —
-/// the direct-play hub (direct-minigames 2026-08-27). RLS
-/// `ms_read_direct_participant` bounds the read to sessions where the caller
-/// is a participant (creator is participant[0]); the group-scoped
-/// [minigameSessionsProvider] stays for the group hub.
+/// One group's chat notices (210_minigame_group_message, 2026-09-15) — the
+/// "match created" bubbles [ChatThreadView] renders inline as a direct access
+/// to the minigame. Family over the group id; invalidated by
+/// [MinigameSessionsRealtimeListener] on any session row event (the notice is
+/// written in the same transaction as the session insert).
+class GroupMinigameMessagesNotifier
+    extends FamilyAsyncNotifier<List<Map<String, dynamic>>, String> {
+  MinigameService get _service => ref.read(minigameServiceProvider);
+
+  @override
+  Future<List<Map<String, dynamic>>> build(String groupId) {
+    return _service.listGroupMinigameMessages(groupId);
+  }
+
+  /// Re-runs [build] (finding SM-09).
+  Future<void> refresh() async => ref.invalidateSelf();
+}
+
+final groupMinigameMessagesProvider =
+    AsyncNotifierProvider.family<
+      GroupMinigameMessagesNotifier,
+      List<Map<String, dynamic>>,
+      String
+    >(GroupMinigameMessagesNotifier.new);
+
+/// The current user's sessions — DIRECT and GROUP — newest first, where the
+/// caller is a participant (creator is participant[0]). RLS bounds the read
+/// (`ms_read_direct_participant` / `ms_read_group_member`); the client-side
+/// `participants @> {uid}` filter keeps it to the caller's own games. This is
+/// the direct hub's list AND the per-game PARTIDAS EN CURSO source, so group
+/// partidas surface there too (each row keeps its `group_id` for the group
+/// tag); the group-scoped [minigameSessionsProvider] stays for the group hub.
 class MyMinigameSessionsNotifier
     extends AsyncNotifier<List<Map<String, dynamic>>> {
   MinigameService get _service => ref.read(minigameServiceProvider);

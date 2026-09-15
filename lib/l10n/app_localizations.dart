@@ -1022,6 +1022,12 @@ abstract class AppLocalizations {
   /// **'{members} / {limit} miembros'**
   String groupsMemberCount(int members, int limit);
 
+  /// Group detail: member count without the cap (user directive 2026-09-15)
+  ///
+  /// In es, this message translates to:
+  /// **'{count} miembros'**
+  String groupsMembersCountShort(int count);
+
   /// Current user's active contribution to the group
   ///
   /// In es, this message translates to:
@@ -4525,6 +4531,24 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'Grupo {name}'**
   String minigamesInviteFromGroup(String name);
+
+  /// Group chat notice bubble: a group match was created (210_minigame_group_message)
+  ///
+  /// In es, this message translates to:
+  /// **'Nueva partida de {game}'**
+  String minigamesGroupMessage(String game);
+
+  /// Group chat notice: direct access to the minigame
+  ///
+  /// In es, this message translates to:
+  /// **'Unirse'**
+  String get minigamesJoin;
+
+  /// Group chat notice: view a finished minigame
+  ///
+  /// In es, this message translates to:
+  /// **'Ver'**
+  String get minigamesView;
 
   /// Session detail pending invite: subtitle under the inviter's username (mirrors the participant 'Anfitrión' subtitle)
   ///

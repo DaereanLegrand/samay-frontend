@@ -132,18 +132,19 @@ class MinigameService {
     return res.map((e) => Map<String, dynamic>.from(e)).toList();
   }
 
-  /// The current user's DIRECT sessions (group_id IS NULL), newest first —
-  /// the direct-play hub list. RLS `ms_read_direct_participant` bounds the
-  /// read to sessions where the caller is a participant (the creator is
-  /// participant[0]); the `group_id IS NULL` + `participants @> {uid}`
-  /// filters mirror that server contract client-side.
+  /// The current user's sessions — DIRECT and GROUP — newest first, where the
+  /// caller is a participant (the creator is participant[0]). RLS bounds the
+  /// read (`ms_read_direct_participant` for direct rows, `ms_read_group_member`
+  /// for group rows); the `participants @> {uid}` filter keeps it to the
+  /// caller's OWN games. This is the source for the per-game PARTIDAS EN CURSO
+  /// list and the direct hub, so both scopes surface here — each group row
+  /// carries its `group_id` for the group tag.
   Future<List<Map<String, dynamic>>> listMySessions() async {
     final user = auth.currentUser;
     if (user == null) throw const UnauthorizedError();
     final res = await client
         .from('minigame_sessions')
         .select(_columns)
-        .isFilter('group_id', null)
         .contains('participants', [user.id])
         .order('created_at', ascending: false);
     return res.map((e) => Map<String, dynamic>.from(e)).toList();
@@ -552,6 +553,26 @@ class MinigameService {
       if (session != null) sessions.add(session);
     }
     return sessions;
+  }
+
+  /// The group-chat "match created" notices for [groupId] (210,
+  /// 2026-09-15) — one row per group partida, written server-side on creation
+  /// by the `notify_minigame_group_message` trigger. The embedded session row
+  /// (RLS `ms_read_group_member`) gives the thread everything it needs to
+  /// render the direct-access bubble. RLS `mgm_read_group_member` bounds the
+  /// read to active group members.
+  Future<List<Map<String, dynamic>>> listGroupMinigameMessages(
+    String groupId,
+  ) async {
+    final res = await client
+        .from('minigame_group_messages')
+        .select(
+          'id, session_id, actor_id, created_at, '
+          'session:minigame_sessions(id, game_type, status, name, auto_name, participants)',
+        )
+        .eq('group_id', groupId)
+        .order('created_at', ascending: true);
+    return res.map((e) => Map<String, dynamic>.from(e)).toList();
   }
 
   /// Accepts [inviteId] via the `accept_minigame_invite` SECURITY DEFINER RPC

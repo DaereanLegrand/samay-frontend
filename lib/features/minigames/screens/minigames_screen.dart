@@ -548,18 +548,29 @@ class _GameCard extends StatelessWidget {
   }
 }
 
-class _SessionCard extends StatelessWidget {
+class _SessionCard extends ConsumerWidget {
   final Map<String, dynamic> session;
   final VoidCallback onTap;
 
   const _SessionCard({required this.session, required this.onTap});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final status = session['status'] as String?;
     final wager = (session['shard_wager'] as num?)?.toInt() ?? 0;
     final participants = (session['participants'] as List?)?.length ?? 0;
+    // 1 (2026-09-15): a GROUP row carries the group name as a tag (resolved
+    // from the caller's groups); a DIRECT row shows nothing.
+    final groupId = session['group_id'] as String?;
+    final groupName = groupId == null
+        ? null
+        : ref
+              .watch(myGroupsProvider)
+              .valueOrNull
+              ?.where((g) => g.id == groupId)
+              .firstOrNull
+              ?.name;
 
     return InkWell(
       onTap: onTap,
@@ -586,6 +597,16 @@ class _SessionCard extends StatelessWidget {
                           : l10n.minigamesParticipants(participants),
                       style: const TextStyle(color: AppColors.mutedStrong),
                     ),
+                    if (groupName != null && groupName.isNotEmpty) ...[
+                      const SizedBox(height: AppSpacing.xs),
+                      Text(
+                        l10n.minigamesInviteFromGroup(groupName),
+                        style: const TextStyle(
+                          color: AppColors.mutedStrong,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),

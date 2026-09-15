@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:samay/core/logging/app_logger.dart';
 import 'package:samay/core/providers/auth_provider.dart';
 import 'package:samay/core/providers/service_providers.dart';
+import 'package:samay/features/chat/providers/chat_providers.dart';
 import 'package:samay/features/minigames/providers/minigames_providers.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' show RealtimeChannel;
 
@@ -76,6 +77,13 @@ class _MinigameSessionsRealtimeListenerState
             final gid = row['group_id'];
             if (gid is String && gid.isNotEmpty) {
               ref.invalidate(minigameSessionsProvider(gid));
+              // 210: the group-chat notice is written in the same transaction
+              // as the session insert, so this is the live delivery seam for
+              // the JOIN bubble.
+              ref.invalidate(groupMinigameMessagesProvider);
+              // P1: the notice is chat activity — refresh the inbox preview/
+              // unread so the group chat bumps without a manual refresh.
+              ref.invalidate(chatInboxProvider);
             }
           });
       if (!mounted || _subscribedUid != uid) {
