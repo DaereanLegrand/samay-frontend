@@ -178,7 +178,14 @@ class _MinigameSessionDetailScreenState
             wasCountdown &&
             phase == MinigamePhase.playing &&
             context.mounted) {
-          context.push(RoutePaths.truthDare(_sessionId));
+          final gameType = ref
+              .read(sessionStatusProvider(_sessionId))
+              .valueOrNull?['game_type'] as String?;
+          final route = switch (gameType) {
+            'two_lies_one_truth' => RoutePaths.twoLiesOneTruth(_sessionId),
+            _ => RoutePaths.truthDare(_sessionId),
+          };
+          context.push(route);
         }
       },
     );
@@ -517,8 +524,7 @@ class _LobbySection extends ConsumerWidget {
           // they never left the roster). Empezar/¿Listo? are pre-play
           // semantics and mean nothing here, so BOTH host and participant get
           // a "Volver a la partida" rejoin CTA that routes back into the play
-          // screen (TruthDareScreen renders the correct mid-round state from
-          // the same providers).
+          // screen for the session's game type.
           if (isPlaying)
             VButton.emphasized(
               label: l10n.minigamesRejoin,
@@ -543,11 +549,23 @@ class _LobbySection extends ConsumerWidget {
   }
 
   /// Returns the caller to the RUNNING match (2026-09-02): pushes the play
-  /// screen exactly like the live countdown → playing navigation does — the
-  /// game-state row is already `playing` and holds the current round, so
-  /// TruthDareScreen picks up the right subject/prompt/reactions.
+  /// screen for the session's game type, exactly like the live countdown →
+  /// playing navigation does — the game-state row is already `playing` and
+  /// holds the current round, so the play screen picks up the right
+  /// subject/prompt/reactions.
   void _rejoin(BuildContext context, WidgetRef ref) {
-    context.push(RoutePaths.truthDare(sessionId));
+    context.push(_playRouteFor(ref));
+  }
+
+  /// Play-screen route for the session's game type — the single dispatch
+  /// point for every lobby → game CTA (extend the switch when a new game
+  /// ships instead of adding another inline switch).
+  String _playRouteFor(WidgetRef ref) {
+    final session = ref.read(sessionStatusProvider(sessionId)).valueOrNull;
+    return switch (session?['game_type'] as String?) {
+      'two_lies_one_truth' => RoutePaths.twoLiesOneTruth(sessionId),
+      _ => RoutePaths.truthDare(sessionId),
+    };
   }
 
   Future<void> _toggleReady(BuildContext context, WidgetRef ref) async {
@@ -561,6 +579,18 @@ class _LobbySection extends ConsumerWidget {
   }
 
   Future<void> _start(BuildContext context, WidgetRef ref) async {
+    final l10n = AppLocalizations.of(context);
+    final session = ref.read(sessionStatusProvider(sessionId)).valueOrNull;
+    final participantIds =
+        (session?['participants'] as List?)?.cast<String?>() ?? const [];
+    final type = minigameTypeFromString(session?['game_type'] as String?);
+    final isMultiplayerOnly = type?.audience == MinigameAudience.friends;
+    if (isMultiplayerOnly && participantIds.length < 2) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.minigamesWaitingForPlayers)),
+      );
+      return;
+    }
     try {
       // 190_minigame_countdown: Start only triggers the server signal — the
       // countdown overlay appears for everyone and navigation happens on the

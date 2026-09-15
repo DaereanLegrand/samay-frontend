@@ -1852,6 +1852,17 @@ class AppLocalizationsEn extends AppLocalizations {
       'Complete the challenge before the time runs out. Play it solo or compete with friends.';
 
   @override
+  String get minigamesGameTwoLiesOneTruth => '2 Lies, 1 Truth';
+
+  @override
+  String get minigamesGameTwoLiesOneTruthTagline =>
+      'Guess which one is the real truth';
+
+  @override
+  String get minigamesGameTwoLiesOneTruthExplanation =>
+      'The subject writes 3 statements about themselves: 2 lies and 1 truth. The others must guess which one is real.';
+
+  @override
   String get minigamesAudienceFriends => 'Meant for playing with friends';
 
   @override
@@ -2480,4 +2491,65 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get minigamesInviteFriendsOnlySaveError =>
       'Couldn\'t save the preference.';
+
+  @override
+  String get minigamesGoToGame => 'Go to game';
+
+  @override
+  String get minigamesTwoLiesInstructions =>
+      'Write 3 statements about yourself: 2 lies and 1 truth. Select which one is the truth.';
+
+  @override
+  String minigamesTwoLiesStatementNumber(int number) {
+    return 'Statement $number';
+  }
+
+  @override
+  String get minigamesTwoLiesStatementPlaceholder =>
+      'Write your statement here...';
+
+  @override
+  String get minigamesTwoLiesMarkTruth => 'This is the truth';
+
+  @override
+  String get minigamesTwoLiesSubmitStatements => 'Submit statements';
+
+  @override
+  String get minigamesTwoLiesGuessPrompt =>
+      'Which of these 3 statements is THE TRUTH?';
+
+  @override
+  String get minigamesTwoLiesVoteConfirm => 'Vote for this option';
+
+  @override
+  String get minigamesTwoLiesVoteConfirmed => 'Your vote is recorded';
+
+  @override
+  String get minigamesTwoLiesTruthBadge => 'THE TRUTH';
+
+  @override
+  String get minigamesTwoLiesLieBadge => 'LIE';
+
+  @override
+  String minigamesTwoLiesWaitingSubject(String name) {
+    return '$name is writing their 3 statements...';
+  }
+
+  @override
+  String minigamesTwoLiesWaitingVotes(int voted, int total) {
+    return 'Waiting for everyone to vote... ($voted/$total)';
+  }
+
+  @override
+  String minigamesTwoLiesTopicLabel(String topic) {
+    return 'Suggested topic: $topic';
+  }
+
+  @override
+  String get minigamesTwoLiesFillAllError =>
+      'You must complete all 3 statements';
+
+  @override
+  String get minigamesTwoLiesSelectTruthError =>
+      'You must mark exactly one statement as the truth';
 }

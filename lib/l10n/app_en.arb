@@ -2450,6 +2450,18 @@
   "@minigamesGameChallengeExplanation": {
     "description": "Game #5 explanation on the dedicated game page"
   },
+  "minigamesGameTwoLiesOneTruth": "2 Lies, 1 Truth",
+  "@minigamesGameTwoLiesOneTruth": {
+    "description": "Game #6 name (Two Lies, One Truth)"
+  },
+  "minigamesGameTwoLiesOneTruthTagline": "Guess which one is the real truth",
+  "@minigamesGameTwoLiesOneTruthTagline": {
+    "description": "Game #6 one-line tagline"
+  },
+  "minigamesGameTwoLiesOneTruthExplanation": "The subject writes 3 statements about themselves: 2 lies and 1 truth. The others must guess which one is real.",
+  "@minigamesGameTwoLiesOneTruthExplanation": {
+    "description": "Game #6 explanation on the dedicated game page"
+  },
   "minigamesAudienceFriends": "Meant for playing with friends",
   "@minigamesAudienceFriends": {
     "description": "Per-game page: the game is meant to be played with friends"
@@ -3298,5 +3310,83 @@
   "minigamesInviteFriendsOnlySaveError": "Couldn't save the preference.",
   "@minigamesInviteFriendsOnlySaveError": {
     "description": "Settings snackbar when persisting the friends-only invite switch fails"
+  },
+  "minigamesGoToGame": "Go to game",
+  "@minigamesGoToGame": {
+    "description": "Button to navigate to an ongoing game from the lobby"
+  },
+  "minigamesTwoLiesInstructions": "Write 3 statements about yourself: 2 lies and 1 truth. Select which one is the truth.",
+  "@minigamesTwoLiesInstructions": {
+    "description": "Instruction for the subject composing their statements"
+  },
+  "minigamesTwoLiesStatementNumber": "Statement {number}",
+  "@minigamesTwoLiesStatementNumber": {
+    "description": "Header for each statement input",
+    "placeholders": {
+      "number": { "type": "int" }
+    }
+  },
+  "minigamesTwoLiesStatementPlaceholder": "Write your statement here...",
+  "@minigamesTwoLiesStatementPlaceholder": {
+    "description": "Placeholder for each statement text field"
+  },
+  "minigamesTwoLiesMarkTruth": "This is the truth",
+  "@minigamesTwoLiesMarkTruth": {
+    "description": "Radio button / chip label marking a statement as the truth"
+  },
+  "minigamesTwoLiesSubmitStatements": "Submit statements",
+  "@minigamesTwoLiesSubmitStatements": {
+    "description": "Submit button for the subject's statements"
+  },
+  "minigamesTwoLiesGuessPrompt": "Which of these 3 statements is THE TRUTH?",
+  "@minigamesTwoLiesGuessPrompt": {
+    "description": "Header for voters asking which statement is the truth"
+  },
+  "minigamesTwoLiesVoteConfirm": "Vote for this option",
+  "@minigamesTwoLiesVoteConfirm": {
+    "description": "Button to confirm vote for the selected statement"
+  },
+  "minigamesTwoLiesVoteConfirmed": "Your vote is recorded",
+  "@minigamesTwoLiesVoteConfirmed": {
+    "description": "Badge showing that voter's guess has been recorded"
+  },
+  "minigamesTwoLiesTruthBadge": "THE TRUTH",
+  "@minigamesTwoLiesTruthBadge": {
+    "description": "Badge marking the revealed true statement"
+  },
+  "minigamesTwoLiesLieBadge": "LIE",
+  "@minigamesTwoLiesLieBadge": {
+    "description": "Badge marking a revealed lie statement"
+  },
+  "minigamesTwoLiesWaitingSubject": "{name} is writing their 3 statements...",
+  "@minigamesTwoLiesWaitingSubject": {
+    "description": "Waiting message shown to non-subjects while subject is writing",
+    "placeholders": {
+      "name": { "type": "String" }
+    }
+  },
+  "minigamesTwoLiesWaitingVotes": "Waiting for everyone to vote... ({voted}/{total})",
+  "@minigamesTwoLiesWaitingVotes": {
+    "description": "Tally shown to the subject after submitting",
+    "placeholders": {
+      "voted": { "type": "int" },
+      "total": { "type": "int" }
+    }
+  },
+  "minigamesTwoLiesTopicLabel": "Suggested topic: {topic}",
+  "@minigamesTwoLiesTopicLabel": {
+    "description": "Inspirational topic prompt badge",
+    "placeholders": {
+      "topic": { "type": "String" }
+    }
+  },
+  "minigamesTwoLiesFillAllError": "You must complete all 3 statements",
+  "@minigamesTwoLiesFillAllError": {
+    "description": "Validation error when some statements are empty"
+  },
+  "minigamesTwoLiesSelectTruthError": "You must mark exactly one statement as the truth",
+  "@minigamesTwoLiesSelectTruthError": {
+    "description": "Validation error when truth index is not selected"
   }
 }
+

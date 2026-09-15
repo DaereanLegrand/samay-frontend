@@ -172,7 +172,12 @@ enum ReactionKind {
   heart('heart'),
 
   /// Reactor Pasar (204_minigame_pasar): no emoji, the subject scores -0.5.
-  pass('pasar');
+  pass('pasar'),
+
+  /// 206_minigame_two_lies_one_truth: votes for statement 0, 1, or 2.
+  vote0('vote_0'),
+  vote1('vote_1'),
+  vote2('vote_2');
 
   const ReactionKind(this.wire);
 
@@ -211,6 +216,9 @@ ReactionKind? reactionKindFromWire(String? value) {
     'demon' => ReactionKind.demon,
     'heart' => ReactionKind.heart,
     'pasar' => ReactionKind.pass,
+    'vote_0' => ReactionKind.vote0,
+    'vote_1' => ReactionKind.vote1,
+    'vote_2' => ReactionKind.vote2,
     _ => null,
   };
 }

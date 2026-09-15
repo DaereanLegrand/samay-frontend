@@ -15,7 +15,8 @@ enum MinigameType {
   questions('questions'),
   truthDare('truth_dare'),
   drunkBottle('drunk_bottle'),
-  challenge('challenge');
+  challenge('challenge'),
+  twoLiesOneTruth('two_lies_one_truth');
 
   const MinigameType(this.value);
 
