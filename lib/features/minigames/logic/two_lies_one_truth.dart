@@ -85,9 +85,3 @@ int? twoLiesVoteIndexFromReaction(ReactionKind? reaction) {
 
 /// Converts a statement index (0, 1, or 2) into the wire reaction string ('vote_0'..'vote_2').
 String twoLiesWireReactionForIndex(int index) => 'vote_$index';
-
-/// The revealed topic prompt body for the current turn, or null when none revealed.
-String? twoLiesTopicPromptBody(Map<String, dynamic>? prompt) {
-  final body = prompt?['body'];
-  return body is String && body.isNotEmpty ? body : null;
-}

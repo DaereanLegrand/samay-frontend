@@ -5036,12 +5036,6 @@ abstract class AppLocalizations {
   /// **'Esperando los votos de los demás... ({voted}/{total})'**
   String minigamesTwoLiesWaitingVotes(int voted, int total);
 
-  /// Inspirational topic prompt badge
-  ///
-  /// In es, this message translates to:
-  /// **'Tema sugerido: {topic}'**
-  String minigamesTwoLiesTopicLabel(String topic);
-
   /// Validation error when some statements are empty
   ///
   /// In es, this message translates to:

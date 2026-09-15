@@ -2767,11 +2767,6 @@ class AppLocalizationsEs extends AppLocalizations {
   }
 
   @override
-  String minigamesTwoLiesTopicLabel(String topic) {
-    return 'Tema sugerido: $topic';
-  }
-
-  @override
   String get minigamesTwoLiesFillAllError =>
       'Debes completar las 3 afirmaciones';
 

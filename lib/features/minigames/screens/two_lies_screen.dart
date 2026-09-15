@@ -82,7 +82,6 @@ class TwoLiesScreen extends ConsumerWidget {
             final subjectId = skeleton.subjectId;
             final isMyTurn = subjectId != null && subjectId == myId;
             final roundTarget = skeleton.roundTarget;
-            final topicPrompt = twoLiesTopicPromptBody(skeleton.prompt);
 
             return ListView(
               padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
@@ -127,15 +126,6 @@ class TwoLiesScreen extends ConsumerWidget {
                     ),
                     textAlign: TextAlign.center,
                     style: const TextStyle(fontSize: 14),
-                  ),
-                ],
-                if (topicPrompt != null) ...[
-                  const SizedBox(height: AppSpacing.sm),
-                  Center(
-                    child: VChip(
-                      label: l10n.minigamesTwoLiesTopicLabel(topicPrompt),
-                      selected: false,
-                    ),
                   ),
                 ],
                 const SizedBox(height: AppSpacing.md),
