@@ -2759,11 +2759,6 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String minigamesTwoLiesTopicLabel(String topic) {
-    return 'Suggested topic: $topic';
-  }
-
-  @override
   String get minigamesTwoLiesFillAllError =>
       'You must complete all 3 statements';
 

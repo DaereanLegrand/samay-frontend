@@ -1026,7 +1026,9 @@ RealtimeChannel subscribeToSession(String id) {
   /// Submits the current-turn subject's E2EE answer via the
   /// `submit_minigame_answer` SECURITY DEFINER RPC (202_minigame_play_v2).
   /// Gates: caller IS the state.subject_id, by_turns mode, round not already
-  /// answered/passed, prompt revealed. The answer rides the payload as
+  /// answered/passed, prompt revealed — EXCEPT `two_lies_one_truth`, which is
+  /// prompt-less (217): the subject freely writes their 3 statements. The
+  /// answer rides the payload as
   /// CIPHERTEXT only (the server never sees plaintext) and streams to every
   /// participant via the game-state realtime channel. [imageStoragePath] is the
   /// optional private-bucket object path of the ENCRYPTED image bytes (reto) —

@@ -3418,13 +3418,6 @@
       "total": { "type": "int" }
     }
   },
-  "minigamesTwoLiesTopicLabel": "Suggested topic: {topic}",
-  "@minigamesTwoLiesTopicLabel": {
-    "description": "Inspirational topic prompt badge",
-    "placeholders": {
-      "topic": { "type": "String" }
-    }
-  },
   "minigamesTwoLiesFillAllError": "You must complete all 3 statements",
   "@minigamesTwoLiesFillAllError": {
     "description": "Validation error when some statements are empty"
