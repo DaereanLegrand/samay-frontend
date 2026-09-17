@@ -128,7 +128,8 @@ class MinigameAnswer {
   final String? imageStoragePath;
   final bool passed;
 
-  bool get hasAnswer => answerCiphertext != null && answerCiphertext!.isNotEmpty;
+  bool get hasAnswer =>
+      answerCiphertext != null && answerCiphertext!.isNotEmpty;
   bool get hasImage => imageStoragePath != null && imageStoragePath!.isNotEmpty;
 
   /// Parses the nested `state.answer` payload (the current by_turns round).
@@ -143,6 +144,65 @@ class MinigameAnswer {
       passed: json['passed'] == true,
     );
   }
+}
+
+/// Where the author placed their answer text on the answer canvas
+/// (2026-09-15). A normalized, device-independent description so every
+/// participant renders the answer at the same spot on their own screen.
+///
+/// [x]/[y] are the text's CENTER as fractions of the canvas (0..1; (0,0) is
+/// the top-left, (1,1) the bottom-right). [rotation] is in radians and [scale]
+/// is a font-size multiplier (1.0 = the base answer size). The default is the
+/// canvas center, unrotated, unscaled.
+class MinigameAnswerLayout {
+  const MinigameAnswerLayout({
+    this.x = 0.5,
+    this.y = 0.5,
+    this.rotation = 0,
+    this.scale = 1,
+  });
+
+  final double x;
+  final double y;
+  final double rotation;
+  final double scale;
+
+  /// The canvas-center, unrotated, unscaled layout (legacy answers).
+  static const MinigameAnswerLayout center = MinigameAnswerLayout();
+
+  /// Font-scale bounds (the pinch clamps to this range).
+  static const double minScale = 0.5;
+  static const double maxScale = 3.0;
+
+  Map<String, dynamic> toJson() => {'x': x, 'y': y, 'r': rotation, 's': scale};
+
+  static MinigameAnswerLayout fromJson(Map<String, dynamic> json) {
+    final x = json['x'];
+    final y = json['y'];
+    final r = json['r'];
+    final s = json['s'];
+    return MinigameAnswerLayout(
+      x: x is num ? x.toDouble().clamp(0.0, 1.0) : 0.5,
+      y: y is num ? y.toDouble().clamp(0.0, 1.0) : 0.5,
+      rotation: r is num ? r.toDouble() : 0,
+      scale: s is num ? s.toDouble().clamp(minScale, maxScale) : 1,
+    );
+  }
+}
+
+/// The decrypted answer payload: the author's [text] plus the on-canvas
+/// [layout] they arranged (2026-09-15). Both ride the SAME E2EE blob, so the
+/// server never sees the text OR where it was placed.
+class MinigameAnswerPayload {
+  const MinigameAnswerPayload({
+    this.text,
+    this.layout = MinigameAnswerLayout.center,
+  });
+
+  final String? text;
+  final MinigameAnswerLayout layout;
+
+  bool get hasText => text != null && text!.isNotEmpty;
 }
 
 /// The reactions of the realtime voting (201_minigame_voting + 204_minigame_pasar).
@@ -278,7 +338,9 @@ class ReactionEvent {
     return ReactionEvent(
       seq: json['seq'] is num ? (json['seq'] as num).toInt() : 0,
       round: json['round'] is num ? (json['round'] as num).toInt() : 0,
-      kind: reactionKindFromWire(json['reaction'] as String?) ?? ReactionKind.pass,
+      kind:
+          reactionKindFromWire(json['reaction'] as String?) ??
+          ReactionKind.pass,
       voterId: json['voter_id'] as String? ?? '',
     );
   }
@@ -300,7 +362,11 @@ int reactionScore(int reactionCount) {
 ///
 /// [positions] is capped at [playerCount] (you cannot pay more places than
 /// players). Throws [ArgumentError] for a non-positive pot or positions.
-List<int> harmonicPrizes(int pot, {required int positions, int playerCount = 3}) {
+List<int> harmonicPrizes(
+  int pot, {
+  required int positions,
+  int playerCount = 3,
+}) {
   if (pot <= 0) {
     throw ArgumentError.value(pot, 'pot', 'must be > 0');
   }
@@ -423,7 +489,8 @@ class GameTurnSkeleton {
   final Set<String> keyRequests;
 
   /// Whether [participantId] is currently awaiting a round-key re-share.
-  bool isRequestingKeys(String participantId) => keyRequests.contains(participantId);
+  bool isRequestingKeys(String participantId) =>
+      keyRequests.contains(participantId);
 
   /// The async completed rounds (the "reactable rounds" list) —
   /// ciphertext-only [MinigameAnswer] rows (202_minigame_play_v2).
@@ -713,8 +780,7 @@ class GameTurnSkeleton {
     if (value is! Map) return const {};
     return {
       for (final e in value.entries)
-        if (e.value is num)
-          e.key.toString(): (e.value as num).toInt(),
+        if (e.value is num) e.key.toString(): (e.value as num).toInt(),
     };
   }
 
@@ -866,7 +932,9 @@ class GameRoundRecord {
       subjectId: json['subject_id'] as String,
       promptType: json['prompt_type'] as String?,
       promptId: json['prompt_id'] as String?,
-      outcome: json['outcome'] == 'done' ? PromptOutcome.done : PromptOutcome.skip,
+      outcome: json['outcome'] == 'done'
+          ? PromptOutcome.done
+          : PromptOutcome.skip,
       at: DateTime.tryParse(json['at'] as String? ?? '') ?? DateTime.now(),
     );
   }
@@ -922,7 +990,8 @@ class MinigameGameState {
       rounds: rawRounds is List
           ? [
               for (final r in rawRounds)
-                if (r is Map) GameRoundRecord.fromJson(Map<String, dynamic>.from(r)),
+                if (r is Map)
+                  GameRoundRecord.fromJson(Map<String, dynamic>.from(r)),
             ]
           : const [],
       ready: rawReady is Map
@@ -931,9 +1000,11 @@ class MinigameGameState {
                 if (e.value is bool) e.key.toString(): e.value as bool,
             }
           : const {},
-      createdAt: DateTime.tryParse(row['created_at'] as String? ?? '') ??
+      createdAt:
+          DateTime.tryParse(row['created_at'] as String? ?? '') ??
           DateTime.now(),
-      updatedAt: DateTime.tryParse(row['updated_at'] as String? ?? '') ??
+      updatedAt:
+          DateTime.tryParse(row['updated_at'] as String? ?? '') ??
           DateTime.now(),
     );
   }
@@ -1021,6 +1092,7 @@ class MinigamePlayerAnswer {
     this.promptBody,
     this.passed = false,
     this.text,
+    this.layout = MinigameAnswerLayout.center,
     this.imageBytes,
     this.reactions = const {},
   });
@@ -1036,6 +1108,10 @@ class MinigamePlayerAnswer {
 
   /// The locally-decrypted answer text (null when unavailable).
   final String? text;
+
+  /// Where the author placed the text (normalized canvas fractions, radians
+  /// rotation, font-scale) — the E2EE-encrypted layout (2026-09-15).
+  final MinigameAnswerLayout layout;
 
   /// The locally-decrypted answer image bytes (null when absent/unavailable).
   final Uint8List? imageBytes;
@@ -1089,11 +1165,10 @@ class MinigamePlayerContent {
                 subjectId: a.subjectId,
                 promptType: a.promptType,
                 promptId: a.promptId,
-                promptBody: a.promptId == null
-                    ? null
-                    : bodies[a.promptId],
+                promptBody: a.promptId == null ? null : bodies[a.promptId],
                 passed: a.passed,
                 text: a.text,
+                layout: a.layout,
                 imageBytes: a.imageBytes,
                 reactions: a.reactions,
               ),
@@ -1162,10 +1237,7 @@ bool canReactToCurrentRound(
 /// Whether [callerId] may react to the async completed round [answer]
 /// (202_minigame_play_v2): not the round's subject, round not passed. The
 /// "available to react" list only shows these rounds.
-bool canReactToAsyncRound(
-  MinigameAnswer answer, {
-  required String? callerId,
-}) {
+bool canReactToAsyncRound(MinigameAnswer answer, {required String? callerId}) {
   if (callerId == null || callerId.isEmpty) return false;
   if (answer.passed) return false;
   if (answer.subjectId == callerId) return false;

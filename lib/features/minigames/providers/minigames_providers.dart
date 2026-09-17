@@ -20,7 +20,10 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 /// the per-round key model — the host mints `K_r` and distributes it
 /// pairwise through `minigame_e2ee_bundles`; answers are AES-GCM-encrypted
 /// with the round's own key and only ciphertext ever reaches the server.
-final minigameCipherProvider = Provider.family<MinigameCipher, String>((ref, sessionId) {
+final minigameCipherProvider = Provider.family<MinigameCipher, String>((
+  ref,
+  sessionId,
+) {
   final user = ref.watch(authStateProvider).valueOrNull?.user;
   final uid = user?['id'] as String? ?? '';
   return MinigameCipher(
@@ -92,12 +95,11 @@ class MyPendingInvitesNotifier
     // participant. The session row already carries the authoritative
     // `participants` array, so drop any row where the caller is in it.
     final myId = ref.read(authStateProvider).valueOrNull?.user?['id'];
-    final notYetJoined =
-        rows.where((row) {
-          final participants = row['participants'];
-          if (participants is! List) return true;
-          return myId == null || !participants.contains(myId);
-        }).toList();
+    final notYetJoined = rows.where((row) {
+      final participants = row['participants'];
+      if (participants is! List) return true;
+      return myId == null || !participants.contains(myId);
+    }).toList();
     // The invitee cannot read the inviter username (RLS user_search_view) or
     // the group name (RLS groups_read_member) for a session they are not yet a
     // member of. The notification trigger (200_minigame_invite_notice) embeds
@@ -313,9 +315,7 @@ class PublicMinigamesNotifier
   Future<void> refresh() async {
     state = const AsyncLoading();
     state = await AsyncValue.guard(
-      () => _service.listPublicMinigames(
-        gameType: arg.isEmpty ? null : arg,
-      ),
+      () => _service.listPublicMinigames(gameType: arg.isEmpty ? null : arg),
     );
   }
 
@@ -474,12 +474,12 @@ class MinigameInviteNotifier
         'minigame accept key distribution session=$arg roster=${participants.length} '
         'peers=${peers.length} historyRounds=${history.keys.toList()}',
       );
-      await cipher.distributeHistoryKeys(
-        peerIds: peers,
-        roundKeys: history,
-      );
+      await cipher.distributeHistoryKeys(peerIds: peers, roundKeys: history);
     } catch (e, st) {
-      AppLogger.instance.warn('minigame accept key distribution skipped', '$st');
+      AppLogger.instance.warn(
+        'minigame accept key distribution skipped',
+        '$st',
+      );
     }
   }
 
@@ -575,8 +575,11 @@ final minigameInviteContextProvider =
 /// entry and shows as a fresh invitee (a re-invite is a normal invite — no
 /// special resend path).
 final minigameInviteeStatesProvider =
-    AsyncNotifierProvider.family<MinigameInviteeStatesNotifier,
-        Map<String, String>, String>(MinigameInviteeStatesNotifier.new);
+    AsyncNotifierProvider.family<
+      MinigameInviteeStatesNotifier,
+      Map<String, String>,
+      String
+    >(MinigameInviteeStatesNotifier.new);
 
 /// Notifier for [minigameInviteeStatesProvider].
 class MinigameInviteeStatesNotifier
@@ -689,7 +692,8 @@ class MinigameGameStateNotifier
           // Fire ONLY when the requester set actually CHANGED — a persistent
           // unserved requester (its holder is offline) must not re-trigger a
           // serve pass on every unrelated state UPDATE.
-          final prevRequesters = state.valueOrNull?.skeleton.keyRequests ?? const <String>{};
+          final prevRequesters =
+              state.valueOrNull?.skeleton.keyRequests ?? const <String>{};
           final nextRequesters = parsed.skeleton.keyRequests;
           final newRequesters = nextRequesters.difference(prevRequesters);
           final removedRequesters = prevRequesters.difference(nextRequesters);
@@ -701,7 +705,8 @@ class MinigameGameStateNotifier
             'keyRequesters=${nextRequesters.length} newRequesters=${newRequesters.length} '
             'removedRequesters=${removedRequesters.length}',
           );
-          if (justStarted || (newRound > prevRound && newRound > (_mintedRound ?? -1))) {
+          if (justStarted ||
+              (newRound > prevRound && newRound > (_mintedRound ?? -1))) {
             _mintedRound = newRound;
             _mintRoundKey(newRound);
           }
@@ -829,7 +834,7 @@ class MinigameGameStateNotifier
     } catch (e, st) {
       AppLogger.instance.warn(
         'minigame round key mint skipped session=$arg round=$round '
-        'type=${e.runtimeType}: $e',
+            'type=${e.runtimeType}: $e',
         '$st',
       );
     }
@@ -983,10 +988,9 @@ class MinigameGameStateNotifier
           if (p != null && p != myId && p != kickedUserId) p,
       ];
       final current = state.valueOrNull?.skeleton.round ?? 0;
-      await ref.read(minigameCipherProvider(arg)).rotateRoundKey(
-        peerIds: peers,
-        round: current + 1,
-      );
+      await ref
+          .read(minigameCipherProvider(arg))
+          .rotateRoundKey(peerIds: peers, round: current + 1);
     } catch (e, st) {
       AppLogger.instance.warn('minigame kick rotation skipped', '$st');
     }
@@ -1027,14 +1031,14 @@ class MinigameGameStateNotifier
     try {
       final result = await ref.read(minigameResultProvider(arg).future);
       final gameState = state.valueOrNull;
-      final session =
-          ref.read(sessionStatusProvider(arg)).valueOrNull;
+      final session = ref.read(sessionStatusProvider(arg)).valueOrNull;
       await ref.read(hiveServiceProvider).cacheMinigameSummary(arg, {
         'finished_at': DateTime.now().toIso8601String(),
         'game_type': gameState?.gameType ?? '',
         'play_mode': gameState?.skeleton.playMode.wire ?? 'by_turns',
         'anonymous': gameState?.skeleton.anonymous ?? false,
-        'results': result?.rows
+        'results':
+            result?.rows
                 .map(
                   (r) => {
                     'participant_id': r.participantId,
@@ -1047,7 +1051,8 @@ class MinigameGameStateNotifier
                 .toList() ??
             const [],
         'answers': [
-          for (final a in gameState?.skeleton.answers ?? const <MinigameAnswer>[])
+          for (final a
+              in gameState?.skeleton.answers ?? const <MinigameAnswer>[])
             {
               'round': a.round,
               'subject_id': a.subjectId,
@@ -1265,10 +1270,13 @@ class MinigamePlayerContentNotifier
       final imagePath = row['image_storage_path'] as String?;
 
       String? text;
+      MinigameAnswerLayout layout = MinigameAnswerLayout.center;
       Uint8List? imageBytes;
       if (!passed) {
         if (cipherText != null && cipherText.isNotEmpty) {
-          text = await cipher.decryptAnswerText(cipherText, round);
+          final payload = await cipher.decryptAnswerPayload(cipherText, round);
+          text = payload?.text;
+          layout = payload?.layout ?? MinigameAnswerLayout.center;
         }
         if (imagePath != null && imagePath.isNotEmpty) {
           final rawBytes = await _service.downloadMinigameImageBytes(imagePath);
@@ -1286,6 +1294,7 @@ class MinigamePlayerContentNotifier
           promptId: row['prompt_id'] as String?,
           passed: passed,
           text: text,
+          layout: layout,
           imageBytes: imageBytes,
           reactions: reactionsByRound[round] ?? const {},
         ),

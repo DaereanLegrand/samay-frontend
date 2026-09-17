@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
+import 'package:samay/core/design_tokens/app_typography.dart';
 
 /// Samay borderless input — **NO border, NO background, placeholder-only.**
 ///
@@ -76,6 +77,7 @@ class VInput extends StatelessWidget {
         height: 1.35,
         letterSpacing: 0.0,
         fontFamily: fontFamily,
+        shadows: AppTypography.legibilityShadows,
       ),
       selectionControls: materialTextSelectionControls,
       decoration: InputDecoration(
@@ -96,6 +98,7 @@ class VInput extends StatelessWidget {
           fontWeight: FontWeight.w400,
           height: 1.35,
           fontFamily: fontFamily,
+          shadows: AppTypography.legibilityShadows,
         ),
         errorStyle: const TextStyle(color: AppColors.error),
         contentPadding: const EdgeInsets.symmetric(

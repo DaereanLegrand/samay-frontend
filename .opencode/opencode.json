@@ -18,7 +18,16 @@
       "git clean*": "deny",
       "git stash*": "deny",
       "pkill*": "deny",
-      "kill*": "deny"
+      "kill*": "deny",
+      "*flutter attach*": "deny",
+      "*>/dev/tty*": "deny",
+      "*/dev/ttys*": "deny",
+      "*kitten @*": "deny",
+      "*osascript*System Events*": "deny",
+      "*sudo*": "deny",
+      "*do shell script*": "deny",
+      "*administrator privileges*": "deny",
+      "*Authorization Services*": "deny"
     }
   }
 }

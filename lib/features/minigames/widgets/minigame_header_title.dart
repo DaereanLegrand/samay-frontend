@@ -76,6 +76,7 @@ class MinigameHeaderTitle extends StatelessWidget {
                 letterSpacing: 0.2,
                 height: 1.0,
                 color: AppColors.mutedStrong,
+                shadows: AppTypography.legibilityShadows,
               ),
             ),
           ],
@@ -115,6 +116,7 @@ class _PhraseLine extends StatelessWidget {
             fontWeight: FontWeight.w700,
             letterSpacing: 0,
             height: 1.0,
+            shadows: AppTypography.legibilityShadows,
           ),
           children: [
             if (lead != null && lead.isNotEmpty)
@@ -160,6 +162,7 @@ class _WordLine extends StatelessWidget {
           letterSpacing: 0,
           height: 1.0,
           color: AppColors.white,
+          shadows: AppTypography.legibilityShadows,
         ),
       ),
     );

@@ -168,8 +168,16 @@ class VHeaderTitleRow extends StatelessWidget {
           if (showBack)
             Transform.translate(
               offset: const Offset(0, VHeaderMetrics.backArrowNudge),
-              child: BackButton(
+              child: IconButton(
                 onPressed: onBack ?? () => Navigator.of(context).maybePop(),
+                tooltip: MaterialLocalizations.of(context).backButtonTooltip,
+                // Same platform icon as [BackButtonIcon], plus the shared
+                // legibility shadow so the arrow reads over imagery.
+                icon: Icon(switch (Theme.of(context).platform) {
+                  TargetPlatform.iOS ||
+                  TargetPlatform.macOS => Icons.arrow_back_ios_new_rounded,
+                  _ => Icons.arrow_back,
+                }, shadows: AppTypography.legibilityShadows),
               ),
             ),
           if (showBack && hasTitle) const SizedBox(width: AppSpacing.xs),

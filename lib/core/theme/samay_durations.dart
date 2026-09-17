@@ -56,6 +56,11 @@ class SamayDurations {
   /// can be re-tapped" (deliberate taps after the window each animate).
   static const reactionTapCooldown = Duration(milliseconds: 350);
 
+  /// Minigame Verdad/Reto choice-button press: the window over which the
+  /// glyph shadow grows (logarithmically) from rest to its maximum spread
+  /// while the finger stays down. Reached only after a long hold.
+  static const choiceHold = Duration(milliseconds: 3000);
+
   /// Attendee assist reveal (2026-09-10, Task D; reworked 2026-09-11): once the
   /// host/staff scan confirms an attendee, an OPEN QR screen keeps the code
   /// pinned and DISSOLVES it in place (opacity 1→0, blur 0→max,

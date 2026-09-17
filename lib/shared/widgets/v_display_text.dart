@@ -61,7 +61,10 @@ class VDisplayText extends StatelessWidget {
         height: 1.0,
       ),
     };
-    return base.copyWith(color: AppColors.white);
+    return base.copyWith(
+      color: AppColors.white,
+      shadows: AppTypography.legibilityShadows,
+    );
   }
 
   /// Playfair Display bold at [VDisplayText.size] — the display roles when
