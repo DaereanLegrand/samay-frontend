@@ -20,17 +20,29 @@ abstract final class VHeaderMetrics {
     horizontal: AppSpacing.screenHorizontal,
   );
 
-  /// App-added gap between the OS safe inset and the title row's top — 16px
-  /// (`AppSpacing.lg`). Both the fixed bar and the collapsed header reserve
-  /// this, so every title glyph sits at the same y at rest.
-  static const double heroTopPad = AppSpacing.lg;
+  /// Fallback top gap, used ONLY when the OS reserves no top safe-area inset.
+  /// 16px (`AppSpacing.lg`).
+  static const double fallbackHeroTopPad = AppSpacing.lg;
+
+  /// App-added gap between the OS top safe-area inset and the title row.
+  ///
+  /// Per-device rule ([statusTop] is `MediaQuery.paddingOf(context).top`):
+  /// when the OS already reserves a top inset — status bar / notch /
+  /// Dynamic Island, `statusTop > 0` — the app adds NOTHING, because the inset
+  /// itself is the spacing; when the OS reserves none (`statusTop == 0`, e.g.
+  /// desktop / web / immersive) it adds [fallbackHeroTopPad] so the title is
+  /// not glued to the very top. Both the fixed bar and the collapsed header
+  /// use this, so every title glyph sits at the same y at rest.
+  static double heroTopPad(double statusTop) =>
+      statusTop > 0 ? 0 : fallbackHeroTopPad;
 
   /// Height of the title-content band. Fixed 48px so the row always starts at
   /// [heroTopPad] whether or not a back arrow / action is present.
   static const double titleRowHeight = 48;
 
-  /// Height the fixed bar reserves (top pad + row + matching bottom pad).
-  static const double barHeight = 80;
+  /// Height the fixed bar reserves (top gap + row + matching bottom gap).
+  static double barHeight(double statusTop) =>
+      heroTopPad(statusTop) * 2 + titleRowHeight;
 
   /// The compact band below the status inset once fully collapsed.
   static const double collapsedBarHeight = titleRowHeight;
@@ -126,6 +138,51 @@ double _opticalShift(BuildContext context, TextStyle style) {
 TextStyle _actionLabelStyle(BuildContext context) =>
     Theme.of(context).textTheme.labelLarge ?? const TextStyle(fontSize: 14);
 
+// ── Back-arrow optical side bearings (measured) ──────────────────────────────
+//
+// MaterialIcons glyphs do NOT fill their 24px em box: the ink has side
+// bearings, so the icon box edge is not the arrow's optical edge. Measured from
+// `MaterialIcons-Regular.otf` (unitsPerEm 512) with fontTools, at 24px:
+//
+//   arrow_back (Android)          ink x 85..427     → 3.984px L / 3.984px R
+//   arrow_back_ios_new_rounded    ink x 137..368.25 → 6.422px L / 6.738px R
+//
+// The header therefore gives the arrow the SAME optical gap on both sides:
+//   leading gap = leadingPad + inkLeft
+//   trailing gap = inkRight            (title starts flush at the icon box edge)
+// Equal ⇒ leadingPad = inkRight − inkLeft (0 Android / 0.316px iOS), and both
+// gaps equal max(inkLeft, inkRight). The title's own glyph left-bearing is
+// intrinsic to the text and intentionally not compensated.
+const double _kBackArrowIconSize = 24;
+const double _arrowBackInkLeft = 85 / 512 * _kBackArrowIconSize;
+const double _arrowBackInkRight = (512 - 427) / 512 * _kBackArrowIconSize;
+const double _arrowBackIosInkLeft = 137 / 512 * _kBackArrowIconSize;
+const double _arrowBackIosInkRight = (512 - 368.25) / 512 * _kBackArrowIconSize;
+
+/// Scoped [IconButtonTheme] override for the back arrow only.
+///
+/// Material's M3 [IconButton] defaults (8px padding + 40px minimum box + a
+/// padded tap target) center the 24px glyph ~12px inside its leading edge. With
+/// them stripped, the glyph ink sits at its natural bearing; the sub-pixel
+/// platform leading pad below equalizes the optical gaps on both sides of the
+/// arrow (see the bearing table above). Scoped to the back arrow so trailing
+/// icon actions keep their default 48px targets.
+ButtonStyle _backArrowButtonStyle(BuildContext context) {
+  final isIos = switch (Theme.of(context).platform) {
+    TargetPlatform.iOS || TargetPlatform.macOS => true,
+    _ => false,
+  };
+  final inkLeft = isIos ? _arrowBackIosInkLeft : _arrowBackInkLeft;
+  final inkRight = isIos ? _arrowBackIosInkRight : _arrowBackInkRight;
+  return ButtonStyle(
+    padding: WidgetStatePropertyAll(
+      EdgeInsetsDirectional.only(start: (inkRight - inkLeft).clamp(0.0, 24.0)),
+    ),
+    minimumSize: const WidgetStatePropertyAll(Size.zero),
+    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+  );
+}
+
 /// The single shared title row used by every header presentation: an optional
 /// back arrow, the title (plain [VDisplayText] or a custom [titleWidget] such
 /// as the truth/dare two-line header), and trailing [actions].
@@ -159,7 +216,6 @@ class VHeaderTitleRow extends StatelessWidget {
         ? _opticalShift(context, titleStyle)
         : 0.0;
     final labelShift = _opticalShift(context, _actionLabelStyle(context));
-    final hasTitle = title != null || titleWidget != null;
 
     return SizedBox(
       height: height,
@@ -168,19 +224,25 @@ class VHeaderTitleRow extends StatelessWidget {
           if (showBack)
             Transform.translate(
               offset: const Offset(0, VHeaderMetrics.backArrowNudge),
-              child: IconButton(
-                onPressed: onBack ?? () => Navigator.of(context).maybePop(),
-                tooltip: MaterialLocalizations.of(context).backButtonTooltip,
-                // Same platform icon as [BackButtonIcon], plus the shared
-                // legibility shadow so the arrow reads over imagery.
-                icon: Icon(switch (Theme.of(context).platform) {
-                  TargetPlatform.iOS ||
-                  TargetPlatform.macOS => Icons.arrow_back_ios_new_rounded,
-                  _ => Icons.arrow_back,
-                }, shadows: AppTypography.legibilityShadows),
+              child: IconButtonTheme(
+                data: IconButtonThemeData(
+                  style: _backArrowButtonStyle(context),
+                ),
+                child: IconButton(
+                  onPressed: onBack ?? () => Navigator.of(context).maybePop(),
+                  tooltip: MaterialLocalizations.of(context).backButtonTooltip,
+                  // Same platform icon as [BackButtonIcon], plus the shared
+                  // legibility shadow so the arrow reads over imagery.
+                  icon: Icon(switch (Theme.of(context).platform) {
+                    TargetPlatform.iOS ||
+                    TargetPlatform.macOS => Icons.arrow_back_ios_new_rounded,
+                    _ => Icons.arrow_back,
+                  }, shadows: AppTypography.legibilityShadows),
+                ),
               ),
             ),
-          if (showBack && hasTitle) const SizedBox(width: AppSpacing.xs),
+          if (showBack && (title != null || titleWidget != null))
+            const SizedBox(width: AppSpacing.md),
           if (titleWidget != null)
             Expanded(child: titleWidget!)
           else if (title != null)
@@ -219,8 +281,9 @@ bool _actionIsText(Widget action) {
 /// Unified top bar — one definition for every pushed screen's header.
 ///
 /// Fixed title bar (does not scroll): [VHeaderMetrics.heroTopPad] below the OS
-/// safe inset, the shared [VHeaderTitleRow], an optional full-bleed [bottom]
-/// strip, and an expanding [child] body.
+/// safe inset (0 when the OS already reserves one), the shared
+/// [VHeaderTitleRow], an optional full-bleed [bottom] strip, and an expanding
+/// [child] body.
 class VHeaderBar extends StatelessWidget {
   final String? title;
   final Widget? titleWidget;
@@ -245,17 +308,19 @@ class VHeaderBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final statusTop = MediaQuery.paddingOf(context).top;
+    final topGap = VHeaderMetrics.heroTopPad(statusTop);
     final header = Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         SizedBox(
-          height: VHeaderMetrics.barHeight,
+          height: VHeaderMetrics.barHeight(statusTop),
           child: Padding(
             padding: VHeaderMetrics.titleInset,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const SizedBox(height: VHeaderMetrics.heroTopPad),
+                SizedBox(height: topGap),
                 VHeaderTitleRow(
                   title: title,
                   titleWidget: titleWidget,
@@ -367,7 +432,9 @@ class _CollapsingDelegate extends SliverPersistentHeaderDelegate {
   });
 
   double get _titleExpandedInset =>
-      statusTop + VHeaderMetrics.heroTopPad + VHeaderMetrics.titleRowHeight;
+      statusTop +
+      VHeaderMetrics.heroTopPad(statusTop) +
+      VHeaderMetrics.titleRowHeight;
 
   double get _titleCollapsedInset =>
       statusTop + VHeaderMetrics.collapsedBarHeight;
@@ -387,13 +454,19 @@ class _CollapsingDelegate extends SliverPersistentHeaderDelegate {
     // The status-bar/notch inset. The collapsed glass extends under it (iOS
     // large-title style); the expanded title clears it with [heroTopPad].
     final statusTop = MediaQuery.paddingOf(context).top;
+    final topGap = VHeaderMetrics.heroTopPad(statusTop);
+    // When the OS already reserves a top inset the hero top gap is 0, so the
+    // expanded and collapsed bands coincide (titleRange == 0) and there is
+    // nothing to collapse — treat it as fully expanded.
     final titleRange = maxExtent - minExtent - bottomHeight;
-    final progress = (shrinkOffset / titleRange).clamp(0.0, 1.0).toDouble();
+    final progress = titleRange <= 0
+        ? 0.0
+        : (shrinkOffset / titleRange).clamp(0.0, 1.0).toDouble();
     final titleCurrentHeight = maxExtent - shrinkOffset - bottomHeight;
 
     // Expanded top-aligned title row (clears the status bar by heroTopPad).
     final expandedTitle = Padding(
-      padding: EdgeInsets.only(top: statusTop + VHeaderMetrics.heroTopPad),
+      padding: EdgeInsets.only(top: statusTop + topGap),
       child: VHeaderTitleRow(
         title: title,
         titleWidget: titleWidget,

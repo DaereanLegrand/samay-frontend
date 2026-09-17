@@ -32,16 +32,18 @@ class MinigameLeaderboardScreen extends StatelessWidget {
             sessionId: sessionId,
             initialParticipantId: initialParticipantId,
           ),
-          const Align(
+          Align(
             alignment: Alignment.topLeft,
             child: SafeArea(
               bottom: false,
               child: Padding(
                 padding: EdgeInsets.only(
-                  top: VHeaderMetrics.heroTopPad,
+                  top: VHeaderMetrics.heroTopPad(
+                    MediaQuery.paddingOf(context).top,
+                  ),
                   left: AppSpacing.screenHorizontal,
                 ),
-                child: SizedBox(
+                child: const SizedBox(
                   height: VHeaderMetrics.titleRowHeight,
                   width: double.infinity,
                   child: VHeaderTitleRow(),

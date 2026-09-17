@@ -15,6 +15,7 @@ import 'package:samay/features/minigames/widgets/minigame_bleed_image.dart';
 import 'package:samay/features/minigames/widgets/reaction_rise.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/error_view.dart';
+import 'package:samay/shared/widgets/full_screen_image.dart';
 import 'package:samay/shared/widgets/state_views.dart';
 import 'package:samay/shared/widgets/v_display_text.dart';
 import 'package:samay/shared/widgets/v_header_bar.dart';
@@ -403,9 +404,10 @@ class _RankCardState extends State<_RankCard> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    const insets = EdgeInsets.fromLTRB(
+    final insets = EdgeInsets.fromLTRB(
       AppSpacing.cardPadding,
-      VHeaderMetrics.heroTopPad + VHeaderMetrics.titleRowHeight,
+      VHeaderMetrics.heroTopPad(MediaQuery.paddingOf(context).top) +
+          VHeaderMetrics.titleRowHeight,
       AppSpacing.cardPadding,
       AppSpacing.cardPadding,
     );
@@ -520,10 +522,12 @@ class _RankCardState extends State<_RankCard> {
   /// with the finger exactly like a text answer.
   Widget _buildPager(AppLocalizations l10n) {
     if (widget.answers.length == 1) {
+      final answer = widget.answers.first;
       return _AnswerPage(
-        answer: widget.answers.first,
+        answer: answer,
         l10n: l10n,
         onImageLoaded: _armOnImageLoaded,
+        onImageTap: _imageTapFor(answer),
       );
     }
     return PageView.builder(
@@ -542,8 +546,26 @@ class _RankCardState extends State<_RankCard> {
         l10n: l10n,
         // Only the CURRENT page's image may arm the celebration.
         onImageLoaded: i == _answerIndex ? _armOnImageLoaded : null,
+        onImageTap: _imageTapFor(
+          widget.answers[i],
+          currentPage: i == _answerIndex,
+        ),
       ),
     );
+  }
+
+  /// Tap-to-expand for an answer picture (2026-09-17 directive): only the
+  /// SELECTED card's CURRENT page opens the full-screen viewer, so an
+  /// unselected (or off-screen) card still gets the carousel's own tap.
+  VoidCallback? _imageTapFor(
+    MinigamePlayerAnswer answer, {
+    bool currentPage = true,
+  }) {
+    final bytes = answer.imageBytes;
+    if (!widget.selected || !currentPage || !answer.hasImage || bytes == null) {
+      return null;
+    }
+    return () => showFullScreenImage(context, bytes: bytes);
   }
 
   /// The centered state panel for a card with no answers yet.
@@ -746,35 +768,64 @@ class _AnswerPage extends StatelessWidget {
     required this.answer,
     required this.l10n,
     this.onImageLoaded,
+    this.onImageTap,
   });
 
   final MinigamePlayerAnswer answer;
   final AppLocalizations l10n;
   final VoidCallback? onImageLoaded;
 
+  /// Opens the shared full-screen viewer. Only wired on the selected card's
+  /// picture (2026-09-17 directive: tap-to-expand in the leaderboard), so an
+  /// unselected card still receives the carousel's own tap.
+  final VoidCallback? onImageTap;
+
   @override
   Widget build(BuildContext context) {
+    final image = answer.hasImage
+        ? MinigameBleedImage(
+            image: MemoryImage(answer.imageBytes!),
+            onImageLoaded: onImageLoaded,
+          )
+        : null;
     return Stack(
       fit: StackFit.expand,
       children: [
-        if (answer.hasImage)
-          MinigameBleedImage(
-            image: MemoryImage(answer.imageBytes!),
-            onImageLoaded: onImageLoaded,
-          ),
-        // The body centers in the space the pinned prompt/footer leave open (the
-        // picture itself stays full-bleed behind them).
-        SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(
-              AppSpacing.cardPadding,
-              VHeaderMetrics.heroTopPad + VHeaderMetrics.titleRowHeight,
-              AppSpacing.cardPadding,
-              AppSpacing.cardPadding,
+        if (image != null)
+          if (onImageTap != null)
+            GestureDetector(onTap: onImageTap, child: image)
+          else
+            image,
+        // The answer TEXT is a full-page overlay anchored to the picture's
+        // displayed rect — the same image-aligned placement as the play
+        // reaction window (2026-09-17). Clipped to the page.
+        if (answer.hasText)
+          Positioned.fill(
+            child: IgnorePointer(
+              child: MinigameAnswerText(
+                text: answer.text!,
+                layout: answer.layout,
+                image: answer.hasImage ? MemoryImage(answer.imageBytes!) : null,
+                fontSize: 20,
+              ),
             ),
-            child: Center(child: _buildBody()),
+          )
+        // Non-text states (passed / empty) keep the centered body in the space
+        // the pinned prompt/footer leave open (the picture stays full-bleed
+        // behind them).
+        else
+          SafeArea(
+            child: Padding(
+              padding: EdgeInsets.fromLTRB(
+                AppSpacing.cardPadding,
+                VHeaderMetrics.heroTopPad(MediaQuery.paddingOf(context).top) +
+                    VHeaderMetrics.titleRowHeight,
+                AppSpacing.cardPadding,
+                AppSpacing.cardPadding,
+              ),
+              child: Center(child: _buildBody()),
+            ),
           ),
-        ),
       ],
     );
   }
@@ -791,15 +842,6 @@ class _AnswerPage extends StatelessWidget {
           letterSpacing: 2,
           color: AppColors.mutedStrong,
         ),
-      );
-    }
-    if (answer.hasText) {
-      // The author's on-canvas placement (2026-09-15): the text renders at its
-      // stored normalized position/rotation/font-scale.
-      return MinigameAnswerText(
-        text: answer.text!,
-        layout: answer.layout,
-        fontSize: 20,
       );
     }
     return const Text(

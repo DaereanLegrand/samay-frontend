@@ -111,23 +111,6 @@ class TwoLiesScreen extends ConsumerWidget {
                   ),
                   size: 28,
                 ),
-                if (skeleton.nextSubjectId != null &&
-                    skeleton.playMode == MinigamePlayMode.byTurns) ...[
-                  const SizedBox(height: AppSpacing.xs),
-                  Text(
-                    l10n.minigamesNextTurn(
-                      minigameResolveDisplayName(
-                        skeleton.nextSubjectId,
-                        roster,
-                        aliases,
-                        skeleton,
-                        l10n,
-                      ),
-                    ),
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(fontSize: 14),
-                  ),
-                ],
                 const SizedBox(height: AppSpacing.md),
                 isMyTurn
                     ? (skeleton.answer == null

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:math' as math;
 import 'dart:typed_data';
+import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -43,6 +44,64 @@ import 'package:samay/shared/widgets/v_spinner.dart';
 /// play screen unmounts (never touched from `dispose`, which cannot use `ref`).
 final _pickedAnswerImageProvider = StateProvider.autoDispose
     .family<XFile?, String>((ref, sessionId) => null);
+
+/// The CURRENT by_turns round's answer picture, already downloaded + decrypted
+/// locally by [_AnswerPreview]. Lifted to the screen so the reaction window can
+/// render it as a full-viewport background — the SAME full-bleed presentation
+/// as the editor's picked picture and the leaderboard answer pages
+/// (2026-09-17 directive). Keyed by `sessionId/round`, so a round flip drops the
+/// previous picture automatically.
+final _answerImageProvider = StateProvider.autoDispose
+    .family<Uint8List?, String>((ref, key) => null);
+
+/// The CURRENT by_turns answer's decrypted payload (text + on-canvas layout),
+/// lifted by [_AnswerPreview] so the reaction window can render the answer text
+/// as a full-viewport overlay anchored to the answer picture — the same
+/// image-aligned placement the author arranged (2026-09-17). Keyed by
+/// `sessionId/round`.
+final _answerPayloadProvider = StateProvider.autoDispose
+    .family<MinigameAnswerPayload?, String>((ref, key) => null);
+
+/// The shared full-bleed picture backdrop used by the editor's picked picture
+/// and the reaction window's answer picture (2026-09-17 standardization): the
+/// blurred-mirror [MinigameBleedImage] plus two gradient scrims — dark under the
+/// header, dark behind the bottom controls, clear in the middle so the picture
+/// keeps full presence (leaderboard voice).
+class _BleedImageBackdrop extends StatelessWidget {
+  const _BleedImageBackdrop({required this.image});
+
+  final ImageProvider image;
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        MinigameBleedImage(image: image),
+        const DecoratedBox(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [Color(0xCC000000), Colors.transparent],
+              stops: [0, 0.32],
+            ),
+          ),
+        ),
+        const DecoratedBox(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [Colors.transparent, Color(0xE6000000)],
+              stops: [0.6, 1],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
 
 /// The subject's picked reto picture as the screen background: an opaque
 /// blurred-mirror fill with the complete picture `contain` on top
@@ -123,35 +182,7 @@ class _PickedImageBackgroundState extends State<_PickedImageBackground> {
           children: [
             Positioned.fill(
               child: IgnorePointer(
-                child: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    MinigameBleedImage(image: FileImage(File(widget.path))),
-                    // Gradient scrims, NOT a flat tint: dark under the header
-                    // and behind the bottom action bar, clear in the middle so
-                    // the picture keeps full presence (leaderboard voice).
-                    const DecoratedBox(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [Color(0xCC000000), Colors.transparent],
-                          stops: [0, 0.32],
-                        ),
-                      ),
-                    ),
-                    const DecoratedBox(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [Colors.transparent, Color(0xE6000000)],
-                          stops: [0.6, 1],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+                child: _BleedImageBackdrop(image: FileImage(File(widget.path))),
               ),
             ),
             if (rect != null)
@@ -227,6 +258,50 @@ class TruthDareScreen extends ConsumerWidget {
         playingState.skeleton.playMode == MinigamePlayMode.byTurns &&
         playingState.skeleton.subjectId == myId &&
         playingState.skeleton.answer == null;
+    // The reaction window's answer picture, lifted by [_AnswerPreview] once it
+    // has downloaded + decrypted it. Same full-viewport backdrop as the editor's
+    // picked picture and the leaderboard pages (2026-09-17 standardization).
+    final answerRound = playingState?.skeleton.answer?.round;
+    final answerImageBytes = answerRound == null
+        ? null
+        : ref.watch(_answerImageProvider('$sessionId/$answerRound'));
+    final showAnswerBackground =
+        answerImageBytes != null && !(playingState?.isFinished ?? false);
+    // The reaction window's answer TEXT, lifted by [_AnswerPreview] and rendered
+    // as a full-viewport overlay anchored to the answer picture (image-aligned).
+    final answerPayload = answerRound == null
+        ? null
+        : ref.watch(_answerPayloadProvider('$sessionId/$answerRound'));
+    final answerText = answerPayload?.text;
+    final answerHasImage =
+        (playingState?.skeleton.answer?.imageStoragePath?.isNotEmpty ?? false);
+    // Wait for the picture before anchoring the text to it (no first-frame
+    // jump): a text-only answer needs no picture.
+    final showAnswerText =
+        (answerText?.isNotEmpty ?? false) &&
+        (!answerHasImage || answerImageBytes != null) &&
+        !(playingState?.isFinished ?? false);
+    // The revealed prompt, rendered by the SCREEN — over the picture but BEHIND
+    // the header (2026-09-17). Excluded for the subject editor, which shows its
+    // own prompt inside the answer canvas.
+    final promptSkeleton = playingState?.skeleton;
+    final isSubjectEditor =
+        promptSkeleton != null &&
+        !(playingState?.isFinished ?? false) &&
+        promptSkeleton.playMode == MinigamePlayMode.byTurns &&
+        promptSkeleton.answer == null;
+    final screenPrompt =
+        promptSkeleton == null ||
+            (playingState?.isFinished ?? false) ||
+            promptSkeleton.playMode != MinigamePlayMode.byTurns ||
+            isSubjectEditor
+        ? null
+        : truthDarePromptBody(promptSkeleton.prompt);
+    final screenStatusTop = MediaQuery.paddingOf(context).top;
+    final screenPromptTop =
+        screenStatusTop +
+        VHeaderMetrics.barHeight(screenStatusTop) +
+        AppSpacing.md;
     final roster =
         ref.watch(minigameParticipantsProvider(sessionId)).valueOrNull ??
         const <MinigameParticipant>[];
@@ -259,16 +334,18 @@ class TruthDareScreen extends ConsumerWidget {
           fit: StackFit.expand,
           children: [
             FinishedLeaderboard(sessionId: sessionId),
-            const Align(
+            Align(
               alignment: Alignment.topLeft,
               child: SafeArea(
                 bottom: false,
                 child: Padding(
                   padding: EdgeInsets.only(
-                    top: VHeaderMetrics.heroTopPad,
+                    top: VHeaderMetrics.heroTopPad(
+                      MediaQuery.paddingOf(context).top,
+                    ),
                     left: AppSpacing.screenHorizontal,
                   ),
-                  child: SizedBox(
+                  child: const SizedBox(
                     height: VHeaderMetrics.titleRowHeight,
                     width: double.infinity,
                     child: VHeaderTitleRow(),
@@ -302,6 +379,37 @@ class TruthDareScreen extends ConsumerWidget {
                 },
               ),
             ),
+          // The reaction window's answer picture, full-viewport behind the
+          // transparent header — the same backdrop as the editor/leaderboard.
+          if (showAnswerBackground)
+            Positioned.fill(
+              child: IgnorePointer(
+                child: _BleedImageBackdrop(
+                  image: MemoryImage(answerImageBytes),
+                ),
+              ),
+            ),
+          // The answer TEXT, full-viewport over the picture and anchored to its
+          // displayed rect, so the author's placement is identical on every
+          // device (2026-09-17). Clipped to the viewport.
+          if (showAnswerText)
+            Positioned.fill(
+              child: IgnorePointer(
+                child: MinigameAnswerText(
+                  text: answerText!,
+                  layout: answerPayload!.layout,
+                  image: answerHasImage ? MemoryImage(answerImageBytes!) : null,
+                ),
+              ),
+            ),
+          // The revealed prompt: over the picture, BEHIND the header.
+          if (screenPrompt != null)
+            Positioned(
+              top: screenPromptTop,
+              left: AppSpacing.lg,
+              right: AppSpacing.lg,
+              child: _PromptBanner(text: screenPrompt),
+            ),
           VHeaderBar(
             titleWidget: headerTitle,
             title: headerTitle == null ? gameNameLower : null,
@@ -327,13 +435,10 @@ class TruthDareScreen extends ConsumerWidget {
                 final skeleton = state.skeleton;
                 final subjectId = skeleton.subjectId;
                 final isMyTurn = subjectId != null && subjectId == myId;
-                final roundTarget = skeleton.roundTarget;
 
-                // The top meta captions, fully capitalized at a smaller size than
-                // the body copy. In by_turns the round counter and the next-turn
-                // line sit INSIDE the answer card flush to its top-left / top-right
-                // corners (bleeding over the card's inner padding). Async shows its
-                // deadline caption centered above the async panel.
+                // The async deadline caption, fully capitalized at a smaller size
+                // than the body copy, centered above the async panel. (The
+                // by-turns round counter lives in the header's second line.)
                 const captionStyle = TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
@@ -341,15 +446,10 @@ class TruthDareScreen extends ConsumerWidget {
                   shadows: AppTypography.legibilityShadows,
                 );
                 final isByTurns = skeleton.playMode == MinigamePlayMode.byTurns;
-                final showRoundCaption = isByTurns && roundTarget != null;
-                final showNextCaption =
-                    isByTurns && skeleton.nextSubjectId != null;
                 final showAsyncDeadline =
                     !isByTurns && skeleton.asyncEndsAt != null;
 
                 Widget buildAnswerCard({bool fillHeight = false}) {
-                  final hasCaptions = showRoundCaption || showNextCaption;
-
                   final body = isMyTurn
                       ? (skeleton.answer == null
                             ? _AnswerCard(
@@ -377,58 +477,6 @@ class TruthDareScreen extends ConsumerWidget {
                           showPrompt: false,
                         );
 
-                  // The round counter hugs the top-left corner and the next-turn
-                  // line the top-right, ignoring the card's usual inner padding.
-                  final captionRow = hasCaptions
-                      ? Padding(
-                          padding: const EdgeInsets.fromLTRB(
-                            AppSpacing.md,
-                            AppSpacing.md,
-                            AppSpacing.md,
-                            AppSpacing.none,
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              if (showRoundCaption)
-                                Flexible(
-                                  child: Text(
-                                    l10n
-                                        .minigamesRoundCounter(
-                                          skeleton.round + 1,
-                                          roundTarget,
-                                        )
-                                        .toUpperCase(),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: captionStyle,
-                                  ),
-                                ),
-                              if (showNextCaption)
-                                Flexible(
-                                  child: Text(
-                                    l10n
-                                        .minigamesNextTurn(
-                                          _displayNameFor(
-                                            skeleton.nextSubjectId,
-                                            roster,
-                                            aliases,
-                                            skeleton,
-                                            l10n,
-                                          ),
-                                        )
-                                        .toUpperCase(),
-                                    textAlign: TextAlign.right,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: captionStyle,
-                                  ),
-                                ),
-                            ],
-                          ),
-                        )
-                      : null;
-
                   // Full-height (the by-turns SUBJECT editor): the body fills the
                   // card so its answer/pass bar can pin to the screen floor,
                   // keyboard-aware via the Scaffold's resize inset. Same card
@@ -444,20 +492,8 @@ class TruthDareScreen extends ConsumerWidget {
                     // While choosing Verdad/Reto the CTA container spans the
                     // FULL region between the header's bottom edge and the
                     // device bottom, so the pair centers on that whole area.
-                    // The meta captions float at the top instead of shortening
-                    // the centering region.
                     if (choosingTruthDare) {
-                      return Stack(
-                        fit: StackFit.expand,
-                        children: [
-                          body,
-                          if (captionRow != null)
-                            Align(
-                              alignment: Alignment.topCenter,
-                              child: captionRow,
-                            ),
-                        ],
-                      );
+                      return Stack(fit: StackFit.expand, children: [body]);
                     }
 
                     // The SUBJECT editor is chrome-less too (2026-09-15
@@ -466,10 +502,6 @@ class TruthDareScreen extends ConsumerWidget {
                     return Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        if (captionRow != null) ...[
-                          captionRow,
-                          const SizedBox(height: AppSpacing.sm),
-                        ],
                         Expanded(
                           child: Padding(
                             padding: const EdgeInsets.only(top: AppSpacing.md),
@@ -482,36 +514,14 @@ class TruthDareScreen extends ConsumerWidget {
 
                   // The by-turns answer/waiting card is transparent AND fills
                   // the whole region between the header and the pinned bottom
-                  // line/row, with the prompt+answer body CENTERED — the same
-                  // dimensions and centering as the turn/leaderboard screens
-                  // (2026-09-15 uniformity directive). The meta captions stay
-                  // flush at its top.
-                  // The QUESTION is pinned at the top, directly below the
-                  // RONDA/SIGUIENTE captions; the answer body stays centered in
-                  // the remaining region (2026-09-15 directive).
-                  final promptBody = truthDarePromptBody(skeleton.prompt);
+                  // line/row, with the answer body CENTERED (2026-09-15
+                  // uniformity directive). The revealed QUESTION is rendered by
+                  // the SCREEN, behind the header and over the picture — never
+                  // by the card, so it can never paint in front of the header
+                  // (2026-09-17).
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      ?captionRow,
-                      if (promptBody != null)
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(
-                            AppSpacing.cardPadding,
-                            AppSpacing.md,
-                            AppSpacing.cardPadding,
-                            AppSpacing.none,
-                          ),
-                          child: Text(
-                            promptBody,
-                            style: Theme.of(context).textTheme.headlineSmall
-                                ?.copyWith(
-                                  fontFamily: AppTypography.quicksand,
-                                  shadows: AppTypography.legibilityShadows,
-                                ),
-                            textAlign: TextAlign.center,
-                          ),
-                        ),
                       Expanded(
                         child: Center(
                           child: SingleChildScrollView(
@@ -537,24 +547,30 @@ class TruthDareScreen extends ConsumerWidget {
                   );
                 }
 
-                // Async mode keeps its scrollable panel stack.
+                // Async mode keeps its scrollable panel stack. The reactable
+                // tiles are FULL-WIDTH (edge to edge) so their answer pictures
+                // bleed like the rest (2026-09-17 standardization); the proxy
+                // card / captions pad themselves.
                 if (skeleton.playMode == MinigamePlayMode.async) {
                   return ListView(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: AppSpacing.lg,
-                    ),
+                    padding: EdgeInsets.zero,
                     children: [
                       if (showAsyncDeadline) ...[
-                        Text(
-                          l10n
-                              .minigamesAsyncTimerEnds(
-                                _formatDate(skeleton.asyncEndsAt!),
-                              )
-                              .toUpperCase(),
-                          textAlign: TextAlign.center,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: captionStyle,
+                        Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: AppSpacing.lg,
+                          ),
+                          child: Text(
+                            l10n
+                                .minigamesAsyncTimerEnds(
+                                  _formatDate(skeleton.asyncEndsAt!),
+                                )
+                                .toUpperCase(),
+                            textAlign: TextAlign.center,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: captionStyle,
+                          ),
                         ),
                         const SizedBox(height: AppSpacing.xs),
                       ],
@@ -575,16 +591,29 @@ class TruthDareScreen extends ConsumerWidget {
                 );
                 final answer = skeleton.answer;
                 final showWaitingLine = answer != null && !answer.passed;
+                // Tap-to-expand (2026-09-17 directive: reacting + leaderboard):
+                // while the answer picture is up, tapping the content region
+                // opens the shared full-screen viewer. The reaction deck below
+                // is a SIBLING, so its buttons keep their own taps.
                 return Column(
                   children: [
                     Expanded(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: AppSpacing.lg,
-                        ),
-                        child: _ReactionRiseCanvas(
-                          sessionId: sessionId,
-                          child: buildAnswerCard(),
+                      child: GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: answerImageBytes == null
+                            ? null
+                            : () => _showFullAnswerImage(
+                                context,
+                                answerImageBytes,
+                              ),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: AppSpacing.lg,
+                          ),
+                          child: _ReactionRiseCanvas(
+                            sessionId: sessionId,
+                            child: buildAnswerCard(),
+                          ),
                         ),
                       ),
                     ),
@@ -647,10 +676,17 @@ class TruthDareScreen extends ConsumerWidget {
       ),
       data: (state) {
         final skeleton = state.skeleton;
+        // Line 2 carries the by-turns round counter in place of the game name
+        // (2026-09-17 directive); every other state keeps the game name.
+        final roundTarget = skeleton.roundTarget;
+        final headerSecondary =
+            skeleton.playMode == MinigamePlayMode.byTurns && roundTarget != null
+            ? l10n.minigamesRoundCounter(skeleton.round + 1, roundTarget)
+            : gameNameLower;
         if (state.isFinished) {
           return MinigameHeaderTitle(
             word: l10n.minigamesBarLeaderboard,
-            secondary: gameNameLower,
+            secondary: headerSecondary,
           );
         }
         if (skeleton.phase != MinigamePhase.playing) {
@@ -664,7 +700,7 @@ class TruthDareScreen extends ConsumerWidget {
           if (progress < skeleton.asyncRoundsPerPlayer) {
             return MinigameHeaderTitle(
               word: l10n.minigamesBarResponding,
-              secondary: gameNameLower,
+              secondary: headerSecondary,
             );
           }
           // Caller is done answering — is there someone's answer to react to?
@@ -682,12 +718,12 @@ class TruthDareScreen extends ConsumerWidget {
                 prefix: l10n.minigamesResponseBarPrefix,
                 name: authorName,
                 suffix: l10n.minigamesResponseBarSuffix,
-                secondary: gameNameLower,
+                secondary: headerSecondary,
               );
             }
             return MinigameHeaderTitle(
               word: l10n.minigamesBarResponding,
-              secondary: gameNameLower,
+              secondary: headerSecondary,
             );
           }
           // Nothing owed, nothing to react to — the plain name fallback.
@@ -701,7 +737,7 @@ class TruthDareScreen extends ConsumerWidget {
         if (myId != null && skeleton.subjectId == myId) {
           return MinigameHeaderTitle(
             word: l10n.minigamesYourTurn,
-            secondary: gameNameLower,
+            secondary: headerSecondary,
           );
         }
         final subjectName = _displayNameFor(
@@ -714,14 +750,14 @@ class TruthDareScreen extends ConsumerWidget {
         if (subjectName.isEmpty) {
           return MinigameHeaderTitle(
             word: l10n.minigamesTurnGeneric.toLowerCase(),
-            secondary: gameNameLower,
+            secondary: headerSecondary,
           );
         }
         return MinigameHeaderTitle(
           prefix: l10n.minigamesTurnBarPrefix,
           name: subjectName,
           suffix: l10n.minigamesTurnBarSuffix,
-          secondary: gameNameLower,
+          secondary: headerSecondary,
         );
       },
     );
@@ -832,6 +868,16 @@ class _AnswerCardState extends ConsumerState<_AnswerCard> {
   final _picker = ImagePicker();
   bool _submitting = false;
 
+  /// The answer canvas's on-screen origin + the picked picture's intrinsic
+  /// size, so the label can be positioned in PICTURE space (image-aligned)
+  /// rather than in whatever widget canvas the device happens to lay out
+  /// (2026-09-17). [Offset.zero] until the first post-frame measurement.
+  final _canvasKey = GlobalKey();
+  Offset? _canvasOrigin;
+  ImageStream? _pickedStream;
+  ImageStreamListener? _pickedListener;
+  Size? _pickedImageSize;
+
   /// True while the answer label is in its temporary editing state: it moves to
   /// the canvas center, drops rotation/scale, and shows the text cursor.
   bool _editing = false;
@@ -852,6 +898,59 @@ class _AnswerCardState extends ConsumerState<_AnswerCard> {
     _answerFocus.addListener(_onAnswerFocusChanged);
   }
 
+  @override
+  void dispose() {
+    if (_pickedListener != null) {
+      _pickedStream?.removeListener(_pickedListener!);
+    }
+    _answerController.removeListener(_onAnswerChanged);
+    _answerFocus.removeListener(_onAnswerFocusChanged);
+    _answerFocus.dispose();
+    _answerController.dispose();
+    // The lifted picture provider is autoDispose and the play screen always
+    // watches it: leaving the screen tears it down. Never touch `ref` here —
+    // Riverpod has already disposed this element (mutation is a crash).
+    super.dispose();
+  }
+
+  /// Measures the canvas's global origin (post-frame) so viewport-space
+  /// reference coordinates can be mapped into it.
+  void _measureCanvas() {
+    final box = _canvasKey.currentContext?.findRenderObject() as RenderBox?;
+    if (box == null || !box.hasSize) return;
+    final origin = box.localToGlobal(Offset.zero);
+    if (mounted && _canvasOrigin != origin) {
+      setState(() => _canvasOrigin = origin);
+    }
+  }
+
+  /// Resolves the picked picture's intrinsic size (drives the reference rect).
+  void _resolvePickedImage() {
+    final image = _image;
+    final provider = image == null ? null : FileImage(File(image.path));
+    final stream = provider?.resolve(createLocalImageConfiguration(context));
+    if (stream?.key == _pickedStream?.key) return;
+    if (_pickedListener != null) {
+      _pickedStream?.removeListener(_pickedListener!);
+    }
+    _pickedStream = stream;
+    _pickedListener = null;
+    if (stream == null) {
+      if (_pickedImageSize != null) setState(() => _pickedImageSize = null);
+      return;
+    }
+    _pickedListener = ImageStreamListener((info, _) {
+      final size = Size(
+        info.image.width.toDouble(),
+        info.image.height.toDouble(),
+      );
+      if (mounted && size != _pickedImageSize) {
+        setState(() => _pickedImageSize = size);
+      }
+    });
+    stream.addListener(_pickedListener!);
+  }
+
   void _onAnswerChanged() {
     if (mounted) setState(() {});
   }
@@ -867,18 +966,6 @@ class _AnswerCardState extends ConsumerState<_AnswerCard> {
   /// Opens the centered editor (the field's `autofocus` then claims focus).
   void _beginAnswerEditing() {
     if (!_editing) setState(() => _editing = true);
-  }
-
-  @override
-  void dispose() {
-    _answerController.removeListener(_onAnswerChanged);
-    _answerFocus.removeListener(_onAnswerFocusChanged);
-    _answerFocus.dispose();
-    _answerController.dispose();
-    // The lifted picture provider is autoDispose and the play screen always
-    // watches it: leaving the screen tears it down. Never touch `ref` here —
-    // Riverpod has already disposed this element (mutation is a crash).
-    super.dispose();
   }
 
   @override
@@ -928,9 +1015,29 @@ class _AnswerCardState extends ConsumerState<_AnswerCard> {
             builder: (context, constraints) {
               final canvas = Size(constraints.maxWidth, constraints.maxHeight);
               final typed = _answerController.text.trim();
-              final anchorX = (_editing ? 0.5 : _layout.x) * canvas.width;
-              final anchorY = (_editing ? 0.5 : _layout.y) * canvas.height;
+              // Resolve the picked picture + re-measure the canvas POST-FRAME
+              // (both may call setState) so the reference rect is
+              // picture-aligned without rebuilding during build.
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                _measureCanvas();
+                _resolvePickedImage();
+              });
+              // Picture-anchored reference rect, in VIEWPORT space (the picture
+              // backs the whole viewport) mapped into this canvas.
+              final refViewport = minigameImageRect(
+                _pickedImageSize,
+                MediaQuery.sizeOf(context),
+              );
+              final origin = _canvasOrigin ?? Offset.zero;
+              final ref = refViewport.shift(-origin);
+              final anchorX = _editing
+                  ? canvas.width / 2
+                  : ref.left + _layout.x * ref.width;
+              final anchorY = _editing
+                  ? canvas.height / 2
+                  : ref.top + _layout.y * ref.height;
               return Stack(
+                key: _canvasKey,
                 fit: StackFit.expand,
                 children: [
                   // Tapping empty canvas settles the editor back to its place.
@@ -945,15 +1052,7 @@ class _AnswerCardState extends ConsumerState<_AnswerCard> {
                         padding: const EdgeInsets.symmetric(
                           horizontal: AppSpacing.cardPadding,
                         ),
-                        child: Text(
-                          prompt,
-                          style: Theme.of(context).textTheme.headlineSmall
-                              ?.copyWith(
-                                fontFamily: AppTypography.quicksand,
-                                shadows: AppTypography.legibilityShadows,
-                              ),
-                          textAlign: TextAlign.center,
-                        ),
+                        child: _PromptBanner(text: prompt),
                       ),
                       if (isDare) ...[
                         const SizedBox(height: AppSpacing.sm),
@@ -988,7 +1087,7 @@ class _AnswerCardState extends ConsumerState<_AnswerCard> {
                     child: _FloatingAnswerLabel(
                       text: typed,
                       placeholder: widget.l10n.minigamesAnswerPlaceholder,
-                      canvas: canvas,
+                      refRect: ref,
                       layout: _layout,
                       editing: _editing,
                       controller: _answerController,
@@ -1184,7 +1283,7 @@ class _FloatingAnswerLabel extends StatefulWidget {
   const _FloatingAnswerLabel({
     required this.text,
     required this.placeholder,
-    required this.canvas,
+    required this.refRect,
     required this.layout,
     required this.editing,
     required this.controller,
@@ -1195,7 +1294,11 @@ class _FloatingAnswerLabel extends StatefulWidget {
 
   final String text;
   final String placeholder;
-  final Size canvas;
+
+  /// The picture-anchored reference rect IN CANVAS COORDINATES: the layout's
+  /// normalized x/y map onto it, so a placement stays on the same part of the
+  /// picture on every device (2026-09-17).
+  final Rect refRect;
   final MinigameAnswerLayout layout;
   final bool editing;
   final TextEditingController controller;
@@ -1220,6 +1323,7 @@ class _FloatingAnswerLabelState extends State<_FloatingAnswerLabel> {
   static const TextStyle _baseStyle = TextStyle(
     fontFamily: AppTypography.quicksand,
     fontSize: _baseFontSize,
+    fontWeight: FontWeight.w600,
     color: AppColors.white,
     shadows: AppTypography.legibilityShadows,
   );
@@ -1240,16 +1344,16 @@ class _FloatingAnswerLabelState extends State<_FloatingAnswerLabel> {
     }
     final base = _baseLayout!;
     final baseFocal = _baseFocal!;
-    final canvas = widget.canvas;
-    final cursorX =
-        base.x * canvas.width + (details.focalPoint.dx - baseFocal.dx);
+    final ref = widget.refRect;
+    if (ref.width <= 0 || ref.height <= 0) return;
+    final cursorX = base.x * ref.width + (details.focalPoint.dx - baseFocal.dx);
     final cursorY =
-        base.y * canvas.height + (details.focalPoint.dy - baseFocal.dy);
+        base.y * ref.height + (details.focalPoint.dy - baseFocal.dy);
     final scaleFactor = _baseScale == 0 ? 1.0 : details.scale / _baseScale;
     widget.onChanged(
       MinigameAnswerLayout(
-        x: (cursorX / canvas.width).clamp(0.0, 1.0),
-        y: (cursorY / canvas.height).clamp(0.0, 1.0),
+        x: (cursorX / ref.width).clamp(0.0, 1.0),
+        y: (cursorY / ref.height).clamp(0.0, 1.0),
         rotation: base.rotation + (details.rotation - _baseRotation),
         scale: (base.scale * scaleFactor).clamp(
           MinigameAnswerLayout.minScale,
@@ -1269,7 +1373,7 @@ class _FloatingAnswerLabelState extends State<_FloatingAnswerLabel> {
       // Editing presentation: bare centered field (cursor + keyboard). The
       // wrapper animates to the canvas center / no rotation / scale 1.
       content = ConstrainedBox(
-        constraints: BoxConstraints(maxWidth: widget.canvas.width * 0.9),
+        constraints: BoxConstraints(maxWidth: widget.refRect.width * 0.9),
         child: TextField(
           controller: widget.controller,
           focusNode: widget.focusNode,
@@ -1298,7 +1402,7 @@ class _FloatingAnswerLabelState extends State<_FloatingAnswerLabel> {
         onScaleUpdate: _onUpdate,
         onScaleEnd: (_) => _baseLayout = null,
         child: ConstrainedBox(
-          constraints: BoxConstraints(maxWidth: widget.canvas.width * 0.9),
+          constraints: BoxConstraints(maxWidth: widget.refRect.width * 0.9),
           child: Text(
             hasText ? widget.text : widget.placeholder,
             textAlign: TextAlign.center,
@@ -1322,6 +1426,83 @@ class _FloatingAnswerLabelState extends State<_FloatingAnswerLabel> {
           curve: SamayDurations.defaultCurve,
           child: content,
         ),
+      ),
+    );
+  }
+}
+
+/// The prompt banner's display size (slightly above the 20px `headlineSmall`
+/// base) and its `5em` corner radius — larger than the banner's own height, so
+/// the hug-to-text panel renders as a pill.
+const double _promptBannerFontSize = 22;
+const double _promptBannerRadius = 5 * _promptBannerFontSize;
+
+/// The prompt's soft backdrop: three stacked blurs of the SAME pill, each wider
+/// and fainter than the last — `(sigma, alpha)` — so the darkness is strong
+/// right behind the text and diffuses progressively into the picture with no
+/// boundary (2026-09-17).
+///
+/// Why blurs of the shape and not `BoxShadow`: a shadow is cast by an opaque
+/// silhouette, so it always keeps a visible edge no matter how large the blur
+/// or spread. Feathering the shape ITSELF (each layer is a blurred pill) melts
+/// the edge; the successive sigmas give the eased "strong at the start,
+/// diffusing more and more" falloff.
+const List<(double sigma, double alpha)> _promptBannerLayers = [
+  (8, 1.0),
+  (36, 0.6),
+  (92, 0.38),
+];
+
+/// The current prompt — a Verdad question or a Reto challenge — on a soft black
+/// pill so it stays legible over the full-bleed picked-image background
+/// (2026-09-17 directive). Hugs the text (centered); the pill melts into the
+/// picture via [_promptBannerLayers]. Playfair Display w700 at
+/// [_promptBannerFontSize].
+class _PromptBanner extends StatelessWidget {
+  const _PromptBanner({required this.text});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Stack(
+        // The blurs bleed past the pill — never clip them.
+        clipBehavior: Clip.none,
+        alignment: Alignment.center,
+        children: [
+          for (final (sigma, alpha) in _promptBannerLayers)
+            Positioned.fill(
+              child: ImageFiltered(
+                imageFilter: ImageFilter.blur(sigmaX: sigma, sigmaY: sigma),
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: AppColors.discoBlack.withValues(alpha: alpha),
+                    borderRadius: const BorderRadius.all(
+                      Radius.circular(_promptBannerRadius),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          // The label sizes the stack; the blurred layers fill its padded box.
+          Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.md,
+              vertical: AppSpacing.sm,
+            ),
+            child: Text(
+              text,
+              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                fontFamily: AppTypography.playfair,
+                fontSize: _promptBannerFontSize,
+                fontWeight: FontWeight.w700,
+                shadows: AppTypography.legibilityShadows,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -1376,14 +1557,7 @@ class _WaitingCardState extends ConsumerState<_WaitingCard> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         if (widget.showPrompt) ...[
-          Text(
-            prompt,
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-              fontFamily: AppTypography.quicksand,
-              shadows: AppTypography.legibilityShadows,
-            ),
-            textAlign: TextAlign.center,
-          ),
+          _PromptBanner(text: prompt),
           const SizedBox(height: AppSpacing.xs),
         ],
         if (answer == null)
@@ -1518,14 +1692,7 @@ class _SubjectWaitingCardState extends ConsumerState<_SubjectWaitingCard> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         if (widget.showPrompt) ...[
-          Text(
-            prompt,
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-              fontFamily: AppTypography.quicksand,
-              shadows: AppTypography.legibilityShadows,
-            ),
-            textAlign: TextAlign.center,
-          ),
+          _PromptBanner(text: prompt),
           const SizedBox(height: AppSpacing.xs),
         ],
         if (answer.passed)
@@ -1565,8 +1732,11 @@ class _SubjectWaitingCardState extends ConsumerState<_SubjectWaitingCard> {
   }
 }
 
-/// Renders the subject's submitted E2EE answer (text + optional image),
-/// decrypting locally via [minigameCipherProvider]. The server never held the
+/// Decrypts the subject's submitted E2EE answer (text payload + optional
+/// picture) locally via [minigameCipherProvider] and LIFTS both to the screen
+/// providers ([_answerPayloadProvider] / [_answerImageProvider]) for the
+/// full-viewport, image-anchored overlays (2026-09-17). The card itself only
+/// keeps the key-recovery / loading states. The server never held the
 /// plaintext — this is the only place it appears.
 ///
 /// Reinstall recovery (206_minigame_key_request, 2026-09-03): when the round
@@ -1596,7 +1766,6 @@ class _AnswerPreview extends ConsumerStatefulWidget {
 }
 
 class _AnswerPreviewState extends ConsumerState<_AnswerPreview> {
-  Uint8List? _imageBytes;
   bool _imageLoading = false;
   bool _started = false;
 
@@ -1655,13 +1824,19 @@ class _AnswerPreviewState extends ConsumerState<_AnswerPreview> {
       final payload = await cipher.decryptAnswerPayload(text, round);
       if (payload != null && mounted) {
         widget.onDecrypted(payload);
+        // Lift the payload so the screen can render the answer text as a
+        // full-viewport, image-anchored overlay (2026-09-17).
+        final notifier = ref.read(
+          _answerPayloadProvider('${widget.sessionId}/$round').notifier,
+        );
+        notifier.state = payload;
       }
     }
     // The image is NOT inline: it lives in the private `minigame_images`
     // bucket (defect B). Resolve the object path via the storage download and
-    // decrypt the RAW ciphertext bytes locally. A small spinner fills the
-    // image slot while the download + decrypt run (2026-09-02) so a slow
-    // round never reads as a blank card.
+    // decrypt the RAW ciphertext bytes locally, then LIFT them to the screen
+    // provider so the reaction window renders the picture as its full-viewport
+    // background (2026-09-17 standardization) instead of a card thumbnail.
     final path = widget.answer.imageStoragePath;
     if (path != null && path.isNotEmpty) {
       _imageLoading = true;
@@ -1672,10 +1847,11 @@ class _AnswerPreviewState extends ConsumerState<_AnswerPreview> {
           ? null
           : await cipher.decryptAnswerImageBytes(bytes, round);
       if (!mounted) return;
-      setState(() {
-        _imageLoading = false;
-        if (clear != null) _imageBytes = clear;
-      });
+      final notifier = ref.read(
+        _answerImageProvider('${widget.sessionId}/$round').notifier,
+      );
+      notifier.state = clear;
+      setState(() => _imageLoading = false);
     }
   }
 
@@ -1723,35 +1899,11 @@ class _AnswerPreviewState extends ConsumerState<_AnswerPreview> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        if (widget.decrypted?.hasText ?? false) ...[
-          SizedBox(
-            height: 200,
-            child: MinigameAnswerText(
-              text: widget.decrypted!.text!,
-              layout: widget.decrypted!.layout,
-              fontSize: 20,
-            ),
-          ),
-          const SizedBox(height: AppSpacing.sm),
-        ],
-        if (_imageBytes != null)
-          Center(
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: GestureDetector(
-                onTap: () => _showFullAnswerImage(context, _imageBytes!),
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxHeight: 180),
-                  child: Image.memory(
-                    _imageBytes!,
-                    fit: BoxFit.contain,
-                    errorBuilder: (_, _, _) => const SizedBox.shrink(),
-                  ),
-                ),
-              ),
-            ),
-          )
-        else if (_imageLoading)
+        // Neither the picture NOR the text renders here: both live in the
+        // screen-level overlays ([_answerImageProvider] / [_answerPayloadProvider]
+        // → full-viewport, image-anchored). Only the download/decrypt spinner
+        // remains in the card.
+        if (_imageLoading)
           const Padding(
             padding: EdgeInsets.symmetric(vertical: AppSpacing.md),
             child: Center(child: VSpinner(size: 18)),
@@ -1792,50 +1944,57 @@ class _AsyncPanel extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        VCard(
-          child: Padding(
-            padding: const EdgeInsets.all(AppSpacing.md),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  l10n.minigamesAsyncProgress(
-                    skeleton.roundMap[myId] ?? 0,
-                    skeleton.asyncRoundsPerPlayer,
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+          child: VCard(
+            child: Padding(
+              padding: const EdgeInsets.all(AppSpacing.md),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    l10n.minigamesAsyncProgress(
+                      skeleton.roundMap[myId] ?? 0,
+                      skeleton.asyncRoundsPerPlayer,
+                    ),
+                    style: Theme.of(context).textTheme.titleSmall,
                   ),
-                  style: Theme.of(context).textTheme.titleSmall,
-                ),
-                const SizedBox(height: AppSpacing.md),
-                Row(
-                  children: [
-                    Expanded(
-                      child: VButton.dark(
-                        label: l10n.minigamesTruth,
-                        onPressed: () =>
-                            _completeRound(context, ref, TruthDareKind.truth),
+                  const SizedBox(height: AppSpacing.md),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: VButton.dark(
+                          label: l10n.minigamesTruth,
+                          onPressed: () =>
+                              _completeRound(context, ref, TruthDareKind.truth),
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: AppSpacing.md),
-                    Expanded(
-                      child: VButton.outlined(
-                        label: l10n.minigamesDare,
-                        onPressed: () =>
-                            _completeRound(context, ref, TruthDareKind.dare),
+                      const SizedBox(width: AppSpacing.md),
+                      Expanded(
+                        child: VButton.outlined(
+                          label: l10n.minigamesDare,
+                          onPressed: () =>
+                              _completeRound(context, ref, TruthDareKind.dare),
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-              ],
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
         ),
         if (reactable.isNotEmpty) ...[
           const SizedBox(height: AppSpacing.md),
-          Text(
-            l10n.minigamesAsyncAvailable,
-            style: Theme.of(context).textTheme.titleSmall,
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+            child: Text(
+              l10n.minigamesAsyncAvailable,
+              style: Theme.of(context).textTheme.titleSmall,
+            ),
           ),
           const SizedBox(height: AppSpacing.sm),
+          // Full-width tiles: the picture bleeds edge to edge.
           for (final answer in reactable)
             _AsyncReactableTile(sessionId: sessionId, answer: answer),
         ],
@@ -2489,70 +2648,80 @@ class _AsyncReactableTileState extends ConsumerState<_AsyncReactableTile> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    // Full-bleed picture: the SAME [MinigameBleedImage] presentation as the
+    // by_turns reaction window and the leaderboard pages (2026-09-17
+    // standardization) — the picture bleeds to the tile's edges, with the round
+    // header above and the reaction deck below. The card owns no padding so the
+    // picture reaches the edges; each section pads itself.
     return VCard(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.md,
-          vertical: AppSpacing.sm,
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              l10n.minigamesRoundCounter(
-                widget.answer.round,
-                widget.answer.round,
-              ),
-              style: const TextStyle(
-                color: AppColors.mutedStrong,
-                fontSize: 12,
-              ),
+      padding: EdgeInsets.zero,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.cardPadding,
+              AppSpacing.md,
+              AppSpacing.cardPadding,
+              AppSpacing.sm,
             ),
-            const SizedBox(height: AppSpacing.xs),
-            if (_decrypted != null && _decrypted!.isNotEmpty) ...[
-              Text(
-                _decrypted!,
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontFamily: AppTypography.quicksand,
-                ),
-              ),
-              const SizedBox(height: AppSpacing.xs),
-            ],
-            if (_imageBytes != null)
-              Center(
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: GestureDetector(
-                    onTap: () => _showFullAnswerImage(context, _imageBytes!),
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxHeight: 140),
-                      child: Image.memory(
-                        _imageBytes!,
-                        fit: BoxFit.contain,
-                        errorBuilder: (_, _, _) => const SizedBox.shrink(),
-                      ),
-                    ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  l10n.minigamesRoundCounter(
+                    widget.answer.round,
+                    widget.answer.round,
+                  ),
+                  style: const TextStyle(
+                    color: AppColors.mutedStrong,
+                    fontSize: 12,
                   ),
                 ),
-              )
-            else if (_imageLoading)
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: AppSpacing.sm),
-                child: Center(child: VSpinner(size: 18)),
+                if (_decrypted != null && _decrypted!.isNotEmpty) ...[
+                  const SizedBox(height: AppSpacing.xs),
+                  Text(
+                    _decrypted!,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontFamily: AppTypography.quicksand,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          if (_imageBytes != null)
+            GestureDetector(
+              onTap: () => _showFullAnswerImage(context, _imageBytes!),
+              child: SizedBox(
+                height: 220,
+                child: MinigameBleedImage(image: MemoryImage(_imageBytes!)),
               ),
-            const SizedBox(height: AppSpacing.sm),
+            )
+          else if (_imageLoading)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: AppSpacing.sm),
+              child: Center(child: VSpinner(size: 18)),
+            ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.cardPadding,
+              AppSpacing.sm,
+              AppSpacing.cardPadding,
+              AppSpacing.md,
+            ),
             // The same deck as the by-turns row (2026-09-15 uniformity): emoji
             // slots plus the final white-X pass. Exclusivity is enforced
             // SERVER-side here (the async mirror is subject-keyed, so a
             // per-round grey-out would be ambiguous for multi-round subjects);
             // a cross-mode tap surfaces a rejection.
-            _ReactionDeckRow(
+            child: _ReactionDeckRow(
               onEmoji: (kind) => _react(context, ref, kind),
               onPass: () => _react(context, ref, ReactionKind.pass),
               passSemanticLabel: l10n.minigamesPasar,
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
