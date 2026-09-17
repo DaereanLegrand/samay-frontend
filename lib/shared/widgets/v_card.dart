@@ -10,7 +10,16 @@ import 'package:samay/core/design_tokens/app_spacing.dart';
 class VCard extends StatelessWidget {
   final Widget child;
 
-  const VCard({super.key, required this.child});
+  /// Inner padding. Defaults to [AppSpacing.cardPadding] (16). Pass
+  /// [EdgeInsets.zero] when a child must bleed to the card's edges (e.g. a
+  /// full-bleed picture inside a card).
+  final EdgeInsetsGeometry padding;
+
+  const VCard({
+    super.key,
+    required this.child,
+    this.padding = const EdgeInsets.all(AppSpacing.cardPadding),
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -21,7 +30,7 @@ class VCard extends StatelessWidget {
           horizontal: BorderSide(color: AppColors.hairline),
         ),
       ),
-      padding: const EdgeInsets.all(AppSpacing.cardPadding),
+      padding: padding,
       child: child,
     );
   }

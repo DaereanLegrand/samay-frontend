@@ -13,6 +13,11 @@ import 'package:samay/shared/widgets/v_network_image.dart';
 /// Supply exactly one of [url] (network) or [bytes] (in-memory/local).
 /// Pinch and scroll to zoom ([InteractiveViewer]); tap the image anywhere or
 /// the close button to dismiss, and the system back gesture closes it too.
+///
+/// `useSafeArea: false` keeps the picture in the FULL viewport, so its
+/// `contain` placement (centered) matches the inline full-bleed presentation —
+/// no vertical jump between the tapped and untapped states (2026-09-17). The
+/// close button keeps its own [SafeArea].
 Future<void> showFullScreenImage(
   BuildContext context, {
   String? url,
@@ -21,6 +26,7 @@ Future<void> showFullScreenImage(
   assert(url != null || bytes != null, 'showFullScreenImage needs url or bytes');
   return showDialog<void>(
     context: context,
+    useSafeArea: false,
     barrierColor: AppColors.discoBlack,
     builder: (dialogContext) => Dialog(
       backgroundColor: AppColors.discoBlack,
