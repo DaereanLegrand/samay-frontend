@@ -4112,6 +4112,12 @@ abstract class AppLocalizations {
   /// **'Turno de un jugador'**
   String get minigamesTurnGeneric;
 
+  /// By-turns header when the current subject is the caller
+  ///
+  /// In es, this message translates to:
+  /// **'tu turno…'**
+  String get minigamesYourTurn;
+
   /// Prefix of the default anonymous temp nickname (202_minigame_play_v2)
   ///
   /// In es, this message translates to:
@@ -4339,12 +4345,6 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'Ronda {current} / {total}'**
   String minigamesRoundCounter(int current, int total);
-
-  /// Voting row header: each non-subject taps one emoji on the current round (201_minigame_voting)
-  ///
-  /// In es, this message translates to:
-  /// **'Reacciona al turno:'**
-  String get minigamesReactionsTitle;
 
   /// Leaderboard fallback name when the winner username is missing
   ///

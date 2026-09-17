@@ -57,6 +57,14 @@ abstract final class AppTypography {
   static const double quicksandAscentRatio = 1.0;
   static const double quicksandDescentRatio = 0.25;
 
+  /// The legibility drop shadow for text painted over imagery (full-bleed
+  /// pictures): a soft black shadow that keeps white glyphs readable. Applied
+  /// BY DEFAULT to display/header text ([VDisplayText], the minigame header
+  /// title and its rows) and to over-image labels (2026-09-15 directive).
+  static const List<Shadow> legibilityShadows = [
+    Shadow(color: Color(0xFF000000), blurRadius: 10, offset: Offset(0, 2)),
+  ];
+
   /// Cap-height ratio for [family] (falls back to Inter).
   static double capHeightRatioFor(String? family) => switch (family) {
     playfair => playfairCapHeightRatio,

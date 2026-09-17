@@ -10,6 +10,8 @@ import 'package:samay/core/theme/samay_durations.dart';
 import 'package:samay/features/minigames/logic/minigame_engine.dart';
 import 'package:samay/features/minigames/logic/truth_dare.dart';
 import 'package:samay/features/minigames/providers/minigames_providers.dart';
+import 'package:samay/features/minigames/widgets/minigame_answer_text.dart';
+import 'package:samay/features/minigames/widgets/minigame_bleed_image.dart';
 import 'package:samay/features/minigames/widgets/reaction_rise.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/error_view.dart';
@@ -356,9 +358,8 @@ class _RankCardState extends State<_RankCard> {
     super.dispose();
   }
 
-  int _clampIndex(int index) => widget.answers.isEmpty
-      ? 0
-      : index.clamp(0, widget.answers.length - 1);
+  int _clampIndex(int index) =>
+      widget.answers.isEmpty ? 0 : index.clamp(0, widget.answers.length - 1);
 
   /// A stable identity of a card's answer set (participant + per-answer round
   /// and content flags) used to decide whether a rebuild is a real content
@@ -756,43 +757,11 @@ class _AnswerPage extends StatelessWidget {
     return Stack(
       fit: StackFit.expand,
       children: [
-        if (answer.hasImage) ...[
-          // Opaque blurred, vertically-mirrored copy so the letterbox bands it
-          // leaves read as one full-bleed surface. Over-scaled to hide the
-          // blur's transparent edge fringe.
-          ImageFiltered(
-            imageFilter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
-            child: Transform.scale(
-              scale: 1.3,
-              child: Transform.flip(
-                flipY: true,
-                child: Image.memory(
-                  answer.imageBytes!,
-                  fit: BoxFit.cover,
-                  width: double.infinity,
-                  height: double.infinity,
-                  gaplessPlayback: true,
-                ),
-              ),
-            ),
+        if (answer.hasImage)
+          MinigameBleedImage(
+            image: MemoryImage(answer.imageBytes!),
+            onImageLoaded: onImageLoaded,
           ),
-          // The complete picture (BoxFit.contain — never cropped, so a
-          // landscape photo stays landscape).
-          Image.memory(
-            answer.imageBytes!,
-            fit: BoxFit.contain,
-            width: double.infinity,
-            height: double.infinity,
-            gaplessPlayback: true,
-            frameBuilder: (context, child, frame, syncLoaded) {
-              if ((frame != null || syncLoaded) && onImageLoaded != null) {
-                final cb = onImageLoaded!;
-                WidgetsBinding.instance.addPostFrameCallback((_) => cb());
-              }
-              return child;
-            },
-          ),
-        ],
         // The body centers in the space the pinned prompt/footer leave open (the
         // picture itself stays full-bleed behind them).
         SafeArea(
@@ -825,18 +794,12 @@ class _AnswerPage extends StatelessWidget {
       );
     }
     if (answer.hasText) {
-      return Text(
-        answer.text!,
-        textAlign: TextAlign.center,
-        maxLines: 6,
-        overflow: TextOverflow.ellipsis,
-        style: const TextStyle(
-          fontFamily: AppTypography.quicksand,
-          fontSize: 20,
-          height: 1.4,
-          letterSpacing: 1.1,
-          color: AppColors.white,
-        ),
+      // The author's on-canvas placement (2026-09-15): the text renders at its
+      // stored normalized position/rotation/font-scale.
+      return MinigameAnswerText(
+        text: answer.text!,
+        layout: answer.layout,
+        fontSize: 20,
       );
     }
     return const Text(

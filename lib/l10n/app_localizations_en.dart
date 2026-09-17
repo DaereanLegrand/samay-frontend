@@ -2235,6 +2235,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get minigamesTurnGeneric => 'A player\'s turn';
 
   @override
+  String get minigamesYourTurn => 'your turn…';
+
+  @override
   String get minigamesAnonAliasPrefix => 'anonymous';
 
   @override
@@ -2363,9 +2366,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String minigamesRoundCounter(int current, int total) {
     return 'Round $current / $total';
   }
-
-  @override
-  String get minigamesReactionsTitle => 'React to the turn:';
 
   @override
   String get minigamesAnonymousPlayer => 'Player';

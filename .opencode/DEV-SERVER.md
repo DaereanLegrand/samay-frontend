@@ -10,3 +10,19 @@ repo. It must stay alive for the whole session.
   ask the human to restart it.
 - Enforced at the config level in `.opencode/opencode.json`:
   `pkill*` and `kill*` are denied.
+
+## Never trigger a reload yourself — always ask the human
+
+The running dev session (`make dev` / `flutter run`) is the human's. Do **not**
+try to hot reload or hot restart it by ANY means — including:
+
+- writing keys to its terminal (`printf 'r' > /dev/ttysNNN`, `write`,
+  `kitten @ ...`, AppleScript / System Events keystrokes);
+- attaching a second client (`flutter attach`, `flutter run` on the same
+  device, DevTools reload);
+- installing or launching a build over the running one.
+
+When a reload is needed to see a UI change, **ask the human to press `r`
+(hot reload) or `R` (hot restart) in the dev terminal**, then continue.
+Enforced at the config level in `.opencode/opencode.json`: TTY-writing and
+`flutter attach` patterns are denied.

@@ -9,6 +9,7 @@ import 'package:samay/crypto/constants.dart';
 import 'package:samay/crypto/e2ee_primitives.dart';
 import 'package:samay/crypto/interfaces.dart';
 import 'package:samay/crypto/session.dart';
+import 'package:samay/features/minigames/logic/minigame_engine.dart';
 
 /// Minigame E2EE answer cipher (202_minigame_play_v2, round-key model).
 ///
@@ -121,14 +122,16 @@ class MinigameCipher {
   /// A cached pairwise [E2eeSession] to [peerUserId] for bundle distribution —
   /// the recipient resolves its side of the session by the ENVELOPE'S SENDER
   /// id (see [ensureRoundKey]).
-  E2eeSession _pairwiseSession(String peerUserId) =>
-      _sessions.putIfAbsent(_pairwiseSessionKey(peerUserId), () => E2eeSession(
-        chatId: _pairwiseSessionKey(peerUserId),
-        peerUserId: peerUserId,
-        keyStore: _keyStore,
-        sessionStore: _sessionStore,
-        prekeyService: _prekeyService,
-      ));
+  E2eeSession _pairwiseSession(String peerUserId) => _sessions.putIfAbsent(
+    _pairwiseSessionKey(peerUserId),
+    () => E2eeSession(
+      chatId: _pairwiseSessionKey(peerUserId),
+      peerUserId: peerUserId,
+      keyStore: _keyStore,
+      sessionStore: _sessionStore,
+      prekeyService: _prekeyService,
+    ),
+  );
 
   /// The pairwise session with the envelope's [senderId] — the namespace key
   /// is derived from the SENDER (the envelope's source), not from our own id.
@@ -160,8 +163,7 @@ class MinigameCipher {
 
     final payload = _encodeRoundKeys(roundKeys);
     await Future.wait([
-      for (final peer in peerIds)
-        _deliverBundle(peer, payload),
+      for (final peer in peerIds) _deliverBundle(peer, payload),
     ]);
   }
 
@@ -199,8 +201,7 @@ class MinigameCipher {
       'historyRounds=${history.keys.toList()} payloadBytes=${payload.length}',
     );
     await Future.wait([
-      for (final peer in peerIds)
-        _deliverBundle(peer, payload),
+      for (final peer in peerIds) _deliverBundle(peer, payload),
     ]);
   }
 
@@ -241,8 +242,7 @@ class MinigameCipher {
       'sendingTo=${peerIds.length}',
     );
     await Future.wait([
-      for (final peer in peerIds)
-        _deliverBundle(peer, payload),
+      for (final peer in peerIds) _deliverBundle(peer, payload),
     ]);
   }
 
@@ -292,7 +292,7 @@ class MinigameCipher {
       } catch (e, st) {
         AppLogger.instance.warn(
           'minigame e2ee bundle decrypt failed session=$sessionId '
-          'sender=$senderId type=${e.runtimeType}: $e',
+              'sender=$senderId type=${e.runtimeType}: $e',
           '$st',
         );
       }
@@ -351,6 +351,50 @@ class MinigameCipher {
     } on FormatException {
       return null;
     }
+  }
+
+  /// Encrypts the STRUCTURED answer payload — the author's [text] plus the
+  /// on-canvas [layout] (2026-09-15) — as ONE E2EE blob, so the server never
+  /// sees the text OR where it was placed.
+  Future<String> encryptAnswerPayload({
+    required String text,
+    required MinigameAnswerLayout layout,
+    required int round,
+  }) async {
+    final key = await _ensureKeyForWrite(round);
+    final body = jsonEncode({
+      'text': text,
+      'x': layout.x,
+      'y': layout.y,
+      'r': layout.rotation,
+      's': layout.scale,
+    });
+    return _encryptRound(key, utf8Bytes(body), round);
+  }
+
+  /// Decrypts an answer blob into text + layout, or null on missing key /
+  /// authentication failure. A LEGACY plain-text answer (pre-layout) decodes
+  /// as its text with the default centered layout.
+  Future<MinigameAnswerPayload?> decryptAnswerPayload(
+    String ciphertext,
+    int round,
+  ) async {
+    final clear = await decryptAnswerText(ciphertext, round);
+    if (clear == null) return null;
+    try {
+      final decoded = jsonDecode(clear);
+      if (decoded is Map && decoded.containsKey('text')) {
+        return MinigameAnswerPayload(
+          text: decoded['text'] as String?,
+          layout: MinigameAnswerLayout.fromJson(
+            Map<String, dynamic>.from(decoded),
+          ),
+        );
+      }
+    } on FormatException {
+      // Not a structured payload — a legacy plain-text answer.
+    }
+    return MinigameAnswerPayload(text: clear);
   }
 
   /// Decrypts RAW image bytes `nonce(12) ‖ ciphertext‖tag`, or null on
@@ -450,8 +494,7 @@ class MinigameCipher {
     return _roundKeys[round];
   }
 
-  bool _hasRoundKey(int round) =>
-      _roundKeys[round] != null;
+  bool _hasRoundKey(int round) => _roundKeys[round] != null;
 
   /// Caches [key] for [round] in memory AND persists it — a host on a fresh
   /// device recovers its own minted keys without a peer redistribution. The
@@ -480,16 +523,13 @@ class MinigameCipher {
   Future<Set<int>> _loadKnownRounds() async {
     var known = _knownRounds;
     if (known != null) return known;
-    known = _decodeRoundsIndex(
-      await _sessionStore.loadSession(_roundIndexKey),
-    );
+    known = _decodeRoundsIndex(await _sessionStore.loadSession(_roundIndexKey));
     _knownRounds = known;
     return known;
   }
 
-  String _encodeRoundsIndex(Set<int> rounds) => jsonEncode({
-    'rounds': rounds.toList()..sort(),
-  });
+  String _encodeRoundsIndex(Set<int> rounds) =>
+      jsonEncode({'rounds': rounds.toList()..sort()});
 
   Set<int> _decodeRoundsIndex(String? raw) {
     if (raw == null) return <int>{};
@@ -542,7 +582,7 @@ class MinigameCipher {
     } catch (e, st) {
       AppLogger.instance.warn(
         'minigame e2ee bundle delivery failed session=$sessionId '
-        'recipient=$peerUserId type=${e.runtimeType}: $e',
+            'recipient=$peerUserId type=${e.runtimeType}: $e',
         '$st',
       );
       return false;
@@ -603,7 +643,10 @@ class MinigameCipher {
   /// Best-effort: the caller shows a friendly "waiting for a participant to
   /// resend the key" state while this runs; a false return means no holder was
   /// online (the caller may surface a Reintentar action).
-  Future<bool> requestRoundKeyShare(int round, {Duration timeout = const Duration(seconds: 12)}) async {
+  Future<bool> requestRoundKeyShare(
+    int round, {
+    Duration timeout = const Duration(seconds: 12),
+  }) async {
     if (await hasRoundKey(round)) return true;
     AppLogger.instance.debug(
       'minigame key-ring request session=$sessionId round=$round — flagging',
@@ -613,7 +656,7 @@ class MinigameCipher {
     } catch (e, st) {
       AppLogger.instance.warn(
         'minigame key-ring request RPC failed session=$sessionId round=$round '
-        'type=${e.runtimeType}: $e',
+            'type=${e.runtimeType}: $e',
         '$st',
       );
       return false;
@@ -668,7 +711,8 @@ class MinigameCipher {
   }
 
   /// The AAD binding session + round.
-  Uint8List _roundAad(int round) => utf8Bytes('samay.minigame.$sessionId.$round');
+  Uint8List _roundAad(int round) =>
+      utf8Bytes('samay.minigame.$sessionId.$round');
 
   /// AES-256-GCM `nonce(12) ‖ ciphertext‖tag` as base64url (answer text).
   Future<String> _encryptRound(
@@ -692,8 +736,7 @@ class MinigameCipher {
     int round,
   ) async {
     final bytes = base64UrlNoPadDecode(ciphertext);
-    if (bytes == null ||
-        bytes.length < e2eeAeadNonceLength + e2eeTagLength) {
+    if (bytes == null || bytes.length < e2eeAeadNonceLength + e2eeTagLength) {
       return null;
     }
     return aesGcmDecrypt(

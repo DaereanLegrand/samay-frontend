@@ -6,6 +6,16 @@ Samay is built in **16 phases** (00–15). Each phase follows a strict TDD + doc
 
 ---
 
+## Privilege Escalation (hard rule)
+
+**Never attempt to elevate privileges.** No `sudo`, no `osascript ... with
+administrator privileges`, no `do shell script` with admin rights, no
+Authorization Services prompts, no setuid/root helpers. Any action that needs
+elevated privileges MUST be handed to the human as an exact command to run
+themselves. Enforced at the config level in `.opencode/opencode.json`.
+
+---
+
 ## Per-Phase Workflow
 
 ```
@@ -118,6 +128,8 @@ Juega's running Supabase owns host ports 5432/54321/54323/8443 — NEVER map Sam
 - `<private-ops-repo>/DATABASE.md` — DB catalog as-is; `<private-ops-repo>/BACKEND.md` — Go CLI/API surface as-is
 - `docs/history/phase-XX/YYYY-MM-DD_<slug>.md` — optional daily developer log
   (fresh start; write one when a session deserves a record)
+- `docs/process/XCODE-INTEGRATION.md` — drive Xcode directly (Xcode 27 MCP +
+  `xcodebuild`/`simctl` runbook); read before any Xcode/MCP work
 - Mistakes are documented as **MISTAKE** blocks so future sessions can search for them
 - No secrets in code, tests, or docs — ever
 

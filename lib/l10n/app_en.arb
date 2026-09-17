@@ -2718,6 +2718,10 @@
   "@minigamesTurnGeneric": {
     "description": "Turn label when the subject name is not resolved"
   },
+  "minigamesYourTurn": "your turn…",
+  "@minigamesYourTurn": {
+    "description": "By-turns header when the current subject is the caller"
+  },
   "minigamesAnonAliasPrefix": "anonymous",
   "@minigamesAnonAliasPrefix": {
     "description": "Prefix of the default anonymous temp nickname (202_minigame_play_v2)"
@@ -2894,10 +2898,6 @@
       "current": { "type": "int" },
       "total": { "type": "int" }
     }
-  },
-  "minigamesReactionsTitle": "React to the turn:",
-  "@minigamesReactionsTitle": {
-    "description": "Voting row header: each non-subject taps one emoji on the current round (201_minigame_voting)"
   },
   "minigamesAnonymousPlayer": "Player",
   "@minigamesAnonymousPlayer": {
