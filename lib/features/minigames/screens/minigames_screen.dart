@@ -502,16 +502,6 @@ class _GameCard extends StatelessWidget {
     String Function(AppLocalizations),
   )
   get _meta => switch (type) {
-    MinigameType.pokeChain => (
-      minigameIcon(type),
-      (l) => l.minigamesGamePokeChain,
-      (l) => l.minigamesGamePokeChainTagline,
-    ),
-    MinigameType.questions => (
-      minigameIcon(type),
-      (l) => l.minigamesGameQuestions,
-      (l) => l.minigamesGameQuestionsTagline,
-    ),
     MinigameType.truthDare => (
       minigameIcon(type),
       (l) => l.minigamesGameTruthDare,
@@ -521,11 +511,6 @@ class _GameCard extends StatelessWidget {
       minigameIcon(type),
       (l) => l.minigamesGameDrunkBottle,
       (l) => l.minigamesGameDrunkBottleTagline,
-    ),
-    MinigameType.challenge => (
-      minigameIcon(type),
-      (l) => l.minigamesGameChallenge,
-      (l) => l.minigamesGameChallengeTagline,
     ),
     MinigameType.twoLiesOneTruth => (
       minigameIcon(type),

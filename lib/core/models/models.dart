@@ -1,5 +1,6 @@
 export 'chat_message.dart';
 export 'event.dart';
+export 'feed_item.dart';
 export 'friendship.dart';
 export 'group.dart';
 export 'group_member.dart';

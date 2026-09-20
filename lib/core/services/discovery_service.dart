@@ -1,7 +1,6 @@
-import 'package:samay/core/models/user_interests.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-/// User search and Party Finder (PFND) discovery logic.
+/// User search logic.
 ///
 /// Extracted from the former monolithic [UserService] as part of the
 /// Batch 5b decomposition.
@@ -87,75 +86,6 @@ class DiscoveryService {
           return r;
         })
         .where((r) => r['hidden'] != true)
-        .toList();
-  }
-
-  /// Party Finder matches (PFND — I-60): opted-in users from the
-  /// `discovery_view` security-barrier view whose interest tags overlap mine,
-  /// ranked by shared-tag count DESC (spec: mutual friends first — deferred
-  /// to the FRND-owned follow-up) then username ASC.
-  ///
-  /// Each returned row carries `shared_tags` (sorted intersection) and
-  /// `shared_count`. Blocked users never appear (drops blocks I issued; hides
-  /// users who blocked me) — mirrors [searchUsers] so a block lands
-  /// immediately without re-deriving policy.
-  Future<List<Map<String, dynamic>>> findMatches(List<String> myTags) async {
-    final user = auth.currentUser;
-    if (user == null || myTags.isEmpty) return const [];
-
-    final res = await client
-        .from('discovery_view')
-        .select('id, username, avatar_url, interest_tags')
-        .neq('id', user.id)
-        .overlaps('interest_tags', myTags)
-        .limit(50);
-    final results = res.map((e) => Map<String, dynamic>.from(e)).toList();
-    if (results.isEmpty) return results;
-
-    final myTagSet = myTags.toSet();
-    for (final row in results) {
-      final shared = UserInterests.fromDb(row['interest_tags']).tags
-          .intersection(myTagSet)
-          .toList()
-        ..sort();
-      row['shared_tags'] = shared;
-      row['shared_count'] = shared.length;
-    }
-    results.sort((a, b) {
-      final byCount =
-          (b['shared_count'] as int).compareTo(a['shared_count'] as int);
-      if (byCount != 0) return byCount;
-      return (a['username'] as String? ?? '')
-          .compareTo(b['username'] as String? ?? '');
-    });
-
-    final ids = results.map((r) => r['id'] as String).toList();
-    final asRequester = await client
-        .from('friendships')
-        .select('requester_id, addressee_id, status')
-        .eq('requester_id', user.id)
-        .inFilter('addressee_id', ids);
-    final asAddressee = await client
-        .from('friendships')
-        .select('requester_id, addressee_id, status')
-        .eq('addressee_id', user.id)
-        .inFilter('requester_id', ids);
-    final frRows = [...asRequester, ...asAddressee];
-
-    final blockedByMe = <String>{};
-    final blockedByThem = <String>{};
-    for (final row in frRows) {
-      if (row['status'] != 'blocked') continue;
-      if (row['requester_id'] == user.id) {
-        blockedByMe.add(row['addressee_id'] as String);
-      } else {
-        blockedByThem.add(row['requester_id'] as String);
-      }
-    }
-
-    return results
-        .where((r) => !blockedByMe.contains(r['id']))
-        .where((r) => !blockedByThem.contains(r['id']))
         .toList();
   }
 }

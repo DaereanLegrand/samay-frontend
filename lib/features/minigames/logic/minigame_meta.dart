@@ -9,11 +9,8 @@ import 'package:samay/l10n/app_localizations.dart';
 /// list so every surface names a game identically.
 String minigameGameName(AppLocalizations l10n, String? gameType) {
   return switch (gameType) {
-    'poke_chain' => l10n.minigamesGamePokeChain,
-    'questions' => l10n.minigamesGameQuestions,
     'truth_dare' => l10n.minigamesGameTruthDare,
     'drunk_bottle' => l10n.minigamesGameDrunkBottle,
-    'challenge' => l10n.minigamesGameChallenge,
     'two_lies_one_truth' => l10n.minigamesGameTwoLiesOneTruth,
     'charades' => l10n.minigamesGameCharades,
     _ => gameType ?? l10n.minigamesTitle,
@@ -35,11 +32,8 @@ String minigameGameNameLower(AppLocalizations l10n, String? gameType) {
 /// (`minigames_screen.dart`) so the five games always render the same icon
 /// everywhere (plugged-UI consistency, 2026-08-13).
 IconData minigameIcon(MinigameType type) => switch (type) {
-  MinigameType.pokeChain => Icons.bolt,
-  MinigameType.questions => Icons.question_answer,
   MinigameType.truthDare => Icons.psychology,
   MinigameType.drunkBottle => Icons.sports_bar,
-  MinigameType.challenge => Icons.emoji_events,
   MinigameType.twoLiesOneTruth => Icons.psychology_alt,
   MinigameType.charades => Icons.theater_comedy,
 };
@@ -64,22 +58,16 @@ enum MinigameAudience {
 extension MinigameMeta on MinigameType {
   /// The explanation paragraph shown under the game title.
   String explanation(AppLocalizations l10n) => switch (this) {
-    MinigameType.pokeChain => l10n.minigamesGamePokeChainExplanation,
-    MinigameType.questions => l10n.minigamesGameQuestionsExplanation,
     MinigameType.truthDare => l10n.minigamesGameTruthDareExplanation,
     MinigameType.drunkBottle => l10n.minigamesGameDrunkBottleExplanation,
-    MinigameType.challenge => l10n.minigamesGameChallengeExplanation,
     MinigameType.twoLiesOneTruth => l10n.minigamesGameTwoLiesOneTruthExplanation,
     MinigameType.charades => l10n.minigamesGameCharadesExplanation,
   };
 
   /// Whether the game is played with friends, solo, or both.
   MinigameAudience get audience => switch (this) {
-    MinigameType.pokeChain => MinigameAudience.friends,
-    MinigameType.questions => MinigameAudience.friends,
     MinigameType.truthDare => MinigameAudience.friends,
     MinigameType.drunkBottle => MinigameAudience.friends,
-    MinigameType.challenge => MinigameAudience.both,
     MinigameType.twoLiesOneTruth => MinigameAudience.friends,
     MinigameType.charades => MinigameAudience.friends,
   };
@@ -94,11 +82,8 @@ extension MinigameMeta on MinigameType {
 
   /// Localized tagline (the one-liner under the game name).
   String tagline(AppLocalizations l10n) => switch (this) {
-    MinigameType.pokeChain => l10n.minigamesGamePokeChainTagline,
-    MinigameType.questions => l10n.minigamesGameQuestionsTagline,
     MinigameType.truthDare => l10n.minigamesGameTruthDareTagline,
     MinigameType.drunkBottle => l10n.minigamesGameDrunkBottleTagline,
-    MinigameType.challenge => l10n.minigamesGameChallengeTagline,
     MinigameType.twoLiesOneTruth => l10n.minigamesGameTwoLiesOneTruthTagline,
     MinigameType.charades => l10n.minigamesGameCharadesTagline,
   };
@@ -108,11 +93,8 @@ extension MinigameMeta on MinigameType {
 /// null/unknown returns null so callers can fall back to a generic screen).
 MinigameType? minigameTypeFromString(String? gameType) {
   return switch (gameType) {
-    'poke_chain' => MinigameType.pokeChain,
-    'questions' => MinigameType.questions,
     'truth_dare' => MinigameType.truthDare,
     'drunk_bottle' => MinigameType.drunkBottle,
-    'challenge' => MinigameType.challenge,
     'two_lies_one_truth' => MinigameType.twoLiesOneTruth,
     'charades' => MinigameType.charades,
     _ => null,

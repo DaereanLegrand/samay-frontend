@@ -341,13 +341,17 @@
   "@feedNoLocationNotice": {
     "description": "Notice shown while no device location is available, so the radius filter cannot apply"
   },
-  "feedNoEvents": "No upcoming events",
-  "@feedNoEvents": {
-    "description": "Empty feed state heading"
+  "feedAllCaughtUp": "You're all caught up",
+  "@feedAllCaughtUp": {
+    "description": "Empty agnostic feed state heading"
   },
-  "feedNoEventsBody": "Check back soon for new events near you.",
-  "@feedNoEventsBody": {
-    "description": "Empty feed state body"
+  "feedComeBackLater": "Come back later",
+  "@feedComeBackLater": {
+    "description": "Empty agnostic feed state body"
+  },
+  "feedMinigameInvite": "Invite",
+  "@feedMinigameInvite": {
+    "description": "Badge on a feed minigame card when the user has a pending invite"
   },
   "feedLoadError": "Couldn't load the feed",
   "@feedLoadError": {
@@ -2236,43 +2240,6 @@
   "@codeAssistedDone": {
     "description": "Attendance code: terminal word revealed under the check mark once assisted"
   },
-  "partyFinderTitle": "Party finder",
-  "@partyFinderTitle": {
-    "description": "Party Finder screen app bar title (PFND — I-60)"
-  },
-  "partyFinderOptInLabel": "Appear in Party Finder",
-  "@partyFinderOptInLabel": {
-    "description": "Party Finder: opt-in switch label (privacy default OFF)"
-  },
-  "partyFinderOptInOff": "Discovery is off",
-  "@partyFinderOptInOff": {
-    "description": "Party Finder: first-run explainer title while discovery is off"
-  },
-  "partyFinderOptInOffBody": "Turn on the switch to appear in other people's matches. Nobody can see you while it's off.",
-  "@partyFinderOptInOffBody": {
-    "description": "Party Finder: first-run explainer body while discovery is off"
-  },
-  "partyFinderEmpty": "No matches yet",
-  "@partyFinderEmpty": {
-    "description": "Party Finder: empty state when no matches exist"
-  },
-  "partyFinderEmptyBody": "Add more interests to your profile to find like-minded people.",
-  "@partyFinderEmptyBody": {
-    "description": "Party Finder: empty-state hint to add more interest tags"
-  },
-  "partyFinderError": "Couldn't load the Party Finder",
-  "@partyFinderError": {
-    "description": "Party Finder: error state message with retry"
-  },
-  "partyFinderSharedInterests": "{count, plural, =1{1 shared interest} other{{count} shared interests}}",
-  "@partyFinderSharedInterests": {
-    "description": "Party Finder: shared-interest count on a match card",
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
   "cosmeticsShopTitle": "cosmetics",
   "@cosmeticsShopTitle": {
     "description": "Cosmetics shop screen app-bar title"
@@ -2371,14 +2338,6 @@
   "@minigamesTagline": {
     "description": "Second header row of the minigames hub (match list)"
   },
-  "homeGamesTitle": "Games",
-  "@homeGamesTitle": {
-    "description": "Section heading of the games quick-access row at the top of the home feed (2026-08-13)"
-  },
-  "homePartyFinderBody": "Find people who share your interests",
-  "@homePartyFinderBody": {
-    "description": "Subtitle of the Party Finder entry card on the home feed"
-  },
   "minigamesChooseGroup": "Choose a group",
   "@minigamesChooseGroup": {
     "description": "Title of the group-picker bottom sheet shown when starting a game from the home feed"
@@ -2398,30 +2357,6 @@
   "minigamesPickGame": "Pick a game",
   "@minigamesPickGame": {
     "description": "Section heading above the five game-type cards"
-  },
-  "minigamesGamePokeChain": "Poke Chain",
-  "@minigamesGamePokeChain": {
-    "description": "Game #1 name (Poke Chain)"
-  },
-  "minigamesGamePokeChainTagline": "Pass the poke before the timer runs out",
-  "@minigamesGamePokeChainTagline": {
-    "description": "Game #1 one-line tagline"
-  },
-  "minigamesGamePokeChainExplanation": "Pass the poke to a friend before the timer runs out. If it does, you pay the wager.",
-  "@minigamesGamePokeChainExplanation": {
-    "description": "Game #1 explanation on the dedicated game page"
-  },
-  "minigamesGameQuestions": "Questions",
-  "@minigamesGameQuestions": {
-    "description": "Game #2 name (Questions)"
-  },
-  "minigamesGameQuestionsTagline": "Answer from the hot seat",
-  "@minigamesGameQuestionsTagline": {
-    "description": "Game #2 one-line tagline"
-  },
-  "minigamesGameQuestionsExplanation": "Every player asks you questions and you answer from the hot seat. Turn by turn, no filters.",
-  "@minigamesGameQuestionsExplanation": {
-    "description": "Game #2 explanation on the dedicated game page"
   },
   "minigamesGameTruthDare": "Truth or Dare",
   "@minigamesGameTruthDare": {
@@ -2446,18 +2381,6 @@
   "minigamesGameDrunkBottleExplanation": "Spin the bottle: whoever it points to has to take it on. Perfect for hangouts with friends.",
   "@minigamesGameDrunkBottleExplanation": {
     "description": "Game #4 explanation on the dedicated game page"
-  },
-  "minigamesGameChallenge": "Challenges",
-  "@minigamesGameChallenge": {
-    "description": "Game #5 name (Challenges)"
-  },
-  "minigamesGameChallengeTagline": "Complete the challenge before the deadline",
-  "@minigamesGameChallengeTagline": {
-    "description": "Game #5 one-line tagline"
-  },
-  "minigamesGameChallengeExplanation": "Complete the challenge before the time runs out. Play it solo or compete with friends.",
-  "@minigamesGameChallengeExplanation": {
-    "description": "Game #5 explanation on the dedicated game page"
   },
   "minigamesGameTwoLiesOneTruth": "2 Lies, 1 Truth",
   "@minigamesGameTwoLiesOneTruth": {

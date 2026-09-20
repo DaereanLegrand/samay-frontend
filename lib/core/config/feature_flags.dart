@@ -50,9 +50,6 @@ enum AppFeatureFlag {
   /// RevenueCat SDK key — do not flip this flag.
   subscriptions,
 
-  /// Party finder (PFND — I-60). LIVE — the flag is the kill-switch knob.
-  partyFinder,
-
   /// Minigames (I-63). LIVE — the flag is the kill-switch knob.
   minigames,
 
@@ -83,7 +80,6 @@ class AppFeatureFlags {
     this.feed = true,
     this.notifications = true,
     this.subscriptions = false,
-    this.partyFinder = true,
     this.minigames = true,
     this.photoUpload = true,
     this.e2ee = true,
@@ -97,7 +93,6 @@ class AppFeatureFlags {
   final bool feed;
   final bool notifications;
   final bool subscriptions;
-  final bool partyFinder;
   final bool minigames;
   final bool photoUpload;
   final bool e2ee;
@@ -112,7 +107,6 @@ class AppFeatureFlags {
     AppFeatureFlag.feed => feed,
     AppFeatureFlag.notifications => notifications,
     AppFeatureFlag.subscriptions => subscriptions,
-    AppFeatureFlag.partyFinder => partyFinder,
     AppFeatureFlag.minigames => minigames,
     AppFeatureFlag.photoUpload => photoUpload,
     AppFeatureFlag.e2ee => e2ee,
@@ -129,7 +123,6 @@ class AppFeatureFlags {
       other.feed == feed &&
       other.notifications == notifications &&
       other.subscriptions == subscriptions &&
-      other.partyFinder == partyFinder &&
       other.minigames == minigames &&
       other.photoUpload == photoUpload &&
       other.e2ee == e2ee &&
@@ -144,7 +137,6 @@ class AppFeatureFlags {
     feed,
     notifications,
     subscriptions,
-    partyFinder,
     minigames,
     photoUpload,
     e2ee,

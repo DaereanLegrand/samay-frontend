@@ -58,7 +58,6 @@ import 'package:samay/features/minigames/screens/drunk_bottle_screen.dart';
 import 'package:samay/features/minigames/screens/truth_dare_screen.dart';
 import 'package:samay/features/minigames/screens/two_lies_screen.dart';
 import 'package:samay/features/notifications/screens/notification_center_screen.dart';
-import 'package:samay/features/party_finder/screens/party_finder_screen.dart';
 import 'package:samay/features/qr/screens/attendance_code_screen.dart';
 import 'package:samay/features/qr/screens/qr_scanner_screen.dart';
 import 'package:samay/features/shards/screens/shard_ledger_screen.dart';
@@ -651,14 +650,6 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, _) => const FlagGate(
           flag: AppFeatureFlag.subscriptions,
           child: PaywallScreen(),
-        ),
-      ),
-      GoRoute(
-        // PFND (I-60): gated on the partyFinder flag as the kill-switch knob.
-        path: RoutePaths.partyFinder,
-        builder: (context, _) => const FlagGate(
-          flag: AppFeatureFlag.partyFinder,
-          child: PartyFinderScreen(),
         ),
       ),
       GoRoute(

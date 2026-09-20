@@ -41,6 +41,7 @@ class HiveService {
   static const notificationBoxName = 'notification_cache';
   static const friendsBoxName = 'friends_cache';
   static const minigameSummaryBoxName = 'minigame_summary_cache';
+  static const feedBoxName = 'feed_cache';
 
   /// Secure-storage key under which the base64-encoded Hive encryption key
   /// (32 bytes = 256 bit, AES-256) is persisted.
@@ -172,6 +173,7 @@ class HiveService {
     await _openBox(notificationBoxName, key);
     await _openBox(friendsBoxName, key);
     await _openBox(minigameSummaryBoxName, key);
+    await _openBox(feedBoxName, key);
   }
 
   Future<void> cacheConfig(Map<String, String> config) async {
@@ -336,5 +338,41 @@ class HiveService {
     } on FormatException {
       return null;
     }
+  }
+
+  // ---------------------------------------------------------------------------
+  // On-device agnostic feed cache (2026-09-20). The feed is a mix of event
+  // and minigame-match items; the JSON-encoded list is cached under the user
+  // id so an account switch never leaks the previous account's feed, and the
+  // tab renders instantly from disk before the network refresh lands.
+  // ---------------------------------------------------------------------------
+
+  /// Persists the [items] feed payload (JSON-encoded list) for [userId].
+  Future<void> cacheFeed(String userId, List<Map<String, dynamic>> items) async {
+    final box = _hive.box<String>(feedBoxName);
+    await box.put(userId, jsonEncode(items));
+  }
+
+  /// The cached feed payload of [userId] as maps, or null when the cache is
+  /// cold (pure disk read, no network).
+  List<Map<String, dynamic>>? getCachedFeed(String userId) {
+    final box = _hive.box<String>(feedBoxName);
+    final raw = box.get(userId);
+    if (raw == null) return null;
+    try {
+      final decoded = jsonDecode(raw) as List;
+      return decoded
+          .whereType<Map>()
+          .map((e) => Map<String, dynamic>.from(e))
+          .toList();
+    } on FormatException {
+      return null;
+    }
+  }
+
+  /// Removes the cached feed of [userId] (account switch / logout).
+  Future<void> clearCachedFeed(String userId) async {
+    final box = _hive.box<String>(feedBoxName);
+    await box.delete(userId);
   }
 }

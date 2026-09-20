@@ -264,10 +264,13 @@ class AppLocalizationsEn extends AppLocalizations {
       'No location available — showing all events';
 
   @override
-  String get feedNoEvents => 'No upcoming events';
+  String get feedAllCaughtUp => 'You\'re all caught up';
 
   @override
-  String get feedNoEventsBody => 'Check back soon for new events near you.';
+  String get feedComeBackLater => 'Come back later';
+
+  @override
+  String get feedMinigameInvite => 'Invite';
 
   @override
   String get feedLoadError => 'Couldn\'t load the feed';
@@ -1682,40 +1685,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get codeAssistedDone => 'DONE';
 
   @override
-  String get partyFinderTitle => 'Party finder';
-
-  @override
-  String get partyFinderOptInLabel => 'Appear in Party Finder';
-
-  @override
-  String get partyFinderOptInOff => 'Discovery is off';
-
-  @override
-  String get partyFinderOptInOffBody =>
-      'Turn on the switch to appear in other people\'s matches. Nobody can see you while it\'s off.';
-
-  @override
-  String get partyFinderEmpty => 'No matches yet';
-
-  @override
-  String get partyFinderEmptyBody =>
-      'Add more interests to your profile to find like-minded people.';
-
-  @override
-  String get partyFinderError => 'Couldn\'t load the Party Finder';
-
-  @override
-  String partyFinderSharedInterests(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count shared interests',
-      one: '1 shared interest',
-    );
-    return '$_temp0';
-  }
-
-  @override
   String get cosmeticsShopTitle => 'cosmetics';
 
   @override
@@ -1782,12 +1751,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get minigamesTagline => 'Do you dare';
 
   @override
-  String get homeGamesTitle => 'Games';
-
-  @override
-  String get homePartyFinderBody => 'Find people who share your interests';
-
-  @override
   String get minigamesChooseGroup => 'Choose a group';
 
   @override
@@ -1802,27 +1765,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get minigamesPickGame => 'Pick a game';
-
-  @override
-  String get minigamesGamePokeChain => 'Poke Chain';
-
-  @override
-  String get minigamesGamePokeChainTagline =>
-      'Pass the poke before the timer runs out';
-
-  @override
-  String get minigamesGamePokeChainExplanation =>
-      'Pass the poke to a friend before the timer runs out. If it does, you pay the wager.';
-
-  @override
-  String get minigamesGameQuestions => 'Questions';
-
-  @override
-  String get minigamesGameQuestionsTagline => 'Answer from the hot seat';
-
-  @override
-  String get minigamesGameQuestionsExplanation =>
-      'Every player asks you questions and you answer from the hot seat. Turn by turn, no filters.';
 
   @override
   String get minigamesGameTruthDare => 'Truth or Dare';
@@ -2031,17 +1973,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String minigamesBottleMinPlayers(int min, int count) {
     return 'Bottle needs at least $min players (you have $count)';
   }
-
-  @override
-  String get minigamesGameChallenge => 'Challenges';
-
-  @override
-  String get minigamesGameChallengeTagline =>
-      'Complete the challenge before the deadline';
-
-  @override
-  String get minigamesGameChallengeExplanation =>
-      'Complete the challenge before the time runs out. Play it solo or compete with friends.';
 
   @override
   String get minigamesGameTwoLiesOneTruth => '2 Lies, 1 Truth';

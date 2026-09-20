@@ -341,13 +341,17 @@
   "@feedNoLocationNotice": {
     "description": "Notice shown while no device location is available, so the radius filter cannot apply"
   },
-  "feedNoEvents": "No hay eventos próximos",
-  "@feedNoEvents": {
-    "description": "Empty feed state heading"
+  "feedAllCaughtUp": "Estás al día",
+  "@feedAllCaughtUp": {
+    "description": "Empty agnostic feed state heading"
   },
-  "feedNoEventsBody": "Vuelve pronto para descubrir nuevos eventos cerca de ti.",
-  "@feedNoEventsBody": {
-    "description": "Empty feed state body"
+  "feedComeBackLater": "Regresa más tarde",
+  "@feedComeBackLater": {
+    "description": "Empty agnostic feed state body"
+  },
+  "feedMinigameInvite": "Invitación",
+  "@feedMinigameInvite": {
+    "description": "Badge on a feed minigame card when the user has a pending invite"
   },
   "feedLoadError": "No se pudo cargar el feed",
   "@feedLoadError": {
@@ -2236,43 +2240,6 @@
   "@codeAssistedDone": {
     "description": "Attendance code: terminal word revealed under the check mark once assisted"
   },
-  "partyFinderTitle": "Party finder",
-  "@partyFinderTitle": {
-    "description": "Party Finder screen app bar title (PFND — I-60)"
-  },
-  "partyFinderOptInLabel": "Aparecer en Party Finder",
-  "@partyFinderOptInLabel": {
-    "description": "Party Finder: opt-in switch label (privacy default OFF)"
-  },
-  "partyFinderOptInOff": "Descubrimiento está apagado",
-  "@partyFinderOptInOff": {
-    "description": "Party Finder: first-run explainer title while discovery is off"
-  },
-  "partyFinderOptInOffBody": "Activa el interruptor para aparecer en las coincidencias de otras personas. Nadie puede verte mientras esté apagado.",
-  "@partyFinderOptInOffBody": {
-    "description": "Party Finder: first-run explainer body while discovery is off"
-  },
-  "partyFinderEmpty": "Aún no hay coincidencias",
-  "@partyFinderEmpty": {
-    "description": "Party Finder: empty state when no matches exist"
-  },
-  "partyFinderEmptyBody": "Agrega más intereses a tu perfil para encontrar personas afines.",
-  "@partyFinderEmptyBody": {
-    "description": "Party Finder: empty-state hint to add more interest tags"
-  },
-  "partyFinderError": "No se pudo cargar el Party Finder",
-  "@partyFinderError": {
-    "description": "Party Finder: error state message with retry"
-  },
-  "partyFinderSharedInterests": "{count, plural, =1{1 interés en común} other{{count} intereses en común}}",
-  "@partyFinderSharedInterests": {
-    "description": "Party Finder: shared-interest count on a match card",
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
   "cosmeticsShopTitle": "cosméticos",
   "@cosmeticsShopTitle": {
     "description": "Cosmetics shop screen app-bar title"
@@ -2368,14 +2335,6 @@
   "@minigamesTagline": {
     "description": "Second header row of the minigames hub (match list)"
   },
-  "homeGamesTitle": "Juegos",
-  "@homeGamesTitle": {
-    "description": "Sección de acceso rápido a los juegos al tope del feed principal"
-  },
-  "homePartyFinderBody": "Encuentra personas que compartan tus intereses",
-  "@homePartyFinderBody": {
-    "description": "Subtítulo de la tarjeta de Party Finder en el feed principal"
-  },
   "minigamesChooseGroup": "Elige un grupo",
   "@minigamesChooseGroup": {
     "description": "Título del selector de grupo al empezar un juego desde el feed principal"
@@ -2398,30 +2357,6 @@
   "minigamesPickGame": "Elige un juego",
   "@minigamesPickGame": {
     "description": "Section heading above the five game-type cards"
-  },
-  "minigamesGamePokeChain": "Cadena de Pokes",
-  "@minigamesGamePokeChain": {
-    "description": "Game #1 name (Poke Chain)"
-  },
-  "minigamesGamePokeChainTagline": "Pasa el poke antes de que se acabe el tiempo",
-  "@minigamesGamePokeChainTagline": {
-    "description": "Game #1 one-line tagline"
-  },
-  "minigamesGamePokeChainExplanation": "Pásale el poke a un amigo antes de que se acabe el tiempo. Si se te acaba, pagas la apuesta.",
-  "@minigamesGamePokeChainExplanation": {
-    "description": "Game #1 explanation on the dedicated game page"
-  },
-  "minigamesGameQuestions": "Preguntas",
-  "@minigamesGameQuestions": {
-    "description": "Game #2 name (Questions)"
-  },
-  "minigamesGameQuestionsTagline": "Responde desde el asiento caliente",
-  "@minigamesGameQuestionsTagline": {
-    "description": "Game #2 one-line tagline"
-  },
-  "minigamesGameQuestionsExplanation": "Todos los jugadores te hacen preguntas y tú respondes desde el asiento caliente. Por turnos, sin filtros.",
-  "@minigamesGameQuestionsExplanation": {
-    "description": "Game #2 explanation on the dedicated game page"
   },
   "minigamesGameTruthDare": "Verdad o Reto",
   "@minigamesGameTruthDare": {
@@ -2605,18 +2540,6 @@
       "min": {"type": "int"},
       "count": {"type": "int"}
     }
-  },
-  "minigamesGameChallenge": "Retos",
-  "@minigamesGameChallenge": {
-    "description": "Game #5 name (Challenges)"
-  },
-  "minigamesGameChallengeTagline": "Completa el reto antes del límite",
-  "@minigamesGameChallengeTagline": {
-    "description": "Game #5 one-line tagline"
-  },
-  "minigamesGameChallengeExplanation": "Completa el reto antes de que se acabe el tiempo. Puedes jugarlo solo o competir con amigos.",
-  "@minigamesGameChallengeExplanation": {
-    "description": "Game #5 explanation on the dedicated game page"
   },
   "minigamesGameTwoLiesOneTruth": "2 Mentiras, 1 Verdad",
   "@minigamesGameTwoLiesOneTruth": {

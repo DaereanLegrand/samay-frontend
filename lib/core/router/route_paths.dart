@@ -24,7 +24,6 @@ abstract final class RoutePaths {
   static const friendsList = '/friends/list';
   static const blockedUsers = '/settings/blocked';
   static const subscriptions = '/subscriptions';
-  static const partyFinder = '/party-finder';
   static const cosmetics = '/cosmetics';
   static const shardsLedger = '/shards/ledger';
   static const settings = '/settings';

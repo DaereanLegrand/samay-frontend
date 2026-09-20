@@ -9,15 +9,11 @@ import 'package:samay/features/minigames/logic/truth_dare.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
 
-/// The five group-scoped mini-game types (GMCR spec; DB enum
-/// `mini_game_type`). `.value` is the wire value used by the RPC and the
-/// `game_type` column.
+/// The four plugged mini-game types (GMCR spec; DB enum `mini_game_type`).
+/// `.value` is the wire value used by the RPC and the `game_type` column.
 enum MinigameType {
-  pokeChain('poke_chain'),
-  questions('questions'),
   truthDare('truth_dare'),
   drunkBottle('drunk_bottle'),
-  challenge('challenge'),
   twoLiesOneTruth('two_lies_one_truth'),
   charades('charades');
 
