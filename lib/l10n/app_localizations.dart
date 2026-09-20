@@ -590,6 +590,12 @@ abstract class AppLocalizations {
   /// **'Social'**
   String get shellSocial;
 
+  /// Bottom navigation tab label (Games tab — plugged minigames)
+  ///
+  /// In es, this message translates to:
+  /// **'Juegos'**
+  String get shellGames;
+
   /// Bottom navigation tab label
   ///
   /// In es, this message translates to:
@@ -788,17 +794,17 @@ abstract class AppLocalizations {
   /// **'Buscar amigos'**
   String get groupsTooltipFindFriends;
 
-  /// Create-group button label
+  /// Create-group screen Header title (verbatim/lowercase)
   ///
   /// In es, this message translates to:
   /// **'crear'**
   String get groupsCreateGroup;
 
-  /// Leaderboard button label
+  /// Create-group action button label (Title Case)
   ///
   /// In es, this message translates to:
-  /// **'Ranking'**
-  String get groupsRanking;
+  /// **'Crear grupo'**
+  String get groupsCreateGroupAction;
 
   /// Friend-requests shortcut button label
   ///
@@ -841,6 +847,18 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'ranking'**
   String get socialRankingTitle;
+
+  /// Rankings screen Users | Groups switch — users segment
+  ///
+  /// In es, this message translates to:
+  /// **'Usuarios'**
+  String get rankingsUsers;
+
+  /// Rankings screen Users | Groups switch — groups segment
+  ///
+  /// In es, this message translates to:
+  /// **'Grupos'**
+  String get rankingsGroups;
 
   /// Empty state when the user ranking has no entries
   ///
@@ -1189,12 +1207,6 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'Sin resultados'**
   String get groupsNoResults;
-
-  /// Leaderboard screen app bar title
-  ///
-  /// In es, this message translates to:
-  /// **'ranking'**
-  String get groupsLeaderboardTitle;
 
   /// Empty state when there is no ranking data
   ///

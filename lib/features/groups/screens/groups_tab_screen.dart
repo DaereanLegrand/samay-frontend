@@ -1,28 +1,30 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:samay/core/design_tokens/app_colors.dart';
+import 'package:samay/core/design_tokens/app_icon_sizes.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/extensions/error_mapper.dart';
+import 'package:samay/core/models/group.dart';
 import 'package:samay/core/router/route_paths.dart';
 import 'package:samay/features/groups/providers/groups_providers.dart';
-import 'package:samay/features/social/widgets/social_action_tile.dart';
-import 'package:samay/shared/widgets/profile_avatar.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/error_view.dart';
 import 'package:samay/shared/widgets/skeletons.dart';
 import 'package:samay/shared/widgets/state_views.dart';
 import 'package:samay/shared/widgets/v_badge.dart';
+import 'package:samay/shared/widgets/v_card.dart';
+import 'package:samay/shared/widgets/v_network_image.dart';
 import 'package:samay/shared/widgets/v_shard_icon.dart';
 
-/// The Grupos sub-tab of the Social screen (C-social, 2026-08-18): the
-/// create-group + ranking actions and the user's groups list. White-only —
-/// the actions are the shared compact [SocialActionTile] row (same widget as
-/// the Amigos sub-tab, D-social-density); no violet accent (product: the
-/// Social/ranking surfaces drop the purple).
+/// The Grupos segment of the Social tab (redesign 2026-09-20).
 ///
-/// Body-only by design: the Social shell owns the Scaffold + pill TabBar, so
-/// this widget renders its column (the find-friends action and the
-/// friends/requests shortcut row moved into the Amigos sub-tab).
+/// Big-image group cards — the group cover leads, the name and shard count
+/// follow with no button chrome — replacing the old action-tile row + dense
+/// ListTiles. The whole card is tappable. Creating a group lives in the
+/// Social header ("+") and in this list's empty state.
+///
+/// Body-only by design: the Social shell owns the Scaffold + pill TabBar.
 class GroupsTab extends ConsumerWidget {
   const GroupsTab({super.key});
 
@@ -37,26 +39,6 @@ class GroupsTab extends ConsumerWidget {
           SliverOverlapInjector(
             handle: NestedScrollView.sliverOverlapAbsorberHandleFor(context),
           ),
-          SliverToBoxAdapter(
-            child: SocialActionsRow(
-              children: [
-                SocialActionTile(
-                  icon: Icons.group_add_outlined,
-                  label: l10n.groupsCreateGroup,
-                  onTap: () async {
-                    await context.push(RoutePaths.groupCreate);
-                    ref.invalidate(myGroupsProvider);
-                  },
-                ),
-                SocialActionTile(
-                  icon: Icons.leaderboard_outlined,
-                  label: l10n.groupsRanking,
-                  onTap: () => context.push(RoutePaths.groupsLeaderboard),
-                ),
-              ],
-            ),
-          ),
-          const SliverToBoxAdapter(child: Divider(height: 1)),
           ...ref
               .watch(myGroupsProvider)
               .when(
@@ -82,6 +64,11 @@ class GroupsTab extends ConsumerWidget {
                           icon: Icons.group_outlined,
                           title: l10n.groupsNoneYet,
                           description: l10n.groupsNoneYetSubtitle,
+                          actionLabel: l10n.groupsCreateGroupAction,
+                          onAction: () async {
+                            await context.push(RoutePaths.groupCreate);
+                            ref.invalidate(myGroupsProvider);
+                          },
                         ),
                       ),
                     ];
@@ -89,57 +76,97 @@ class GroupsTab extends ConsumerWidget {
                   return [
                     SliverList.separated(
                       itemCount: groups.length,
-                      separatorBuilder: (_, _) => const Divider(height: 1),
-                      itemBuilder: (_, i) {
-                        final group = groups[i];
-                        final name = group.name;
-                        final initials = name.isEmpty
-                            ? null
-                            : name.substring(0, 1);
-                        final myRole = group.myRole;
-                        final myStatus = group.myStatus;
-                        return ListTile(
-                          dense: true,
-                          leading: ProfileAvatar(
-                            size: AppSpacing.avatar,
-                            initials: initials,
-                            imageUrl: group.coverUrl,
-                          ),
-                          title: Text(
-                            name,
-                            style: Theme.of(context).textTheme.bodyLarge,
-                          ),
-                          subtitle: Wrap(
-                            spacing: 4,
-                            runSpacing: 4,
-                            crossAxisAlignment: WrapCrossAlignment.center,
-                            children: [
-                              if (myStatus == 'invited') ...[
-                                VBadge(label: l10n.groupsInvitePending),
-                                const SizedBox(width: 4),
-                              ],
-                              if (myRole != null && myRole != 'member') ...[
-                                VBadge(label: myRole),
-                                const SizedBox(width: 4),
-                              ],
-                              const VShardIcon(size: 12),
-                              const SizedBox(width: 4),
-                              Text(
-                                '${group.groupShards}',
-                                style: const TextStyle(fontSize: 12),
-                              ),
-                            ],
-                          ),
-                          trailing: const Icon(Icons.chevron_right),
-                          onTap: () =>
-                              context.push(RoutePaths.groupDetail(group.id)),
-                        );
-                      },
+                      separatorBuilder: (_, _) =>
+                          const SizedBox(height: AppSpacing.md),
+                      itemBuilder: (_, i) => _GroupCard(group: groups[i]),
+                    ),
+                    const SliverToBoxAdapter(
+                      child: SizedBox(height: AppSpacing.lg),
                     ),
                   ];
                 },
               ),
         ],
+      ),
+    );
+  }
+}
+
+/// One group: a full-bleed cover (or an icon placeholder), then the name and
+/// shard count. The whole card opens the group.
+class _GroupCard extends StatelessWidget {
+  final Group group;
+
+  const _GroupCard({required this.group});
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final hasCover = group.coverUrl != null && group.coverUrl!.isNotEmpty;
+    return Padding(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.screenHorizontal,
+      ),
+      child: InkWell(
+        onTap: () => context.push(RoutePaths.groupDetail(group.id)),
+        child: VCard(
+          padding: EdgeInsets.zero,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (hasCover)
+                VNetworkImage(
+                  imageUrl: group.coverUrl!,
+                  height: 160,
+                  fit: BoxFit.cover,
+                )
+              else
+                Container(
+                  height: 160,
+                  color: AppColors.surfaceAlt,
+                  alignment: Alignment.center,
+                  child: const Icon(
+                    Icons.group,
+                    size: AppIconSizes.xl,
+                    color: AppColors.muted,
+                  ),
+                ),
+              Padding(
+                padding: const EdgeInsets.all(AppSpacing.cardPadding),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      group.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.titleLarge,
+                    ),
+                    const SizedBox(height: AppSpacing.xs),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const VShardIcon(size: AppIconSizes.xs),
+                        const SizedBox(width: AppSpacing.xs),
+                        Text(
+                          '${group.groupShards}',
+                          style: const TextStyle(
+                            color: AppColors.mutedStrong,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ],
+                    ),
+                    if (group.myStatus == 'invited') ...[
+                      const SizedBox(height: AppSpacing.sm),
+                      VBadge(label: l10n.groupsInvitePending),
+                    ],
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

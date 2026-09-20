@@ -46,6 +46,10 @@ post_install do |installer|
     # Without these macros the plugin returns MissingPluginException at
     # runtime. Only the two permissions the app uses are enabled.
     target.build_configurations.each do |config|
+      # Xcode 27 rejects pod targets whose deployment target is below the
+      # SDK's supported floor (15.0). Some podspecs still declare 9.0/13.0,
+      # so pin every pod configuration to the app's minimum (platform :ios).
+      config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '16.0'
       config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] ||= [
         '$(inherited)',
         'PERMISSION_CAMERA=1',

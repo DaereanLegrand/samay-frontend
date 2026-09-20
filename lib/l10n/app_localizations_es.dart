@@ -285,6 +285,9 @@ class AppLocalizationsEs extends AppLocalizations {
   String get shellSocial => 'Social';
 
   @override
+  String get shellGames => 'Juegos';
+
+  @override
   String get shellEvents => 'Eventos';
 
   @override
@@ -388,7 +391,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get groupsCreateGroup => 'crear';
 
   @override
-  String get groupsRanking => 'Ranking';
+  String get groupsCreateGroupAction => 'Crear grupo';
 
   @override
   String get groupsRequests => 'Solicitudes';
@@ -410,6 +413,12 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get socialRankingTitle => 'ranking';
+
+  @override
+  String get rankingsUsers => 'Usuarios';
+
+  @override
+  String get rankingsGroups => 'Grupos';
 
   @override
   String get socialRankingEmpty => 'Aún no hay datos de ranking';
@@ -611,9 +620,6 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get groupsNoResults => 'Sin resultados';
-
-  @override
-  String get groupsLeaderboardTitle => 'ranking';
 
   @override
   String get groupsNoRankingData => 'Sin datos de ranking';

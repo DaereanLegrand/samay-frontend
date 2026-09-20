@@ -44,11 +44,11 @@ import 'package:samay/features/groups/screens/create_group_screen.dart';
 import 'package:samay/features/groups/screens/donate_shards_screen.dart';
 import 'package:samay/features/groups/screens/group_detail_screen.dart';
 import 'package:samay/features/groups/screens/invite_screen.dart';
-import 'package:samay/features/groups/screens/leaderboard_screen.dart';
 import 'package:samay/features/groups/screens/group_members_screen.dart';
+import 'package:samay/features/social/screens/rankings_screen.dart';
 import 'package:samay/features/social/screens/social_screen.dart';
-import 'package:samay/features/social/screens/user_ranking_screen.dart';
 import 'package:samay/features/minigames/logic/minigame_meta.dart';
+import 'package:samay/features/minigames/screens/games_tab_screen.dart';
 import 'package:samay/features/minigames/screens/minigame_detail_screen.dart';
 import 'package:samay/features/minigames/screens/minigame_leaderboard_screen.dart';
 import 'package:samay/features/minigames/screens/minigames_screen.dart';
@@ -242,6 +242,18 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: RoutePaths.mainGroups,
             pageBuilder: (context, state) =>
                 _tabPage(state, const SocialScreen()),
+          ),
+          GoRoute(
+            // The Games tab (2026-09-20): the plugged minigames in a column
+            // list. Gated on the minigames flag (kill-switch knob).
+            path: RoutePaths.mainGames,
+            pageBuilder: (context, state) => _tabPage(
+              state,
+              const FlagGate(
+                flag: AppFeatureFlag.minigames,
+                child: GamesTabScreen(),
+              ),
+            ),
           ),
           GoRoute(
             // I-69: the events tab is LIVE (R1 events sweep) but the flag
@@ -558,12 +570,9 @@ final routerProvider = Provider<GoRouter>((ref) {
         ),
       ),
       GoRoute(
-        path: RoutePaths.groupsLeaderboard,
-        builder: (_, _) => const LeaderboardScreen(),
-      ),
-      GoRoute(
-        path: RoutePaths.userRanking,
-        builder: (_, _) => const UserRankingScreen(),
+        // One Rankings surface (2026-09-20): Users | Groups inside.
+        path: RoutePaths.rankings,
+        builder: (_, _) => const RankingsScreen(),
       ),
       GoRoute(
         // I-69: chat is LIVE (I-38 E2EE) but the flag stays wired as the

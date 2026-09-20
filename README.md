@@ -9,7 +9,7 @@ This repository is a **3-track project**:
 
 | Track | What | Status |
 |-------|------|--------|
-| **Flutter app** (`lib/`) | iOS + Android app — auth, profile, friends, groups, shard donations, rankings, events, QR, E2EE chat (1:1 + group), feed/photos, notifications, minigames, party finder. Most screens live behind feature flags; subscriptions stay gated (RevenueCat wiring pending) | Phases 00–04 done; phase 05+ foundations landed; edge functions pending |
+| **Flutter app** (`lib/`) | iOS + Android app — auth, profile, friends, groups, shard donations, rankings, events, QR, E2EE chat (1:1 + group), feed/photos, notifications, minigames. Most screens live behind feature flags; subscriptions stay gated (RevenueCat wiring pending) | Phases 00–04 done; phase 05+ foundations landed; edge functions pending |
 | **Go admin CLI** (`cmd/samay-admin/`, `internal/`) | Cobra-based operational CLI (`samay`) using the `service_role` key — users, events, groups, reports, shards, config, subs, system | Complete |
 | **Self-hosted Supabase** (`supabase/`, `supabase-testing/`) | PostgreSQL 17 + GoTrue + PostgREST + Realtime + Storage + Kong gateway; Docker Compose and `config.toml` dual setups; migration-based testing | Done — approved port map enforced |
 
@@ -110,10 +110,12 @@ lib/                          Flutter app
                               group sender keys, key store) — see
                               docs/security/E2EE-ARCHITECTURE.md
   features/                   auth/ chat/ cosmetics/ events/ feed/ friends/
-                              groups/ minigames/ notifications/ party_finder/
-                              photos/ profile/ qr/ shards/
+                              groups/ minigames/ (also serves the `/main/games`
+                              bottom tab — the plugged games, column list)
+                              notifications/ photos/ profile/ qr/ shards/
                               social/ (serves the `/main/groups` bottom tab:
-                              Grupos + Amigos pills, global user ranking)
+                              Grupos | Amigos pills — group cover cards +
+                              friend avatar rows; shared `/rankings` entry)
                               subscriptions/ — each nests screens/ providers/
                               widgets/ logic/
   l10n/                       ARB localizations — Spanish-first (`app_es.arb`
@@ -197,7 +199,7 @@ Build in layers so the next feature slots in without a rewrite:
 - **Done:** foundation, admin CLI, auth/profiles, friends/groups (+ donations +
   rankings), events creation/detail, QR attendance/scanner (SQL RPC backing),
   E2EE chat 1:1 + group, feed/photos foundations, notification center,
-  minigames, party finder, paywall shell, self-hosted infra + test stacks.
+  minigames, paywall shell, self-hosted infra + test stacks.
 - **Pending:** Edge Functions (`supabase/functions/` is a boot stub — QR/rank/
   notify mechanics ship as SQL RPCs + pg_cron meanwhile), server-side rate
   limiting, RevenueCat webhook + subscription wiring, event invites/status

@@ -331,8 +331,11 @@ class _MinigamesScreenState extends ConsumerState<MinigamesScreen> {
                 icon: Icons.group_outlined,
                 title: l10n.minigamesNoGroups,
                 description: l10n.minigamesNoGroupsBody,
-                actionLabel: l10n.groupsCreateGroup,
-                onAction: () => context.push(RoutePaths.groupCreate),
+                actionLabel: l10n.groupsCreateGroupAction,
+                onAction: () async {
+                  await context.push(RoutePaths.groupCreate);
+                  ref.invalidate(myGroupsProvider);
+                },
               );
             }
             return ListView.separated(
