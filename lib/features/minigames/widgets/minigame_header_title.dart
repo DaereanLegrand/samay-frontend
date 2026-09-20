@@ -7,10 +7,10 @@ import 'package:samay/core/design_tokens/app_typography.dart';
 ///
 /// Line 1 is the current-context phrase during a match — e.g. Spanish
 /// "turno de {name}" or English "{name}'s turn" — rendered as ONE Playfair
-/// Display line at a single size: the [prefix]/[suffix] words ("turno de",
-/// "'s") in the muted grey and the [name] in full white. When there is no
-/// [name] (standalone statuses like "respondiendo", "esperando…", "error",
-/// "clasificación") [word] renders line 1 as a single Playfair Display word.
+/// Display line at a single size, all in the app's flat white display voice
+/// with the shared legibility shadow. When there is no [name] (standalone
+/// statuses like "respondiendo", "esperando…", "error", "clasificación")
+/// [word] renders line 1 as a single Playfair Display word.
 ///
 /// Line 2 ([secondary]) is the small lowercase minigame name (Inter, muted),
 /// tucked tight under line 1. Both lines are LEFT-aligned to match the plain
@@ -93,6 +93,12 @@ const double _lineSize = 24;
 /// One line: muted [prefix] + white [name] + muted [suffix], all the SAME
 /// Playfair Display size, no outline. Scale-down-fitted so it never overflows
 /// the bar's Expanded title slot.
+/// One line: [prefix] + [name] + [suffix], all the SAME Playfair Display size
+/// and the SAME flat white as the app's display voice ([VDisplayText] /
+/// `_WordLine`), with the shared legibility shadow. The previous muted-grey
+/// particles rendered differently across platforms (alpha compositing over the
+/// picture) — unified to flat white (2026-09-17). Scale-down-fitted so it never
+/// overflows the bar's Expanded title slot.
 class _PhraseLine extends StatelessWidget {
   const _PhraseLine({required this.prefix, required this.name, this.suffix});
 
@@ -116,23 +122,13 @@ class _PhraseLine extends StatelessWidget {
             fontWeight: FontWeight.w700,
             letterSpacing: 0,
             height: 1.0,
+            color: AppColors.white,
             shadows: AppTypography.legibilityShadows,
           ),
           children: [
-            if (lead != null && lead.isNotEmpty)
-              TextSpan(
-                text: lead,
-                style: const TextStyle(color: AppColors.softGray),
-              ),
-            TextSpan(
-              text: name,
-              style: const TextStyle(color: AppColors.white),
-            ),
-            if (trail != null && trail.isNotEmpty)
-              TextSpan(
-                text: trail,
-                style: const TextStyle(color: AppColors.muted),
-              ),
+            if (lead != null && lead.isNotEmpty) TextSpan(text: lead),
+            TextSpan(text: name),
+            if (trail != null && trail.isNotEmpty) TextSpan(text: trail),
           ],
         ),
       ),
