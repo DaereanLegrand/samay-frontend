@@ -548,17 +548,23 @@ abstract class AppLocalizations {
   /// **'Sin ubicación disponible — mostrando todos los eventos'**
   String get feedNoLocationNotice;
 
-  /// Empty feed state heading
+  /// Empty agnostic feed state heading
   ///
   /// In es, this message translates to:
-  /// **'No hay eventos próximos'**
-  String get feedNoEvents;
+  /// **'Estás al día'**
+  String get feedAllCaughtUp;
 
-  /// Empty feed state body
+  /// Empty agnostic feed state body
   ///
   /// In es, this message translates to:
-  /// **'Vuelve pronto para descubrir nuevos eventos cerca de ti.'**
-  String get feedNoEventsBody;
+  /// **'Regresa más tarde'**
+  String get feedComeBackLater;
+
+  /// Badge on a feed minigame card when the user has a pending invite
+  ///
+  /// In es, this message translates to:
+  /// **'Invitación'**
+  String get feedMinigameInvite;
 
   /// Error state when the feed fails to load
   ///
@@ -3164,54 +3170,6 @@ abstract class AppLocalizations {
   /// **'LISTO'**
   String get codeAssistedDone;
 
-  /// Party Finder screen app bar title (PFND — I-60)
-  ///
-  /// In es, this message translates to:
-  /// **'Party finder'**
-  String get partyFinderTitle;
-
-  /// Party Finder: opt-in switch label (privacy default OFF)
-  ///
-  /// In es, this message translates to:
-  /// **'Aparecer en Party Finder'**
-  String get partyFinderOptInLabel;
-
-  /// Party Finder: first-run explainer title while discovery is off
-  ///
-  /// In es, this message translates to:
-  /// **'Descubrimiento está apagado'**
-  String get partyFinderOptInOff;
-
-  /// Party Finder: first-run explainer body while discovery is off
-  ///
-  /// In es, this message translates to:
-  /// **'Activa el interruptor para aparecer en las coincidencias de otras personas. Nadie puede verte mientras esté apagado.'**
-  String get partyFinderOptInOffBody;
-
-  /// Party Finder: empty state when no matches exist
-  ///
-  /// In es, this message translates to:
-  /// **'Aún no hay coincidencias'**
-  String get partyFinderEmpty;
-
-  /// Party Finder: empty-state hint to add more interest tags
-  ///
-  /// In es, this message translates to:
-  /// **'Agrega más intereses a tu perfil para encontrar personas afines.'**
-  String get partyFinderEmptyBody;
-
-  /// Party Finder: error state message with retry
-  ///
-  /// In es, this message translates to:
-  /// **'No se pudo cargar el Party Finder'**
-  String get partyFinderError;
-
-  /// Party Finder: shared-interest count on a match card
-  ///
-  /// In es, this message translates to:
-  /// **'{count, plural, =1{1 interés en común} other{{count} intereses en común}}'**
-  String partyFinderSharedInterests(int count);
-
   /// Cosmetics shop screen app-bar title
   ///
   /// In es, this message translates to:
@@ -3332,18 +3290,6 @@ abstract class AppLocalizations {
   /// **'Te atreves'**
   String get minigamesTagline;
 
-  /// Sección de acceso rápido a los juegos al tope del feed principal
-  ///
-  /// In es, this message translates to:
-  /// **'Juegos'**
-  String get homeGamesTitle;
-
-  /// Subtítulo de la tarjeta de Party Finder en el feed principal
-  ///
-  /// In es, this message translates to:
-  /// **'Encuentra personas que compartan tus intereses'**
-  String get homePartyFinderBody;
-
   /// Título del selector de grupo al empezar un juego desde el feed principal
   ///
   /// In es, this message translates to:
@@ -3373,42 +3319,6 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'Elige un juego'**
   String get minigamesPickGame;
-
-  /// Game #1 name (Poke Chain)
-  ///
-  /// In es, this message translates to:
-  /// **'Cadena de Pokes'**
-  String get minigamesGamePokeChain;
-
-  /// Game #1 one-line tagline
-  ///
-  /// In es, this message translates to:
-  /// **'Pasa el poke antes de que se acabe el tiempo'**
-  String get minigamesGamePokeChainTagline;
-
-  /// Game #1 explanation on the dedicated game page
-  ///
-  /// In es, this message translates to:
-  /// **'Pásale el poke a un amigo antes de que se acabe el tiempo. Si se te acaba, pagas la apuesta.'**
-  String get minigamesGamePokeChainExplanation;
-
-  /// Game #2 name (Questions)
-  ///
-  /// In es, this message translates to:
-  /// **'Preguntas'**
-  String get minigamesGameQuestions;
-
-  /// Game #2 one-line tagline
-  ///
-  /// In es, this message translates to:
-  /// **'Responde desde el asiento caliente'**
-  String get minigamesGameQuestionsTagline;
-
-  /// Game #2 explanation on the dedicated game page
-  ///
-  /// In es, this message translates to:
-  /// **'Todos los jugadores te hacen preguntas y tú respondes desde el asiento caliente. Por turnos, sin filtros.'**
-  String get minigamesGameQuestionsExplanation;
 
   /// Game #3 name (Truth or Dare)
   ///
@@ -3757,24 +3667,6 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'La botella necesita al menos {min} jugadores (tienes {count})'**
   String minigamesBottleMinPlayers(int min, int count);
-
-  /// Game #5 name (Challenges)
-  ///
-  /// In es, this message translates to:
-  /// **'Retos'**
-  String get minigamesGameChallenge;
-
-  /// Game #5 one-line tagline
-  ///
-  /// In es, this message translates to:
-  /// **'Completa el reto antes del límite'**
-  String get minigamesGameChallengeTagline;
-
-  /// Game #5 explanation on the dedicated game page
-  ///
-  /// In es, this message translates to:
-  /// **'Completa el reto antes de que se acabe el tiempo. Puedes jugarlo solo o competir con amigos.'**
-  String get minigamesGameChallengeExplanation;
 
   /// Game #6 name (Two Lies, One Truth)
   ///

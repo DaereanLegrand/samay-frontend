@@ -94,7 +94,6 @@ bool isRegisteredRoutePath(String path) {
     RoutePaths.friendsList,
     RoutePaths.blockedUsers,
     RoutePaths.subscriptions,
-    RoutePaths.partyFinder,
     RoutePaths.settings,
     RoutePaths.deleteAccount,
     RoutePaths.profileEdit,

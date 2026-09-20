@@ -1,15 +1,14 @@
 import 'package:samay/core/errors/app_error.dart';
-import 'package:samay/core/models/user_interests.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-/// User profile operations: read/update own profile, avatar, bio,
-/// interest tags, and Party Finder opt-in.
+/// User profile operations: read/update own profile, avatar, bio, and
+/// interest tags.
 ///
 /// Part of the ARC-05/CQ-01 decomposition of the former monolithic
 /// `SupabaseService` (I-11).
 ///
 /// Friendship lifecycle lives in [FriendshipService].
-/// Search and Party Finder discovery lives in [DiscoveryService].
+/// User search lives in [DiscoveryService].
 class UserService {
   final SupabaseClient client;
 
@@ -62,29 +61,6 @@ class UserService {
     await client.rpc('update_my_profile', params: {'p_bio': bio});
   }
 
-  /// The Party Finder opt-in (`users.discovery_opt_in`, PFND spec: default
-  /// OFF). Reads the own row — self-editable because the column is
-  /// deliberately OUT of I-32's protected set and REVOKE UPDATE list
-  /// (see migration 20260809000004, trigger-interplay decision).
-  Future<bool> getDiscoveryOptIn() async {
-    final user = auth.currentUser;
-    if (user == null) return false;
-    final res = await client
-        .from('users')
-        .select('discovery_opt_in')
-        .eq('id', user.id)
-        .maybeSingle();
-    return res?['discovery_opt_in'] as bool? ?? false;
-  }
-
-  /// Persists the Party Finder opt-in via the set_discovery_opt_in RPC
-  /// (profile-RPC lockdown 2026-08-25).
-  Future<void> setDiscoveryOptIn(bool value) async {
-    final user = auth.currentUser;
-    if (user == null) throw const UnauthorizedError();
-    await client.rpc('set_discovery_opt_in', params: {'p_value': value});
-  }
-
   /// The minigame-invite privacy switch (`users.minigame_invite_friends_only`,
   /// migration 140_minigame_invites, default FALSE = anyone may invite me).
   Future<bool> getMinigameInviteFriendsOnly() async {
@@ -108,22 +84,5 @@ class UserService {
       'set_minigame_invite_friends_only',
       params: {'p_value': value},
     );
-  }
-
-  /// The current user's interest-tag slugs (own `users.interest_tags` row),
-  /// sorted for determinism. Parsed through [UserInterests.fromDb] (handles
-  /// both the PostgREST native list form and a JSON-encoded array string).
-  Future<List<String>> getMyInterestTags() async {
-    final user = auth.currentUser;
-    if (user == null) return const [];
-    final res = await client
-        .from('users')
-        .select('interest_tags')
-        .eq('id', user.id)
-        .maybeSingle();
-    if (res == null) return const [];
-    final tags = UserInterests.fromDb(res['interest_tags']).tags.toList()
-      ..sort();
-    return tags;
   }
 }

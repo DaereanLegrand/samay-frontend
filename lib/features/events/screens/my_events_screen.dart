@@ -9,6 +9,7 @@ import 'package:samay/core/models/event.dart';
 import 'package:samay/core/router/route_paths.dart';
 import 'package:samay/features/events/logic/event_formatters.dart';
 import 'package:samay/features/events/providers/events_providers.dart';
+import 'package:samay/features/events/widgets/event_radius_filter.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/error_view.dart';
 import 'package:samay/shared/widgets/skeletons.dart';
@@ -81,6 +82,16 @@ class _MyEventsScreenState extends ConsumerState<MyEventsScreen> {
                 ),
               ],
               data: (events) => [
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.only(
+                      top: AppSpacing.md,
+                      left: AppSpacing.screenHorizontal,
+                      right: AppSpacing.screenHorizontal,
+                    ),
+                    child: EventRadiusHeader(l10n: l10n),
+                  ),
+                ),
                 // The create CTA sits right under the hero and scrolls away
                 // with the content (2026-09-08: standalone create flow).
                 SliverToBoxAdapter(

@@ -11,7 +11,6 @@ import 'package:samay/features/friends/providers/recent_friends_provider.dart';
 import 'package:samay/features/groups/providers/groups_providers.dart';
 import 'package:samay/features/minigames/providers/minigames_providers.dart';
 import 'package:samay/features/notifications/providers/notifications_providers.dart';
-import 'package:samay/features/party_finder/providers/party_finder_providers.dart';
 import 'package:samay/features/photos/providers/photos_providers.dart';
 import 'package:samay/features/profile/providers/profile_providers.dart' as profile;
 import 'package:samay/features/qr/providers/code_providers.dart';
@@ -62,7 +61,7 @@ class AuthScopeReset extends ConsumerWidget {
     profile.myProfileProvider,
     profile.myGroupsProvider,
     currentUserProvider,
-    // notifications / chat / qr / minigames / photos / party / feed / shards
+    // notifications / chat / qr / minigames / photos / feed / shards
     notificationsProvider,
     chatMessagesProvider,
     chatInboxProvider,
@@ -81,7 +80,6 @@ class AuthScopeReset extends ConsumerWidget {
     minigameInviteFriendsOnlyProvider,
     minigameGameStateProvider,
     eventPhotosProvider,
-    partyMatchesProvider,
     feedProvider,
     shardLedgerProvider,
     // events
