@@ -1785,6 +1785,9 @@ class AppLocalizationsEs extends AppLocalizations {
   String get minigamesTitle => 'juegos';
 
   @override
+  String get minigamesTagline => 'Te atreves';
+
+  @override
   String get homeGamesTitle => 'Juegos';
 
   @override
@@ -2168,14 +2171,15 @@ class AppLocalizationsEs extends AppLocalizations {
   String get minigamesViewLeaderboard => 'Ver clasificación';
 
   @override
-  String minigamesParticipants(int count) {
-    return 'Participantes: $count';
+  String get minigamesPoolBreakdownTitle => 'Premios';
+
+  @override
+  String minigamesPoolRank(int rank) {
+    return '$rankº';
   }
 
   @override
-  String minigamesWagerPerPerson(int amount) {
-    return 'Apuesta: $amount shards';
-  }
+  String get minigamesPoolNoPrize => 'Sin premio';
 
   @override
   String get minigamesDetailComingSoon => 'La partida se jugará aquí pronto.';
@@ -2607,9 +2611,6 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get minigamesWaitingForPlayers => 'Esperando jugadores...';
-
-  @override
-  String get minigamesWagerFree => 'Sin apuesta';
 
   @override
   String get minigamesScopeDirect => 'Directa';

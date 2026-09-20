@@ -18,6 +18,7 @@ import 'package:samay/features/minigames/logic/minigame_meta.dart';
 import 'package:samay/features/minigames/providers/minigames_providers.dart';
 import 'package:samay/features/minigames/screens/minigames_screen.dart'
     show MinigameScope, minigameRejectionMessage;
+import 'package:samay/features/minigames/widgets/minigame_pool.dart';
 import 'package:samay/features/profile/providers/profile_providers.dart'
     as profile;
 import 'package:samay/l10n/app_localizations.dart';
@@ -509,6 +510,8 @@ class _SessionRow extends ConsumerWidget {
     final status = session['status'] as String?;
     final wager = (session['shard_wager'] as num?)?.toInt() ?? 0;
     final participants = (session['participants'] as List?)?.length ?? 0;
+    final positions =
+        (session['prize_positions'] as num?)?.toInt() ?? kDefaultPrizePositions;
     final name = minigameSessionName(l10n, session, index: index);
     final inviterName = session['inviterName'] as String?;
     final payloadGroupName = session['groupName'] as String?;
@@ -553,11 +556,33 @@ class _SessionRow extends ConsumerWidget {
                       style: Theme.of(context).textTheme.titleMedium,
                     ),
                     const SizedBox(height: AppSpacing.xs),
-                    Text(
-                      wager > 0
-                          ? l10n.minigamesWagerPerPerson(wager)
-                          : l10n.minigamesParticipants(participants),
-                      style: const TextStyle(color: AppColors.mutedStrong),
+                    // 2026-09-20 revamp: pool + live player count, no
+                    // "apuesta"/"shards" literals. The pool recomputes when a
+                    // participant joins (live session row).
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        MinigamePoolAmount(
+                          wager: wager,
+                          players: participants,
+                          positions: positions,
+                          onTap: () => showMinigamePoolBreakdown(
+                            context,
+                            wager: wager,
+                            players: participants,
+                            positions: positions,
+                          ),
+                        ),
+                        const SizedBox(width: AppSpacing.md),
+                        Text(
+                          '${l10n.minigamesParticipantsTitle.toUpperCase()} '
+                          '$participants',
+                          style: const TextStyle(
+                            color: AppColors.mutedStrong,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
                     ),
                     if (fromLabel != null) ...[
                       const SizedBox(height: AppSpacing.xs),

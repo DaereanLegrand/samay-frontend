@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
+import 'package:samay/core/design_tokens/app_icon_sizes.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/design_tokens/app_typography.dart';
 import 'package:samay/core/extensions/error_mapper.dart';
@@ -21,6 +22,8 @@ import 'package:samay/features/minigames/screens/drunk_bottle_screen.dart'
 import 'package:samay/features/minigames/screens/minigame_invite_screen.dart';
 import 'package:samay/features/minigames/screens/minigames_screen.dart'
     show minigameRejectionMessage;
+import 'package:samay/features/minigames/widgets/minigame_header_title.dart';
+import 'package:samay/features/minigames/widgets/minigame_pool.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/error_view.dart';
 import 'package:samay/shared/widgets/profile_avatar.dart';
@@ -31,6 +34,7 @@ import 'package:samay/shared/widgets/v_chip.dart';
 import 'package:samay/shared/widgets/v_display_text.dart';
 import 'package:samay/shared/widgets/v_header_bar.dart';
 import 'package:samay/shared/widgets/v_input.dart';
+import 'package:samay/shared/widgets/v_shard_icon.dart';
 
 
 /// The play-screen route for [gameType] — the single lobby → game dispatch
@@ -184,6 +188,18 @@ class _MinigameSessionDetailScreenState
     // the partida is still active — 205_minigame_invite_lobby).
     final isFinished = session.valueOrNull?['status'] == 'finished';
 
+    // 2026-09-20 revamp: the header carries the partida name (row 2), the live
+    // pool (icon + total) and the status — all sourced from the LIVE session
+    // row so a participant join recomputes them in the same rebuild.
+    final sessionRow = session.valueOrNull;
+    final headerWager = (sessionRow?['shard_wager'] as num?)?.toInt() ?? 0;
+    final headerPlayers = (sessionRow?['participants'] as List?)?.length ?? 0;
+    final headerPositions =
+        (sessionRow?['prize_positions'] as num?)?.toInt() ??
+            kDefaultPrizePositions;
+    final headerPartidaName =
+        sessionRow == null ? null : minigameSessionName(l10n, sessionRow);
+
     // 215_minigame_invite_context (2026-09-11): the authoritative "am I in
     // this session" switch. A non-participant is a pending invitee or a
     // stranger — neither may ever render `_LobbySection`, whose roster RPC is
@@ -236,19 +252,35 @@ class _MinigameSessionDetailScreenState
 
     return Scaffold(
       body: VHeaderBar(
-        // The AppBar title is the minigame name in LOWERCASE (2026-08-30
-        // user directive): "partida" → "verdad o reto", "game" → "truth or
-        // dare".
-        title: session.valueOrNull == null
-            ? l10n.minigamesDetailTitle
-            : minigameGameNameLower(
-                l10n,
-                session.valueOrNull!['game_type'] as String?,
-              ),
-        // 2026-09-01: invites moved out of match creation into the lobby.
-        // The HOST (participants[0]) sees the Invite button at the title's
-        // right while waiting — inviting is done AFTER the match exists.
+        // Double-row header (2026-09-20): row 1 is the minigame name in
+        // LOWERCASE ("partida" → "verdad o reto"), row 2 the partida name.
+        titleWidget: MinigameHeaderTitle(
+          word: sessionRow == null
+              ? l10n.minigamesDetailTitle
+              : minigameGameNameLower(
+                  l10n,
+                  sessionRow['game_type'] as String?,
+                ),
+          secondary: headerPartidaName,
+        ),
+        // Actions: the live pool (icon + total, tap → payout breakdown), then
+        // the host's Invite button (205_minigame_invite_lobby). The match
+        // status lives on the JUGADORES row (2026-09-20).
         actions: [
+          if (sessionRow != null) ...[
+            MinigamePoolAmount(
+              wager: headerWager,
+              players: headerPlayers,
+              positions: headerPositions,
+              onTap: () => showMinigamePoolBreakdown(
+                context,
+                wager: headerWager,
+                players: headerPlayers,
+                positions: headerPositions,
+              ),
+            ),
+            const SizedBox(width: AppSpacing.sm),
+          ],
           if (isCreator && !isFinished)
             IconButton(
               icon: const Icon(Icons.person_add_alt),
@@ -265,14 +297,9 @@ class _MinigameSessionDetailScreenState
           ),
           data: (row) {
             final status = row['status'] as String?;
-            final wager = (row['shard_wager'] as num?)?.toInt() ?? 0;
             final finished = status == 'finished';
             final inviteStatus = invite.valueOrNull?['status'] as String?;
             final isPending = inviteStatus == 'pending' && !finished;
-            // The partida name (user title or the canonical server auto
-            // partida-N — 170_minigame_invite_badges) so an invited friend
-            // sees exactly the match they were invited to (e.g. "partida-1").
-            final partidaName = minigameSessionName(l10n, row);
 
             final countdown = gameState.valueOrNull?.skeleton.isCountdown ??
                 false;
@@ -313,44 +340,7 @@ class _MinigameSessionDetailScreenState
                   padding:
                       const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
                   children: [
-                    Text(
-                      partidaName,
-                      style: const TextStyle(
-                        color: AppColors.mutedStrong,
-                        fontSize: 14,
-                      ),
-                    ),
                     const SizedBox(height: AppSpacing.md),
-                    VCard(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            wager > 0
-                                ? l10n.minigamesWagerPerPerson(wager)
-                                : l10n.minigamesWagerFree,
-                            style: Theme.of(context).textTheme.titleMedium,
-                          ),
-                          const SizedBox(height: AppSpacing.xs),
-                          Text(
-                            l10n.minigamesParticipants(
-                              (row['participants'] as List?)?.length ?? 0,
-                            ),
-                            style: const TextStyle(
-                              color: AppColors.mutedStrong,
-                            ),
-                          ),
-                          const SizedBox(height: AppSpacing.md),
-                          VChip(
-                            label: finished
-                                ? l10n.minigamesStatusFinished
-                                : l10n.minigamesStatusActive,
-                            selected: !finished,
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: AppSpacing.lg),
                     inviteOrLobby,
                   ],
                 ),
@@ -627,9 +617,25 @@ class _LobbySection extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          l10n.minigamesParticipantsTitle.toUpperCase(),
-          style: Theme.of(context).textTheme.titleSmall,
+        // 2026-09-20 revamp: "JUGADORES (<live count>)" with the match status
+        // at the row's right. `participantIds` rides the realtime session row,
+        // so a join/remove updates the count immediately.
+        Row(
+          children: [
+            Text(
+              '${l10n.minigamesParticipantsTitle.toUpperCase()} '
+              '(${participantIds.length})',
+              style: Theme.of(context).textTheme.titleSmall,
+            ),
+            const Spacer(),
+            VChip(
+              label: finished
+                  ? l10n.minigamesStatusFinished
+                  : l10n.minigamesStatusActive,
+              selected: !finished,
+              compact: true,
+            ),
+          ],
         ),
         const SizedBox(height: AppSpacing.md),
         ref
@@ -673,6 +679,7 @@ class _LobbySection extends ConsumerWidget {
                         showReadyChip: !isPlaying,
                         rank: rankByPlayer[ordered[i].id]?.rank,
                         score: rankByPlayer[ordered[i].id]?.score,
+                        prize: rankByPlayer[ordered[i].id]?.prize ?? 0,
                         onTap: finished
                             ? () => context.push(
                                 RoutePaths.minigameLeaderboard(
@@ -943,6 +950,12 @@ class _PublishSwitchState extends ConsumerState<_PublishSwitch> {
 ///
 /// [showReadyChip] suppresses the "Listo" chip once the match is RUNNING
 /// (2026-09-02) — ready is pre-play semantics and means nothing mid-game.
+/// Playfair's cap-height centre sits ~0.0615em BELOW its line-box centre
+/// (ascent 1.082, descent 0.251, cap 0.708): at the rank numeral's 22px size
+/// that is ~1.35px. The finished player-list rank is nudged up by this so the
+/// numeral is optically centred on the avatar/row centreline (2026-09-20).
+const double _rankOpticalNudge = -1.35;
+
 class _ParticipantRow extends StatelessWidget {
   const _ParticipantRow({
     required this.participant,
@@ -952,6 +965,7 @@ class _ParticipantRow extends StatelessWidget {
     required this.onRemove,
     this.rank,
     this.score,
+    this.prize,
     this.onTap,
   });
 
@@ -961,11 +975,17 @@ class _ParticipantRow extends StatelessWidget {
   final bool showReadyChip;
   final VoidCallback onRemove;
 
-  /// The settled rank/score (finished sessions only) — null while the match is
-  /// still active. When present the row shows the ranking and becomes tappable
-  /// to open the leaderboard focused on this player (TODO F).
+  /// The settled rank/score/prize (finished sessions only) — null while the
+  /// match is still active. When present the row shows the ranking (EVERY
+  /// participant is ranked since 218) plus the points scored and the amount
+  /// won, and becomes tappable to open the leaderboard focused on this player
+  /// (TODO F).
   final int? rank;
   final int? score;
+
+  /// Shards this player won (0 for a rank outside the paid places). Null while
+  /// the match is still active.
+  final int? prize;
   final VoidCallback? onTap;
 
   /// Podium accent for the rank numeral (gold/silver/bronze, white otherwise).
@@ -991,17 +1011,28 @@ class _ParticipantRow extends StatelessWidget {
       child: Row(
         children: [
           if (rank != null) ...[
-            // Fixed slot so every name starts on the same x.
+            // Fixed slot so every name starts on the same x. The 36px height
+            // matches the avatar: the numeral's line box is centred in the SAME
+            // band as the avatar, so it reads aligned with the player row
+            // (2026-09-20). `height: 1.0` keeps the glyph box tight and the
+            // optical nudge corrects Playfair's cap-centre offset.
             SizedBox(
               width: 30,
-              child: Text(
-                '$rank',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontFamily: AppTypography.playfair,
-                  fontSize: 22,
-                  fontWeight: FontWeight.w700,
-                  color: _rankColor,
+              height: 36,
+              child: Center(
+                child: Transform.translate(
+                  offset: const Offset(0, _rankOpticalNudge),
+                  child: Text(
+                    '$rank',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontFamily: AppTypography.playfair,
+                      fontSize: 22,
+                      fontWeight: FontWeight.w700,
+                      height: 1.0,
+                      color: _rankColor,
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -1022,12 +1053,42 @@ class _ParticipantRow extends StatelessWidget {
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
                 if (score != null)
-                  Text(
-                    l10n.minigamesPointsAmount(score!),
-                    style: const TextStyle(
-                      color: AppColors.mutedStrong,
-                      fontSize: 12,
-                    ),
+                  // Finished: the scored points AND the amount won (shard icon
+                  // + bare number — no "shards" literal, 2026-09-20).
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        l10n.minigamesPointsAmount(score!),
+                        style: const TextStyle(
+                          color: AppColors.mutedStrong,
+                          fontSize: 12,
+                        ),
+                      ),
+                      if (prize != null) ...[
+                        const Padding(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: AppSpacing.sm,
+                          ),
+                          child: Text(
+                            '·',
+                            style: TextStyle(
+                              color: AppColors.mutedStrong,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
+                        const VShardIcon(size: AppIconSizes.xs),
+                        const SizedBox(width: AppSpacing.xs),
+                        Text(
+                          '$prize',
+                          style: const TextStyle(
+                            color: AppColors.mutedStrong,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ],
                   )
                 else if (isCreator)
                   Text(

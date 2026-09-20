@@ -1779,6 +1779,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get minigamesTitle => 'games';
 
   @override
+  String get minigamesTagline => 'Do you dare';
+
+  @override
   String get homeGamesTitle => 'Games';
 
   @override
@@ -2160,14 +2163,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get minigamesViewLeaderboard => 'View leaderboard';
 
   @override
-  String minigamesParticipants(int count) {
-    return 'Participants: $count';
+  String get minigamesPoolBreakdownTitle => 'Prizes';
+
+  @override
+  String minigamesPoolRank(int rank) {
+    return '#$rank';
   }
 
   @override
-  String minigamesWagerPerPerson(int amount) {
-    return 'Wager: $amount shards';
-  }
+  String get minigamesPoolNoPrize => 'No prize';
 
   @override
   String get minigamesDetailComingSoon =>
@@ -2599,9 +2603,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get minigamesWaitingForPlayers => 'Waiting for players...';
-
-  @override
-  String get minigamesWagerFree => 'No wager';
 
   @override
   String get minigamesScopeDirect => 'Direct';

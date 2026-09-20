@@ -733,10 +733,11 @@ class _PromptHeader extends StatelessWidget {
             label.toUpperCase(),
             textAlign: TextAlign.center,
             style: const TextStyle(
-              color: AppColors.mutedStrong,
+              color: AppColors.white,
               fontSize: 11,
               fontWeight: FontWeight.w700,
               letterSpacing: 1.2,
+              shadows: AppTypography.legibilityShadows,
             ),
           ),
           const SizedBox(height: AppSpacing.xs),
@@ -748,8 +749,9 @@ class _PromptHeader extends StatelessWidget {
           overflow: TextOverflow.ellipsis,
           style: Theme.of(context).textTheme.titleMedium?.copyWith(
             fontFamily: AppTypography.quicksand,
-            color: AppColors.mutedStrong,
+            color: AppColors.white,
             height: 1.25,
+            shadows: AppTypography.legibilityShadows,
           ),
         ),
       ],

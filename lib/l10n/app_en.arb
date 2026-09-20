@@ -2367,6 +2367,10 @@
   "@minigamesTitle": {
     "description": "App bar title of the group minigames hub"
   },
+  "minigamesTagline": "Do you dare",
+  "@minigamesTagline": {
+    "description": "Second header row of the minigames hub (match list)"
+  },
   "homeGamesTitle": "Games",
   "@homeGamesTitle": {
     "description": "Section heading of the games quick-access row at the top of the home feed (2026-08-13)"
@@ -2610,23 +2614,22 @@
   "@minigamesViewLeaderboard": {
     "description": "Button on a finished match's session detail that opens the finished leaderboard"
   },
-  "minigamesParticipants": "Participants: {count}",
-  "@minigamesParticipants": {
-    "description": "Session card subtitle with the participant count",
+  "minigamesPoolBreakdownTitle": "Prizes",
+  "@minigamesPoolBreakdownTitle": {
+    "description": "Dialog title: how the partida's shard pool is split among the paid places"
+  },
+  "minigamesPoolRank": "#{rank}",
+  "@minigamesPoolRank": {
+    "description": "Pool breakdown row: the ordinal of a paid place (its amount renders separately beside the shard icon)",
     "placeholders": {
-      "count": {
+      "rank": {
         "type": "int"
       }
     }
   },
-  "minigamesWagerPerPerson": "Wager: {amount} shards",
-  "@minigamesWagerPerPerson": {
-    "description": "Session card subtitle with the per-person wager",
-    "placeholders": {
-      "amount": {
-        "type": "int"
-      }
-    }
+  "minigamesPoolNoPrize": "No prize",
+  "@minigamesPoolNoPrize": {
+    "description": "Pool breakdown line for a free partida (no shard pool)"
   },
   "minigamesDetailComingSoon": "The game will be playable here soon.",
   "@minigamesDetailComingSoon": {
@@ -3212,10 +3215,6 @@
   "minigamesWaitingForPlayers": "Waiting for players...",
   "@minigamesWaitingForPlayers": {
     "description": "Partida lobby: shown before the creator starts the game"
-  },
-"minigamesWagerFree": "No wager",
-  "@minigamesWagerFree": {
-    "description": "Session detail: the session carries no shard wager"
   },
   "minigamesScopeDirect": "Direct",
   "@minigamesScopeDirect": {
