@@ -101,7 +101,7 @@ class _BleedImageBackdrop extends StatelessWidget {
             gradient: LinearGradient(
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
-              colors: [Color(0xCC000000), Colors.transparent],
+              colors: [Color(0xFF000000), Colors.transparent],
               stops: [0, 0.32],
             ),
           ),
@@ -664,50 +664,53 @@ class TruthDareScreen extends ConsumerWidget {
           // BELOW it (2026-09-17). Painted LAST so the picker stays tappable
           // above the editor canvas (whose full-canvas gesture surface would
           // otherwise swallow the tap).
+          //
+          // NOT clipped at the header bottom (2026-09-19): the pill's diffusion
+          // must run continuously across the header edge, so the header's
+          // blurred backdrop is the same darkened field as the rest of the
+          // bleed — a `ClipRect` here cut the diffusion into a hard seam.
           if (screenPrompt != null)
             Positioned(
               top: screenHeaderBottom,
               left: 0,
               right: 0,
               bottom: 0,
-              child: ClipRect(
-                // Column gives the pill an unbounded height, so it sits at the
-                // TOP of the region instead of centering in it.
-                child: Column(
-                  children: [
+              // Column gives the pill an unbounded height, so it sits at the
+              // TOP of the region instead of centering in it.
+              child: Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(
+                      AppSpacing.lg,
+                      AppSpacing.md,
+                      AppSpacing.lg,
+                      0,
+                    ),
+                    child: IgnorePointer(
+                      child: _PromptBanner(text: screenPrompt),
+                    ),
+                  ),
+                  if (showPickImageButton)
                     Padding(
                       padding: const EdgeInsets.fromLTRB(
                         AppSpacing.lg,
-                        AppSpacing.md,
+                        AppSpacing.sm,
                         AppSpacing.lg,
                         0,
                       ),
-                      child: IgnorePointer(
-                        child: _PromptBanner(text: screenPrompt),
+                      child: VButton.outlined(
+                        onPressed: () => _pickAnswerImage(context, ref),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(Icons.image_outlined, size: 18),
+                            const SizedBox(width: AppSpacing.sm),
+                            Text(l10n.minigamesAnswerImageLabel),
+                          ],
+                        ),
                       ),
                     ),
-                    if (showPickImageButton)
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(
-                          AppSpacing.lg,
-                          AppSpacing.sm,
-                          AppSpacing.lg,
-                          0,
-                        ),
-                        child: VButton.outlined(
-                          onPressed: () => _pickAnswerImage(context, ref),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              const Icon(Icons.image_outlined, size: 18),
-                              const SizedBox(width: AppSpacing.sm),
-                              Text(l10n.minigamesAnswerImageLabel),
-                            ],
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
+                ],
               ),
             ),
         ],
@@ -1485,9 +1488,7 @@ const double _promptBannerRadius = 5 * _promptBannerFontSize;
 /// The outer alphas are deliberately HIGH (darker tint) so the pill keeps the
 /// prompt legible even over a LIGHT picked picture (2026-09-17 directive).
 const List<(double sigma, double alpha)> _promptBannerLayers = [
-  (8, 1.0),
   (36, 0.85),
-  (92, 0.62),
 ];
 
 /// The current prompt — a Verdad question or a Reto challenge — on a soft black
@@ -1538,12 +1539,8 @@ class _PromptBanner extends StatelessWidget {
                 // glows against the darker pill (2026-09-17 directive).
                 shadows: [
                   Shadow(
-                    color: AppColors.white.withValues(alpha: 0.45),
-                    blurRadius: 20,
-                  ),
-                  Shadow(
-                    color: AppColors.white.withValues(alpha: 0.22),
-                    blurRadius: 48,
+                    color: AppColors.discoBlack.withValues(alpha: 1),
+                    blurRadius: 50,
                   ),
                 ],
               ),
