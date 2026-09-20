@@ -302,12 +302,20 @@ class TruthDareScreen extends ConsumerWidget {
     // The revealed prompt, rendered by the SCREEN over the picture for EVERY
     // play state (by-turns editor + reaction, and async), never by the cards —
     // and always CLIPPED below the header so neither the pill nor its diffusion
-    // can paint over the header (2026-09-17 refactor).
+    // can paint over the header (2026-09-17 refactor). The displayed string is
+    // the localized kind label + newline + body (`Reto:\n…` / `Verdad:\n…`).
     final promptSkeleton = playingState?.skeleton;
-    final screenPrompt =
+    final screenPromptBody =
         promptSkeleton == null || (playingState?.isFinished ?? false)
         ? null
         : truthDarePromptBody(promptSkeleton.prompt);
+    final screenPrompt = screenPromptBody == null
+        ? null
+        : truthDarePromptDisplay(
+            l10n,
+            body: screenPromptBody,
+            kind: truthDareKindFromWire(promptSkeleton!.promptType),
+          );
     final screenStatusTop = MediaQuery.paddingOf(context).top;
     final screenHeaderBottom =
         screenStatusTop + VHeaderMetrics.barHeight(screenStatusTop);
@@ -1491,11 +1499,11 @@ const List<(double sigma, double alpha)> _promptBannerLayers = [
   (36, 0.85),
 ];
 
-/// The current prompt — a Verdad question or a Reto challenge — on a soft black
-/// pill so it stays legible over the full-bleed picked-image background
-/// (2026-09-17 directive). Hugs the text (centered); the pill melts into the
-/// picture via [_promptBannerLayers]. Playfair Display w700 at
-/// [_promptBannerFontSize].
+/// The current prompt — a Verdad question or a Reto challenge, prefixed by its
+/// kind label on its own line (`Reto:\n…`) — on a soft black pill so it stays
+/// legible over the full-bleed picked-image background (2026-09-17 directive).
+/// Hugs the text (centered); the pill melts into the picture via
+/// [_promptBannerLayers]. Quicksand w600 at [_promptBannerFontSize].
 class _PromptBanner extends StatelessWidget {
   const _PromptBanner({required this.text});
 
@@ -1532,9 +1540,9 @@ class _PromptBanner extends StatelessWidget {
             child: Text(
               text,
               style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                fontFamily: AppTypography.playfair,
+                fontFamily: AppTypography.quicksand,
                 fontSize: _promptBannerFontSize,
-                fontWeight: FontWeight.w700,
+                fontWeight: FontWeight.w600,
                 // Lighter-tinted glyph shadow (a soft light halo) so the prompt
                 // glows against the darker pill (2026-09-17 directive).
                 shadows: [

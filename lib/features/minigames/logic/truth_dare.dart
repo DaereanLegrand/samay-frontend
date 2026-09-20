@@ -36,6 +36,18 @@ String truthDareKindLabel(AppLocalizations l10n, TruthDareKind kind) {
   };
 }
 
+/// The prompt as displayed: the localized kind label, a colon and a newline,
+/// then the body — e.g. `Reto:\nBaila 10 segundos` (`Verdad:\n…` for a
+/// question). Falls back to the bare body when the kind is unknown.
+String truthDarePromptDisplay(
+  AppLocalizations l10n, {
+  required String body,
+  TruthDareKind? kind,
+}) {
+  if (kind == null) return body;
+  return '${truthDareKindLabel(l10n, kind)}:\n$body';
+}
+
 /// The revealed prompt body for the current turn, or null when no prompt has
 /// been revealed yet. Reads the nested `skeleton.prompt['body']` (the prompt
 /// row jsonb the reveal RPC persisted).
