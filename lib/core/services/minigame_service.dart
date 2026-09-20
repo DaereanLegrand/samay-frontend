@@ -121,7 +121,8 @@ class MinigameService {
 
   static const _columns =
       'id, group_id, game_type, status, shard_wager, player_limit, '
-      'participants, winner_id, created_at, name, auto_name, is_public';
+      'participants, winner_id, created_at, name, auto_name, is_public, '
+      'prize_positions';
 
   /// All sessions of [groupId], newest first (RLS `ms_read_group_member` —
   /// group members only).

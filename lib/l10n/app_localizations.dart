@@ -3326,6 +3326,12 @@ abstract class AppLocalizations {
   /// **'juegos'**
   String get minigamesTitle;
 
+  /// Second header row of the minigames hub (match list)
+  ///
+  /// In es, this message translates to:
+  /// **'Te atreves'**
+  String get minigamesTagline;
+
   /// Sección de acceso rápido a los juegos al tope del feed principal
   ///
   /// In es, this message translates to:
@@ -3980,17 +3986,23 @@ abstract class AppLocalizations {
   /// **'Ver clasificación'**
   String get minigamesViewLeaderboard;
 
-  /// Session card subtitle with the participant count
+  /// Dialog title: how the partida's shard pool is split among the paid places
   ///
   /// In es, this message translates to:
-  /// **'Participantes: {count}'**
-  String minigamesParticipants(int count);
+  /// **'Premios'**
+  String get minigamesPoolBreakdownTitle;
 
-  /// Session card subtitle with the per-person wager
+  /// Pool breakdown row: the ordinal of a paid place (its amount renders separately beside the shard icon)
   ///
   /// In es, this message translates to:
-  /// **'Apuesta: {amount} shards'**
-  String minigamesWagerPerPerson(int amount);
+  /// **'{rank}º'**
+  String minigamesPoolRank(int rank);
+
+  /// Pool breakdown line for a free partida (no shard pool)
+  ///
+  /// In es, this message translates to:
+  /// **'Sin premio'**
+  String get minigamesPoolNoPrize;
 
   /// Placeholder snackbar when tapping a session (per-game UIs are future work)
   ///
@@ -4765,12 +4777,6 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'Esperando jugadores...'**
   String get minigamesWaitingForPlayers;
-
-  /// Session detail: the session carries no shard wager
-  ///
-  /// In es, this message translates to:
-  /// **'Sin apuesta'**
-  String get minigamesWagerFree;
 
   /// Hub toggle: play without a group (direct session)
   ///

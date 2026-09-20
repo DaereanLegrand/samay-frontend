@@ -9,8 +9,11 @@ import 'package:samay/core/models/group.dart';
 import 'package:samay/core/router/route_paths.dart';
 import 'package:samay/core/services/minigame_service.dart';
 import 'package:samay/features/groups/providers/groups_providers.dart';
+import 'package:samay/features/minigames/logic/minigame_engine.dart';
 import 'package:samay/features/minigames/logic/minigame_meta.dart';
 import 'package:samay/features/minigames/providers/minigames_providers.dart';
+import 'package:samay/features/minigames/widgets/minigame_header_title.dart';
+import 'package:samay/features/minigames/widgets/minigame_pool.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/error_view.dart';
 import 'package:samay/shared/widgets/state_views.dart';
@@ -172,7 +175,11 @@ class _MinigamesScreenState extends ConsumerState<MinigamesScreen> {
 
     return Scaffold(
       body: VHeaderBar(
-        title: l10n.minigamesTitle,
+        // Two-row header (2026-09-20): "juegos" over the "Te atreves" tagline.
+        titleWidget: MinigameHeaderTitle(
+          word: l10n.minigamesTitle,
+          secondary: l10n.minigamesTagline,
+        ),
         child: Column(
           children: [
             // "Elige un juego" sits IMMEDIATELY below the AppBar (2026-08-27
@@ -595,6 +602,8 @@ class _SessionCard extends ConsumerWidget {
     final status = session['status'] as String?;
     final wager = (session['shard_wager'] as num?)?.toInt() ?? 0;
     final participants = (session['participants'] as List?)?.length ?? 0;
+    final positions =
+        (session['prize_positions'] as num?)?.toInt() ?? kDefaultPrizePositions;
     final inviterName = session['inviterName'] as String?;
     // 1 (2026-09-15): a GROUP row carries the group name as a tag (resolved
     // from the caller's groups); a DIRECT row shows nothing.
@@ -627,15 +636,41 @@ class _SessionCard extends ConsumerWidget {
                       style: Theme.of(context).textTheme.titleMedium,
                     ),
                     const SizedBox(height: AppSpacing.xs),
-                    Text(
-                      isPending
-                          ? (inviterName != null
-                              ? l10n.minigamesInviteFromDirect(inviterName)
-                              : l10n.minigamesInvitePendingBody)
-                          : (wager > 0
-                              ? l10n.minigamesWagerPerPerson(wager)
-                              : l10n.minigamesParticipants(participants)),
-                      style: const TextStyle(color: AppColors.mutedStrong),
+                    if (isPending)
+                      Text(
+                        inviterName != null
+                            ? l10n.minigamesInviteFromDirect(inviterName)
+                            : l10n.minigamesInvitePendingBody,
+                        style: const TextStyle(color: AppColors.mutedStrong),
+                      ),
+                    if (isPending) const SizedBox(height: AppSpacing.xs),
+                    // 2026-09-20 revamp: pool + live player count, no
+                    // "apuesta"/"shards" literals. The pool amount recomputes
+                    // when a participant joins (live session row).
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        MinigamePoolAmount(
+                          wager: wager,
+                          players: participants,
+                          positions: positions,
+                          onTap: () => showMinigamePoolBreakdown(
+                            context,
+                            wager: wager,
+                            players: participants,
+                            positions: positions,
+                          ),
+                        ),
+                        const SizedBox(width: AppSpacing.md),
+                        Text(
+                          '${l10n.minigamesParticipantsTitle.toUpperCase()} '
+                          '$participants',
+                          style: const TextStyle(
+                            color: AppColors.mutedStrong,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
                     ),
                     if (groupName != null && groupName.isNotEmpty) ...[
                       const SizedBox(height: AppSpacing.xs),

@@ -6,6 +6,33 @@ Samay is built in **16 phases** (00–15). Each phase follows a strict TDD + doc
 
 ---
 
+## Supabase stacks (hard rule)
+
+**NEVER touch the `supabase/` (prod) stack. ONLY `supabase-testing/`.**
+There are no exceptions and no "just this once".
+
+This forbids, for the `supabase/` stack ONLY:
+- `docker compose` commands in `supabase/`;
+- every `make supabase-start|stop|status|reset|init|docker-*|seed-*` target;
+- `supabase/migrate.sh`, `supabase/reset.sh`, `supabase/run.sh`,
+  `supabase/seed-config.sql`, `supabase/seed-dev.sql`, `supabase/volumes/`;
+- any `psql` (or REST/Studio) connection to the prod stack's database.
+
+Do NOT start, stop, reset, migrate, seed, or query it. It is the human's, and
+a reset destroys its volumes and data.
+
+The ONLY stack an agent may start, stop, reset, migrate, seed, or query is
+**`supabase-testing/`** (`make supabase-testing-*`,
+`supabase-testing/migrate.sh`, same approved port map). The two stacks are
+**mutually exclusive** on those ports: if the prod stack holds the ports, STOP
+and ask the human to stop it — never stop it yourself.
+
+Migrations are authored in `supabase/migrations/**` (the source tree) and
+mirrored byte-identical into `supabase-testing/migrations/**`; they are APPLIED
+by running the **testing** stack's migration flow, never the prod one.
+
+---
+
 ## Privilege Escalation (hard rule)
 
 **Never attempt to elevate privileges.** No `sudo`, no `osascript ... with
