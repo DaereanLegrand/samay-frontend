@@ -62,6 +62,24 @@ final _answerImageProvider = StateProvider.autoDispose
 final _answerPayloadProvider = StateProvider.autoDispose
     .family<MinigameAnswerPayload?, String>((ref, key) => null);
 
+/// Clips a full-viewport overlay so nothing paints inside the header band
+/// (`y < headerBottom`) — the header must always stay visually on top of the
+/// picture overlays, without the overlay having to change its own coordinate
+/// space (2026-09-17).
+class _BelowHeaderClipper extends CustomClipper<Rect> {
+  const _BelowHeaderClipper(this.headerBottom);
+
+  final double headerBottom;
+
+  @override
+  Rect getClip(Size size) =>
+      Rect.fromLTRB(0, headerBottom, size.width, size.height);
+
+  @override
+  bool shouldReclip(_BelowHeaderClipper oldClipper) =>
+      oldClipper.headerBottom != headerBottom;
+}
+
 /// The shared full-bleed picture backdrop used by the editor's picked picture
 /// and the reaction window's answer picture (2026-09-17 standardization): the
 /// blurred-mirror [MinigameBleedImage] plus two gradient scrims — dark under the
@@ -281,27 +299,32 @@ class TruthDareScreen extends ConsumerWidget {
         (answerText?.isNotEmpty ?? false) &&
         (!answerHasImage || answerImageBytes != null) &&
         !(playingState?.isFinished ?? false);
-    // The revealed prompt, rendered by the SCREEN — over the picture but BEHIND
-    // the header (2026-09-17). Excluded for the subject editor, which shows its
-    // own prompt inside the answer canvas.
+    // The revealed prompt, rendered by the SCREEN over the picture for EVERY
+    // play state (by-turns editor + reaction, and async), never by the cards —
+    // and always CLIPPED below the header so neither the pill nor its diffusion
+    // can paint over the header (2026-09-17 refactor).
     final promptSkeleton = playingState?.skeleton;
-    final isSubjectEditor =
-        promptSkeleton != null &&
-        !(playingState?.isFinished ?? false) &&
-        promptSkeleton.playMode == MinigamePlayMode.byTurns &&
-        promptSkeleton.answer == null;
     final screenPrompt =
-        promptSkeleton == null ||
-            (playingState?.isFinished ?? false) ||
-            promptSkeleton.playMode != MinigamePlayMode.byTurns ||
-            isSubjectEditor
+        promptSkeleton == null || (playingState?.isFinished ?? false)
         ? null
         : truthDarePromptBody(promptSkeleton.prompt);
     final screenStatusTop = MediaQuery.paddingOf(context).top;
-    final screenPromptTop =
-        screenStatusTop +
-        VHeaderMetrics.barHeight(screenStatusTop) +
-        AppSpacing.md;
+    final screenHeaderBottom =
+        screenStatusTop + VHeaderMetrics.barHeight(screenStatusTop);
+    // The reto picture picker ("Añadir imagen") is rendered by the SCREEN,
+    // directly BELOW the prompt banner (2026-09-17) — it must never sit behind
+    // the question. Only the by-turns subject editor, before the answer lands,
+    // when no picture is picked yet and the prompt is a RETO.
+    final showPickImageButton =
+        pickedImage == null &&
+        screenPrompt != null &&
+        playingState != null &&
+        !playingState.isFinished &&
+        playingState.skeleton.playMode == MinigamePlayMode.byTurns &&
+        playingState.skeleton.subjectId == myId &&
+        playingState.skeleton.answer == null &&
+        truthDareKindFromWire(playingState.skeleton.promptType) ==
+            TruthDareKind.dare;
     final roster =
         ref.watch(minigameParticipantsProvider(sessionId)).valueOrNull ??
         const <MinigameParticipant>[];
@@ -391,24 +414,22 @@ class TruthDareScreen extends ConsumerWidget {
             ),
           // The answer TEXT, full-viewport over the picture and anchored to its
           // displayed rect, so the author's placement is identical on every
-          // device (2026-09-17). Clipped to the viewport.
+          // device (2026-09-17). Clipped BELOW the header (the header must stay
+          // on top) and to the viewport.
           if (showAnswerText)
             Positioned.fill(
               child: IgnorePointer(
-                child: MinigameAnswerText(
-                  text: answerText!,
-                  layout: answerPayload!.layout,
-                  image: answerHasImage ? MemoryImage(answerImageBytes!) : null,
+                child: ClipRect(
+                  clipper: _BelowHeaderClipper(screenHeaderBottom),
+                  child: MinigameAnswerText(
+                    text: answerText!,
+                    layout: answerPayload!.layout,
+                    image: answerHasImage
+                        ? MemoryImage(answerImageBytes!)
+                        : null,
+                  ),
                 ),
               ),
-            ),
-          // The revealed prompt: over the picture, BEHIND the header.
-          if (screenPrompt != null)
-            Positioned(
-              top: screenPromptTop,
-              left: AppSpacing.lg,
-              right: AppSpacing.lg,
-              child: _PromptBanner(text: screenPrompt),
             ),
           VHeaderBar(
             titleWidget: headerTitle,
@@ -466,7 +487,6 @@ class TruthDareScreen extends ConsumerWidget {
                                 l10n: l10n,
                                 roster: roster,
                                 aliases: aliases,
-                                showPrompt: false,
                               ))
                       : _WaitingCard(
                           sessionId: sessionId,
@@ -474,7 +494,6 @@ class TruthDareScreen extends ConsumerWidget {
                           l10n: l10n,
                           roster: roster,
                           aliases: aliases,
-                          showPrompt: false,
                         );
 
                   // Full-height (the by-turns SUBJECT editor): the body fills the
@@ -640,9 +659,77 @@ class TruthDareScreen extends ConsumerWidget {
               },
             ),
           ),
+          // The revealed prompt: rendered by the SCREEN directly below the
+          // header, with the reto picture picker ("Añadir imagen") DIRECTLY
+          // BELOW it (2026-09-17). Painted LAST so the picker stays tappable
+          // above the editor canvas (whose full-canvas gesture surface would
+          // otherwise swallow the tap).
+          if (screenPrompt != null)
+            Positioned(
+              top: screenHeaderBottom,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: ClipRect(
+                // Column gives the pill an unbounded height, so it sits at the
+                // TOP of the region instead of centering in it.
+                child: Column(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(
+                        AppSpacing.lg,
+                        AppSpacing.md,
+                        AppSpacing.lg,
+                        0,
+                      ),
+                      child: IgnorePointer(
+                        child: _PromptBanner(text: screenPrompt),
+                      ),
+                    ),
+                    if (showPickImageButton)
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(
+                          AppSpacing.lg,
+                          AppSpacing.sm,
+                          AppSpacing.lg,
+                          0,
+                        ),
+                        child: VButton.outlined(
+                          onPressed: () => _pickAnswerImage(context, ref),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(Icons.image_outlined, size: 18),
+                              const SizedBox(width: AppSpacing.sm),
+                              Text(l10n.minigamesAnswerImageLabel),
+                            ],
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
         ],
       ),
     );
+  }
+
+  /// Picks the reto answer picture from the gallery and lifts it to the
+  /// screen-level provider (the full-bleed background + the remove ×). The
+  /// picker button is rendered by the SCREEN, below the prompt banner.
+  Future<void> _pickAnswerImage(BuildContext context, WidgetRef ref) async {
+    try {
+      final picked = await ImagePicker().pickImage(source: ImageSource.gallery);
+      if (picked != null) {
+        ref.read(_pickedAnswerImageProvider(sessionId).notifier).state = picked;
+      }
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e.toAppError().message)));
+    }
   }
 
   /// The rich two-line [VHeaderBar] title for the play screen, per state:
@@ -865,7 +952,6 @@ class _AnswerCard extends ConsumerStatefulWidget {
 class _AnswerCardState extends ConsumerState<_AnswerCard> {
   final _answerController = TextEditingController();
   final _answerFocus = FocusNode();
-  final _picker = ImagePicker();
   bool _submitting = false;
 
   /// The answer canvas's on-screen origin + the picked picture's intrinsic
@@ -970,7 +1056,6 @@ class _AnswerCardState extends ConsumerState<_AnswerCard> {
 
   @override
   Widget build(BuildContext context) {
-    final image = ref.watch(_pickedAnswerImageProvider(widget.sessionId));
     final prompt = truthDarePromptBody(widget.state.skeleton.prompt);
     if (prompt == null) {
       // Choosing Verdad/Reto (2026-09-15 directive): two borderless dark CTAs
@@ -1001,8 +1086,6 @@ class _AnswerCardState extends ConsumerState<_AnswerCard> {
         ),
       );
     }
-    final kind = truthDareKindFromWire(widget.state.skeleton.promptType);
-    final isDare = kind == TruthDareKind.dare;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -1044,40 +1127,6 @@ class _AnswerCardState extends ConsumerState<_AnswerCard> {
                   GestureDetector(
                     behavior: HitTestBehavior.opaque,
                     onTap: _answerFocus.unfocus,
-                  ),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: AppSpacing.cardPadding,
-                        ),
-                        child: _PromptBanner(text: prompt),
-                      ),
-                      if (isDare) ...[
-                        const SizedBox(height: AppSpacing.sm),
-                        // The picked picture is the full-viewport background;
-                        // its × removal control is overlaid on the image
-                        // (screen level).
-                        if (image == null)
-                          Padding(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: AppSpacing.cardPadding,
-                            ),
-                            child: VButton.outlined(
-                              onPressed: _pickImage,
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  const Icon(Icons.image_outlined, size: 18),
-                                  const SizedBox(width: AppSpacing.sm),
-                                  Text(widget.l10n.minigamesAnswerImageLabel),
-                                ],
-                              ),
-                            ),
-                          ),
-                      ],
-                    ],
                   ),
                   AnimatedPositioned(
                     duration: SamayDurations.standard,
@@ -1152,21 +1201,6 @@ class _AnswerCardState extends ConsumerState<_AnswerCard> {
       await ref
           .read(minigameGameStateProvider(widget.sessionId).notifier)
           .reveal(kind);
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(e.toAppError().message)));
-    }
-  }
-
-  Future<void> _pickImage() async {
-    try {
-      final picked = await _picker.pickImage(source: ImageSource.gallery);
-      if (picked != null && mounted) {
-        ref.read(_pickedAnswerImageProvider(widget.sessionId).notifier).state =
-            picked;
-      }
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(
@@ -1447,10 +1481,13 @@ const double _promptBannerRadius = 5 * _promptBannerFontSize;
 /// or spread. Feathering the shape ITSELF (each layer is a blurred pill) melts
 /// the edge; the successive sigmas give the eased "strong at the start,
 /// diffusing more and more" falloff.
+///
+/// The outer alphas are deliberately HIGH (darker tint) so the pill keeps the
+/// prompt legible even over a LIGHT picked picture (2026-09-17 directive).
 const List<(double sigma, double alpha)> _promptBannerLayers = [
   (8, 1.0),
-  (36, 0.6),
-  (92, 0.38),
+  (36, 0.85),
+  (92, 0.62),
 ];
 
 /// The current prompt — a Verdad question or a Reto challenge — on a soft black
@@ -1497,7 +1534,18 @@ class _PromptBanner extends StatelessWidget {
                 fontFamily: AppTypography.playfair,
                 fontSize: _promptBannerFontSize,
                 fontWeight: FontWeight.w700,
-                shadows: AppTypography.legibilityShadows,
+                // Lighter-tinted glyph shadow (a soft light halo) so the prompt
+                // glows against the darker pill (2026-09-17 directive).
+                shadows: [
+                  Shadow(
+                    color: AppColors.white.withValues(alpha: 0.45),
+                    blurRadius: 20,
+                  ),
+                  Shadow(
+                    color: AppColors.white.withValues(alpha: 0.22),
+                    blurRadius: 48,
+                  ),
+                ],
               ),
               textAlign: TextAlign.center,
             ),
@@ -1511,8 +1559,7 @@ class _PromptBanner extends StatelessWidget {
 /// The non-subject's view of the current by_turns round (202 answer-first):
 /// the subject's submitted answer ciphertext (decrypted locally) once it
 /// exists — with NO choice buttons. Before the answer the waiting line shows.
-/// The revealed prompt is pinned at the top by the screen and rendered here
-/// only when [showPrompt] is true.
+/// The revealed prompt is rendered by the SCREEN (behind the header).
 class _WaitingCard extends ConsumerStatefulWidget {
   const _WaitingCard({
     required this.sessionId,
@@ -1520,7 +1567,6 @@ class _WaitingCard extends ConsumerStatefulWidget {
     required this.l10n,
     required this.roster,
     required this.aliases,
-    this.showPrompt = true,
   });
 
   final String sessionId;
@@ -1528,10 +1574,6 @@ class _WaitingCard extends ConsumerStatefulWidget {
   final AppLocalizations l10n;
   final List<MinigameParticipant> roster;
   final Map<String, String>? aliases;
-
-  /// When false the prompt is rendered by the screen (pinned at the top) and
-  /// this card shows only the answer body.
-  final bool showPrompt;
 
   @override
   ConsumerState<_WaitingCard> createState() => _WaitingCardState();
@@ -1556,10 +1598,6 @@ class _WaitingCardState extends ConsumerState<_WaitingCard> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        if (widget.showPrompt) ...[
-          _PromptBanner(text: prompt),
-          const SizedBox(height: AppSpacing.xs),
-        ],
         if (answer == null)
           Text(
             widget.l10n.minigamesAnswerWaiting,
@@ -1643,8 +1681,8 @@ class _ReactionsWaitingLine extends StatelessWidget {
 /// the subject answered, `skeleton.answer` is set but `isMyTurn` stays true —
 /// the input surface must be replaced by a READ-ONLY card: the subject's OWN
 /// answer (decrypted locally). NO input, NO Responder, NO Pasar. A passed round
-/// shows the Pasar-skipped suffix. The prompt is rendered by the screen (pinned
-/// at the top) and the "esperando X/Y reacciones…" line lives at the bottom.
+/// shows the Pasar-skipped suffix. The prompt is rendered by the SCREEN (behind
+/// the header) and the "esperando X/Y reacciones…" line lives at the bottom.
 class _SubjectWaitingCard extends ConsumerStatefulWidget {
   const _SubjectWaitingCard({
     required this.sessionId,
@@ -1652,7 +1690,6 @@ class _SubjectWaitingCard extends ConsumerStatefulWidget {
     required this.l10n,
     required this.roster,
     required this.aliases,
-    this.showPrompt = true,
   });
 
   final String sessionId;
@@ -1660,10 +1697,6 @@ class _SubjectWaitingCard extends ConsumerStatefulWidget {
   final AppLocalizations l10n;
   final List<MinigameParticipant> roster;
   final Map<String, String>? aliases;
-
-  /// When false the prompt is rendered by the screen (pinned at the top) and
-  /// this card shows only the answer body.
-  final bool showPrompt;
 
   @override
   ConsumerState<_SubjectWaitingCard> createState() =>
@@ -1691,10 +1724,6 @@ class _SubjectWaitingCardState extends ConsumerState<_SubjectWaitingCard> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        if (widget.showPrompt) ...[
-          _PromptBanner(text: prompt),
-          const SizedBox(height: AppSpacing.xs),
-        ],
         if (answer.passed)
           Text(
             widget.l10n.minigamesPasarSkipped,
