@@ -13,12 +13,15 @@ abstract final class RoutePaths {
   static const authPrefix = '/auth/';
   static const mainFeed = '/main/feed';
   static const mainGroups = '/main/groups';
+  /// The Games tab (2026-09-20): a column list of the plugged minigames.
+  static const mainGames = '/main/games';
   static const mainEvents = '/main/events';
   static const mainNotifications = '/main/notifications';
   static const mainProfile = '/main/profile';
   static const groupCreate = '/group/create';
-  static const groupsLeaderboard = '/groups/leaderboard';
-  static const userRanking = '/ranking/users';
+  /// The single Rankings surface (2026-09-20): one entry for both the global
+  /// user ranking and the group leaderboard (a Users | Groups switch inside).
+  static const rankings = '/rankings';
   static const userSearch = '/user/search';
   static const friendsRequests = '/friends/requests';
   static const friendsList = '/friends/list';

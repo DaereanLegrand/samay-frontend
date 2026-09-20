@@ -369,6 +369,10 @@
   "@shellSocial": {
     "description": "Bottom navigation tab label (Social tab — groups + friends)"
   },
+  "shellGames": "Juegos",
+  "@shellGames": {
+    "description": "Bottom navigation tab label (Games tab — plugged minigames)"
+  },
   "shellEvents": "Eventos",
   "@shellEvents": {
     "description": "Bottom navigation tab label"
@@ -503,11 +507,11 @@
   },
   "groupsCreateGroup": "crear",
   "@groupsCreateGroup": {
-    "description": "Create-group button label"
+    "description": "Create-group screen Header title (verbatim/lowercase)"
   },
-  "groupsRanking": "Ranking",
-  "@groupsRanking": {
-    "description": "Leaderboard button label"
+  "groupsCreateGroupAction": "Crear grupo",
+  "@groupsCreateGroupAction": {
+    "description": "Create-group action button label (Title Case)"
   },
   "groupsRequests": "Solicitudes",
   "@groupsRequests": {
@@ -536,6 +540,14 @@
   "socialRankingTitle": "ranking",
   "@socialRankingTitle": {
     "description": "Global user ranking screen app bar title"
+  },
+  "rankingsUsers": "Usuarios",
+  "@rankingsUsers": {
+    "description": "Rankings screen Users | Groups switch — users segment"
+  },
+  "rankingsGroups": "Grupos",
+  "@rankingsGroups": {
+    "description": "Rankings screen Users | Groups switch — groups segment"
   },
   "socialRankingEmpty": "Aún no hay datos de ranking",
   "@socialRankingEmpty": {
@@ -821,10 +833,6 @@
   "groupsNoResults": "Sin resultados",
   "@groupsNoResults": {
     "description": "Empty state when the invite search matches nothing"
-  },
-  "groupsLeaderboardTitle": "ranking",
-  "@groupsLeaderboardTitle": {
-    "description": "Leaderboard screen app bar title"
   },
   "groupsNoRankingData": "Sin datos de ranking",
   "@groupsNoRankingData": {

@@ -47,6 +47,12 @@ const mainShellTabs = <TabItem>[
     path: RoutePaths.mainGroups,
   ),
   TabItem(
+    label: 'Games',
+    icon: Icons.sports_esports_outlined,
+    selectedIcon: Icons.sports_esports,
+    path: RoutePaths.mainGames,
+  ),
+  TabItem(
     label: 'Eventos',
     icon: Icons.event_outlined,
     selectedIcon: Icons.event,
@@ -68,16 +74,16 @@ const mainShellTabs = <TabItem>[
 
 int shellIndexFor(String location) {
   if (location.startsWith(RoutePaths.mainGroups)) return 1;
-  if (location.startsWith(RoutePaths.mainEvents)) return 2;
-  if (location.startsWith(RoutePaths.mainNotifications)) return 3;
-  if (location.startsWith(RoutePaths.mainProfile)) return 4;
+  if (location.startsWith(RoutePaths.mainGames)) return 2;
+  if (location.startsWith(RoutePaths.mainEvents)) return 3;
+  if (location.startsWith(RoutePaths.mainNotifications)) return 4;
+  if (location.startsWith(RoutePaths.mainProfile)) return 5;
   return 0;
 }
 
-/// R18 (F5 DIRECT): the shell's Grupos-tab pending counter — received friend
-/// requests + group invites + pending minigame invites (2026-08-27 red-circle
-/// directive), derived from the root providers the Grupos tab already feeds
-/// on. The shell only *watches*: nothing new is fetched by mounting it.
+/// The Social tab's pending counter — received friend requests + group
+/// invites. Minigame invites moved to the Games tab badge (2026-09-20), so
+/// each tab owns the red circle for its own slice.
 final pendingCountsProvider = Provider<int>((ref) {
   final requests =
       ref
@@ -88,9 +94,7 @@ final pendingCountsProvider = Provider<int>((ref) {
           .length ??
       0;
   final invites = ref.watch(groupInvitesProvider).valueOrNull?.length ?? 0;
-  final minigameInvites =
-      ref.watch(pendingMinigameInvitesProvider);
-  return requests + invites + minigameInvites;
+  return requests + invites;
 });
 
 class MainShell extends ConsumerWidget {
@@ -109,7 +113,8 @@ class MainShell extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
-    final pendingCount = ref.watch(pendingCountsProvider);
+    final socialCount = ref.watch(pendingCountsProvider);
+    final gamesCount = ref.watch(pendingMinigameInvitesProvider);
     // R19 (F13 DIRECT): 150ms opacity fade-in on tab switch, keyed on the
     // tab index so every switch restarts it. No spatial motion (tabs have no
     // directional relationship — Juega's fadeIn, without flutter_animate).
@@ -136,7 +141,7 @@ class MainShell extends ConsumerWidget {
           // taps, badge, fade.
           bottomNavigationBar: _FloatingNavBar(
             selectedIndex: currentIndex,
-            pendingCount: pendingCount,
+            badges: {1: socialCount, 2: gamesCount},
             onTap: (index) => context.go(mainShellTabs[index].path),
             l10n: l10n,
           ),
@@ -158,36 +163,37 @@ class MainShell extends ConsumerWidget {
 /// never change on tab switch.
 class _FloatingNavBar extends ConsumerWidget {
   final int selectedIndex;
-  final int pendingCount;
+
+  /// Per-tab red-circle counts, keyed by tab index (absent = no badge).
+  final Map<int, int> badges;
   final void Function(int) onTap;
   final AppLocalizations l10n;
 
   const _FloatingNavBar({
     required this.selectedIndex,
-    required this.pendingCount,
+    required this.badges,
     required this.onTap,
     required this.l10n,
   });
+
+  /// Compact pill radius (2026-09-20 user directive: "smaller, tighter
+  /// rounded corners, less spacing" so six tabs fit comfortably).
+  static const double _radius = 14;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return SafeArea(
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(24, 0, 24, 20),
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
         child: ClipRRect(
-          // Sharp corners (2026-08-27 user directive: remove the rounded
-          // NavBar corners — the brutalist §4.2 radius-0 rule).
-          borderRadius: BorderRadius.zero,
+          borderRadius: BorderRadius.circular(_radius),
           child: BackdropFilter(
             filter: ui.ImageFilter.blur(sigmaX: 20, sigmaY: 20),
             child: Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 12,
-                vertical: 10,
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
               decoration: BoxDecoration(
                 color: AppColors.surface.withValues(alpha: 0.85),
-                borderRadius: BorderRadius.zero,
+                borderRadius: BorderRadius.circular(_radius),
                 border: Border.all(
                   color: AppColors.white.withValues(alpha: 0.15),
                 ),
@@ -206,14 +212,14 @@ class _FloatingNavBar extends ConsumerWidget {
     );
   }
 
-  /// One tab — Juega's exact anatomy: `GestureDetector` (opaque hit) →
-  /// `AnimatedContainer` (16×8 padding, rounded 16, selected = white α0.15
-  /// fill) → `Column` [icon stack, selected dot]. The Grupos tab (index 1)
-  /// gains the red pending badge while there is something pending AND the
-  /// user is elsewhere (R18 — Juega hides its feed badge the same way).
+  /// One tab — compact anatomy for six tabs (2026-09-20): `GestureDetector`
+  /// (opaque hit) → `AnimatedContainer` (8×6 padding) → `Column` [icon stack,
+  /// selected dot]. A tab with a pending [badges] count gains the red circle
+  /// while the user is elsewhere.
   Widget _tabItem(BuildContext context, int index) {
     final selected = index == selectedIndex;
     final label = _tabLabel(l10n, index);
+    final badge = badges[index] ?? 0;
     return Semantics(
       button: true,
       selected: selected,
@@ -225,7 +231,7 @@ class _FloatingNavBar extends ConsumerWidget {
           message: label,
           child: AnimatedContainer(
             duration: SamayDurations.standard,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -237,22 +243,20 @@ class _FloatingNavBar extends ConsumerWidget {
                           ? mainShellTabs[index].selectedIcon
                           : mainShellTabs[index].icon,
                       color: selected ? AppColors.white : AppColors.muted,
-                      size: 24,
+                      size: 22,
                     ),
-                    if (index == 1 && pendingCount > 0 && selectedIndex != 1)
+                    if (badge > 0 && selectedIndex != index)
                       Positioned(
-                        right: -8,
+                        right: -7,
                         top: -4,
-                        child: VCountBadge(count: pendingCount),
+                        child: VCountBadge(count: badge),
                       ),
                   ],
                 ),
-                // Selected indicator — the white icon + the 4×4 dot below it
-                // (2026-08-27: no fill background, no rounded corners — the
-                // dot is enough).
+                // Selected indicator — the white icon + the 4×4 dot below it.
                 if (selected)
                   Container(
-                    margin: const EdgeInsets.only(top: 4),
+                    margin: const EdgeInsets.only(top: 3),
                     width: 4,
                     height: 4,
                     decoration: const BoxDecoration(
@@ -275,9 +279,10 @@ class _FloatingNavBar extends ConsumerWidget {
     return switch (index) {
       0 => l10n.shellFeed,
       1 => l10n.shellSocial,
-      2 => l10n.shellEvents,
-      3 => l10n.shellNotifications,
-      4 => l10n.shellProfile,
+      2 => l10n.shellGames,
+      3 => l10n.shellEvents,
+      4 => l10n.shellNotifications,
+      5 => l10n.shellProfile,
       _ => mainShellTabs[index].label,
     };
   }

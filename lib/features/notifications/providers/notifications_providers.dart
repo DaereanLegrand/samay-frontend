@@ -84,11 +84,12 @@ bool isRegisteredRoutePath(String path) {
   const exact = {
     RoutePaths.mainFeed,
     RoutePaths.mainGroups,
+    RoutePaths.mainGames,
     RoutePaths.mainEvents,
     RoutePaths.mainNotifications,
     RoutePaths.mainProfile,
     RoutePaths.groupCreate,
-    RoutePaths.groupsLeaderboard,
+    RoutePaths.rankings,
     RoutePaths.userSearch,
     RoutePaths.friendsRequests,
     RoutePaths.friendsList,
