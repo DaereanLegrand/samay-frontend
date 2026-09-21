@@ -11,11 +11,13 @@ import 'package:samay/core/router/route_paths.dart';
 import 'package:samay/features/chat/providers/chat_providers.dart';
 import 'package:samay/features/events/logic/event_formatters.dart';
 import 'package:samay/features/feed/providers/feed_providers.dart';
+import 'package:samay/features/feed/widgets/avatar_physics_cluster.dart';
+import 'package:samay/features/minigames/logic/minigame_engine.dart';
 import 'package:samay/features/minigames/logic/minigame_meta.dart';
 import 'package:samay/features/minigames/providers/minigames_providers.dart';
+import 'package:samay/features/minigames/widgets/minigame_pool.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/error_view.dart';
-import 'package:samay/shared/widgets/profile_avatar.dart';
 import 'package:samay/shared/widgets/state_views.dart';
 import 'package:samay/shared/widgets/v_badge.dart';
 import 'package:samay/shared/widgets/v_card.dart';
@@ -262,22 +264,36 @@ class _EventCard extends StatelessWidget {
   }
 }
 
+/// Height of a feed match card's content row. The avatar physics box is given
+/// the same height so the bubbles fill the whole card (2026-09-20 directive).
+const double _kMatchCardHeight = 128;
+
 /// A specific minigame match in the feed.
 ///
-/// Deliberately NOT a muted outlined container: a bare row on black with a
-/// hairline separator. The people in the partida matter more than the count,
-/// so the participants render as right-aligned Apple-Watch-style overlapping
-/// avatar bubbles with their usernames below (never a comma-separated list).
-/// Tap → session detail (accept an invite / continue playing).
-class _MinigameMatchCard extends StatelessWidget {
+/// Deliberately NOT a muted outlined container: a bare block on black with a
+/// hairline rhythm. The match copy stacks on the left — game name, title,
+/// invite/active badge, then the bare shard pool total — while the participants
+/// fill the right side as a full-card-height live avatar cluster whose bubbles
+/// collide, pile against the right wall and jolt with feed scrolling. Usernames
+/// are never listed. Tap → session detail (accept an invite / continue playing).
+class _MinigameMatchCard extends ConsumerWidget {
   final FeedMinigameItem item;
 
   const _MinigameMatchCard({required this.item});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
-    final sessionId = item.session['id'] as String;
+    final session = item.session;
+    final sessionId = session['id'] as String;
+    final wager = (session['shard_wager'] as num?)?.toInt() ?? 0;
+    final positions =
+        (session['prize_positions'] as num?)?.toInt() ?? kDefaultPrizePositions;
+    final roster = ref.watch(minigameParticipantsProvider(sessionId));
+    final participants = roster.valueOrNull ?? const <MinigameParticipant>[];
+    final players =
+        participants.isEmpty ? item.participantCount : participants.length;
+    final showsBadge = item.fromParticipant || item.status == 'active';
     return InkWell(
       onTap: () => context.push(RoutePaths.minigameSession(sessionId)),
       child: Padding(
@@ -287,192 +303,65 @@ class _MinigameMatchCard extends StatelessWidget {
           AppSpacing.screenHorizontal,
           AppSpacing.lg,
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        minigameGameNameLower(l10n, item.gameType),
-                        style: AppTypography.sectionLabel,
-                      ),
-                      const SizedBox(height: AppSpacing.xs),
-                      Text(
-                        item.title,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.titleLarge,
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: AppSpacing.md),
-                if (item.fromParticipant)
-                  VBadge.emphasized(label: l10n.feedMinigameInvite)
-                else if (item.status == 'active')
-                  VBadge(label: l10n.minigamesStatusActive),
-              ],
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            _ParticipantsRow(sessionId: sessionId),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-/// Right-aligned overlapping avatar bubbles (Apple Watch style) plus the
-/// participants' usernames. Usernames are individual labels — never joined by
-/// commas.
-class _ParticipantsRow extends ConsumerWidget {
-  final String sessionId;
-
-  const _ParticipantsRow({required this.sessionId});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final roster = ref.watch(minigameParticipantsProvider(sessionId));
-    final participants = roster.valueOrNull ?? const <MinigameParticipant>[];
-    if (participants.isEmpty) {
-      // Roster still loading / unavailable: keep the row height stable so the
-      // card does not jump when the names land.
-      return const SizedBox(height: 34);
-    }
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.end,
-      children: [
-        _AvatarBubbles(participants: participants),
-        const SizedBox(height: AppSpacing.xs),
-        Wrap(
-          alignment: WrapAlignment.end,
-          spacing: AppSpacing.sm,
-          runSpacing: AppSpacing.xs,
-          children: [
-            for (final p in participants)
-              Text(
-                '@${p.username}',
-                style: const TextStyle(
-                  color: AppColors.mutedStrong,
-                  fontSize: 12,
+        child: SizedBox(
+          height: _kMatchCardHeight,
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(
+                flex: 2,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          minigameGameNameLower(l10n, item.gameType),
+                          style: AppTypography.sectionLabel,
+                        ),
+                        const SizedBox(height: AppSpacing.xs),
+                        Text(
+                          item.title,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.titleLarge,
+                        ),
+                      ],
+                    ),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (item.fromParticipant)
+                          VBadge.emphasized(label: l10n.feedMinigameInvite)
+                        else if (item.status == 'active')
+                          VBadge(label: l10n.minigamesStatusActive),
+                        if (showsBadge) const SizedBox(height: AppSpacing.sm),
+                        MinigamePoolAmount(
+                          wager: wager,
+                          players: players,
+                          positions: positions,
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
               ),
-          ],
-        ),
-      ],
-    );
-  }
-}
-
-/// Overlapping circular avatar bubbles, right-aligned. Up to [_maxShown] are
-/// drawn; the rest collapse into a `+N` bubble.
-class _AvatarBubbles extends StatelessWidget {
-  static const double _size = 34;
-  static const double _overlap = 12;
-  static const int _maxShown = 5;
-
-  final List<MinigameParticipant> participants;
-
-  const _AvatarBubbles({required this.participants});
-
-  @override
-  Widget build(BuildContext context) {
-    final shown = participants.take(_maxShown).toList();
-    final overflow = participants.length - shown.length;
-    final count = shown.length + (overflow > 0 ? 1 : 0);
-    final width = count == 0 ? 0.0 : _size + (count - 1) * (_size - _overlap);
-
-    return SizedBox(
-      height: _size,
-      width: width,
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          for (var i = 0; i < shown.length; i++)
-            Positioned(
-              left: i * (_size - _overlap),
-              child: _AvatarBubble(
-                size: _size,
-                imageUrl: shown[i].avatarUrl,
-                initials: _initials(shown[i].username),
+              const SizedBox(width: AppSpacing.md),
+              Expanded(
+                flex: 3,
+                child: AvatarPhysicsCluster(
+                  participants: participants,
+                  height: _kMatchCardHeight,
+                ),
               ),
-            ),
-          if (overflow > 0)
-            Positioned(
-              left: shown.length * (_size - _overlap),
-              child: _OverflowBubble(size: _size, count: overflow),
-            ),
-        ],
-      ),
-    );
-  }
-
-  static String _initials(String username) {
-    final trimmed = username.trim();
-    if (trimmed.isEmpty) return '?';
-    final parts = trimmed.split(RegExp(r'[\s_.-]+')).where((p) => p.isNotEmpty);
-    final letters = parts.take(2).map((p) => p[0]).join();
-    return (letters.isEmpty ? trimmed[0] : letters).toUpperCase();
-  }
-}
-
-class _AvatarBubble extends StatelessWidget {
-  final double size;
-  final String? imageUrl;
-  final String initials;
-
-  const _AvatarBubble({
-    required this.size,
-    required this.imageUrl,
-    required this.initials,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    // A black ring separates overlapping bubbles (Apple Watch treatment).
-    return Container(
-      width: size,
-      height: size,
-      decoration: const BoxDecoration(
-        shape: BoxShape.circle,
-        color: AppColors.discoBlack,
-      ),
-      padding: const EdgeInsets.all(2),
-      child: ProfileAvatar(size: size - 4, imageUrl: imageUrl, initials: initials),
-    );
-  }
-}
-
-class _OverflowBubble extends StatelessWidget {
-  final double size;
-  final int count;
-
-  const _OverflowBubble({required this.size, required this.count});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: size,
-      height: size,
-      alignment: Alignment.center,
-      decoration: const BoxDecoration(
-        shape: BoxShape.circle,
-        color: AppColors.surfaceAlt,
-      ),
-      child: Text(
-        '+$count',
-        style: TextStyle(
-          color: AppColors.white,
-          fontSize: size * 0.32,
-          fontWeight: FontWeight.w600,
+            ],
+          ),
         ),
       ),
     );
   }
 }
+
 
