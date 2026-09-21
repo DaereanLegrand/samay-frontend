@@ -16,7 +16,6 @@ import 'package:samay/features/minigames/providers/minigames_providers.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/error_view.dart';
 import 'package:samay/shared/widgets/profile_avatar.dart';
-import 'package:samay/shared/widgets/skeletons.dart';
 import 'package:samay/shared/widgets/state_views.dart';
 import 'package:samay/shared/widgets/v_badge.dart';
 import 'package:samay/shared/widgets/v_card.dart';
@@ -58,13 +57,14 @@ class FeedScreen extends ConsumerWidget {
               actions: const [_ChatInboxButton()],
             ),
             ...feed.when(
-              // U-22 (§5.8): the first load shows the skeleton instead of the
-              // bare spinner; pull-to-refresh keeps the list visible
-              // (skipLoadingOnRefresh — the skeleton only stands in when there
-              // is nothing on screen).
+              // First load shows the shared spinner; pull-to-refresh keeps the
+              // list visible.
               skipLoadingOnRefresh: true,
               loading: () => const [
-                SliverToBoxAdapter(child: VSkeletonDetail()),
+                SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: VLoadingView(),
+                ),
               ],
               error: (_, _) => [
                 SliverFillRemaining(

@@ -18,7 +18,7 @@ import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/error_view.dart';
 import 'package:samay/shared/widgets/show_app_error.dart';
 import 'package:samay/shared/widgets/v_card.dart';
-import 'package:samay/shared/widgets/skeletons.dart';
+import 'package:samay/shared/widgets/state_views.dart';
 import 'package:samay/shared/widgets/v_badge.dart';
 import 'package:samay/shared/widgets/v_button.dart';
 import 'package:samay/shared/widgets/v_display_text.dart';
@@ -236,13 +236,9 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
     });
 
     return detailAsync.when(
-      // U-25 (§5.8): the detail is the heaviest events screen (detail +
-      // hosts + invite stacked fetches), so the nothing-on-screen frame
-      // shows the cover+lines skeleton (U-22's handoff named event_detail →
-      // VSkeletonDetail) instead of the bare spinner. `VSkeletonDetail(rows:
-      // 1)` is the closest existing skeleton to the hero geometry — the same
-      // call U-24 made on group_detail.
-      loading: () => _scaffold(const VSkeletonDetail(rows: 1)),
+      // The detail stacks several fetches (detail + hosts + invite); the
+      // first load shows the shared spinner.
+      loading: () => _scaffold(const VLoadingView()),
       error: (e, _) => _scaffold(
         ErrorView(
           message: e.toAppError().message,

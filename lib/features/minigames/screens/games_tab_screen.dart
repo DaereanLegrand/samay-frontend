@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
+import 'package:samay/core/design_tokens/app_icon_sizes.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/router/main_shell.dart';
 import 'package:samay/core/router/route_paths.dart';
@@ -12,12 +13,12 @@ import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/v_count_badge.dart';
 import 'package:samay/shared/widgets/v_header_bar.dart';
 
-/// The Games tab (2026-09-20): the plugged minigames in one column list.
-///
-/// Deliberately minimal — a hairline row per game (icon + name), the whole
-/// row tappable, no imagery and no buttons. Tapping opens the game's page
-/// ("Nueva partida" + ongoing partidas). A row carries the red invite badge
-/// while an invited partida of that game awaits an answer.
+/// The Games tab (2026-09-20): the plugged minigames as a two-column grid of
+/// square tiles, each half the content width. Deliberately minimal — a
+/// Material icon + Title Case name, the whole tile tappable, no imagery and
+/// no buttons. Tapping opens the game's page ("Nueva partida" + ongoing
+/// partidas). A tile carries the red invite badge while an invited partida of
+/// that game awaits an answer.
 class GamesTabScreen extends ConsumerWidget {
   const GamesTabScreen({super.key});
 
@@ -32,17 +33,28 @@ class GamesTabScreen extends ConsumerWidget {
           // The page Header — the one verbatim/lowercase surface (title
           // exception); every label below it is Title Case.
           VHeaderSliver(title: l10n.minigamesTitle),
-          SliverList.separated(
-            itemCount: MinigameType.values.length,
-            separatorBuilder: (_, _) =>
-                const Divider(height: 1, color: AppColors.hairline),
-            itemBuilder: (context, index) {
-              final type = MinigameType.values[index];
-              return _GameRow(
-                type: type,
-                pending: pendingByType[type.value] ?? 0,
-              );
-            },
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.screenHorizontal,
+              AppSpacing.lg,
+              AppSpacing.screenHorizontal,
+              0,
+            ),
+            sliver: SliverGrid(
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                crossAxisSpacing: AppSpacing.sm,
+                mainAxisSpacing: AppSpacing.sm,
+                childAspectRatio: 1,
+              ),
+              delegate: SliverChildBuilderDelegate((context, index) {
+                final type = MinigameType.values[index];
+                return _GameTile(
+                  type: type,
+                  pending: pendingByType[type.value] ?? 0,
+                );
+              }, childCount: MinigameType.values.length),
+            ),
           ),
           SliverToBoxAdapter(
             child: SizedBox(height: MainShell.navBarInset(context)),
@@ -53,34 +65,57 @@ class GamesTabScreen extends ConsumerWidget {
   }
 }
 
-/// One game row: icon + Title Case name, whole row tappable.
-class _GameRow extends StatelessWidget {
+/// One game tile: a square `surfaceAlt` block, icon + Title Case name, whole
+/// tile tappable.
+class _GameTile extends StatelessWidget {
   final MinigameType type;
   final int pending;
 
-  const _GameRow({required this.type, required this.pending});
+  const _GameTile({required this.type, required this.pending});
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     return InkWell(
       onTap: () => context.push(RoutePaths.minigame(type.value)),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.screenHorizontal,
-          vertical: AppSpacing.lg,
+      child: Container(
+        decoration: BoxDecoration(
+          color: AppColors.surfaceAlt,
+          border: Border.all(color: AppColors.hairline),
         ),
-        child: Row(
+        child: Stack(
           children: [
-            Icon(minigameIcon(type), color: AppColors.white, size: 24),
-            const SizedBox(width: AppSpacing.md),
-            Expanded(
-              child: Text(
-                minigameGameName(l10n, type.value),
-                style: Theme.of(context).textTheme.titleLarge,
+            Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    minigameIcon(type),
+                    color: AppColors.white,
+                    size: AppIconSizes.xxl,
+                  ),
+                  const SizedBox(height: AppSpacing.md),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.sm,
+                    ),
+                    child: Text(
+                      minigameGameName(l10n, type.value),
+                      textAlign: TextAlign.center,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.titleLarge,
+                    ),
+                  ),
+                ],
               ),
             ),
-            if (pending > 0) VCountBadge(count: pending),
+            if (pending > 0)
+              Positioned(
+                top: AppSpacing.sm,
+                right: AppSpacing.sm,
+                child: VCountBadge(count: pending),
+              ),
           ],
         ),
       ),

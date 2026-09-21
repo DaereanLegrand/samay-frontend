@@ -12,7 +12,7 @@ import 'package:samay/core/utils/input_sanitizer.dart';
 import 'package:samay/features/profile/providers/profile_providers.dart';
 import 'package:samay/shared/widgets/profile_avatar.dart';
 import 'package:samay/l10n/app_localizations.dart';
-import 'package:samay/shared/widgets/skeletons.dart';
+import 'package:samay/shared/widgets/state_views.dart';
 import 'package:samay/shared/widgets/v_button.dart';
 import 'package:samay/shared/widgets/v_header_bar.dart';
 import 'package:samay/shared/widgets/v_input.dart';
@@ -188,9 +188,8 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
       body: VHeaderBar(
         title: l10n.profileEditTitle,
         child: _loading
-            // U-22 handoff (U-23): the edit screen mirrors the profile hero —
-            // `VSkeletonProfile` (§5.8) stands in during the first load.
-            ? const VSkeletonProfile()
+            // First load shows the shared spinner.
+            ? const VLoadingView()
             : ListView(
                 padding: const EdgeInsets.all(24),
                 children: [

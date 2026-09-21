@@ -12,7 +12,6 @@ import 'package:samay/core/providers/service_providers.dart';
 import 'package:samay/features/notifications/providers/notifications_providers.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/error_view.dart';
-import 'package:samay/shared/widgets/skeletons.dart';
 import 'package:samay/shared/widgets/state_views.dart';
 import 'package:samay/shared/widgets/v_card.dart';
 import 'package:samay/shared/widgets/v_header_bar.dart';
@@ -151,11 +150,11 @@ class _NotificationCenterScreenState
   ) {
     final refreshing = notifications.isLoading && notifications.hasValue;
     if (notifications.isLoading && !refreshing) {
-      // U-22 (§5.8): the first load shows the avatar+lines skeleton instead
-      // of the bare spinner; pull-to-refresh keeps the list visible
-      // (skipLoadingOnRefresh — the skeleton only ever stands in when there
-      // is nothing on screen).
-      return [const SliverToBoxAdapter(child: VSkeletonList())];
+      // First load shows the shared spinner; pull-to-refresh keeps the list
+      // visible.
+      return const [
+        SliverFillRemaining(hasScrollBody: false, child: VLoadingView()),
+      ];
     }
     final error = notifications.hasError ? notifications.error : null;
     if (error != null) {

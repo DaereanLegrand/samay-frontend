@@ -12,6 +12,7 @@ _Group _$GroupFromJson(Map<String, dynamic> json) => _Group(
   description: json['description'] as String?,
   coverUrl: json['cover_url'] as String?,
   groupShards: (json['group_shards'] as num?)?.toInt() ?? 0,
+  memberCount: (json['member_count'] as num?)?.toInt() ?? 0,
   sizeTier: json['size_tier'] as String?,
   rankBracket: json['rank_bracket'] as String?,
   frozenAt: json['frozen_at'] == null
@@ -27,6 +28,7 @@ Map<String, dynamic> _$GroupToJson(_Group instance) => <String, dynamic>{
   'description': instance.description,
   'cover_url': instance.coverUrl,
   'group_shards': instance.groupShards,
+  'member_count': instance.memberCount,
   'size_tier': instance.sizeTier,
   'rank_bracket': instance.rankBracket,
   'frozen_at': instance.frozenAt?.toIso8601String(),

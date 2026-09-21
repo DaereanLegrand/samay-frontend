@@ -10,7 +10,6 @@ import 'package:samay/features/friends/providers/friends_providers.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/error_view.dart';
 import 'package:samay/shared/widgets/profile_avatar.dart';
-import 'package:samay/shared/widgets/skeletons.dart';
 import 'package:samay/shared/widgets/state_views.dart';
 
 /// The Amigos segment of the Social tab (redesign 2026-09-20).
@@ -40,7 +39,10 @@ class AmigosTab extends ConsumerWidget {
               .when(
                 skipLoadingOnRefresh: true,
                 loading: () => const [
-                  SliverToBoxAdapter(child: VSkeletonList()),
+                  SliverFillRemaining(
+                    hasScrollBody: false,
+                    child: VLoadingView(),
+                  ),
                 ],
                 error: (e, _) => [
                   SliverFillRemaining(
@@ -67,6 +69,9 @@ class AmigosTab extends ConsumerWidget {
                     ];
                   }
                   return [
+                    const SliverToBoxAdapter(
+                      child: SizedBox(height: AppSpacing.lg),
+                    ),
                     SliverList.separated(
                       itemCount: friends.length,
                       separatorBuilder: (_, _) =>
@@ -96,12 +101,12 @@ class _FriendRow extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.symmetric(
           horizontal: AppSpacing.screenHorizontal,
-          vertical: AppSpacing.md,
+          vertical: AppSpacing.listRowVertical,
         ),
         child: Row(
           children: [
             ProfileAvatar(
-              size: 56,
+              size: AppSpacing.avatarMedium,
               initials: _initials(user),
               imageUrl: user.avatarUrl,
             ),

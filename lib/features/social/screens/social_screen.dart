@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
+import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/router/main_shell.dart';
 import 'package:samay/core/router/route_paths.dart';
 import 'package:samay/features/groups/providers/groups_providers.dart';
@@ -93,8 +94,8 @@ class _SocialScreenState extends ConsumerState<SocialScreen>
                   onPressed: () => context.push(RoutePaths.rankings),
                 ),
               ],
-              bottomHeight: _kPillTabBarHeight,
-              bottom: _PillTabBar(controller: _tabController, l10n: l10n),
+              bottomHeight: _kSegmentTabBarHeight,
+              bottom: _SegmentedTabBar(controller: _tabController, l10n: l10n),
             ),
           ),
         ],
@@ -107,36 +108,51 @@ class _SocialScreenState extends ConsumerState<SocialScreen>
   }
 }
 
-/// Height of the pill tab-bar track (40 content + 2 top + 2 bottom margins).
-const double _kPillTabBarHeight = 44;
+/// Segmented tab-bar track height (transparent tap band; no fill).
+const double _kSegmentTrackHeight = 40;
 
-/// The Juega-style pill TabBar: a rounded `surfaceAlt` track wrapping a
-/// `TabBar` whose indicator is a white pill (selected label flips to black).
-class _PillTabBar extends StatelessWidget {
+/// Top inset of the segment band — the gap between the page Header title row
+/// and the switch.
+const double _kSegmentInsetTop = AppSpacing.lg;
+
+/// Bottom inset of the segment band (breathing room above the list content).
+const double _kSegmentInsetBottom = AppSpacing.xs;
+
+/// Fully-rounded outline radius of the selected segment (half the track).
+const double _kSegmentRadius = _kSegmentTrackHeight / 2;
+
+/// Height of the segmented band (track + top/bottom inset).
+const double _kSegmentTabBarHeight =
+    _kSegmentTrackHeight + _kSegmentInsetTop + _kSegmentInsetBottom;
+
+/// The Social segmented control: no fills at all — the active segment is
+/// marked by a full pill outline, every other segment is a plain white label.
+class _SegmentedTabBar extends StatelessWidget {
   final TabController controller;
   final AppLocalizations l10n;
 
-  const _PillTabBar({required this.controller, required this.l10n});
+  const _SegmentedTabBar({required this.controller, required this.l10n});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      key: const ValueKey('socialPillTabBar'),
-      margin: const EdgeInsets.fromLTRB(12, 2, 12, 2),
-      height: 40,
-      decoration: BoxDecoration(
-        color: AppColors.surfaceAlt,
-        borderRadius: BorderRadius.circular(24),
+      key: const ValueKey('socialSegmentedTabBar'),
+      margin: const EdgeInsets.only(
+        left: AppSpacing.screenHorizontal,
+        right: AppSpacing.screenHorizontal,
+        top: _kSegmentInsetTop,
+        bottom: _kSegmentInsetBottom,
       ),
+      height: _kSegmentTrackHeight,
       child: TabBar(
         controller: controller,
         indicator: BoxDecoration(
-          color: AppColors.white,
-          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: AppColors.white),
+          borderRadius: BorderRadius.circular(_kSegmentRadius),
         ),
         indicatorSize: TabBarIndicatorSize.tab,
         dividerColor: Colors.transparent,
-        labelColor: AppColors.discoBlack,
+        labelColor: AppColors.white,
         unselectedLabelColor: AppColors.white,
         labelStyle: Theme.of(context).textTheme.labelMedium,
         padding: EdgeInsets.zero,
@@ -169,7 +185,11 @@ class _RequestsButton extends StatelessWidget {
           onPressed: () => context.push(RoutePaths.friendsRequests),
         ),
         if (count > 0)
-          Positioned(right: 4, top: 4, child: VCountBadge(count: count)),
+          Positioned(
+            right: AppSpacing.xs,
+            top: AppSpacing.xs,
+            child: VCountBadge(count: count),
+          ),
       ],
     );
   }

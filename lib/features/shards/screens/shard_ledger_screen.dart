@@ -9,7 +9,6 @@ import 'package:samay/features/shards/logic/shard_ledger_formatters.dart';
 import 'package:samay/features/shards/providers/shard_ledger_providers.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/error_view.dart';
-import 'package:samay/shared/widgets/skeletons.dart';
 import 'package:samay/shared/widgets/v_card.dart';
 import 'package:samay/shared/widgets/v_header_bar.dart';
 import 'package:samay/shared/widgets/state_views.dart';
@@ -143,13 +142,10 @@ class _ShardLedgerScreenState extends ConsumerState<ShardLedgerScreen>
             ),
             Expanded(
               child: ledgerAsync.when(
-                // U-25 (§5.8): the ledger is a list-y first load with nothing
-                // on screen, so the row skeleton stands in (U-22's handoff
-                // named shard_ledger → VSkeletonList). Pull-to-refresh keeps
-                // the list visible — the skeleton only ever replaces a blank
-                // frame.
+                // First load shows the shared spinner; pull-to-refresh keeps
+                // the list visible.
                 skipLoadingOnRefresh: true,
-                loading: () => const VSkeletonList(),
+                loading: () => const VLoadingView(),
                 error: (error, _) => ErrorView(
                   message: l10n.shardsLedgerLoadError,
                   onRetry: () =>
