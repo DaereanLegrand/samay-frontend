@@ -312,9 +312,8 @@ class _MinigameMatchCard extends ConsumerWidget {
                       children: [
                         Text(
                           minigameGameNameLower(l10n, item.gameType),
-                          style: AppTypography.sectionLabel,
+                          style: AppTypography.sectionLabelSmall,
                         ),
-                        const SizedBox(height: AppSpacing.xs),
                         Text(
                           item.title,
                           maxLines: 2,
@@ -345,7 +344,14 @@ class _MinigameMatchCard extends ConsumerWidget {
               Expanded(
                 flex: 3,
                 child: AvatarPhysicsCluster(
-                  participants: participants,
+                  participants: [
+                    for (final p in participants)
+                      ClusterAvatar(
+                        id: p.id,
+                        username: p.username,
+                        avatarUrl: p.avatarUrl,
+                      ),
+                  ],
                   height: _kMatchCardHeight,
                 ),
               ),

@@ -257,6 +257,17 @@ abstract final class AppTypography {
     color: AppColors.mutedStrong,
   );
 
+  /// [sectionLabel] one step tighter for dense cards (feed match cards,
+  /// 2026-09-20): same role/voice — Inter w600, `mutedStrong`, 2.0 tracking —
+  /// at 11.
+  static const TextStyle sectionLabelSmall = TextStyle(
+    fontFamily: inter,
+    fontSize: 11,
+    fontWeight: FontWeight.w600,
+    letterSpacing: 2.0,
+    color: AppColors.mutedStrong,
+  );
+
   // ── §3.4 glow treatment (the signature) ───────────────────────────────────
 
   /// Applies the canonical glow shadow stack to [base] (design doc §3.4).
