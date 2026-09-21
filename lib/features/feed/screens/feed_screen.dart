@@ -22,7 +22,6 @@ import 'package:samay/shared/widgets/state_views.dart';
 import 'package:samay/shared/widgets/v_badge.dart';
 import 'package:samay/shared/widgets/v_card.dart';
 import 'package:samay/shared/widgets/v_count_badge.dart';
-import 'package:samay/shared/widgets/v_disco_divider.dart';
 import 'package:samay/shared/widgets/v_header_bar.dart';
 import 'package:samay/shared/widgets/v_network_image.dart';
 
@@ -91,12 +90,6 @@ class FeedScreen extends ConsumerWidget {
                   ];
                 }
                 return [
-                  const SliverToBoxAdapter(
-                    child: Padding(
-                      padding: EdgeInsets.only(top: AppSpacing.md),
-                      child: VDiscoDivider(),
-                    ),
-                  ),
                   SliverList.builder(
                     itemCount: items.length,
                     itemBuilder: (context, index) =>
