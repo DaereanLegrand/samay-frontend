@@ -208,10 +208,23 @@ class GroupService {
         .from('groups')
         .select()
         .inFilter('id', groupIds);
+    // Active member counts in one batched read (`groups` has no count column;
+    // the `group_members_read_same` RLS policy exposes a member's co-members).
+    final members = await client
+        .from('group_members')
+        .select('group_id')
+        .inFilter('group_id', groupIds)
+        .eq('status', 'active');
+    final memberCounts = <String, int>{};
+    for (final row in members) {
+      final gid = row['group_id'] as String;
+      memberCounts[gid] = (memberCounts[gid] ?? 0) + 1;
+    }
     for (final g in groups) {
       final m = memberships.firstWhere((m) => m['group_id'] == g['id']);
       g['my_role'] = m['role'];
       g['my_status'] = m['status'];
+      g['member_count'] = memberCounts[g['id'] as String] ?? 0;
     }
     return groups.map((e) => Map<String, dynamic>.from(e)).toList();
   }

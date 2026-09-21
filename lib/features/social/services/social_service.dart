@@ -22,7 +22,9 @@ class SocialService {
       'get_user_ranking',
       params: {'p_limit': limit},
     );
-    return res
+    // `rpc` resolves as `dynamic`; without the explicit `List` cast the
+    // inferred `toList` is `List<dynamic>` and the return throws at runtime.
+    return (res as List)
         .map((e) => Map<String, dynamic>.from(e as Map))
         .toList(growable: false);
   }

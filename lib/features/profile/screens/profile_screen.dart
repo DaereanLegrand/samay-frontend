@@ -13,7 +13,6 @@ import 'package:samay/features/profile/providers/profile_providers.dart';
 import 'package:samay/shared/widgets/profile_avatar.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/error_view.dart';
-import 'package:samay/shared/widgets/skeletons.dart';
 import 'package:samay/shared/widgets/v_card.dart';
 import 'package:samay/shared/widgets/state_views.dart';
 import 'package:samay/shared/widgets/v_header_bar.dart';
@@ -83,12 +82,8 @@ class ProfileScreen extends ConsumerWidget {
             ),
             SliverToBoxAdapter(
               child: showLoading
-                  // U-22 handoff (U-23): the profile hero loads with the
-                  // `VSkeletonProfile` skeleton (avatar circle + name/handle/body
-                  // lines, §5.8/§6.3) instead of the bare spinner — the screen has
-                  // real geometry to mirror (the U-21 `VLoadingView` was the only
-                  // remaining default here).
-                  ? const VSkeletonProfile()
+                  // First load shows the shared spinner.
+                  ? const VLoadingView()
                   : error != null
                   ? ErrorView(
                       message: error.toAppError().message,

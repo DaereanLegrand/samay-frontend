@@ -16,7 +16,7 @@ import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/error_view.dart';
 import 'package:samay/shared/widgets/full_screen_image.dart';
 import 'package:samay/shared/widgets/rank_badge.dart';
-import 'package:samay/shared/widgets/skeletons.dart';
+import 'package:samay/shared/widgets/state_views.dart';
 import 'package:samay/shared/widgets/v_button.dart';
 import 'package:samay/shared/widgets/v_header_bar.dart';
 import 'package:samay/shared/widgets/v_network_image.dart';
@@ -76,7 +76,7 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen> {
     final detailAsync = ref.watch(groupDetailCombinedProvider(widget.groupId));
 
     return detailAsync.when(
-      loading: () => _scaffold(const VSkeletonDetail(rows: 1)),
+      loading: () => _scaffold(const VLoadingView()),
       error: (e, _) => _scaffold(
         ErrorView(
           message: e.toAppError().message,

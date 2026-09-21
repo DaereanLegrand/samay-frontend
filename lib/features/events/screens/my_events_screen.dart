@@ -12,7 +12,6 @@ import 'package:samay/features/events/providers/events_providers.dart';
 import 'package:samay/features/events/widgets/event_radius_filter.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/error_view.dart';
-import 'package:samay/shared/widgets/skeletons.dart';
 import 'package:samay/shared/widgets/v_card.dart';
 import 'package:samay/shared/widgets/state_views.dart';
 import 'package:samay/shared/widgets/v_badge.dart';
@@ -66,11 +65,14 @@ class _MyEventsScreenState extends ConsumerState<MyEventsScreen> {
             // glass bar once scrolled (shared header mechanism).
             VHeaderSliver(title: l10n.eventsTabTitle),
             ...eventsAsync.when(
-              // U-22 (§5.8): the first load shows the list skeleton instead
-              // of the bare spinner; pull-to-refresh keeps the list visible.
+              // First load shows the shared spinner; pull-to-refresh keeps the
+              // list visible.
               skipLoadingOnRefresh: true,
               loading: () => const [
-                SliverToBoxAdapter(child: VSkeletonList(rows: 4)),
+                SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: VLoadingView(),
+                ),
               ],
               error: (e, _) => [
                 SliverFillRemaining(

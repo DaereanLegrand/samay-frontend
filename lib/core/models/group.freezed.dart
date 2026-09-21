@@ -16,7 +16,9 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$Group {
 
- String get id; String get name; String? get description; String? get coverUrl; int get groupShards; String? get sizeTier; String? get rankBracket; DateTime? get frozenAt; String? get myRole;/// ISSUE 2: the caller's own membership status (`active`/`invited`),
+ String get id; String get name; String? get description; String? get coverUrl; int get groupShards;/// Active member count, attached by `GroupService.getMyGroups` (the
+/// `groups` table carries no count column).
+ int get memberCount; String? get sizeTier; String? get rankBracket; DateTime? get frozenAt; String? get myRole;/// ISSUE 2: the caller's own membership status (`active`/`invited`),
 /// attached by `GroupService.getMyGroups` alongside `my_role`.
  String? get myStatus;
 /// Create a copy of Group
@@ -31,16 +33,16 @@ $GroupCopyWith<Group> get copyWith => _$GroupCopyWithImpl<Group>(this as Group, 
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is Group&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.description, description) || other.description == description)&&(identical(other.coverUrl, coverUrl) || other.coverUrl == coverUrl)&&(identical(other.groupShards, groupShards) || other.groupShards == groupShards)&&(identical(other.sizeTier, sizeTier) || other.sizeTier == sizeTier)&&(identical(other.rankBracket, rankBracket) || other.rankBracket == rankBracket)&&(identical(other.frozenAt, frozenAt) || other.frozenAt == frozenAt)&&(identical(other.myRole, myRole) || other.myRole == myRole)&&(identical(other.myStatus, myStatus) || other.myStatus == myStatus));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is Group&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.description, description) || other.description == description)&&(identical(other.coverUrl, coverUrl) || other.coverUrl == coverUrl)&&(identical(other.groupShards, groupShards) || other.groupShards == groupShards)&&(identical(other.memberCount, memberCount) || other.memberCount == memberCount)&&(identical(other.sizeTier, sizeTier) || other.sizeTier == sizeTier)&&(identical(other.rankBracket, rankBracket) || other.rankBracket == rankBracket)&&(identical(other.frozenAt, frozenAt) || other.frozenAt == frozenAt)&&(identical(other.myRole, myRole) || other.myRole == myRole)&&(identical(other.myStatus, myStatus) || other.myStatus == myStatus));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,name,description,coverUrl,groupShards,sizeTier,rankBracket,frozenAt,myRole,myStatus);
+int get hashCode => Object.hash(runtimeType,id,name,description,coverUrl,groupShards,memberCount,sizeTier,rankBracket,frozenAt,myRole,myStatus);
 
 @override
 String toString() {
-  return 'Group(id: $id, name: $name, description: $description, coverUrl: $coverUrl, groupShards: $groupShards, sizeTier: $sizeTier, rankBracket: $rankBracket, frozenAt: $frozenAt, myRole: $myRole, myStatus: $myStatus)';
+  return 'Group(id: $id, name: $name, description: $description, coverUrl: $coverUrl, groupShards: $groupShards, memberCount: $memberCount, sizeTier: $sizeTier, rankBracket: $rankBracket, frozenAt: $frozenAt, myRole: $myRole, myStatus: $myStatus)';
 }
 
 
@@ -51,7 +53,7 @@ abstract mixin class $GroupCopyWith<$Res>  {
   factory $GroupCopyWith(Group value, $Res Function(Group) _then) = _$GroupCopyWithImpl;
 @useResult
 $Res call({
- String id, String name, String? description, String? coverUrl, int groupShards, String? sizeTier, String? rankBracket, DateTime? frozenAt, String? myRole, String? myStatus
+ String id, String name, String? description, String? coverUrl, int groupShards, int memberCount, String? sizeTier, String? rankBracket, DateTime? frozenAt, String? myRole, String? myStatus
 });
 
 
@@ -68,13 +70,14 @@ class _$GroupCopyWithImpl<$Res>
 
 /// Create a copy of Group
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? name = null,Object? description = freezed,Object? coverUrl = freezed,Object? groupShards = null,Object? sizeTier = freezed,Object? rankBracket = freezed,Object? frozenAt = freezed,Object? myRole = freezed,Object? myStatus = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? name = null,Object? description = freezed,Object? coverUrl = freezed,Object? groupShards = null,Object? memberCount = null,Object? sizeTier = freezed,Object? rankBracket = freezed,Object? frozenAt = freezed,Object? myRole = freezed,Object? myStatus = freezed,}) {
   return _then(Group(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
 as String,description: freezed == description ? _self.description : description // ignore: cast_nullable_to_non_nullable
 as String?,coverUrl: freezed == coverUrl ? _self.coverUrl : coverUrl // ignore: cast_nullable_to_non_nullable
 as String?,groupShards: null == groupShards ? _self.groupShards : groupShards // ignore: cast_nullable_to_non_nullable
+as int,memberCount: null == memberCount ? _self.memberCount : memberCount // ignore: cast_nullable_to_non_nullable
 as int,sizeTier: freezed == sizeTier ? _self.sizeTier : sizeTier // ignore: cast_nullable_to_non_nullable
 as String?,rankBracket: freezed == rankBracket ? _self.rankBracket : rankBracket // ignore: cast_nullable_to_non_nullable
 as String?,frozenAt: freezed == frozenAt ? _self.frozenAt : frozenAt // ignore: cast_nullable_to_non_nullable
@@ -165,10 +168,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String name,  String? description,  String? coverUrl,  int groupShards,  String? sizeTier,  String? rankBracket,  DateTime? frozenAt,  String? myRole,  String? myStatus)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String name,  String? description,  String? coverUrl,  int groupShards,  int memberCount,  String? sizeTier,  String? rankBracket,  DateTime? frozenAt,  String? myRole,  String? myStatus)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _Group() when $default != null:
-return $default(_that.id,_that.name,_that.description,_that.coverUrl,_that.groupShards,_that.sizeTier,_that.rankBracket,_that.frozenAt,_that.myRole,_that.myStatus);case _:
+return $default(_that.id,_that.name,_that.description,_that.coverUrl,_that.groupShards,_that.memberCount,_that.sizeTier,_that.rankBracket,_that.frozenAt,_that.myRole,_that.myStatus);case _:
   return orElse();
 
 }
@@ -186,10 +189,10 @@ return $default(_that.id,_that.name,_that.description,_that.coverUrl,_that.group
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String name,  String? description,  String? coverUrl,  int groupShards,  String? sizeTier,  String? rankBracket,  DateTime? frozenAt,  String? myRole,  String? myStatus)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String name,  String? description,  String? coverUrl,  int groupShards,  int memberCount,  String? sizeTier,  String? rankBracket,  DateTime? frozenAt,  String? myRole,  String? myStatus)  $default,) {final _that = this;
 switch (_that) {
 case _Group():
-return $default(_that.id,_that.name,_that.description,_that.coverUrl,_that.groupShards,_that.sizeTier,_that.rankBracket,_that.frozenAt,_that.myRole,_that.myStatus);case _:
+return $default(_that.id,_that.name,_that.description,_that.coverUrl,_that.groupShards,_that.memberCount,_that.sizeTier,_that.rankBracket,_that.frozenAt,_that.myRole,_that.myStatus);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -206,10 +209,10 @@ return $default(_that.id,_that.name,_that.description,_that.coverUrl,_that.group
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String name,  String? description,  String? coverUrl,  int groupShards,  String? sizeTier,  String? rankBracket,  DateTime? frozenAt,  String? myRole,  String? myStatus)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String name,  String? description,  String? coverUrl,  int groupShards,  int memberCount,  String? sizeTier,  String? rankBracket,  DateTime? frozenAt,  String? myRole,  String? myStatus)?  $default,) {final _that = this;
 switch (_that) {
 case _Group() when $default != null:
-return $default(_that.id,_that.name,_that.description,_that.coverUrl,_that.groupShards,_that.sizeTier,_that.rankBracket,_that.frozenAt,_that.myRole,_that.myStatus);case _:
+return $default(_that.id,_that.name,_that.description,_that.coverUrl,_that.groupShards,_that.memberCount,_that.sizeTier,_that.rankBracket,_that.frozenAt,_that.myRole,_that.myStatus);case _:
   return null;
 
 }
@@ -221,7 +224,7 @@ return $default(_that.id,_that.name,_that.description,_that.coverUrl,_that.group
 
 @JsonSerializable(fieldRename: FieldRename.snake)
 class _Group implements Group {
-  const _Group({required this.id, required this.name, this.description, this.coverUrl, this.groupShards = 0, this.sizeTier, this.rankBracket, this.frozenAt, this.myRole, this.myStatus});
+  const _Group({required this.id, required this.name, this.description, this.coverUrl, this.groupShards = 0, this.memberCount = 0, this.sizeTier, this.rankBracket, this.frozenAt, this.myRole, this.myStatus});
   factory _Group.fromJson(Map<String, dynamic> json) => _$GroupFromJson(json);
 
 @override final  String id;
@@ -229,6 +232,9 @@ class _Group implements Group {
 @override final  String? description;
 @override final  String? coverUrl;
 @override@JsonKey() final  int groupShards;
+/// Active member count, attached by `GroupService.getMyGroups` (the
+/// `groups` table carries no count column).
+@override@JsonKey() final  int memberCount;
 @override final  String? sizeTier;
 @override final  String? rankBracket;
 @override final  DateTime? frozenAt;
@@ -250,16 +256,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Group&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.description, description) || other.description == description)&&(identical(other.coverUrl, coverUrl) || other.coverUrl == coverUrl)&&(identical(other.groupShards, groupShards) || other.groupShards == groupShards)&&(identical(other.sizeTier, sizeTier) || other.sizeTier == sizeTier)&&(identical(other.rankBracket, rankBracket) || other.rankBracket == rankBracket)&&(identical(other.frozenAt, frozenAt) || other.frozenAt == frozenAt)&&(identical(other.myRole, myRole) || other.myRole == myRole)&&(identical(other.myStatus, myStatus) || other.myStatus == myStatus));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Group&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.description, description) || other.description == description)&&(identical(other.coverUrl, coverUrl) || other.coverUrl == coverUrl)&&(identical(other.groupShards, groupShards) || other.groupShards == groupShards)&&(identical(other.memberCount, memberCount) || other.memberCount == memberCount)&&(identical(other.sizeTier, sizeTier) || other.sizeTier == sizeTier)&&(identical(other.rankBracket, rankBracket) || other.rankBracket == rankBracket)&&(identical(other.frozenAt, frozenAt) || other.frozenAt == frozenAt)&&(identical(other.myRole, myRole) || other.myRole == myRole)&&(identical(other.myStatus, myStatus) || other.myStatus == myStatus));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,name,description,coverUrl,groupShards,sizeTier,rankBracket,frozenAt,myRole,myStatus);
+int get hashCode => Object.hash(runtimeType,id,name,description,coverUrl,groupShards,memberCount,sizeTier,rankBracket,frozenAt,myRole,myStatus);
 
 @override
 String toString() {
-  return 'Group(id: $id, name: $name, description: $description, coverUrl: $coverUrl, groupShards: $groupShards, sizeTier: $sizeTier, rankBracket: $rankBracket, frozenAt: $frozenAt, myRole: $myRole, myStatus: $myStatus)';
+  return 'Group(id: $id, name: $name, description: $description, coverUrl: $coverUrl, groupShards: $groupShards, memberCount: $memberCount, sizeTier: $sizeTier, rankBracket: $rankBracket, frozenAt: $frozenAt, myRole: $myRole, myStatus: $myStatus)';
 }
 
 
@@ -270,7 +276,7 @@ abstract mixin class _$GroupCopyWith<$Res> implements $GroupCopyWith<$Res> {
   factory _$GroupCopyWith(_Group value, $Res Function(_Group) _then) = __$GroupCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String name, String? description, String? coverUrl, int groupShards, String? sizeTier, String? rankBracket, DateTime? frozenAt, String? myRole, String? myStatus
+ String id, String name, String? description, String? coverUrl, int groupShards, int memberCount, String? sizeTier, String? rankBracket, DateTime? frozenAt, String? myRole, String? myStatus
 });
 
 
@@ -287,13 +293,14 @@ class __$GroupCopyWithImpl<$Res>
 
 /// Create a copy of Group
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? description = freezed,Object? coverUrl = freezed,Object? groupShards = null,Object? sizeTier = freezed,Object? rankBracket = freezed,Object? frozenAt = freezed,Object? myRole = freezed,Object? myStatus = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? description = freezed,Object? coverUrl = freezed,Object? groupShards = null,Object? memberCount = null,Object? sizeTier = freezed,Object? rankBracket = freezed,Object? frozenAt = freezed,Object? myRole = freezed,Object? myStatus = freezed,}) {
   return _then(_Group(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
 as String,description: freezed == description ? _self.description : description // ignore: cast_nullable_to_non_nullable
 as String?,coverUrl: freezed == coverUrl ? _self.coverUrl : coverUrl // ignore: cast_nullable_to_non_nullable
 as String?,groupShards: null == groupShards ? _self.groupShards : groupShards // ignore: cast_nullable_to_non_nullable
+as int,memberCount: null == memberCount ? _self.memberCount : memberCount // ignore: cast_nullable_to_non_nullable
 as int,sizeTier: freezed == sizeTier ? _self.sizeTier : sizeTier // ignore: cast_nullable_to_non_nullable
 as String?,rankBracket: freezed == rankBracket ? _self.rankBracket : rankBracket // ignore: cast_nullable_to_non_nullable
 as String?,frozenAt: freezed == frozenAt ? _self.frozenAt : frozenAt // ignore: cast_nullable_to_non_nullable

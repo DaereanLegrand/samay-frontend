@@ -12,6 +12,9 @@ abstract class Group with _$Group {
     String? description,
     String? coverUrl,
     @Default(0) int groupShards,
+    /// Active member count, attached by `GroupService.getMyGroups` (the
+    /// `groups` table carries no count column).
+    @Default(0) int memberCount,
     String? sizeTier,
     String? rankBracket,
     DateTime? frozenAt,

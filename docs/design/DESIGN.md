@@ -21,7 +21,7 @@ token changes in code, change it here in the same commit.
 | 2 | **Minimal.** One idea per screen. Generous empty space, no decorative chrome. |
 | 3 | **Color = meaning only.** The surviving hues are semantic flat tokens: error (`error`), status (`statusOnline`, `statusLive`, `statusRead`, `statusGrey`), currency/rank (`currencyShards`, `discoGold/Silver/Bronze`), VIP (`statusVip`). Never as fills for whole surfaces or default button colors. |
 | 4 | **Type:** Inter for everything functional. Playfair Display bold for display/hero titles via the shared `VDisplayText` widget — rendered **verbatim** (no case transformation; 'samay', 'Crea tu cuenta') in flat white. No italics (2026-08-14). |
-| 5 | **Motion is subtle and purposeful** — page fades, spinners, skeleton loaders. Every ambient motion honors `MediaQuery.disableAnimationsOf` (OS-level reduced motion). Durations come from `SamayDurations`. Display text has zero tickers by construction. |
+| 5 | **Motion is subtle and purposeful** — page fades and spinners. Every ambient motion honors `MediaQuery.disableAnimationsOf` (OS-level reduced motion). Durations come from `SamayDurations`. Display text has zero tickers by construction. |
 
 ## 2. Source of truth (code)
 
@@ -58,7 +58,7 @@ token changes in code, change it here in the same commit.
   hairline); `emphasized` (white fill, black text) for auth-form submits;
   `outlined` for secondary actions.
 - **Lists render via builders**, loading/empty/error states use the shared
-  views (`VLoadingView`, `VEmptyView`, `VStateView`, skeletons), images go
+  views (`VLoadingView`, `VEmptyView`, `VStateView`), images go
   through `VNetworkImage`.
 - **Routes** are registered in `lib/core/router/route_paths.dart`; screens
   never hardcode path strings.

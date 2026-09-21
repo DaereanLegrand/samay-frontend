@@ -28,15 +28,22 @@ class FriendsListNotifier extends AsyncNotifier<List<UserProfile>>
   Future<List<UserProfile>> build() async {
     final repo = ref.read(friendsRepositoryProvider);
     final res = await repo.getFriends();
+    // Resolve every friend in ONE `get_friend_profiles` RPC round trip: the
+    // client-side `user_search_view` read is not queryable on every deployment
+    // (Kong strips the route path → PostgREST returns the OpenAPI doc).
+    final rows = await repo.getUserSearchRows([
+      for (final f in res) f.userId,
+    ]);
+    final byId = {for (final r in rows) r['id'] as String: r};
     final profiles = <UserProfile>[];
     for (final f in res) {
       // No-fallback (2026-08-14): a friend with an unresolvable profile is
       // an ERROR — never silently dropped from the list.
-      final profile = await repo.getUserProfile(f.userId);
-      if (profile == null) {
+      final row = byId[f.userId];
+      if (row == null) {
         throw ProfileResolutionError(f.userId);
       }
-      profiles.add(profile);
+      profiles.add(UserProfile.fromJson(row));
     }
     markFetched();
     return profiles;

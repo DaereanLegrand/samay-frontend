@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/core/design_tokens/app_icon_sizes.dart';
+import 'package:samay/core/design_tokens/app_radius.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/extensions/error_mapper.dart';
 import 'package:samay/core/models/group.dart';
@@ -10,19 +11,16 @@ import 'package:samay/core/router/route_paths.dart';
 import 'package:samay/features/groups/providers/groups_providers.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/error_view.dart';
-import 'package:samay/shared/widgets/skeletons.dart';
 import 'package:samay/shared/widgets/state_views.dart';
 import 'package:samay/shared/widgets/v_badge.dart';
-import 'package:samay/shared/widgets/v_card.dart';
 import 'package:samay/shared/widgets/v_network_image.dart';
-import 'package:samay/shared/widgets/v_shard_icon.dart';
 
 /// The Grupos segment of the Social tab (redesign 2026-09-20).
 ///
-/// Big-image group cards — the group cover leads, the name and shard count
-/// follow with no button chrome — replacing the old action-tile row + dense
-/// ListTiles. The whole card is tappable. Creating a group lives in the
-/// Social header ("+") and in this list's empty state.
+/// A row list: the text block (name + member count) leads on the left, the
+/// group cover (or an icon placeholder) sits right-aligned as a thumbnail.
+/// No card chrome and no per-row buttons — the whole row opens the group.
+/// Creating a group lives in the Social header ("+") and in the empty state.
 ///
 /// Body-only by design: the Social shell owns the Scaffold + pill TabBar.
 class GroupsTab extends ConsumerWidget {
@@ -44,7 +42,10 @@ class GroupsTab extends ConsumerWidget {
               .when(
                 skipLoadingOnRefresh: true,
                 loading: () => const [
-                  SliverToBoxAdapter(child: VSkeletonList()),
+                  SliverFillRemaining(
+                    hasScrollBody: false,
+                    child: VLoadingView(),
+                  ),
                 ],
                 error: (e, _) => [
                   SliverFillRemaining(
@@ -74,11 +75,14 @@ class GroupsTab extends ConsumerWidget {
                     ];
                   }
                   return [
+                    const SliverToBoxAdapter(
+                      child: SizedBox(height: AppSpacing.lg),
+                    ),
                     SliverList.separated(
                       itemCount: groups.length,
                       separatorBuilder: (_, _) =>
-                          const SizedBox(height: AppSpacing.md),
-                      itemBuilder: (_, i) => _GroupCard(group: groups[i]),
+                          const Divider(height: 1, color: AppColors.hairline),
+                      itemBuilder: (_, i) => _GroupRow(group: groups[i]),
                     ),
                     const SliverToBoxAdapter(
                       child: SizedBox(height: AppSpacing.lg),
@@ -92,81 +96,126 @@ class GroupsTab extends ConsumerWidget {
   }
 }
 
-/// One group: a full-bleed cover (or an icon placeholder), then the name and
-/// shard count. The whole card opens the group.
-class _GroupCard extends StatelessWidget {
+/// Group cover thumbnail side as a FRACTION of the row's content width, so it
+/// scales with the viewport instead of a fixed dp. 1.5× the previous fixed
+/// 112px thumbnail against the ~354px content width (112/354 × 1.5 ≈ 0.475).
+const double _kGroupThumbFraction = 0.475;
+
+/// One group row: the name + member count on the left, the cover thumbnail
+/// (or an icon placeholder) right-aligned. The whole row opens the group.
+class _GroupRow extends StatelessWidget {
   final Group group;
 
-  const _GroupCard({required this.group});
+  const _GroupRow({required this.group});
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final hasCover = group.coverUrl != null && group.coverUrl!.isNotEmpty;
-    return Padding(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.screenHorizontal,
-      ),
-      child: InkWell(
-        onTap: () => context.push(RoutePaths.groupDetail(group.id)),
-        child: VCard(
-          padding: EdgeInsets.zero,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (hasCover)
-                VNetworkImage(
-                  imageUrl: group.coverUrl!,
-                  height: 160,
-                  fit: BoxFit.cover,
-                )
-              else
-                Container(
-                  height: 160,
-                  color: AppColors.surfaceAlt,
-                  alignment: Alignment.center,
-                  child: const Icon(
-                    Icons.group,
-                    size: AppIconSizes.xl,
-                    color: AppColors.muted,
+    return InkWell(
+      onTap: () => context.push(RoutePaths.groupDetail(group.id)),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.screenHorizontal,
+          vertical: AppSpacing.listRowVertical,
+        ),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            // Width-dependent thumbnail: it is a fraction of the row's content
+            // width, never a fixed size.
+            final thumbSize = constraints.maxWidth * _kGroupThumbFraction;
+            return Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        group.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.titleLarge,
+                      ),
+                      const SizedBox(height: AppSpacing.xs),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(
+                            Icons.group_outlined,
+                            size: AppIconSizes.sm,
+                            color: AppColors.mutedStrong,
+                          ),
+                          const SizedBox(width: AppSpacing.xs),
+                          Text(
+                            l10n.groupsMembersCountShort(group.memberCount),
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(color: AppColors.mutedStrong),
+                          ),
+                          if (group.myStatus == 'invited') ...[
+                            const SizedBox(width: AppSpacing.sm),
+                            VBadge(label: l10n.groupsInvitePending),
+                          ],
+                        ],
+                      ),
+                    ],
                   ),
                 ),
-              Padding(
-                padding: const EdgeInsets.all(AppSpacing.cardPadding),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      group.name,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.titleLarge,
-                    ),
-                    const SizedBox(height: AppSpacing.xs),
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const VShardIcon(size: AppIconSizes.xs),
-                        const SizedBox(width: AppSpacing.xs),
-                        Text(
-                          '${group.groupShards}',
-                          style: const TextStyle(
-                            color: AppColors.mutedStrong,
-                            fontSize: 13,
-                          ),
-                        ),
-                      ],
-                    ),
-                    if (group.myStatus == 'invited') ...[
-                      const SizedBox(height: AppSpacing.sm),
-                      VBadge(label: l10n.groupsInvitePending),
-                    ],
-                  ],
+                const SizedBox(width: AppSpacing.lg),
+                _GroupThumbnail(coverUrl: group.coverUrl, size: thumbSize),
+              ],
+            );
+          },
+        ),
+      ),
+    );
+  }
+}
+
+/// The group cover as a right-aligned thumbnail (or a muted `surfaceAlt`
+/// square with a group glyph when the group has no cover). Slightly rounded
+/// and clipped, with its left edge dissolving into the black background.
+class _GroupThumbnail extends StatelessWidget {
+  final String? coverUrl;
+  final double size;
+
+  const _GroupThumbnail({this.coverUrl, required this.size});
+
+  @override
+  Widget build(BuildContext context) {
+    final hasCover = coverUrl != null && coverUrl!.isNotEmpty;
+    return SizedBox(
+      width: size,
+      height: size,
+      child: _dissolveLeftEdge(
+        hasCover
+            ? VNetworkImage(imageUrl: coverUrl!, fit: BoxFit.cover)
+            : Container(
+                color: AppColors.surfaceAlt,
+                alignment: Alignment.center,
+                child: const Icon(
+                  Icons.group,
+                  size: AppIconSizes.xxl,
+                  color: AppColors.muted,
                 ),
               ),
-            ],
-          ),
-        ),
+      ),
+    );
+  }
+
+  /// Slightly rounds + clips [child] and fades its LEFT edge to transparent so
+  /// it dissolves into the black background (`BlendMode.dstIn` keeps the
+  /// opaque right side; only the left ~18% fades out).
+  static Widget _dissolveLeftEdge(Widget child) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(AppRadius.md),
+      child: ShaderMask(
+        blendMode: BlendMode.dstIn,
+        shaderCallback: (rect) => const LinearGradient(
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
+          colors: [Colors.transparent, Colors.white, Colors.white],
+          stops: [0, 0.18, 1],
+        ).createShader(rect),
+        child: child,
       ),
     );
   }

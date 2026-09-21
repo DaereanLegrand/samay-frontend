@@ -35,11 +35,17 @@ abstract final class AppSpacing {
   /// Gap between list items.
   static const double listGap = sm;
 
+  /// Vertical padding of a list row (Social Grupos/Amigos rhythm).
+  static const double listRowVertical = md;
+
   /// Gap between page sections.
   static const double sectionGap = xl;
 
   /// Standard avatar diameter.
   static const double avatar = 40;
+
+  /// Medium avatar / list-row thumbnail (Social rows).
+  static const double avatarMedium = 56;
 
   /// Large avatar diameter (profile hero).
   static const double avatarLarge = 80;

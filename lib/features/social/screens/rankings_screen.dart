@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
+import 'package:samay/core/design_tokens/app_icon_sizes.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/extensions/error_mapper.dart';
 import 'package:samay/core/providers/config_provider.dart';
@@ -11,7 +12,6 @@ import 'package:samay/features/social/providers/social_providers.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/profile_avatar.dart';
 import 'package:samay/shared/widgets/rank_badge.dart';
-import 'package:samay/shared/widgets/skeletons.dart';
 import 'package:samay/shared/widgets/state_views.dart';
 import 'package:samay/shared/widgets/v_chip.dart';
 import 'package:samay/shared/widgets/v_header_bar.dart';
@@ -50,11 +50,9 @@ class _RankingsScreenState extends ConsumerState<RankingsScreen> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Padding(
-              padding: const EdgeInsets.fromLTRB(
-                AppSpacing.lg,
-                AppSpacing.sm,
-                AppSpacing.lg,
-                AppSpacing.sm,
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.screenHorizontal,
+                vertical: AppSpacing.sm,
               ),
               child: Row(
                 children: [
@@ -79,9 +77,9 @@ class _RankingsScreenState extends ConsumerState<RankingsScreen> {
             if (_kind == _RankingKind.groups)
               Padding(
                 padding: const EdgeInsets.fromLTRB(
-                  AppSpacing.lg,
+                  AppSpacing.screenHorizontal,
                   0,
-                  AppSpacing.lg,
+                  AppSpacing.screenHorizontal,
                   AppSpacing.sm,
                 ),
                 child: SingleChildScrollView(
@@ -133,7 +131,7 @@ class _UsersRanking extends ConsumerWidget {
     final rankingAsync = ref.watch(userRankingProvider);
     final entries = rankingAsync.valueOrNull;
     if (entries == null && rankingAsync.isLoading) {
-      return const VSkeletonList(rows: 8);
+      return const VLoadingView();
     }
     return VStateView(
       error: rankingAsync.error,
@@ -159,8 +157,8 @@ class _UsersRanking extends ConsumerWidget {
                   final rank = i + 1;
                   final name = _displayName(entry, anonymize, l10n);
                   return ListTile(
-                    leading: SizedBox(
-                      width: 32,
+                    leading:                     SizedBox(
+                      width: AppSpacing.xxl,
                       child: Text(
                         '#$rank',
                         style: Theme.of(context).textTheme.bodyLarge?.copyWith(
@@ -173,8 +171,8 @@ class _UsersRanking extends ConsumerWidget {
                     subtitle: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const VShardIcon(size: 12),
-                        const SizedBox(width: 4),
+                        const VShardIcon(size: AppIconSizes.xs),
+                        const SizedBox(width: AppSpacing.xs),
                         Text('${entry.personalShards}'),
                       ],
                     ),
@@ -214,7 +212,7 @@ class _GroupsRanking extends ConsumerWidget {
     final rankingsAsync = ref.watch(leaderboardProvider(tier));
     final rankings = rankingsAsync.valueOrNull;
     if (rankings == null && rankingsAsync.isLoading) {
-      return const VSkeletonList(rows: 8);
+      return const VLoadingView();
     }
     return VStateView(
       error: rankingsAsync.error,
@@ -241,8 +239,8 @@ class _GroupsRanking extends ConsumerWidget {
                   final group = entry.group;
                   final rank = entry.rankPosition;
                   return ListTile(
-                    leading: SizedBox(
-                      width: 32,
+                    leading:                     SizedBox(
+                      width: AppSpacing.xxl,
                       child: Text(
                         '#$rank',
                         style: Theme.of(context).textTheme.bodyLarge?.copyWith(

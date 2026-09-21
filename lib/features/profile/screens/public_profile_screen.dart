@@ -13,7 +13,7 @@ import 'package:samay/features/friends/providers/friends_providers.dart';
 import 'package:samay/shared/widgets/profile_avatar.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/show_app_error.dart';
-import 'package:samay/shared/widgets/skeletons.dart';
+import 'package:samay/shared/widgets/state_views.dart';
 import 'package:samay/shared/widgets/v_button.dart';
 import 'package:samay/shared/widgets/v_display_text.dart';
 import 'package:samay/shared/widgets/v_header_bar.dart';
@@ -159,7 +159,7 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     if (_loading) {
-      return const Scaffold(body: VHeaderBar(child: VSkeletonProfile()));
+      return const Scaffold(body: VHeaderBar(child: VLoadingView()));
     }
 
     final p = _profile;

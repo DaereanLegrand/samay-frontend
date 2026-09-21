@@ -6,7 +6,6 @@ import 'package:samay/features/cosmetics/providers/cosmetics_providers.dart';
 import 'package:samay/features/profile/providers/profile_providers.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/error_view.dart';
-import 'package:samay/shared/widgets/skeletons.dart';
 import 'package:samay/shared/widgets/v_card.dart';
 import 'package:samay/shared/widgets/state_views.dart';
 import 'package:samay/shared/widgets/v_badge.dart';
@@ -186,11 +185,8 @@ class _CosmeticsShopScreenState extends ConsumerState<CosmeticsShopScreen>
             ),
             Expanded(
               child: catalogAsync.when(
-                // U-25 (§5.8): the shop is a grid first load with nothing on
-                // screen — the §5.3 card-grid skeleton stands in (U-22's
-                // handoff suggested VSkeletonList, but the shop renders a
-                // 2-column card grid, so VSkeletonGrid is the closer shape).
-                loading: () => const VSkeletonGrid(rows: 2, columns: 2),
+                // First load shows the shared spinner.
+                loading: () => const VLoadingView(),
                 error: (e, _) => ErrorView(
                   message: e.toAppError().message,
                   onRetry: () =>
