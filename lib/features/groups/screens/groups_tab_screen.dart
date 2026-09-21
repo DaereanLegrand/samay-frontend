@@ -7,7 +7,9 @@ import 'package:samay/core/design_tokens/app_radius.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/extensions/error_mapper.dart';
 import 'package:samay/core/models/group.dart';
+import 'package:samay/core/models/group_member.dart';
 import 'package:samay/core/router/route_paths.dart';
+import 'package:samay/features/feed/widgets/avatar_physics_cluster.dart';
 import 'package:samay/features/groups/providers/groups_providers.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/error_view.dart';
@@ -101,16 +103,32 @@ class GroupsTab extends ConsumerWidget {
 /// 112px thumbnail against the ~354px content width (112/354 × 1.5 ≈ 0.475).
 const double _kGroupThumbFraction = 0.475;
 
+/// Height of the members bubble cluster under a group row's text.
+const double _kGroupClusterHeight = 68;
+
 /// One group row: the name + member count on the left, the cover thumbnail
-/// (or an icon placeholder) right-aligned. The whole row opens the group.
-class _GroupRow extends StatelessWidget {
+/// (or an icon placeholder) right-aligned. Under the text block, the active
+/// members render as a downward-gravity bubble cluster of their profile pics
+/// (2026-09-20 directive). The whole row opens the group.
+class _GroupRow extends ConsumerWidget {
   final Group group;
 
   const _GroupRow({required this.group});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
+    final members =
+        ref.watch(groupMembersProvider(group.id)).valueOrNull ??
+        const <GroupMember>[];
+    final avatars = [
+      for (final member in members)
+        ClusterAvatar(
+          id: member.userId,
+          username: member.username ?? '',
+          avatarUrl: member.avatarUrl,
+        ),
+    ];
     return InkWell(
       onTap: () => context.push(RoutePaths.groupDetail(group.id)),
       child: Padding(
@@ -156,6 +174,14 @@ class _GroupRow extends StatelessWidget {
                           ],
                         ],
                       ),
+                      if (avatars.isNotEmpty) ...[
+                        const SizedBox(height: AppSpacing.sm),
+                        AvatarPhysicsCluster(
+                          participants: avatars,
+                          height: _kGroupClusterHeight,
+                          gravity: ClusterGravity.down,
+                        ),
+                      ],
                     ],
                   ),
                 ),
@@ -203,7 +229,7 @@ class _GroupThumbnail extends StatelessWidget {
 
   /// Slightly rounds + clips [child] and fades its LEFT edge to transparent so
   /// it dissolves into the black background (`BlendMode.dstIn` keeps the
-  /// opaque right side; only the left ~18% fades out).
+  /// opaque right side; only the left ~8% fades out — narrowed 2026-09-20).
   static Widget _dissolveLeftEdge(Widget child) {
     return ClipRRect(
       borderRadius: BorderRadius.circular(AppRadius.md),
@@ -213,7 +239,7 @@ class _GroupThumbnail extends StatelessWidget {
           begin: Alignment.centerLeft,
           end: Alignment.centerRight,
           colors: [Colors.transparent, Colors.white, Colors.white],
-          stops: [0, 0.18, 1],
+          stops: [0, 0.08, 1],
         ).createShader(rect),
         child: child,
       ),

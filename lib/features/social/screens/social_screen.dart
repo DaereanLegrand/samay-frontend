@@ -125,8 +125,11 @@ const double _kSegmentRadius = _kSegmentTrackHeight / 2;
 const double _kSegmentTabBarHeight =
     _kSegmentTrackHeight + _kSegmentInsetTop + _kSegmentInsetBottom;
 
-/// The Social segmented control: no fills at all — the active segment is
-/// marked by a full pill outline, every other segment is a plain white label.
+/// The Social segmented control, styled with the bottom nav bar's palette
+/// (2026-09-20 directive): a `surface`@0.85 glass pill with a white@0.15
+/// hairline border; the active segment is a white outline with a white label,
+/// every other segment is a plain `muted` label — the nav bar's
+/// selected/unselected colors.
 class _SegmentedTabBar extends StatelessWidget {
   final TabController controller;
   final AppLocalizations l10n;
@@ -144,6 +147,13 @@ class _SegmentedTabBar extends StatelessWidget {
         bottom: _kSegmentInsetBottom,
       ),
       height: _kSegmentTrackHeight,
+      // Nav-bar colors: the same `surface`@0.85 fill and white@0.15 border as
+      // the floating pill in main_shell.dart.
+      decoration: BoxDecoration(
+        color: AppColors.surface.withValues(alpha: 0.85),
+        borderRadius: BorderRadius.circular(_kSegmentRadius),
+        border: Border.all(color: AppColors.white.withValues(alpha: 0.15)),
+      ),
       child: TabBar(
         controller: controller,
         indicator: BoxDecoration(
@@ -153,7 +163,7 @@ class _SegmentedTabBar extends StatelessWidget {
         indicatorSize: TabBarIndicatorSize.tab,
         dividerColor: Colors.transparent,
         labelColor: AppColors.white,
-        unselectedLabelColor: AppColors.white,
+        unselectedLabelColor: AppColors.muted,
         labelStyle: Theme.of(context).textTheme.labelMedium,
         padding: EdgeInsets.zero,
         labelPadding: EdgeInsets.zero,

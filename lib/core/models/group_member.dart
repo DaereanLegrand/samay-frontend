@@ -22,4 +22,6 @@ abstract class GroupMember with _$GroupMember {
       _$GroupMemberFromJson(json);
 
   String? get username => users?['username'] as String?;
+
+  String? get avatarUrl => users?['avatar_url'] as String?;
 }

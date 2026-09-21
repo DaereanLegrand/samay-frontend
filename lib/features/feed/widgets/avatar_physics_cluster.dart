@@ -5,32 +5,67 @@ import 'package:flutter/scheduler.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:forge2d/forge2d.dart' as f2d;
 import 'package:samay/core/design_tokens/app_colors.dart';
-import 'package:samay/features/minigames/providers/minigames_providers.dart';
 import 'package:samay/shared/widgets/profile_avatar.dart';
 
-/// The match card's participant bubbles as a tiny Box2D (forge2d) world:
-/// circular bodies that collide and pile against the card's right wall under a
-/// rightward base gravity. Feed scrolling kicks the bodies so the pile surges
-/// and settles as the timeline moves. There is deliberately NO direct bubble
-/// drag and NO accelerometer coupling (2026-09-20 directives).
+/// One avatar in an [AvatarPhysicsCluster] — deliberately feature-agnostic so
+/// the feed (minigame participants) and the groups list (group members) can
+/// both feed it without depending on each other's models.
+class ClusterAvatar {
+  const ClusterAvatar({
+    required this.id,
+    required this.username,
+    this.avatarUrl,
+  });
+
+  final String id;
+  final String username;
+  final String? avatarUrl;
+}
+
+/// Which way an [AvatarPhysicsCluster]'s gravity pulls: the feed match cards
+/// pile to the [right]; group rows pile [down].
+enum ClusterGravity { right, down }
+
+/// Most avatar bubbles rendered before the `+N` overflow bubble: 5 avatars +
+/// 1 overflow, in both the feed and the groups list (2026-09-20 directive).
+const int _kClusterMaxShown = 5;
+
+/// Picks up to [_kClusterMaxShown] avatars at random when the roster is longer,
+/// so the faces shown are fair across all participants rather than always the
+/// first few (2026-09-20 directive). For a short list the order is preserved.
+List<ClusterAvatar> _selectAvatars(List<ClusterAvatar> all, math.Random rng) {
+  if (all.length <= _kClusterMaxShown) return all;
+  final shuffled = [...all]..shuffle(rng);
+  return shuffled.take(_kClusterMaxShown).toList();
+}
+
+/// A little Box2D (forge2d) world of avatar bubbles: circular bodies that
+/// collide and pile under a constant [gravity]. Feed scrolling kicks the
+/// bodies so the pile surges and settles as the host scrolls. There is
+/// deliberately NO direct bubble drag and NO accelerometer coupling
+/// (2026-09-20 directives).
 ///
-/// The world is built once per card layout, steps on a [Ticker], and stops the
-/// ticker once every body has fallen asleep (Box2D sleeping) so an idle card
-/// costs nothing. On first appearance each bubble pops in with a ~100 ms
-/// stagger plus a small random offset. Under OS reduced motion the whole
-/// simulation is skipped in favour of a deterministic static scatter.
+/// The world is built once per layout, steps on a [Ticker], and stops the
+/// ticker once every body has fallen asleep (Box2D sleeping) so an idle
+/// cluster costs nothing. On first appearance each bubble pops in with a
+/// ~100 ms stagger plus a small random offset. Under OS reduced motion the
+/// whole simulation is skipped in favour of a deterministic static scatter.
 class AvatarPhysicsCluster extends ConsumerStatefulWidget {
   const AvatarPhysicsCluster({
     super.key,
     required this.participants,
     this.height = 128,
+    this.gravity = ClusterGravity.right,
   });
 
-  final List<MinigameParticipant> participants;
+  final List<ClusterAvatar> participants;
 
-  /// Height of the simulation box in logical px. The host passes the card's
-  /// content height so the bubbles fill the whole card (2026-09-20 directive).
+  /// Height of the simulation box in logical px.
   final double height;
+
+  /// Gravity direction — [ClusterGravity.right] on feed cards,
+  /// [ClusterGravity.down] on the groups list.
+  final ClusterGravity gravity;
 
   @override
   ConsumerState<AvatarPhysicsCluster> createState() =>
@@ -48,11 +83,8 @@ class _AvatarPhysicsClusterState extends ConsumerState<AvatarPhysicsCluster>
   /// Box2D is tuned for.
   static const double _pixelsPerMeter = 100;
 
-  /// At most this many avatars become bodies; the rest collapse to `+N`.
-  static const int _maxShown = 6;
-
-  /// Rightward base gravity (m/s²) — the bubbles pile on the right wall.
-  static const double _baseGravityX = 7.0;
+  /// Base gravity magnitude (m/s²) in the chosen [ClusterGravity] direction.
+  static const double _gravity = 7.0;
 
   /// Scroll-delta → velocity kick scale. The raw delta is in px; the clamp
   /// keeps a fast fling from launching bodies through the walls.
@@ -114,7 +146,6 @@ class _AvatarPhysicsClusterState extends ConsumerState<AvatarPhysicsCluster>
     if (_reduced) {
       return _StaticScatter(
         participants: widget.participants,
-        maxShown: _maxShown,
         minDiameter: _minDiameter,
         maxDiameter: _maxDiameter,
         height: widget.height,
@@ -177,7 +208,10 @@ class _AvatarPhysicsClusterState extends ConsumerState<AvatarPhysicsCluster>
     _boxWidthPx = widthPx;
     final width = widthPx / _pixelsPerMeter;
     final height = widget.height / _pixelsPerMeter;
-    final world = f2d.World(f2d.Vector2(_baseGravityX, 0));
+    final world = f2d.World(switch (widget.gravity) {
+      ClusterGravity.right => f2d.Vector2(_gravity, 0),
+      ClusterGravity.down => f2d.Vector2(0, _gravity),
+    });
 
     final walls = world.createBody(f2d.BodyDef(type: f2d.BodyType.static));
     for (final edge in [
@@ -189,12 +223,12 @@ class _AvatarPhysicsClusterState extends ConsumerState<AvatarPhysicsCluster>
       walls.createFixture(f2d.FixtureDef(edge, friction: 0.4, restitution: 0.4));
     }
 
-    final shown = widget.participants.take(_maxShown).toList();
-    final overflow = widget.participants.length - shown.length;
-    // Unseeded: every card instance gets a fresh random starting scatter
-    // (2026-09-20 directive). The world is built once per layout, so the pile
-    // does not re-scatter on rebuilds.
+    // Unseeded: every instance gets a fresh random face selection + starting
+    // scatter (2026-09-20 directive). The world is built once per layout, so
+    // the pile does not re-scatter on rebuilds.
     final rng = math.Random();
+    final shown = _selectAvatars(widget.participants, rng);
+    final overflow = widget.participants.length - shown.length;
 
     void addBubble({
       String? avatarUrl,
@@ -366,8 +400,8 @@ class _AvatarPhysicsClusterState extends ConsumerState<AvatarPhysicsCluster>
   }
 
   static bool _sameParticipants(
-    List<MinigameParticipant> a,
-    List<MinigameParticipant> b,
+    List<ClusterAvatar> a,
+    List<ClusterAvatar> b,
   ) {
     if (a.length != b.length) return false;
     for (var i = 0; i < a.length; i++) {
@@ -408,14 +442,12 @@ class _Bubble {
 class _StaticScatter extends StatelessWidget {
   const _StaticScatter({
     required this.participants,
-    required this.maxShown,
     required this.minDiameter,
     required this.maxDiameter,
     required this.height,
   });
 
-  final List<MinigameParticipant> participants;
-  final int maxShown;
+  final List<ClusterAvatar> participants;
   final double minDiameter;
   final double maxDiameter;
   final double height;
@@ -426,7 +458,10 @@ class _StaticScatter extends StatelessWidget {
   Widget build(BuildContext context) {
     if (participants.isEmpty) return SizedBox(height: height);
 
-    final shown = participants.take(maxShown).toList();
+    // Deterministic shuffle keyed on the roster so the reduced-motion scatter
+    // does not reshuffle on unrelated rebuilds.
+    final rng = math.Random(_seed(participants.map((p) => p.id).join('|')));
+    final shown = _selectAvatars(participants, rng);
     final overflow = participants.length - shown.length;
 
     final sizes = <double>[];
@@ -518,6 +553,8 @@ class _AvatarBubble extends StatelessWidget {
   }
 }
 
+/// The `+N` overflow bubble: a WHITE circle carrying the count of participants
+/// not shown (2026-09-20 directive) — it stands out from the photo bubbles.
 class _OverflowBubble extends StatelessWidget {
   const _OverflowBubble({required this.size, required this.count});
 
@@ -532,12 +569,12 @@ class _OverflowBubble extends StatelessWidget {
       alignment: Alignment.center,
       decoration: const BoxDecoration(
         shape: BoxShape.circle,
-        color: AppColors.surfaceAlt,
+        color: AppColors.white,
       ),
       child: Text(
         '+$count',
         style: TextStyle(
-          color: AppColors.white,
+          color: AppColors.discoBlack,
           fontSize: size * 0.32,
           fontWeight: FontWeight.w600,
         ),
