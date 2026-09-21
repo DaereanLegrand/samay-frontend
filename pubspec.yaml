@@ -27,6 +27,12 @@ dependencies:
   # lib/core/services/connectivity_service.dart — the plugin itself is only
   # touched by the default stream/check implementations.
   connectivity_plus: ^7.3.1
+  # Feed match-card avatar physics (2026-09-20): the participants are little
+  # colliding circles that pile under gravity. Pure-Dart Box2D port — pinned to
+  # 0.14.x deliberately: 0.15+ binds native Box2D v3 through build hooks (C
+  # toolchain / native assets), which this project does not want for a feed
+  # flourish. Verified publisher flame-engine.org.
+  forge2d: ^0.14.0
   intl: ^0.20.2
   json_annotation: ^4.12.0
   path_provider: ^2.1.6
