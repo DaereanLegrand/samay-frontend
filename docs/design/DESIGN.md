@@ -76,7 +76,7 @@ token changes in code, change it here in the same commit.
   title stays Inter. The deck stays strictly monochrome: every card is a
   `surfaceAlt` fill outlined by a 1px `muted` border. The Games tab is a
   vertical finger-tracked stack: the current game is a centred card (width
-  0.8×, height 0.72× of the base, aspect 0.8, scaled 1.5×); `cur - 1` sits
+  0.8×, height 0.72× ×1.1 of the base, aspect ≈0.727, scaled 1.5×); `cur - 1` sits
   behind and lower (under the nav pill, blurred through it) and `cur + 1`
   behind and higher (under the header), each with a stable random tilt +
   sideways shift. A **vertical drag is two-phase**: the centred card follows
@@ -84,7 +84,10 @@ token changes in code, change it here in the same commit.
   (`x = t² · targetX`), then — once it crosses half a slot — the rest of the
   deck catches up along its own arcs; the release velocity drives a
   `SpringSimulation` settle (snap back below the arrival point) and a tap
-  opens the centred game (`2026-09-21`, `games-deck-vertical-bezier`).
+  opens the centred game (`2026-09-21`, `games-deck-vertical-bezier`). The
+  offset is **unbounded**: dragging past a slot keeps cycling and a hard throw
+  is projected through several slots, so the deck keeps flipping instead of
+  locking at one card.
 - **Display copy routes through `VDisplayText`** — verbatim case, white
   glyphs, size-token mapping (64/40/32/28).
 - **Header vertical alignment is optical, not geometric.** Every header routes
