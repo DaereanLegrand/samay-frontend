@@ -1,4 +1,4 @@
-.PHONY: help build dev install build-install clean clear-storage uninstall build-cli build-linux build-api lint check test \
+.PHONY: help build dev install build-install clean clear-storage uninstall build-cli build-linux build-api build-loadtest loadtest loadtest-smoke lint check test \
         test-all test-backend-static test-go \
         flutter-analyze define-env secrets-check tunnel-android tunnel-waydroid \
         ios-signing-restore \
@@ -52,6 +52,9 @@ help:
 	@echo "    build-cli                build ./samay (admin CLI)"
 	@echo "    build-linux              build ./samay-linux (admin CLI, linux/amd64)"
 	@echo "    build-api                build ./samay-api-server (Gin API server)"
+	@echo "    build-loadtest           build ./samay-loadtest (backend + realtime stress harness)"
+	@echo "    loadtest                 run the stress harness against LOADTEST_URL (creates data; no cleanup)"
+	@echo "    loadtest-smoke           tiny wiring check (3 users, 8s load, 3 realtime clients)"
 	@echo ""
 	@echo "  SUPABASE STACKS (ports 54382/54386/54381/54384/54443 — never Juega's)"
 	@echo "    supabase-start/stop/status/reset      prod stack lifecycle (reset = fresh schema + config, no user data)"
@@ -83,6 +86,10 @@ BUILD_MODE ?= debug
 APK := build/app/outputs/flutter-apk/app-$(BUILD_MODE).apk
 GO_BIN := samay
 GO_BIN_LINUX := samay-linux
+# Backend + realtime stress harness (creates data; never deletes it).
+LOADTEST_BIN := ./samay-loadtest
+LOADTEST_URL ?= https://samay-api.qallariy.lat
+LOADTEST_ARGS ?=
 IPA_ADHOC := build/ios/ipa/$(APP_NAME)-adhoc.ipa
 # Package id the app is installed under on every platform (uninstall/clear).
 APP_ID := com.qallariy.samay
@@ -579,7 +586,7 @@ uninstall:
 
 clean:
 	flutter clean
-	rm -f $(GO_BIN) $(GO_BIN_LINUX)
+	rm -f $(GO_BIN) $(GO_BIN_LINUX) $(LOADTEST_BIN)
 	rm -rf build/ios/ipa
 
 # ── Go ────────────────────────────────────────────────────────────────────────
@@ -592,6 +599,34 @@ build-linux:
 
 build-api:
 	go build -o samay-api-server ./cmd/samay-api-server
+
+build-loadtest:
+	go build -o $(LOADTEST_BIN) ./cmd/samay-loadtest
+
+# ── Stress harness (backend + realtime) ───────────────────────────────────────
+# Creates realistic seed data + drives concurrent REST/RPC load and RLS-gated
+# Realtime subscriptions. WRITES DATA AND NEVER DELETES IT: every run is
+# namespaced by --run-id (default: a UTC timestamp). Keys are read from the
+# gitignored stack env files (nothing secret is committed). Override the host
+# with LOADTEST_URL=... and pass extra flags with LOADTEST_ARGS="...".
+loadtest: build-loadtest
+	@SVC=$$(grep -E '^SUPABASE_SERVICE_ROLE_KEY=' supabase/.env | head -1 | cut -d= -f2- | tr -d '"'); \
+	 ANON=$$(grep -E '^SUPABASE_ANON_KEY=' .env | head -1 | cut -d= -f2- | tr -d '"'); \
+	 SEC=$$(grep -E '^JWT_SECRET=' supabase/.env | head -1 | cut -d= -f2- | tr -d '"'); \
+	 echo "loadtest -> $(LOADTEST_URL) (creates data; no cleanup)"; \
+	 $(LOADTEST_BIN) --url "$(LOADTEST_URL)" --anon-key "$$ANON" --service-key "$$SVC" \
+	   --jwt-secret "$$SEC" --yes $(LOADTEST_ARGS)
+
+# Quick wiring check: tiny dataset, short load + realtime phases.
+loadtest-smoke: build-loadtest
+	@SVC=$$(grep -E '^SUPABASE_SERVICE_ROLE_KEY=' supabase/.env | head -1 | cut -d= -f2- | tr -d '"'); \
+	 ANON=$$(grep -E '^SUPABASE_ANON_KEY=' .env | head -1 | cut -d= -f2- | tr -d '"'); \
+	 SEC=$$(grep -E '^JWT_SECRET=' supabase/.env | head -1 | cut -d= -f2- | tr -d '"'); \
+	 echo "loadtest-smoke -> $(LOADTEST_URL) (creates data; no cleanup)"; \
+	 $(LOADTEST_BIN) --url "$(LOADTEST_URL)" --anon-key "$$ANON" --service-key "$$SVC" \
+	   --jwt-secret "$$SEC" --yes --run-id "smoke$$(date +%s)" \
+	   --users 3 --friendships 3 --groups 1 --events 1 --matches 2 \
+	   --workers 4 --duration 8s --realtime 3
 
 # ── Tests ─────────────────────────────────────────────────────────────────────
 # Testing is reserved for the BACKEND (directive 2026-08-31): Go unit tests
