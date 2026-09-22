@@ -6,7 +6,7 @@ import 'package:samay/crypto/constants.dart';
 
 /// The Samay envelope: binary framing for X3DH init (type 0x01), ratchet
 /// (type 0x02) and sender-key (type 0x03) messages (E2EE-ARCHITECTURE.md §6;
-/// ISSUE 4 adds 0x03 for group chat). Big-endian, fixed-size headers,
+/// adds 0x03 for group chat). Big-endian, fixed-size headers,
 /// `ciphertext ‖ tag` payload. The full frame is base64url-encoded (no
 /// padding) by the session layer before it lands in `messages.content`
 /// (§6.6).
@@ -42,7 +42,6 @@ class SamayEnvelope {
   /// not framed on type 0x03.
   final Uint8List senderIkSig;
 
-  // --- type 0x01 (init) only ---
 
   /// Recipient IK_dh as the sender saw it — delivery binding (§6.3).
   final Uint8List? recipientIkDh;
@@ -56,15 +55,13 @@ class SamayEnvelope {
   /// One-time prekey id used; `e2eeNoOpkId` when none.
   final int? opkId;
 
-  // --- types 0x01/0x02: the ratchet header (§6.1) ---
 
   final Uint8List dhPub;
   final int pn;
   final int n;
 
-  // --- type 0x03 (sender key) only ---
 
-  /// Group identity as 16 raw UUID bytes (ISSUE 4) — binds the sender-key
+  /// Group identity as 16 raw UUID bytes — binds the sender-key
   /// chain to the group and routes decryption to the right record.
   final Uint8List? groupId;
 
@@ -83,11 +80,11 @@ class SamayEnvelope {
   /// NOTE: the spec's §6.4 arithmetic prints "= 112" but its own field table
   /// (magic 4 + version 1 + type 1 + ik_dh 32 + ik_sig 32 + dh_pub 32 +
   /// pn 4 + n 4 + ct_len 4) sums to **114** — 112 is a typo in the document.
-  /// The field table is authoritative (I-37 confirmed empirically: a 112-byte
-  /// header misaligns the ciphertext by 2 bytes and every message fails AEAD).
+  /// The field table is authoritative: a 112-byte
+  /// header misaligns the ciphertext by 2 bytes and every message fails AEAD.
   static const int ratchetHeaderSize = 4 + 1 + 1 + 32 + 32 + 32 + 4 + 4 + 4;
 
-  /// Fixed header size of the sender-key envelope (ISSUE 4):
+  /// Fixed header size of the sender-key envelope:
   /// magic 4 + version 1 + type 1 + sender_ik_dh 32 + group_id 16 +
   /// chain_index 4 + ct_len 4 = **62** bytes. No `sender_ik_sig`, no ratchet
   /// header — the group binding comes from `group_id` (in-header and in the
@@ -229,7 +226,7 @@ class SamayEnvelope {
 }
 
 /// Converts a canonical hyphenated UUID string ("8-4-4-4-12" hex) into its
-/// 16 raw bytes for the 0x03 envelope header (ISSUE 4). Throws
+/// 16 raw bytes for the 0x03 envelope header. Throws
 /// [ArgumentError] on malformed input (wrong length / non-hex characters).
 Uint8List groupIdToBytes(String groupId) {
   final hex = groupId.replaceAll('-', '').toLowerCase();

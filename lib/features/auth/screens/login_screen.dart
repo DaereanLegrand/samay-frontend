@@ -31,7 +31,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   void initState() {
     super.initState();
     // Fresh entry = fresh error surface (flow-scoped error providers,
-    // 2026-08-24 fake-OTP-error fix). Post-frame: provider writes are
+    // fake-OTP-error fix). Post-frame: provider writes are
     // illegal during the widget life-cycle.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(loginErrorProvider.notifier).clear();
@@ -106,8 +106,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     children: [
                       const SizedBox(height: 32),
                       VDisplayText(text: l10n.commonSignIn),
-                      // XL-16 (03_signup density verdict): hero → fields
-                      // breathes at 40.
+                      // Hero → fields breathes at 40.
                       const SizedBox(height: 40),
                       VInput(
                         controller: _emailController,
@@ -121,7 +120,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         obscureText: true,
                         // §5.2: THIS attempt's error rides the password field
                         // as `errorText` (glowPink — never raw red on black)
-                        // instead of a standalone inline Text (U-07 ledger,
+                        // instead of a standalone inline Text (ledger,
                         // handoff 4). Sourced from the login-scoped provider —
                         // never the global auth stream.
                         errorText: loginError,
@@ -129,13 +128,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       const SizedBox(height: 8),
                       Align(
                         alignment: Alignment.centerRight,
-                        // U-14 R3: the inline resetPasswordForEmail call is
+                        // the inline resetPasswordForEmail call is
                         // replaced by the dedicated /forgot-password screen
                         // (email → confirmation).
                         child: TextButton(
                           onPressed: () =>
                               context.push(RoutePaths.forgotPassword),
-                          // XL-16: secondary links stay plain + muted — the
+                          // Secondary links stay plain + muted — the
                           // primary CTA must dominate.
                           child: Text(
                             l10n.authForgotPassword,
@@ -147,7 +146,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       ),
                       const SizedBox(height: 32),
                       // §5.1 brand moment: the primary CTA is BLACK (user
-                      // directive 2026-08-14 — cyan/skyblue is banned on
+                      // directive — cyan/skyblue is banned on
                       // buttons): black fill, white text, white hairline.
                       // No family gradient on the login CTA.
                       VButton.dark(

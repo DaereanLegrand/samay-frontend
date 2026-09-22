@@ -11,9 +11,9 @@ import 'package:samay/shared/widgets/v_display_text.dart';
 import 'package:samay/shared/widgets/v_header_bar.dart';
 import 'package:samay/shared/widgets/v_input.dart';
 
-/// Password recovery (U-14 R3) — Juega's dedicated `/forgot-password` screen
+/// Password recovery — Juega's dedicated `/forgot-password` screen
 /// with the disco treatment: `displayMedium` header (§3.2 auth site), the
-/// `VInput` underline, and the F14 in-place success state (the form morphs
+/// `VInput` underline, and the in-place success state (the form morphs
 /// into a confirmation, no route push).
 class ForgotPasswordScreen extends ConsumerStatefulWidget {
   const ForgotPasswordScreen({super.key});
@@ -48,7 +48,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
     if (!mounted) return;
     if (ref.read(authStateProvider).hasError) return;
     setState(() => _sent = true);
-    // F7: success feedback is the floating snackbar.
+    // Success feedback is the floating snackbar.
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(SnackBar(content: Text(l10n.authForgotPasswordSnack)));
@@ -94,7 +94,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
         l10n.authForgotPasswordHint,
         style: Theme.of(context).textTheme.bodyMedium,
       ),
-      // XL-16: hint → field breathes at 40.
+      // Hint → field breathes at 40.
       const SizedBox(height: 40),
       VInput(
         controller: _emailController,
@@ -106,15 +106,14 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
         errorText: _emailError ?? (auth.hasError ? auth.errorMessage : null),
       ),
       const Spacer(),
-      // §5.1 primary CTA — the black button voice (user directive
-      // 2026-08-14).
+      // §5.1 primary CTA — the black button voice.
       VButton.dark(
         label: l10n.authForgotPasswordSend,
         loading: auth.isLoading,
         onPressed: _send,
       ),
       const SizedBox(height: 8),
-      // XL-16: secondary links stay plain + muted so the CTA dominates.
+      // Secondary links stay plain + muted so the CTA dominates.
       TextButton(
         onPressed: _backToLogin,
         child: Text(

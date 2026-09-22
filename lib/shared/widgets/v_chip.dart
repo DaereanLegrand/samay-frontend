@@ -2,12 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/core/design_tokens/app_radius.dart';
 
-/// Samay chip — DESIGN.md §5.4 (U-05), monochrome
-/// (2026-08-26 user directive: all color stripped down).
+/// Samay chip — DESIGN.md §5.4, monochrome
 ///
 /// Transparent fill, 1px white border, white `labelMedium` label;
 /// selected = white fill + black label. Sharp corners.
-/// [compact] (2026-08-27 scope chips): reduced height/width/padding with a
+/// [compact]: reduced height/width/padding with a
 /// `labelSmall` label — for the Directa/Grupo toggle so it stays slim.
 class VChip extends StatelessWidget {
   final String label;
@@ -46,7 +45,7 @@ class VChip extends StatelessWidget {
           : MaterialTapTargetSize.padded,
       visualDensity: compact ? VisualDensity.compact : VisualDensity.standard,
       selectedColor: AppColors.white,
-      backgroundColor: Colors.transparent,
+      backgroundColor: AppColors.transparent,
       side: const BorderSide(color: AppColors.white),
       shape: const RoundedRectangleBorder(borderRadius: AppRadius.sharp),
       showCheckmark: false,

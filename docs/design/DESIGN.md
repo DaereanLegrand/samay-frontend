@@ -68,7 +68,7 @@ token changes in code, change it here in the same commit.
   licence for new hue usage elsewhere.
 - **Pink is not a general UI color.** Outside those two legacy screens,
   `glowPink` appears only through `AppColors.error`/`errorFill` semantics.
-- **The Games deck is the one rounded surface.** `lib/features/minigames/
+- **Rounded surfaces are scoped to minigame cards.** `lib/features/minigames/
   widgets/games_deck.dart` renders the Games-tab cards with `AppRadius.card`
   (16) so a card reads as a card in the fanned hand (user directive
   2026-09-21). Each card carries **two circulating name bands**
@@ -84,8 +84,9 @@ token changes in code, change it here in the same commit.
   randomly-sized `ProfileAvatar` bubbles plus a white `+N` overflow. The mega
   bubbles are a deterministic, collision-free scatter that avoids each other,
   the play glyph and the two name-band zones; the newest matches are tried
-  first and only the ones that fit are drawn (cap 5). Scoped to that widget —
-  every other surface stays sharp
+  first and only the ones that fit are drawn (cap 5). The 2 Lies statement
+  cards (`two_lies_screen.dart`) use the same `AppRadius.card` so an input
+  reads as a card; every other surface stays sharp
   (`AppRadius.none`) and every other title stays Inter. The deck stays strictly
   monochrome: every card is a `surfaceAlt` fill outlined by a 1px `muted`
   border (profile photos are the same sanctioned exception as the feed's
@@ -113,6 +114,10 @@ token changes in code, change it here in the same commit.
   any font size. Never add per-screen vertical nudges; the fine-tune knobs are
   `VHeaderMetrics.backArrowNudge` / `actionNudge`. Full rationale in
   `docs/history/phase-16/2026-09-11_header-optical-alignment.md`.
+  Custom title widgets share the same line: the minigame two-line
+  `MinigameHeaderTitle` positions its line 1 with
+  `VHeaderMetrics.opticalShiftFor`, so a two-line minigame header sits at the
+  exact same glyph position as every plain header.
 - **Primary CTA voice is `VButton.dark`** (black fill, white text, white
   hairline); `emphasized` (white fill, black text) for auth-form submits;
   `outlined` for secondary actions.

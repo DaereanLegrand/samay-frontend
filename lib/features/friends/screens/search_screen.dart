@@ -58,8 +58,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     });
   }
 
-  // U-26 (U-24 F3): an empty (non-null) username would RangeError on
-  // substring — the '?' initial fallback.
+  // An empty (non-null) username would RangeError on substring — the '?'
+  // initial fallback.
   String _initials(UserSearchResult user) {
     final username = user.username;
     return username.isEmpty ? '?' : username.substring(0, 1).toUpperCase();
@@ -74,7 +74,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           .sendFriendRequest(userId);
       if (!mounted) return;
       if (status == 'accepted') {
-        // R15 (F5): mutual-accept — the addressee had already sent us a
+        // Mutual-accept — the addressee had already sent us a
         // request, so the friendship is instant; the dialog says so.
         ref.invalidate(friendsListProvider);
         await showDialog<void>(
@@ -138,8 +138,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
               padding: const EdgeInsets.all(16),
               child: TextField(
                 controller: _controller,
-                // R14 (F6): Juega autofocuses the search field — the keyboard
-                // is up the moment the screen opens.
+                // Autofocus — the keyboard is up the moment the screen opens.
                 autofocus: true,
                 decoration: InputDecoration(
                   hintText: l10n.friendsSearchPlaceholder,

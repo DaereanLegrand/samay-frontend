@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
+import 'package:samay/core/design_tokens/app_typography.dart';
 import 'package:samay/core/extensions/error_mapper.dart';
 import 'package:samay/core/models/event.dart';
 import 'package:samay/features/events/providers/events_providers.dart';
@@ -178,7 +179,7 @@ class _EventEditScreenState extends ConsumerState<EventEditScreen> {
           if (_validationError != null) ...[
             Text(
               _validationError!,
-              style: const TextStyle(color: AppColors.glowPink, fontSize: 13),
+              style: AppTypography.bodySmall.copyWith(color: AppColors.glowPink),
             ),
             const SizedBox(height: AppSpacing.md),
           ],
@@ -218,7 +219,7 @@ class _EventEditScreenState extends ConsumerState<EventEditScreen> {
           ),
           if (showPool) ...[
             const SizedBox(height: AppSpacing.xl),
-            // XL-17 (10_events): the pool editor rides neutral white-only
+            // The pool editor rides neutral white-only
             // glass.
             VCard(
               child: Column(

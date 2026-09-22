@@ -2,7 +2,7 @@ import 'package:samay/core/models/event.dart';
 
 /// A single item in the agnostic social feed.
 ///
-/// The feed is no longer event-only: it interleaves public events with the
+/// The feed interleaves public events with the
 /// user's minigame matches (`partidas`). Every item exposes a common
 /// [activityAt] + [fromParticipant] signal so the notifier can order the
 /// timeline by the most recent interaction — either by another participant

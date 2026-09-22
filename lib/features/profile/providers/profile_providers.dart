@@ -11,7 +11,7 @@ class MyProfileNotifier extends AsyncNotifier<Map<String, dynamic>?>
     return profile?.toJson();
   }
 
-  /// Re-runs [build] after profile edits (finding SM-09). R20: skipped while
+  /// Re-runs [build] after profile edits.  skipped while
   /// the last fetch is younger than [refreshThrottle].
   Future<void> refresh() async {
     if (!shouldRefetch()) return;
@@ -32,7 +32,7 @@ class ProfileGroupsNotifier extends AsyncNotifier<List<Map<String, dynamic>>>
     return groups.map((g) => g.toJson()).toList();
   }
 
-  /// Re-runs [build] after group membership changes. R20: skipped while the
+  /// Re-runs [build] after group membership changes.  skipped while the
   /// last fetch is younger than [refreshThrottle].
   Future<void> refresh() async {
     if (!shouldRefetch()) return;
@@ -43,7 +43,7 @@ class ProfileGroupsNotifier extends AsyncNotifier<List<Map<String, dynamic>>>
 /// Groups the current user belongs to, shown on the profile screen.
 ///
 /// Deliberately independent of `groups_providers.myGroupsProvider`: the
-/// profile feature should not import another feature's providers (SM-08
-/// co-location), and I-13 wires this provider into the profile screens.
+/// profile feature should not import another feature's providers
+/// (co-location), and this provider is wired into the profile screens.
 final myGroupsProvider = AsyncNotifierProvider<ProfileGroupsNotifier,
     List<Map<String, dynamic>>>(ProfileGroupsNotifier.new);

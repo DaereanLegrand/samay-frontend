@@ -23,14 +23,13 @@ Rect minigameImageRect(Size? imageSize, Size box) {
 /// Renders an answer's text at its stored normalized [layout] inside whatever
 /// canvas it is given (center-anchored, rotated, font-scaled).
 ///
-/// The read-side counterpart of the author's floating editor label (2026-09-15
-/// directive): the same [MinigameAnswerLayout] the author arranged, so every
-/// participant and the finished leaderboard see the placement identically.
+/// The read-side counterpart of the author's floating editor label: the same
+/// [MinigameAnswerLayout] the author arranged, so every participant and the
+/// finished leaderboard see the placement identically.
 ///
 /// Pass [image] for picture answers: the layout is then normalized to the
 /// picture's displayed rect ([minigameImageRect]), so the placement is
-/// image-aligned across devices (2026-09-17). Text escaping the canvas is
-/// clipped to it.
+/// image-aligned across devices. Text escaping the canvas is clipped to it.
 class MinigameAnswerText extends StatefulWidget {
   const MinigameAnswerText({
     super.key,

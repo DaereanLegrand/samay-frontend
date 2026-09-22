@@ -4,7 +4,9 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:samay/core/config/feature_flags.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
+import 'package:samay/core/design_tokens/app_radius.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
+import 'package:samay/core/design_tokens/app_typography.dart';
 import 'package:samay/core/extensions/error_mapper.dart';
 import 'package:samay/core/logging/app_logger.dart';
 import 'package:samay/core/models/user_profile.dart';
@@ -21,6 +23,7 @@ import 'package:samay/features/minigames/logic/minigame_meta.dart';
 import 'package:samay/features/minigames/providers/minigames_providers.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/error_view.dart';
+import 'package:samay/shared/widgets/profile_avatar.dart';
 import 'package:samay/shared/widgets/state_views.dart';
 import 'package:samay/shared/widgets/v_button.dart';
 import 'package:samay/shared/widgets/v_card.dart';
@@ -29,13 +32,13 @@ import 'package:samay/shared/widgets/v_input.dart';
 import 'package:samay/shared/widgets/v_thinking_dots.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' show RealtimeChannel;
 
-/// The E2EE message thread, reusable across entry points (ISSUE 4): the 1:1
-/// chat screen and the group detail Chat tab mount the SAME widget — the
-/// thread shows decrypted history, WhatsApp-style message statuses (✓ sent /
-/// ✓✓ received / blue ✓✓ read via `messages.read_at`), per-message time +
-/// day separators and a WHITE design voice — own bubbles are solid white
-/// with black text, the send button is a flat white circular up-arrow
-/// control (user directive 2026-08-18).
+/// The E2EE message thread, reusable across entry points: the 1:1 chat screen
+/// and the group detail Chat tab mount the SAME widget. It shows decrypted
+/// history, WhatsApp-style message statuses (✓ sent / ✓✓ received / blue ✓✓
+/// read via `messages.read_at`), per-message time, sticky day chips, and flat
+/// monochrome bubbles — own bubbles are `surfaceAlt`, peer bubbles `surface`,
+/// both separated by a hairline; the send button is a flat white circular
+/// up-arrow control.
 ///
 /// [groupId] switches the thread into GROUP mode: peer bubbles label their
 /// SENDER (the username resolved from [groupMembersProvider] — member rows
@@ -64,12 +67,10 @@ class ChatThreadView extends ConsumerStatefulWidget {
 class _ChatThreadViewState extends ConsumerState<ChatThreadView> {
   final TextEditingController _controller = TextEditingController();
 
-  /// Drives the thread's [ListView]: auto-scroll to the newest message on
-  /// first load and on arrivals while the user is at the bottom (B-chat-
-  /// autoscroll). Verified against the Flutter API docs: controllers live
-  /// in [State] members, [hasClients] guards the un-attached period,
-  /// [animateTo]/[jumpTo] move the position (api.flutter.dev — Scroll-
-  /// Controller class).
+  /// Drives the thread's [CustomScrollView]: auto-scroll to the newest message
+  /// on first load and on arrivals while the user is at the bottom. The
+  /// controller lives in [State], [hasClients] guards the un-attached period,
+  /// and [animateTo]/[jumpTo] move the position.
   final ScrollController _scrollController = ScrollController();
 
   /// Distance (px) from the newest message that still counts as "at the
@@ -94,12 +95,11 @@ class _ChatThreadViewState extends ConsumerState<ChatThreadView> {
   bool _sending = false;
 
   /// Diameter of the circular send button. The composer's single-line input
-  /// is forced to this height so field and button align (user directive
-  /// 2026-08-18); the button keeps this fixed height while the input grows
-  /// on wrap.
+  /// is forced to this height so field and button align; the button keeps
+  /// this fixed height while the input grows on wrap.
   static const double _sendButtonSize = 44;
 
-  /// USER FIX 2: per-thread username cache for group senders with NO row in
+  /// Per-thread username cache for group senders with NO row in
   /// [groupMembersProvider] (an invited-then-accepted user's member list can
   /// be a stale empty cache). [groupMembersProvider] stays the primary
   /// source — this map only holds senders the members list did not resolve.
@@ -123,7 +123,7 @@ class _ChatThreadViewState extends ConsumerState<ChatThreadView> {
     _subscribeReads();
     _subscribeDeletes();
     if (widget.groupId != null) {
-      // GROUP mode: per-member read receipts (20260817000006) — the
+      // GROUP mode: per-member read receipts — the
       // sender's ticks flip blue the moment the LAST member reads.
       _subscribeGroupReads();
     } else {
@@ -210,7 +210,7 @@ class _ChatThreadViewState extends ConsumerState<ChatThreadView> {
 
   /// The thread opened (or a live message arrived while open) → bump the
   /// read watermark so the feed button's unread badge drops (RPC
-  /// `mark_chat_read`, migration 20260815000004). Best-effort.
+  /// `mark_chat_read`). Best-effort.
   void _markRead() {
     ref.read(chatInboxProvider.notifier).markRead(widget.chatId);
   }
@@ -218,17 +218,19 @@ class _ChatThreadViewState extends ConsumerState<ChatThreadView> {
   /// Read receipts: stamps `read_at` on the caller's peer's unread messages
   /// (RPC `mark_messages_read`) so the SENDER's thread flips grey → blue
   /// ticks live. Skipped entirely when the caller's read-receipts privacy
-  /// switch is OFF — no receipts are ever sent (2026-08-15). Best-effort:
+  /// switch is OFF — no receipts are ever sent. Best-effort:
   /// a failure only delays the flip until the next refresh.
   Future<void> _markMessagesRead() async {
     final enabled = ref.read(readReceiptsEnabledProvider).valueOrNull ?? true;
     if (!enabled) return;
     try {
-      await ref.read(chatE2eeRepositoryProvider).markMessagesRead(widget.chatId);
+      await ref
+          .read(chatE2eeRepositoryProvider)
+          .markMessagesRead(widget.chatId);
     } catch (e, st) {
       AppLogger.instance.error(
         'chat markMessagesRead failed chat=${widget.chatId} '
-        'type=${e.runtimeType}',
+            'type=${e.runtimeType}',
         '$st',
       );
     }
@@ -252,20 +254,19 @@ class _ChatThreadViewState extends ConsumerState<ChatThreadView> {
   /// only the status field is merged — the raw row's envelope is never
   /// touched, decrypted or rendered on this channel.
   void _subscribeReads() {
-    _readsChannel = ref.read(chatE2eeRepositoryProvider).subscribeToMessageReads(
-      widget.chatId,
-      (row) {
-        final id = row['id'];
-        if (id is! String) return;
-        final raw = row['read_at'];
-        ref
-            .read(chatMessagesProvider(widget.chatId).notifier)
-            .updateMessageRead(
-              id,
-              raw is String ? DateTime.tryParse(raw) : null,
-            );
-      },
-    );
+    _readsChannel = ref
+        .read(chatE2eeRepositoryProvider)
+        .subscribeToMessageReads(widget.chatId, (row) {
+          final id = row['id'];
+          if (id is! String) return;
+          final raw = row['read_at'];
+          ref
+              .read(chatMessagesProvider(widget.chatId).notifier)
+              .updateMessageRead(
+                id,
+                raw is String ? DateTime.tryParse(raw) : null,
+              );
+        });
   }
 
   /// Live hard-deletes (the sender deleted for everyone, or the undecryptable
@@ -274,15 +275,15 @@ class _ChatThreadViewState extends ConsumerState<ChatThreadView> {
     _deletesChannel = ref
         .read(chatE2eeRepositoryProvider)
         .subscribeToMessageDeletes(widget.chatId, (row) {
-      final id = row['id'];
-      if (id is! String) return;
-      ref
-          .read(chatMessagesProvider(widget.chatId).notifier)
-          .removeDeletedMessage(id);
-    });
+          final id = row['id'];
+          if (id is! String) return;
+          ref
+              .read(chatMessagesProvider(widget.chatId).notifier)
+              .removeDeletedMessage(id);
+        });
   }
 
-  /// Live per-member read flips in GROUP chats (20260817000006): each
+  /// Live per-member read flips in GROUP chats: each
   /// `message_reads` INSERT carries one (message_id, user_id, read_at)
   /// receipt — merged into the row's read set so the sender's ticks flip
   /// blue the moment the LAST other member reads (and never before).
@@ -290,23 +291,23 @@ class _ChatThreadViewState extends ConsumerState<ChatThreadView> {
     _groupReadsChannel = ref
         .read(chatE2eeRepositoryProvider)
         .subscribeToGroupMessageReads(widget.chatId, (row) {
-      final messageId = row['message_id'];
-      final userId = row['user_id'];
-      if (messageId is! String || userId is! String) return;
-      final raw = row['read_at'];
-      final readAt = raw is DateTime
-          ? raw
-          : raw is String
-          ? DateTime.tryParse(raw)
-          : null;
-      if (readAt == null) return;
-      ref
-          .read(chatMessagesProvider(widget.chatId).notifier)
-          .markMessageRead(messageId, userId, readAt);
-    });
+          final messageId = row['message_id'];
+          final userId = row['user_id'];
+          if (messageId is! String || userId is! String) return;
+          final raw = row['read_at'];
+          final readAt = raw is DateTime
+              ? raw
+              : raw is String
+              ? DateTime.tryParse(raw)
+              : null;
+          if (readAt == null) return;
+          ref
+              .read(chatMessagesProvider(widget.chatId).notifier)
+              .markMessageRead(messageId, userId, readAt);
+        });
   }
 
-  /// E2EE §7.5 reinstall notice (2026-08-16): once per chat, when the peer's
+  /// E2EE §7.5 reinstall notice: once per chat, when the peer's
   /// PUBLISHED identity differs from the one bound to the stored session,
   /// inform the user ("El otro usuario reinstaló la app o cambió de
   /// dispositivo"). Informational only — the session heals automatically on
@@ -335,12 +336,11 @@ class _ChatThreadViewState extends ConsumerState<ChatThreadView> {
     }
   }
 
-  /// Long-press message actions (2026-08-16, WhatsApp-style both-options):
+  /// Long-press message actions:
   /// a bottom sheet with "Eliminar para todos" (OWN messages only — the
   /// server enforces sender + a 5-minute window with ITS clock) and
   /// "Eliminar para mí" (any message, any age, this device only). Own
-  /// committed messages additionally expose the message-status sheet
-  /// (2026-08-17: sent / read-by-N-of-M for own messages only).
+  /// committed messages additionally expose the message-status sheet.
   Future<void> _showMessageActions(Map<String, dynamic> row, bool isOwn) async {
     final l10n = AppLocalizations.of(context);
     final id = row['id'];
@@ -356,7 +356,8 @@ class _ChatThreadViewState extends ConsumerState<ChatThreadView> {
         : rawSent is String
         ? DateTime.tryParse(rawSent)
         : null;
-    final withinWindow = sentAt != null &&
+    final withinWindow =
+        sentAt != null &&
         DateTime.now().toUtc().difference(sentAt.toUtc()) <=
             const Duration(minutes: 5);
 
@@ -401,23 +402,22 @@ class _ChatThreadViewState extends ConsumerState<ChatThreadView> {
         final outcome = await notifier.deleteForEveryone(widget.chatId, id);
         if (!mounted) return;
         if (outcome == MessageDeleteOutcome.tooOld) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(l10n.chatDeleteTooOld)),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(l10n.chatDeleteTooOld)));
         } else if (outcome == MessageDeleteOutcome.failed) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(l10n.chatDeleteFailed)),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(l10n.chatDeleteFailed)));
         }
       case 'me':
         await notifier.deleteForMe(widget.chatId, id);
     }
   }
 
-  /// Message-status sheet (2026-08-17 user request: long-press must show
-  /// sent/arrived/read for OWN messages): "Enviado" with the send time, and
+  /// Message-status sheet: "Enviado" with the send time, and
   /// the read state — per-member "Leído por N de M" (+ names) in GROUP
-  /// chats (20260817000006), "Leído HH:mm" / "No leído" in 1:1.
+  /// chats, "Leído HH:mm" / "No leído" in 1:1.
   Future<void> _showMessageInfo(Map<String, dynamic> row) async {
     final l10n = AppLocalizations.of(context);
     final time = _timeLabelOf(row);
@@ -433,19 +433,16 @@ class _ChatThreadViewState extends ConsumerState<ChatThreadView> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            l10n.chatMessageInfoReadBy(
-              readers.length,
-              otherMembersFor(row),
-            ),
+            l10n.chatMessageInfoReadBy(readers.length, otherMembersFor(row)),
             style: Theme.of(context).textTheme.bodyMedium,
           ),
           if (names.isNotEmpty) ...[
             const SizedBox(height: 4),
             Text(
               names.join(', '),
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: AppColors.mutedStrong,
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: AppColors.mutedStrong),
             ),
           ],
         ],
@@ -535,7 +532,7 @@ class _ChatThreadViewState extends ConsumerState<ChatThreadView> {
       final mapped = e.toAppError();
       AppLogger.instance.error(
         'chat send failed chat=${widget.chatId} '
-        'type=${e.runtimeType} error=${mapped.code} "${mapped.message}"',
+            'type=${e.runtimeType} error=${mapped.code} "${mapped.message}"',
         '$st',
       );
       if (mounted) {
@@ -549,8 +546,8 @@ class _ChatThreadViewState extends ConsumerState<ChatThreadView> {
   }
 
   /// Fetches the next older page (CHAT spec "scroll up → paginate older").
-  /// Rendered as a button rather than a scroll listener for testability
-  /// (I-56 decision); failures keep the loaded thread and show a snackbar.
+  /// Rendered as a button rather than a scroll listener for testability;
+  /// failures keep the loaded thread and show a snackbar.
   Future<void> _loadOlder() async {
     try {
       await ref.read(chatMessagesProvider(widget.chatId).notifier).loadOlder();
@@ -558,7 +555,7 @@ class _ChatThreadViewState extends ConsumerState<ChatThreadView> {
       final mapped = e.toAppError();
       AppLogger.instance.error(
         'chat loadOlder failed chat=${widget.chatId} '
-        'type=${e.runtimeType} error=${mapped.code} "${mapped.message}"',
+            'type=${e.runtimeType} error=${mapped.code} "${mapped.message}"',
         '$st',
       );
       if (mounted) {
@@ -570,9 +567,9 @@ class _ChatThreadViewState extends ConsumerState<ChatThreadView> {
   }
 
   /// GROUP mode: the sender's username for [row] (member rows carry
-  /// `users.username`), a per-thread directly-resolved username (USER FIX 2),
-  /// or a short uid prefix while that lookup is pending / for an id that has
-  /// genuinely no profile — never crashes, never null for a sendable id.
+  /// `users.username`), a per-thread directly-resolved username, or a short
+  /// uid prefix while that lookup is pending / for an id that has genuinely no
+  /// profile — never crashes, never null for a sendable id.
   String? _senderNameOf(Map<String, dynamic> row) {
     final senderId = row['sender_id'];
     if (senderId is! String || senderId.isEmpty) return null;
@@ -599,20 +596,20 @@ class _ChatThreadViewState extends ConsumerState<ChatThreadView> {
     return userId.length > 8 ? userId.substring(0, 8) : userId;
   }
 
-  /// USER FIX 2: resolves the sender's username directly (user_search_view
-  /// via the friends repository — never throws, null for missing) when the
-  /// members list cannot, so the label of a resolvable user NEVER stays a
-  /// uid prefix. One lookup per sender id per thread: the in-flight map
-  /// coalesces concurrent bubbles, [_resolvedSenders] caches the username
-  /// and [_unresolvedSenders] stops retries for ids without a profile.
-  /// Best-effort: failures are logged with the id only (never the username)
-  /// and swallowed — the uid-prefix fallback remains.
+  /// Resolves the sender's username directly (user_search_view via the friends
+  /// repository — never throws, null for missing) when the members list cannot,
+  /// so the label of a resolvable user NEVER stays a uid prefix. One lookup per
+  /// sender id per thread: the in-flight map coalesces concurrent bubbles,
+  /// [_resolvedSenders] caches the username and [_unresolvedSenders] stops
+  /// retries for ids without a profile. Best-effort: failures are logged with
+  /// the id only (never the username) and swallowed — the uid-prefix fallback
+  /// remains.
   Future<void> _resolveSenderName(String senderId) {
     final inFlight = _senderLookups[senderId];
     if (inFlight != null) return inFlight;
-    final future = _lookupSender(senderId).whenComplete(
-      () => _senderLookups.remove(senderId),
-    );
+    final future = _lookupSender(
+      senderId,
+    ).whenComplete(() => _senderLookups.remove(senderId));
     _senderLookups[senderId] = future;
     return future;
   }
@@ -620,8 +617,9 @@ class _ChatThreadViewState extends ConsumerState<ChatThreadView> {
   Future<void> _lookupSender(String senderId) async {
     UserProfile? profile;
     try {
-      profile =
-          await ref.read(friendsRepositoryProvider).getUserProfile(senderId);
+      profile = await ref
+          .read(friendsRepositoryProvider)
+          .getUserProfile(senderId);
     } catch (e, st) {
       AppLogger.instance.error(
         'chat sender resolve failed sender=$senderId type=${e.runtimeType}',
@@ -638,25 +636,23 @@ class _ChatThreadViewState extends ConsumerState<ChatThreadView> {
     });
   }
 
-  /// GROUP mode: the group's member rows (resolved lazily — loading/error
+  /// GROUP mode: the group's member rows, watched once in [build] and reused
+  /// by the list builder and callbacks (resolved lazily — loading/error
   /// degrade to the uid-prefix fallback, never crash).
-  List<GroupMember> get _groupMembers {
-    final groupId = widget.groupId;
-    if (groupId == null) return const [];
-    return ref
-        .watch(groupMembersProvider(groupId))
-        .valueOrNull ??
-        const <GroupMember>[];
-  }
+  List<GroupMember> _groupMembers = const <GroupMember>[];
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final messages = ref.watch(chatMessagesProvider(widget.chatId));
     final currentUserId = ref.watch(authStateProvider).valueOrNull?.user?['id'];
-    // 210 (2026-09-15): group-chat "match created" notices render inline with
-    // the thread as a direct access to the minigame. Group threads only.
     final groupId = widget.groupId;
+    _groupMembers = groupId == null
+        ? const <GroupMember>[]
+        : ref.watch(groupMembersProvider(groupId)).valueOrNull ??
+              const <GroupMember>[];
+    // Group-chat "match created" notices render inline with the thread as a
+    // direct access to the minigame. Group threads only.
     final notices = groupId == null
         ? const <Map<String, dynamic>>[]
         : ref.watch(groupMinigameMessagesProvider(groupId)).valueOrNull ??
@@ -707,53 +703,12 @@ class _ChatThreadViewState extends ConsumerState<ChatThreadView> {
               }
               final showHeader = state.hasMore || state.loadingOlder;
               final entries = _buildThreadEntries(state.messages, notices);
-              return ListView.builder(
-                controller: _scrollController,
-                padding: const EdgeInsets.all(AppSpacing.lg),
-                itemCount: entries.length + (showHeader ? 1 : 0),
-                itemBuilder: (context, index) {
-                  if (showHeader && index == 0) {
-                    return _olderHeader(l10n, state);
-                  }
-                  final entry = entries[index - (showHeader ? 1 : 0)];
-                  if (entry is _DateEntry) {
-                    return _DateChip(label: entry.label(l10n));
-                  }
-                  if (entry is _MinigameEntry) {
-                    return _MinigameNoticeCard(row: entry.row);
-                  }
-                  final row = (entry as _MessageEntry).row;
-                  final isOwn =
-                      currentUserId != null &&
-                      row['sender_id'] == currentUserId;
-                  // GROUP mode: the readers who matter for the sender's
-                  // blue check are the CURRENT other active members —
-                  // verified as a roster-id SET (a departed member's stale
-                  // receipt must never satisfy all-read). Conservative: an
-                  // unknown/empty roster never claims all-read (grey ticks
-                  // — honest under the stale-members class).
-                  final otherMemberIds = widget.groupId != null &&
-                          currentUserId != null
-                      ? _groupMembers
-                            .map((m) => m.userId)
-                            .where((id) => id != currentUserId)
-                            .toSet()
-                      : const <String>{};
-                  return _MessageBubble(
-                    row: row,
-                    isOwn: isOwn,
-                    // GROUP mode only: label the sender above PEER bubbles;
-                    // own bubbles stay clean (and 1:1 renders exactly today's
-                    // bubbles — senderName is always null there).
-                    senderName:
-                        widget.groupId != null && !isOwn
-                            ? _senderNameOf(row)
-                            : null,
-                    isGroup: widget.groupId != null,
-                    otherMemberIds: otherMemberIds,
-                    onLongPress: () => _showMessageActions(row, isOwn),
-                  );
-                },
+              return _buildThread(
+                entries: entries,
+                showHeader: showHeader,
+                state: state,
+                currentUserId: currentUserId,
+                l10n: l10n,
               );
             },
           ),
@@ -763,10 +718,114 @@ class _ChatThreadViewState extends ConsumerState<ChatThreadView> {
     );
   }
 
+  /// The thread as a `CustomScrollView`: entries split into day sections, each
+  /// led by a pinned date chip so the current day stays visible while its
+  /// messages scroll. The message list stays lazy via sliver builders.
+  Widget _buildThread({
+    required List<Object> entries,
+    required bool showHeader,
+    required ChatMessagesState state,
+    required String? currentUserId,
+    required AppLocalizations l10n,
+  }) {
+    final sections = <_ThreadSection>[];
+    _ThreadSection? section;
+    for (final entry in entries) {
+      if (entry is _DateEntry) {
+        section = _ThreadSection(label: entry.label(l10n));
+        sections.add(section);
+      } else {
+        section ??= _ThreadSection(label: '');
+        if (sections.isEmpty) sections.add(section);
+        section.entries.add(entry);
+      }
+    }
+    return CustomScrollView(
+      controller: _scrollController,
+      slivers: [
+        if (showHeader)
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.lg,
+                vertical: AppSpacing.sm,
+              ),
+              child: _olderHeader(l10n, state),
+            ),
+          ),
+        for (final s in sections)
+          SliverMainAxisGroup(
+            slivers: [
+              if (s.label.isNotEmpty)
+                SliverPersistentHeader(
+                  pinned: true,
+                  delegate: _DateHeaderDelegate(label: s.label),
+                ),
+              SliverPadding(
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+                sliver: SliverList(
+                  delegate: SliverChildBuilderDelegate(
+                    (context, i) =>
+                        _buildEntry(s.entries[i], currentUserId, l10n),
+                    childCount: s.entries.length,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        const SliverPadding(padding: EdgeInsets.only(bottom: AppSpacing.lg)),
+      ],
+    );
+  }
+
+  /// One thread entry as a widget: a minigame notice card or a message bubble.
+  Widget _buildEntry(
+    Object entry,
+    String? currentUserId,
+    AppLocalizations l10n,
+  ) {
+    if (entry is _MinigameEntry) {
+      return _MinigameNoticeCard(row: entry.row);
+    }
+    final row = (entry as _MessageEntry).row;
+    final isOwn = currentUserId != null && row['sender_id'] == currentUserId;
+    final isPeerGroupMessage = widget.groupId != null && !isOwn;
+    // The readers that matter for the sender's blue check are the CURRENT
+    // other active members — a departed member's stale receipt never counts.
+    final otherMemberIds = widget.groupId != null && currentUserId != null
+        ? _groupMembers
+              .map((m) => m.userId)
+              .where((id) => id != currentUserId)
+              .toSet()
+        : const <String>{};
+    return _MessageBubble(
+      row: row,
+      isOwn: isOwn,
+      senderName: isPeerGroupMessage ? _senderNameOf(row) : null,
+      senderAvatarUrl: isPeerGroupMessage ? _memberAvatarOf(row) : null,
+      isGroup: widget.groupId != null,
+      otherMemberIds: otherMemberIds,
+      onLongPress: () => _showMessageActions(row, isOwn),
+    );
+  }
+
+  /// GROUP mode: the sender's avatar for [row] when a member row carries one.
+  String? _memberAvatarOf(Map<String, dynamic> row) {
+    final senderId = row['sender_id'];
+    if (senderId is! String || senderId.isEmpty) return null;
+    for (final m in _groupMembers) {
+      if (m.userId == senderId) {
+        final avatar = m.avatarUrl;
+        if (avatar != null && avatar.isNotEmpty) return avatar;
+      }
+    }
+    return null;
+  }
+
   /// The thread as display entries: a date separator ([_DateEntry]) before
   /// the first message of each day, then every message. Dates are compared
-  /// in local time. Group-chat minigame notices (210) are merged in by
-  /// `created_at` and rendered as [_MinigameEntry].
+  /// in local time. Group-chat minigame notices are merged in by `created_at`
+  /// and rendered as [_MinigameEntry].
   List<Object> _buildThreadEntries(
     List<Map<String, dynamic>> rows,
     List<Map<String, dynamic>> notices,
@@ -796,7 +855,9 @@ class _ChatThreadViewState extends ConsumerState<ChatThreadView> {
         lastDay = day;
       }
       entries.add(
-        row['_minigameNotice'] == true ? _MinigameEntry(row) : _MessageEntry(row),
+        row['_minigameNotice'] == true
+            ? _MinigameEntry(row)
+            : _MessageEntry(row),
       );
     }
     return entries;
@@ -824,15 +885,14 @@ class _ChatThreadViewState extends ConsumerState<ChatThreadView> {
     );
   }
 
-  /// Glass input (VInput) + the flat WHITE send button (user directive
-  /// 2026-08-15: "instead of orange use white for buttons and bubbles" —
-  /// no peach gradient on the chat controls). While a send is in flight the
-  /// button drops its label and pulses [VThinkingDots] (black on white).
+  /// Glass input (VInput) + the flat WHITE send button: "instead of orange
+  /// use white for buttons and bubbles" — no peach gradient on the chat
+  /// controls. While a send is in flight the button drops its label and
+  /// pulses [VThinkingDots] (black on white).
   Widget _composer(AppLocalizations l10n) {
-    // User override (2026-08-18): the input is borderless/backgroundless, so
-    // the composer docks as a bar — surface fill + hairline top edge divide
-    // it from the thread. The send control is a circular white up-arrow
-    // button (user directive 2026-08-18 — replaces the labeled rect).
+    // The input is borderless/backgroundless, so the composer docks as a bar
+    // — surface fill + hairline top edge divide it from the thread. The send
+    // control is a circular white up-arrow button.
     return Container(
       decoration: const BoxDecoration(
         color: AppColors.surface,
@@ -852,11 +912,9 @@ class _ChatThreadViewState extends ConsumerState<ChatThreadView> {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              // Minigames entry (direct-minigames 2026-08-27): 1:1 chats
-              // open the DIRECT hub, group chats the group hub — both offer
-              // the Direct/Group toggle, so "an option for direct and
-              // groups" is reachable from inside any chat. Flag-gated
-              // (kill-switch).
+              // 1:1 chats open the DIRECT hub, group chats the group hub —
+              // both offer the Direct/Group toggle, so playing with either is
+              // reachable from inside any chat. Flag-gated (kill-switch).
               if (ref.isEnabled(AppFeatureFlag.minigames)) ...[
                 _minigamesButton(l10n),
                 const SizedBox(width: 8),
@@ -867,9 +925,7 @@ class _ChatThreadViewState extends ConsumerState<ChatThreadView> {
                 // vertical growth. textAlignVertical centers the single-line
                 // text inside that forced height.
                 child: ConstrainedBox(
-                  constraints: const BoxConstraints(
-                    minHeight: _sendButtonSize,
-                  ),
+                  constraints: const BoxConstraints(minHeight: _sendButtonSize),
                   child: VInput(
                     label: l10n.chatInputHint,
                     controller: _controller,
@@ -887,9 +943,9 @@ class _ChatThreadViewState extends ConsumerState<ChatThreadView> {
     );
   }
 
-  /// Circular minigames entry button (direct-minigames 2026-08-27): a muted
-  /// sports icon that opens the DIRECT hub from a 1:1 chat or the GROUP hub
-  /// from a group chat — both carry the Direct/Group toggle inside.
+  /// Circular minigames entry button: a muted sports icon that opens the
+  /// DIRECT hub from a 1:1 chat or the GROUP hub from a group chat — both
+  /// carry the Direct/Group toggle inside.
   Widget _minigamesButton(AppLocalizations l10n) {
     return SizedBox(
       key: const ValueKey('chatMinigameButton'),
@@ -898,7 +954,7 @@ class _ChatThreadViewState extends ConsumerState<ChatThreadView> {
       child: Tooltip(
         message: l10n.minigamesTitle,
         child: Material(
-          color: Colors.transparent,
+          color: AppColors.transparent,
           shape: const CircleBorder(),
           clipBehavior: Clip.antiAlias,
           child: InkWell(
@@ -918,7 +974,9 @@ class _ChatThreadViewState extends ConsumerState<ChatThreadView> {
   void _openMinigames() {
     final groupId = widget.groupId;
     context.push(
-      groupId == null ? RoutePaths.minigamesDirect : RoutePaths.minigames(groupId),
+      groupId == null
+          ? RoutePaths.minigamesDirect
+          : RoutePaths.minigames(groupId),
     );
   }
 
@@ -941,10 +999,7 @@ class _ChatThreadViewState extends ConsumerState<ChatThreadView> {
           color: AppColors.white,
           shape: const CircleBorder(),
           clipBehavior: Clip.antiAlias,
-          child: InkWell(
-            onTap: _sending ? null : _send,
-            child: content,
-          ),
+          child: InkWell(onTap: _sending ? null : _send, child: content),
         ),
       ),
     );
@@ -975,8 +1030,7 @@ class _MessageEntry {
   const _MessageEntry(this.row);
 }
 
-/// A 210 group-chat notice entry ("match created") — see
-/// [_MinigameNoticeCard].
+/// A group-chat notice entry ("match created") — see [_MinigameNoticeCard].
 class _MinigameEntry {
   final Map<String, dynamic> row;
 
@@ -1037,6 +1091,46 @@ class _MinigameNoticeCard extends StatelessWidget {
   }
 }
 
+/// One day's entries under a single (pinned) date chip.
+class _ThreadSection {
+  _ThreadSection({required this.label});
+
+  final String label;
+  final List<Object> entries = [];
+}
+
+/// Pinned header rendering one day's chip over the black page, so the day
+/// label stays visible while that day's messages scroll past.
+class _DateHeaderDelegate extends SliverPersistentHeaderDelegate {
+  _DateHeaderDelegate({required this.label});
+
+  final String label;
+
+  static const double _height = 40;
+
+  @override
+  double get minExtent => _height;
+
+  @override
+  double get maxExtent => _height;
+
+  @override
+  Widget build(
+    BuildContext context,
+    double shrinkOffset,
+    bool overlapsContent,
+  ) {
+    return ColoredBox(
+      color: AppColors.discoBlack,
+      child: Center(child: _DateChip(label: label)),
+    );
+  }
+
+  @override
+  bool shouldRebuild(covariant _DateHeaderDelegate oldDelegate) =>
+      oldDelegate.label != label;
+}
+
 /// A centered day chip ("Today" / "Yesterday" / dd/MM/yyyy) separating the
 /// thread into date groups — WhatsApp-style date context.
 class _DateChip extends StatelessWidget {
@@ -1046,22 +1140,20 @@ class _DateChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
-      child: Center(
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-          decoration: BoxDecoration(
-            color: AppColors.white.withValues(alpha: 0.06),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Text(
-            label,
-            style: Theme.of(context).textTheme.labelSmall?.copyWith(
-              color: AppColors.mutedStrong,
-            ),
-          ),
-        ),
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.md,
+        vertical: AppSpacing.xs,
+      ),
+      decoration: const BoxDecoration(
+        color: AppColors.surfaceAlt,
+        border: Border.fromBorderSide(BorderSide(color: AppColors.hairline)),
+      ),
+      child: Text(
+        label,
+        style: Theme.of(
+          context,
+        ).textTheme.labelSmall?.copyWith(color: AppColors.mutedStrong),
       ),
     );
   }
@@ -1075,11 +1167,12 @@ class _MessageBubble extends StatelessWidget {
   /// bubbles (null in 1:1 threads — the bubble renders exactly as before).
   final String? senderName;
 
-  /// GROUP mode (20260817000006): the sender's ticks flip BLUE only when
-  /// every CURRENT other active member has read the message — the 1:1
-  /// read_at single-column semantics cannot express group reads. The set
-  /// is the CURRENT roster's other-member ids (a departed member's stale
-  /// receipt must never satisfy it).
+  /// GROUP mode: the sender's avatar, shown beside peer bubbles. Identity is
+  /// carried by the avatar and the bold name, never by hue.
+  final String? senderAvatarUrl;
+
+  /// GROUP mode: the sender's ticks flip BLUE only when every CURRENT other
+  /// active member has read the message.
   final bool isGroup;
   final Set<String> otherMemberIds;
 
@@ -1089,38 +1182,26 @@ class _MessageBubble extends StatelessWidget {
     required this.row,
     required this.isOwn,
     this.senderName,
+    this.senderAvatarUrl,
     this.isGroup = false,
     this.otherMemberIds = const {},
     this.onLongPress,
   });
 
-  /// Liquid corners — the chat bubbles are the liquid island of the sharp
-  /// design language.
-  static const BorderRadius _bubbleRadius = BorderRadius.all(
-    Radius.circular(8),
-  );
+  /// Bubble corners — sharp, matching the rest of the design language.
+  static const BorderRadius _bubbleRadius = AppRadius.sharp;
 
   static const EdgeInsets _bubblePadding = EdgeInsets.symmetric(
-    horizontal: 10,
-    vertical: 8,
+    horizontal: AppSpacing.md,
+    vertical: AppSpacing.sm,
   );
 
   /// Bubbles cap at 320 logical px so the thread reads as ONE conversation
-  /// surface.
+  /// surface. Group peer bubbles add the avatar column beside that cap.
   static const double _maxBubbleWidth = 320;
 
-  static const List<Color> _senderColors = [
-    AppColors.pastelRose,
-    AppColors.pastelViolet,
-    AppColors.pastelCyan,
-    AppColors.pastelGold,
-    AppColors.pastelMint,
-    AppColors.pastelPeach,
-  ];
-
-  static Color _colorForSender(String senderId) {
-    return _senderColors[senderId.hashCode.abs() % _senderColors.length];
-  }
+  /// Group peer avatar diameter.
+  static const double _avatarSize = 28;
 
   /// In-bubble clock: 24h local time of `created_at`.
   static String _timeLabel(Map<String, dynamic> row) {
@@ -1153,28 +1234,62 @@ class _MessageBubble extends StatelessWidget {
     final id = row['id'];
     final pending = row['pending'] == true;
 
+    final name = senderName;
+    final showAvatar = !isOwn && name != null && name.isNotEmpty;
+    final bubble = isOwn
+        ? _ownBubble(id, text, decryptFailed, pending, l10n)
+        : _peerBubble(context, id, text, decryptFailed, l10n);
+
     return Align(
       alignment: isOwn ? Alignment.centerRight : Alignment.centerLeft,
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 4),
+        padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
         child: GestureDetector(
           onLongPress: onLongPress,
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: _maxBubbleWidth),
-            child: isOwn
-                ? _ownBubble(id, text, decryptFailed, pending, l10n)
-                : _peerBubble(context, id, text, decryptFailed, l10n),
+            constraints: BoxConstraints(
+              maxWidth:
+                  _maxBubbleWidth +
+                  (showAvatar ? _avatarSize + AppSpacing.sm : 0),
+            ),
+            child: showAvatar
+                ? Row(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      ProfileAvatar(
+                        size: _avatarSize,
+                        imageUrl: senderAvatarUrl,
+                        initials: _initials(name),
+                      ),
+                      const SizedBox(width: AppSpacing.sm),
+                      Flexible(child: bubble),
+                    ],
+                  )
+                : bubble,
           ),
         ),
       ),
     );
   }
 
-  /// Own message (2026-08-15): SOLID WHITE bubble (user directive — no peach
-  /// fill), black text, and a bottom-right footer with the time + the
-  /// WhatsApp-style status ticks (✓ sent / ✓✓ received / blue ✓✓ read).
-  /// GROUP mode (20260817000006): the blue ticks require EVERY other
-  /// member's read (per-member `message_reads` rows), never just the first.
+  /// Two-glyph initials for the group avatar fallback.
+  static String _initials(String name) {
+    final parts = name.trim().split(RegExp(r'\s+'));
+    if (parts.isEmpty || parts.first.isEmpty) return '';
+    final first = parts.first;
+    final second = parts.length > 1 ? parts[1] : '';
+    final a = first[0];
+    final b = second.isNotEmpty
+        ? second[0]
+        : (first.length > 1 ? first[1] : '');
+    return (a + b).toUpperCase();
+  }
+
+  /// Own message: a flat `surfaceAlt` bubble with a hairline edge, white text,
+  /// and a bottom-right footer with the time + the delivery ticks (✓ sent /
+  /// ✓✓ received / blue ✓✓ read). In GROUP mode the blue ticks require every
+  /// other member's read.
   Widget _ownBubble(
     Object? id,
     String text,
@@ -1184,10 +1299,14 @@ class _MessageBubble extends StatelessWidget {
   ) {
     final readAt = _readAtOf(row);
     final time = _timeLabel(row);
+    final timeStyle = AppTypography.bodySmall.copyWith(
+      color: AppColors.statusGrey,
+    );
     return DecoratedBox(
       key: ValueKey('chatBubbleOwn-$id'),
       decoration: const BoxDecoration(
-        color: AppColors.white,
+        color: AppColors.surfaceAlt,
+        border: Border.fromBorderSide(BorderSide(color: AppColors.hairline)),
         borderRadius: _bubbleRadius,
       ),
       child: Padding(
@@ -1199,9 +1318,7 @@ class _MessageBubble extends StatelessWidget {
             Text(
               text,
               style: TextStyle(
-                color: decryptFailed
-                    ? AppColors.mutedStrong
-                    : AppColors.discoBlack,
+                color: decryptFailed ? AppColors.mutedStrong : AppColors.white,
                 fontStyle: decryptFailed ? FontStyle.italic : FontStyle.normal,
               ),
             ),
@@ -1213,17 +1330,9 @@ class _MessageBubble extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 // Decorative clock — excluded from semantics so the bubble
-                // announces exactly its content (4.1.2 label contract).
-                ExcludeSemantics(
-                  child: Text(
-                    time,
-                    style: const TextStyle(
-                      color: AppColors.statusGrey,
-                      fontSize: 11,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 4),
+                // announces exactly its content.
+                ExcludeSemantics(child: Text(time, style: timeStyle)),
+                const SizedBox(width: AppSpacing.xs),
                 _MessageStatus(
                   pending: pending,
                   readAt: readAt,
@@ -1240,9 +1349,9 @@ class _MessageBubble extends StatelessWidget {
     );
   }
 
-  /// Peer message: white-only liquid glass, white text, time in the footer.
-  /// GROUP mode adds the sender's username as a small label above the text
-  /// (WhatsApp-style); without it (1:1) the bubble renders exactly as today.
+  /// Peer message: a flat `surface` bubble with a hairline edge and white
+  /// text. GROUP mode labels the sender above the text with a bold name and
+  /// the avatar beside the bubble; 1:1 renders the plain bubble.
   Widget _peerBubble(
     BuildContext context,
     Object? id,
@@ -1252,36 +1361,19 @@ class _MessageBubble extends StatelessWidget {
   ) {
     final time = _timeLabel(row);
     final senderName = this.senderName;
-    final senderColor = senderName != null
-        ? _colorForSender(row['sender_id'] as String? ?? '')
-        : AppColors.mutedStrong;
     final msgStyle = TextStyle(
       color: decryptFailed ? AppColors.mutedStrong : AppColors.white,
       fontStyle: decryptFailed ? FontStyle.italic : FontStyle.normal,
     );
-    final timeStyle = const TextStyle(
+    final timeStyle = AppTypography.bodySmall.copyWith(
       color: AppColors.mutedStrong,
-      fontSize: 11,
     );
     return DecoratedBox(
       key: ValueKey('chatBubblePeer-$id'),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            AppColors.muted,
-            AppColors.border,
-          ],
-        ),
+      decoration: const BoxDecoration(
+        color: AppColors.surface,
+        border: Border.fromBorderSide(BorderSide(color: AppColors.hairline)),
         borderRadius: _bubbleRadius,
-        boxShadow: [
-          BoxShadow(
-            color: senderColor.withValues(alpha: 0.25),
-            blurRadius: 10,
-            spreadRadius: -2,
-          ),
-        ],
       ),
       child: Padding(
         padding: _bubblePadding,
@@ -1290,22 +1382,21 @@ class _MessageBubble extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             if (senderName != null && senderName.isNotEmpty) ...[
-              // The name must NOT expand the bubble: `Align` (used before)
-              // fills all available space and pinned every group bubble at
-              // the 320px max. A ConstrainedBox caps long names (ellipsis
-              // still applies) and shrink-wraps short ones.
+              // The name must NOT expand the bubble: a ConstrainedBox caps
+              // long names (ellipsis still applies) and shrink-wraps short
+              // ones.
               ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 200),
                 child: Text(
                   senderName,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    color: senderColor,
-                  ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.labelMedium?.copyWith(color: AppColors.white),
                 ),
               ),
-              const SizedBox(height: 2),
+              const SizedBox(height: AppSpacing.xs),
             ],
             // Message + hour in their own right-aligned column so the hour
             // always sits at the BOTTOM-RIGHT of the bubble (the classic
@@ -1318,9 +1409,7 @@ class _MessageBubble extends StatelessWidget {
                 if (time.isNotEmpty) ...[
                   const SizedBox(height: 2),
                   // Decorative clock (see the own-bubble footer note).
-                  ExcludeSemantics(
-                    child: Text(time, style: timeStyle),
-                  ),
+                  ExcludeSemantics(child: Text(time, style: timeStyle)),
                 ],
               ],
             ),
@@ -1336,13 +1425,13 @@ class _MessageBubble extends StatelessWidget {
 /// - double grey check → received/delivered (committed, not read)
 /// - double BLUE check → read (1:1: `read_at` stamped by the peer's device;
 ///   GROUP: every CURRENT other active member's `message_reads` row exists —
-///   20260817000006 — a single reader must NOT turn the ticks blue)
+///    — a single reader must NOT turn the ticks blue)
 class _MessageStatus extends StatelessWidget {
   final bool pending;
   final DateTime? readAt;
   final AppLocalizations l10n;
 
-  /// GROUP mode (20260817000006): the per-member read set + the CURRENT
+  /// GROUP mode: the per-member read set + the CURRENT
   /// roster's other-member ids — blue only when ALL of them read (a
   /// departed member's stale receipt never satisfies the check).
   final bool isGroup;
@@ -1368,10 +1457,9 @@ class _MessageStatus extends StatelessWidget {
       icon = Icons.check;
       label = l10n.chatSent;
     } else if (isGroup
-        ? ChatMessagesState.isReadByAll(
-            {'message_reads': readers},
-            otherMemberIds,
-          )
+        ? ChatMessagesState.isReadByAll({
+            'message_reads': readers,
+          }, otherMemberIds)
         : readAt != null) {
       color = AppColors.statusRead;
       icon = Icons.done_all;

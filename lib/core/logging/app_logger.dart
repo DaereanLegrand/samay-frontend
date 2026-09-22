@@ -25,9 +25,9 @@ enum LogLevel {
 /// synchronously to `samay.log` in the app documents directory; `debugPrint`
 /// is kept only as a fallback sink when file I/O is unavailable.
 ///
-/// Crash markers (LOG-03): [markCrash] writes `.samay_crash_marker`;
+/// Crash markers: [markCrash] writes `.samay_crash_marker`;
 /// [recoverCrashMarker] appends it to `samay_crash.log` and clears it on the
-/// next launch. I-70 will wrap a Sentry SDK around this API.
+/// next launch. A Sentry SDK can wrap this API.
 class AppLogger {
   AppLogger({Directory? storageDir, bool? enabled})
     : _enabled = enabled ?? !kReleaseMode,
@@ -66,7 +66,7 @@ class AppLogger {
     (level: LogLevel.warn, pattern: RegExp(r'MissingPluginException')),
   ];
 
-  /// Classifies known-benign errors (LOG-04). Returns the level the error
+  /// Classifies known-benign errors. Returns the level the error
   /// should be logged at, or null when the error is genuinely reportable.
   LogLevel? knownBenignError(Object error) {
     final message = error.toString();
@@ -96,7 +96,7 @@ class AppLogger {
     final line =
         '[Samay][${level.label}] ${DateTime.now().toUtc().toIso8601String()} '
         '$message${stack.isNotEmpty ? '\n$stack' : ''}';
-    // Debug/profile only (2026-08-15): the run console must show the logs
+    // Debug/profile only: the run console must show the logs
     // too — `flutter run` on devices/waydroid saw nothing because the file
     // path resolves at startup (main.dart init()) and the old code only
     // fell back to debugPrint when there was no storage dir. Release builds
@@ -117,7 +117,7 @@ class AppLogger {
     }
   }
 
-  /// Writes a crash marker file for detection on the next launch (LOG-03).
+  /// Writes a crash marker file for detection on the next launch.
   Future<void> markCrash(String message, [String stack = '']) async {
     if (!_enabled) return;
     final dir = await _resolveDir();
@@ -158,7 +158,7 @@ class AppLogger {
 
   /// Startup recovery: appends the pending crash marker to `samay_crash.log`
   /// and clears it. Returns the recovered content, or null if no marker
-  /// existed. Recovery UI (banner/dialog) is future work (LOG-03).
+  /// existed.
   Future<String?> recoverCrashMarker() async {
     final content = await readCrashMarker();
     if (content == null) return null;

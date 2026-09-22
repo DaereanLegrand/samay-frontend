@@ -33,7 +33,7 @@ class SecureStorageService {
 /// (e.g. fresh install after a backup restore that did not carry the keychain
 /// entry), opening fails and the box is re-created empty. This trades data for
 /// availability — acceptable because these caches are disposable and rebuilt
-/// from the backend. See SEC-10 / M-32.
+/// from the backend.
 class HiveService {
   static const configBoxName = 'config_cache';
   static const photoBoxName = 'photo_cache';
@@ -124,7 +124,7 @@ class HiveService {
   /// catch closes the half-initialized box WITHOUT awaiting the close (the
   /// lock file's flock is released asynchronously), so deleting the box files
   /// and immediately re-opening the same name can deadlock on the still-held
-  /// lock — an intermittent 30s+ hang under load (EF-04, reproduced ~50% of
+  /// lock — an intermittent 30s+ hang under load (reproduced ~50% of
   /// full-suite runs). Mitigations here:
   ///
   /// 1. `deleteBoxFromDisk` is retried — its exists→delete race throws
@@ -187,15 +187,12 @@ class HiveService {
     return box.toMap().map((k, v) => MapEntry(k, v));
   }
 
-  // ---------------------------------------------------------------------------
-  // On-device friend list cache (2026-08-29 — invite/buscar <5-char contract)
-  // ---------------------------------------------------------------------------
+  // On-device friend list cache
   // The user's friend list is fetched in the BACKGROUND at app launch and
   // persisted here so the invite/buscar/search pickers can render it for
   // short (0–4 char) and empty queries WITHOUT network I/O and WITHOUT the
-  // N+1 profile-fetch error path that used to surface as
-  // "Error del servidor". Keyed by user id so an account switch never leaks
-  // the previous account's friends.
+  // N+1 profile-fetch error path ("Error del servidor"). Keyed by user id so
+  // an account switch never leaks the previous account's friends.
   //
   // The stored value is the JSON-encoded list of search-shaped friend rows
   // (`UserSearchResult`: id/username/avatar_url, friendship_status=accepted)
@@ -227,10 +224,8 @@ class HiveService {
     await box.delete(userId);
   }
 
-  // ---------------------------------------------------------------------------
-  // Message plaintext cache (Signal plaintext-store backend, 2026-08-16 —
-  // companion: lib/core/services/message_plaintext_store.dart)
-  // ---------------------------------------------------------------------------
+  // Message plaintext cache (Signal plaintext-store backend; companion:
+  // lib/core/services/message_plaintext_store.dart)
   // The Double Ratchet is stateful and irreversible: after the chain
   // advanced, an already-decrypted envelope can never be decrypted again.
   // The server stores only envelopes, so history re-rendering after a
@@ -306,11 +301,9 @@ class HiveService {
     }
   }
 
-  // ---------------------------------------------------------------------------
   // On-device minigame match summary (202_minigame_play_v2 — the history /
   // summary lives on the device; the user directive said the server would
   // purge it later, so the device copy is the durable record).
-  // ---------------------------------------------------------------------------
   // Keys are `minigame:<sessionId>`; values are the JSON-encoded summary map:
   // `{results, answers, reactions, aliases}` written when the match finishes.
   // AES-256 at rest (same box cipher as every Hive cache).
@@ -340,12 +333,10 @@ class HiveService {
     }
   }
 
-  // ---------------------------------------------------------------------------
-  // On-device agnostic feed cache (2026-09-20). The feed is a mix of event
+  // On-device agnostic feed cache. The feed is a mix of event
   // and minigame-match items; the JSON-encoded list is cached under the user
   // id so an account switch never leaks the previous account's feed, and the
   // tab renders instantly from disk before the network refresh lands.
-  // ---------------------------------------------------------------------------
 
   /// Persists the [items] feed payload (JSON-encoded list) for [userId].
   Future<void> cacheFeed(String userId, List<Map<String, dynamic>> items) async {

@@ -4,7 +4,7 @@ import 'package:samay/core/logging/app_logger.dart';
 import 'package:samay/core/providers/service_providers.dart';
 import 'package:samay/core/services/storage_service.dart';
 
-/// UI-05 / L-16 (I-65): persisted theme-mode choice.
+/// persisted theme-mode choice.
 ///
 /// The brand is dark-only (DESIGN.md §1 P1 "black always"), so this
 /// provider exists for **persistence + the 'system' seam**, not for a light
@@ -32,7 +32,7 @@ class ThemeModeNotifier extends AsyncNotifier<ThemeMode> {
       final cached = _hive.getCachedConfig();
       return _modeFor(cached?[configKey]);
     } catch (e, st) {
-      // Uninitialized/re-created Hive (I-26 key-loss degradation): the cache
+      // Uninitialized/re-created Hive: the cache
       // is treated as a miss — never a boot failure.
       AppLogger.instance.warn('Theme mode cache unreadable ($e); using dark.',
           '$st');

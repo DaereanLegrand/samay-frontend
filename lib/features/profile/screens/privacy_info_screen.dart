@@ -5,7 +5,7 @@ import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/v_card.dart';
 import 'package:samay/shared/widgets/v_header_bar.dart';
 
-/// Static privacy/terms info (R2 — wires the settings Privacidad row).
+/// Static privacy/terms info — wires the settings Privacidad row.
 ///
 /// The signup-funnel [PrivacyTermsScreen] cannot render standalone (it is a
 /// consent gate that carries email/dateOfBirth extras and pushes the profile

@@ -5,7 +5,7 @@ import 'package:samay/features/chat/widgets/chat_thread_view.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/v_header_bar.dart';
 
-/// E2EE chat screen (ISSUE 4): a THIN scaffold over the reusable
+/// E2EE chat screen: a THIN scaffold over the reusable
 /// [ChatThreadView] — the peer username (or the group name, which the inbox
 /// RPC serves as `peer_username` for group chats) in the [VHeaderBar]. The
 /// 1:1 thread and the group detail Chat tab mount the SAME [ChatThreadView];

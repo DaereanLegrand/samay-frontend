@@ -3,7 +3,7 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 part 'event.freezed.dart';
 part 'event.g.dart';
 
-/// Event lifecycle model (I-10). [featured] pins promoted events to the top
+/// Event lifecycle model. [featured] pins promoted events to the top
 /// of the feed (FEED/FEET, admin `samay events feature`); [coverUrl] is the
 /// event cover used by the feed cards and detail header.
 @freezed

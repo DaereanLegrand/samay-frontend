@@ -8,7 +8,7 @@ import 'package:samay/core/repositories/friends_repository.dart';
 import 'package:samay/core/repositories/repository_providers.dart';
 import 'package:samay/features/friends/providers/friends_providers.dart';
 
-/// The on-device friend-list cache contract (2026-08-29 user directive):
+/// The on-device friend-list cache contract:
 ///
 /// * Fetched ONCE in the BACKGROUND at app launch (once authenticated),
 ///   awaited, then persisted to the device DB (encrypted Hive box

@@ -74,7 +74,7 @@ Run the new test and confirm it fails for the *right* reason.
   explicitly asks for a full validation — e.g. before marking a phase
   complete or before a commit that touches broad surface area.
 - Stack-dependent suites when infra changed or backend behavior was touched:
-  `bash test/run_all_backend.sh` and `supabase db test` (need the Docker stack up).
+  `bash test/run_all_backend.sh` and `make supabase-db-test` (need the Docker stack up).
 - Baseline numbers live in `README.md` §Testing summary — update them in the
   same commit if your change moved them.
 - Update `docs/specs/steps/cross-references.md` statuses if a step's state changed.
@@ -231,7 +231,7 @@ bash test/opt-007-compose-static.sh
 make check        # dart analyze + flutter analyze + go vet + ports + secrets
 make test         # go test ./... + backend static opt gates
 bash test/run_all_backend.sh             # curl opt-tests (stack up)
-supabase db test                          # pgTAP (stack up)
+make supabase-db-test                     # pgTAP (stack up)
 bash tools/check_ports.sh --strict       # port-map gate
 bash tools/check_secrets.sh              # secrets gate (.env-based)
 ```

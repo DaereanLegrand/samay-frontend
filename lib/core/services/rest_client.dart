@@ -7,11 +7,11 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 /// Supported [op]s mirror the parameterized chain methods of
 /// [PostgrestFilterBuilder]: `eq`, `neq`, `gt`, `gte`, `lt`, `lte`, `like`,
 /// `ilike` and `in`. Values are always forwarded as typed method arguments —
-/// never string-interpolated into a query string (SEC-02/C-04 doctrine) — so
+/// never string-interpolated into a query string — so
 /// the wrapper is injection-safe by construction.
 typedef RestFilter = ({String column, String op, Object? value});
 
-/// Thin typed envelope over [SupabaseClient] (I-51).
+/// Thin typed envelope over [SupabaseClient].
 ///
 /// Every read returns typed models through a caller-supplied `fromJson`
 /// factory — freezed models expose a static `fromJson(Map<String, dynamic>)`
@@ -35,7 +35,7 @@ typedef RestFilter = ({String column, String op, Object? value});
 /// Services migrate one at a time by replacing their
 /// `client.from(...).select(...).eq(...)` chains with `rest.list/maybeSingle/
 /// single/insert/update/delete` calls; the `client` field stays on the service
-/// (auth accessor + legacy call sites) until the facade deletion (STOP-100).
+/// (auth accessor + compatibility call sites) until the facade deletion.
 /// Proof-of-migration services: [ConfigService] and [NotificationService].
 class RestClient {
   RestClient({required SupabaseClient client}) : _client = client;
@@ -154,7 +154,7 @@ class RestClient {
   }
 }
 
-/// Riverpod wiring (I-51): one [RestClient] per container over the canonical
+/// Riverpod wiring: one [RestClient] per container over the canonical
 /// [supabaseClientProvider] seam — tests override either provider with a
 /// fake/mock client.
 final restClientProvider = Provider<RestClient>((ref) {

@@ -17,7 +17,7 @@ String minigameGameName(AppLocalizations l10n, String? gameType) {
   };
 }
 
-/// The minigame name rendered LOWERCASE (2026-08-30 user directive): the
+/// The minigame name rendered LOWERCASE: the
 /// partida lobby's AppBar title is "verdad o reto" for Verdad o Reto, etc.
 /// [minigameGameName] resolves the localized label, then `.toLowerCase()`
 /// produces the wire-friendly casing in both locales ("Verdad o Reto" →
@@ -30,7 +30,7 @@ String minigameGameNameLower(AppLocalizations l10n, String? gameType) {
 ///
 /// Shared by the home-page games section (feed) and the group minigames hub
 /// (`minigames_screen.dart`) so the five games always render the same icon
-/// everywhere (plugged-UI consistency, 2026-08-13).
+/// everywhere.
 IconData minigameIcon(MinigameType type) => switch (type) {
   MinigameType.truthDare => Icons.psychology,
   MinigameType.drunkBottle => Icons.sports_bar,
@@ -51,7 +51,7 @@ enum MinigameAudience {
   both,
 }
 
-/// Per-game metadata for the dedicated landing page (2026-08-28): every
+/// Per-game metadata for the dedicated landing page: every
 /// [MinigameType] resolves a localized explanation and its [MinigameAudience]
 /// so the shared `MinigameDetailScreen` stays game-agnostic and new games
 /// only need a l10n pair + this switch arm.

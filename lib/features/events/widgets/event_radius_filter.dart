@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
+import 'package:samay/core/design_tokens/app_typography.dart';
 import 'package:samay/features/events/providers/event_radius_providers.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/v_chip.dart';
@@ -23,7 +24,7 @@ class RadiusFilterBar extends ConsumerWidget {
     final options = ref.watch(eventRadiusOptionsProvider);
     final selected = ref.watch(eventRadiusFilterProvider);
     return SizedBox(
-      // U-19 (§7.3): the chip row must grow with the text scale — a hard
+      // §7.3: the chip row must grow with the text scale — a hard
       // 36px height clips the chips at ≥1.5× (the `AppSpacing.scale` helper).
       height: AppSpacing.scale(context, 36),
       child: ListView.separated(
@@ -64,7 +65,7 @@ class EventRadiusHeader extends StatelessWidget {
         const SizedBox(height: AppSpacing.xs),
         Text(
           l10n.feedNoLocationNotice,
-          style: const TextStyle(color: AppColors.mutedStrong, fontSize: 12),
+          style: AppTypography.bodySmall.copyWith(color: AppColors.mutedStrong),
         ),
       ],
     );

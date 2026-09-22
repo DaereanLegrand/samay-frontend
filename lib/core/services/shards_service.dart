@@ -5,7 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 /// Thrown when [ShardsService.purchaseCosmetic] finds the user's
 /// `personal_shards` below the item's `shard_cost`. Typed so the cosmetics
-/// feature maps it to a friendly localized message (I-62).
+/// feature maps it to a friendly localized message.
 class InsufficientShardsException implements Exception {
   const InsufficientShardsException({
     required this.required,
@@ -31,9 +31,6 @@ int tierRank(String tier) => switch (tier) {
 };
 
 /// Shard economy: group donations, contributions, cosmetics and leaderboards.
-///
-/// Part of the ARC-05/CQ-01 decomposition of the former monolithic
-/// `SupabaseService` (I-11).
 class ShardsService {
   final SupabaseClient client;
   final ConfigService config;
@@ -81,7 +78,7 @@ class ShardsService {
   ) async {
     final res = await client
         .from('group_shard_contributions')
-        // OPT-009: join through the security-barrier user_search_view — the
+        // Join through the security-barrier user_search_view — the
         // raw `users` join is own-row-only under RLS, so contributor rows of
         // co-members silently vanished from the leaderboard/contributors.
         // `avatar_url` rides along (20260815000001) so the contributors

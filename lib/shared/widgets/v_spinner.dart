@@ -3,10 +3,9 @@ import 'package:samay/core/design_tokens/app_colors.dart';
 
 /// Loading spinner that honors the reduced-motion contract.
 ///
-/// Under OS-level reduced motion (`MediaQuery.disableAnimationsOf` — the
-/// app-wide forced override was removed 2026-09-03), the spinner renders a
-/// STATIC ring instead of the rotating [CircularProgressIndicator] — no
-/// indeterminate motion.
+/// Under OS-level reduced motion (`MediaQuery.disableAnimationsOf`), the
+/// spinner renders a STATIC ring instead of the rotating
+/// [CircularProgressIndicator] — no indeterminate motion.
 ///
 /// Outside reduced motion it is a plain white [CircularProgressIndicator]
 /// (white is the loading voice — see [VLoadingView]; the theme default

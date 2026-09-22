@@ -3,15 +3,15 @@ import 'package:samay/core/models/group_member.dart';
 import 'package:samay/core/services/group_service.dart';
 import 'package:samay/core/services/shards_service.dart';
 
-/// Groups domain repository (I-50): thin, typed facade over [GroupService]
+/// Groups domain repository: thin, typed facade over [GroupService]
 /// (memberships, invites, roles) and [ShardsService] (economy, leaderboard).
 ///
 /// Dependency direction doctrine (DEVELOPMENT-WORKFLOW §5): providers depend
 /// on repositories, repositories on services, services on the Supabase client.
 /// Feature providers must read this repository via `groupsRepositoryProvider`
-/// (Riverpod) instead of the legacy `SupabaseService.instance` singleton.
+/// (Riverpod) instead of the `SupabaseService.instance` singleton.
 ///
-/// Typed where the I-10 freezed models match the service shape ([Group],
+/// Typed where the freezed models match the service shape ([Group],
 /// [GroupMember]); raw `Map<String, dynamic>` rows are passed through where
 /// the service shapes are not modeled (`getGroupInvites` joins `groups` while
 /// the model maps `users`; `getLeaderboard` rank snapshots; aggregated
@@ -38,9 +38,15 @@ class GroupsRepository {
     return res == null ? null : Group.fromJson(res);
   }
 
+  /// Groups for [groupIds] in ONE read — the batch form of [getGroup].
+  Future<List<Group>> getGroups(List<String> groupIds) async {
+    final res = await _groups.getGroups(groupIds);
+    return [for (final g in res) Group.fromJson(g)];
+  }
+
   /// The chat id of [groupId]'s group chat (type='group', reference_id), or
   /// null when the chat row does not exist — the UI opens the group's E2EE
-  /// chat with this id (ISSUE 4 / D3d).
+  /// chat with this id.
   Future<String?> getGroupChatId(String groupId) =>
       _groups.getGroupChatId(groupId);
 
@@ -58,7 +64,7 @@ class GroupsRepository {
       _groups.getGroupInvites();
 
   /// The current user's own membership row for [groupId] (id/role/status),
-  /// or null when there is none — Map passthrough (ISSUE 2: the detail
+  /// or null when there is none — Map passthrough (the detail
   /// screen gates the invited state on it).
   Future<Map<String, dynamic>?> getMyMembership(String groupId) =>
       _groups.getMyMembership(groupId);

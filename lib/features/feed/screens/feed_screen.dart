@@ -29,8 +29,8 @@ import 'package:samay/shared/widgets/v_network_image.dart';
 ///
 /// No longer event-only: the timeline interleaves public events with the
 /// user's minigame matches, ordered by the most recent interaction. The
-/// games quick-access row and the Party Finder entry were removed
-/// (2026-09-20 revamp); the radius filter moved to the events tab.
+/// games quick-access row and the Party Finder entry are gone; the radius
+/// filter lives on the events tab.
 ///
 /// Monochrome: always-black screen; the 'samay' hero is a [VDisplayText]
 /// (verbatim copy, flat white Playfair glyphs); cards are sharp hairline
@@ -44,7 +44,7 @@ class FeedScreen extends ConsumerWidget {
     final feed = ref.watch(feedProvider);
 
     return Scaffold(
-      // LUXE directive #1: black background always — even outside the theme.
+      // Black background always — even outside the theme.
       backgroundColor: AppColors.discoBlack,
       body: RefreshIndicator(
         onRefresh: () => ref.read(feedProvider.notifier).refresh(),
@@ -258,7 +258,7 @@ class _EventCard extends StatelessWidget {
 }
 
 /// Height of a feed match card's content row. The avatar physics box is given
-/// the same height so the bubbles fill the whole card (2026-09-20 directive).
+/// the same height so the bubbles fill the whole card.
 const double _kMatchCardHeight = 128;
 
 /// A specific minigame match in the feed.

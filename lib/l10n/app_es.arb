@@ -693,7 +693,7 @@
   },
   "groupsMembersCountShort": "{count} miembros",
   "@groupsMembersCountShort": {
-    "description": "Group detail: member count without the cap (user directive 2026-09-15)",
+    "description": "Group detail: member count without the cap",
     "placeholders": {
       "count": {
         "type": "int"
@@ -916,11 +916,11 @@
   },
   "settingsSectionChat": "Chat",
   "@settingsSectionChat": {
-    "description": "Settings section header for the chat preferences group (2026-08-15)"
+    "description": "Settings section header for the chat preferences group"
   },
   "settingsSectionGames": "Juegos",
   "@settingsSectionGames": {
-    "description": "Settings section header for the minigames preferences group (2026-08-26)"
+    "description": "Settings section header for the minigames preferences group"
   },
   "settingsSectionAccount": "Cuenta",
   "@settingsSectionAccount": {
@@ -1353,6 +1353,30 @@
   "errorsNotFoundGeneric": "No encontrado.",
   "@errorsNotFoundGeneric": {
     "description": "User-facing generic not-found message"
+  },
+  "errorsEmailNotConfirmed": "Correo no confirmado. Revisa tu bandeja de entrada.",
+  "@errorsEmailNotConfirmed": {
+    "description": "User-facing unconfirmed-email message"
+  },
+  "errorsInvalidEmail": "Correo electrónico inválido.",
+  "@errorsInvalidEmail": {
+    "description": "User-facing invalid-email message"
+  },
+  "errorsSamePassword": "Debes elegir una contraseña diferente.",
+  "@errorsSamePassword": {
+    "description": "User-facing same-password message"
+  },
+  "errorsOtpDisabled": "El inicio de sesión con código está deshabilitado.",
+  "@errorsOtpDisabled": {
+    "description": "User-facing disabled-OTP message"
+  },
+  "errorsUserBanned": "Tu cuenta está suspendida.",
+  "@errorsUserBanned": {
+    "description": "User-facing banned-account message"
+  },
+  "errorsReauthenticationNeeded": "Vuelve a autenticarte para continuar.",
+  "@errorsReauthenticationNeeded": {
+    "description": "User-facing reauthentication-required message"
   },
   "errorsInvalidCredentials": "Correo o contraseña inválidos",
   "@errorsInvalidCredentials": {
@@ -2575,7 +2599,7 @@
   },
   "minigamesNewPartida": "Nueva partida",
   "@minigamesNewPartida": {
-    "description": "Create-partida flow: default capitalized form. The wizard AppBar title lowercases it (minigamesNewPartida.toLowerCase()) per the 2026-08-30 directive; the detail CTA uses it as-is."
+    "description": "Create-partida flow: default capitalized form. The wizard AppBar title lowercases it (minigamesNewPartida.toLowerCase()); the detail CTA uses it as-is."
   },
   "minigamesScopeLabel": "Partida",
   "@minigamesScopeLabel": {
@@ -3018,6 +3042,10 @@
   "@minigamesNoAnswers": {
     "description": "Neutral leaderboard card state for a player with no recorded answers"
   },
+  "minigamesLeaderboardSwipeHint": "Desliza para ver más rangos",
+  "@minigamesLeaderboardSwipeHint": {
+    "description": "First-run hint on the finished-game leaderboard that swiping reveals more rank cards"
+  },
   "minigamesErrorLoadGame": "No se pudo cargar el juego",
   "@minigamesErrorLoadGame": {
     "description": "Error state on the play screen when the game state fails to load"
@@ -3210,7 +3238,7 @@
   },
   "chatMessageInfo": "Información del mensaje",
   "@chatMessageInfo": {
-    "description": "Long-press action: show the own message's delivery/read status sheet (2026-08-17)"
+    "description": "Long-press action: show the own message's delivery/read status sheet"
   },
   "chatMessageInfoSent": "Enviado",
   "@chatMessageInfoSent": {
@@ -3423,7 +3451,7 @@
   },
   "minigamesInviteSentTag": "enviada",
   "@minigamesInviteSentTag": {
-    "description": "Lobby invite picker: compact right-aligned tag on a user who already holds a pending invite for this session (2026-09-02)"
+    "description": "Lobby invite picker: compact right-aligned tag on a user who already holds a pending invite for this session"
   },
   "minigamesInviteClosed": "Esta partida ya terminó. Ya no puedes aceptar la invitación.",
   "@minigamesInviteClosed": {
@@ -3449,10 +3477,6 @@
   "@minigamesGoToGame": {
     "description": "Button to navigate to an ongoing game from the lobby"
   },
-  "minigamesTwoLiesInstructions": "Escribe 3 afirmaciones sobre ti: 2 mentiras y 1 verdad. Marca cuál es la verdad.",
-  "@minigamesTwoLiesInstructions": {
-    "description": "Instruction for the subject composing their statements"
-  },
   "minigamesTwoLiesStatementNumber": "Afirmación {number}",
   "@minigamesTwoLiesStatementNumber": {
     "description": "Header for each statement input",
@@ -3460,21 +3484,17 @@
       "number": { "type": "int" }
     }
   },
-  "minigamesTwoLiesStatementPlaceholder": "Escribe aquí la afirmación...",
-  "@minigamesTwoLiesStatementPlaceholder": {
-    "description": "Placeholder for each statement text field"
-  },
-  "minigamesTwoLiesMarkTruth": "Esta es la verdad",
-  "@minigamesTwoLiesMarkTruth": {
-    "description": "Radio button / chip label marking a statement as the truth"
-  },
-  "minigamesTwoLiesSubmitStatements": "Enviar afirmaciones",
-  "@minigamesTwoLiesSubmitStatements": {
-    "description": "Submit button for the subject's statements"
+  "minigamesTwoLiesMarkTruthPrompt": "Marca cuál es la verdad",
+  "@minigamesTwoLiesMarkTruthPrompt": {
+    "description": "Snackbar prompt shown when submitting without marking the truth statement"
   },
   "minigamesTwoLiesGuessPrompt": "¿Cuál de estas 3 afirmaciones es LA VERDAD?",
   "@minigamesTwoLiesGuessPrompt": {
     "description": "Header for voters asking which statement is the truth"
+  },
+  "minigamesTwoLiesHoldHint": "Mantén pulsada una tarjeta para marcar tu verdad",
+  "@minigamesTwoLiesHoldHint": {
+    "description": "Hint telling the subject to long-press a card to mark their true statement"
   },
   "minigamesTwoLiesVoteConfirm": "Votar por esta opción",
   "@minigamesTwoLiesVoteConfirm": {
@@ -3510,10 +3530,6 @@
   "minigamesTwoLiesFillAllError": "Debes completar las 3 afirmaciones",
   "@minigamesTwoLiesFillAllError": {
     "description": "Validation error when some statements are empty"
-  },
-  "minigamesTwoLiesSelectTruthError": "Debes marcar exactamente una afirmación como verdad",
-  "@minigamesTwoLiesSelectTruthError": {
-    "description": "Validation error when truth index is not selected"
   },
   "codeAlreadyAttendedReturn": "Regresar",
   "@codeAlreadyAttendedReturn": {

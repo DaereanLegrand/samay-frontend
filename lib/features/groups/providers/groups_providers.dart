@@ -14,8 +14,8 @@ class MyGroupsNotifier extends AsyncNotifier<List<Group>>
     return groups;
   }
 
-  /// Re-runs [build] after creating/joining/leaving a group (finding SM-09).
-  /// R20: skipped while the last fetch is younger than [refreshThrottle].
+  /// Re-runs [build] after creating/joining/leaving a group.
+  /// skipped while the last fetch is younger than [refreshThrottle].
   Future<void> refresh() async {
     if (!shouldRefetch()) return;
     ref.invalidateSelf();
@@ -36,7 +36,7 @@ class GroupDetailNotifier
     return group;
   }
 
-  /// Re-runs [build] after group mutations (donations, transfers…). R20:
+  /// Re-runs [build] after group mutations (donations, transfers…). 
   /// skipped while the last fetch is younger than [refreshThrottle].
   Future<void> refresh() async {
     if (!shouldRefetch()) return;
@@ -59,7 +59,7 @@ class GroupMembersNotifier
     return members;
   }
 
-  /// Re-runs [build] after membership changes. R20: skipped while the last
+  /// Re-runs [build] after membership changes.  skipped while the last
   /// fetch is younger than [refreshThrottle].
   Future<void> refresh() async {
     if (!shouldRefetch()) return;
@@ -80,8 +80,8 @@ class GroupChatIdNotifier extends FamilyAsyncNotifier<String?, String>
     return chatId;
   }
 
-  /// Re-runs [build] after a group chat row is created (ISSUE 4 — the group
-  /// detail Chat tab retries on demand). R20: skipped while the last fetch
+  /// Re-runs [build] after a group chat row is created (the group
+  /// detail Chat tab retries on demand), skipped while the last fetch
   /// is younger than [refreshThrottle].
   Future<void> refresh() async {
     if (!shouldRefetch()) return;
@@ -91,36 +91,10 @@ class GroupChatIdNotifier extends FamilyAsyncNotifier<String?, String>
 
 /// The chat id of [groupId]'s group chat (`chats` row with
 /// `type = 'group'` + `reference_id = [groupId]`), or null while the row
-/// does not exist yet. ISSUE 4: the group detail Chat tab hosts
+/// does not exist yet. The group detail Chat tab hosts
 /// [ChatThreadView] with the resolved chat id.
 final groupChatIdProvider = AsyncNotifierProvider.family<GroupChatIdNotifier,
     String?, String>(GroupChatIdNotifier.new);
-
-class MyMembershipNotifier
-    extends FamilyAsyncNotifier<Map<String, dynamic>?, String>
-    with ThrottledRefresh {
-  @override
-  Future<Map<String, dynamic>?> build(String arg) async {
-    final membership =
-        await ref.read(groupsRepositoryProvider).getMyMembership(arg);
-    markFetched();
-    return membership;
-  }
-
-  /// Re-runs [build] after accepting/declining an invitation (ISSUE 2 — the
-  /// detail screen flips between the invited and active states). R20: skipped
-  /// while the last fetch is younger than [refreshThrottle].
-  Future<void> refresh() async {
-    if (!shouldRefetch()) return;
-    ref.invalidateSelf();
-  }
-}
-
-/// The current user's own group_members row for a group (id/role/status), or
-/// null when they are not a member. ISSUE 2: the detail screen gates the
-/// invited (pending) state on it.
-final myMembershipProvider = AsyncNotifierProvider.family<MyMembershipNotifier,
-    Map<String, dynamic>?, String>(MyMembershipNotifier.new);
 
 /// Aggregated per-user contributions plus the current user's own active
 /// total, for a group.
@@ -150,7 +124,7 @@ class GroupContributionsNotifier
     );
   }
 
-  /// Re-runs [build] after a donation. R20: skipped while the last fetch is
+  /// Re-runs [build] after a donation.  skipped while the last fetch is
   /// younger than [refreshThrottle].
   Future<void> refresh() async {
     if (!shouldRefetch()) return;
@@ -228,7 +202,7 @@ class GroupInvitesNotifier extends AsyncNotifier<List<Map<String, dynamic>>>
     return invites;
   }
 
-  /// Re-runs [build] after accepting/declining an invite. R20: skipped while
+  /// Re-runs [build] after accepting/declining an invite.  skipped while
   /// the last fetch is younger than [refreshThrottle].
   Future<void> refresh() async {
     if (!shouldRefetch()) return;
@@ -262,9 +236,15 @@ class LeaderboardNotifier
   Future<List<LeaderboardEntry>> build(String sizeTier) async {
     final repo = ref.read(groupsRepositoryProvider);
     final res = await repo.getLeaderboard(sizeTier);
+    final byId = {
+      for (final g in await repo.getGroups([
+        for (final r in res) r['group_id'] as String,
+      ]))
+        g.id: g,
+    };
     final entries = <LeaderboardEntry>[];
     for (final r in res) {
-      final g = await repo.getGroup(r['group_id'] as String);
+      final g = byId[r['group_id'] as String];
       if (g != null) {
         entries.add(
           LeaderboardEntry(
@@ -280,7 +260,7 @@ class LeaderboardNotifier
     return entries;
   }
 
-  /// Re-runs [build] (pull-to-refresh, finding SM-09). R20: skipped while the
+  /// Re-runs [build].  skipped while the
   /// last fetch is younger than [refreshThrottle].
   Future<void> refresh() async {
     if (!shouldRefetch()) return;

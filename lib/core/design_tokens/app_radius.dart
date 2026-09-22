@@ -33,11 +33,12 @@ abstract final class AppRadius {
   /// per §4.2 exceptions). Never for boxes.
   static const double full = 999;
 
-  /// The sanctioned rounded-surface exception (DESIGN.md §3, user directive
-  /// 2026-09-21): the Games-tab card deck renders its cards as a fanned
-  /// hand, and a card reads as a *card* only with a corner radius. Scoped to
-  /// the minigame deck (`games_deck.dart`) — not a general licence for
-  /// rounded boxes.
+  /// The sanctioned rounded-surface exception (DESIGN.md §3, user directives
+  /// 2026-09-21 / 2026-09-22): the Games-tab card deck renders its cards as a
+  /// fanned hand, and a card reads as a *card* only with a corner radius. The
+  /// 2 Lies statement cards use the same radius so an input reads as a card.
+  /// Scoped to minigame cards (`games_deck.dart`, the 2 Lies editor) — not a
+  /// general licence for rounded boxes.
   static const double card = 16;
 
   /// Convenience for `RoundedRectangleBorder(borderRadius:...)`.

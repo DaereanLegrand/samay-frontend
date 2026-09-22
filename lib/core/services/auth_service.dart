@@ -7,8 +7,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 /// Authentication and account lifecycle (signup, OTP, session, profile row).
 ///
-/// Part of the ARC-05/CQ-01 decomposition of the former monolithic
-/// `SupabaseService` (I-11). The auth-state *listener* stays in
+/// The auth-state *listener* stays in
 /// `AuthNotifier` (lib/core/providers/auth_provider.dart) — this service only
 /// exposes the stream for wiring.
 class AuthService {
@@ -55,7 +54,7 @@ class AuthService {
     await auth.signInWithOtp(email: email);
   }
 
-  /// Sends the password-recovery email (U-14 R3). GoTrue always answers
+  /// Sends the password-recovery email. GoTrue always answers
   /// success for a valid request shape — even when no account exists — so the
   /// screen never reveals which emails are registered.
   Future<void> resetPasswordForEmail(String email) async {
@@ -113,7 +112,7 @@ class AuthService {
   Future<void> softDeleteUser() async {
     final user = auth.currentUser;
     if (user == null) throw const UnauthorizedError();
-    // Profile-RPC lockdown (2026-08-25): clients hold NO table write
+    // Profile-RPC lockdown: clients hold NO table write
     // privilege — deletion goes through the SECURITY DEFINER RPC, which
     // tombstones the row server-side (deleted_at + deleted_user_ rename +
     // PII nulling).
@@ -124,7 +123,7 @@ class AuthService {
   ///
   /// Returns false when the row is absent (a legitimate pre-profile state).
   /// PostgREST/network errors PROPAGATE — the caller decides how to surface
-  /// them (no-fallback policy 2026-08-13: an error must never masquerade as
+  /// them (an error must never masquerade as
   /// "no profile" and silently change the flow).
   Future<bool> userHasProfile(String userId) async {
     final res = await client
@@ -136,7 +135,7 @@ class AuthService {
   }
 
   /// Creates the signed-in user's profile row via the create_my_profile RPC
-  /// (profile-RPC lockdown 2026-08-25: the table is INSERT-revoked for
+  /// (the table is INSERT-revoked for
   /// clients). The RPC sanitizes + validates the username server-side
   /// (client-side sanitize stays as defense in depth), enforces the DOB
   /// rules, applies the economy defaults, and writes the signup shard grant

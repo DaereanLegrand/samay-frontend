@@ -17,7 +17,7 @@ import 'package:samay/shared/widgets/state_views.dart';
 import 'package:samay/shared/widgets/v_badge.dart';
 import 'package:samay/shared/widgets/v_network_image.dart';
 
-/// The Grupos segment of the Social tab (redesign 2026-09-20).
+/// The Grupos segment of the Social tab.
 ///
 /// A row list: the text block (name + member count) leads on the left, the
 /// group cover (or an icon placeholder) sits right-aligned as a thumbnail.
@@ -109,7 +109,7 @@ const double _kGroupClusterHeight = 68;
 /// One group row: the name + member count on the left, the cover thumbnail
 /// (or an icon placeholder) right-aligned. Under the text block, the active
 /// members render as a downward-gravity bubble cluster of their profile pics
-/// (2026-09-20 directive). The whole row opens the group.
+///. The whole row opens the group.
 class _GroupRow extends ConsumerWidget {
   final Group group;
 
@@ -229,7 +229,7 @@ class _GroupThumbnail extends StatelessWidget {
 
   /// Slightly rounds + clips [child] and fades its LEFT edge to transparent so
   /// it dissolves into the black background (`BlendMode.dstIn` keeps the
-  /// opaque right side; only the left ~8% fades out — narrowed 2026-09-20).
+  /// opaque right side; only the left ~8% fades out).
   static Widget _dissolveLeftEdge(Widget child) {
     return ClipRRect(
       borderRadius: BorderRadius.circular(AppRadius.md),
@@ -238,7 +238,7 @@ class _GroupThumbnail extends StatelessWidget {
         shaderCallback: (rect) => const LinearGradient(
           begin: Alignment.centerLeft,
           end: Alignment.centerRight,
-          colors: [Colors.transparent, Colors.white, Colors.white],
+          colors: [AppColors.transparent, AppColors.white, AppColors.white],
           stops: [0, 0.08, 1],
         ).createShader(rect),
         child: child,

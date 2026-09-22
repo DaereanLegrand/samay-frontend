@@ -31,7 +31,7 @@ class _FriendsListScreenState extends ConsumerState<FriendsListScreen> {
     super.dispose();
   }
 
-  // U-26 (U-24 F3): an empty (non-null) username would RangeError on
+  // An empty (non-null) username would RangeError on
   // substring — the '?' initial fallback.
   String _initials(UserProfile user) {
     final username = user.username;
@@ -67,7 +67,7 @@ class _FriendsListScreenState extends ConsumerState<FriendsListScreen> {
                       onRetry: () => ref.invalidate(friendsListProvider),
                     ),
                     data: (friends) {
-                      // R13 (F3): pull-to-refresh on the list AND the empty
+                      // pull-to-refresh on the list AND the empty
                       // states — the whole surface reloads the provider.
                       Future<void> onRefresh() =>
                           ref.read(friendsListProvider.notifier).refresh();
@@ -123,10 +123,9 @@ class _FriendsListScreenState extends ConsumerState<FriendsListScreen> {
                                     imageUrl: u.avatarUrl,
                                   ),
                                   title: Text('@${u.username}'),
-                                  // §5.5 presence dot + §6.3 α pulse (U-18's
-                                  // `VStatusDot` — the pulse is gated by reduced
-                                  // motion; the dot itself stays the 8px
-                                  // statusOnline circle U-10 restyled). Cyan is
+                                  // The presence dot (`VStatusDot` — the pulse
+                                  // is gated by reduced motion; the dot itself
+                                  // stays the 8px statusOnline circle). Cyan is
                                   // semantic (presence), not a screen accent.
                                   trailing: const VStatusDot(),
                                   onTap: () => context.push(

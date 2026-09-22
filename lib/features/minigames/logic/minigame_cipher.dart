@@ -36,7 +36,7 @@ import 'package:samay/features/minigames/logic/minigame_engine.dart';
 /// / [getE2eeBundles]) inside the existing [E2eeSession] (X3DH + Double
 /// Ratchet) pairwise envelopes — the same synthetic pairwise namespace
 /// pattern as the chat group-key distribution. Each bundle payload is a JSON
-/// map `{ 'rounds': { '<round>': base64url(K_r), ... } }`.
+/// map `{ 'rounds': { '<round>': base64url(K_r),... } }`.
 ///
 /// - On accept, the host calls [distributeHistoryKeys] to hand the new player
 ///   the full `K_1..K_N` it has minted so far.
@@ -187,10 +187,8 @@ class MinigameCipher {
     await _cacheRoundKey(round, key);
 
     final history = <int, Uint8List>{};
-    // Include round 0 — the first playable round is round 0 (the game starts
-    // at round 0), so K_0 must be part of the delivered history (2026-08-31
-    // fix: the loop started at 1, so the round-0 key was never distributed and
-    // the subject could not encrypt/decrypt round 0).
+    // Include round 0 — the first playable round is round 0, so K_0 must be
+    // part of the delivered history.
     for (var r = 0; r <= round; r++) {
       final k = await _keyForRound(r);
       if (k != null) history[r] = k;
@@ -206,12 +204,10 @@ class MinigameCipher {
   }
 
   /// Mints `K_round` (random 32 bytes) if not already known, persists it
-  /// locally and distributes the FULL cumulative history `K_1..K_round` to
+  /// locally and distributes the FULL cumulative history `K_0..K_round` to
   /// [peerIds]. The host calls this at the countdown → playing transition so
   /// every participant holds the first round's key BEFORE any answer is
-  /// submitted (2026-08-31 on-device fix: previously the first key was only
-  /// minted on kick, so `K_0`/`K_1` never existed and the subject's submit
-  /// failed with "round key 0 missing").
+  /// submitted.
   ///
   /// Best-effort like [rotateRoundKey]: a peer with no published prekey is
   /// skipped (logged) and stays missing — retried on the next roster change.
@@ -229,8 +225,7 @@ class MinigameCipher {
     }
     final history = <int, Uint8List>{};
     // Include round 0 — the first playable round is round 0, so K_0 must be
-    // distributed (2026-08-31 fix: the loop started at 1 and round-0 keys
-    // never reached the roster).
+    // distributed.
     for (var r = 0; r <= round; r++) {
       final k = await _keyForRound(r);
       if (k != null) history[r] = k;
@@ -354,7 +349,7 @@ class MinigameCipher {
   }
 
   /// Encrypts the STRUCTURED answer payload — the author's [text] plus the
-  /// on-canvas [layout] (2026-09-15) — as ONE E2EE blob, so the server never
+  /// on-canvas [layout] — as ONE E2EE blob, so the server never
   /// sees the text OR where it was placed.
   Future<String> encryptAnswerPayload({
     required String text,
@@ -392,7 +387,7 @@ class MinigameCipher {
         );
       }
     } on FormatException {
-      // Not a structured payload — a legacy plain-text answer.
+      // Not a structured payload — a plain-text answer.
     }
     return MinigameAnswerPayload(text: clear);
   }
@@ -443,9 +438,7 @@ class MinigameCipher {
     return false;
   }
 
-  // ---------------------------------------------------------------------------
   // Internals
-  // ---------------------------------------------------------------------------
 
   Future<Uint8List> _ensureKeyForWrite(int round) async {
     var source = 'memory';
@@ -593,7 +586,7 @@ class MinigameCipher {
   /// store). Unlike [ensureRoundKey] it does NOT self-heal — a caller uses it
   /// to distinguish "the key is genuinely gone from this device" (a reinstall
   /// wiped the E2EE identity) from "the key exists but the decrypt failed"
-  /// (a tamper / auth failure). 206_minigame_key_request (2026-09-03).
+  /// (a tamper / auth failure). 206_minigame_key_request.
   Future<bool> hasRoundKey(int round) async {
     if (_roundKeys[round] != null) return true;
     final saved = await _sessionStore.loadSession(_roundStoreKey(round));
@@ -603,7 +596,7 @@ class MinigameCipher {
   }
 
   /// Re-wraps THIS device's full additive key history `K_0..K_<latest>` to
-  /// each [requesterId] (206_minigame_key_request, 2026-09-03): the requester
+  /// each [requesterId]: the requester
   /// lost its device-local E2EE state (fresh identity), so the host's old
   /// pairwise bundles can never decrypt on it. ANY participant who still
   /// holds the keys may serve — the ring is not host-dependent.
@@ -679,7 +672,7 @@ class MinigameCipher {
   }
 
   /// Serializes a round-key map into the bundle JSON:
-  /// `{ 'rounds': { '<round>': base64url(K_r), ... } }`.
+  /// `{ 'rounds': { '<round>': base64url(K_r),... } }`.
   String _encodeRoundKeys(Map<int, Uint8List> roundKeys) => jsonEncode({
     'rounds': {
       for (final entry in roundKeys.entries)

@@ -1,17 +1,17 @@
 import 'package:samay/core/models/user_profile.dart';
 import 'package:samay/core/services/user_service.dart';
 
-/// Own-profile repository (I-50): thin, typed facade over [UserService].
+/// Own-profile repository: thin, typed facade over [UserService].
 ///
 /// Dependency direction doctrine (DEVELOPMENT-WORKFLOW §5): providers depend
 /// on repositories, repositories on services, services on the Supabase client.
 /// The profile feature must read this repository via `profileRepositoryProvider`
-/// (Riverpod) instead of the legacy `SupabaseService.instance` singleton.
+/// (Riverpod) instead of the `SupabaseService.instance` singleton.
 ///
 /// The current user is resolved internally via [UserService.auth], so the
 /// repository API is self-contained (`updateBio(String)` instead of
-/// `updateBio(userId, bio)`) — mirroring the previous provider behavior of
-/// returning null / no-oping on an unauthenticated session.
+/// `updateBio(userId, bio)`) — returning null / no-oping on an unauthenticated
+/// session.
 class ProfileRepository {
   ProfileRepository({required UserService users}) : _users = users;
 

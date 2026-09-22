@@ -4,7 +4,7 @@ import 'package:samay/core/providers/service_providers.dart';
 import 'package:samay/core/utils/throttled_refresh.dart';
 import 'package:samay/features/social/services/social_service.dart';
 
-/// One row of the global user ranking (C-social, 2026-08-18).
+/// One row of the global user ranking.
 ///
 /// `profilePublic` rides the RPC so the CLIENT applies the censor rule:
 /// the username renders only when `ranking.anonymize_names` is OFF OR the
@@ -45,7 +45,7 @@ class UserRankingNotifier extends AsyncNotifier<List<UserRankingEntry>>
     return rows.map(UserRankingEntry.fromRow).toList(growable: false);
   }
 
-  /// Re-runs [build] (pull-to-refresh). R20: skipped while the last fetch is
+  /// Re-runs [build] (pull-to-refresh), skipped while the last fetch is
   /// younger than [refreshThrottle].
   Future<void> refresh() async {
     if (!shouldRefetch()) return;
@@ -59,7 +59,7 @@ final userRankingProvider = AsyncNotifierProvider<UserRankingNotifier,
 
 /// The caller's public-profile switch (`users.profile_public`, default
 /// false). Optimistic toggle with rollback; failures surface to the settings
-/// row (mirrors `ReadReceiptsNotifier`, 2026-08-15).
+/// row.
 class ProfilePublicNotifier extends AsyncNotifier<bool> {
   @override
   Future<bool> build() async {

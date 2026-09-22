@@ -86,10 +86,10 @@ class SupabaseE2eePrekeyService implements E2eePrekeyService {
   /// signed prekey (auto-rotating when older than 7 days, §5.2) and a
   /// one-time-prekey top-up back to the 100-batch size (§5.1).
   ///
-  /// **Identity change = full pool replacement (2026-08-16):** when the
+  /// **Identity change = full pool replacement:** when the
   /// server row's `identity_key` differs from the local identity (reinstall,
   /// account switch, sign-out/in wipe), the row's one-time prekeys belong to
-  /// the OLD identity — their private keys no longer exist on this device, so
+  /// the OLD identity — their private keys are gone from this device, so
   /// any peer that initiates with one produces a session this device can
   /// never decrypt (the live "Mensaje no descifrable" class). The pool is
   /// therefore REPLACED with a fresh batch (and the consumed markers reset)
@@ -184,7 +184,7 @@ class SupabaseE2eePrekeyService implements E2eePrekeyService {
     await publishIdentityBundle();
   }
 
-  /// Session-restore heal (§12.2 step 4, Signal model 2026-08-15): ensures
+  /// Session-restore heal: ensures
   /// the published bundle matches the LOCAL identity. Republishes when the
   /// own row is missing OR its `identity_key` differs from the local
   /// identity — the server record must always mirror the device material
@@ -209,9 +209,7 @@ class SupabaseE2eePrekeyService implements E2eePrekeyService {
     }
   }
 
-  // ---------------------------------------------------------------------------
   // Internals
-  // ---------------------------------------------------------------------------
 
   Future<Map<String, dynamic>?> _fetchOwnRow() async {
     final user = auth.currentUser;

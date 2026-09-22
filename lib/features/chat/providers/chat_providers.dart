@@ -14,13 +14,11 @@ import 'package:samay/crypto/interfaces.dart';
 
 /// Compile-time switch for E2EE key/session storage:
 /// `true` → flutter_secure_storage ([SecureE2eeKeyStore]/[SecureE2eeSessionStore],
-/// iOS Keychain / Android Keystore, §8.2 namespaces, allowBackup=false
-/// Android rule M-27 + iOS keychain entitlements M-28).
-/// `false` → in-memory stores (tests / the two-party harness only).
+/// iOS Keychain / Android Keystore, §8.2 namespaces, platform backup and
+/// entitlement hardening).
+/// `false` → in-memory stores (the two-party harness only).
 ///
-/// Production wiring landed 2026-08-13: the secure stores were already
-/// implemented, tested (test/crypto/e2ee_key_store_test.dart) and used by
-/// nothing except the flag; identity/prekey/ratchet material now survives
+/// With the secure stores, identity/prekey/ratchet material survives
 /// app restarts at rest, protected by the platform keystore (E2EE §8).
 const bool useSecureE2eeKeyStore = true;
 
@@ -36,8 +34,8 @@ final e2eeSessionStoreProvider = Provider<E2eeSessionStore>((ref) {
   return MemoryE2eeSessionStore();
 });
 
-/// Prekey publishing + bundle fetch against Supabase (migration
-/// 20260809000003 `e2ee_identity_keys` + `fetch_prekey_bundle` RPC).
+/// Prekey publishing + bundle fetch against Supabase
+/// (`e2ee_identity_keys` + `fetch_prekey_bundle` RPC).
 final e2eePrekeyServiceProvider = Provider<E2eePrekeyService>((ref) {
   return SupabaseE2eePrekeyService(
     client: ref.watch(supabaseClientProvider),
@@ -48,9 +46,9 @@ final e2eePrekeyServiceProvider = Provider<E2eePrekeyService>((ref) {
 /// The E2EE-wired [ChatService] used by the chat screen: encrypts on send,
 /// decrypts on load and on realtime delivery (E2EE §12.2 step 3). Decrypted
 /// history is persisted in the encrypted Hive `message_cache` box (Signal
-/// plaintext-store semantics, 2026-08-16) so a restart/update never turns
+/// plaintext-store semantics) so a restart/update never turns
 /// readable history into "Mensaje no descifrable" bubbles. The
-/// [GroupE2eeCipher] (Signal sender keys, ISSUE 4 / D3) rides the same
+/// [GroupE2eeCipher] rides the same
 /// key/session stores and enables the group-chat routing in the service.
 final chatE2eeServiceProvider = Provider<ChatService>((ref) {
   return ChatService(
@@ -82,12 +80,12 @@ final chatE2eeRepositoryProvider = Provider<ChatRepository>((ref) {
   );
 });
 
-/// The chat thread state (I-56 public API preserved): decrypted messages
+/// The chat thread state: decrypted messages
 /// (oldest first) plus the pagination flags the screen renders.
 ///
 /// Driven by (and a thin view over) the generic [PagedState] — the offset/
 /// hasMore/cap/dedupe machinery lives in `lib/core/utils/pagination.dart`
-/// (I-72), so every other paginated feature gets the same engine. Rows keep
+///, so every other paginated feature gets the same engine. Rows keep
 /// `Map<String, dynamic>` shape: the E2EE service does not select `chat_id`
 /// and adds the `decryptFailed` flag (see [ChatRepository]).
 class ChatMessagesState {
@@ -106,19 +104,18 @@ class ChatMessagesState {
           idOf: _messageIdOf,
         );
 
-  /// The paged core this state is a view over (I-72): all paging flags and
+  /// The paged core this state is a view over: all paging flags and
   /// the dedupe-by-id transformations live there.
   final PagedState<Map<String, dynamic>> _paged;
 
   /// Decrypted rows, oldest first, deterministically ordered by
   /// (`created_at`, `id`) — realtime arrivals are inserted at their sorted
   /// position ([insertMessage]) so a late-delivered older row can never sit
-  /// at the tail of the thread (the pre-fix disorder: `addMessage` appended).
+  /// at the tail of the thread.
   ///
-  /// `needsSession` rows (no local session — pre-reinstall history, Signal
-  /// reinstall semantics 2026-08-16) and `decryptDropped` rows (protocol
-  /// drops — replay/duplicate/stale identity, Signal silent-drop semantics
-  /// 2026-08-16) are HIDDEN: after a reinstall the thread starts fresh and
+  /// `needsSession` rows (no local session — pre-reinstall history) and
+  /// `decryptDropped` rows (protocol drops — replay/duplicate/stale
+  /// identity) are HIDDEN: after a reinstall the thread starts fresh and
   /// dropped rows never render. They remain in the paged core (pagination
   /// math counts raw rows; the service deletes the needsSession class
   /// server-side) — only the display surface filters them.
@@ -226,7 +223,7 @@ class ChatMessagesState {
     return copyWith(messages: updated);
   }
 
-  /// The per-member read receipts of [row] (20260817000006): the embedded
+  /// The per-member read receipts of [row]: the embedded
   /// `message_reads(user_id, read_at)` list, or an empty list when absent
   /// (1:1 rows, plaintext service, or old servers). Each entry is a
   /// `{user_id, read_at}` map — readers are OTHER members only (the RPC
@@ -238,12 +235,12 @@ class ChatMessagesState {
   }
 
   /// True when EVERY other member of a group has read [row] — the group
-  /// blue-check gate (the ISSUE fix: blue ticks must require all readers,
-  /// not just the first one). [otherMemberIds] is the CURRENT active
+  /// blue-check gate (blue ticks require all readers, not just the first).
+  /// [otherMemberIds] is the CURRENT active
   /// roster's other-member ids: the readers must be a SUPERSET of them —
-  /// a departed member's stale receipt can never satisfy the check (the
-  /// verifier fix, 2026-08-17: reader count alone false-blues when a leaver
-  /// read before leaving). Conservative: an unknown/empty roster never
+  /// a departed member's stale receipt cannot satisfy the check (reader
+  /// count alone would false-blue when a leaver read before leaving).
+  /// Conservative: an unknown/empty roster never
   /// claims all-read (grey ticks — honest under stale data).
   static bool isReadByAll(Map<String, dynamic> row, Set<String> otherMemberIds) {
     if (otherMemberIds.isEmpty) return false;
@@ -306,12 +303,12 @@ class ChatMessagesState {
 
 class ChatMessagesNotifier
     extends FamilyAsyncNotifier<ChatMessagesState, String> {
-  /// The paging engine for this chat (I-72): fetch seam, dedupe key, page
+  /// The paging engine for this chat: fetch seam, dedupe key, page
   /// size and cap. Created fresh in every [build] so a (re)load always
   /// restarts from the first page.
   late PageLoader<Map<String, dynamic>> _loader;
 
-  /// The E2EE seam (I-50): every message path goes through the injected
+  /// The E2EE seam: every message path goes through the injected
   /// [ChatService] — encrypt-on-send, decrypt-on-load. The provider must
   /// never touch the raw Supabase client (pinned by a `verifyNever` test in
   /// `test/features/chat/chat_pagination_test.dart`).
@@ -388,8 +385,8 @@ class ChatMessagesNotifier
 
   /// Appends a realtime-delivered row at its sorted position, deduplicated
   /// by `id` (dispose-safe subscription wiring lives in the chat screen).
-  /// Sorting is the disorder fix: a late-delivered older row can no longer
-  /// sit at the tail of the thread.
+  /// Sorting keeps a late-delivered older row from sitting at the tail of
+  /// the thread.
   void addMessage(Map<String, dynamic> row) {
     final id = row['id'];
     if (id is! String) return;
@@ -412,7 +409,7 @@ class ChatMessagesNotifier
     state = AsyncData(current.markRead(id, readAt));
   }
 
-  /// Live per-member read flip in a GROUP chat (20260817000006): one
+  /// Live per-member read flip in a GROUP chat: one
   /// (message_id, user_id, read_at) receipt from the `message-reads`
   /// channel is merged into the row's read set — the sender's ticks flip
   /// blue only when EVERY other member has read.
@@ -422,7 +419,7 @@ class ChatMessagesNotifier
     state = AsyncData(current.markMessageRead(messageId, userId, readAt));
   }
 
-  /// Delete-for-everyone (migration 20260815000006): the server verifies the
+  /// Delete-for-everyone: the server verifies the
   /// sender + the 5-minute window with ITS clock; on success the row leaves
   /// the thread here and the peer's open thread removes it live via the
   /// realtime DELETE channel. The returned [MessageDeleteOutcome] drives the
@@ -465,7 +462,6 @@ class ChatMessagesNotifier
   /// by id — realtime rows may overlap page boundaries) and recomputes
   /// [ChatMessagesState.hasMore].
   ///
-  /// ## Message cap (CHMC/TRIG)
   ///
   /// The DB trigger caps the rolling window at `chat.message_cap` (1000):
   /// pagination must never exceed it, so `hasMore` flips false once the
@@ -496,8 +492,8 @@ class ChatMessagesNotifier
 final chatMessagesProvider = AsyncNotifierProvider.family<ChatMessagesNotifier,
     ChatMessagesState, String>(ChatMessagesNotifier.new);
 
-/// A chat in the caller's inbox (RPC `get_chat_inbox`, migration
-/// 20260815000004): peer identity, last message (E2EE envelope — the
+/// A chat in the caller's inbox (RPC `get_chat_inbox`): peer identity, last
+/// message (E2EE envelope — the
 /// preview is decrypted client-side via [ChatRepository.decryptInboxRow])
 /// and the unread count (messages from the peer newer than the caller's
 /// read watermark).
@@ -525,8 +521,8 @@ class ChatInboxItem {
   final String chatId;
   final String type;
 
-  /// The RPC row's `reference_id` — the group id for group chats (ISSUE 4:
-  /// the chat screen uses it to open a group thread with sender labels).
+  /// The RPC row's `reference_id` — the group id for group chats (the chat
+  /// screen uses it to open a group thread with sender labels).
   final String? referenceId;
 
   final String? peerId;
@@ -538,10 +534,10 @@ class ChatInboxItem {
   final DateTime? lastMessageAt;
 
   /// The chat's most recent activity timestamp (a real message OR a minigame
-  /// group notice, 210/P1) — the row's sort/time label.
+  /// group notice) — the row's sort/time label.
   final DateTime? lastActivityAt;
 
-  /// `message` | `minigame_notice` (210/P1). When `minigame_notice`, the tile
+  /// `message` | `minigame_notice`. When `minigame_notice`, the tile
   /// previews the minigame notice instead of the (empty) message preview.
   final String? lastActivityKind;
   final String? lastNoticeSessionId;
@@ -655,7 +651,7 @@ final chatUnreadCountProvider = Provider<int>((ref) {
 });
 
 /// The caller's read-receipts privacy switch (`users.read_receipts_enabled`,
-/// default ON — WhatsApp's "read receipts" setting, 2026-08-15).
+/// default ON — WhatsApp's "read receipts" setting).
 ///
 /// When OFF the reader's device stops calling `mark_messages_read`, so no
 /// `read_at` is ever stamped and the peer never sees blue checks. The reader

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 /// Pull-to-refresh wrapper for content that is shorter than the viewport —
-/// the R13 (F3) "every list refreshes, including empty states" pattern.
+/// every list refreshes, including empty states.
 ///
 /// Wraps [child] in a `RefreshIndicator` over an always-scrollable view that
 /// fills the available height, so a centered `VEmptyView` (or any short

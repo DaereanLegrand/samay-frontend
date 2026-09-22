@@ -16,7 +16,7 @@ Future<void> showAppError(
 }) async {
   final l10n = AppLocalizations.of(context);
   final appError = error.toAppError();
-  final mapped = appError.message.trim();
+  final mapped = appError.localize(l10n).trim();
   final message = mapped.isNotEmpty ? mapped : (fallback ?? l10n.errorsGeneric);
   final code = appError.code;
   if (!context.mounted) return;
@@ -70,8 +70,8 @@ Future<void> showAppError(
             const Icon(
               Icons.error_outline,
               size: 18,
-              // Error semantics — the one place pink may appear (LUXE
-              // directive 2026-08-12): AppColors.error aliases glowPink.
+              // Error semantics — the one place pink may appear:
+              // AppColors.error aliases glowPink.
               color: AppColors.error,
             ),
             const SizedBox(width: AppSpacing.md),

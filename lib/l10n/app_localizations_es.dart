@@ -1015,6 +1015,27 @@ class AppLocalizationsEs extends AppLocalizations {
   String get errorsNotFoundGeneric => 'No encontrado.';
 
   @override
+  String get errorsEmailNotConfirmed =>
+      'Correo no confirmado. Revisa tu bandeja de entrada.';
+
+  @override
+  String get errorsInvalidEmail => 'Correo electrónico inválido.';
+
+  @override
+  String get errorsSamePassword => 'Debes elegir una contraseña diferente.';
+
+  @override
+  String get errorsOtpDisabled =>
+      'El inicio de sesión con código está deshabilitado.';
+
+  @override
+  String get errorsUserBanned => 'Tu cuenta está suspendida.';
+
+  @override
+  String get errorsReauthenticationNeeded =>
+      'Vuelve a autenticarte para continuar.';
+
+  @override
   String get errorsInvalidCredentials => 'Correo o contraseña inválidos';
 
   @override
@@ -2333,6 +2354,9 @@ class AppLocalizationsEs extends AppLocalizations {
   String get minigamesNoAnswers => 'Sin respuestas registradas';
 
   @override
+  String get minigamesLeaderboardSwipeHint => 'Desliza para ver más rangos';
+
+  @override
   String get minigamesErrorLoadGame => 'No se pudo cargar el juego';
 
   @override
@@ -2657,27 +2681,20 @@ class AppLocalizationsEs extends AppLocalizations {
   String get minigamesGoToGame => 'Ir a la partida';
 
   @override
-  String get minigamesTwoLiesInstructions =>
-      'Escribe 3 afirmaciones sobre ti: 2 mentiras y 1 verdad. Marca cuál es la verdad.';
-
-  @override
   String minigamesTwoLiesStatementNumber(int number) {
     return 'Afirmación $number';
   }
 
   @override
-  String get minigamesTwoLiesStatementPlaceholder =>
-      'Escribe aquí la afirmación...';
-
-  @override
-  String get minigamesTwoLiesMarkTruth => 'Esta es la verdad';
-
-  @override
-  String get minigamesTwoLiesSubmitStatements => 'Enviar afirmaciones';
+  String get minigamesTwoLiesMarkTruthPrompt => 'Marca cuál es la verdad';
 
   @override
   String get minigamesTwoLiesGuessPrompt =>
       '¿Cuál de estas 3 afirmaciones es LA VERDAD?';
+
+  @override
+  String get minigamesTwoLiesHoldHint =>
+      'Mantén pulsada una tarjeta para marcar tu verdad';
 
   @override
   String get minigamesTwoLiesVoteConfirm => 'Votar por esta opción';
@@ -2704,10 +2721,6 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get minigamesTwoLiesFillAllError =>
       'Debes completar las 3 afirmaciones';
-
-  @override
-  String get minigamesTwoLiesSelectTruthError =>
-      'Debes marcar exactamente una afirmación como verdad';
 
   @override
   String get codeAlreadyAttendedReturn => 'Regresar';

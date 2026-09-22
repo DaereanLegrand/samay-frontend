@@ -3,6 +3,7 @@ import 'dart:ui' show ImageFilter;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
+import 'package:samay/core/design_tokens/app_radius.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/design_tokens/app_typography.dart';
 import 'package:samay/core/extensions/error_mapper.dart';
@@ -51,7 +52,7 @@ class FinishedLeaderboard extends ConsumerWidget {
   final String sessionId;
 
   /// When given, the carousel opens focused on this participant's card
-  /// (TODO F: tapping a player in the finished session detail lands here).
+  /// (tapping a player in the finished session detail lands here).
   final String? initialParticipantId;
 
   @override
@@ -148,15 +149,28 @@ class _LeaderboardCarouselState extends State<LeaderboardCarousel> {
 
   /// The vertical answer page each participant was last viewing. Lives only as
   /// long as this carousel (the leaderboard screen): leaving and re-entering
-  /// resets everyone to their first answer, per the 2026-09-15 directive.
+  /// resets everyone to their first answer.
   final Map<String, int> _answerIndexByParticipant = {};
+
+  /// The first-run swipe hint is shown until the player changes rank page or
+  /// taps it away.
+  late bool _swipeHintVisible;
 
   @override
   void initState() {
     super.initState();
     _index = _firstIndexOf(widget.initialParticipantId);
-    _controller = PageController(initialPage: _index);
+    _controller = PageController(
+      initialPage: _index,
+      // A single rank has no neighbour to peek — keep it full-bleed.
+      viewportFraction: widget.rows.length > 1 ? _viewportFraction : 1.0,
+    );
+    _swipeHintVisible = widget.rows.length > 1;
   }
+
+  /// Each page spans most of the viewport so the neighbouring rank card stays
+  /// partially visible at rest — the resting affordance that more ranks exist.
+  static const double _viewportFraction = 0.86;
 
   /// The page index of [participantId] (0 / rank 1 when absent or unknown).
   int _firstIndexOf(String? participantId) {
@@ -189,9 +203,10 @@ class _LeaderboardCarouselState extends State<LeaderboardCarousel> {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        // FULL SCREEN: every page fills the whole viewport (no neighbour peek,
-        // no card frame), so a picture answer is edge-to-edge. The height falls
-        // back to a sane value only for a transient degenerate layout pass.
+        // Every page spans most of the viewport with a resting peek of the
+        // neighbouring card; a picture answer fills its own page edge-to-edge.
+        // The height falls back to a sane value only for a transient
+        // degenerate layout pass.
         final cardHeight = constraints.maxHeight.isFinite
             ? constraints.maxHeight
             : 620.0;
@@ -202,7 +217,10 @@ class _LeaderboardCarouselState extends State<LeaderboardCarousel> {
             child: PageView.builder(
               controller: _controller,
               itemCount: rows.length,
-              onPageChanged: (i) => setState(() => _index = i),
+              onPageChanged: (i) => setState(() {
+                _index = i;
+                _swipeHintVisible = false;
+              }),
               itemBuilder: (context, i) {
                 final row = rows[i];
                 return AnimatedBuilder(
@@ -231,12 +249,10 @@ class _LeaderboardCarouselState extends State<LeaderboardCarousel> {
                       child: child,
                     );
                     // ALWAYS wrap in ImageFiltered, even at sigma 0. Keeping the
-                    // element-tree shape CONSTANT is load-bearing: the old
-                    // `if (blur < 0.05)` branch inserted the wrapper the instant
-                    // a horizontal drag began, which reparented the
-                    // RepaintBoundary/_RankCard, destroyed `_RankCardState` and
-                    // made its vertical pager snap back to the first answer
-                    // mid-swipe.
+                    // element-tree shape constant is load-bearing: inserting
+                    // the wrapper mid-drag would reparent the RepaintBoundary/
+                    // _RankCard, destroy `_RankCardState`, and snap its vertical
+                    // pager back to the first answer mid-swipe.
                     return Opacity(
                       opacity: opacity,
                       child: ImageFiltered(
@@ -265,6 +281,12 @@ class _LeaderboardCarouselState extends State<LeaderboardCarousel> {
                       selected: _index == i,
                       replayToken: _replayToken,
                       onTap: () => _select(i),
+                      onSelectRank: _select,
+                      showSwipeHint: _swipeHintVisible && _index == i,
+                      onDismissSwipeHint: () =>
+                          setState(() => _swipeHintVisible = false),
+                      rankIndex: i,
+                      rankCount: rows.length,
                       initialAnswerIndex:
                           _answerIndexByParticipant[row.participantId] ?? 0,
                       onAnswerChanged: (i) =>
@@ -299,6 +321,11 @@ class _RankCard extends StatefulWidget {
     required this.selected,
     required this.replayToken,
     required this.onTap,
+    required this.onSelectRank,
+    required this.showSwipeHint,
+    required this.onDismissSwipeHint,
+    required this.rankIndex,
+    required this.rankCount,
     required this.initialAnswerIndex,
     required this.onAnswerChanged,
   });
@@ -312,6 +339,20 @@ class _RankCard extends StatefulWidget {
   final bool selected;
   final int replayToken;
   final VoidCallback onTap;
+
+  /// Jumps the carousel to a rank page (the pager chevrons).
+  final ValueChanged<int> onSelectRank;
+
+  /// Whether the first-run swipe hint is visible on this card.
+  final bool showSwipeHint;
+
+  /// Dismisses the first-run swipe hint.
+  final VoidCallback onDismissSwipeHint;
+
+  /// This card's position in the horizontal ranking (0-based) and the total
+  /// number of ranked participants — drives the rank page indicator.
+  final int rankIndex;
+  final int rankCount;
 
   /// The vertical answer page to open on (remembered by the carousel for the
   /// lifetime of the leaderboard screen).
@@ -425,16 +466,14 @@ class _RankCardState extends State<_RankCard> {
           child: Stack(
             fit: StackFit.expand,
             children: [
-              // LAYER 1 — the answers. Full-card pages, so a picture is
-              // full-bleed (behind the pinned prompt AND footer) and translates
-              // WITH the finger via the stock PageView physics.
+              // The answers, paged full-card so a picture is full-bleed
+              // (behind the pinned prompt AND footer) and translates with the
+              // finger via the stock PageView physics.
               if (widget.answers.isNotEmpty) _buildPager(l10n),
 
-              // LAYER 2 — everything decorative, under ONE IgnorePointer. This
-              // is load-bearing: a gradient `DecoratedBox` hit-tests TRUE over
-              // its whole rectangle (`BoxDecoration.hitTest`), so an unignored
-              // scrim would swallow the vertical drag and the pager would never
-              // move.
+              // Decorative-only layer: a gradient `DecoratedBox` hit-tests TRUE
+              // over its whole rectangle (`BoxDecoration.hitTest`), so the
+              // scrims must be ignored or they swallow the vertical drag.
               IgnorePointer(
                 child: Stack(
                   fit: StackFit.expand,
@@ -446,50 +485,28 @@ class _RankCardState extends State<_RankCard> {
                             begin: Alignment.topCenter,
                             end: Alignment.bottomCenter,
                             colors: [
-                              Colors.transparent,
-                              Colors.transparent,
-                              Color(0xFF000000),
+                              AppColors.transparent,
+                              AppColors.transparent,
+                              AppColors.discoBlack,
                             ],
                             stops: [0, 0.55, 1],
                           ),
                         ),
                       ),
-                      const DecoratedBox(
+                      DecoratedBox(
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
                             begin: Alignment.topCenter,
                             end: Alignment.bottomCenter,
-                            colors: [Color(0xCC000000), Colors.transparent],
-                            stops: [0, 0.3],
+                            colors: [
+                              AppColors.discoBlack.withValues(alpha: 0.8),
+                              AppColors.transparent,
+                            ],
+                            stops: const [0, 0.3],
                           ),
                         ),
                       ),
                     ],
-                    SafeArea(
-                      child: Padding(
-                        padding: insets,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            if (_current != null)
-                              _PromptHeader(answer: _current!, l10n: l10n),
-                            const Spacer(),
-                            if (_current?.reactions.isNotEmpty ?? false) ...[
-                              _ReactionTally(reactions: _current!.reactions),
-                              const SizedBox(height: AppSpacing.md),
-                            ],
-                            _CardFooter(
-                              rank: widget.row.rank,
-                              rankColor: _rankColor,
-                              name: widget.name,
-                              score: widget.row.score,
-                              prize: widget.row.prize,
-                              l10n: l10n,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
                     if (widget.answers.length > 1)
                       Positioned(
                         top: 0,
@@ -504,8 +521,67 @@ class _RankCardState extends State<_RankCard> {
                 ),
               ),
 
-              // LAYER 3 — content state (loading / error / empty). Interactive,
-              // so it is NOT inside the IgnorePointer layer — the retry button
+              // Pinned chrome: the prompt/reactions/footer are decorative and
+              // ignored so vertical drags reach the pager; the swipe hint and
+              // the rank pager stay interactive.
+              SafeArea(
+                child: Padding(
+                  padding: insets,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      if (_current != null)
+                        IgnorePointer(
+                          child: _PromptHeader(
+                            answer: _current!,
+                            l10n: l10n,
+                          ),
+                        ),
+                      const Spacer(),
+                      if (_current?.reactions.isNotEmpty ?? false)
+                        IgnorePointer(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              _ReactionTally(reactions: _current!.reactions),
+                              const SizedBox(height: AppSpacing.md),
+                            ],
+                          ),
+                        ),
+                      IgnorePointer(
+                        child: _CardFooter(
+                          rank: widget.row.rank,
+                          rankColor: _rankColor,
+                          name: widget.name,
+                          score: widget.row.score,
+                          prize: widget.row.prize,
+                          l10n: l10n,
+                        ),
+                      ),
+                      if (widget.showSwipeHint) ...[
+                        const SizedBox(height: AppSpacing.sm),
+                        _SwipeHint(onDismiss: widget.onDismissSwipeHint),
+                      ],
+                      if (widget.rankCount > 1) ...[
+                        const SizedBox(height: AppSpacing.md),
+                        _RankPager(
+                          index: widget.rankIndex,
+                          count: widget.rankCount,
+                          onPrevious: widget.rankIndex > 0
+                              ? () => widget.onSelectRank(widget.rankIndex - 1)
+                              : null,
+                          onNext: widget.rankIndex < widget.rankCount - 1
+                              ? () => widget.onSelectRank(widget.rankIndex + 1)
+                              : null,
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+
+              // Content state (loading / error / empty) stays interactive, so
+              // it is NOT inside the IgnorePointer layer — the retry button
               // must stay tappable.
               if (widget.answers.isEmpty)
                 Padding(padding: insets, child: _buildStatePanel(l10n)),
@@ -554,9 +630,9 @@ class _RankCardState extends State<_RankCard> {
     );
   }
 
-  /// Tap-to-expand for an answer picture (2026-09-17 directive): only the
-  /// SELECTED card's CURRENT page opens the full-screen viewer, so an
-  /// unselected (or off-screen) card still gets the carousel's own tap.
+  /// Tap-to-expand for an answer picture: only the SELECTED card's CURRENT
+  /// page opens the full-screen viewer, so an unselected (or off-screen) card
+  /// still gets the carousel's own tap.
   VoidCallback? _imageTapFor(
     MinigamePlayerAnswer answer, {
     bool currentPage = true,
@@ -585,7 +661,9 @@ class _RankCardState extends State<_RankCard> {
       child: Text(
         l10n.minigamesNoAnswers,
         textAlign: TextAlign.center,
-        style: const TextStyle(color: AppColors.mutedStrong, fontSize: 13),
+        style: Theme.of(
+          context,
+        ).textTheme.bodySmall?.copyWith(color: AppColors.mutedStrong),
       ),
     );
   }
@@ -614,6 +692,9 @@ class _CardFooter extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final metaStyle = Theme.of(
+      context,
+    ).textTheme.bodySmall?.copyWith(color: AppColors.mutedStrong);
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
@@ -624,16 +705,19 @@ class _CardFooter extends StatelessWidget {
           width: 64,
           child: Align(
             alignment: Alignment.centerRight,
-            child: Text(
-              '$rank',
-              style: TextStyle(
-                fontFamily: AppTypography.playfair,
-                fontSize: 58,
-                fontWeight: FontWeight.w700,
-                // Playfair's ascender/descender padding makes the glyph read
-                // smaller; a tight line height lets the numeral's cap dominate.
-                height: 0.9,
-                color: rankColor,
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerRight,
+              child: Text(
+                '$rank',
+                style: AppTypography.displayLarge.copyWith(
+                  // Playfair's ascender/descender padding makes the glyph read
+                  // smaller; a tight line height lets the numeral's cap
+                  // dominate.
+                  fontSize: 58,
+                  height: 0.9,
+                  color: rankColor,
+                ),
               ),
             ),
           ),
@@ -659,21 +743,14 @@ class _CardFooter extends StatelessWidget {
                       l10n.minigamesPointsAmount(score),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: AppColors.mutedStrong,
-                        fontSize: 13,
-                      ),
+                      style: metaStyle,
                     ),
                   ),
-                  const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: AppSpacing.sm),
-                    child: Text(
-                      '·',
-                      style: TextStyle(
-                        color: AppColors.mutedStrong,
-                        fontSize: 13,
-                      ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.sm,
                     ),
+                    child: Text('·', style: metaStyle),
                   ),
                   const VShardIcon(size: 13),
                   const SizedBox(width: AppSpacing.xs),
@@ -682,10 +759,7 @@ class _CardFooter extends StatelessWidget {
                       l10n.minigamesPrizeAmount(prize),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: AppColors.mutedStrong,
-                        fontSize: 13,
-                      ),
+                      style: metaStyle,
                     ),
                   ),
                 ],
@@ -694,6 +768,159 @@ class _CardFooter extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// Horizontal rank indicator pinned to the card floor: the current position
+/// over the total, flanked by tappable chevrons that step to the previous/next
+/// rank page, over a hairline track filled to the current position. This is the
+/// axis-correct affordance for the horizontally-paged carousel — the vertical
+/// [PageView] is signalled separately by [_AnswerRail]. Hidden when there is a
+/// single rank.
+class _RankPager extends StatelessWidget {
+  const _RankPager({
+    required this.index,
+    required this.count,
+    required this.onPrevious,
+    required this.onNext,
+  });
+
+  final int index;
+  final int count;
+
+  /// Steps to the previous/next rank page; null at either end.
+  final VoidCallback? onPrevious;
+  final VoidCallback? onNext;
+
+  @override
+  Widget build(BuildContext context) {
+    final hasPrev = index > 0;
+    final hasNext = index < count - 1;
+    return Semantics(
+      label: '${index + 1} / $count',
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              _RankChevron(icon: Icons.chevron_left, onTap: onPrevious),
+              const SizedBox(width: AppSpacing.sm),
+              IgnorePointer(
+                child: Text(
+                  '${index + 1} / $count',
+                  style: AppTypography.labelMedium.copyWith(
+                    color: hasPrev || hasNext
+                        ? AppColors.mutedStrong
+                        : AppColors.muted,
+                  ),
+                ),
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              _RankChevron(icon: Icons.chevron_right, onTap: onNext),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          IgnorePointer(
+            child: SizedBox(
+              width: 96,
+              height: 2,
+              child: ColoredBox(
+                color: AppColors.hairline,
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: FractionallySizedBox(
+                    widthFactor: (index + 1) / count,
+                    heightFactor: 1,
+                    child: const ColoredBox(color: AppColors.white),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// A single pager chevron: a >=44pt tap target that steps one rank page.
+/// Dimmed and inert at either end of the ranking.
+class _RankChevron extends StatelessWidget {
+  const _RankChevron({required this.icon, required this.onTap});
+
+  final IconData icon;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final enabled = onTap != null;
+    final l10n = MaterialLocalizations.of(context);
+    return SizedBox(
+      width: 44,
+      height: 44,
+      child: Semantics(
+        button: true,
+        enabled: enabled,
+        label: icon == Icons.chevron_left
+            ? l10n.previousPageTooltip
+            : l10n.nextPageTooltip,
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: onTap,
+          child: Icon(
+            icon,
+            size: 20,
+            color: enabled ? AppColors.white : AppColors.muted,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// First-run affordance for the horizontally-paged rank carousel: a one-line
+/// hint that swiping reveals more ranks. Dismisses on the first page change or
+/// a tap.
+class _SwipeHint extends StatelessWidget {
+  const _SwipeHint({required this.onDismiss});
+
+  final VoidCallback onDismiss;
+
+  @override
+  Widget build(BuildContext context) {
+    final message = AppLocalizations.of(context).minigamesLeaderboardSwipeHint;
+    return Semantics(
+      button: true,
+      label: message,
+      excludeSemantics: true,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onDismiss,
+        child: SizedBox(
+          height: 44,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(
+                Icons.swipe,
+                size: 16,
+                color: AppColors.mutedStrong,
+              ),
+              const SizedBox(width: AppSpacing.xs),
+              Text(
+                message,
+                textAlign: TextAlign.center,
+                style: AppTypography.labelSmall.copyWith(
+                  color: AppColors.mutedStrong,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
@@ -714,9 +941,8 @@ class _PromptHeader extends StatelessWidget {
       return Text(
         l10n.minigamesPromptLoadError,
         textAlign: TextAlign.center,
-        style: const TextStyle(
+        style: Theme.of(context).textTheme.bodySmall?.copyWith(
           color: AppColors.badgeRed,
-          fontSize: 13,
           fontWeight: FontWeight.w600,
           letterSpacing: 0.5,
         ),
@@ -732,11 +958,8 @@ class _PromptHeader extends StatelessWidget {
           Text(
             label.toUpperCase(),
             textAlign: TextAlign.center,
-            style: const TextStyle(
+            style: AppTypography.labelSmall.copyWith(
               color: AppColors.white,
-              fontSize: 11,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 1.2,
               shadows: AppTypography.legibilityShadows,
             ),
           ),
@@ -778,8 +1001,7 @@ class _AnswerPage extends StatelessWidget {
   final VoidCallback? onImageLoaded;
 
   /// Opens the shared full-screen viewer. Only wired on the selected card's
-  /// picture (2026-09-17 directive: tap-to-expand in the leaderboard), so an
-  /// unselected card still receives the carousel's own tap.
+  /// picture, so an unselected card still receives the carousel's own tap.
   final VoidCallback? onImageTap;
 
   @override
@@ -800,7 +1022,7 @@ class _AnswerPage extends StatelessWidget {
             image,
         // The answer TEXT is a full-page overlay anchored to the picture's
         // displayed rect — the same image-aligned placement as the play
-        // reaction window (2026-09-17). Clipped to the page.
+        // reaction window. Clipped to the page.
         if (answer.hasText)
           Positioned.fill(
             child: IgnorePointer(
@@ -808,7 +1030,6 @@ class _AnswerPage extends StatelessWidget {
                 text: answer.text!,
                 layout: answer.layout,
                 image: answer.hasImage ? MemoryImage(answer.imageBytes!) : null,
-                fontSize: 20,
               ),
             ),
           )
@@ -837,19 +1058,22 @@ class _AnswerPage extends StatelessWidget {
       return Text(
         l10n.minigamesPasarSkipped,
         textAlign: TextAlign.center,
-        style: const TextStyle(
+        style: AppTypography.headlineSmall.copyWith(
           fontFamily: AppTypography.quicksand,
-          fontSize: 22,
           fontStyle: FontStyle.italic,
           letterSpacing: 2,
           color: AppColors.mutedStrong,
         ),
       );
     }
-    return const Text(
+    return Text(
       '—',
       textAlign: TextAlign.center,
-      style: TextStyle(color: AppColors.muted, fontSize: 24),
+      style: AppTypography.headlineMedium.copyWith(
+        fontSize: 24,
+        fontWeight: FontWeight.w400,
+        color: AppColors.muted,
+      ),
     );
   }
 }
@@ -884,9 +1108,8 @@ class _AnswersRetry extends StatelessWidget {
               textAlign: TextAlign.center,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
                 color: AppColors.mutedStrong,
-                fontSize: 12,
                 height: 1.3,
               ),
             ),
@@ -924,8 +1147,8 @@ class _AnswerRail extends StatelessWidget {
             height: i == index ? 20 : 6,
             margin: const EdgeInsets.symmetric(vertical: 3),
             decoration: BoxDecoration(
-              color: i == index ? AppColors.white : const Color(0xFFB0B0B0),
-              borderRadius: BorderRadius.circular(2),
+              color: i == index ? AppColors.white : AppColors.mutedStrong,
+              borderRadius: BorderRadius.circular(AppRadius.xs),
             ),
           ),
       ],
@@ -953,13 +1176,15 @@ class _ReactionTally extends StatelessWidget {
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              ReactionEmoji(kind: e.key, fontSize: 18),
+              ReactionEmoji(
+                kind: e.key,
+                fontSize: AppTypography.titleLarge.fontSize!,
+              ),
               const SizedBox(width: 2),
               Text(
                 '${e.value}',
-                style: const TextStyle(
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
                   color: AppColors.mutedStrong,
-                  fontSize: 13,
                   fontWeight: FontWeight.w600,
                 ),
               ),

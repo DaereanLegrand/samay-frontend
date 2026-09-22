@@ -102,9 +102,8 @@ class _DonateShardsScreenState extends ConsumerState<DonateShardsScreen> {
                   keyboardType: TextInputType.number,
                 ),
                 const SizedBox(height: 32),
-                // §5.1 LUXE: donating is the screen's primary action; the
-                // amount VInput already carries the token treatment +
-                // errorText seam.
+                // Donating is the screen's primary action; the amount VInput
+                // already carries the token treatment + errorText seam.
                 VButton.dark(
                   label: l10n.groupsDonate,
                   loading: _loading,

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/shared/widgets/v_network_image.dart';
 
-/// Profile-header avatar — DESIGN.md §2.1/§4.2 (U-09).
+/// Profile-header avatar — DESIGN.md §2.1/§4.2.
 ///
 /// The §5 profile-avatar treatment: circular, `surfaceAlt #111111` fill with
 /// white initials (the doc's "initials white on surfaceAlt" handoff), and a
@@ -48,7 +48,7 @@ class ProfileAvatar extends StatelessWidget {
                   child: Text(
                     initials ?? '',
                     style: TextStyle(
-                      // Initials scale with the diameter (U-10): the
+                      // Initials scale with the diameter: the
                       // profile-header 96px avatar keeps 24px; list-tile
                       // 40px avatars render 10px.
                       fontSize: size * 0.25,

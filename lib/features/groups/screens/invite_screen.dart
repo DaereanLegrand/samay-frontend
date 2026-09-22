@@ -119,9 +119,8 @@ class _InviteScreenState extends ConsumerState<InviteScreen> {
             children: [
               Padding(
                 padding: const EdgeInsets.all(16),
-                // User override (2026-08-18): no glass ring, no background —
-                // the search is a bare borderless field (theme
-                // inputDecorationTheme).
+                // No glass ring, no background — the search is a bare
+                // borderless field (theme inputDecorationTheme).
                 child: TextField(
                   controller: _searchController,
                   decoration: InputDecoration(
@@ -194,8 +193,8 @@ class _InviteScreenState extends ConsumerState<InviteScreen> {
         final uid = u.id;
         final selected = _selectedIds.contains(uid);
         final username = u.username;
-        // U-26 (U-24 F3): an empty (non-null) username would RangeError on
-        // substring — '?' fallback.
+        // An empty (non-null) username would RangeError on substring — '?'
+        // fallback.
         final initial = username.isEmpty ? '?' : username.substring(0, 1);
         return VCard(
           child: Material(

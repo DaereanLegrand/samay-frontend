@@ -2,7 +2,7 @@ import 'package:characters/characters.dart';
 import 'package:samay/shared/constants/auth_constants.dart' as auth_constants;
 import 'package:unorm_dart/unorm_dart.dart' as unorm;
 
-/// Centralized input sanitization (finding SEC-06 / H-24).
+/// Centralized input sanitization.
 ///
 /// Every write boundary in the app funnels user-supplied strings through this
 /// class before they reach Supabase: username (profile setup + auth service),

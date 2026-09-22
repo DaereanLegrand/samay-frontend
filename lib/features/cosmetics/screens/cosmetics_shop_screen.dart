@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
+import 'package:samay/core/design_tokens/app_spacing.dart';
+import 'package:samay/core/design_tokens/app_typography.dart';
 import 'package:samay/core/extensions/error_mapper.dart';
 import 'package:samay/features/cosmetics/providers/cosmetics_providers.dart';
 import 'package:samay/features/profile/providers/profile_providers.dart';
@@ -180,7 +182,7 @@ class _CosmeticsShopScreenState extends ConsumerState<CosmeticsShopScreen>
                       Tab(text: _tabLabel(l10n, i)),
                   ],
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: AppSpacing.md),
               ],
             ),
             Expanded(
@@ -210,12 +212,17 @@ class _CosmeticsShopScreenState extends ConsumerState<CosmeticsShopScreen>
                     );
                   }
                   return GridView.builder(
-                    padding: const EdgeInsets.fromLTRB(24, 4, 24, 24),
+                    padding: const EdgeInsets.fromLTRB(
+                      AppSpacing.screenHorizontal,
+                      AppSpacing.xs,
+                      AppSpacing.screenHorizontal,
+                      AppSpacing.screenHorizontal,
+                    ),
                     gridDelegate:
                         const SliverGridDelegateWithFixedCrossAxisCount(
                           crossAxisCount: 2,
-                          mainAxisSpacing: 12,
-                          crossAxisSpacing: 12,
+                          mainAxisSpacing: AppSpacing.md,
+                          crossAxisSpacing: AppSpacing.md,
                           childAspectRatio: 0.82,
                         ),
                     itemCount: visible.length,
@@ -265,12 +272,17 @@ class _BalanceBar extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     return Container(
       width: double.infinity,
-      margin: const EdgeInsets.fromLTRB(24, 4, 24, 12),
+      margin: const EdgeInsets.fromLTRB(
+        AppSpacing.screenHorizontal,
+        AppSpacing.xs,
+        AppSpacing.screenHorizontal,
+        AppSpacing.md,
+      ),
       child: VCard(
         child: Row(
           children: [
             const VShardIcon(),
-            const SizedBox(width: 12),
+            const SizedBox(width: AppSpacing.md),
             Text(
               l10n.profileShardsCount(shards),
               style: Theme.of(context).textTheme.bodyLarge,
@@ -327,11 +339,7 @@ class _CosmeticCard extends StatelessWidget {
                   typeLabel.toUpperCase(),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: AppColors.mutedStrong,
-                    fontSize: 11,
-                    letterSpacing: 1.2,
-                  ),
+                  style: AppTypography.sectionLabelSmall,
                 ),
               ),
               if (locked)
@@ -353,21 +361,21 @@ class _CosmeticCard extends StatelessWidget {
                 ),
             ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: AppSpacing.sm),
           Text(
             _name,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
               color: AppColors.white,
               fontWeight: FontWeight.w600,
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: AppSpacing.sm),
           Row(
             children: [
               const VShardIcon(size: 12),
-              const SizedBox(width: 6),
+              const SizedBox(width: AppSpacing.xs),
               Text(
                 '$_cost',
                 style: TextStyle(
@@ -382,9 +390,8 @@ class _CosmeticCard extends StatelessWidget {
                     l10n.cosmeticsRequiresTier(tierLabel),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: AppColors.mutedStrong,
-                      fontSize: 11,
                     ),
                   ),
                 ),
@@ -393,7 +400,7 @@ class _CosmeticCard extends StatelessWidget {
           const Spacer(),
           SizedBox(
             width: double.infinity,
-            height: 40,
+            height: 44,
             child: owned == null
                 ? VButton.outlined(
                     label: l10n.cosmeticsBuyWithCost(_cost),

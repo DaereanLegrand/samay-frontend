@@ -4,8 +4,7 @@ import 'package:samay/core/design_tokens/app_radius.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/design_tokens/app_typography.dart';
 
-/// Samay badge — DESIGN.md §5.5 (U-05), monochrome
-/// (2026-08-26 user directive: all color stripped down).
+/// Samay badge — DESIGN.md §5.5, monochrome
 ///
 /// Default: sharp, `border #333333` fill + white `labelSmall` text (the
 /// shape+fill+text identify the badge — the text carries the info). Variants:

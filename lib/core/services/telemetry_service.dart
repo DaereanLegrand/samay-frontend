@@ -6,15 +6,15 @@ import 'package:samay/core/logging/app_logger.dart';
 ///
 /// The key is a public project key (safe to ship by design — DEPLOYMENT-
 /// PLACEHOLDER.md §2.1), but it must never be hardcoded here: a build without
-/// the define runs the app in **stub mode** (telemetry disabled, I-68
-/// foundation — the posthog_flutter SDK wiring lands when a key exists).
+/// the define runs the app in **stub mode** (telemetry disabled — the
+/// posthog_flutter SDK wiring lands when a key exists).
 const String posthogApiKey = String.fromEnvironment(
   'POSTHOG_API_KEY',
   defaultValue: '',
 );
 
-/// Build-time PostHog host, injected via `--dart-define=POSTHOG_HOST=...`
-/// (DEPLOYMENT-PLACEHOLDER.md R08). Used by the future SDK wiring; the
+/// Build-time PostHog host, injected via `--dart-define=POSTHOG_HOST=...`.
+/// Used by the future SDK wiring; the
 /// service's enabled state keys off [posthogApiKey] alone.
 const String posthogHost = String.fromEnvironment(
   'POSTHOG_HOST',
@@ -22,7 +22,7 @@ const String posthogHost = String.fromEnvironment(
 );
 
 /// Terms whose (case-insensitive) presence in a property key marks it as
-/// PII (SECURITY.md §2.8 / LOG-07): stripped from every telemetry payload.
+/// PII (SECURITY.md §2.8): stripped from every telemetry payload.
 const List<String> _piiKeyTerms = ['email', 'password', 'token', 'phone'];
 
 /// Value substituted for redacted PII keys.
@@ -70,8 +70,8 @@ bool _isPiiKey(String key) {
 ///
 /// The posthog_flutter SDK wiring (future) implements this with `PostHog()
 /// .capture()/.identify()/.reset()`; tests inject a recording fake; stub mode
-/// never touches it. Mirrors the RevenueCatDriver seam pattern (I-61) so I-70
-/// (Sentry around AppLogger) can follow the same shape.
+/// never touches it. Mirrors the RevenueCatDriver seam pattern so the
+/// crash-reporter seam can follow the same shape.
 abstract class TelemetrySink {
   /// Delivers a sanitized [event] with its [properties].
   void track(String event, Map<String, dynamic> properties);
@@ -83,7 +83,7 @@ abstract class TelemetrySink {
   void reset();
 }
 
-/// Product-analytics seam (I-68 foundation — PostHog per MVP spec §3).
+/// Product-analytics seam.
 ///
 /// Two modes, selected at construction by the presence of the
 /// `POSTHOG_API_KEY` dart-define:
@@ -117,7 +117,7 @@ class TelemetryService {
 
   /// True only when a `POSTHOG_API_KEY` dart-define was provided at build
   /// time. `POSTHOG_HOST` is required for the SDK init but does not gate
-  /// the service (per the I-68 seam spec).
+  /// the service.
   bool get isEnabled => _apiKey.isNotEmpty;
 
   /// Records [event] with optional [properties] (PII-sanitized first).

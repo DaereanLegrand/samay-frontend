@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/core/design_tokens/app_icon_sizes.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
+import 'package:samay/core/design_tokens/app_typography.dart';
 import 'package:samay/core/logging/app_logger.dart';
 import 'package:samay/core/models/notification_item.dart';
 import 'package:samay/core/providers/service_providers.dart';
@@ -13,7 +14,6 @@ import 'package:samay/features/notifications/providers/notifications_providers.d
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/error_view.dart';
 import 'package:samay/shared/widgets/state_views.dart';
-import 'package:samay/shared/widgets/v_card.dart';
 import 'package:samay/shared/widgets/v_header_bar.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' show RealtimeChannel;
 
@@ -42,14 +42,13 @@ IconData notificationIconForType(String type) {
   };
 }
 
-/// In-app notification center (NOTI spec): newest-first list from the
-/// `notifications` table, live inserts via Realtime, tap → deep link + mark
-/// read, unread dot, pull-to-refresh, mark-all-read, empty state.
+/// In-app notification center: newest-first list from the `notifications`
+/// table, grouped by day with hairline rows, live inserts via Realtime,
+/// tap → deep link + mark read, unread dot, pull-to-refresh, mark-all-read,
+/// empty state.
 ///
-/// Monochrome: unread rows emphasize with white (icon + dot) — unread state
-/// stays never color-only (bold title + dot, §2.5 rule 5). XL-18 (Gemma
-/// 11_notifications "visual hierarchy needs refinement"): the read title
-/// lifts from w300 to w400 so the muted rows still read as typography.
+/// Monochrome: unread rows emphasize with white (icon + dot + bold title) —
+/// unread state is never color-only.
 class NotificationCenterScreen extends ConsumerStatefulWidget {
   const NotificationCenterScreen({super.key});
 
@@ -180,16 +179,76 @@ class _NotificationCenterScreenState
         ),
       ];
     }
+    // Day-grouped entries: a section label before the first item of each day,
+    // hairline-separated rows within it.
+    final entries = <Object>[];
+    DateTime? lastDay;
+    for (final item in items) {
+      final created = item.createdAt.toLocal();
+      final day = DateTime(created.year, created.month, created.day);
+      if (day != lastDay) {
+        entries.add(_DayLabel(day));
+        lastDay = day;
+      }
+      entries.add(item);
+    }
     return [
       SliverList.separated(
-        itemCount: items.length,
-        separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.xs),
+        itemCount: entries.length,
+        separatorBuilder: (_, index) {
+          final a = entries[index];
+          final b = entries[index + 1];
+          if (a is _DayLabel || b is _DayLabel) {
+            return const SizedBox(height: AppSpacing.xs);
+          }
+          return const Divider(height: 1, color: AppColors.hairline);
+        },
         itemBuilder: (context, index) {
-          final item = items[index];
+          final entry = entries[index];
+          if (entry is _DayLabel) {
+            return _SectionLabel(day: entry.day);
+          }
+          final item = entry as NotificationItem;
           return _NotificationTile(item: item, onTap: () => _onTap(item));
         },
       ),
     ];
+  }
+}
+
+/// One day's grouping key for the notification list.
+class _DayLabel {
+  const _DayLabel(this.day);
+
+  final DateTime day;
+}
+
+/// The day grouping label above its rows (TODAY / YESTERDAY / dd/MM/yyyy).
+class _SectionLabel extends StatelessWidget {
+  const _SectionLabel({required this.day});
+
+  final DateTime day;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final label = day == today
+        ? l10n.commonToday
+        : day == today.subtract(const Duration(days: 1))
+        ? l10n.commonYesterday
+        : '${day.day.toString().padLeft(2, '0')}/'
+              '${day.month.toString().padLeft(2, '0')}/${day.year}';
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.screenHorizontal,
+        AppSpacing.md,
+        AppSpacing.screenHorizontal,
+        AppSpacing.xs,
+      ),
+      child: Text(label.toUpperCase(), style: AppTypography.sectionLabel),
+    );
   }
 }
 
@@ -215,83 +274,73 @@ class _NotificationTile extends StatelessWidget {
       onTap: onTap,
       child: Padding(
         padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.lg,
-          vertical: AppSpacing.xs,
+          horizontal: AppSpacing.screenHorizontal,
+          vertical: AppSpacing.listRowVertical,
         ),
-        child: VCard(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Icon(
-                notificationIconForType(item.type),
-                size: AppIconSizes.md,
-                // Monochrome: the unread accent is white.
-                color: unread ? AppColors.white : AppColors.mutedStrong,
-              ),
-              const SizedBox(width: AppSpacing.md),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            item.title,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              fontWeight: unread
-                                  ? FontWeight.w600
-                                  // XL-18 (Gemma 11 "hierarchy"): w300 read
-                                  // rows read as dim, not as hierarchy —
-                                  // w400 keeps the unread w600 dominant while
-                                  // the text stays legible at AA.
-                                  : FontWeight.w400,
-                              fontSize: 16,
-                            ),
-                          ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(
+              notificationIconForType(item.type),
+              size: AppIconSizes.md,
+              color: unread ? AppColors.white : AppColors.mutedStrong,
+            ),
+            const SizedBox(width: AppSpacing.md),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          item.title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(
+                                fontWeight: unread
+                                    ? FontWeight.w600
+                                    : FontWeight.w400,
+                              ),
                         ),
-                        const SizedBox(width: AppSpacing.sm),
-                        Text(
-                          time,
-                          style: const TextStyle(
-                            color: AppColors.mutedStrong,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: AppSpacing.xs),
-                    Text(
-                      item.body,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: AppColors.mutedStrong,
-                        fontSize: 14,
-                        height: 1.4,
                       ),
+                      const SizedBox(width: AppSpacing.sm),
+                      Text(
+                        time,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: AppColors.mutedStrong,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: AppSpacing.xs),
+                  Text(
+                    item.body,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: AppColors.mutedStrong,
                     ),
-                  ],
+                  ),
+                ],
+              ),
+            ),
+            if (unread) ...[
+              const SizedBox(width: AppSpacing.sm),
+              Container(
+                key: ValueKey('unread-dot-${item.id}'),
+                width: 8,
+                height: 8,
+                // Monochrome: flat white dot (the bold title + dot pair
+                // carries the unread state, never color alone).
+                decoration: const BoxDecoration(
+                  color: AppColors.white,
+                  shape: BoxShape.circle,
                 ),
               ),
-              if (unread) ...[
-                const SizedBox(width: AppSpacing.sm),
-                Container(
-                  key: ValueKey('unread-dot-${item.id}'),
-                  width: 8,
-                  height: 8,
-                  // Monochrome: flat white dot (the bold title + dot pair
-                  // carries the unread state, never color alone).
-                  decoration: const BoxDecoration(
-                    color: AppColors.white,
-                    shape: BoxShape.circle,
-                  ),
-                ),
-              ],
             ],
-          ),
+          ],
         ),
       ),
     );

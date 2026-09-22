@@ -8,7 +8,6 @@ import 'package:samay/core/utils/async_ops.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 /// Connection lifecycle state of one realtime channel subscription
-/// (L-01/ARC-07 full lifecycle — I-52).
 ///
 /// Exposed synchronously via [realtimeStatusProvider] so UI can render
 /// "reconectando…" without conflating connection state with message data
@@ -94,7 +93,6 @@ final realtimeStatusProvider = NotifierProvider.family<RealtimeStatusNotifier,
 /// canonical way for features to consume Supabase Realtime (chat, event
 /// status, QR tokens, notifications — STAT spec "Realtime Providers").
 ///
-/// ## Lifecycle (I-52, L-01/ARC-07)
 ///
 /// - Subscribes through [RealtimeService.subscribeToChannel] (channel
 ///   creation stays in the service).

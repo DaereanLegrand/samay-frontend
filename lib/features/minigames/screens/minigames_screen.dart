@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/core/design_tokens/app_icon_sizes.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
+import 'package:samay/core/design_tokens/app_typography.dart';
 import 'package:samay/core/extensions/error_mapper.dart';
 import 'package:samay/core/models/group.dart';
 import 'package:samay/core/router/route_paths.dart';
@@ -26,8 +27,8 @@ import 'package:samay/shared/widgets/v_header_bar.dart';
 import 'package:samay/shared/widgets/v_input.dart';
 import 'package:samay/shared/widgets/v_network_image.dart';
 
-/// Friendly message for a rejected session creation (GWAG/GMCR/GMN typed
-/// errors — the UI never pattern-matches raw exception strings, I-62 pattern).
+/// Friendly message for a rejected session creation (typed errors — the UI
+/// never pattern-matches raw exception strings).
 String minigameRejectionMessage(
   AppLocalizations l10n,
   MinigameSessionRejection rejection,
@@ -62,14 +63,14 @@ String minigameRejectionMessage(
   };
 }
 
-/// The two minigame scopes (direct-minigames 2026-08-27): a DIRECT session
+/// The two minigame scopes: a DIRECT session
 /// (no group — play with friends or non-friends without belonging to any
-/// group) and a GROUP session (the GMCR baseline, group members only).
+/// group) and a GROUP session.
 enum MinigameScope { direct, group }
 
-/// Minigames hub (I-63 + direct-minigames 2026-08-27): the five game-type
-/// cards (icon + name + tagline), the optional wager input (GWAG: 0 = no
-/// wager) with the create action, and the session list with lifecycle status
+/// Minigames hub: the five game-type
+/// cards (icon + name + tagline), the optional wager input (0 = no wager)
+/// with the create action, and the session list with lifecycle status
 /// chips. Tapping a session shows the detail placeholder — the per-game UIs
 /// (turns, timers, votes) are future work.
 ///
@@ -126,8 +127,8 @@ class _MinigamesScreenState extends ConsumerState<MinigamesScreen> {
     if (type == null) return;
     final wager = int.tryParse(_wagerController.text.trim()) ?? 0;
 
-    // 2026-09-01: creation is invite-free — invites happen in the lobby
-    // (invite_minigame_players). The hub .create() returns the session id,
+    // creation is invite-free — invites happen in the lobby
+    // (invite_minigame_players). The hub.create() returns the session id,
     // so the host jumps straight into the waiting room with the AppBar
     // Invite button ready.
     setState(() => _creating = true);
@@ -175,16 +176,15 @@ class _MinigamesScreenState extends ConsumerState<MinigamesScreen> {
 
     return Scaffold(
       body: VHeaderBar(
-        // Two-row header (2026-09-20): "juegos" over the "Te atreves" tagline.
+        // Two-row header: "juegos" over the "Te atreves" tagline.
         titleWidget: MinigameHeaderTitle(
           word: l10n.minigamesTitle,
           secondary: l10n.minigamesTagline,
         ),
         child: Column(
           children: [
-            // "Elige un juego" sits IMMEDIATELY below the AppBar (2026-08-27
-            // user directive) — the Directa/Grupo scope row and the game
-            // picker follow underneath.
+            // "Elige un juego" sits IMMEDIATELY below the AppBar — the
+            // Directa/Grupo scope row and the game picker follow underneath.
             Padding(
               padding: const EdgeInsets.fromLTRB(
                 AppSpacing.lg,
@@ -224,7 +224,7 @@ class _MinigamesScreenState extends ConsumerState<MinigamesScreen> {
   /// entry, Group routes to the picker below. In Group scope the SELECTED
   /// group's name + circular banner sit at the LEFT of the row, and a
   /// switch-groups icon (with the red pending-invite badge) sits at the
-  /// RIGHT (2026-08-27 user directive).
+  /// RIGHT.
   ///
   /// The row has a FIXED height so switching Directa ↔ Grupo never changes
   /// the layout height: the chips, the group banner+name and the switch icon
@@ -278,7 +278,7 @@ class _MinigamesScreenState extends ConsumerState<MinigamesScreen> {
 
   /// The selected group's identity in the scope row: a circular banner
   /// (height == width, no taller than the Directa/Grupo chips) + the name —
-  /// resolved from the groups list (2026-08-27: the hub must show the group
+  /// resolved from the groups list (the hub must show the group
   /// name when "Grupo" is selected).
   Widget _selectedGroupChip({
     required String groupId,
@@ -559,9 +559,8 @@ class _GameCard extends StatelessWidget {
                   tagline(l10n),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
+                  style: AppTypography.bodySmall.copyWith(
                     color: AppColors.mutedStrong,
-                    fontSize: 12,
                   ),
                 ),
               ),
@@ -593,7 +592,7 @@ class _SessionCard extends ConsumerWidget {
     final positions =
         (session['prize_positions'] as num?)?.toInt() ?? kDefaultPrizePositions;
     final inviterName = session['inviterName'] as String?;
-    // 1 (2026-09-15): a GROUP row carries the group name as a tag (resolved
+    // A GROUP row carries the group name as a tag (resolved
     // from the caller's groups); a DIRECT row shows nothing.
     final groupId = session['group_id'] as String?;
     final groupName = groupId == null
@@ -632,7 +631,7 @@ class _SessionCard extends ConsumerWidget {
                         style: const TextStyle(color: AppColors.mutedStrong),
                       ),
                     if (isPending) const SizedBox(height: AppSpacing.xs),
-                    // 2026-09-20 revamp: pool + live player count, no
+                    // Pool + live player count, no
                     // "apuesta"/"shards" literals. The pool amount recomputes
                     // when a participant joins (live session row).
                     Row(
@@ -653,9 +652,8 @@ class _SessionCard extends ConsumerWidget {
                         Text(
                           '${l10n.minigamesParticipantsTitle.toUpperCase()} '
                           '$participants',
-                          style: const TextStyle(
+                          style: AppTypography.bodySmall.copyWith(
                             color: AppColors.mutedStrong,
-                            fontSize: 12,
                           ),
                         ),
                       ],
@@ -664,9 +662,8 @@ class _SessionCard extends ConsumerWidget {
                       const SizedBox(height: AppSpacing.xs),
                       Text(
                         l10n.minigamesInviteFromGroup(groupName),
-                        style: const TextStyle(
+                        style: AppTypography.bodySmall.copyWith(
                           color: AppColors.mutedStrong,
-                          fontSize: 12,
                         ),
                       ),
                     ],
@@ -691,7 +688,7 @@ class _SessionCard extends ConsumerWidget {
 }
 
 /// Circular group banner avatar: a complete circle, height == width, no
-/// bigger than the Directa/Grupo chips (2026-08-27 user directive). The
+/// bigger than the Directa/Grupo chips. The
 /// cover image renders inside a circular clip; the initials fallback keeps
 /// the ring when no cover exists.
 class _GroupBannerAvatar extends StatelessWidget {
@@ -734,8 +731,8 @@ class _GroupBannerAvatar extends StatelessWidget {
 }
 
 /// The switch-groups icon in the scope row — a swap icon that reopens the
-/// group picker, carrying the red pending-invite badge (2026-08-27
-/// directive: the red circle appears on the invite/request affordance).
+/// group picker, carrying the red pending-invite badge — the red circle
+/// appears on the invite/request affordance.
 class _SwitchGroupButton extends StatelessWidget {
   final int pendingCount;
   final VoidCallback onPressed;

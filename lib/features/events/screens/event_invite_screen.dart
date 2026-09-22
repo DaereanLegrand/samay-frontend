@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
+import 'package:samay/core/design_tokens/app_typography.dart';
 import 'package:samay/core/models/user_search_result.dart';
 import 'package:samay/features/events/providers/events_providers.dart';
 import 'package:samay/features/friends/widgets/user_picker_view.dart';
@@ -16,7 +17,7 @@ import 'package:samay/shared/widgets/v_header_bar.dart';
 /// (any user — the server enforces blocked/live gates + the frozen capacity).
 ///
 /// The HOST's picker shows a "invitado/sent" tag on users who already hold an
-/// invite for this event (2026-09-08) — read-only, from
+/// invite for this event — read-only, from
 /// [eventGuestsProvider]. Picking them again is a no-op server-side
 /// (idempotent), so the row stays tappable to deselect.
 class EventInviteScreen extends ConsumerStatefulWidget {
@@ -66,7 +67,7 @@ class _EventInviteScreenState extends ConsumerState<EventInviteScreen> {
       padding: const EdgeInsets.only(left: AppSpacing.sm),
       child: Text(
         l10n.eventsInviteSentTag,
-        style: const TextStyle(color: AppColors.mutedStrong, fontSize: 12),
+        style: AppTypography.bodySmall.copyWith(color: AppColors.mutedStrong),
       ),
     );
   }

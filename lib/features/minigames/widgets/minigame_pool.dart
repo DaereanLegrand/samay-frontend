@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/core/design_tokens/app_icon_sizes.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
+import 'package:samay/core/design_tokens/app_typography.dart';
 import 'package:samay/features/minigames/logic/minigame_engine.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/v_shard_icon.dart';
@@ -9,7 +10,7 @@ import 'package:samay/shared/widgets/v_shard_icon.dart';
 /// The TOTAL prize pool of a partida — [wager] shards per player times the
 /// live [players] count — rendered as a bare shard diamond + number.
 ///
-/// 2026-09-20 directive: the pool must never be labelled with the literals
+/// The pool must never be labelled with the literals
 /// "apuesta" / "shards"; the icon carries the currency. The amount is always
 /// derived from the caller's LIVE session row, so it recomputes the moment a
 /// participant joins (the `minigame_sessions` realtime UPDATE).
@@ -23,7 +24,7 @@ class MinigamePoolAmount extends StatelessWidget {
     required this.positions,
     this.onTap,
     this.iconSize = AppIconSizes.sm,
-    this.fontSize = 15,
+    this.style,
     this.color = AppColors.white,
     this.fontWeight = FontWeight.w700,
   });
@@ -41,7 +42,7 @@ class MinigamePoolAmount extends StatelessWidget {
   final VoidCallback? onTap;
 
   final double iconSize;
-  final double fontSize;
+  final TextStyle? style;
   final Color color;
   final FontWeight fontWeight;
 
@@ -57,9 +58,8 @@ class MinigamePoolAmount extends StatelessWidget {
         const SizedBox(width: AppSpacing.xs),
         Text(
           '$pot',
-          style: TextStyle(
+          style: (style ?? AppTypography.titleMedium).copyWith(
             color: color,
-            fontSize: fontSize,
             fontWeight: fontWeight,
           ),
         ),
@@ -103,7 +103,7 @@ Future<void> showMinigamePoolBreakdown(
               players: players,
               positions: positions,
               iconSize: AppIconSizes.md,
-              fontSize: 20,
+              style: AppTypography.headlineSmall,
             ),
           ),
           const SizedBox(height: AppSpacing.md),

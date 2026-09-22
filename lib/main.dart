@@ -13,13 +13,13 @@ import 'package:samay/core/services/crash_reporter.dart';
 import 'package:samay/core/services/secure_session_storage.dart';
 import 'package:samay/core/services/storage_service.dart';
 
-/// Global Flutter error handler (LOG-01, extended by I-05 + I-70).
+/// Global Flutter error handler.
 ///
-/// Order is deliberate (I-05's exact flow preserved): benign errors are
+/// Order is deliberate: benign errors are
 /// downgraded via [AppLogger.knownBenignError] and return early (never reach
 /// the reporter); real errors are logged via [AppLogger.error], recorded with
 /// [AppLogger.markCrash], then reported fire-and-forget to [reporter]
-/// (I-70 — a no-op in stub mode), and finally presented via
+///, and finally presented via
 /// [FlutterError.presentError]. Extracted as a top-level function so the
 /// wiring is directly testable with an injected reporter.
 void handleFlutterError(FlutterErrorDetails details, CrashReporter reporter) {
@@ -42,7 +42,7 @@ void handleFlutterError(FlutterErrorDetails details, CrashReporter reporter) {
   FlutterError.presentError(details);
 }
 
-/// Global platform/async error handler (LOG-01, extended by I-05 + I-70).
+/// Global platform/async error handler.
 ///
 /// Same deliberate order as [handleFlutterError]: benign errors downgrade
 /// and return `true` early; real errors log, crash-mark, then report
@@ -72,7 +72,7 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await AppLogger.instance.init();
 
-  // I-70: one reporter instance for the app's lifetime; stub mode (no
+  // one reporter instance for the app's lifetime; stub mode (no
   // SENTRY_DSN dart-define) keeps reportError a logged no-op.
   final crashReporter = CrashReporter();
   FlutterError.onError = (details) =>
@@ -86,7 +86,7 @@ Future<void> main() async {
     AppLogger.instance.warn('Recovered from a previous crash:\n$recovered');
   }
 
-  // SEC-10 / M-32 (I-26): encrypted Hive caches (config, photo URLs,
+  // encrypted Hive caches (config, photo URLs,
   // messages, notifications). Init before Supabase so the config cache is
   // ready for first reads. The caches are disposable — any init failure
   // (e.g. missing platform plugins in exotic environments) must degrade to
@@ -103,28 +103,28 @@ Future<void> main() async {
   await Supabase.initialize(
     url: EnvConfig.supabaseUrl,
     anonKey: EnvConfig.supabaseAnonKey,
-    // SEC-11 / M-33 (I-25): persist the session (access JWT + refresh token)
+    // persist the session (access JWT + refresh token)
     // and the PKCE code verifier in flutter_secure_storage (iOS Keychain /
     // Android Keystore) instead of the SDK's in-memory/shared-preferences
     // default. detectSessionInUri: false — deep-link session recovery is not
-    // used on mobile (invite links are handled by the router, I-66).
+    // used on mobile.
     authOptions: FlutterAuthClientOptions(
       localStorage: SecureSessionStorage(),
       pkceAsyncStorage: SecurePkceStorage(),
       detectSessionInUri: false,
-      // SEC-04 / H-22 (I-30): explicit PKCE — the code verifier is persisted
+      // explicit PKCE — the code verifier is persisted
       // by SecurePkceStorage above (the SDK default is already pkce, but
       // pinning it makes the flow explicit and immune to default drift).
       authFlowType: AuthFlowType.pkce,
     ),
   );
-  // EINV (I-66): wire the app_links platform stream into the deep-link seam.
+  // EINV: wire the app_links platform stream into the deep-link seam.
   // `AppLinks()` is touched here (before runApp) so the cold-start link is
   // captured: `uriLinkStream` delivers the initial link exactly once
   // (Android's native `initialLinkSent` guard) plus every later link, and
   // `DeepLinkListener` (mounted in SamayApp) forwards each to the handler.
   // Platform config (Android intent-filter / iOS Associated Domains) is
-  // M-27/M-28 work — see DEPLOYMENT-PLACEHOLDER.md R01 (`app.samay.example.com`).
+  // work — see DEPLOYMENT-PLACEHOLDER.md R01 (`app.samay.example.com`).
   final container = ProviderContainer(
     overrides: [
       deepLinkStreamProvider.overrideWithValue(

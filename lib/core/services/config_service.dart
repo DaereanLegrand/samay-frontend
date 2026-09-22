@@ -4,13 +4,11 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 /// Reads app-level configuration from the `app_config` table.
 ///
-/// Part of the ARC-05/CQ-01 decomposition of the former monolithic
-/// `SupabaseService` (I-11). Injectable: constructed with an explicit client
-/// so tests can substitute a mock.
+/// Injectable: constructed with an explicit client.
 ///
-/// Migrated to [RestClient] (I-51): all table access goes through the typed
-/// envelope; the `client` field remains for the auth accessor and legacy
-/// call sites until the facade deletion (STOP-100).
+/// Migrated to [RestClient]: all table access goes through the typed
+/// envelope; the `client` field remains for the auth accessor and
+/// compatibility call sites until the facade deletion.
 class ConfigService {
   final SupabaseClient client;
   final RestClient rest;

@@ -15,26 +15,25 @@ const int e2eeEnvelopeTypeInit = 0x01;
 const int e2eeEnvelopeTypeRatchet = 0x02;
 
 /// Envelope type 0x03: sender-key message (E2EE group chat — Signal sender
-/// keys, ISSUE 4). Encrypted ONCE with a key derived from the sender's chain;
+/// keys). Encrypted ONCE with a key derived from the sender's chain;
 /// every member holding the sender's chain can decrypt (E2EE §9.6 follow-up).
 const int e2eeEnvelopeTypeSenderKey = 0x03;
 
 /// Group-id field length in the 0x03 envelope header: a UUID as 16 raw bytes.
 const int e2eeEnvelopeGroupIdLength = 16;
 
-/// Sender-key distribution bundle JSON version (ISSUE 4). The bundle is the
+/// Sender-key distribution bundle JSON version. The bundle is the
 /// PLAINTEXT of an ordinary pairwise ratchet message; `kind` is its marker.
-/// v3 since the 2026-08-17 rekey-epoch fix: the bundle carries the sender's
+/// Version 3: the bundle carries the sender's
 /// record `epoch`, so receivers can distinguish a GENUINE rekey (fresh
 /// epoch) from a same-epoch stale/duplicate bundle.
 const int e2eeSenderKeyBundleVersion = 3;
 
 /// Distribution bundle `kind` marker — `isSenderKeyBundle` routes on this
-/// (ISSUE 4, Signal sender-key distribution semantics).
 const String e2eeSenderKeyBundleKind = 'samay.group_sender_key';
 
-/// Sender-key REQUEST protocol (2026-08-17 missing-chain deadlock heal —
-/// the Signal retry-request analogue). A member whose device has NO sender-
+/// Sender-key REQUEST protocol (the Signal retry-request analogue). A member
+/// whose device has NO sender-
 /// key record for another member (missed/stale bundle, identity change,
 /// RLS-timing miss at invite-accept) asks the chain owner to re-distribute:
 /// the request JSON rides the plaintext of the ordinary pairwise session,
@@ -43,12 +42,12 @@ const String e2eeSenderKeyBundleKind = 'samay.group_sender_key';
 const int e2eeGroupKeyRequestVersion = 1;
 const String e2eeGroupKeyRequestKind = 'samay.group_key_request';
 
-/// Sender-key record / registry JSON schema version (ISSUE 4). v3 since the
-/// 2026-08-17 rekey-epoch fix: records gain `epoch` (the group epoch the
+/// Sender-key record / registry JSON schema version. Version 3:
+/// records carry `epoch` (the group epoch the
 /// chain was minted in — [e2eeSenderKeyBundleVersion]'s bundle field) and
-/// the registry gains the group-level `epoch` counter (owned by the
-/// registry, which is NEVER deleted on wipe). v2 state (no epoch, 2026-08-16
-/// audit shape) is treated as ABSENT by `fromJson` (returns null) — no
+/// the registry carries the group-level `epoch` counter (owned by the
+/// registry, which is NEVER deleted on wipe). Older v1/v2 state (no epoch)
+/// is treated as ABSENT by `fromJson` (returns null) — no
 /// on-device migration needed: the member is re-distributed once and a v3
 /// record replaces the old one.
 const int e2eeSenderKeyRecordVersion = 3;
@@ -57,15 +56,14 @@ const int e2eeSenderKeyRegistryVersion = 3;
 /// `opk_id` value meaning "no one-time prekey was used" (§6.3).
 const int e2eeNoOpkId = 0xFFFFFFFF;
 
-/// Maximum number of message keys that may be skipped per chain (R2 §8.4,
-/// decision D-7: 2000).
+/// Maximum number of message keys that may be skipped per chain (§8.4: 2000).
 const int e2eeMaxSkip = 2000;
 
-/// Maximum chain gap the 0x03 sender-key decrypt walk will derive through
-/// (2026-08-16 audit fix F1 — the header's `chain_index` is
+/// Maximum chain gap the 0x03 sender-key decrypt walk will derive through —
+/// the header's `chain_index` is
 /// attacker-controlled and an unbounded walk is a remote CPU DoS: a row
 /// with chain_index = 0xFFFFFFFF would force ~4.29e9 HKDF steps before the
-/// AEAD check, re-run on every reload/redelivery). Mirrors
+/// AEAD check, re-run on every reload/redelivery. Mirrors
 /// [e2eeMaxSkip]/double_ratchet's MAX_SKIP: gaps beyond this are dropped
 /// without deriving anything and without advancing the record.
 const int e2eeSenderKeyMaxSkip = 2000;
@@ -88,7 +86,7 @@ const int e2eeAeadKeyLength = 32;
 const int e2eeAeadNonceLength = 12;
 const int e2eeAeadExpandedLength = e2eeAeadKeyLength + e2eeAeadNonceLength; // 44
 
-/// Full 128-bit GCM tag (no truncation, R2 §8.6).
+/// Full 128-bit GCM tag.
 const int e2eeTagLength = 16;
 
 /// Hard cap on retained skipped message keys per session (§4.6).
@@ -120,7 +118,7 @@ const Duration e2eeSignedPrekeyRetentionAge = Duration(days: 7);
 /// One-time prekey batch published per rotation (§5.1: 100).
 const int e2eeOneTimePrekeyBatchSize = 100;
 
-/// X3DH `F` marker for X25519: 32 bytes of 0xFF (R1 §2.2).
+/// X3DH `F` marker for X25519: 32 bytes of 0xFF.
 const int e2eeX3dhFMarkerLength = 32;
 
 /// Ed25519 signature length (bytes).

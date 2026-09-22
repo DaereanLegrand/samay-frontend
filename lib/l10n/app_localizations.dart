@@ -1046,7 +1046,7 @@ abstract class AppLocalizations {
   /// **'{members} / {limit} miembros'**
   String groupsMemberCount(int members, int limit);
 
-  /// Group detail: member count without the cap (user directive 2026-09-15)
+  /// Group detail: member count without the cap
   ///
   /// In es, this message translates to:
   /// **'{count} miembros'**
@@ -1316,13 +1316,13 @@ abstract class AppLocalizations {
   /// **'Apariencia'**
   String get settingsSectionAppearance;
 
-  /// Settings section header for the chat preferences group (2026-08-15)
+  /// Settings section header for the chat preferences group
   ///
   /// In es, this message translates to:
   /// **'Chat'**
   String get settingsSectionChat;
 
-  /// Settings section header for the minigames preferences group (2026-08-26)
+  /// Settings section header for the minigames preferences group
   ///
   /// In es, this message translates to:
   /// **'Juegos'**
@@ -1945,6 +1945,42 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'No encontrado.'**
   String get errorsNotFoundGeneric;
+
+  /// User-facing unconfirmed-email message
+  ///
+  /// In es, this message translates to:
+  /// **'Correo no confirmado. Revisa tu bandeja de entrada.'**
+  String get errorsEmailNotConfirmed;
+
+  /// User-facing invalid-email message
+  ///
+  /// In es, this message translates to:
+  /// **'Correo electrónico inválido.'**
+  String get errorsInvalidEmail;
+
+  /// User-facing same-password message
+  ///
+  /// In es, this message translates to:
+  /// **'Debes elegir una contraseña diferente.'**
+  String get errorsSamePassword;
+
+  /// User-facing disabled-OTP message
+  ///
+  /// In es, this message translates to:
+  /// **'El inicio de sesión con código está deshabilitado.'**
+  String get errorsOtpDisabled;
+
+  /// User-facing banned-account message
+  ///
+  /// In es, this message translates to:
+  /// **'Tu cuenta está suspendida.'**
+  String get errorsUserBanned;
+
+  /// User-facing reauthentication-required message
+  ///
+  /// In es, this message translates to:
+  /// **'Vuelve a autenticarte para continuar.'**
+  String get errorsReauthenticationNeeded;
 
   /// User-facing invalid-credentials message
   ///
@@ -3716,7 +3752,7 @@ abstract class AppLocalizations {
   /// **'Con amigos o solo'**
   String get minigamesAudienceBoth;
 
-  /// Create-partida flow: default capitalized form. The wizard AppBar title lowercases it (minigamesNewPartida.toLowerCase()) per the 2026-08-30 directive; the detail CTA uses it as-is.
+  /// Create-partida flow: default capitalized form. The wizard AppBar title lowercases it (minigamesNewPartida.toLowerCase()); the detail CTA uses it as-is.
   ///
   /// In es, this message translates to:
   /// **'Nueva partida'**
@@ -4292,6 +4328,12 @@ abstract class AppLocalizations {
   /// **'Sin respuestas registradas'**
   String get minigamesNoAnswers;
 
+  /// First-run hint on the finished-game leaderboard that swiping reveals more rank cards
+  ///
+  /// In es, this message translates to:
+  /// **'Desliza para ver más rangos'**
+  String get minigamesLeaderboardSwipeHint;
+
   /// Error state on the play screen when the game state fails to load
   ///
   /// In es, this message translates to:
@@ -4562,7 +4604,7 @@ abstract class AppLocalizations {
   /// **'La app se recuperó de un cierre inesperado'**
   String get crashRecoveryBannerTitle;
 
-  /// Long-press action: show the own message's delivery/read status sheet (2026-08-17)
+  /// Long-press action: show the own message's delivery/read status sheet
   ///
   /// In es, this message translates to:
   /// **'Información del mensaje'**
@@ -4832,7 +4874,7 @@ abstract class AppLocalizations {
   /// **'Invitación enviada'**
   String get minigamesInviteSent;
 
-  /// Lobby invite picker: compact right-aligned tag on a user who already holds a pending invite for this session (2026-09-02)
+  /// Lobby invite picker: compact right-aligned tag on a user who already holds a pending invite for this session
   ///
   /// In es, this message translates to:
   /// **'enviada'**
@@ -4874,41 +4916,29 @@ abstract class AppLocalizations {
   /// **'Ir a la partida'**
   String get minigamesGoToGame;
 
-  /// Instruction for the subject composing their statements
-  ///
-  /// In es, this message translates to:
-  /// **'Escribe 3 afirmaciones sobre ti: 2 mentiras y 1 verdad. Marca cuál es la verdad.'**
-  String get minigamesTwoLiesInstructions;
-
   /// Header for each statement input
   ///
   /// In es, this message translates to:
   /// **'Afirmación {number}'**
   String minigamesTwoLiesStatementNumber(int number);
 
-  /// Placeholder for each statement text field
+  /// Snackbar prompt shown when submitting without marking the truth statement
   ///
   /// In es, this message translates to:
-  /// **'Escribe aquí la afirmación...'**
-  String get minigamesTwoLiesStatementPlaceholder;
-
-  /// Radio button / chip label marking a statement as the truth
-  ///
-  /// In es, this message translates to:
-  /// **'Esta es la verdad'**
-  String get minigamesTwoLiesMarkTruth;
-
-  /// Submit button for the subject's statements
-  ///
-  /// In es, this message translates to:
-  /// **'Enviar afirmaciones'**
-  String get minigamesTwoLiesSubmitStatements;
+  /// **'Marca cuál es la verdad'**
+  String get minigamesTwoLiesMarkTruthPrompt;
 
   /// Header for voters asking which statement is the truth
   ///
   /// In es, this message translates to:
   /// **'¿Cuál de estas 3 afirmaciones es LA VERDAD?'**
   String get minigamesTwoLiesGuessPrompt;
+
+  /// Hint telling the subject to long-press a card to mark their true statement
+  ///
+  /// In es, this message translates to:
+  /// **'Mantén pulsada una tarjeta para marcar tu verdad'**
+  String get minigamesTwoLiesHoldHint;
 
   /// Button to confirm vote for the selected statement
   ///
@@ -4951,12 +4981,6 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'Debes completar las 3 afirmaciones'**
   String get minigamesTwoLiesFillAllError;
-
-  /// Validation error when truth index is not selected
-  ///
-  /// In es, this message translates to:
-  /// **'Debes marcar exactamente una afirmación como verdad'**
-  String get minigamesTwoLiesSelectTruthError;
 
   /// Attendance code: return button on the already-attended terminal state
   ///

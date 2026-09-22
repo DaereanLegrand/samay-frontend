@@ -24,7 +24,7 @@ class WelcomeScreen extends StatelessWidget {
                   child: Column(
                     children: [
                       const Spacer(),
-                      // Monochrome (2026-08-26): the welcome wordmark is the
+                      // Monochrome: the welcome wordmark is the
                       // flagship display element — verbatim copy, flat white
                       // Playfair glyphs, no gradient/glow.
                       VDisplayText(text: l10n.welcomeVive, size: 64),
@@ -34,8 +34,8 @@ class WelcomeScreen extends StatelessWidget {
                         style: Theme.of(context).textTheme.bodyLarge,
                       ),
                       const SizedBox(height: 48),
-                      // §5.1 primary CTA — the black button voice
-                      // (user directive 2026-08-14), matching the login CTA.
+                      // §5.1 primary CTA — the black button voice, matching
+                      // the login CTA.
                       VButton.dark(
                         label: l10n.commonCreateAccount,
                         onPressed: () => context.push(RoutePaths.signup),

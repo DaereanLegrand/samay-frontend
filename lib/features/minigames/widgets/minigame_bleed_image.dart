@@ -3,7 +3,7 @@ import 'dart:ui' show ImageFilter;
 import 'package:flutter/material.dart';
 
 /// The full-bleed image presentation shared by the leaderboard answer pages and
-/// the truth/dare answer editor (2026-09-15 directive — one implementation).
+/// the truth/dare answer editor (one implementation).
 ///
 /// An opaque, blurred, vertically-mirrored copy of the picture fills the
 /// letterbox bands its `contain` fit leaves open (over-scaled to hide the

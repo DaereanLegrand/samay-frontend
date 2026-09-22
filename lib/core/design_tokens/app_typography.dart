@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
 
 /// Samay typography tokens — the single source of truth for the type scale
-/// and glow treatment (DESIGN.md §3, owned by U-02).
+/// and glow treatment.
 ///
 /// The §3.3 table is the contract: every role's family, size, weight,
 /// letter-spacing and height live here as const-constructible [TextStyle]s.
@@ -11,7 +11,7 @@ import 'package:samay/core/design_tokens/app_colors.dart';
 /// (`lib/core/theme/app_theme.dart`).
 ///
 /// Contract notes (design doc §3):
-/// - Playfair Display (no italics — user directive 2026-08-14) appears ONLY
+/// - Playfair Display appears ONLY
 ///   in display/fancy roles (§3.1/§3.2); every other role is Inter.
 /// - The consts carry the §3.3 metrics **without** glow. Shadows are applied
 ///   by [fancyTitle] with `em`-relative blur radii (fontSize × factor, like
@@ -34,7 +34,6 @@ abstract final class AppTypography {
   /// copy within the play cards.
   static const String quicksand = 'Quicksand';
 
-  // ── Font optical metrics (from each font file's OS/2 table) ────────────────
   //
   // Used for OPTICAL vertical alignment: a text's cap/x-height band (measured
   // from the real baseline) is the visual center, not the line box. Ratios are
@@ -60,7 +59,7 @@ abstract final class AppTypography {
   /// The legibility drop shadow for text painted over imagery (full-bleed
   /// pictures): a soft black shadow that keeps white glyphs readable. Applied
   /// BY DEFAULT to display/header text ([VDisplayText], the minigame header
-  /// title and its rows) and to over-image labels (2026-09-15 directive).
+  /// title and its rows) and to over-image labels.
   static const List<Shadow> legibilityShadows = [
     Shadow(color: Color(0xFF000000), blurRadius: 10, offset: Offset(0, 2)),
   ];
@@ -93,11 +92,10 @@ abstract final class AppTypography {
     _ => interDescentRatio,
   };
 
-  // ── Monochrome display-voice contract (2026-08-26) ────────────────────────
   //
   // The display voices (displayLarge/displayMedium/displaySmall and
   // headlineLarge) are Playfair Display **bold** — the ONLY Playfair usage
-  // in the app. No italics (user directive 2026-08-14).
+  // in the app. No italics.
   //
   // Display copy renders VERBATIM — no case transformation (the MAYUS rule
   // was deleted with the monochrome refactor). Callers pass natural-case
@@ -105,7 +103,6 @@ abstract final class AppTypography {
   // as raw `Text` widgets; always route them through `VDisplayText` so the
   // white glyph color and size-token mapping stay uniform.
 
-  // ── §3.3 type-scale consts (exact doc values) ─────────────────────────────
 
   /// Welcome wordmark (glow-strong). Playfair Display bold 700 at 64.
   static const TextStyle displayLarge = TextStyle(
@@ -244,7 +241,7 @@ abstract final class AppTypography {
     height: 1.5,
   );
 
-  /// Section labels (LUXE v2 — XL-03): Inter w600 at 12 with 2.0 tracking,
+  /// Section labels: Inter w600 at 12 with 2.0 tracking,
   /// `mutedStrong` (7.37:1 — AA). Rendered ABOVE content as an all-caps
   /// eyebrow; the label text itself is uppercase at call sites (`.toUpperCase()`
   /// or an already-caps l10n string) — this role is NOT a display voice and
@@ -257,8 +254,8 @@ abstract final class AppTypography {
     color: AppColors.mutedStrong,
   );
 
-  /// [sectionLabel] one step tighter for dense cards (feed match cards,
-  /// 2026-09-20): same role/voice — Inter w600, `mutedStrong`, 2.0 tracking —
+  /// [sectionLabel] one step tighter for dense cards (feed match cards):
+  /// same role/voice — Inter w600, `mutedStrong`, 2.0 tracking —
   /// at 11.
   static const TextStyle sectionLabelSmall = TextStyle(
     fontFamily: inter,
@@ -268,7 +265,6 @@ abstract final class AppTypography {
     color: AppColors.mutedStrong,
   );
 
-  // ── §3.4 glow treatment (the signature) ───────────────────────────────────
 
   /// Applies the canonical glow shadow stack to [base] (design doc §3.4).
   ///
@@ -313,14 +309,12 @@ abstract final class AppTypography {
     );
   }
 
-  // ── §3.3 composed TextTheme (consumed by SamayTheme) ──────────────────────
 
   /// The full text-role table with glow baked into the four display roles.
   ///
   /// Roles outside the §3.3 table stay null so `ThemeData` fills Material
-  /// defaults (titleSmall, caption, overline) — the same roles I-17's
-  /// `base.copyWith` left untouched, so consuming this is a zero-visual-
-  /// change refactor.
+  /// defaults (titleSmall, caption, overline); consuming this theme leaves
+  /// those defaults untouched.
   static final TextTheme textTheme = TextTheme(
     displayLarge: fancyTitle(displayLarge),
     displayMedium: fancyTitle(displayMedium),

@@ -70,7 +70,7 @@ class _DeleteAccountScreenState extends ConsumerState<DeleteAccountScreen> {
             onPressed: () => Navigator.pop(ctx, true),
             child: Text(
               l10n.commonDelete,
-              // §5.2 (U-09): never raw red on black — the danger confirm
+              // §5.2: never raw red on black — the danger confirm
               // uses the error semantic (glowPink, 6.00:1 AA).
               style: const TextStyle(color: AppColors.error),
             ),

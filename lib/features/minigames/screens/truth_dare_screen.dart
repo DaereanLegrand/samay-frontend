@@ -48,8 +48,8 @@ final _pickedAnswerImageProvider = StateProvider.autoDispose
 /// The CURRENT by_turns round's answer picture, already downloaded + decrypted
 /// locally by [_AnswerPreview]. Lifted to the screen so the reaction window can
 /// render it as a full-viewport background — the SAME full-bleed presentation
-/// as the editor's picked picture and the leaderboard answer pages
-/// (2026-09-17 directive). Keyed by `sessionId/round`, so a round flip drops the
+/// as the editor's picked picture and the leaderboard answer pages.
+/// Keyed by `sessionId/round`, so a round flip drops the
 /// previous picture automatically.
 final _answerImageProvider = StateProvider.autoDispose
     .family<Uint8List?, String>((ref, key) => null);
@@ -57,7 +57,7 @@ final _answerImageProvider = StateProvider.autoDispose
 /// The CURRENT by_turns answer's decrypted payload (text + on-canvas layout),
 /// lifted by [_AnswerPreview] so the reaction window can render the answer text
 /// as a full-viewport overlay anchored to the answer picture — the same
-/// image-aligned placement the author arranged (2026-09-17). Keyed by
+/// image-aligned placement the author arranged. Keyed by
 /// `sessionId/round`.
 final _answerPayloadProvider = StateProvider.autoDispose
     .family<MinigameAnswerPayload?, String>((ref, key) => null);
@@ -65,7 +65,7 @@ final _answerPayloadProvider = StateProvider.autoDispose
 /// Clips a full-viewport overlay so nothing paints inside the header band
 /// (`y < headerBottom`) — the header must always stay visually on top of the
 /// picture overlays, without the overlay having to change its own coordinate
-/// space (2026-09-17).
+/// space.
 class _BelowHeaderClipper extends CustomClipper<Rect> {
   const _BelowHeaderClipper(this.headerBottom);
 
@@ -81,7 +81,7 @@ class _BelowHeaderClipper extends CustomClipper<Rect> {
 }
 
 /// The shared full-bleed picture backdrop used by the editor's picked picture
-/// and the reaction window's answer picture (2026-09-17 standardization): the
+/// and the reaction window's answer picture: the
 /// blurred-mirror [MinigameBleedImage] plus two gradient scrims — dark under the
 /// header, dark behind the bottom controls, clear in the middle so the picture
 /// keeps full presence (leaderboard voice).
@@ -265,8 +265,8 @@ class TruthDareScreen extends ConsumerWidget {
         const [];
     final isCreator = participantIds.isNotEmpty && participantIds.first == myId;
     // The subject's picked reto picture, lifted to the screen so it can render
-    // as a full-viewport background behind the transparent header (2026-09-15
-    // directive). Only the by-turns subject editor, before the answer lands.
+    // as a full-viewport background behind the transparent header. Only the
+    // by-turns subject editor, before the answer lands.
     final pickedImage = ref.watch(_pickedAnswerImageProvider(sessionId));
     final playingState = game.valueOrNull;
     final showImageBackground =
@@ -278,7 +278,7 @@ class TruthDareScreen extends ConsumerWidget {
         playingState.skeleton.answer == null;
     // The reaction window's answer picture, lifted by [_AnswerPreview] once it
     // has downloaded + decrypted it. Same full-viewport backdrop as the editor's
-    // picked picture and the leaderboard pages (2026-09-17 standardization).
+    // picked picture and the leaderboard pages.
     final answerRound = playingState?.skeleton.answer?.round;
     final answerImageBytes = answerRound == null
         ? null
@@ -302,7 +302,7 @@ class TruthDareScreen extends ConsumerWidget {
     // The revealed prompt, rendered by the SCREEN over the picture for EVERY
     // play state (by-turns editor + reaction, and async), never by the cards —
     // and always CLIPPED below the header so neither the pill nor its diffusion
-    // can paint over the header (2026-09-17 refactor). The displayed string is
+    // can paint over the header. The displayed string is
     // the localized kind label + newline + body (`Reto:\n…` / `Verdad:\n…`).
     final promptSkeleton = playingState?.skeleton;
     final screenPromptBody =
@@ -320,7 +320,7 @@ class TruthDareScreen extends ConsumerWidget {
     final screenHeaderBottom =
         screenStatusTop + VHeaderMetrics.barHeight(screenStatusTop);
     // The reto picture picker ("Añadir imagen") is rendered by the SCREEN,
-    // directly BELOW the prompt banner (2026-09-17) — it must never sit behind
+    // directly BELOW the prompt banner — it must never sit behind
     // the question. Only the by-turns subject editor, before the answer lands,
     // when no picture is picked yet and the prompt is a RETO.
     final showPickImageButton =
@@ -394,7 +394,7 @@ class TruthDareScreen extends ConsumerWidget {
         fit: StackFit.expand,
         children: [
           // The subject's picked picture as a full-viewport background BEHIND
-          // the transparent header (2026-09-15) — edge to edge, blurred fill
+          // the transparent header — edge to edge, blurred fill
           // fully under the bar, with the remove (×) riding ON the image's own
           // rect (never the letterbox).
           if (showImageBackground)
@@ -422,7 +422,7 @@ class TruthDareScreen extends ConsumerWidget {
             ),
           // The answer TEXT, full-viewport over the picture and anchored to its
           // displayed rect, so the author's placement is identical on every
-          // device (2026-09-17). Clipped BELOW the header (the header must stay
+          // device. Clipped BELOW the header (the header must stay
           // on top) and to the viewport.
           if (showAnswerText)
             Positioned.fill(
@@ -487,7 +487,7 @@ class TruthDareScreen extends ConsumerWidget {
                                 l10n: l10n,
                               )
                             // The subject answered: their device must NOT stay
-                            // stuck on the editor (defect B) — show the read-only
+                            // stuck on the editor — show the read-only
                             // waiting card instead.
                             : _SubjectWaitingCard(
                                 sessionId: sessionId,
@@ -511,8 +511,8 @@ class TruthDareScreen extends ConsumerWidget {
                   if (fillHeight) {
                     // Transparent over a picked full-bleed picture (the image
                     // IS the backdrop) AND while choosing Verdad/Reto — no
-                    // surface chrome behind the two CTAs (2026-09-15
-                    // directive). Opaque surface chrome only for the editor.
+                    // surface chrome behind the two CTAs. Opaque surface chrome
+                    // only for the editor.
                     final choosingTruthDare =
                         truthDarePromptBody(skeleton.prompt) == null;
 
@@ -523,9 +523,9 @@ class TruthDareScreen extends ConsumerWidget {
                       return Stack(fit: StackFit.expand, children: [body]);
                     }
 
-                    // The SUBJECT editor is chrome-less too (2026-09-15
-                    // directive): transparent surface, no hairlines — matching
-                    // the choice state and the full-bleed leaderboard voice.
+                    // The SUBJECT editor is chrome-less too: transparent
+                    // surface, no hairlines — matching the choice state and the
+                    // full-bleed leaderboard voice.
                     return Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
@@ -541,11 +541,10 @@ class TruthDareScreen extends ConsumerWidget {
 
                   // The by-turns answer/waiting card is transparent AND fills
                   // the whole region between the header and the pinned bottom
-                  // line/row, with the answer body CENTERED (2026-09-15
-                  // uniformity directive). The revealed QUESTION is rendered by
-                  // the SCREEN, behind the header and over the picture — never
-                  // by the card, so it can never paint in front of the header
-                  // (2026-09-17).
+                  // line/row, with the answer body CENTERED. The revealed
+                  // QUESTION is rendered by the SCREEN, behind the header and
+                  // over the picture — never by the card, so it can never paint
+                  // in front of the header.
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
@@ -576,7 +575,7 @@ class TruthDareScreen extends ConsumerWidget {
 
                 // Async mode keeps its scrollable panel stack. The reactable
                 // tiles are FULL-WIDTH (edge to edge) so their answer pictures
-                // bleed like the rest (2026-09-17 standardization); the proxy
+                // bleed like the rest; the proxy
                 // card / captions pad themselves.
                 if (skeleton.playMode == MinigamePlayMode.async) {
                   return ListView(
@@ -610,15 +609,14 @@ class TruthDareScreen extends ConsumerWidget {
                 // by_turns: the answer card fills the body and the reaction
                 // deck is pinned to the floor exactly like the subject's
                 // Responder/Pasar bar. The "esperando X/Y reacciones…" line
-                // rides at the bottom, directly ABOVE the reaction row
-                // (2026-09-15 uniformity directive).
+                // rides at the bottom, directly ABOVE the reaction row.
                 final canReact = canReactToCurrentRound(
                   skeleton,
                   callerId: myId,
                 );
                 final answer = skeleton.answer;
                 final showWaitingLine = answer != null && !answer.passed;
-                // Tap-to-expand (2026-09-17 directive: reacting + leaderboard):
+                // Tap-to-expand:
                 // while the answer picture is up, tapping the content region
                 // opens the shared full-screen viewer. The reaction deck below
                 // is a SIBLING, so its buttons keep their own taps.
@@ -669,11 +667,11 @@ class TruthDareScreen extends ConsumerWidget {
           ),
           // The revealed prompt: rendered by the SCREEN directly below the
           // header, with the reto picture picker ("Añadir imagen") DIRECTLY
-          // BELOW it (2026-09-17). Painted LAST so the picker stays tappable
+          // BELOW it. Painted LAST so the picker stays tappable
           // above the editor canvas (whose full-canvas gesture surface would
           // otherwise swallow the tap).
           //
-          // NOT clipped at the header bottom (2026-09-19): the pill's diffusion
+          // NOT clipped at the header bottom: the pill's diffusion
           // must run continuously across the header edge, so the header's
           // blurred backdrop is the same darkened field as the rest of the
           // bleed — a `ClipRect` here cut the diffusion into a hard seam.
@@ -775,7 +773,7 @@ class TruthDareScreen extends ConsumerWidget {
       data: (state) {
         final skeleton = state.skeleton;
         // Line 2 carries the by-turns round counter in place of the game name
-        // (2026-09-17 directive); every other state keeps the game name.
+        // Every other state keeps the game name.
         final roundTarget = skeleton.roundTarget;
         final headerSecondary =
             skeleton.playMode == MinigamePlayMode.byTurns && roundTarget != null
@@ -863,7 +861,7 @@ class TruthDareScreen extends ConsumerWidget {
 
   /// The display name of a participant: the temp nickname in anonymous mode
   /// (falling back to the localized default), else the username. A raw UUID
-  /// is NEVER shown (2026-08-30 directive).
+  /// is NEVER shown.
   String _displayNameFor(
     String? userId,
     List<MinigameParticipant> roster,
@@ -967,8 +965,8 @@ class _AnswerCardState extends ConsumerState<_AnswerCard> {
 
   /// The answer canvas's on-screen origin + the picked picture's intrinsic
   /// size, so the label can be positioned in PICTURE space (image-aligned)
-  /// rather than in whatever widget canvas the device happens to lay out
-  /// (2026-09-17). [Offset.zero] until the first post-frame measurement.
+  /// rather than in whatever widget canvas the device happens to lay out.
+  /// [Offset.zero] until the first post-frame measurement.
   final _canvasKey = GlobalKey();
   Offset? _canvasOrigin;
   ImageStream? _pickedStream;
@@ -979,7 +977,7 @@ class _AnswerCardState extends ConsumerState<_AnswerCard> {
   /// the canvas center, drops rotation/scale, and shows the text cursor.
   bool _editing = false;
 
-  /// The author's on-canvas placement of the typed answer (2026-09-15): the
+  /// The author's on-canvas placement of the typed answer: the
   /// two-finger gesture writes it, and it rides the E2EE payload on submit.
   MinigameAnswerLayout _layout = MinigameAnswerLayout.center;
 
@@ -1069,7 +1067,7 @@ class _AnswerCardState extends ConsumerState<_AnswerCard> {
   Widget build(BuildContext context) {
     final prompt = truthDarePromptBody(widget.state.skeleton.prompt);
     if (prompt == null) {
-      // Choosing Verdad/Reto (2026-09-15 directive): two borderless dark CTAs
+      // Choosing Verdad/Reto: two borderless dark CTAs
       // stacked one per row, the pair centered horizontally AND vertically in
       // the (now transparent) answer container. Inset from the screen's
       // rounded corners; never pinned into the home-indicator zone.
@@ -1244,7 +1242,7 @@ class _AnswerCardState extends ConsumerState<_AnswerCard> {
       );
       String? imagePath;
       if (image != null) {
-        // Downscale + JPEG-encode BEFORE the E2EE encrypt (PERF-03/M-36): the
+        // Downscale + JPEG-encode BEFORE the E2EE encrypt: the
         // smaller JPEG plaintext becomes a smaller ciphertext, cutting storage
         // and per-viewer download+decrypt+decode time. Raw picked bytes never
         // leave the device — only the compressed JPEG is encrypted.
@@ -1254,7 +1252,7 @@ class _AnswerCardState extends ConsumerState<_AnswerCard> {
         final cipherBytes = await cipher.encryptAnswerImage(bytes, round);
         // The image NEVER rides the RPC payload as base64: upload the RAW
         // ciphertext bytes to the private `minigame_images` bucket and pass
-        // the returned OBJECT PATH (defect B image half).
+        // the returned OBJECT PATH (image half).
         imagePath = await ref
             .read(minigameServiceProvider)
             .uploadMinigameImage(widget.sessionId, round, cipherBytes);
@@ -1310,8 +1308,7 @@ class _AnswerCardState extends ConsumerState<_AnswerCard> {
   }
 }
 
-/// The author's answer text as a single free-floating label (2026-09-15;
-/// deduped 2026-09-15):
+/// The author's answer text as a single free-floating label:
 ///
 ///   * resting — shows the placed [layout] (two-finger pan moves it, pinch
 ///     scales, twist rotates) and a one-finger TAP opens the editor;
@@ -1342,7 +1339,7 @@ class _FloatingAnswerLabel extends StatefulWidget {
 
   /// The picture-anchored reference rect IN CANVAS COORDINATES: the layout's
   /// normalized x/y map onto it, so a placement stays on the same part of the
-  /// picture on every device (2026-09-17).
+  /// picture on every device.
   final Rect refRect;
   final MinigameAnswerLayout layout;
   final bool editing;
@@ -1485,7 +1482,7 @@ const double _promptBannerRadius = 5 * _promptBannerFontSize;
 /// The prompt's soft backdrop: three stacked blurs of the SAME pill, each wider
 /// and fainter than the last — `(sigma, alpha)` — so the darkness is strong
 /// right behind the text and diffuses progressively into the picture with no
-/// boundary (2026-09-17).
+/// boundary.
 ///
 /// Why blurs of the shape and not `BoxShadow`: a shadow is cast by an opaque
 /// silhouette, so it always keeps a visible edge no matter how large the blur
@@ -1494,14 +1491,14 @@ const double _promptBannerRadius = 5 * _promptBannerFontSize;
 /// diffusing more and more" falloff.
 ///
 /// The outer alphas are deliberately HIGH (darker tint) so the pill keeps the
-/// prompt legible even over a LIGHT picked picture (2026-09-17 directive).
+/// prompt legible even over a LIGHT picked picture.
 const List<(double sigma, double alpha)> _promptBannerLayers = [
   (36, 0.85),
 ];
 
 /// The current prompt — a Verdad question or a Reto challenge, prefixed by its
 /// kind label on its own line (`Reto:\n…`) — on a soft black pill so it stays
-/// legible over the full-bleed picked-image background (2026-09-17 directive).
+/// legible over the full-bleed picked-image background.
 /// Hugs the text (centered); the pill melts into the picture via
 /// [_promptBannerLayers]. Quicksand w600 at [_promptBannerFontSize].
 class _PromptBanner extends StatelessWidget {
@@ -1544,7 +1541,7 @@ class _PromptBanner extends StatelessWidget {
                 fontSize: _promptBannerFontSize,
                 fontWeight: FontWeight.w600,
                 // Lighter-tinted glyph shadow (a soft light halo) so the prompt
-                // glows against the darker pill (2026-09-17 directive).
+                // glows against the darker pill.
                 shadows: [
                   Shadow(
                     color: AppColors.discoBlack.withValues(alpha: 1),
@@ -1618,7 +1615,7 @@ class _WaitingCardState extends ConsumerState<_WaitingCard> {
         else
           // The live "esperando X/Y reacciones…" tally now lives at the BOTTOM
           // of the by-turns screen (above the reaction row), rendered by the
-          // screen — not inside the answer card (2026-09-15 directive).
+          // screen — not inside the answer card.
           _AnswerPreview(
             sessionId: widget.sessionId,
             answer: answer,
@@ -1682,7 +1679,7 @@ class _ReactionsWaitingLine extends StatelessWidget {
   }
 }
 
-/// The SUBJECT's post-submit view (defect B fix, 202_minigame_play_v2): once
+/// The SUBJECT's post-submit view: once
 /// the subject answered, `skeleton.answer` is set but `isMyTurn` stays true —
 /// the input surface must be replaced by a READ-ONLY card: the subject's OWN
 /// answer (decrypted locally). NO input, NO Responder, NO Pasar. A passed round
@@ -1744,7 +1741,7 @@ class _SubjectWaitingCardState extends ConsumerState<_SubjectWaitingCard> {
             decrypted: _decrypted,
           ),
         // The "esperando X/Y reacciones…" line is now rendered at the BOTTOM
-        // of the by-turns screen (2026-09-15 directive), not inside the card.
+        // of the by-turns screen, not inside the card.
       ],
     );
   }
@@ -1769,11 +1766,11 @@ class _SubjectWaitingCardState extends ConsumerState<_SubjectWaitingCard> {
 /// Decrypts the subject's submitted E2EE answer (text payload + optional
 /// picture) locally via [minigameCipherProvider] and LIFTS both to the screen
 /// providers ([_answerPayloadProvider] / [_answerImageProvider]) for the
-/// full-viewport, image-anchored overlays (2026-09-17). The card itself only
+/// full-viewport, image-anchored overlays. The card itself only
 /// keeps the key-recovery / loading states. The server never held the
 /// plaintext — this is the only place it appears.
 ///
-/// Reinstall recovery (206_minigame_key_request, 2026-09-03): when the round
+/// Reinstall recovery: when the round
 /// key is genuinely GONE from this device (a reinstall regenerated the E2EE
 /// identity, so the pairwise self-heal can never decrypt the host's old-
 /// identity bundles), the card enters a friendly recovery state instead of a
@@ -1859,7 +1856,7 @@ class _AnswerPreviewState extends ConsumerState<_AnswerPreview> {
       if (payload != null && mounted) {
         widget.onDecrypted(payload);
         // Lift the payload so the screen can render the answer text as a
-        // full-viewport, image-anchored overlay (2026-09-17).
+        // full-viewport, image-anchored overlay.
         final notifier = ref.read(
           _answerPayloadProvider('${widget.sessionId}/$round').notifier,
         );
@@ -1867,10 +1864,10 @@ class _AnswerPreviewState extends ConsumerState<_AnswerPreview> {
       }
     }
     // The image is NOT inline: it lives in the private `minigame_images`
-    // bucket (defect B). Resolve the object path via the storage download and
+    // bucket. Resolve the object path via the storage download and
     // decrypt the RAW ciphertext bytes locally, then LIFT them to the screen
     // provider so the reaction window renders the picture as its full-viewport
-    // background (2026-09-17 standardization) instead of a card thumbnail.
+    // background instead of a card thumbnail.
     final path = widget.answer.imageStoragePath;
     if (path != null && path.isNotEmpty) {
       _imageLoading = true;
@@ -2081,14 +2078,14 @@ class _AsyncPanel extends ConsumerWidget {
       final textCipher = await cipher.encryptAnswerText(text, round);
       String? imagePath;
       if (image != null) {
-        // Downscale + JPEG-encode BEFORE the E2EE encrypt (PERF-03/M-36) — see
+        // Downscale + JPEG-encode BEFORE the E2EE encrypt — see
         // _AnswerCardState._submitAnswer for the rationale.
         final bytes = await ImageProcessor.compressBytes(
           Uint8List.fromList(await image.readAsBytes()),
         );
         final cipherBytes = await cipher.encryptAnswerImage(bytes, round);
-        // Async images follow the SAME storage contract as by_turns (defect B
-        // image half): upload the RAW ciphertext bytes to the private bucket
+        // Async images follow the SAME storage contract as by_turns (image
+        // half): upload the RAW ciphertext bytes to the private bucket
         // and pass the object path. The server assigns `max(a.round)+1` for
         // async rounds, so the client cannot know the exact number — the path
         // round is the caller's current progress + 1 (unique + resolvable; the
@@ -2345,7 +2342,7 @@ class _ReactionRiseCanvasState extends ConsumerState<_ReactionRiseCanvas> {
 /// (1.0 → 0.9); on release it springs back to its original size at the same
 /// moment the burst plays.
 ///
-/// Emoji ↔ Pasar exclusivity (2026-09-04): when [disabled] the tile is greyed
+/// Emoji ↔ Pasar exclusivity: when [disabled] the tile is greyed
 /// out and inert — no press/burst/rise — because the caller already committed
 /// to the OTHER mode (passed, so emoji tiles lock).
 ///
@@ -2369,7 +2366,7 @@ class _ReactionDeckButton extends StatefulWidget {
   final double fontSize;
   final VoidCallback onReact;
 
-  /// Emoji ↔ Pasar exclusivity (2026-09-04): true when this tile's MODE is
+  /// Emoji ↔ Pasar exclusivity: true when this tile's MODE is
   /// locked for the caller (they already passed, so emoji tiles grey out and
   /// do not respond).
   final bool disabled;
@@ -2504,7 +2501,7 @@ class _ReactionDeckButtonState extends State<_ReactionDeckButton>
 }
 
 /// The shared reaction deck: the emoji slots plus the final white-X pass slot
-/// (2026-09-15 uniformity directive — used by BOTH the pinned by-turns row and
+/// (uniformity directive — used by BOTH the pinned by-turns row and
 /// the async reactable tiles, so they can never drift).
 class _ReactionDeckRow extends StatelessWidget {
   const _ReactionDeckRow({
@@ -2551,7 +2548,7 @@ class _ReactionDeckRow extends StatelessWidget {
 }
 
 /// The pass control that now lives as the LAST slot of the pinned reaction row
-/// (2026-09-15): a white X with the same press feedback as the emoji tiles. It
+/// a white X with the same press feedback as the emoji tiles. It
 /// commits the reactor-side Pasar (204) — the round's subject scores -0.5.
 class _ReactionPassButton extends StatefulWidget {
   const _ReactionPassButton({
@@ -2658,10 +2655,10 @@ class _AsyncReactableTileState extends ConsumerState<_AsyncReactableTile> {
         setState(() => _decrypted = decrypted);
       }
     }
-    // Async image answers follow the SAME storage contract (defect B image
+    // Async image answers follow the SAME storage contract (image
     // half): the object path resolves through the private bucket download,
     // then the RAW ciphertext bytes decrypt locally. A small spinner fills
-    // the image slot meanwhile (2026-09-02).
+    // the image slot meanwhile.
     final path = widget.answer.imageStoragePath;
     if (path != null && path.isNotEmpty) {
       _imageLoading = true;
@@ -2683,8 +2680,8 @@ class _AsyncReactableTileState extends ConsumerState<_AsyncReactableTile> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     // Full-bleed picture: the SAME [MinigameBleedImage] presentation as the
-    // by_turns reaction window and the leaderboard pages (2026-09-17
-    // standardization) — the picture bleeds to the tile's edges, with the round
+    // by_turns reaction window and the leaderboard pages — the picture bleeds
+    // to the tile's edges, with the round
     // header above and the reaction deck below. The card owns no padding so the
     // picture reaches the edges; each section pads itself.
     return VCard(
@@ -2744,7 +2741,7 @@ class _AsyncReactableTileState extends ConsumerState<_AsyncReactableTile> {
               AppSpacing.cardPadding,
               AppSpacing.md,
             ),
-            // The same deck as the by-turns row (2026-09-15 uniformity): emoji
+            // The same deck as the by-turns row: emoji
             // slots plus the final white-X pass. Exclusivity is enforced
             // SERVER-side here (the async mirror is subject-keyed, so a
             // per-round grey-out would be ambiguous for multi-round subjects);
@@ -2820,7 +2817,7 @@ class _ReactionRowState extends ConsumerState<_ReactionRow> {
         .valueOrNull
         ?.skeleton;
     final subjectId = skeleton?.subjectId;
-    // Emoji ↔ Pasar exclusivity (2026-09-09): once the caller has acted they
+    // Emoji ↔ Pasar exclusivity: once the caller has acted they
     // can only change WITHIN their chosen mode. If they already emoji-reacted,
     // Pasar is locked and greyed; if they already passed, EVERY option is
     // locked and greyed (emoji tiles AND Pasar).
@@ -2831,7 +2828,7 @@ class _ReactionRowState extends ConsumerState<_ReactionRow> {
         ? skeleton.hasVoterPassed(subjectId, myId)
         : false;
     // Pinned to the floor exactly like the subject's Responder/Pasar bar
-    // (2026-09-15 uniformity directive): no title, no card chrome — the emoji
+    // no title, no card chrome — the emoji
     // deck plus a final white X (pass) span the row.
     return Padding(
       padding: const EdgeInsets.symmetric(

@@ -4,9 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/core/theme/samay_durations.dart';
 
-/// Live/online presence dot with the §6.3 α pulse (U-18).
+/// Live/online presence dot with the §6.3 α pulse.
 ///
-/// The §5.5 dot — `discoCyan` 8px circle (13.65:1 — U-10's friends list) —
+/// The §5.5 dot — `discoCyan` 8px circle —
 /// plus the doc's pulse: the dot α oscillates 0.6 → 1.0 on a
 /// `liveDotPulse` (1.5s) easeInOut ramp (1.5s up + 1.5s down +
 /// [SamayDurations.motionCycleRest] static settle — the same idle-safe

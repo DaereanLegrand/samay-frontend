@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:samay/core/config/feature_flags.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
+import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/design_tokens/app_typography.dart';
 import 'package:samay/core/extensions/error_mapper.dart';
 import 'package:samay/core/logging/app_logger.dart';
@@ -95,8 +96,8 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
           .sendFriendRequest(widget.userId);
       if (!mounted) return;
       if (status == 'accepted') {
-        // R15 (F5): mutual-accept — the friendship is instant; the dialog
-        // says so instead of the pending snackbar.
+        // Mutual-accept: the friendship is instant; the dialog says so
+        // instead of the pending snackbar.
         ref.invalidate(friendsListProvider);
         await showDialog<void>(
           context: context,
@@ -136,7 +137,7 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
       await ref
           .read(friendsRepositoryProvider)
           .acceptFriendRequest(_friendshipId!);
-      // The new friend must appear in the list immediately (2026-08-14).
+      // The new friend must appear in the list immediately.
       ref.invalidate(friendsListProvider);
       if (mounted) {
         ScaffoldMessenger.of(
@@ -165,17 +166,18 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
     final p = _profile;
     final username = p?['username'] as String?;
     final bio = p?['bio'] as String?;
-    // U-26: the empty-string edge (U-24 F3 family) — a non-null '' would
-    // RangeError on substring; '' falls back to the 'U' initial.
+    // The empty-string edge — a non-null '' would RangeError on substring;
+    // '' falls back to the 'U' initial.
     final initials = (username == null || username.isEmpty)
         ? 'U'
         : username.substring(0, 1).toUpperCase();
 
     return Scaffold(
       body: VHeaderBar(
+        title: username ?? l10n.commonUser,
         actions: [
-          // U-26 (4.1.2): the overflow menu is icon-only — the tooltip is
-          // its accessibility name for screen readers.
+          // The overflow menu is icon-only — the tooltip is its accessibility
+          // name for screen readers.
           PopupMenuButton<String>(
             tooltip: l10n.commonMoreOptions,
             onSelected: _handleMenuAction,
@@ -192,86 +194,75 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
           ),
         ],
         child: ListView(
-          padding: const EdgeInsets.all(24),
+          padding: EdgeInsets.zero,
           children: [
-            Center(
-              child: ProfileAvatar(
-                initials: initials,
-                imageUrl: p?['avatar_url'] as String?,
+            // Cover hero: a flat band with the avatar centered, then the
+            // identity + bio beneath it.
+            _ProfileHero(
+              initials: initials,
+              imageUrl: p?['avatar_url'] as String?,
+              displayName: username ?? l10n.commonUser,
+              handle: username,
+              bio: bio,
+              noBio: l10n.profileNoBio,
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.screenHorizontal,
+                AppSpacing.xl,
+                AppSpacing.screenHorizontal,
+                AppSpacing.xl,
               ),
-            ),
-            const SizedBox(height: 16),
-            Center(
-              child: VDisplayText(text: username ?? l10n.commonUser, size: 28),
-            ),
-            if (username != null) ...[
-              const SizedBox(height: 4),
-              Center(
-                child: Text(
-                  '@$username',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: AppColors.mutedStrong,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(child: _buildActionButton()),
+                      if (_friendshipStatus == 'accepted' &&
+                          !_isBlocked &&
+                          ref.isEnabled(AppFeatureFlag.chat)) ...[
+                        const SizedBox(width: AppSpacing.sm),
+                        Expanded(
+                          child: VButton(
+                            label: l10n.profileMessage,
+                            onPressed: _openChat,
+                          ),
+                        ),
+                      ],
+                      if (_friendshipStatus == 'pending' &&
+                          _friendshipId != null) ...[
+                        const SizedBox(width: AppSpacing.sm),
+                        Expanded(
+                          child: VButton(
+                            label: _isIncoming
+                                ? l10n.commonReject
+                                : l10n.profileCancelRequest,
+                            onPressed: () async {
+                              await ref
+                                  .read(friendsRepositoryProvider)
+                                  .declineFriendRequest(_friendshipId!);
+                              _load();
+                            },
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
-                ),
-              ),
-            ],
-            const SizedBox(height: 8),
-            Center(
-              child: Text(
-                bio != null && bio.isNotEmpty ? bio : l10n.profileNoBio,
-                style: Theme.of(
-                  context,
-                ).textTheme.bodyMedium?.copyWith(color: AppColors.mutedStrong),
-              ),
-            ),
-            const SizedBox(height: 32),
-            Row(
-              children: [
-                Expanded(child: _buildActionButton()),
-                if (_friendshipStatus == 'accepted' &&
-                    !_isBlocked &&
-                    ref.isEnabled(AppFeatureFlag.chat)) ...[
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: VButton.emphasized(
-                      label: l10n.profileMessage,
-                      onPressed: _openChat,
+                  const SizedBox(height: AppSpacing.xl),
+                  Text(
+                    l10n.profileSharedGroups.toUpperCase(),
+                    style: AppTypography.sectionLabel,
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
+                  Text(
+                    l10n.profileNoSharedGroups,
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: AppColors.mutedStrong,
                     ),
                   ),
                 ],
-                if (_friendshipStatus == 'pending' && _friendshipId != null)
-                  const SizedBox(width: 8),
-                if (_friendshipStatus == 'pending' && _friendshipId != null)
-                  Expanded(
-                    child: VButton(
-                      label: _isIncoming
-                          ? l10n.commonReject
-                          : l10n.profileCancelRequest,
-                      onPressed: () async {
-                        await ref
-                            .read(friendsRepositoryProvider)
-                            .declineFriendRequest(_friendshipId!);
-                        _load();
-                      },
-                    ),
-                  ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            // LUXE v2 (XL-08): the shared-groups header is the §3.3
-            // sectionLabel overline voice, not a title.
-            Text(
-              l10n.profileSharedGroups.toUpperCase(),
-              style: AppTypography.sectionLabel,
-            ),
-            const SizedBox(height: 8),
-            Center(
-              child: Text(
-                l10n.profileNoSharedGroups,
-                // §5.9 empty state: mutedStrong bodyMedium (U-09).
-                style: Theme.of(
-                  context,
-                ).textTheme.bodyMedium?.copyWith(color: AppColors.mutedStrong),
               ),
             ),
           ],
@@ -280,8 +271,8 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
     );
   }
 
-  /// Plugged chat entry (2026-08-13): resolves (or creates) the E2EE direct
-  /// chat with this friend via `create_direct_chat` and opens the thread.
+  /// Resolves (or creates) the E2EE direct chat with this friend via
+  /// `create_direct_chat` and opens the thread.
   Future<void> _openChat() async {
     try {
       final chatId = await ref
@@ -301,9 +292,9 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
   Widget _buildActionButton() {
     final l10n = AppLocalizations.of(context);
     if (_isBlocked) {
-      // U-26 (U-23 F3): the status readouts (Bloqueado/Amigos/Solicitado)
-      // are NOT actions — a no-op handler renders them enabled (2.1.1/
-      // 4.1.2 violation); disabled drops them to `muted` per §5.1.
+      // The status readouts (Bloqueado/Amigos/Solicitado) are NOT actions —
+      // a no-op handler would render them enabled; disabled drops them to
+      // `muted` per §5.1.
       return VButton.emphasized(
         label: l10n.friendsStatusBlocked,
         onPressed: null,
@@ -345,9 +336,8 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
     }
   }
 
-  /// R2: the report menu item opens the reason dialog, then submits a real
-  /// report through [ModerationService.reportContent] ('user' target). No
-  /// more "próximamente" snackbar — the moderation pipeline exists.
+  /// The report menu item opens the reason dialog, then submits a real report
+  /// through [ModerationService.reportContent] ('user' target).
   Future<void> _reportUser() async {
     final l10n = AppLocalizations.of(context);
     final reason = await showDialog<String>(
@@ -424,5 +414,75 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
         ).showSnackBar(SnackBar(content: Text(l10n.profileUnblockError)));
       }
     }
+  }
+}
+
+/// Flat monochrome cover band with the avatar centered, followed by the
+/// display name, handle and bio.
+class _ProfileHero extends StatelessWidget {
+  const _ProfileHero({
+    required this.initials,
+    required this.imageUrl,
+    required this.displayName,
+    required this.handle,
+    required this.bio,
+    required this.noBio,
+  });
+
+  final String initials;
+  final String? imageUrl;
+  final String displayName;
+  final String? handle;
+  final String? bio;
+  final String noBio;
+
+  static const double _coverHeight = 180;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Container(
+          height: _coverHeight,
+          alignment: Alignment.center,
+          decoration: const BoxDecoration(
+            color: AppColors.surfaceAlt,
+            border: Border(bottom: BorderSide(color: AppColors.hairline)),
+          ),
+          child: ProfileAvatar(initials: initials, imageUrl: imageUrl),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.screenHorizontal,
+            AppSpacing.lg,
+            AppSpacing.screenHorizontal,
+            0,
+          ),
+          child: Column(
+            children: [
+              VDisplayText(text: displayName, size: 28),
+              if (handle != null) ...[
+                const SizedBox(height: AppSpacing.xs),
+                Text(
+                  '@$handle',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: AppColors.mutedStrong,
+                  ),
+                ),
+              ],
+              const SizedBox(height: AppSpacing.sm),
+              Text(
+                bio != null && bio!.isNotEmpty ? bio! : noBio,
+                textAlign: TextAlign.center,
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyMedium?.copyWith(color: AppColors.mutedStrong),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
   }
 }

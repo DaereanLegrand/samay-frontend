@@ -5,7 +5,7 @@ import 'package:go_router/go_router.dart';
 /// Typed, validated navigation extras for parameterized routes.
 ///
 /// The auth-flow routes read their payload through one of these classes so the
-/// router never performs unsafe casts on `state.extra` (finding NAV-04 / H-04).
+/// router never performs unsafe casts on `state.extra`.
 /// Factories return `null` on missing/invalid data instead of throwing; callers
 /// render a safe fallback (see `RouteErrorScreen`).
 ///
@@ -13,7 +13,7 @@ import 'package:go_router/go_router.dart';
 /// go_router configuration re-parsed from the engine state (which carries the
 /// extras through [RouteExtraCodec]) compares equal to the current one — the
 /// delegate's `setNewRoutePath` early-returns and the pushed screens keep
-/// their state (U-29 smoke finding, see [RouteExtraCodec]).
+/// their state.
 sealed class RouteExtra {
   const RouteExtra();
 }
@@ -34,7 +34,7 @@ class VerifyExtra extends RouteExtra {
 
   const VerifyExtra({required this.email, required this.password});
 
-  /// Returns the extra when [state.extra] is a [VerifyExtra] or a legacy map
+  /// Returns the extra when [state.extra] is a [VerifyExtra] or a raw map
   /// with non-empty `email`/`password`; otherwise `null`.
   static VerifyExtra? fromState(GoRouterState state) => fromObject(state.extra);
 
@@ -64,7 +64,7 @@ class PrivacyTermsExtra extends RouteExtra {
 
   const PrivacyTermsExtra({required this.email, required this.dateOfBirth});
 
-  /// Returns the extra when [state.extra] is a [PrivacyTermsExtra] or a legacy
+  /// Returns the extra when [state.extra] is a [PrivacyTermsExtra] or a raw
   /// map with non-empty `email`/`dateOfBirth`; otherwise `null`.
   static PrivacyTermsExtra? fromState(GoRouterState state) =>
       fromObject(state.extra);
@@ -95,7 +95,7 @@ class ProfileSetupExtra extends RouteExtra {
 
   const ProfileSetupExtra({required this.email, required this.dateOfBirth});
 
-  /// Returns the extra when [state.extra] is a [ProfileSetupExtra] or a legacy
+  /// Returns the extra when [state.extra] is a [ProfileSetupExtra] or a raw
   /// map with non-empty `email`/`dateOfBirth`; otherwise `null`.
   static ProfileSetupExtra? fromState(GoRouterState state) =>
       fromObject(state.extra);
@@ -126,7 +126,7 @@ class AgeGateExtra extends RouteExtra {
 
   const AgeGateExtra({required this.email});
 
-  /// Returns the extra when [state.extra] is an [AgeGateExtra], a legacy
+  /// Returns the extra when [state.extra] is an [AgeGateExtra], a raw
   /// String email, or a map with a non-empty `email` field; otherwise `null`.
   static AgeGateExtra? fromState(GoRouterState state) => fromObject(state.extra);
 
@@ -147,7 +147,7 @@ class AgeGateExtra extends RouteExtra {
 }
 
 /// GoRouter's `extraCodec` — round-trips the typed [RouteExtra]s through the
-/// engine's route-information state (U-29 smoke finding).
+/// engine's route-information state.
 ///
 /// go_router serializes pushed-page extras into the engine state on every
 /// route report and RE-PARSES that state on every `refresh()` — the auth
@@ -196,7 +196,7 @@ class _RouteExtraDecoder extends Converter<Object?, Object?> {
   @override
   Object? convert(Object? encoded) {
     if (encoded is! Map) return encoded;
-    // The typed classes parse their own legacy-map form; the `type` marker
+    // The typed classes parse their own raw-map form; the `type` marker
     // picks the class. Unmarked maps pass through untouched.
     return switch (encoded['type']) {
       'verify' => VerifyExtra.fromObject(encoded),
@@ -208,7 +208,7 @@ class _RouteExtraDecoder extends Converter<Object?, Object?> {
   }
 }
 
-/// Null-safe path-parameter access (finding NAV-03 / H-03).
+/// Null-safe path-parameter access.
 ///
 /// Returns `null` instead of throwing when the parameter is missing, so
 /// malformed deep links render a fallback screen instead of crashing.

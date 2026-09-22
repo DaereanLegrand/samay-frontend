@@ -15,7 +15,7 @@ This forbids, for the `supabase/` stack ONLY:
 - `docker compose` commands in `supabase/`;
 - every `make supabase-start|stop|status|reset|init|docker-*|seed-*` target;
 - `supabase/migrate.sh`, `supabase/reset.sh`, `supabase/run.sh`,
-  `supabase/seed-config.sql`, `supabase/seed-dev.sql`, `supabase/volumes/`;
+  `supabase/seed-config.sql`, `supabase/volumes/`;
 - any `psql` (or REST/Studio) connection to the prod stack's database.
 
 Do NOT start, stop, reset, migrate, seed, or query it. It is the human's, and
@@ -100,7 +100,7 @@ themselves. Enforced at the config level in `.opencode/opencode.json`.
   `bash test/opt-007-compose-static.sh` for the static gates. The full
   `make check` + `make test` gate runs ONLY when the human explicitly asks
   for a full validation.
-- SQL migrations are tested via `supabase db test` (pgTAP) where applicable.
+- SQL migrations are tested via `make supabase-db-test` (pgTAP, `supabase db test --db-url` against the self-hosted compose DB) where applicable.
 - Test fixtures mirror real Supabase data shapes.
 - Keep `plan(N)` in the pgTAP suite equal to its real assertion count.
 
@@ -168,7 +168,7 @@ make check         # dart analyze + flutter analyze + go vet + ports + secrets g
 go test ./...
 
 # Supabase
-supabase db test    # pgTAP (needs the stack up)
+make supabase-db-test    # pgTAP via `supabase db test --db-url` (self-hosted compose DB, needs the stack up)
 bash test/run_all_backend.sh    # curl opt-tests (needs the stack up)
 ```
 

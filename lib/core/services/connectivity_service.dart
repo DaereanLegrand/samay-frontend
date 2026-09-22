@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 /// Injection seam for the `connectivity_plus` plugin (a platform plugin that
 /// cannot run in widget tests): callers/tests substitute this function
 /// instead of mocking the platform channel — the same pattern as
-/// [PermissionService]'s injectable seams (SEC-07 / I-28).
+/// [PermissionService]'s injectable seams.
 typedef ConnectivityStream = Stream<bool> Function();
 
 /// Injection seam for the one-shot connectivity check.
@@ -26,8 +26,8 @@ Stream<bool> _defaultStream() =>
 Future<bool> _defaultCheck() async =>
     hasNetworkConnection(await Connectivity().checkConnectivity());
 
-/// Single seam for every connectivity need in the app (I-67): the global
-/// offline banner today, the offline-cache fallbacks (I-71) tomorrow. All
+/// Single seam for every connectivity need in the app: the global
+/// offline banner today, the offline-cache fallbacks tomorrow. All
 /// future network-status code must go through this service instead of calling
 /// `connectivity_plus` directly, so the `none`→offline mapping stays
 /// consistent and testable.
@@ -56,7 +56,7 @@ class ConnectivityService {
   Future<bool> isConnected() => _isConnected();
 }
 
-/// Riverpod wiring for [ConnectivityService] (I-67). Override in tests to
+/// Riverpod wiring for [ConnectivityService]. Override in tests to
 /// inject a fake stream/check and exercise the banner, providers, and future
 /// offline-cache consumers in isolation.
 final connectivityServiceProvider = Provider<ConnectivityService>((ref) {

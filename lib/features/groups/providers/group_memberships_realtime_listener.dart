@@ -6,7 +6,7 @@ import 'package:samay/core/providers/service_providers.dart';
 import 'package:samay/features/groups/providers/groups_providers.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' show RealtimeChannel;
 
-/// Remote-side freshness for the groups surface (2026-08-17): group
+/// Remote-side freshness for the groups surface: group
 /// invitations land without an app restart.
 ///
 /// Lives for as long as the shell is mounted: subscribes to the current
@@ -20,7 +20,7 @@ import 'package:supabase_flutter/supabase_flutter.dart' show RealtimeChannel;
 /// [groupMembersProvider] — an ACTIVE member receives rows for ALL members of
 /// their groups (RLS `group_members_read_same`), so a co-member accept/kick/
 /// join refreshes the members tab of any open group-detail screen live, with
-/// no pull-to-refresh (USER FIX 1, 2026-08-17).
+/// no pull-to-refresh.
 ///
 /// Re-subscribes when the authenticated user changes. Failures are logged,
 /// never silent (best-effort: pull-to-refresh remains the fallback).

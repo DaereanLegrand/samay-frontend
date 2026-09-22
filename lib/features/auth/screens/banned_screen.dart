@@ -9,7 +9,7 @@ import 'package:samay/shared/widgets/v_button.dart';
 import 'package:samay/shared/widgets/v_card.dart';
 import 'package:samay/shared/widgets/v_display_text.dart';
 
-/// Terminal screen for suspended accounts (AUTH spec: ban enforcement, I-35).
+/// Terminal screen for suspended accounts (ban enforcement).
 ///
 /// Minimalist per DESIGN.md §1 (black always, white core, one
 /// idea per screen): an icon, the suspension title, the stored ban reason
@@ -42,7 +42,7 @@ class BannedScreen extends ConsumerWidget {
                         color: AppColors.white,
                       ),
                       const SizedBox(height: AppSpacing.xl),
-                      // Monochrome (2026-08-26): the suspension title is the
+                      // Monochrome: the suspension title is the
                       // display voice — verbatim copy, flat white glyphs.
                       VDisplayText(
                         text: l10n.bannedTitle,
@@ -58,7 +58,7 @@ class BannedScreen extends ConsumerWidget {
                             ?.copyWith(color: AppColors.mutedStrong),
                       ),
                       const SizedBox(height: AppSpacing.xxl),
-                      // U-19: the sign-out CTA is full-width (max 320) — the
+                      // The sign-out CTA is full-width (max 320) — the
                       // fixed 200px width clipped long labels at 1.5× scale.
                       // LUXE v2: the action rides a liquid-glass card
                       // (mint-family ring + soft glow).

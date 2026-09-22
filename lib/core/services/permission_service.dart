@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart' as ph;
 
 /// Outcome of an OS permission request, collapsed to the three states the UI
-/// needs to act on (SEC-07 / DEP-11).
+/// needs to act on.
 enum PermissionOutcome { granted, denied, permanentlyDenied }
 
 /// Injection seam for the `permission_handler` plugin (a MethodChannel plugin
@@ -19,7 +19,7 @@ Future<bool> _defaultOpenSettings() => ph.openAppSettings();
 
 /// Single seam for every OS permission the app needs (camera, photo library,
 /// …). All future camera/gallery code — the group-cover picker today, the QR
-/// scanner (I-57) tomorrow — must go through this service instead of calling
+/// scanner tomorrow — must go through this service instead of calling
 /// `permission_handler` directly, so the rationale/denied/permanently-denied
 /// UX stays consistent and testable.
 ///

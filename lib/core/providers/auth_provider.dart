@@ -68,12 +68,12 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
     return _resolveInitialState();
   }
 
-  /// Reloads the initial session state (SM-09 refresh pattern).
+  /// Reloads the initial session state.
   Future<void> refresh() async {
     ref.invalidateSelf();
   }
 
-  /// Explicitly renews the access token (SEC-04 / H-22): callers that need a
+  /// Explicitly renews the access token: callers that need a
   /// fresh session now (e.g. before a long-lived operation) use this instead
   /// of waiting for the SDK's auto-refresh. [AuthService] swallows transport
   /// errors and returns null, so both a thrown refresh and a revoked/expired
@@ -109,14 +109,13 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
     return const AuthState();
   }
 
-  /// Orphan-session gate (2026-09-01): an authenticated [user] with NO
+  /// Orphan-session gate: an authenticated [user] with NO
   /// `users` row is an account that no longer exists on the server (backend
   /// reset, account deletion, admin wipe). The profile probe must NOT
   /// masquerade as the signup funnel — the funnel is only ever entered
   /// EXPLICITLY (OTP → age gate). Sign out and return unauthenticated instead
   /// of surfacing an `authenticated && !hasProfile` state to the router (which
-  /// previously flashed the feed, or — before the guard change — bounced to
-  /// the birthdate screen).
+  /// would flash the feed or bounce to the birthdate screen).
   Future<AuthState> _orphanGate(
     Map<String, dynamic> user,
     AuthState state,
@@ -133,8 +132,8 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
   /// [_authStateForUser] for paths with no UI to surface an error
   /// (initial-session restore, auth-state listener events).
   ///
-  /// No-fallback policy (2026-08-13): when the profile/ban probe fails here,
-  /// the user must NOT be bounced anywhere — the guard no longer redirects on
+  /// No-fallback policy: when the profile/ban probe fails here,
+  /// the user must NOT be bounced anywhere — the guard does not redirect on
   /// `hasProfile`, so staying put is explicit and safe. Log the failure and
   /// keep the previous state; never navigate, never sign out.
   Future<AuthState> _authStateForUserSafe(
@@ -156,12 +155,12 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
     final session = event.session;
     switch (event.event) {
       case AuthChangeEvent.tokenRefreshed:
-        // SEC-04 / H-22 (I-30): a refresh that yields no session (expired or
+        // a refresh that yields no session (expired or
         // revoked refresh token) must not silently keep a stale session —
         // transition to unauthenticated so the router redirects to login.
         if (session?.user != null) {
           final user = session!.user.toJson();
-          // Cache-aware ban check (I-35): a ban lands at worst within the
+          // Cache-aware ban check: a ban lands at worst within the
           // 30 s cache window on a long-lived session. A refresh that surfaces
           // a profile-less user is an orphan (see [_orphanGate]).
           final resolved = await _orphanGate(
@@ -224,8 +223,8 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
   /// cannot run, authentication proceeds (the authoritative enforcement is
   /// server-side).
   ///
-  /// The profile probe (`users` row) PROPAGATES errors (no-fallback policy
-  /// 2026-08-13): explicit callers (signIn, verifyOtp, signUp) catch and
+  /// The profile probe (`users` row) PROPAGATES errors (no-fallback policy):
+  /// explicit callers (signIn, verifyOtp, signUp) catch and
   /// surface them; the listener/initial-restore paths use
   /// [_authStateForUserSafe] which logs and stays put — never a silent
   /// "no profile" that would redirect the user elsewhere.
@@ -252,7 +251,7 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
       }
       return AuthState(banned: true, banReason: status.reason);
     }
-    // I-70: crash-reporter user context — scrubbed (SHA-256) by the reporter,
+    // crash-reporter user context — scrubbed (SHA-256) by the reporter,
     // never PII. One line covering every authenticated transition: initial
     // restore, signIn, verifyOtp, signUp-via-auth-event, tokenRefreshed.
     unawaited(ref.read(crashReporterProvider).setUser(user['id'] as String?));
@@ -267,7 +266,7 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
   }
 
   /// Returns 'signup' if email is available (new or cleaned up), 'exists' if
-  /// fully registered. Errors PROPAGATE (no-fallback policy 2026-08-13): a
+  /// fully registered. Errors PROPAGATE: a
   /// failed check must never silently degrade to 'signup' and push the
   /// funnel forward — the signup screen surfaces the error instead.
   Future<String> checkEmail(String email) async {
@@ -291,7 +290,7 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
         return;
       }
       state = AsyncData(await _authStateForUser(user, forceBanCheck: true));
-      // I-68: telemetry — a completed sign-in with a user. No PII is ever
+      // telemetry — a completed sign-in with a user. No PII is ever
       // attached (SECURITY.md §2.8); the stub mode logs the event name only.
       ref.read(telemetryServiceProvider).track('auth_sign_in');
     } catch (e, st) {
@@ -318,15 +317,13 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
     } catch (e, st) {
       // Rethrow on purpose: the contact screen NAVIGATES on sendOtp success,
       // so a swallowed error would land the user on the OTP screen with a
-      // stale error (the pre-OTP signup_tracker write used to 42501 into
-      // "No tienes permiso para realizar esta acción."). Rethrowing keeps
-      // the funnel on the contact screen with its blocking error dialog.
+      // stale error instead of the contact screen's blocking error dialog.
       state = AsyncError(e.toAppError(), st);
       rethrow;
     }
   }
 
-  /// U-14 R3: requests the password-recovery email for [email] (GoTrue's
+  /// requests the password-recovery email for [email] (GoTrue's
   /// anti-enumeration contract: the response never reveals whether the email
   /// has an account — the screen always lands on its success state).
   Future<void> resetPasswordForEmail(String email) async {
@@ -412,7 +409,7 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
 
   Future<void> signOut() async {
     await _service.signOut();
-    // E2EE §7.6 (Signal model, 2026-08-15): the identity + prekeys + chat
+    // E2EE §7.6: the identity + prekeys + chat
     // sessions SURVIVE a sign-out — the key material is bound to the
     // ACCOUNT, not the session. Only an account switch (ownership guard in
     // [_ensureE2eeKeysPublished]) or account deletion wipes it.
@@ -426,7 +423,7 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
     state = const AsyncData(AuthState());
   }
 
-  /// E2EE §12.2 step 4 (auth lifecycle hooks — wired 2026-08-15): guarantees
+  /// E2EE §12.2 step 4: guarantees
   /// the account's prekey bundle exists on the server before any chat. A peer
   /// without a published bundle cannot receive a first message
   /// (`fetch_prekey_bundle` → null → X3DH cannot initiate), so:
@@ -434,10 +431,10 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
   /// - `createProfile` publishes unconditionally (`force: true` — the row
   ///   cannot exist yet);
   /// - session restore / sign-in calls [E2eePrekeyService.handleMissingSession]
-  ///   (idempotent) to heal legacy accounts created before this hook, and
+  ///   (idempotent) to heal accounts whose bundle is missing, and
   ///   republishes when the published identity differs from the local one.
   ///
-  /// Account ownership (Signal model, 2026-08-15): the key material is bound
+  /// Account ownership: the key material is bound
   /// to the FIRST account that uses this install. When a DIFFERENT account
   /// signs in, the previous material is wiped (identity, prekeys, sessions)
   /// so keys never cross accounts; a fresh install (no owner recorded)

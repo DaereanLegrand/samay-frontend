@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
-import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/design_tokens/app_typography.dart';
+import 'package:samay/shared/widgets/v_display_text.dart';
+import 'package:samay/shared/widgets/v_header_bar.dart';
 
 /// A rich two-line title for the minigame play screen's [VHeaderBar].
 ///
@@ -20,6 +21,12 @@ import 'package:samay/core/design_tokens/app_typography.dart';
 /// height is unchanged by construction ([VHeaderBar.barHeight]); this widget
 /// only sizes its own text to fit. Long content scales down ([FittedBox]) so
 /// it never overflows the row or under the trailing actions.
+///
+/// Optical centerline: line 1's reference band is landed on [VHeaderMetrics]'
+/// shared centerline (the same one the back arrow and the plain [VDisplayText]
+/// title use) via [VHeaderMetrics.opticalShiftFor], with line 2 tucked directly
+/// under it — so every header element reads on ONE line. Rationale:
+/// `docs/history/phase-16/2026-09-11_header-optical-alignment.md`.
 class MinigameHeaderTitle extends StatelessWidget {
   const MinigameHeaderTitle({
     super.key,
@@ -56,15 +63,23 @@ class MinigameHeaderTitle extends StatelessWidget {
         : _WordLine(word: word ?? '');
 
     final sub = secondary;
-    return Padding(
-      padding: const EdgeInsets.only(top: AppSpacing.sm),
+    final line1Style = VDisplayText.styleFor(
+      _lineSize,
+    ); // 24px Playfair w700, height 1.0 — same metrics as the rendered lines
+    final shift = VHeaderMetrics.opticalShiftFor(context, line1Style);
+    const double lineGap = 2;
+    const double secondaryHeight = 11; // line-2 style height at fontSize 11
+    final hasLine2 = sub != null && sub.isNotEmpty;
+    final double ty = hasLine2 ? shift + (lineGap + secondaryHeight) / 2 : shift;
+    return Transform.translate(
+      offset: Offset(0, ty),
       child: Column(
         mainAxisSize: MainAxisSize.min,
-        mainAxisAlignment: MainAxisAlignment.center,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           line1,
-          if (sub != null && sub.isNotEmpty) ...[
+          if (hasLine2) ...[
+            const SizedBox(height: lineGap),
             Text(
               sub,
               maxLines: 1,
@@ -90,15 +105,10 @@ class MinigameHeaderTitle extends StatelessWidget {
 /// words.
 const double _lineSize = 24;
 
-/// One line: muted [prefix] + white [name] + muted [suffix], all the SAME
-/// Playfair Display size, no outline. Scale-down-fitted so it never overflows
-/// the bar's Expanded title slot.
 /// One line: [prefix] + [name] + [suffix], all the SAME Playfair Display size
 /// and the SAME flat white as the app's display voice ([VDisplayText] /
-/// `_WordLine`), with the shared legibility shadow. The previous muted-grey
-/// particles rendered differently across platforms (alpha compositing over the
-/// picture) — unified to flat white (2026-09-17). Scale-down-fitted so it never
-/// overflows the bar's Expanded title slot.
+/// `_WordLine`), with the shared legibility shadow. Scale-down-fitted so it
+/// never overflows the bar's Expanded title slot.
 class _PhraseLine extends StatelessWidget {
   const _PhraseLine({required this.prefix, required this.name, this.suffix});
 

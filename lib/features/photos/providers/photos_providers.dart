@@ -5,8 +5,8 @@ import 'package:samay/core/providers/service_providers.dart';
 import 'package:samay/core/services/event_service.dart';
 import 'package:samay/core/services/media_service.dart';
 
-/// `app_config` key for the post-event photo upload window (PHUP spec —
-/// seeded as `24` in seed.sql).
+/// `app_config` key for the post-event photo upload window (seeded as `24`
+/// in seed.sql).
 const photoUploadWindowHoursKey = 'events.photo_upload_window_hours';
 
 /// Fallback when the config row is missing or unparsable.
@@ -18,7 +18,7 @@ int photoUploadWindowHours(Map<String, String> appConfig) {
       photoUploadWindowHoursDefault;
 }
 
-/// Whether the PHUP upload window is open: during the event (now ≤ endsAt)
+/// Whether the upload window is open: during the event (now ≤ endsAt)
 /// and up to [windowHours] after `ends_at`. A missing/unknown event end is
 /// treated as closed (fail-closed — never advertise uploads for a broken
 /// event row).
@@ -27,7 +27,7 @@ bool isPhotoUploadWindowOpen(DateTime now, DateTime? endsAt, int windowHours) {
   return !now.isAfter(endsAt.add(Duration(hours: windowHours)));
 }
 
-/// Per-photo signed-URL cache with expiry-based refresh (PHUP — I-59).
+/// Per-photo signed-URL cache with expiry-based refresh.
 ///
 /// Signed URLs from Supabase Storage expire after 1 hour; re-issuing one per
 /// rebuild would burn a storage API call per photo per refresh. The cache
@@ -74,7 +74,7 @@ class _SignedUrlEntry {
 }
 
 /// Gallery state: `event_photos` rows enriched with per-photo signed URLs and
-/// the current user's `likedByMe` flag (PHUP — I-59).
+/// the current user's `likedByMe` flag.
 class EventPhotosNotifier
     extends FamilyAsyncNotifier<List<EventPhoto>, String> {
   MediaService get _media => ref.read(mediaServiceProvider);
@@ -86,18 +86,20 @@ class EventPhotosNotifier
   Future<List<EventPhoto>> build(String eventId) async {
     final rows = await _media.listEventPhotos(eventId);
     final myLikes = (await _events.getMyPhotoLikes(eventId)).toSet();
-    final photos = <EventPhoto>[];
-    for (final row in rows) {
-      final photo = EventPhoto.fromJson(row);
-      final url = await _urlCache.urlFor(
-        photo.id,
-        () => _media.getSignedPhotoUrl(photo.storagePath),
-      );
-      photos.add(
-        photo.copyWith(signedUrl: url, likedByMe: myLikes.contains(photo.id)),
-      );
-    }
-    return photos;
+    return Future.wait([
+      for (final row in rows)
+        () async {
+          final photo = EventPhoto.fromJson(row);
+          final url = await _urlCache.urlFor(
+            photo.id,
+            () => _media.getSignedPhotoUrl(photo.storagePath),
+          );
+          return photo.copyWith(
+            signedUrl: url,
+            likedByMe: myLikes.contains(photo.id),
+          );
+        }(),
+    ]);
   }
 
   /// Re-runs [build] (pull-to-refresh, new uploads, recovery).
@@ -119,7 +121,7 @@ class EventPhotosNotifier
   }
 
   /// Optimistic like toggle with rollback: flips the tile and count
-  /// immediately, reverts when the insert/delete fails (L-06 pattern).
+  /// immediately, reverts when the insert/delete fails.
   ///
   /// The service calls are idempotent (`event_photo_likes` has a
   /// `UNIQUE (photo_id, user_id)` constraint and [EventService.likePhoto]
@@ -156,9 +158,9 @@ class EventPhotosNotifier
     }
   }
 
-  /// Submits a moderation report for [photoId] (PHUP long-press report →
+  /// Submits a moderation report for [photoId] (long-press report →
   /// `reports` row, `target_type = 'photo'`; the photo stays visible pending
-  /// admin review — `RPTS`).
+  /// admin review).
   Future<void> report(String photoId, String reason) {
     return ref
         .read(moderationServiceProvider)
@@ -168,7 +170,7 @@ class EventPhotosNotifier
   static int _boundedCount(int count) => count < 0 ? 0 : count;
 }
 
-/// The event's photos, newest first (PHUP gallery).
+/// The event's photos, newest first.
 final eventPhotosProvider = AsyncNotifierProvider.family<EventPhotosNotifier,
     List<EventPhoto>, String>(EventPhotosNotifier.new);
 
@@ -187,7 +189,7 @@ class PhotoUploadState {
   bool get isUploading => status == PhotoUploadStatus.uploading;
 }
 
-/// One-shot upload action (PHUP — I-59): feed raw picked bytes to the
+/// One-shot upload action: feed raw picked bytes to the
 /// MediaService upload (which downscales + JPEG-encodes) → reload the gallery.
 /// The picker + permission layer stays in the screen; this provider owns the
 /// pipeline so the flow is testable without the image_picker plugin.

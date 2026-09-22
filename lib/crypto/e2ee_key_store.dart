@@ -23,7 +23,7 @@ import 'package:samay/crypto/interfaces.dart';
 /// Generates a registration id in [1, 0x3FFF] (libsignal-compatible).
 int _generateRegistrationId() => Random.secure().nextInt(0x3FFF) + 1;
 
-/// Resilient [FlutterSecureStorage] write wrapper (2026-08-31 on-device fix).
+/// Resilient [FlutterSecureStorage] write wrapper.
 ///
 /// Two iOS Keychain failure modes, both handled here:
 ///
@@ -84,9 +84,7 @@ class _RetiredSpk {
   final DateTime retiredAt;
 }
 
-// ---------------------------------------------------------------------------
 // E2eeKeyStore
-// ---------------------------------------------------------------------------
 
 class MemoryE2eeKeyStore implements E2eeKeyStore {
   MemoryE2eeKeyStore({DateTime Function()? clock}) : _clock = clock ?? DateTime.now;
@@ -464,9 +462,7 @@ class SecureE2eeKeyStore implements E2eeKeyStore {
   }
 }
 
-// ---------------------------------------------------------------------------
 // E2eeSessionStore
-// ---------------------------------------------------------------------------
 
 class MemoryE2eeSessionStore implements E2eeSessionStore {
   MemoryE2eeSessionStore({DateTime Function()? clock}) : _clock = clock ?? DateTime.now;
@@ -616,10 +612,8 @@ class SecureE2eeSessionStore implements E2eeSessionStore {
       _storage.write(key: indexKey, value: jsonEncode(index));
 }
 
-// ---------------------------------------------------------------------------
 // Shared lifecycle helpers (kept out of the JSON contract — the stores only
 // peek at lifecycle fields; the full state is parsed by E2eeSession).
-// ---------------------------------------------------------------------------
 
 DateTime? _lastUsedAt(String json) {
   try {

@@ -24,7 +24,6 @@
 /// parses it, [MinigameGameState] parses the whole row.
 library;
 
-import 'dart:math';
 import 'dart:typed_data';
 
 /// Lifecycle phase of a minigame session's play engine.
@@ -66,11 +65,11 @@ enum PromptOutcome {
   skip,
 }
 
-/// The number of paid prize positions N frozen at session creation
-/// (201_minigame_voting). The backend splits the pot HARMONICALLY by rank:
+/// The number of paid prize positions N frozen at session creation.
+/// The backend splits the pot HARMONICALLY by rank:
 /// share_i = (1/i) / Σ_{k=1..N}(1/k). N is an integer (not a fixed top-1 /
-/// top-3 enum) — the UI choice of "how many winners get paid" is deferred
-/// (TODO); the client sends a default N = 3.
+/// top-3 enum) — the UI does not yet expose the choice;
+/// the client sends a default N = 3.
 ///
 /// The default used when the payload omits it.
 const int kDefaultPrizePositions = 3;
@@ -147,7 +146,7 @@ class MinigameAnswer {
 }
 
 /// Where the author placed their answer text on the answer canvas
-/// (2026-09-15). A normalized, device-independent description so every
+///. A normalized, device-independent description so every
 /// participant renders the answer at the same spot on their own screen.
 ///
 /// [x]/[y] are the text's CENTER as fractions of the canvas (0..1; (0,0) is
@@ -167,7 +166,7 @@ class MinigameAnswerLayout {
   final double rotation;
   final double scale;
 
-  /// The canvas-center, unrotated, unscaled layout (legacy answers).
+  /// The canvas-center, unrotated, unscaled layout.
   static const MinigameAnswerLayout center = MinigameAnswerLayout();
 
   /// Font-scale bounds (the pinch clamps to this range).
@@ -191,7 +190,7 @@ class MinigameAnswerLayout {
 }
 
 /// The decrypted answer payload: the author's [text] plus the on-canvas
-/// [layout] they arranged (2026-09-15). Both ride the SAME E2EE blob, so the
+/// [layout] they arranged. Both ride the SAME E2EE blob, so the
 /// server never sees the text OR where it was placed.
 class MinigameAnswerPayload {
   const MinigameAnswerPayload({
@@ -287,7 +286,7 @@ ReactionKind? reactionKindFromWire(String? value) {
 /// A voter's committed action on a round (207 per-voter `voters` mirror map):
 /// either a specific [kind] emoji or the reactor [pass].
 ///
-/// Emoji ↔ Pasar exclusivity (2026-09-04): once a voter has acted they cannot
+/// Emoji ↔ Pasar exclusivity: once a voter has acted they cannot
 /// switch to the OTHER mode — the server rejects the cross-mode tap and the
 /// UI greys out the unavailable mode. Emoji → emoji re-votes stay allowed.
 class ReactionVote {
@@ -305,7 +304,7 @@ class ReactionVote {
   ReactionKind get emojiKind => kind;
 }
 
-/// One per-tap reaction EVENT (207_minigame_reaction_event, 2026-09-03):
+/// One per-tap reaction EVENT:
 /// the last reaction write the server recorded against a session, streamed on
 /// the game-state realtime row as `state.reactions_event`
 /// `{"seq": N, "round": R, "reaction": "<emoji wire>", "voter_id": "<uuid>"}`.
@@ -344,15 +343,6 @@ class ReactionEvent {
       voterId: json['voter_id'] as String? ?? '',
     );
   }
-}
-
-/// The score a subject earns for a round with [reactionCount] emoji
-/// reactions — +1 per emoji, and -1 when they received NONE (the no-
-/// reactions penalty, 201 product contract). The reactor-side Pasar (-0.5
-/// per passer, 204) is scored SERVER-side; this legacy helper keeps the
-/// emoji-only formula for the non-fractional path.
-int reactionScore(int reactionCount) {
-  return reactionCount > 0 ? reactionCount : -1;
 }
 
 /// The HARMONIC integer prize split of a [pot] shards across [positions] paid
@@ -456,12 +446,12 @@ class GameTurnSkeleton {
   final MinigamePhase phase;
   final String? subjectId;
 
-  /// The total-turn target frozen at session creation (201_minigame_voting):
-  /// the play engine auto-finishes once [round] reaches it. Null for legacy
+  /// The total-turn target frozen at session creation:
+  /// the play engine auto-finishes once [round] reaches it. Null for
   /// open-ended games.
   final int? roundTarget;
 
-  /// The round mode (202_minigame_play_v2): by_turns (total rounds) vs async
+  /// The round mode: by_turns (total rounds) vs async
   /// (per-player rounds). Defaults to [MinigamePlayMode.byTurns].
   final MinigamePlayMode playMode;
 
@@ -473,16 +463,15 @@ class GameTurnSkeleton {
   /// for by_turns sessions.
   final DateTime? asyncEndsAt;
 
-  /// The async per-player round target (202_minigame_play_v2, default 1).
+  /// The async per-player round target (default 1).
   final int asyncRoundsPerPlayer;
 
-  /// The async per-player progress — `{participant_id: rounds_completed}`
-  /// (202_minigame_play_v2).
+  /// The async per-player progress — `{participant_id: rounds_completed}`.
   final Map<String, int> roundMap;
 
   /// Participants who flagged that they LOST their local round keys (app
-  /// reinstall / data clear / account switch regenerated the E2EE identity
-  /// — 206_minigame_key_request, 2026-09-03). Rides the game-state payload as
+  /// reinstall / data clear / account switch regenerated the E2EE identity).
+  /// Rides the game-state payload as
   /// `state.key_requests` (jsonb uuid[]) so the marker streams to every
   /// participant on the existing realtime channel. ANY participant who holds
   /// the key history may serve them; the marker clears once a holder delivers.
@@ -493,39 +482,38 @@ class GameTurnSkeleton {
       keyRequests.contains(participantId);
 
   /// The async completed rounds (the "reactable rounds" list) —
-  /// ciphertext-only [MinigameAnswer] rows (202_minigame_play_v2).
+  /// ciphertext-only [MinigameAnswer] rows.
   final List<MinigameAnswer> answers;
 
   /// The CURRENT by_turns round's E2EE answer (ciphertext-only), populated
-  /// after the subject submits; null before the answer / after advance
-  /// (202_minigame_play_v2).
+  /// after the subject submits; null before the answer / after advance.
   final MinigameAnswer? answer;
 
   /// The live reaction tally of the current turn — `{subject_id: [emoji…]}`
-  /// streamed on the game-state realtime channel (201_minigame_voting).
+  /// streamed on the game-state realtime channel.
   /// Populated by `submit_minigame_reaction`, cleared by `advance`.
   ///
-  /// The wire payload (202 security hardening 2026-08-31) carries the tally as
-  /// `{subject_id: {"list": [emoji…], "count": N, "pass": P}}` (204 adds the
-  /// `pass` reactor-Pasar count) — this map keeps the typed emoji lists for
-  /// the legacy/UI rendering, [reactionCounts] the distinct-voter count (never
+  /// The wire payload carries the tally as
+  /// `{subject_id: {"list": [emoji…], "count": N, "pass": P}}` (the `pass` key
+  /// is the reactor-Pasar count) — this map keeps the typed emoji lists for
+  /// the UI rendering, [reactionCounts] the distinct-voter count (never
   /// row count) and [reactionPassCounts] the reactor-Pasar count.
   final Map<String, List<ReactionKind>> reactions;
 
   /// The distinct-voter reaction count per subject —
-  /// `{subject_id: N}` (202_minigame_play_v2 mirror shape, security hardening
-  /// 2026-08-31: `count` is distinct voters, never rows). Falls back to the
-  /// list length when a legacy flat-shape payload is parsed.
+  /// `{subject_id: N}` (mirror shape; security hardening:
+  /// `count` is distinct voters, never rows). Falls back to the
+  /// list length when a flat-shape payload is parsed.
   final Map<String, int> reactionCounts;
 
   /// The reactor Pasar count per subject — `{subject_id: P}` read from the
-  /// mirror's `pass` key (204_minigame_pasar; absent/legacy payloads → 0).
+  /// mirror's `pass` key (absent payloads → 0).
   final Map<String, int> reactionPassCounts;
 
   /// The per-voter action on the CURRENT round, mirror-read
-  /// `{subject_id: {voter_id: <emoji wire> | null}}` (207 — null = the voter
+  /// `{subject_id: {voter_id: <emoji wire> | null}}` (null = the voter
   /// PASSED). Lets a client grey out the OTHER mode on its own deck once it
-  /// has acted (emoji ↔ Pasar exclusivity, 2026-09-04). Keyed by subject id.
+  /// has acted. Keyed by subject id.
   final Map<String, Map<String, ReactionVote>> reactionVoters;
 
   /// The distinct-voter reaction count for [subjectId], or null when the
@@ -533,11 +521,11 @@ class GameTurnSkeleton {
   int? reactionCount(String subjectId) => reactionCounts[subjectId];
 
   /// The reactor Pasar count for [subjectId] (0 when the mirror carries no
-  /// `pass` key / the subject has no tally — a legacy payload).
+  /// `pass` key or the subject has no tally).
   int reactionPassCount(String subjectId) => reactionPassCounts[subjectId] ?? 0;
 
   /// The per-voter committed actions on the current round for [subjectId]
-  /// (empty when the mirror carries no `voters` map — a legacy payload or a
+  /// (empty when the mirror carries no `voters` map, or a
   /// round with no actions yet).
   Map<String, ReactionVote> votersFor(String subjectId) =>
       reactionVoters[subjectId] ?? const {};
@@ -613,7 +601,6 @@ class GameTurnSkeleton {
   /// or -1 when they hold no seat (not dealt in yet).
   int bottleSeatOf(String participantId) => bottleSeats.indexOf(participantId);
 
-  // ── Charadas (211_minigame_charades) ────────────────────────────────
   // One player holds the phone on their forehead while the room acts the
   // word out; the turn runs against a SERVER-anchored deadline.
 
@@ -796,8 +783,8 @@ class GameTurnSkeleton {
   /// Parses the `{subject_id: [emoji_wire,…]}` reactions payload into the
   /// typed per-subject reaction lists (tolerant — unknown emojis drop).
   ///
-  /// Accepts BOTH wire shapes (202 security hardening 2026-08-31): the legacy
-  /// flat `{subject_id: [emoji…]}` and the mirror
+  /// Accepts BOTH wire shapes: the flat
+  /// `{subject_id: [emoji…]}` and the mirror
   /// `{subject_id: {"list": [emoji…], "count": N}}`.
   static Map<String, List<ReactionKind>> _parseReactions(Object? value) {
     if (value is! Map) return const {};
@@ -818,7 +805,7 @@ class GameTurnSkeleton {
 
   /// Parses the distinct-voter reaction count per subject from the SAME
   /// reactions payload: `{subject_id: {"list": […], "count": N}}` uses the
-  /// map's `count`; the legacy flat shape `{subject_id: [emoji…]}` falls back
+  /// map's `count`; the flat shape `{subject_id: [emoji…]}` falls back
   /// to the list length. Tolerant — subjects without a tally are skipped.
   static Map<String, int> _parseReactionCounts(Object? value) {
     if (value is! Map) return const {};
@@ -840,8 +827,8 @@ class GameTurnSkeleton {
   }
 
   /// Parses the reactor Pasar count per subject from the mirror shape
-  /// `{subject_id: {"list": […], "count": N, "pass": P}}` (204_minigame_pasar).
-  /// Tolerant — absent `pass` keys / legacy flat payloads yield no entries
+  /// `{subject_id: {"list": […], "count": N, "pass": P}}`.
+  /// Tolerant — absent `pass` keys / flat payloads yield no entries
   /// (callers read 0 via [reactionPassCount]).
   static Map<String, int> _parseReactionPassCounts(Object? value) {
     if (value is! Map) return const {};
@@ -858,8 +845,8 @@ class GameTurnSkeleton {
   }
 
   /// Parses the per-voter action map from the mirror shape
-  /// `{subject_id: {"voters": {voter_id: <emoji wire> | null}}}` (207).
-  /// Tolerant — absent `voters` keys / legacy payloads yield no entries. A
+  /// `{subject_id: {"voters": {voter_id: <emoji wire> | null}}}`.
+  /// Tolerant — absent `voters` keys / flat payloads yield no entries. A
   /// null action value (the JSON pass marker) becomes [ReactionVote.pass].
   static Map<String, Map<String, ReactionVote>> _parseReactionVoters(
     Object? value,
@@ -1110,7 +1097,7 @@ class MinigamePlayerAnswer {
   final String? text;
 
   /// Where the author placed the text (normalized canvas fractions, radians
-  /// rotation, font-scale) — the E2EE-encrypted layout (2026-09-15).
+  /// rotation, font-scale) — the E2EE-encrypted layout.
   final MinigameAnswerLayout layout;
 
   /// The locally-decrypted answer image bytes (null when absent/unavailable).
@@ -1178,38 +1165,6 @@ class MinigamePlayerContent {
   }
 }
 
-/// The round-robin judge rotation: the next judge is `(current + 1) % count`.
-/// Throws [ArgumentError] for a non-positive [participantCount] — a rotation
-/// over zero players is meaningless.
-int nextJudgeIndex({required int currentIndex, required int participantCount}) {
-  if (participantCount <= 0) {
-    throw ArgumentError.value(
-      participantCount,
-      'participantCount',
-      'must be > 0',
-    );
-  }
-  return (currentIndex + 1) % participantCount;
-}
-
-/// A random participant index in `[0, participantCount)` using [rng] — the
-/// client-side mirror of the server's random subject draw (used for previews;
-/// the server never trusts it). Throws [ArgumentError] for a non-positive
-/// [participantCount].
-int randomParticipantIndex({
-  required int participantCount,
-  required Random rng,
-}) {
-  if (participantCount <= 0) {
-    throw ArgumentError.value(
-      participantCount,
-      'participantCount',
-      'must be > 0',
-    );
-  }
-  return rng.nextInt(participantCount);
-}
-
 /// Whether [callerId] may react to the CURRENT by_turns round
 /// (202_minigame_play_v2 answer-first contract):
 ///   * reactions open only when the subject has answered (an [answer] row
@@ -1255,18 +1210,4 @@ List<MinigameAnswer> reactableAsyncRounds(
     for (final answer in skeleton.answers)
       if (canReactToAsyncRound(answer, callerId: callerId)) answer,
   ];
-}
-
-/// Whether [callerId] has reacted to the current by_turns round (the tally
-/// rides `state.reactions[subjectId]`). The mirror's `list` holds emojis and
-/// its `pass` count holds passers — either counts as a reaction (the voter
-/// used their one action for the round, 204_minigame_pasar).
-bool hasReactedToCurrentRound(
-  GameTurnSkeleton skeleton, {
-  required String? callerId,
-}) {
-  if (callerId == null || callerId.isEmpty) return false;
-  final tally = skeleton.reactions[skeleton.subjectId];
-  if (tally != null && tally.isNotEmpty) return true;
-  return skeleton.reactionPassCount(skeleton.subjectId ?? '') > 0;
 }

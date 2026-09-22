@@ -27,12 +27,12 @@ class ClusterAvatar {
 enum ClusterGravity { right, down }
 
 /// Most avatar bubbles rendered before the `+N` overflow bubble: 5 avatars +
-/// 1 overflow, in both the feed and the groups list (2026-09-20 directive).
+/// 1 overflow, in both the feed and the groups list.
 const int _kClusterMaxShown = 5;
 
 /// Picks up to [_kClusterMaxShown] avatars at random when the roster is longer,
 /// so the faces shown are fair across all participants rather than always the
-/// first few (2026-09-20 directive). For a short list the order is preserved.
+/// first few. For a short list the order is preserved.
 List<ClusterAvatar> _selectAvatars(List<ClusterAvatar> all, math.Random rng) {
   if (all.length <= _kClusterMaxShown) return all;
   final shuffled = [...all]..shuffle(rng);
@@ -42,8 +42,7 @@ List<ClusterAvatar> _selectAvatars(List<ClusterAvatar> all, math.Random rng) {
 /// A little Box2D (forge2d) world of avatar bubbles: circular bodies that
 /// collide and pile under a constant [gravity]. Feed scrolling kicks the
 /// bodies so the pile surges and settles as the host scrolls. There is
-/// deliberately NO direct bubble drag and NO accelerometer coupling
-/// (2026-09-20 directives).
+/// deliberately NO direct bubble drag and NO accelerometer coupling.
 ///
 /// The world is built once per layout, steps on a [Ticker], and stops the
 /// ticker once every body has fallen asleep (Box2D sleeping) so an idle
@@ -74,8 +73,8 @@ class AvatarPhysicsCluster extends ConsumerStatefulWidget {
 
 class _AvatarPhysicsClusterState extends ConsumerState<AvatarPhysicsCluster>
     with SingleTickerProviderStateMixin {
-  /// Bubble diameters in logical px. Kept close together (2026-09-20: the
-  /// random size spread was deliberately reduced).
+  /// Bubble diameters in logical px. Kept close together (a narrow size
+  /// spread).
   static const double _minDiameter = 44;
   static const double _maxDiameter = 52;
 
@@ -224,7 +223,7 @@ class _AvatarPhysicsClusterState extends ConsumerState<AvatarPhysicsCluster>
     }
 
     // Unseeded: every instance gets a fresh random face selection + starting
-    // scatter (2026-09-20 directive). The world is built once per layout, so
+    // scatter. The world is built once per layout, so
     // the pile does not re-scatter on rebuilds.
     final rng = math.Random();
     final shown = _selectAvatars(widget.participants, rng);
@@ -294,7 +293,7 @@ class _AvatarPhysicsClusterState extends ConsumerState<AvatarPhysicsCluster>
         : _bubbles.last.popStart + _popDuration;
 
     _world = world;
-    // Re-anchor the scroll cursor: the previously built world may have been
+    // Re-anchor the scroll cursor: the world may have been
     // torn down while the feed scrolled on.
     _lastPixels = _scroll?.pixels ?? 0;
   }
@@ -554,7 +553,7 @@ class _AvatarBubble extends StatelessWidget {
 }
 
 /// The `+N` overflow bubble: a WHITE circle carrying the count of participants
-/// not shown (2026-09-20 directive) — it stands out from the photo bubbles.
+/// not shown — it stands out from the photo bubbles.
 class _OverflowBubble extends StatelessWidget {
   const _OverflowBubble({required this.size, required this.count});
 

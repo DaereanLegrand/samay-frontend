@@ -468,7 +468,7 @@
   "friendsStatusAccepted": "Friends",
   "profileMessage": "Message",
   "@profileMessage": {
-    "description": "Button that opens the E2EE direct chat with a friend from their public profile (2026-08-13)"
+    "description": "Button that opens the E2EE direct chat with a friend from their public profile"
   },
   "@friendsStatusAccepted": {
     "description": "Friendship status label for accepted friends"
@@ -693,7 +693,7 @@
   },
   "groupsMembersCountShort": "{count} members",
   "@groupsMembersCountShort": {
-    "description": "Group detail: member count without the cap (user directive 2026-09-15)",
+    "description": "Group detail: member count without the cap",
     "placeholders": {
       "count": {
         "type": "int"
@@ -916,11 +916,11 @@
   },
   "settingsSectionChat": "Chat",
   "@settingsSectionChat": {
-    "description": "Settings section header for the chat preferences group (2026-08-15)"
+    "description": "Settings section header for the chat preferences group"
   },
   "settingsSectionGames": "Games",
   "@settingsSectionGames": {
-    "description": "Settings section header for the minigames preferences group (2026-08-26)"
+    "description": "Settings section header for the minigames preferences group"
   },
   "settingsSectionAccount": "Account",
   "@settingsSectionAccount": {
@@ -1353,6 +1353,30 @@
   "errorsNotFoundGeneric": "Not found.",
   "@errorsNotFoundGeneric": {
     "description": "User-facing generic not-found message"
+  },
+  "errorsEmailNotConfirmed": "Email not confirmed. Check your inbox.",
+  "@errorsEmailNotConfirmed": {
+    "description": "User-facing unconfirmed-email message"
+  },
+  "errorsInvalidEmail": "Invalid email address.",
+  "@errorsInvalidEmail": {
+    "description": "User-facing invalid-email message"
+  },
+  "errorsSamePassword": "Choose a different password.",
+  "@errorsSamePassword": {
+    "description": "User-facing same-password message"
+  },
+  "errorsOtpDisabled": "Code sign-in is disabled.",
+  "@errorsOtpDisabled": {
+    "description": "User-facing disabled-OTP message"
+  },
+  "errorsUserBanned": "Your account is suspended.",
+  "@errorsUserBanned": {
+    "description": "User-facing banned-account message"
+  },
+  "errorsReauthenticationNeeded": "Sign in again to continue.",
+  "@errorsReauthenticationNeeded": {
+    "description": "User-facing reauthentication-required message"
   },
   "errorsInvalidCredentials": "Invalid email or password",
   "@errorsInvalidCredentials": {
@@ -2416,7 +2440,7 @@
   },
   "minigamesNewPartida": "New game",
   "@minigamesNewPartida": {
-    "description": "Create-partida flow: default capitalized form. The wizard AppBar title lowercases it (minigamesNewPartida.toLowerCase()) per the 2026-08-30 directive; the detail CTA uses it as-is."
+    "description": "Create-partida flow: default capitalized form. The wizard AppBar title lowercases it (minigamesNewPartida.toLowerCase()); the detail CTA uses it as-is."
   },
   "minigamesScopeLabel": "Partida",
   "@minigamesScopeLabel": {
@@ -2859,6 +2883,10 @@
   "@minigamesNoAnswers": {
     "description": "Neutral leaderboard card state for a player with no recorded answers"
   },
+  "minigamesLeaderboardSwipeHint": "Swipe to see more ranks",
+  "@minigamesLeaderboardSwipeHint": {
+    "description": "First-run hint on the finished-game leaderboard that swiping reveals more rank cards"
+  },
   "minigamesErrorLoadGame": "Could not load the game",
   "@minigamesErrorLoadGame": {
     "description": "Error state on the play screen when the game state fails to load"
@@ -3051,7 +3079,7 @@
   },
   "chatMessageInfo": "Message info",
   "@chatMessageInfo": {
-    "description": "Long-press action: show the own message's delivery/read status sheet (2026-08-17)"
+    "description": "Long-press action: show the own message's delivery/read status sheet"
   },
   "chatMessageInfoSent": "Sent",
   "@chatMessageInfoSent": {
@@ -3264,7 +3292,7 @@
   },
   "minigamesInviteSentTag": "sent",
   "@minigamesInviteSentTag": {
-    "description": "Lobby invite picker: compact right-aligned tag on a user who already holds a pending invite for this session (2026-09-02)"
+    "description": "Lobby invite picker: compact right-aligned tag on a user who already holds a pending invite for this session"
   },
   "minigamesInviteClosed": "This game has already finished. The invite can no longer be accepted.",
   "@minigamesInviteClosed": {
@@ -3290,10 +3318,6 @@
   "@minigamesGoToGame": {
     "description": "Button to navigate to an ongoing game from the lobby"
   },
-  "minigamesTwoLiesInstructions": "Write 3 statements about yourself: 2 lies and 1 truth. Select which one is the truth.",
-  "@minigamesTwoLiesInstructions": {
-    "description": "Instruction for the subject composing their statements"
-  },
   "minigamesTwoLiesStatementNumber": "Statement {number}",
   "@minigamesTwoLiesStatementNumber": {
     "description": "Header for each statement input",
@@ -3301,21 +3325,17 @@
       "number": { "type": "int" }
     }
   },
-  "minigamesTwoLiesStatementPlaceholder": "Write your statement here...",
-  "@minigamesTwoLiesStatementPlaceholder": {
-    "description": "Placeholder for each statement text field"
-  },
-  "minigamesTwoLiesMarkTruth": "This is the truth",
-  "@minigamesTwoLiesMarkTruth": {
-    "description": "Radio button / chip label marking a statement as the truth"
-  },
-  "minigamesTwoLiesSubmitStatements": "Submit statements",
-  "@minigamesTwoLiesSubmitStatements": {
-    "description": "Submit button for the subject's statements"
+  "minigamesTwoLiesMarkTruthPrompt": "Mark which one is the truth",
+  "@minigamesTwoLiesMarkTruthPrompt": {
+    "description": "Snackbar prompt shown when submitting without marking the truth statement"
   },
   "minigamesTwoLiesGuessPrompt": "Which of these 3 statements is THE TRUTH?",
   "@minigamesTwoLiesGuessPrompt": {
     "description": "Header for voters asking which statement is the truth"
+  },
+  "minigamesTwoLiesHoldHint": "Hold a card to mark your truth",
+  "@minigamesTwoLiesHoldHint": {
+    "description": "Hint telling the subject to long-press a card to mark their true statement"
   },
   "minigamesTwoLiesVoteConfirm": "Vote for this option",
   "@minigamesTwoLiesVoteConfirm": {
@@ -3351,10 +3371,6 @@
   "minigamesTwoLiesFillAllError": "You must complete all 3 statements",
   "@minigamesTwoLiesFillAllError": {
     "description": "Validation error when some statements are empty"
-  },
-  "minigamesTwoLiesSelectTruthError": "You must mark exactly one statement as the truth",
-  "@minigamesTwoLiesSelectTruthError": {
-    "description": "Validation error when truth index is not selected"
   },
   "minigamesBottleSpin": "Spin",
   "@minigamesBottleSpin": {

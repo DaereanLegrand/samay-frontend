@@ -13,7 +13,7 @@ import 'package:samay/shared/widgets/profile_avatar.dart';
 import 'package:samay/shared/widgets/state_views.dart';
 import 'package:samay/shared/widgets/v_card.dart';
 
-/// Reusable user multi-select picker (2026-08-26) — the shared "pick users
+/// Reusable user multi-select picker — the shared "pick users
 /// by searching" widget behind the minigame invite flow, built from the
 /// proven /chat + group-invite patterns:
 ///
@@ -111,8 +111,8 @@ class _UserPickerViewState extends ConsumerState<UserPickerView> {
     widget.onSelectionChanged?.call(Set.of(_selected));
   }
 
-  // U-26 (U-24 F3): an empty (non-null) username would RangeError on
-  // substring — the '?' initial fallback.
+  // An empty (non-null) username would RangeError on substring — the '?'
+  // initial fallback.
   String _initials(UserSearchResult user) {
     final username = user.username;
     return username.isEmpty ? '?' : username.substring(0, 1).toUpperCase();

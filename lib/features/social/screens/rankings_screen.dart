@@ -17,7 +17,7 @@ import 'package:samay/shared/widgets/v_chip.dart';
 import 'package:samay/shared/widgets/v_header_bar.dart';
 import 'package:samay/shared/widgets/v_shard_icon.dart';
 
-/// One Rankings surface (2026-09-20): Users | Groups.
+/// One Rankings surface: Users | Groups.
 ///
 /// Replaces the two separate ranking screens so the Social tab has a single,
 /// unambiguous ranking entry — the duplicated per-sub-tab "Ranking" tiles are

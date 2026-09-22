@@ -7,7 +7,7 @@ import 'package:samay/features/chat/providers/chat_providers.dart';
 import 'package:samay/features/minigames/providers/minigames_providers.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' show RealtimeChannel;
 
-/// Remote-side freshness for the minigame session lists (2026-09-02).
+/// Remote-side freshness for the minigame session lists.
 ///
 /// Lives for as long as the shell is mounted: subscribes to the current
 /// user's `minigame_sessions` realtime stream and invalidates

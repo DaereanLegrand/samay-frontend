@@ -3,8 +3,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
-import 'package:samay/core/design_tokens/app_typography.dart';
 import 'package:samay/core/logging/app_logger.dart';
 import 'package:samay/core/providers/auth_provider.dart';
 import 'package:samay/core/providers/service_providers.dart';
@@ -14,17 +14,16 @@ import 'package:samay/features/chat/providers/chat_providers.dart';
 import 'package:samay/features/minigames/logic/minigame_meta.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/error_view.dart';
+import 'package:samay/shared/widgets/profile_avatar.dart';
 import 'package:samay/shared/widgets/state_views.dart';
 import 'package:samay/shared/widgets/v_count_badge.dart';
 import 'package:samay/shared/widgets/v_header_bar.dart';
-import 'package:samay/shared/widgets/v_network_image.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' show RealtimeChannel;
 
-/// Chat inbox (user request 2026-08-15): every chat the user participates in,
-/// most-recent-first, with the peer identity, a best-effort last-message
-/// preview (E2EE envelopes decrypt client-side; own messages via the outbox)
-/// and the unread count. Tap → thread; opening a thread marks it read
-/// (RPC `mark_chat_read`, migration 20260815000004). The feed button's unread
+/// Chat inbox: every chat the user participates in, most-recent-first, with
+/// the peer identity, a best-effort last-message preview (E2EE envelopes
+/// decrypt client-side; own messages via the outbox) and the unread count.
+/// Tap → thread; opening a thread marks it read. The feed button's unread
 /// badge derives from [chatUnreadCountProvider], kept fresh by
 /// [InboxRealtimeListener].
 class ChatListScreen extends ConsumerStatefulWidget {
@@ -114,10 +113,9 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
               onRefresh: () => ref.read(chatInboxProvider.notifier).refresh(),
               child: ListView.separated(
                 physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.all(AppSpacing.lg),
                 itemCount: items.length,
                 separatorBuilder: (_, _) =>
-                    const SizedBox(height: AppSpacing.sm),
+                    const Divider(height: 1, color: AppColors.hairline),
                 itemBuilder: (context, index) =>
                     _ChatListTile(item: items[index], me: me, onTap: _openChat),
               ),
@@ -129,8 +127,8 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
   }
 }
 
-/// One inbox row (LUXE chat voice): white liquid glass, peer identity +
-/// preview + time on the left, unread [VCountBadge] on the right.
+/// One inbox row: the peer identity + preview + time on the left, the unread
+/// [VCountBadge] on the right. Rows are hairline-separated and open the thread.
 class _ChatListTile extends StatelessWidget {
   const _ChatListTile({
     required this.item,
@@ -147,7 +145,7 @@ class _ChatListTile extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final mine =
         item.lastMessageSenderId != null && item.lastMessageSenderId == me;
-    // 210/P1: a minigame group notice is the chat's latest activity — preview
+    // A minigame group notice is the chat's latest activity — preview
     // it instead of the (empty) message preview and use its timestamp.
     final isNotice =
         item.lastActivityKind == 'minigame_notice' &&
@@ -172,67 +170,44 @@ class _ChatListTile extends StatelessWidget {
       l10n,
     );
     final avatarUrl = item.peerAvatarUrl;
+    final name = item.peerUsername ?? l10n.commonUser;
+    final unread = item.unreadCount > 0;
 
     return InkWell(
       onTap: () => onTap(item.chatId),
-      borderRadius: BorderRadius.circular(16),
       child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.sm),
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.screenHorizontal,
+          vertical: AppSpacing.listRowVertical,
+        ),
         child: Row(
           children: [
-            // Avatar precedence: a real peer/group avatar URL (VNetworkImage,
-            // loaded from Storage) wins; otherwise a group row shows the group
-            // icon and a 1:1 row falls back to the peer's initial letter.
-            Container(
-              width: 44,
-              height: 44,
-              alignment: Alignment.center,
-              clipBehavior: Clip.antiAlias,
-              decoration: BoxDecoration(
-                color: Colors.grey,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: avatarUrl != null && avatarUrl.isNotEmpty
-                  ? SizedBox.expand(
-                      child: VNetworkImage(
-                        imageUrl: avatarUrl,
-                        fit: BoxFit.cover,
-                      ),
-                    )
-                  : item.type == 'group'
-                  ? const Icon(Icons.group, size: 22, color: Colors.white)
-                  : Text(
-                      (item.peerUsername?.isNotEmpty ?? false)
-                          ? item.peerUsername![0].toUpperCase()
-                          : '?',
-                      style: AppTypography.titleMedium.copyWith(
-                        color: Colors.white,
-                      ),
-                    ),
+            ProfileAvatar(
+              size: AppSpacing.avatarMedium,
+              imageUrl: avatarUrl != null && avatarUrl.isNotEmpty
+                  ? avatarUrl
+                  : null,
+              initials: name.isEmpty ? '?' : name[0].toUpperCase(),
             ),
-            const SizedBox(width: AppSpacing.md),
+            const SizedBox(width: AppSpacing.lg),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    item.peerUsername ?? l10n.commonUser,
+                    name,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: AppTypography.bodyLarge,
+                    style: Theme.of(context).textTheme.titleLarge,
                   ),
-                  const SizedBox(height: 2),
+                  const SizedBox(height: AppSpacing.xs),
                   Text(
                     preview.isEmpty ? l10n.chatInboxEmpty : preview,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: AppTypography.bodyMedium.copyWith(
-                      color: item.unreadCount > 0
-                          ? Colors.white
-                          : Theme.of(context).colorScheme.onSurfaceVariant,
-                      fontWeight: item.unreadCount > 0
-                          ? FontWeight.w600
-                          : FontWeight.w400,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: unread ? AppColors.white : AppColors.mutedStrong,
+                      fontWeight: unread ? FontWeight.w600 : FontWeight.w300,
                     ),
                   ),
                 ],
@@ -242,8 +217,13 @@ class _ChatListTile extends StatelessWidget {
             Column(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                Text(timeLabel, style: AppTypography.labelSmall),
-                const SizedBox(height: 6),
+                Text(
+                  timeLabel,
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    color: AppColors.mutedStrong,
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.xs),
                 VCountBadge(count: item.unreadCount),
               ],
             ),

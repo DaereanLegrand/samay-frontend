@@ -4,8 +4,8 @@ import 'package:samay/features/chat/providers/chat_providers.dart';
 import 'package:samay/features/friends/providers/friends_cache_provider.dart';
 import 'package:samay/features/minigames/providers/minigames_providers.dart';
 
-/// The current user's friends, ordered by RECENT activity (2026-08-28 invite
-/// picker directive): a friend's recency is the latest of their direct-chat
+/// The current user's friends, ordered by RECENT activity for the invite
+/// picker: a friend's recency is the latest of their direct-chat
 /// `last_message_at` (via the E2EE inbox) and their latest direct minigame
 /// session `created_at` (via `myMinigameSessionsProvider`); friends with no
 /// activity fall to the end, tie-broken by username ASC.
@@ -14,12 +14,12 @@ import 'package:samay/features/minigames/providers/minigames_providers.dart';
 /// so a short query is never empty and never fires a sub-5-char backend
 /// search (the `search_users` RPC rejects short queries with SR002).
 ///
-/// **SOURCE = ON-DEVICE CACHE (2026-08-29 user directive):** the friend list
+/// **SOURCE = ON-DEVICE CACHE:** the friend list
 /// is fetched in the BACKGROUND at app launch and persisted to the encrypted
 /// Hive `friends_cache` box ([FriendsCacheController]). This provider reads
 /// that cache — NO network I/O on the picker path, and NEVER the
-/// `friendsListProvider` N+1 profile-fetch error ("Error del servidor") that
-/// the previous implementation surfaced. Recency inputs (chat inbox, minigame
+/// `friendsListProvider` N+1 profile-fetch error ("Error del servidor").
+/// Recency inputs (chat inbox, minigame
 /// sessions) stay cache-only (`ref.exists` + `valueOrNull` — cold caches
 /// degrade to username order).
 class RecentFriendsNotifier extends AsyncNotifier<List<UserSearchResult>> {

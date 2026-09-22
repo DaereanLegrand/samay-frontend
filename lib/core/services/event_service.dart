@@ -4,8 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 /// Event lifecycle: creation, listing, updates and photo likes.
 ///
-/// Part of the ARC-05/CQ-01 decomposition of the former monolithic
-/// `SupabaseService` (I-11). Photo upload/signed URLs live in [MediaService]
+/// Photo upload/signed URLs live in [MediaService]
 /// (lib/core/services/media_service.dart); realtime subscriptions live in
 /// [RealtimeService] (lib/core/services/realtime_service.dart).
 class EventService {
@@ -84,7 +83,7 @@ class EventService {
   Future<List<Map<String, dynamic>>> getEventHosts(String eventId) async {
     final res = await client
         .from('event_hosts')
-        // OPT-009: join through the security-barrier user_search_view — the
+        // Join through the security-barrier user_search_view — the
         // raw `users` join is own-row-only under RLS (staff' rows
         // silently vanished).
         .select(
@@ -152,9 +151,8 @@ class EventService {
 
     // The `event_photos.likes_count` column is maintained by the
     // `photo_likes_count_trigger` (AFTER INSERT OR DELETE ON
-    // event_photo_likes — full_schema.sql §5.5): no RPC is needed here.
-    // (A previous build called a nonexistent likes RPC — PGRST202 at runtime;
-    // the insert alone is the contract. See the EF-03 daily log.)
+    // event_photo_likes): no RPC is needed here — the insert alone is the
+    // contract.
     await client.from('event_photo_likes').insert({
       'photo_id': photoId,
       'user_id': user.id,
@@ -162,7 +160,7 @@ class EventService {
     });
   }
 
-  /// Removes the current user's like on [photoId] (PHUP like toggle — I-59).
+  /// Removes the current user's like on [photoId].
   /// The `likes_count` decrement is the same trigger as [likePhoto]. Deleting
   /// a nonexistent row is a no-op, so unlike-after-expiry is safe.
   Future<void> unlikePhoto(String photoId) async {
@@ -177,7 +175,7 @@ class EventService {
   }
 
   /// The photo ids the current user has liked within [eventId] — the
-  /// gallery's `likedByMe` source (PHUP — I-59). Filtering happens through
+  /// gallery's `likedByMe` source. Filtering happens through
   /// the embedded `event_photos` resource (PostgREST `!inner` join), which
   /// the `epl_read_access` policy also gates by event access.
   Future<List<String>> getMyPhotoLikes(String eventId) async {
@@ -192,7 +190,7 @@ class EventService {
     return res.map((e) => e['photo_id'] as String).toList();
   }
 
-  /// Validates an attendee's rotating code as a host/staff — QRSC.
+  /// Validates an attendee's rotating code as a host/staff.
   ///
   /// The attendee shows the code as a plain QR (`QrImageView`); the scanner
   /// reads the QR payload and validates the code string here. Invokes the
@@ -228,12 +226,10 @@ class EventService {
     return res == null ? null : Map<String, dynamic>.from(res as Map);
   }
 
-  // ---------------------------------------------------------------------
   // Stage-2 manual guest invites (060_events/05_manual_invites.sql) — the
   // host invites SPECIFIC users (reusing the minigame invite mechanism);
   // invitees accept/decline and the frozen capacity is enforced server-side.
-  // RPCs return jsonb `status` payloads (I-57 contract), never exceptions.
-  // ---------------------------------------------------------------------
+  // RPCs return jsonb `status` payloads, never exceptions.
 
   /// The host invites [inviteeIds] to [eventId] via the `invite_event_guests`
   /// SECURITY DEFINER RPC. Business outcomes are jsonb `status` payloads; the
@@ -316,9 +312,9 @@ class EventService {
   }
 
   /// The invitee declines [inviteId] via the `decline_event_invite` SECURITY
-  /// DEFINER RPC (self only). The server DELETES the pending row (2026-09-02
-  /// directive: a declined invite is indistinguishable from one that never
-  /// existed) — freeing the reserved seat so the host can invite someone else.
+  /// DEFINER RPC (self only). The server DELETES the pending row — a declined
+  /// invite is indistinguishable from one that never
+  /// existed — freeing the reserved seat so the host can invite someone else.
   /// Typed [AppError]s as in [acceptEventInvite].
   Future<void> declineEventInvite(String inviteId) async {
     final user = auth.currentUser;
@@ -370,11 +366,9 @@ class EventService {
     return res.map((e) => Map<String, dynamic>.from(e)).toList();
   }
 
-  // ---------------------------------------------------------------------
   // Stage-3 host/staff management (060_events/06_staff.sql) — the HOST
   // designates specific users as staff (and removes them). RPCs return jsonb
-  // `status` payloads (I-57 contract), never exceptions.
-  // ---------------------------------------------------------------------
+  // `status` payloads, never exceptions.
 
   /// The host designates [staffIds] as staff of [eventId] via the
   /// `designate_event_staff` SECURITY DEFINER RPC. The server enforces the

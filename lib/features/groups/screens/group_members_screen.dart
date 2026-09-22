@@ -50,7 +50,7 @@ class _GroupMembersScreenState extends ConsumerState<GroupMembersScreen> {
     }
   }
 
-  /// R17 (F9 ADAPTED): rows are admin-gated — the current user's own
+  /// Rows are admin-gated — the current user's own
   /// membership row carries their role; `host`/`staff` can act on
   /// everyone except themselves and the owner.
   bool _canAct(String myRole, String targetUserId, String targetRole) =>
@@ -105,10 +105,9 @@ class _GroupMembersScreenState extends ConsumerState<GroupMembersScreen> {
                   final initials = username.substring(0, 1).toUpperCase();
                   final role = m['role'] as String? ?? 'member';
                   final tappable = _canAct(myRole, userId, role);
-                  // 2026-08-17: the row itself is the navigation affordance —
-                  // every member tile opens the member's public profile. The
-                  // trailing ellipsis (admin rows only) opens the manage sheet
-                  // (R17).
+                  // The row itself is the navigation affordance — every
+                  // member tile opens the member's public profile. The
+                  // trailing ellipsis (admin rows only) opens the manage sheet.
                   return ListTile(
                     dense: true,
                     leading: ProfileAvatar(

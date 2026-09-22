@@ -9,7 +9,7 @@ import 'package:samay/features/minigames/logic/truth_dare.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
 
-/// The four plugged mini-game types (GMCR spec; DB enum `mini_game_type`).
+/// The four plugged mini-game types (DB enum `mini_game_type`).
 /// `.value` is the wire value used by the RPC and the `game_type` column.
 enum MinigameType {
   truthDare('truth_dare'),
@@ -33,7 +33,7 @@ enum MinigameStatus {
 }
 
 /// Why [MinigameService.createSession] was rejected. The RPC returns these
-/// as jsonb statuses (I-57 contract) so the client never parses exception
+/// as jsonb statuses so the client never parses exception
 /// messages.
 enum MinigameSessionRejection {
   /// The caller has no active session / anon caller.
@@ -43,7 +43,7 @@ enum MinigameSessionRejection {
   /// server-side `is_group_member` helper).
   notMember,
 
-  /// `p_wager < 0` — the GWAG contract allows only integer shards >= 0.
+  /// `p_wager < 0` — the contract allows only integer shards >= 0.
   invalidWager,
 
   /// `p_game_type` is not one of the five `mini_game_type` values.
@@ -65,13 +65,13 @@ enum MinigameSessionRejection {
 
   /// The create roster (creator + invitees) exceeds the session's frozen
   /// `player_limit` (free tier 8, scaled by the CREATOR's subscription tier
-  /// via app_config — direct-minigames 2026-08-27).
+  /// via app_config).
   playerLimitReached,
 
-  /// `p_rounds < 1` (201_minigame_voting).
+  /// `p_rounds < 1`.
   invalidRounds,
 
-  /// `p_prize_positions < 1` (201_minigame_voting).
+  /// `p_prize_positions < 1`.
   invalidPrizePositions,
 
   /// `p_play_mode` is not `by_turns` / `async` (202_minigame_play_v2).
@@ -92,7 +92,7 @@ enum MinigameSessionRejection {
 
 /// Typed rejection thrown by [MinigameService.createSession] when the RPC
 /// returns a non-created status — the UI maps [rejection] to a localized
-/// message without pattern-matching raw exception strings (I-62 pattern).
+/// message without pattern-matching raw exception strings.
 class MinigameSessionRejectedException implements Exception {
   const MinigameSessionRejectedException(this.rejection);
 
@@ -102,11 +102,8 @@ class MinigameSessionRejectedException implements Exception {
   String toString() => 'MinigameSessionRejectedException($rejection)';
 }
 
-/// Group-scoped mini-games (GMCR spec) with optional shard wagers (GWAG
-/// spec), backed by the `minigame_sessions` table.
-///
-/// Part of the ARC-05/CQ-01 decomposition of the former monolithic
-/// `SupabaseService` (I-11).
+/// Group-scoped mini-games with optional shard wagers, backed by the
+/// `minigame_sessions` table.
 class MinigameService {
   final SupabaseClient client;
   final RealtimeService realtime;
@@ -165,9 +162,9 @@ class MinigameService {
   /// 20260809000006 + 140_minigame_invites) validates group membership and
   /// balance and performs the atomic deduct + `minigame_wager` ledger +
   /// session insert + one pending `minigame_invites` row per [inviteeIds]
-  /// (the returned session id is the initiator's escrow anchor, GWAG).
+  /// (the returned session id is the initiator's escrow anchor).
   ///
-  /// [groupId] is NULL for a DIRECT session (direct-minigames 2026-08-27) —
+  /// [groupId] is NULL for a DIRECT session —
   /// playing with friends without belonging to a group. The server skips the
   /// group-membership gate for NULL (a non-null group still requires active
   /// membership) and freezes a `player_limit` from the creator's
@@ -282,9 +279,8 @@ class MinigameService {
   /// RLS, so the join is a server-side contract (self only — never another
   /// user): session-exists + group-membership validation, idempotent
   /// participants append, and — for wagered sessions — the atomic wager
-  /// deduction + `minigame_wager` escrow ledger entry (GWAG, mirroring
+  /// deduction + `minigame_wager` escrow ledger entry (mirroring
   /// create_minigame_session). Business outcomes come back as jsonb statuses
-  /// (I-57 contract).
   Future<void> joinSession(String id) async {
     final user = auth.currentUser;
     if (user == null) throw const UnauthorizedError();
@@ -470,8 +466,8 @@ class MinigameService {
   ///
   /// This is deliberately the ONLY identity a pending invitee may resolve:
   /// `get_minigame_participants` would leak the whole roster into the client
-  /// before the invitee accepts (2026-09-11 directive — a not-yet-accepted
-  /// invitee must never see the player list).
+  /// before the invitee accepts — a not-yet-accepted
+  /// invitee must never see the player list.
   Future<Map<String, dynamic>?> getInviteContext(String sessionId) async {
     final user = auth.currentUser;
     if (user == null) throw const UnauthorizedError();
@@ -497,10 +493,10 @@ class MinigameService {
   }
 
   /// The HOST-side invite state for [sessionId], keyed by invitee id — the
-  /// lobby picker's "already invited" tag (2026-09-02). RLS `mi_read_own`
+  /// lobby picker's "already invited" tag. RLS `mi_read_own`
   /// bounds the read to invites the caller CREATED, so only the host sees
   /// them; each entry maps `invitee_id -> status`. A declined invite deletes
-  /// its row (2026-09-02), so a declined/kicked player simply has no entry
+  /// its row, so a declined/kicked player simply has no entry
   /// and shows as a fresh invitee in the picker — there is no "declined"
   /// residue.
   Future<Map<String, String>> inviteeStates(String sessionId) async {
@@ -554,8 +550,8 @@ class MinigameService {
     return sessions;
   }
 
-  /// The group-chat "match created" notices for [groupId] (210,
-  /// 2026-09-15) — one row per group partida, written server-side on creation
+  /// The group-chat "match created" notices for [groupId] — one row per group
+  /// partida, written server-side on creation
   /// by the `notify_minigame_group_message` trigger. The embedded session row
   /// (RLS `ms_read_group_member`) gives the thread everything it needs to
   /// render the direct-access bubble. RLS `mgm_read_group_member` bounds the
@@ -578,7 +574,7 @@ class MinigameService {
   /// (migration 140_minigame_invites) — the invitee (self only) joins the
   /// session while it is ACTIVE: participants append + — for wagered
   /// sessions — the atomic wager deduction + `minigame_wager` escrow ledger
-  /// entry (GWAG mirror of join_minigame_session). A finished session cannot
+  /// entry (mirror of join_minigame_session). A finished session cannot
   /// be joined (`session_finished`) — the product contract that once the
   /// game is over the invite closes.
   Future<void> acceptInvite(String inviteId) async {
@@ -661,8 +657,8 @@ class MinigameService {
   }
 
   /// Invites players into an ALREADY-CREATED session via the
-  /// `invite_minigame_players` SECURITY DEFINER RPC (205_minigame_invite_lobby
-  /// — the 2026-09-01 lobby flow: create with zero invitees, then the HOST
+  /// `invite_minigame_players` SECURITY DEFINER RPC (the lobby flow: create
+  /// with zero invitees, then the HOST
   /// invites while waiting in the lobby). CREATOR-ONLY (backend-enforced via
   /// `participants[1]` → `not_creator`), idempotent (self / already-participant
   /// / already-pending invitees are skipped) and re-checks the session's frozen
@@ -718,22 +714,6 @@ class MinigameService {
         throw const ServerError('Unexpected invite_minigame_players response');
     }
   }
-
-/// Live subscription to one session's row changes (GMCR Realtime sync:
-/// all participants subscribe to the `minigame_sessions` row changes).
-///
-/// Returns the channel — the caller owns the unsubscribe handle. Rows are
-/// ALSO delivered through [sessionStatusProvider]
-/// (lib/features/minigames/minigames_providers.dart), which drives the
-/// I-52 realtime lifecycle (reconnect/backoff).
-RealtimeChannel subscribeToSession(String id) {
-  return realtime.subscribeToChannel(
-    'minigame-session:$id',
-    PostgresChangeEvent.update,
-    'minigame_sessions',
-    (_) {},
-  );
-}
 
   /// The play-engine state row for [sessionId] (150_minigame_play), or null
   /// when the session has no game state yet (`not_started`). Gates: auth,
@@ -1437,8 +1417,8 @@ RealtimeChannel subscribeToSession(String id) {
     return res.map((e) => Map<String, dynamic>.from(e)).toList();
   }
 
-  /// Flags the caller as a round-key REQUESTER for [sessionId]
-  /// (206_minigame_key_request, 2026-09-03): a participant who lost its
+  /// Flags the caller as a round-key REQUESTER for [sessionId]: a participant
+  /// who lost its
   /// device-local E2EE state (reinstall / data clear regenerated the identity,
   /// so the pairwise self-heal can never decrypt the host's old-identity
   /// bundles) appends itself to `state.key_requests`. ANY other participant
@@ -1691,7 +1671,7 @@ RealtimeChannel subscribeToSession(String id) {
     _checkCharadesStatus(res, 'end_charades_turn');
   }
 
-  /// Shared typed-status mapping for the charades RPCs (I-57 contract).
+  /// Shared typed-status mapping for the charades RPCs.
   void _checkCharadesStatus(Object? res, String rpc) {
     final result = res is Map
         ? Map<String, dynamic>.from(res)
@@ -1727,7 +1707,7 @@ RealtimeChannel subscribeToSession(String id) {
     }
   }
 
-  /// Shared typed-status mapping for the bottle RPCs (I-57 contract).
+  /// Shared typed-status mapping for the bottle RPCs.
   void _checkBottleStatus(Object? res, String rpc) {
     final result = res is Map
         ? Map<String, dynamic>.from(res)
@@ -1761,7 +1741,7 @@ RealtimeChannel subscribeToSession(String id) {
   /// participant, resolved in ONE round trip through the security-barrier
   /// `user_search_view` (deleted + blocked excluded) — works for NON-friends
   /// unlike `get_friend_profiles`. Gates: participant / invitee / group
-  /// member (I-57 typed-jsonb-status contract).
+  /// member.
   Future<List<Map<String, dynamic>>> getMinigameParticipants(
     String sessionId,
   ) async {
@@ -1798,7 +1778,7 @@ RealtimeChannel subscribeToSession(String id) {
   /// `remove_minigame_participant` SECURITY DEFINER RPC (180_minigame_lobby)
   /// — CREATOR-ONLY, backend-enforced via `participants[0]` (`not_creator`).
   /// In one server transaction: the removed player's wager escrow is refunded
-  /// (GWAG `minigame_refund`), they leave `participants`, their invite closes
+  /// (`minigame_refund`), they leave `participants`, their invite closes
   /// and their ready flag clears. The creator can never remove themself.
   Future<void> removeParticipant(String sessionId, String userId) async {
     final user = auth.currentUser;

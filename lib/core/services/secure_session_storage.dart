@@ -3,13 +3,12 @@ import 'package:samay/core/logging/app_logger.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' hide AuthState;
 
 /// Supabase session persistence backed by `flutter_secure_storage`
-/// (findings SEC-11 / M-33, agent I-25).
 ///
 /// Wired into `Supabase.initialize` as `authOptions.localStorage`
 /// (see `lib/main.dart`), replacing the SDK's default in-memory/shared-preferences
 /// persistence: the session JSON (access JWT + refresh token) now lives in the
 /// iOS Keychain / Android Keystore instead of plain-text app storage, and
-/// survives app restarts (SEC-11 fix guidance; MASTG-BEST-0004 — sensitive
+/// survives app restarts (MASTG-BEST-0004 — sensitive
 /// data in platform keychain, never on disk beside app data).
 ///
 /// The session string is stored under [persistSessionKey] (`samay.auth.session`).
@@ -61,7 +60,6 @@ class SecureSessionStorage extends LocalStorage {
 }
 
 /// PKCE code-verifier storage backed by `flutter_secure_storage`
-/// (findings SEC-11 / M-33, agent I-25).
 ///
 /// GoTrue stores its PKCE code verifier through this interface whenever a
 /// `signInWithOtp`/`signUp`/magic-link flow runs (`GotrueAsyncStorage`,

@@ -1,10 +1,10 @@
-/// Pure shard-economy math (I-46, TST-06/M-13).
+/// Pure shard-economy math.
 ///
 /// Mirrors the `distribute_shards` SQL RPC
-/// (`supabase/migrations/20260520000001_admin_rpc_and_rls.sql:108`): floor
+/// (`supabase/migrations/060_events/03_economy.sql`): floor
 /// division of the pool, optional per-user cap, never negative.
 ///
-/// NOTE — Dart-vs-SQL drift (report to S-07): the SQL derives the base
+/// NOTE — Dart-vs-SQL drift: the SQL derives the base
 /// per-user amount from *total invitees* and re-clamps from *confirmed
 /// attendees* (two denominators); this Dart mirror collapses both to a single
 /// `attendees` argument, so the SQL's `per_user * attendees > pool` recompute
@@ -18,18 +18,11 @@ int distribute(int pool, int attendees, {int? capPerUser}) {
   return perUser < 0 ? 0 : perUser;
 }
 
-/// Active-count arithmetic (group members, balances): `current + delta`
-/// clamped so the result never goes negative.
-int totalActive(int current, int delta) {
-  final result = current + delta;
-  return result < 0 ? 0 : result;
-}
-
 /// Aggregates contribution rows by `user_id` — summing `shards_contributed`
 /// per user — and returns the contributors sorted descending by contribution.
 ///
 /// Extracted from `GroupContributionsNotifier.build` in
-/// `groups_providers.dart` (previously inline in `group_detail_screen._load`).
+/// `groups_providers.dart`, shared by the group detail flow.
 /// Input rows are copied (`Map.from`), never mutated.
 List<Map<String, dynamic>> aggregateContributions(
   Iterable<Map<String, dynamic>> rows,

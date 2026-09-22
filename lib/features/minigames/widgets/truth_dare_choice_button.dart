@@ -5,8 +5,7 @@ import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/core/design_tokens/app_typography.dart';
 import 'package:samay/core/theme/samay_durations.dart';
 
-/// A full-width, chrome-less Verdad / Reto choice CTA (user directive
-/// 2026-09-15).
+/// A full-width, chrome-less Verdad / Reto choice CTA.
 ///
 /// No background, no border — just the label in bold **Playfair Display** at a
 /// display size. The shadow lives on the GLYPHS themselves (a soft light-gray
@@ -127,9 +126,9 @@ class _TruthDareChoiceButtonState extends State<TruthDareChoiceButton>
         onTapUp: enabled ? (_) => _handleRelease() : null,
         onTapCancel: enabled ? _handleRelease : null,
         splashFactory: NoSplash.splashFactory,
-        highlightColor: Colors.transparent,
-        hoverColor: Colors.transparent,
-        focusColor: Colors.transparent,
+        highlightColor: AppColors.transparent,
+        hoverColor: AppColors.transparent,
+        focusColor: AppColors.transparent,
         child: Container(
           // A taller full-width row: the label stays vertically centered
           // against the container's own height (no chrome, tap target only).

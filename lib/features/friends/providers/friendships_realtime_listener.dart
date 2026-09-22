@@ -6,7 +6,7 @@ import 'package:samay/core/providers/auth_provider.dart';
 import 'package:samay/features/friends/providers/friends_providers.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' show RealtimeChannel;
 
-/// Remote-side freshness for the friends surface (2026-08-14).
+/// Remote-side freshness for the friends surface.
 ///
 /// Lives for as long as the shell is mounted: subscribes to the current
 /// user's `friendships` realtime stream and invalidates

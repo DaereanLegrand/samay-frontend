@@ -9,8 +9,7 @@ import 'package:uuid/uuid.dart';
 
 /// Supabase Storage: group covers, event photos and signed URLs.
 ///
-/// Part of the ARC-05/CQ-01 decomposition of the former monolithic
-/// `SupabaseService` (I-11). Named `MediaService` to avoid a clash with the
+/// Named `MediaService` to avoid a clash with the
 /// existing `SecureStorageService`/`HiveService` in
 /// `lib/core/services/storage_service.dart`.
 class MediaService {
@@ -23,8 +22,8 @@ class MediaService {
   /// Uploads a group cover into the `groups` bucket and returns its public
   /// URL.
   ///
-  /// The payload is downscaled + JPEG-encoded client-side first
-  /// ([ImageProcessor.compressBytes] — finding PERF-03/M-36): full-resolution
+  /// The payload is downscaled + JPEG-encoded client-side first:
+  /// full-resolution
   /// camera photos become 1920px quality-80 JPEGs, slashing upload size. The
   /// stored object is always a JPEG, so the storage path uses the `.jpg`
   /// extension regardless of the source format.
@@ -36,18 +35,18 @@ class MediaService {
   }
 
   /// Uploads an event cover into the public `groups` bucket and returns its
-  /// public URL (ECRT step 2 — I-54; S-09 bucket bug fixed).
+  /// public URL.
   ///
   /// Mirrors [uploadGroupCover]: the payload is downscaled + JPEG-encoded
   /// client-side first ([ImageProcessor.compressBytes]) and the stored object
   /// is always a JPEG.
-  /// The ECRT spec's `events/{event_id}/cover` layout cannot be used from the
+  /// The `events/{event_id}/cover` layout cannot be used from the
   /// creation form because `event_id` only exists after `createEvent` returns
   /// — the timestamped `event_covers/` layout is uploaded *before* the event
   /// row and its public URL is passed in as `events.cover_url`.
   ///
   /// The cover MUST live in the public `groups` bucket, not the private
-  /// `events` bucket (S-09/M-08 handoff): the `events` bucket is public=false
+  /// `events` bucket: the `events` bucket is public=false
   /// and serves only signed URLs, so `getPublicUrl` on it returns nothing —
   /// and a signed URL would expire while `events.cover_url` is stored for the
   /// event's lifetime. The `groups` bucket is public=true and its read
@@ -62,7 +61,7 @@ class MediaService {
   }
 
   /// Uploads the current user's avatar into the `avatars` bucket and returns
-  /// its public URL (PRFL avatar-upload gap — I-36).
+  /// its public URL.
   ///
   /// Mirrors [uploadGroupCover]: the payload is downscaled + JPEG-encoded
   /// client-side first ([ImageProcessor.compressBytes]), the stored object is
@@ -71,8 +70,7 @@ class MediaService {
   /// bucket — no `avatars/` prefix — because the storage RLS INSERT policy
   /// (`storage_objects_insert_own`, migration 20260810000007) requires the
   /// first path segment to equal `auth.jwt()->>'sub'`. Requires the `avatars`
-  /// storage bucket to exist (creation is out of scope for the app layer —
-  /// see the I-36 daily log).
+  /// storage bucket to exist (creation is out of scope for the app layer).
   Future<String> uploadUserAvatar(String userId, Uint8List bytes) async {
     final processed = await ImageProcessor.compressBytes(bytes);
     final path = '$userId/${DateTime.now().millisecondsSinceEpoch}.jpg';
@@ -81,11 +79,10 @@ class MediaService {
   }
 
   /// Uploads an event photo payload into the `events` bucket at
-  /// `{eventId}/photos/{uuid}.jpg` and records the `event_photos` row (PHUP —
-  /// I-59).
+  /// `{eventId}/photos/{uuid}.jpg` and records the `event_photos` row.
   ///
   /// This is the bytes variant the image_picker + [ImageProcessor] pipeline
-  /// feeds (I-22): the payload is downscaled + JPEG-encoded client-side first,
+  /// feeds: the payload is downscaled + JPEG-encoded client-side first,
   /// so the stored object is always a JPEG like every other MediaService
   /// upload. Requires the `events` storage bucket + the `event_photos` INSERT
   /// policy (`eph_insert_own`) to exist.
@@ -108,8 +105,7 @@ class MediaService {
   }
 
   /// File-path variant of [uploadEventPhotoBytes] for callers that hold a
-  /// local file instead of bytes (kept from the pre-PHUP build; the bytes
-  /// variant is the primary seam — I-59).
+  /// local file instead of bytes (the bytes variant is the primary seam).
   Future<void> uploadEventPhoto(String eventId, String filePath) async {
     final bytes = await _readFileBytes(filePath);
     await uploadEventPhotoBytes(eventId, bytes);

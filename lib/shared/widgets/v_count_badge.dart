@@ -2,16 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/core/design_tokens/app_typography.dart';
 
-/// Tiny count counter — the "pending" badge voice of the flow alignment
-/// (U-16 R12; U-17 R18 reuses it for the shell tab; the switch-groups icon
-/// and the shell badge reuse it for minigame invites).
+/// Tiny count badge for the "pending" voice — the shell tab, the
+/// switch-groups icon and minigame invites.
 ///
-/// RED CIRCLE (user directive 2026-08-27 — overrides the monochrome rule
-/// for this one semantic element): a solid `badgeRed` circle with white
-/// `labelSmall` count text, NO border ring. The previous violet sharp-square
-/// (and its white-bordered red variant) are gone. Renders nothing
-/// (zero-width `SizedBox`) when [count] is 0 or negative, so callers can
-/// mount it unconditionally.
+/// A solid `badgeRed` circle with white `labelSmall` count text, NO border
+/// ring — this one semantic element overrides the monochrome rule. Renders
+/// nothing (zero-width `SizedBox`) when [count] is 0 or negative, so callers
+/// can mount it unconditionally.
 class VCountBadge extends StatelessWidget {
   final int count;
 

@@ -19,7 +19,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 const String chatUndecryptablePlaceholder = '[Mensaje no descifrable]';
 
 /// Minimum interval between sender-key REQUEST rows for the same
-/// (chat, sender) on one device (2026-08-17 retry protocol). The request is
+/// (chat, sender) on one device. The request is
 /// the Signal retry-request analogue: when a group message drops because
 /// this device has no chain material for its sender, the device asks the
 /// sender to re-distribute. The throttle keeps a burst of dropped rows from
@@ -28,16 +28,15 @@ const String chatUndecryptablePlaceholder = '[Mensaje no descifrable]';
 const Duration groupKeyRequestCooldown = Duration(minutes: 1);
 
 /// How long a fetched group-chat roster is reused before the next send
-/// re-fetches it (2026-08-17 latency fix: every group message used to pay
-/// one extra network round trip for the roster SELECT — the TTL drops it in
-/// steady state). A membership change is noticed at the next TTL boundary
+/// re-fetches it (the TTL removes the roster SELECT round trip in steady
+/// state). A membership change is noticed at the next TTL boundary
 /// (or via the realtime members listener); the delay is safe: an ADDED
-/// member who misses a message self-heals through the 2026-08-17
+/// member who misses a message self-heals through the
 /// key-request protocol, and a REMOVED member's chain copies are useless
 /// the moment the wipe eventually runs.
 const Duration groupRosterTtl = Duration(seconds: 30);
 
-/// Outcome of a delete-for-everyone attempt (migration 20260815000006).
+/// Outcome of a delete-for-everyone attempt.
 enum MessageDeleteOutcome {
   /// The row was deleted server-side (audited in `deleted_messages`).
   deleted,
@@ -50,7 +49,7 @@ enum MessageDeleteOutcome {
   /// option to own messages, so this is defensive only).
   notSender,
 
-  /// The message row no longer exists.
+  /// The message row does not exist.
   notFound,
 
   /// Transport/other failure — retry later.
@@ -60,9 +59,8 @@ enum MessageDeleteOutcome {
 /// Chat messages: history, sending and realtime delivery.
 ///
 /// Part of the ARC-05/CQ-01 decomposition of the former monolithic
-/// `SupabaseService` (I-11).
+/// `SupabaseService`.
 ///
-/// ## E2EE integration (I-38, E2EE-ARCHITECTURE.md §12.2 step 3)
 ///
 /// When the three E2EE dependencies are injected ([E2eeKeyStore],
 /// [E2eeSessionStore], [E2eePrekeyService]), `sendMessage` encrypts the
@@ -70,10 +68,9 @@ enum MessageDeleteOutcome {
 /// the opaque envelope, E2EE §6.6), and `loadMessages`/`subscribeToMessages`
 /// decrypt envelopes on the way out — the server never sees plaintext.
 ///
-/// Without the dependencies the service behaves exactly as before (plaintext
-/// path, used by non-E2EE call sites and tests).
+/// Without the dependencies the service uses the plaintext path (non-E2EE
+/// call sites).
 ///
-/// ## Group chat E2EE (ISSUE 4 / D3)
 ///
 /// When [GroupE2eeCipher] is additionally injected (`groupE2eeEnabled`),
 /// group chats (`chats.type = 'group'`) route through the Signal sender-key
@@ -95,19 +92,18 @@ class ChatService {
   final E2eePrekeyService? _e2eePrekeyService;
   final GroupE2eeCipher? _groupCipher;
 
-  /// Roster cache freshness window (see [groupRosterTtl]). Injectable for
-  /// tests (a zero TTL forces a fetch per send — the pre-TTL behavior).
+  /// Roster cache freshness window (see [groupRosterTtl]). Injectable so a
+  /// zero TTL forces a fetch per send.
   final Duration _groupRosterTtl;
 
-  /// Encrypted plaintext store (Signal model, 2026-08-16 — the SQLCipher-
-  /// equivalent Hive `message_cache` box on devices, in-memory in tests).
+  /// Encrypted plaintext store (Signal model — the SQLCipher-equivalent Hive
+  /// `message_cache` box on devices, in-memory elsewhere).
   ///
   /// The Double Ratchet is stateful and irreversible: an already-consumed
   /// message can NEVER be re-decrypted after the chain advanced. The server
   /// stores only envelopes, so history re-rendering after an app restart /
-  /// update MUST come from this store — the pre-fix in-memory-only cache
-  /// (`_decryptedByMessage`) turned every restart into a thread of
-  /// "Mensaje no descifrable" bubbles.
+  /// update MUST come from this store; an in-memory-only cache would turn
+  /// every restart into a thread of "Mensaje no descifrable" bubbles.
   final MessagePlaintextStore? _plaintextStore;
 
   ChatService({
@@ -139,18 +135,18 @@ class ChatService {
 
   /// In-memory per-chat cipher instances (each bound to (chatId, peerUserId)).
   /// The map holds the creation Future so concurrent decrypt/send paths can
-  /// never race two sessions into existence for the same chat (I-38).
+  /// never race two sessions into existence for the same chat.
   final Map<String, Future<E2eeMessageCipher>> _sessions = {};
   final Map<String, String> _peerCache = {};
 
-  /// Cached `chats` row metadata per chat: type + reference_id (ISSUE 4).
+  /// Cached `chats` row metadata per chat: type + reference_id.
   /// Group routing resolves the chat type exactly once per chat per process
   /// — the row is participant-readable (RLS `chats_read_participant`, whose
   /// group branch gates on ACTIVE membership).
   final Map<String, Future<_ChatInfo?>> _chatInfoCache = {};
 
-  /// Cached active roster per group chat (ISSUE 4) + its fetch time
-  /// (2026-08-17 latency fix): re-fetched at most every [_groupRosterTtl] —
+  /// Cached active roster per group chat + its fetch time: re-fetched at
+  /// most every [_groupRosterTtl] —
   /// steady-state sends reuse the cache (one fewer network round trip per
   /// group message). Compared against the fresh roster on each (re)fetch:
   /// any diff = membership change → the group keys are wiped (new epoch)
@@ -171,7 +167,7 @@ class ChatService {
   /// Memory-only (§8.4).
   final Map<String, Map<String, String>> _decryptedByMessage = {};
 
-  /// Locally deleted messages (delete-for-me, 2026-08-16): chatId →
+  /// Locally deleted messages: chatId →
   /// messageIds. In-memory MVP tombstone — the server rows stay (the peer
   /// keeps them), only this device's thread hides them.
   final Map<String, Set<String>> _locallyDeleted = {};
@@ -179,10 +175,10 @@ class ChatService {
   /// Per-chat serial executor for decryption: the ratchet session is
   /// stateful and must never process two envelopes concurrently (realtime
   /// bursts / subscribe+load overlap). Each call chains behind the previous
-  /// one for the same chat (I-38).
+  /// one for the same chat.
   final Map<String, Future<void>> _decryptTail = {};
 
-  /// Per-chat serial executor for SENDING (2026-08-16 re-audit, J1): the
+  /// Per-chat serial executor for SENDING: the
   /// cipher state advances on EVERY encrypt — the 1:1 ratchet AND the group
   /// sender-key chain — so two in-flight [sendMessage] calls for the same
   /// chat must never run concurrently. Without serialization both calls
@@ -193,16 +189,16 @@ class ChatService {
   final Map<String, Future<void>> _sendTail = {};
 
   /// Last sender-key REQUEST time per (chat, sender) — the retry-protocol
-  /// throttle (2026-08-17): a burst of missing-chain drops fires exactly
+  /// throttle: a burst of missing-chain drops fires exactly
   /// one request per window, never one per row.
   final Map<String, DateTime> _lastKeyRequestAt = {};
 
-  /// The uid whose bundle was published at least once in THIS process
-  /// (2026-08-17 latency fix): the old guard keyed on the 1:1 session map,
-  /// which group chats NEVER populate (their pairwise sessions live under
-  /// the `g:<chatId>:<peer>` namespace) — so EVERY group message paid a
-  /// publishAll round trip. Once published for the current uid, the
-  /// identity does not change within the process, so the check is the
+  /// The uid whose bundle was published at least once in THIS process.
+  /// Group chats keep their pairwise sessions under the
+  /// `g:<chatId>:<peer>` namespace (never in the 1:1 session map), so this
+  /// flag gates publishing independently of the 1:1 session map. Once
+  /// published for the current uid, the identity does not change within the
+  /// process, so the check is the
   /// correct gate (a failed publish keeps it unset and retries on the next
   /// send; a DIFFERENT uid — account switch — re-publishes the new
   /// identity's bundle before the first send).
@@ -214,12 +210,12 @@ class ChatService {
     final stopwatch = Stopwatch()..start();
     final res = await client
         .from('messages')
-        // `recipient_id` rides along (ISSUE 4): group distribution rows are
+        // `recipient_id` rides along: group distribution rows are
         // addressed to exactly one member — non-targets skip them silently.
-        // `message_reads(user_id, read_at)` (20260817000006) rides along for
+        // `message_reads(user_id, read_at)` rides along for
         // GROUP chats: the per-member read receipts the thread renders as
         // "read by N of M" (the 1:1 `read_at` column cannot express group
-        // reads — any reader used to stamp it, faking "read by everyone").
+        // reads).
         .select(
           'id, sender_id, content, media_url, created_at, read_at, sent_at, '
           'recipient_id, message_reads(user_id, read_at)',
@@ -235,14 +231,14 @@ class ChatService {
     final rows = (res as List).reversed.map((e) => Map<String, dynamic>.from(e)).toList();
     if (!e2eeEnabled) return rows;
     final decrypted = [for (final row in rows) await _decryptMessage(chatId, row)];
-    // Bounded plaintext store (2026-08-16): keep at most the message cap per
+    // Bounded plaintext store: keep at most the message cap per
     // chat. Best-effort.
     try {
       await _plaintextStore?.prune(chatId, chatMessageCap);
     } catch (e, st) {
       AppLogger.instance.warn('chat plaintext prune failed chat=$chatId: $e', '$st');
     }
-    // Server offload (2026-08-16): rows that are permanently undecryptable
+    // Server offload: rows that are permanently undecryptable
     // (no local session — pre-reinstall history) are deleted server-side so
     // the server never stores bytes nobody can ever read. Best-effort.
     await _deleteUndecryptable(chatId, decrypted);
@@ -256,7 +252,7 @@ class ChatService {
   /// Sends a message: sanitizes [content], encrypts it (when E2EE is wired)
   /// and inserts the row.
   ///
-  /// Serialized per chat on [_sendTail] (2026-08-16 re-audit, J1): the
+  /// Serialized per chat on [_sendTail]: the
   /// cipher state advances on every encrypt, so two in-flight sends for the
   /// same chat must run one after the other — both the 1:1 ratchet and the
   /// group sender-key chain would otherwise derive two envelopes from the
@@ -309,7 +305,7 @@ class ChatService {
           'ms=${stopwatch.elapsedMilliseconds}',
         );
       }
-      // Group chats (ISSUE 4 / D3): Signal sender keys. The 1:1 branch below
+      // Group chats: Signal sender keys. The 1:1 branch below
       // is NEVER taken for a group chat — _resolvePeerUserId is 1:1-only.
       if (groupE2eeEnabled && (await _chatInfo(chatId))?.type == 'group') {
         await _sendGroupMessage(chatId, sanitized, user.id, stopwatch);
@@ -354,7 +350,7 @@ class ChatService {
           'type=${e.runtimeType} ms=${stopwatch.elapsedMilliseconds}',
         );
       }
-      // Session/insert atomicity (2026-08-15): when the failed envelope was
+      // Session/insert atomicity: when the failed envelope was
       // the session's INIT, the peer never received it. The persisted session
       // still believes it did (has_sent_init=true) and the next retry would
       // send an undecryptable ratchet message into a session the peer never
@@ -375,7 +371,7 @@ class ChatService {
     );
   }
 
-  /// Group-chat send (ISSUE 4 / D3, Signal sender keys).
+  /// Group-chat send.
   ///
   /// Row order on the wire (realtime delivers in channel order, so receivers
   /// process bundles BEFORE the message):
@@ -386,11 +382,11 @@ class ChatService {
   ///     initiator, the target is the responder) of the bundle JSON;
   /// (b) the single type-0x03 sender-key message row (`recipient_id` NULL).
   ///
-  /// Resilient distribution (2026-08-17 live finding: "send does not
-  /// allow"): each member's distribution is wrapped in its own try/catch —
+  /// Resilient distribution: each member's distribution is wrapped in its
+  /// own try/catch —
   /// a member with NO published prekey bundle (never ran the app / fresh
-  /// install) fails the pairwise X3DH `fetchBundle`; pre-fix that ONE
-  /// failure threw the whole send. Now the member is logged (id only, never
+  /// install) fails the pairwise X3DH `fetchBundle`; that failure is logged
+  /// (id only, never
   /// key material) and SKIPPED — the reachable members still get their
   /// distribution and the message row always lands. The distribution target
   /// is persisted via [GroupE2eeCipher.markSenderKeyDistributed] only AFTER
@@ -400,10 +396,9 @@ class ChatService {
   /// the message.
   ///
   /// Roster/epoch management (HARD REQUIREMENT): the active roster is
-  /// fetched from `chat_participants` before every send (D1's triggers keep
-  /// it equal to the ACTIVE `group_members`; readable via RLS
-  /// `cp_read_participant` — the documented roster source) and compared to
-  /// the cached roster:
+  /// fetched from `chat_participants` before every send (readable via RLS
+  /// `cp_read_participant`; kept in sync with the ACTIVE `group_members`)
+  /// and compared to the cached roster:
   ///
   /// - any change (member added OR removed) → `wipeGroupKeys` (fresh epoch —
   ///   a removed member's chain copies are useless going forward), which
@@ -412,7 +407,7 @@ class ChatService {
   ///   the OWN chain is minted fresh + re-distributed to all of them
   ///   (receivers holding the old-epoch record accept the fresh bundle —
   ///   epoch-based rekey);
-  /// - no change → lazy heal: distribute to `membersMissingSenderKey(...)`
+  /// - no change → lazy heal: distribute to `membersMissingSenderKey(..)`
   ///   only.
   ///
   /// A chat with only the sender distributes to zero members → just the
@@ -431,7 +426,7 @@ class ChatService {
     if (groupId == null) {
       throw const NotFoundError('Group chat');
     }
-    // Roster with TTL (2026-08-17 latency fix): reuse the cached roster
+    // Roster with TTL: reuse the cached roster
     // while it is younger than [_groupRosterTtl] — the per-send SELECT is
     // the extra round trip this removes. A change is detected at the next
     // TTL boundary; an added member who misses a message self-heals via the
@@ -451,7 +446,7 @@ class ChatService {
     }
     if (!useCache) {
       // The snapshot's fetchedAt measures from the last FETCH, never the
-      // last send (verifier fix 2026-08-17): a busy group sending faster
+      // last send: a busy group sending faster
       // than the TTL must still re-fetch at every TTL boundary — otherwise
       // the wipe-on-change rekey would never fire for it.
       _rosterCache[chatId] = _RosterSnapshot(roster, now);
@@ -505,15 +500,15 @@ class ChatService {
   }
 
   /// Sends [senderId]'s sender-key distribution bundle to each member of
-  /// [members] (ISSUE 4 / D3; extracted 2026-08-17 so the retry-request
-  /// handler can re-distribute without sending a message). Per-member
-  /// semantics are the H1 distribution contract: a member with NO published
+  /// [members] — the shared per-member distribution contract (also used by
+  /// the retry-request handler to re-distribute without sending a message).
+  /// A member with NO published
   /// prekey bundle is SKIPPED (logged, id only), never fatal, and
   /// [GroupE2eeCipher.markSenderKeyDistributed] persists the member ONLY
   /// after a successful insert, so a failed member stays missing for the
   /// next round.
   ///
-  /// Latency (2026-08-17): the per-member encrypt+insert phase runs in
+  /// Latency: the per-member encrypt+insert phase runs in
   /// PARALLEL — each member's pairwise session is a distinct object (per-
   /// member store keys), so the crypto is independent; N serial round trips
   /// collapse to 1. The bundle itself is built ONCE up front (the own-chain
@@ -595,7 +590,7 @@ class ChatService {
     }
   }
 
-  /// The Signal retry-request analogue (2026-08-17 missing-chain deadlock
+  /// The Signal retry-request analogue (missing-chain deadlock
   /// heal): when a group 0x03 message drops because THIS device has no
   /// sender-key record for [missingSenderId] (missed/stale bundle, identity
   /// change, RLS-timing miss at invite-accept), the device asks the chain
@@ -655,8 +650,8 @@ class ChatService {
   }
 
   /// Handles an inbound sender-key REQUEST ([plaintext]) delivered as the
-  /// plaintext of a pairwise row from [requesterId] (2026-08-17 retry
-  /// protocol): the requester's device has no record for MY chain, so I
+  /// plaintext of a pairwise row from [requesterId]: the requester's device
+  /// has no record for MY chain, so I
   /// un-mark them in my distribution registry and re-distribute my bundle
   /// to them IMMEDIATELY — the deadlock heal without waiting for a roster
   /// change. A request for another member's chain, or one whose chat/group
@@ -690,8 +685,8 @@ class ChatService {
   }
 
   /// The active roster of group chat [chatId], from `chat_participants` (the
-  /// trigger-maintained mirror of ACTIVE `group_members` — migration
-  /// 20260817000002; RLS `cp_read_participant`). Includes the caller — the
+  /// trigger-maintained mirror of ACTIVE `group_members`; RLS
+  /// `cp_read_participant`). Includes the caller — the
   /// cipher subtracts the sender itself when computing missing members.
   Future<Set<String>> _fetchRoster(String chatId) async {
     final user = auth.currentUser;
@@ -709,7 +704,7 @@ class ChatService {
   static bool _sameMembers(Set<String> a, Set<String> b) =>
       a.length == b.length && a.containsAll(b);
 
-  /// Pairwise session for group DISTRIBUTION only (ISSUE 4 / D3): the
+  /// Pairwise session for group DISTRIBUTION only: the
   /// synthetic store key `g:<chatId>:<peerUserId>` lives inside the existing
   /// [E2eeSessionStore] (the store is key-agnostic; `sessionIndex` has no
   /// consumers). The recipient resolves the session by the row's sender_id.
@@ -737,7 +732,7 @@ class ChatService {
   /// Resolves and caches the `chats` row metadata for [chatId]
   /// (`type`, `reference_id`). Group routing guards on `type == 'group'`.
   /// The row is participant-readable (RLS `chats_read_participant` — the
-  /// group branch gates on ACTIVE membership, migration 20260817000002).
+  /// group branch gates on ACTIVE membership).
   Future<_ChatInfo?> _chatInfo(String chatId) {
     return _chatInfoCache.putIfAbsent(chatId, () async {
       final res = await client
@@ -764,9 +759,8 @@ class ChatService {
 
   /// Creates (or reuses) a direct chat with [peerUserId] and returns its id.
   ///
-  /// Goes through the `create_direct_chat` SECURITY DEFINER RPC (migration
-  /// 20260814000001 — the SQL stand-in while EEDG stays blocked, same
-  /// pattern as the events `validate_code` RPC): `chats_insert_related` forbids
+  /// Goes through the `create_direct_chat` SECURITY DEFINER RPC:
+  /// `chats_insert_related` forbids
   /// client-side direct-chat inserts (the caller is not a participant yet),
   /// so the RPC creates the chat row + both participant rows atomically and
   /// returns the existing chat when the pair already has one. This is the
@@ -785,7 +779,7 @@ class ChatService {
     return chatId;
   }
 
-  /// The caller's chat inbox (migration 20260815000004): every chat they
+  /// The caller's chat inbox: every chat they
   /// participate in, ordered most-recent-first, with the peer identity, the
   /// last message (its `content` is the E2EE envelope — the server never
   /// sees plaintext; the client decrypts for the preview) and the unread
@@ -813,14 +807,12 @@ class ChatService {
   }
 
   /// Stamps the caller's READ on every unread message FROM OTHER senders in
-  /// [chatId], routed by chat type (20260817000006 — the ISSUE fix: in a
-  /// GROUP chat the 1:1 `read_at` column cannot express per-member reads —
-  /// any reader used to stamp it and every sender saw fake "read by
-  /// everyone" blue checks):
+  /// [chatId], routed by chat type (the 1:1 `read_at` column cannot express
+  /// per-member reads in a group):
   ///
-  /// - DIRECT chats → `mark_messages_read` (20260815000005): stamps
-  ///   `messages.read_at` — the 1:1 blue-check path, byte-identical;
-  /// - GROUP chats → `mark_group_messages_read` (20260817000006): inserts a
+  /// - DIRECT chats → `mark_messages_read`: stamps
+  ///   `messages.read_at` — the 1:1 blue-check path;
+  /// - GROUP chats → `mark_group_messages_read`: inserts a
   ///   `message_reads` row per (message, reader) — the thread counts them
   ///   and turns the sender's ticks blue only when EVERY other member read.
   ///
@@ -837,7 +829,7 @@ class ChatService {
     );
   }
 
-  /// Live per-member read flips in a GROUP chat (20260817000006): the
+  /// Live per-member read flips in a GROUP chat: the
   /// `message_reads` INSERT channel — each event is one (message_id,
   /// user_id, read_at) receipt; the thread merges it into the row's read
   /// set so the sender's ticks flip blue the moment the LAST member reads
@@ -870,7 +862,7 @@ class ChatService {
   }
 
   /// Persists the caller's read-receipts switch via the set_read_receipts_enabled
-  /// RPC (profile-RPC lockdown 2026-08-25 — no direct table writes).
+  /// RPC.
   Future<void> setReadReceiptsEnabled(bool value) async {
     final user = auth.currentUser;
     if (user == null) throw const UnauthorizedError();
@@ -909,7 +901,7 @@ class ChatService {
     if (!e2eeEnabled) {
       return {...row, 'last_message_decrypt_failed': false};
     }
-    // Group distribution rows (ISSUE 4 / D3, fix round 20260817000004):
+    // Group distribution rows:
     // the inbox carries the last message's recipient_id, so a row addressed
     // to ANOTHER member is skipped BEFORE any decrypt attempt — silently,
     // never a bubble (the per-pairwise envelope is not ours to open).
@@ -948,10 +940,10 @@ class ChatService {
     };
   }
 
-  /// Best-effort server-side cleanup of permanently undecryptable rows
-  /// (no-session class, 2026-08-16): after a reinstall/identity change these
+  /// Best-effort server-side cleanup of permanently undecryptable rows:
+  /// after a reinstall/identity change these
   /// rows can never be decrypted by anyone — delete them to offload the
-  /// server (`delete_undecryptable_messages`, migration 20260815000006,
+  /// server (`delete_undecryptable_messages`,
   /// participant-gated, audited in `deleted_messages`). Missing-RPC (old
   /// server) or RLS errors are logged and ignored: the rows stay hidden on
   /// this device and the next load retries.
@@ -959,7 +951,7 @@ class ChatService {
     String chatId,
     List<Map<String, dynamic>> rows,
   ) async {
-    // Group chats never carry the no-session class (ISSUE 4 / D3): for
+    // Group chats never carry the no-session class: for
     // groups, undecryptable rows STAY — the roster-change rekey heals them.
     if (groupE2eeEnabled && (await _chatInfo(chatId))?.type == 'group') {
       return;
@@ -1038,7 +1030,7 @@ class ChatService {
     );
   }
 
-  /// Delete-for-everyone (migration 20260815000006): sender-only + a 5-minute
+  /// Delete-for-everyone: sender-only + a 5-minute
   /// window verified with the SERVER's clock (`messages.sent_at` — the
   /// client can never extend it). The outcome drives the UI copy.
   Future<MessageDeleteOutcome> deleteMessageForEveryone(String messageId) async {
@@ -1071,7 +1063,7 @@ class ChatService {
     }
   }
 
-  /// Delete-for-me (2026-08-16): hides the message on THIS device only —
+  /// Delete-for-me: hides the message on THIS device only —
   /// the server rows stay (the peer keeps them). In-memory MVP tombstone,
   /// plus the encrypted plaintext-store entry is removed (a tombstoned
   /// message must not resurface from the cache).
@@ -1103,7 +1095,7 @@ class ChatService {
   /// server-side — called once per chat open, never per message.
   Future<bool> peerNeedsRekey(String chatId) async {
     if (!e2eeEnabled) return false;
-    // Groups have no pairwise peer (ISSUE 4): the group rekey machinery is
+    // Groups have no pairwise peer: the group rekey machinery is
     // the roster-change wipe in _sendGroupMessage, never the 1:1 identity
     // comparison.
     if (groupE2eeEnabled && (await _chatInfo(chatId))?.type == 'group') {
@@ -1161,7 +1153,7 @@ class ChatService {
         row['decryptFailed'] = false;
         return row;
       }
-      // Signal plaintext-store (2026-08-16): history re-rendered after an
+      // Signal plaintext-store: history re-rendered after an
       // app restart must come from the encrypted cache — the ratchet chain
       // has already advanced past these messages and can never re-decrypt
       // them. Serve the cache BEFORE any crypto.
@@ -1186,7 +1178,7 @@ class ChatService {
         return row;
       }
     }
-    // Group chat routing (ISSUE 4 / D3): type-0x03 envelopes decrypt via the
+    // Group chat routing: type-0x03 envelopes decrypt via the
     // group cipher; 0x01/0x02 envelopes are pairwise DISTRIBUTION rows
     // (process the bundle, hide the row); rows addressed to another member
     // are skipped silently. The 1:1 cipher path below is never taken for
@@ -1215,7 +1207,7 @@ class ChatService {
         return row;
       }
       if (result.dropped) {
-        // Signal semantics (2026-08-16): a protocol-level drop — replay/
+        // Signal semantics: a protocol-level drop — replay/
         // duplicate, stale identity, missing prekey material — is SILENT:
         // the row never renders and is never bubble-marked. Against an
         // EXISTING session the server row stays (a later fresh init may
@@ -1237,7 +1229,7 @@ class ChatService {
         '$st',
       );
     }
-    // No-session class (2026-08-16, Signal reinstall semantics): when NO
+    // No-session class: when NO
     // session exists for the chat, the failure means pre-reinstall history —
     // the old identity/ratchet keys are gone forever, so the message is
     // never decryptable by ANYONE. The UI hides these rows (pure Signal:
@@ -1259,7 +1251,7 @@ class ChatService {
     return row;
   }
 
-  /// Decrypts one group-chat row (ISSUE 4 / D3). Never throws.
+  /// Decrypts one group-chat row. Never throws.
   ///
   /// - `recipient_id` set and != me → silent skip: no decrypt attempt, no
   ///   bubble (the distribution envelope is addressed to ONE member).
@@ -1312,7 +1304,6 @@ class ChatService {
         // MISSING-CHAIN drop (no record / stale identity for the sender)
         // additionally fires the retry-protocol request: this device asks
         // the sender to re-distribute so the NEXT message decrypts
-        // (2026-08-17 deadlock heal).
         if (result.missingChain) {
           final senderId = row['sender_id'];
           if (senderId is String && groupId != null) {
@@ -1335,7 +1326,7 @@ class ChatService {
     if (senderId is String && groupId != null) {
       try {
         final pair = await _pairwiseCipherFor(chatId, senderId);
-        // K1 identity binding (2026-08-16 re-audit): the bundle's
+        // Identity binding: the bundle's
         // `sender_ik_dh` is self-attested, so the bundle is only accepted
         // when it matches the identity the pairwise session BOUND to the
         // sender (X3DH, possession-based) — a bundle minted with a learned
@@ -1351,7 +1342,7 @@ class ChatService {
         final plaintext = result.plaintext;
         if (plaintext != null &&
             await _groupCipher.isSenderKeyRequest(plaintext)) {
-          // A sender-key REQUEST (2026-08-17 retry protocol): the requester
+          // A sender-key REQUEST: the requester
           // (the row's RLS-bound sender) has no record for one of my chains.
           // Handled before the bundle check — the kinds are mutually
           // exclusive; the row is hidden either way.
@@ -1473,7 +1464,7 @@ class ChatService {
   }
 }
 
-/// Cached `chats` row metadata used by the group routing (ISSUE 4 / D3):
+/// Cached `chats` row metadata used by the group routing:
 /// the chat type (group vs direct) and the `reference_id` (the group id —
 /// the crypto group the sender-key chains bind to).
 class _ChatInfo {
@@ -1483,9 +1474,9 @@ class _ChatInfo {
   final String? referenceId;
 }
 
-/// A fetched group-chat roster + its fetch time (2026-08-17 latency fix —
-/// the per-send roster SELECT is dropped while the snapshot is younger than
-/// `ChatService`'s `groupRosterTtl`).
+/// A fetched group-chat roster + its fetch time — the per-send roster SELECT
+/// is dropped while the snapshot is younger than `ChatService`'s
+/// `groupRosterTtl`.
 class _RosterSnapshot {
   const _RosterSnapshot(this.roster, this.fetchedAt);
 

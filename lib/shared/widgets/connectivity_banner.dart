@@ -5,7 +5,7 @@ import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/providers/connectivity_provider.dart';
 import 'package:samay/l10n/app_localizations.dart';
 
-/// Global offline indicator (I-67): a slim black banner with the red
+/// Global offline indicator: a slim black banner with the red
 /// `wifi_off` icon and the localized copy, mounted by [SamayApp] inside
 /// `MaterialApp.router`'s builder — below Localizations/Theme/MediaQuery but
 /// above the Navigator, so it overlays every route (auth flow included, where

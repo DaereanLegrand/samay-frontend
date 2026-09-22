@@ -66,7 +66,7 @@ import 'package:samay/shared/widgets/route_error_screen.dart';
 import 'package:uuid/uuid.dart';
 
 /// Resolves a required path parameter, rendering [RouteErrorScreen] when it is
-/// missing (finding NAV-03 / H-03) instead of crashing on a forced unwrap.
+/// missing instead of crashing on a forced unwrap.
 Widget _screenForId(
   GoRouterState state,
   String param,
@@ -78,18 +78,16 @@ Widget _screenForId(
   return builder(id);
 }
 
-/// NAV-08: the shell tab routes build [NoTransitionPage]s — switching tabs
+/// The shell tab routes build [NoTransitionPage]s — switching tabs
 /// must NOT slide or zoom (Juega uses NoTransitionPage for its shell
 /// children; the tab switch's subtle motion comes from `MainShell`'s
-/// [VTabFade] 150ms fade-in instead — DISCO §6.1 "subtle, fast", U-18).
-/// Pushed routes keep their normal transitions (§6.1 page fade-through is a
-/// separate surface; see the U-18 daily log).
+/// [VTabFade] 150ms fade-in — "subtle, fast").
+/// Pushed routes keep their normal transitions.
 ///
 /// The page keeps go_router's default naming (`state.name ?? state.path`) —
-/// the telemetry observer (I-68) reads `RouteSettings.name`, so a custom
+/// the telemetry observer reads `RouteSettings.name`, so a custom
 /// pageBuilder must set it explicitly or tab screens stop reporting
-/// `screen_view` (U-29 integration-suite finding: U-18's custom pages
-/// dropped the name; the telemetry shell flow went red).
+/// `screen_view`.
 CustomTransitionPage<void> _tabPage(GoRouterState state, Widget child) {
   return NoTransitionPage(
     key: state.pageKey,
@@ -98,10 +96,10 @@ CustomTransitionPage<void> _tabPage(GoRouterState state, Widget child) {
   );
 }
 
-/// EINV (I-66): one `/event/:param` route serves both the event detail (UUID
+/// EINV: one `/event/:param` route serves both the event detail (UUID
 /// event ids) and the invite-token deep links (`samay://event/{token}`,
 /// MVP §6.3). The former `/event/:inviteToken` route was SHADOWED by this
-/// route (I-55's documented ordering issue) and has been removed — instead
+/// route and has been removed — instead
 /// the handler (`DeepLinkHandler`) resolves the token to an event id and the
 /// route branches here: UUID params go straight to [EventDetailScreen],
 /// token-shaped params resolve through [EventInviteRoute] (loading →
@@ -135,12 +133,12 @@ final routerProvider = Provider<GoRouter>((ref) {
     initialLocation: RoutePaths.login,
     redirect: authGuard.call,
     refreshListenable: authRefresh,
-    // U-29 smoke finding: auth-state emissions refresh the router, which
+    // smoke finding: auth-state emissions refresh the router, which
     // re-parses the engine route-information state — without the codec the
     // pushed typed extras (VerifyExtra/…, the OTP funnel) serialize as null
     // and the pushed screens flip to RouteErrorScreen. See RouteExtraCodec.
     extraCodec: const RouteExtraCodec(),
-    // I-68: telemetry — every route change reports a `screen_view` event via
+    // telemetry — every route change reports a `screen_view` event via
     // the TelemetryService (stub mode = no-op with an info log). One observer
     // per navigator (a NavigatorObserver can attach to only one navigator):
     // the root one covers the plain routes; the ShellRoute's own observer
@@ -159,7 +157,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: RoutePaths.banned, builder: (_, _) => const BannedScreen()),
       GoRoute(path: RoutePaths.login, builder: (_, _) => const LoginScreen()),
       GoRoute(
-        // U-14 R3: the dedicated password-recovery screen. Registered with
+        // the dedicated password-recovery screen. Registered with
         // the other pre-auth routes (before the ShellRoute) so no parameter
         // pattern can shadow its static path; the guard treats it as public.
         path: RoutePaths.forgotPassword,
@@ -224,12 +222,12 @@ final routerProvider = Provider<GoRouter>((ref) {
           currentIndex: shellIndexFor(state.matchedLocation),
           child: child,
         ),
-        // I-68: the shell's nested Navigator needs its own observer (see the
+        // the shell's nested Navigator needs its own observer (see the
         // routerProvider note above) so tab switches report screen_view too.
         observers: [RouterObserver(ref.read(telemetryServiceProvider))],
         routes: [
-          // I-69: the feed is LIVE but the flag stays wired as the
-          // kill-switch/remote-config knob (I-58 flipped it on; the gate is
+          // the feed is live; the flag remains the
+          // kill-switch/remote-config knob (the gate is
           // what makes the knob functional).
           GoRoute(
             path: RoutePaths.mainFeed,
@@ -244,7 +242,7 @@ final routerProvider = Provider<GoRouter>((ref) {
                 _tabPage(state, const SocialScreen()),
           ),
           GoRoute(
-            // The Games tab (2026-09-20): the plugged minigames in a column
+            // The Games tab: the plugged minigames in a column
             // list. Gated on the minigames flag (kill-switch knob).
             path: RoutePaths.mainGames,
             pageBuilder: (context, state) => _tabPage(
@@ -256,7 +254,7 @@ final routerProvider = Provider<GoRouter>((ref) {
             ),
           ),
           GoRoute(
-            // I-69: the events tab is LIVE (R1 events sweep) but the flag
+            // the events tab is LIVE but the flag
             // stays wired as the kill-switch/remote-config knob — the real
             // [MyEventsScreen] ships behind it.
             path: RoutePaths.mainEvents,
@@ -286,7 +284,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         ],
       ),
       GoRoute(
-        // EINV (I-66): `/event/create` (ECRT, I-54) must be declared BEFORE
+        // EINV: `/event/create` must be declared BEFORE
         // this route when it lands — go_router matches in order and
         // `/event/:eventId` would shadow it otherwise. The param is either a
         // UUID event id or an invite token (see [_eventDetailRoute]).
@@ -303,8 +301,8 @@ final routerProvider = Provider<GoRouter>((ref) {
         ),
       ),
       GoRoute(
-        // EINV (I-66): the invite sub-screen, gated on the events flag
-        // (I-69) as the kill-switch knob — the child is the real
+        // EINV: the invite sub-screen, gated on the events flag
+        // as the kill-switch knob — the child is the real
         // [EventInviteRoute], which resolves the invite token (UUID event
         // ids land on it too; EventInviteRoute's provider handles both).
         path: RoutePaths.eventInvite(':eventId'),
@@ -319,7 +317,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         ),
       ),
       GoRoute(
-        // PHUP (I-59): gated on the photoUpload flag as the kill-switch knob
+        // gated on the photoUpload flag as the kill-switch knob
         // — the child is the real gallery.
         path: RoutePaths.eventPhotos(':eventId'),
         builder: (context, state) => _screenForId(
@@ -382,7 +380,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           errorMessage: AppLocalizations.of(context).routerGroupNotFound,
         ),
       ),
-      // The events-tab "Crear evento" entry (2026-09-08): a standalone public
+      // The events-tab "Crear evento" entry: a standalone public
       // flow reachable straight from `/main/events`. `/events/create` is
       // intentionally plural — `/event/:eventId` (registered above) must keep
       // owning the singular segment. Gated on the events flag.
@@ -394,9 +392,9 @@ final routerProvider = Provider<GoRouter>((ref) {
         ),
       ),
       GoRoute(
-        // NOTE (I-54): no standalone `/event/create` path — it would be
+        // NOTE: no standalone `/event/create` path — it would be
         // shadowed by `/event/:eventId` (registered above) unless declared
-        // BEFORE it; ECRT creates from group detail and public events are
+        // BEFORE it; groups create from group detail and public events are
         // reachable here via the visibility toggle. Gated on the events flag
         // as the kill-switch knob.
         path: RoutePaths.createGroupEvent(':groupId'),
@@ -420,10 +418,10 @@ final routerProvider = Provider<GoRouter>((ref) {
         ),
       ),
       GoRoute(
-        // Direct (group-less) minigames hub (direct-minigames 2026-08-27):
+        // Direct (group-less) minigames hub:
         // the DIRECT scope is the default here (a new user with zero groups
         // can play with a friend). Gated on the minigames flag; the toggle
-        // inside the hub offers group play. Registered BEFORE the :groupId
+        // inside the hub offers group play. Registered BEFORE the:groupId
         // hub so the static path is never shadowed.
         path: RoutePaths.minigamesDirect,
         builder: (_, _) => const FlagGate(
@@ -432,9 +430,9 @@ final routerProvider = Provider<GoRouter>((ref) {
         ),
       ),
       GoRoute(
-        // GMCR (I-63): the group minigames hub, gated on the minigames flag
+        // the group minigames hub, gated on the minigames flag
         // as the kill-switch knob. The static /minigames direct route is
-        // registered above so :groupId cannot be shadowed.
+        // registered above so:groupId cannot be shadowed.
         path: RoutePaths.minigames(':groupId'),
         builder: (context, state) => _screenForId(
           state,
@@ -447,7 +445,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         ),
       ),
       GoRoute(
-        // The dedicated per-game landing page (2026-08-28): the feed opens
+        // The dedicated per-game landing page: the feed opens
         // /minigames/game/:gameType — title + explanation + audience +
         // "Nueva partida" + the ongoing partidas list. Gated on the
         // minigames flag; an unknown game_type parses to null and shows the
@@ -487,15 +485,15 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         // The Verdad o Reto play screen (150_minigame_play): the reusable
         // play engine's first concrete game. Gated on the minigames flag as
-        // the kill-switch knob. A fixed segment keeps the :groupId hub from
+        // the kill-switch knob. A fixed segment keeps the:groupId hub from
         // shadowing it.
         //
-        // OPAQUE/INSTANT transition (D, 2026-09-15): the countdown→playing
+        // OPAQUE/INSTANT transition: the countdown→playing
         // handoff pushes this route while the lobby sits underneath. A sliding
         // transition exposed BOTH screens for ~250ms; a NoTransitionPage makes
         // the match screen the only screen that ever paints (the lobby cover is
         // held by MinigameSessionDetailScreen until this page commits). The
-        // name is preserved for the telemetry observer (U-29).
+        // name is preserved for the telemetry observer.
         path: RoutePaths.truthDare(':sessionId'),
         pageBuilder: (context, state) => NoTransitionPage(
           key: state.pageKey,
@@ -512,7 +510,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         ),
       ),
       GoRoute(
-        // Finished-match leaderboard (TODO F): the dedicated screen wrapping
+        // Finished-match leaderboard: the dedicated screen wrapping
         // FinishedLeaderboard, optionally focused on one participant via `?p=`.
         // A fixed `/leaderboard` segment keeps the hub routes unshadowed.
         path: RoutePaths.minigameLeaderboard(':sessionId'),
@@ -544,7 +542,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         // The Botella (drunk bottle) play screen (209_minigame_drunk_bottle).
-        // A fixed segment keeps the :groupId hub from shadowing it.
+        // A fixed segment keeps the:groupId hub from shadowing it.
         path: RoutePaths.drunkBottle(':sessionId'),
         builder: (context, state) => _screenForId(
           state,
@@ -570,12 +568,12 @@ final routerProvider = Provider<GoRouter>((ref) {
         ),
       ),
       GoRoute(
-        // One Rankings surface (2026-09-20): Users | Groups inside.
+        // One Rankings surface: Users | Groups inside.
         path: RoutePaths.rankings,
         builder: (_, _) => const RankingsScreen(),
       ),
       GoRoute(
-        // I-69: chat is LIVE (I-38 E2EE) but the flag stays wired as the
+        // chat is LIVE but the flag stays wired as the
         // kill-switch/remote-config knob — the disabled state restores the
         // neutral FlagGate fallback.
         path: RoutePaths.chat(':chatId'),
@@ -590,7 +588,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         ),
       ),
       GoRoute(
-        // Chat inbox (2026-08-15): the feed's chat button lands here.
+        // Chat inbox: the feed's chat button lands here.
         path: RoutePaths.chatList,
         builder: (context, state) => const FlagGate(
           flag: AppFeatureFlag.chat,
@@ -623,7 +621,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (_, _) => const BlockedUsersScreen(),
       ),
       GoRoute(
-        // QRAT/QRSC (I-57), Stage-5 rotating-QR attendee surface: gated on the
+        // QRAT/QRSC, Stage-5 rotating-QR attendee surface: gated on the
         // qr flag as the kill-switch knob. The attendee screen shows a plain
         // QR encoding the rotating 24-hex attendance code
         // (AttendanceCodeScreen); the scanner (QrScannerScreen) reads that QR
@@ -652,7 +650,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         ),
       ),
       GoRoute(
-        // PLAN (I-61): gated on the subscriptions flag (dark-first — the
+        // PLAN: gated on the subscriptions flag (dark-first — the
         // disabled state renders the neutral FlagGate fallback while the
         // RevenueCat SDK key is absent; purchases stay dark).
         path: RoutePaths.subscriptions,
@@ -662,7 +660,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         ),
       ),
       GoRoute(
-        // COSM (I-62): gated on the cosmeticsSection flag as the kill-switch
+        // Gated on the cosmeticsSection flag as the kill-switch
         // knob.
         path: RoutePaths.cosmetics,
         builder: (context, _) => const FlagGate(
@@ -671,7 +669,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         ),
       ),
       GoRoute(
-        // SLED (I-64): the shard/preshard ledger history. NOT flag-gated —
+        // SLED: the shard/preshard ledger history. NOT flag-gated —
         // the shards economy is LIVE (donations exist and are recorded), so
         // the ledger ships open like the profile balance it links from.
         path: RoutePaths.shardsLedger,

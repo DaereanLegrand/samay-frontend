@@ -1,3 +1,5 @@
+import 'package:samay/l10n/app_localizations.dart';
+
 sealed class AppError implements Exception {
   const AppError();
 
@@ -5,6 +7,10 @@ sealed class AppError implements Exception {
 
   /// Stable machine-readable code surfaced to the user alongside [message].
   String get code;
+
+  /// The localized user-facing text for [l10n]. Subclasses map their message
+  /// to `errors*` ARB keys; [message] remains the non-localized fallback.
+  String localize(AppLocalizations l10n) => message;
 }
 
 class NetworkError extends AppError {
@@ -16,6 +22,9 @@ class NetworkError extends AppError {
 
   @override
   String get message => 'Error de conexión. Verifica tu internet.';
+
+  @override
+  String localize(AppLocalizations l10n) => l10n.errorsNetwork;
 }
 
 class UnauthorizedError extends AppError {
@@ -26,6 +35,9 @@ class UnauthorizedError extends AppError {
 
   @override
   String get message => 'Sesión expirada. Inicia sesión de nuevo.';
+
+  @override
+  String localize(AppLocalizations l10n) => l10n.errorsUnauthorized;
 }
 
 class ServerError extends AppError {
@@ -41,12 +53,20 @@ class ServerError extends AppError {
     if (detail.isNotEmpty) return detail;
     return 'Error del servidor. Intenta de nuevo.';
   }
+
+  @override
+  String localize(AppLocalizations l10n) =>
+      detail.isNotEmpty ? detail : l10n.errorsServer;
 }
 
 class ValidationError extends AppError {
   final String field;
   final String issue;
-  ValidationError(this.field, this.issue);
+
+  /// Optional ARB-backed override for the user-facing issue text.
+  final String Function(AppLocalizations l10n)? localizer;
+
+  ValidationError(this.field, this.issue, {this.localizer});
 
   @override
   String get code => 'VALIDATION_ERROR';
@@ -56,6 +76,14 @@ class ValidationError extends AppError {
     if (field.isNotEmpty && issue.isNotEmpty) return issue;
     return 'Datos inválidos. Verifica los campos.';
   }
+
+  @override
+  String localize(AppLocalizations l10n) {
+    final override = localizer;
+    if (override != null) return override(l10n);
+    if (issue.isNotEmpty) return issue;
+    return l10n.errorsInvalidData;
+  }
 }
 
 class PermissionError extends AppError {
@@ -64,6 +92,9 @@ class PermissionError extends AppError {
 
   @override
   String get message => 'No tienes permiso para realizar esta acción.';
+
+  @override
+  String localize(AppLocalizations l10n) => l10n.errorsPermission;
 }
 
 class RateLimitError extends AppError {
@@ -72,6 +103,9 @@ class RateLimitError extends AppError {
 
   @override
   String get message => 'Demasiadas solicitudes. Espera un momento.';
+
+  @override
+  String localize(AppLocalizations l10n) => l10n.errorsRateLimit;
 }
 
 class NotFoundError extends AppError {
@@ -86,6 +120,11 @@ class NotFoundError extends AppError {
     if (resource.isNotEmpty) return '$resource no encontrado.';
     return 'No encontrado.';
   }
+
+  @override
+  String localize(AppLocalizations l10n) => resource.isNotEmpty
+      ? l10n.errorsNotFound(resource)
+      : l10n.errorsNotFoundGeneric;
 }
 
 /// Thrown when a business operation conflicts with existing state.
@@ -107,7 +146,7 @@ class ConflictError extends AppError {
 }
 
 /// Raised by purchase flows when RevenueCat is not configured (stub mode —
-/// no `REVENUECAT_PUBLIC_SDK_KEY` dart-define, I-61 foundation). Subclassed
+/// no `REVENUECAT_PUBLIC_SDK_KEY` dart-define). Subclassed
 /// here because [AppError] is sealed: all error types live in this library.
 class NotConfiguredError extends AppError {
   NotConfiguredError();
@@ -120,7 +159,7 @@ class NotConfiguredError extends AppError {
 }
 
 /// A user's public profile could not be resolved (missing row, soft-deleted,
-/// or blocked). No-fallback (2026-08-14): identity lists must surface this —
+/// or blocked). No-fallback: identity lists must surface this —
 /// never render a placeholder name like "Usuario".
 class ProfileResolutionError extends AppError {
   final String userId;
