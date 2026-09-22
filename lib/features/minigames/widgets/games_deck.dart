@@ -3,14 +3,15 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/physics.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
-import 'package:samay/core/design_tokens/app_icon_sizes.dart';
 import 'package:samay/core/design_tokens/app_radius.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/services/minigame_service.dart';
+import 'package:samay/features/minigames/logic/match_preview.dart';
 import 'package:samay/features/minigames/logic/minigame_meta.dart';
+import 'package:samay/features/minigames/widgets/game_name_band.dart';
+import 'package:samay/features/minigames/widgets/match_bubble_field.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/v_count_badge.dart';
-import 'package:samay/shared/widgets/v_display_text.dart';
 
 /// The Games tab's card deck — a vertical, finger-tracked stack.
 ///
@@ -38,13 +39,16 @@ import 'package:samay/shared/widgets/v_display_text.dart';
 /// settles on the projected slot. Reduced motion
 /// (`MediaQuery.disableAnimationsOf`) snaps instead of animating.
 ///
-/// Pure widget: no provider dependency, so static data can drive it.
+/// Pure widget: no provider dependency, so static data can drive it — the
+/// Games tab resolves [matchesByGame] from the session providers and passes it
+/// in.
 class GamesDeck extends StatefulWidget {
   const GamesDeck({
     super.key,
     required this.games,
     required this.pendingByType,
     required this.onOpen,
+    this.matchesByGame = const {},
   });
 
   /// The plugged minigames, in deck order.
@@ -52,6 +56,10 @@ class GamesDeck extends StatefulWidget {
 
   /// Pending invite counts keyed by `game_type` value (the red badge source).
   final Map<String?, int> pendingByType;
+
+  /// Recent matches per game (newest first) — each becomes a mega bubble on
+  /// that game's card. Missing/empty → the card shows no bubbles.
+  final Map<MinigameType, List<MatchPreview>> matchesByGame;
 
   /// Opens the game page for the centred card.
   final ValueChanged<MinigameType> onOpen;
@@ -116,12 +124,12 @@ class _GamesDeckState extends State<GamesDeck>
   /// `slots = velocity / _flingDamping`, so harder throws carry more cards.
   static const double _flingDamping = 4.0;
 
-  /// Momentum spring for the release settle — near-critically damped with a
-  /// single small overshoot.
+  /// Momentum spring for the release settle — near-critically damped but soft,
+  /// so the deck eases into the next/previous card SLOWLY instead of snapping.
   static const SpringDescription _spring = SpringDescription(
     mass: 1,
-    stiffness: 420,
-    damping: 34,
+    stiffness: 80,
+    damping: 18,
   );
 
   /// Drives every card position (`value` = the unbounded deck offset `_t`).
@@ -392,6 +400,7 @@ class _GamesDeckState extends State<GamesDeck>
       type: type,
       name: minigameGameName(l10n, type.value),
       pending: widget.pendingByType[type.value] ?? 0,
+      matches: widget.matchesByGame[type] ?? const [],
     );
 
     return Positioned(
@@ -418,22 +427,31 @@ class _GamesDeckState extends State<GamesDeck>
 }
 
 /// One deck card: monochrome rounded face (the sanctioned rounded-surface
-/// exception — DESIGN.md §3), game icon + Playfair name, and the pending
-/// invite badge. Strictly monochrome: `surfaceAlt` fill with a 1px `muted`
-/// outline.
+/// exception — DESIGN.md §3), two circulating `icon + lowercase name` bands
+/// (top and bottom, opposite directions), the nested match bubbles, the
+/// centred play glyph and the pending invite badge. Strictly monochrome:
+/// `surfaceAlt` fill with a 1px `muted` outline.
 class _DeckCard extends StatelessWidget {
   const _DeckCard({
     required this.type,
     required this.name,
     required this.pending,
+    required this.matches,
   });
 
   final MinigameType type;
+
+  /// Natural-case name — kept for the semantics label; the bands paint it
+  /// lowercased.
   final String name;
   final int pending;
 
+  /// Recent matches drawn as nested mega bubbles.
+  final List<MatchPreview> matches;
+
   @override
   Widget build(BuildContext context) {
+    final bandName = name.toLowerCase();
     return Semantics(
       label: name,
       button: true,
@@ -443,39 +461,62 @@ class _DeckCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(AppRadius.card),
           border: Border.all(color: AppColors.muted),
         ),
-        child: Stack(
-          children: [
-            Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(AppRadius.card),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              // Keep bubbles clear of both name bands (band + its padding).
+              final bandInset =
+                  AppSpacing.sm + GameNameBand.bandHeight + AppSpacing.xs;
+              final playSize =
+                  math.min(constraints.maxWidth, constraints.maxHeight) * 0.22;
+              return Stack(
                 children: [
-                  Icon(
-                    minigameIcon(type),
-                    color: AppColors.white,
-                    size: AppIconSizes.xxl,
-                  ),
-                  const SizedBox(height: AppSpacing.md),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: AppSpacing.sm,
-                    ),
-                    child: VDisplayText(
-                      text: name,
-                      size: 24,
-                      textAlign: TextAlign.center,
-                      maxLines: 2,
+                  Positioned.fill(
+                    child: MatchBubbleField(
+                      key: ValueKey('bubbles:${type.value}'),
+                      matches: matches,
+                      topInset: bandInset,
+                      bottomInset: bandInset,
                     ),
                   ),
+                  Align(
+                    alignment: Alignment.topCenter,
+                    child: Padding(
+                      padding: const EdgeInsets.only(top: AppSpacing.sm),
+                      child: GameNameBand(type: type, name: bandName),
+                    ),
+                  ),
+                  Align(
+                    alignment: Alignment.bottomCenter,
+                    child: Padding(
+                      padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+                      child: GameNameBand(
+                        type: type,
+                        name: bandName,
+                        reverse: true,
+                      ),
+                    ),
+                  ),
+                  // The play glyph: white, no background; the card's own tap
+                  // opens the game (the bubble packing keeps clear of it).
+                  Center(
+                    child: Icon(
+                      Icons.play_arrow_rounded,
+                      color: AppColors.white,
+                      size: playSize,
+                    ),
+                  ),
+                  if (pending > 0)
+                    Positioned(
+                      top: AppSpacing.sm,
+                      right: AppSpacing.sm,
+                      child: VCountBadge(count: pending),
+                    ),
                 ],
-              ),
-            ),
-            if (pending > 0)
-              Positioned(
-                top: AppSpacing.sm,
-                right: AppSpacing.sm,
-                child: VCountBadge(count: pending),
-              ),
-          ],
+              );
+            },
+          ),
         ),
       ),
     );

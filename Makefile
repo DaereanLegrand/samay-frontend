@@ -631,11 +631,13 @@ loadtest-smoke: build-loadtest
 # ── Tests ─────────────────────────────────────────────────────────────────────
 # Testing is reserved for the BACKEND (directive 2026-08-31): Go unit tests
 # (`go test ./...`) + the backend STATIC gates (opt-005 seeds, opt-007
-# compose — no stack needed) + pgTAP (`supabase db test`). There are NO
-# Dart/Flutter tests and NO integration tests in this repo — the Flutter test
-# trees (`test/*.dart`, `integration_test/`) were deleted. The LIVE backend
-# opt-tests (001/002/003/004/006) need the stack up
-# (`make supabase-docker-start`) and run via `bash test/run_all_backend.sh`.
+# compose/ports, opt-008 Makefile/platform/signing — no stack needed) + pgTAP
+# (`make supabase-db-test`). There are NO Dart/Flutter tests and NO integration
+# tests in this repo — the Flutter test trees (`test/*.dart`,
+# `integration_test/`) were deleted. The LIVE backend opt-tests
+# (opt-001…016, opt-018…032 — 28 of the 31; opt-005/007/008 are the stack-free
+# static gates) need the stack up (`make supabase-testing-reset`) and run via
+# `bash test/run_all_backend.sh`.
 
 test: test-all
 
@@ -644,6 +646,7 @@ test-all: test-go test-backend-static
 test-backend-static:
 	bash test/opt-005-seeds-static.sh
 	bash test/opt-007-compose-static.sh
+	bash test/opt-008-makefile-static.sh
 
 test-go:
 	go test ./...
@@ -659,6 +662,7 @@ check: secrets-check
 	dart analyze
 	flutter analyze
 	go vet ./...
+	@UNFMT="$$(gofmt -l cmd internal)"; if [ -n "$$UNFMT" ]; then echo "❌  gofmt: unformatted Go files:"; echo "$$UNFMT"; exit 1; fi
 	tools/check_ports.sh --strict
 
 lint: flutter-analyze
@@ -776,12 +780,13 @@ supabase-db-test:
 	@command -v supabase >/dev/null || { echo "❌  supabase CLI not found — psql fallback: PGPASSWORD=postgres psql -h localhost -p 54382 -U postgres -d postgres -v ON_ERROR_STOP=1 -f supabase/tests/schema_test.sql"; exit 1; }
 	supabase db test --db-url "$(PGTAP_DB_URL)" -- supabase/tests/schema_test.sql
 
-# LIVE backend integration tests (test/opt-*.sh): RLS/events/chat/photos/E2EE
-# (opt-001..006) hit Kong on the approved 54386 and need the stack up + reset;
-# opt-005/opt-007 are static gates that pass anywhere. Runner:
+# LIVE backend integration tests (test/opt-*.sh): the 28 stack-dependent curl
+# tests (opt-001…016, opt-018…032) hit Kong on the approved 54386 and need the
+# stack up + reset; opt-005/opt-007/opt-008 are static gates that pass anywhere
+# (run those via `make test-backend-static`). Runner:
 # test/run_all_backend.sh (auto-discovery, per-file summary, exit 0/1).
 supabase-backend-tests:
-	@bash -c 'nc -z 127.0.0.1 54386 2>/dev/null' || { echo "❌  Kong not reachable on 54386 — start + reset the stack first: make supabase-docker-start && make supabase-docker-reset"; exit 1; }
+	@bash -c 'nc -z 127.0.0.1 54386 2>/dev/null' || { echo "❌  Kong not reachable on 54386 — start + reset the stack first: make supabase-testing-reset"; exit 1; }
 	bash test/run_all_backend.sh
 
 # Static stack gates (no stack needed): opt-005 (seeds) + opt-007 (compose
@@ -815,6 +820,13 @@ supabase-testing-reset:
 supabase-testing-init:
 	$(load-env)
 	cd supabase-testing && docker compose $(OVERRIDES) up -d --wait && echo "Running migrations..." && bash ../tools/apply_migrations.sh supabase-testing && echo "Applying required seed-config..." && PGPASSWORD=postgres psql -h localhost -p 54382 -U postgres -d postgres -v ON_ERROR_STOP=1 -f seed-config.sql
+
+# Demo data for the Games-tab deck bubbles: 20 sample users with downloaded CC0
+# DiceBear avatars + 28 DIRECT minigame sessions (7 per game), seeded into the
+# LOCAL testing stack only. Idempotent. Local-only guard lives in the script.
+# See supabase-testing/seed-sample-matches.sh.
+supabase-testing-seed-sample-matches:
+	bash supabase-testing/seed-sample-matches.sh
 
 # ── Remote-device tunnel (MKE-08 / M-13) ─────────────────────────────────────
 # SSH-forward adb from a remote host that has a device attached (Juega

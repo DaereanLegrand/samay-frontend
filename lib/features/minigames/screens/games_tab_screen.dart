@@ -26,6 +26,7 @@ class GamesTabScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final pendingByType = ref.watch(pendingMinigameInvitesByTypeProvider);
+    final matchesByGame = ref.watch(gameTabMatchesProvider);
     final statusTop = MediaQuery.paddingOf(context).top;
     // The header's total height (status inset + title band): the deck reserves
     // it at the top so the centred card keeps its position, while the header
@@ -49,6 +50,7 @@ class GamesTabScreen extends ConsumerWidget {
                 child: GamesDeck(
                   games: MinigameType.values,
                   pendingByType: pendingByType,
+                  matchesByGame: matchesByGame,
                   onOpen: (type) =>
                       context.push(RoutePaths.minigame(type.value)),
                 ),
