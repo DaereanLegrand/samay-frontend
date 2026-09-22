@@ -70,11 +70,26 @@ token changes in code, change it here in the same commit.
   `glowPink` appears only through `AppColors.error`/`errorFill` semantics.
 - **The Games deck is the one rounded surface.** `lib/features/minigames/
   widgets/games_deck.dart` renders the Games-tab cards with `AppRadius.card`
-  (16) and Playfair Display titles (`VDisplayText`, size 24) so a card reads
-  as a card in the fanned hand (user directive 2026-09-21). Scoped to that
-  widget — every other surface stays sharp (`AppRadius.none`) and every other
-  title stays Inter. The deck stays strictly monochrome: every card is a
-  `surfaceAlt` fill outlined by a 1px `muted` border. The Games tab is a
+  (16) so a card reads as a card in the fanned hand (user directive
+  2026-09-21). Each card carries **two circulating name bands**
+  (`game_name_band.dart`): one flush to the top edge and one to the bottom,
+  scrolling in opposite directions so the copy loops like a ring. A band is a
+  repeated `icon + lowercase game name` strip in small Playfair
+  (`VDisplayText`, size 18 — below the §3.3 display tokens); the old centred
+  icon/24px title was removed (user directive 2026-09-21). Bands freeze under
+  reduced motion. Each card also carries a background-less **white play glyph**
+  (`Icons.play_arrow_rounded`, no container) at its centre and, scattered
+  around it, **nested match bubbles** (`match_bubble_field.dart`): one mega
+  bubble per recent match, sized by its player count, each nesting up to six
+  randomly-sized `ProfileAvatar` bubbles plus a white `+N` overflow. The mega
+  bubbles are a deterministic, collision-free scatter that avoids each other,
+  the play glyph and the two name-band zones; the newest matches are tried
+  first and only the ones that fit are drawn (cap 5). Scoped to that widget —
+  every other surface stays sharp
+  (`AppRadius.none`) and every other title stays Inter. The deck stays strictly
+  monochrome: every card is a `surfaceAlt` fill outlined by a 1px `muted`
+  border (profile photos are the same sanctioned exception as the feed's
+  cluster). The Games tab is a
   vertical finger-tracked stack: the current game is a centred card (width
   0.8×, height 0.72× ×1.1 of the base, aspect ≈0.727, scaled 1.5×); `cur - 1` sits
   behind and lower (under the nav pill, blurred through it) and `cur + 1`

@@ -162,6 +162,36 @@ position and nav bar."*
   `surfaceAlt` and the behind cards' 0.55 opacity).
 
 
+## Follow-up 5 (same day) — circulating lowercase name bands
+
+Human directive: *"Each game card. Must change its title position, now 2 rows,
+but at top and bottom, icon + name of game (not capitalized). Smaller font.
+This are circulating bands of text like a ring."*
+
+- The centred 48px icon + 24px Playfair title was **removed**. Each card now
+  carries **two circulating text bands** (`GameNameBand`,
+  `lib/features/minigames/widgets/game_name_band.dart`): one flush to the top
+  edge and one to the bottom edge, each a single-line row of repeated
+  `icon + lowercase game name` units.
+- **Playfair via `VDisplayText`, size 18** (below the §3.3 tokens) and the icon
+  at `AppIconSizes.sm`; the name is `name.toLowerCase()`, so "Verdad o Reto"
+  reads "verdad o reto". `_DeckCard`'s `Semantics(label:)` keeps the natural
+  case for screen readers.
+- **Opposite directions** (top forward, bottom `reverse: true`) so the two
+  bands circulate like a ring. The loop is seamless: the row is translated by
+  exactly one unit width and the pattern repeats. Duration scales with the
+  measured unit width, so every band scrolls at the same `28 px/s` regardless
+  of name length.
+- **Band is clipped by `ClipRRect(AppRadius.card)`** so the strip does not
+  paint into the rounded corners; the pending `VCountBadge` stays top-right and
+  floats over the top band.
+- **Reduced motion** (`MediaQuery.disableAnimationsOf`) freezes the band
+  (first repetitions, no ticker) and stops the controller. The unit width is
+  measured with a `TextPainter` and memoized (`.name` change resets the cache)
+  so the drag-time rebuilds do not re-layout text.
+- `docs/design/DESIGN.md` §3 Games-deck paragraph updated: the card identity is
+  now the two circulating lowercase bands, not a centred 24px title.
+
 ## Mistakes / gotchas
 
 **MISTAKE** — scaling a behind-card down moves its top edge DOWN, not up. The
@@ -199,6 +229,10 @@ dart analyze lib/features/minigames/widgets/games_deck.dart \
   lib/features/minigames/screens/games_tab_screen.dart \
   lib/core/design_tokens/app_radius.dart   # No issues found!
 dart analyze lib                            # No issues found!
+
+# Follow-up 5
+dart analyze lib/features/minigames/widgets/game_name_band.dart \
+  lib/features/minigames/widgets/games_deck.dart   # No issues found!
 ```
 
 No backend/migration/RLS change; the Flutter/Dart test trees stay deleted
