@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/physics.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/core/design_tokens/app_icon_sizes.dart';
 import 'package:samay/core/design_tokens/app_radius.dart';
@@ -11,11 +12,28 @@ import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/v_count_badge.dart';
 import 'package:samay/shared/widgets/v_display_text.dart';
 
-/// The Games tab's card — ONE card, centred, no stack and no animation.
+/// The Games tab's card deck — a vertical, finger-tracked stack.
 ///
-/// The current game is rendered as a single centred card; a horizontal swipe
-/// swaps it for the next / previous game instantly (circular), and a tap opens
-/// that game's page. No other cards are drawn.
+/// At rest: the current game is a centred, upright card; `cur - 1` sits behind
+/// and BELOW it and `cur + 1` sits behind and ABOVE it, each carrying a stable
+/// random tilt + sideways shift seeded by its list index (so a card keeps its
+/// "tossed" pose) — [GamesDeck.games] order is the circular deck order.
+///
+/// A **vertical** drag moves the deck. The gesture is two-phase:
+/// 1. **Hero on its track** — the centred card follows the finger vertically
+///    while its horizontal offset is LOCKED to a quadratic-Bézier arc
+///    (`x = t² · targetX`), so the finger can never pull the card off its
+///    connecting curve. The other cards hold their pose with a slight drift.
+/// 2. **Deck catch-up** — the moment the hero crosses [GamesDeck._arrival],
+///    the remaining cards animate along their own arcs into the new slots
+///    (the incoming card rises to the centre, the outgoing card leaves toward
+///    the viewport edge, and a freshly-initialised random card curves in from
+///    beyond the opposite edge).
+///
+/// Releasing before [GamesDeck._arrival] snaps everything back; otherwise the
+/// release velocity drives a [SpringSimulation] that eases the momentum and
+/// settles on the next / previous card. Reduced motion
+/// (`MediaQuery.disableAnimationsOf`) snaps instead of animating.
 ///
 /// Pure widget: no provider dependency, so static data can drive it.
 class GamesDeck extends StatefulWidget {
@@ -39,16 +57,19 @@ class GamesDeck extends StatefulWidget {
   State<GamesDeck> createState() => _GamesDeckState();
 }
 
-class _GamesDeckState extends State<GamesDeck> {
-  /// The current game's index into [GamesDeck.games].
-  int _index = 0;
+/// One deck slot: [game] at continuous slot offset [s] (`0` = centred, negative
+/// = below, positive = above).
+class _DeckSlot {
+  const _DeckSlot({required this.game, required this.s});
 
-  /// Accumulated horizontal drag of the in-flight gesture (px).
-  double _dragDx = 0;
+  final int game;
+  final double s;
+}
 
-  /// Card width / height as a fraction of the available box. The card is then
-  /// scaled 1.5x, width eased 0.8x and height eased 0.72x (0.6x then +1.2x,
-  /// human directive).
+class _GamesDeckState extends State<GamesDeck>
+    with SingleTickerProviderStateMixin {
+  /// Card width / height as a fraction of the available box, then scaled 1.5x
+  /// and eased 0.8x wide / 0.72x tall (aspect 0.8) — unchanged deck geometry.
   static const double _widthFactor = 0.72;
   static const double _heightFactor = 0.70;
   static const double _sizeScale = 1.5;
@@ -62,63 +83,194 @@ class _GamesDeckState extends State<GamesDeck> {
   /// centred card), so it reads between the current card and the nav bar.
   static const double _prevGapFactor = 0.62;
 
-  /// Maximum random tilt of the `cur - 1` card (±15°) and of the card placed
-  /// above (`cur + 1`, a slighter ±8°).
+  /// Maximum random tilt of a behind card: `cur - 1` up to ±15°, `cur + 1`
+  /// (and the off-viewport card above it) up to ±8°.
   static const double _prevMaxRotation = 15 * math.pi / 180;
   static const double _nextMaxRotation = 8 * math.pi / 180;
 
-  /// Maximum random sideways shift of a behind card (fraction of the viewport
-  /// width — ±10vw).
+  /// Maximum random sideways shift of a behind card (±10vw).
   static const double _behindMaxXFactor = 0.10;
 
-  /// Drag past this distance, or a fling past this velocity, steps the deck.
-  static const double _dragDistance = 40;
-  static const double _dragVelocity = 220;
+  /// Hero progress (fraction of a slot) at which the deck catch-up starts.
+  static const double _arrival = 0.5;
 
-  void _step(int dir) {
-    final n = widget.games.length;
-    if (n <= 1) return;
-    setState(() => _index = ((_index + dir) % n + n) % n);
+  /// How much of the deck's catch-up the other cards show while the hero is
+  /// still on its own track (phase 1) — a slight, deliberate drift.
+  static const double _drift = 0.12;
+
+  /// Drag / spring overshoot headroom in slot units.
+  static const double _overshootLimit = 1.6;
+
+  /// Fling speed (slots/s) that commits a transition even below [_arrival].
+  static const double _flingVelocity = 3.0;
+
+  /// Momentum spring for the release settle — near-critically damped with a
+  /// single small overshoot.
+  static const SpringDescription _spring = SpringDescription(
+    mass: 1,
+    stiffness: 420,
+    damping: 34,
+  );
+
+  /// Drives every card position (`value` = the deck's slot offset `_t`).
+  late final AnimationController _controller = AnimationController(
+    vsync: this,
+    lowerBound: -_overshootLimit,
+    upperBound: _overshootLimit,
+    value: 0,
+  );
+
+  /// Index of the centred game (committed).
+  int _index = 0;
+
+  /// The vertical distance between two slots (px), cached from the last build
+  /// so the gesture handler can convert pixels to slot units.
+  double _gapDy = 1;
+
+  /// The slot target the running spring is settling on, or null when idle.
+  double? _settleTarget;
+
+  /// Continuous deck offset in slot units: `0` = rest, `±1` = one card on.
+  double get _t => _controller.value;
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _onDragDown(DragDownDetails details) {
+    _settleTarget = null;
+    _controller.stop();
   }
 
   void _onDragUpdate(DragUpdateDetails details) {
-    _dragDx += details.delta.dx;
+    if (widget.games.length <= 1) return;
+    final next = (_controller.value + details.delta.dy / _gapDy).clamp(
+      -_overshootLimit,
+      _overshootLimit,
+    );
+    _controller.value = next;
   }
 
   void _onDragEnd(DragEndDetails details) {
-    final velocity = details.primaryVelocity ?? 0;
-    final dx = _dragDx;
-    _dragDx = 0;
-    // Finger left (negative) reveals the next card.
-    if (dx <= -_dragDistance || velocity <= -_dragVelocity) {
-      _step(1);
-    } else if (dx >= _dragDistance || velocity >= _dragVelocity) {
-      _step(-1);
+    final n = widget.games.length;
+    if (n <= 1) {
+      _controller.value = 0;
+      return;
     }
+
+    final velocitySlots = (details.primaryVelocity ?? 0) / _gapDy;
+    final value = _controller.value;
+    final double target;
+    if (velocitySlots.abs() >= _flingVelocity) {
+      target = velocitySlots.isNegative ? -1 : 1;
+    } else if (value.abs() >= _arrival) {
+      target = value.isNegative ? -1 : 1;
+    } else {
+      target = 0;
+    }
+
+    if (MediaQuery.disableAnimationsOf(context)) {
+      _finish(target);
+      return;
+    }
+
+    _settleTarget = target;
+    _controller
+        .animateWith(SpringSimulation(_spring, value, target, velocitySlots))
+        .whenComplete(_onSettled);
   }
 
-  /// A stable random placement for a behind card — tilt (up to [maxRotation])
-  /// + sideways shift — seeded by its list index, so it never jitters between
-  /// rebuilds.
-  ({double rotation, double x}) _behindPlacement(
-    int index,
-    double maxRotation,
-  ) {
-    final rng = math.Random(index * 7919 + 17);
-    return (
-      rotation: (rng.nextDouble() * 2 - 1) * maxRotation,
-      x: (rng.nextDouble() * 2 - 1) * _behindMaxXFactor,
-    );
+  void _onSettled() {
+    if (!mounted) return;
+    final target = _settleTarget;
+    if (target == null) return;
+    // Interrupted by a new gesture: the value won't be at the target.
+    if ((_controller.value - target).abs() > 0.02) return;
+    _finish(target);
+  }
+
+  /// Commits a settled transition: `target == 0` re-bases to rest, `±1`
+  /// advances / retreats one game and re-bases in the same frame (invisible —
+  /// slots are computed relative to the new [_index]).
+  void _finish(double target) {
+    if (target == 0) {
+      _settleTarget = null;
+      setState(() => _controller.value = 0);
+      return;
+    }
+    final n = widget.games.length;
+    final dir = target > 0 ? 1 : -1;
+    _settleTarget = null;
+    setState(() {
+      _index = ((_index + dir) % n + n) % n;
+      _controller.value = 0;
+    });
+  }
+
+  /// The deck progress the non-hero cards follow: a slight drift while the
+  /// hero is on its own track, then a fast catch-up that lands exactly with
+  /// the hero at a full step.
+  double _deckProgress(double t) {
+    final at = t.abs();
+    if (at <= _arrival) return _drift * t;
+    final rem = ((at - _arrival) / (1 - _arrival)).clamp(0.0, 1.0);
+    final p =
+        _drift * _arrival +
+        (1 - _drift * _arrival) * Curves.easeInOut.transform(rem);
+    return t.isNegative ? -p : p;
+  }
+
+  /// The visible slots around [_index]: a direction-aware four-card window
+  /// (the hero, the two neighbours and the off-viewport card the transition
+  /// pulls in). Deduped by game (small `|s|` wins) for very short decks.
+  List<_DeckSlot> _visibleSlots(int n) {
+    final t = _t;
+    final tDeck = _deckProgress(t);
+    final ks = t < 0 ? const [-2, -1, 0, 1] : const [-1, 0, 1, 2];
+    final candidates = <_DeckSlot>[];
+    for (final k in ks) {
+      final s = k == 0 ? -t : k - tDeck;
+      if (s.abs() > 2.0) continue;
+      candidates.add(_DeckSlot(game: ((_index + k) % n + n) % n, s: s));
+    }
+    candidates.sort((a, b) => a.s.abs().compareTo(b.s.abs()));
+    final seen = <int>{};
+    final result = <_DeckSlot>[];
+    for (final c in candidates) {
+      if (seen.add(c.game)) result.add(c);
+    }
+    return result;
+  }
+
+  /// Stable random pose for a game (tilt ∈ [-1, 1], sideways ∈ [-1, 1]),
+  /// seeded by its list index so it never jitters between rebuilds.
+  ({double rot, double x}) _placement(int game) {
+    final rng = math.Random(game * 7919 + 17);
+    return (rot: rng.nextDouble() * 2 - 1, x: rng.nextDouble() * 2 - 1);
+  }
+
+  /// Opacity by absolute slot distance: full at the centre, 0.55 behind,
+  /// fading to nothing as the card leaves the viewport.
+  double _opacityFor(double as) {
+    if (as <= 0.4) return 1.0;
+    if (as <= 1.0) return 1.0 - 0.45 * ((as - 0.4) / 0.6);
+    if (as <= 1.8) return 0.55 * (1 - (as - 1.0) / 0.8);
+    return 0.0;
   }
 
   @override
   Widget build(BuildContext context) {
     final games = widget.games;
     if (games.isEmpty) return const SizedBox.shrink();
+    final l10n = AppLocalizations.of(context);
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final width = constraints.maxWidth.isFinite ? constraints.maxWidth : 0.0;
+        final width = constraints.maxWidth.isFinite
+            ? constraints.maxWidth
+            : 0.0;
         final height = constraints.maxHeight.isFinite
             ? constraints.maxHeight
             : 0.0;
@@ -135,94 +287,101 @@ class _GamesDeckState extends State<GamesDeck> {
           cardW = cardH * _aspect;
         }
 
-        final n = games.length;
-        final current = games[_index];
-        final prevIndex = ((_index - 1) % n + n) % n;
-        final nextIndex = ((_index + 1) % n + n) % n;
-        final prev = _behindPlacement(prevIndex, _prevMaxRotation);
-        final next = _behindPlacement(nextIndex, _nextMaxRotation);
-        final viewportWidth = MediaQuery.sizeOf(context).width;
-
+        final gapDy = (height / 2) * _prevGapFactor;
+        _gapDy = gapDy > 0 ? gapDy : 1;
         final centerX = width / 2;
         final centerY = height / 2;
-        // The behind cards sit the same distance apart vertically — `cur - 1`
-        // below (between the current card and the nav bar) and `cur + 1` above
-        // — each with a stable random tilt + sideways shift. `Clip.none` lets
-        // them run past the body edges; the lower one passes under the floating
-        // nav pill.
-        final gapDy = (height / 2) * _prevGapFactor;
-        final prevLeft = centerX + prev.x * viewportWidth - cardW / 2;
-        final nextLeft = centerX + next.x * viewportWidth - cardW / 2;
-        // Only show the upper card once there are at least 3 games, so its
-        // index never collides with the lower one.
-        final showNext = n >= 3;
+        final viewportWidth = MediaQuery.sizeOf(context).width;
+        final n = games.length;
 
         return GestureDetector(
           behavior: HitTestBehavior.opaque,
-          onHorizontalDragUpdate: _onDragUpdate,
-          onHorizontalDragEnd: _onDragEnd,
-          child: SizedBox.expand(
-            child: Stack(
-              clipBehavior: Clip.none,
-              children: [
-                // cur + 1, behind and ABOVE (-Y).
-                if (showNext)
-                  Positioned(
-                    left: nextLeft,
-                    top: centerY - gapDy - cardH / 2,
-                    width: cardW,
-                    height: cardH,
-                    child: Transform.rotate(
-                      angle: next.rotation,
-                      child: IgnorePointer(
-                        child: Opacity(
-                          opacity: 0.55,
-                          child: _card(context, games[nextIndex]),
-                        ),
+          onVerticalDragDown: _onDragDown,
+          onVerticalDragUpdate: _onDragUpdate,
+          onVerticalDragEnd: _onDragEnd,
+          child: AnimatedBuilder(
+            animation: _controller,
+            builder: (context, _) {
+              final slots = _visibleSlots(n);
+              // Furthest cards first, the centred one last (on top).
+              slots.sort((a, b) => b.s.abs().compareTo(a.s.abs()));
+              return SizedBox.expand(
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    for (final slot in slots)
+                      _positionedCard(
+                        context,
+                        l10n,
+                        slot,
+                        cardW,
+                        cardH,
+                        centerX,
+                        centerY,
+                        gapDy,
+                        viewportWidth,
                       ),
-                    ),
-                  ),
-                // cur - 1, behind and BELOW (+Y).
-                Positioned(
-                  left: prevLeft,
-                  top: centerY + gapDy - cardH / 2,
-                  width: cardW,
-                  height: cardH,
-                  child: Transform.rotate(
-                    angle: prev.rotation,
-                    child: IgnorePointer(
-                      child: Opacity(
-                        opacity: 0.55,
-                        child: _card(context, games[prevIndex]),
-                      ),
-                    ),
-                  ),
+                  ],
                 ),
-                // cur, centred on top.
-                Positioned(
-                  left: centerX - cardW / 2,
-                  top: centerY - cardH / 2,
-                  width: cardW,
-                  height: cardH,
-                  child: GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onTap: () => widget.onOpen(current),
-                    child: _card(context, current),
-                  ),
-                ),
-              ],
-            ),
+              );
+            },
           ),
         );
       },
     );
   }
 
-  Widget _card(BuildContext context, MinigameType type) {
-    return _DeckCard(
+  /// Places one slot on its Bézier arc: vertical follows the finger (or the
+  /// deck catch-up), horizontal is the locked quadratic curve `t² · target`.
+  Widget _positionedCard(
+    BuildContext context,
+    AppLocalizations l10n,
+    _DeckSlot slot,
+    double cardW,
+    double cardH,
+    double centerX,
+    double centerY,
+    double gapDy,
+    double viewportWidth,
+  ) {
+    final as = slot.s.abs();
+    final t = as.clamp(0.0, 1.0);
+    // Quadratic Bézier with the control point on the vertical: the card moves
+    // first, then swings sideways into its random behind pose.
+    final curve = t * t;
+
+    final place = _placement(slot.game);
+    final maxRotation = slot.s < 0 ? _prevMaxRotation : _nextMaxRotation;
+    final rotation = place.rot * maxRotation * curve;
+    final dx = place.x * _behindMaxXFactor * viewportWidth * curve;
+    final dy = slot.s * gapDy;
+
+    final type = widget.games[slot.game];
+    final card = _DeckCard(
       type: type,
-      name: minigameGameName(AppLocalizations.of(context), type.value),
+      name: minigameGameName(l10n, type.value),
       pending: widget.pendingByType[type.value] ?? 0,
+    );
+
+    return Positioned(
+      left: centerX - cardW / 2 + dx,
+      top: centerY - cardH / 2 + dy,
+      width: cardW,
+      height: cardH,
+      child: Transform.rotate(
+        angle: rotation,
+        child: FadeTransition(
+          opacity: AlwaysStoppedAnimation(_opacityFor(as)),
+          // Only the card nearest the centre is tappable.
+          child: as < 0.5
+              ? GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () => widget.onOpen(type),
+                  child: card,
+                )
+              : IgnorePointer(child: card),
+        ),
+      ),
     );
   }
 }
