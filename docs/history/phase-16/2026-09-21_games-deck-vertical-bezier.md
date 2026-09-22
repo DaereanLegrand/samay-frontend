@@ -7,8 +7,9 @@ from an instant horizontal swipe to a **vertical, finger-tracked, two-phase
 Bézier transition**:
 
 - **Phase 1 — hero on its locked track.** The centred card follows the finger
-  vertically (`_t += delta.dy / gapDy`, rubber-banded past `±1`, clamped
-  `±1.6`). Its horizontal offset is **locked to a quadratic-Bézier arc**
+  vertically (`_t -= delta.dy / gapDy` — inverted so an upward drag reveals the
+  card above; unbounded). Its horizontal offset is **locked to a
+  quadratic-Bézier arc**
   (`dx = randX · 10vw · t²`, `t = |s|`), so horizontal finger movement can
   never pull the card off its connecting curve. The other cards keep their
   pose with a slight `_drift = 0.12` fraction of the transition.
@@ -57,6 +58,34 @@ Bézier transition**:
   `Cubic`, `PathMetric.getTangentForOffset` follow-path recipes and the
   AnimatedBuilder/performance best-practices notes; `flutter_card_swiper` was
   read for parameterization only.
+
+## Follow-up — throws go and go (unbounded offset)
+
+A hard flick used to cap at one card and a long drag used to lock at ±1.6
+slots. The offset is now **unbounded**:
+
+- `_controller` is `AnimationController.unbounded` and `_onDragUpdate` no
+  longer clamps, so dragging past a slot keeps cycling the deck instead of
+  locking.
+- `_visibleSlots` re-bases the unbounded `_t` to the current step
+  (`shift = t >= 0 ? floor : ceil`, `localT = t - shift`, `base = _index +
+  shift`) and renders the periodic geometry, so a throw of ±N reads as N
+  consecutive transitions. Integer `_t` renders exactly like a committed rest
+  frame — that is what makes a multi-step throw seamless.
+- On release, a throw is projected with friction-style decay
+  (`target = value + velocity / _flingDamping`, `_flingDamping = 4.0`) and the
+  spring settles on that integer slot; `_finish` commits `round(target)` steps
+  in one re-base. `_flingVelocity = 3.0` slots/s gates a throw from a slow
+  release.
+
+## Follow-up — inverted gesture + taller cards
+
+- **Gesture direction inverted:** a downward drag now moves the deck the other
+  way (`_t -= delta.dy / gapDy`, and the fling velocity is negated to match), so
+  an upward drag reveals the card above.
+- **Card height ×1.1:** `_heightGain = 1.1` multiplies the eased base height,
+  giving `_aspect = 0.72 × (0.8 / (0.72 × 1.1)) ≈ 0.727` (was `0.8`) — the card
+  is 1.1× taller.
 
 ## Mistakes / gotchas
 

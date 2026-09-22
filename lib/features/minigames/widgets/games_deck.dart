@@ -30,9 +30,12 @@ import 'package:samay/shared/widgets/v_display_text.dart';
 ///    the viewport edge, and a freshly-initialised random card curves in from
 ///    beyond the opposite edge).
 ///
+/// The offset is **unbounded**: dragging past a slot keeps cycling the deck,
+/// and a hard throw is projected through several slots (`velocity /
+/// _flingDamping`) so the deck keeps flipping instead of locking at one card.
 /// Releasing before [GamesDeck._arrival] snaps everything back; otherwise the
 /// release velocity drives a [SpringSimulation] that eases the momentum and
-/// settles on the next / previous card. Reduced motion
+/// settles on the projected slot. Reduced motion
 /// (`MediaQuery.disableAnimationsOf`) snaps instead of animating.
 ///
 /// Pure widget: no provider dependency, so static data can drive it.
@@ -69,15 +72,20 @@ class _DeckSlot {
 class _GamesDeckState extends State<GamesDeck>
     with SingleTickerProviderStateMixin {
   /// Card width / height as a fraction of the available box, then scaled 1.5x
-  /// and eased 0.8x wide / 0.72x tall (aspect 0.8) — unchanged deck geometry.
+  /// and eased 0.8x wide / 0.72x tall, with the height gained another 1.1x
+  /// (aspect ≈ 0.727) — the stacked deck geometry.
   static const double _widthFactor = 0.72;
   static const double _heightFactor = 0.70;
   static const double _sizeScale = 1.5;
   static const double _widthScale = 0.8;
   static const double _heightScale = 0.72;
 
-  /// width / height: `0.72 × (0.8 / 0.72) = 0.8`.
-  static const double _aspect = 0.72 * (_widthScale / _heightScale);
+  /// The card is 1.1x taller than the eased base height.
+  static const double _heightGain = 1.1;
+
+  /// width / height: `0.72 × (0.8 / (0.72 × 1.1)) ≈ 0.727`.
+  static const double _aspect =
+      0.72 * (_widthScale / (_heightScale * _heightGain));
 
   /// How far down the `cur - 1` card sits (fraction of the half-box below the
   /// centred card), so it reads between the current card and the nav bar.
@@ -98,11 +106,15 @@ class _GamesDeckState extends State<GamesDeck>
   /// still on its own track (phase 1) — a slight, deliberate drift.
   static const double _drift = 0.12;
 
-  /// Drag / spring overshoot headroom in slot units.
-  static const double _overshootLimit = 1.6;
+  /// Drag / spring travel is unbounded in slot units — a hard throw carries
+  /// through as many cards as its velocity projects (endless-deck feel).
 
   /// Fling speed (slots/s) that commits a transition even below [_arrival].
   static const double _flingVelocity = 3.0;
+
+  /// Friction-style decay (1/s) used to project a throw's travel:
+  /// `slots = velocity / _flingDamping`, so harder throws carry more cards.
+  static const double _flingDamping = 4.0;
 
   /// Momentum spring for the release settle — near-critically damped with a
   /// single small overshoot.
@@ -112,12 +124,9 @@ class _GamesDeckState extends State<GamesDeck>
     damping: 34,
   );
 
-  /// Drives every card position (`value` = the deck's slot offset `_t`).
-  late final AnimationController _controller = AnimationController(
+  /// Drives every card position (`value` = the unbounded deck offset `_t`).
+  late final AnimationController _controller = AnimationController.unbounded(
     vsync: this,
-    lowerBound: -_overshootLimit,
-    upperBound: _overshootLimit,
-    value: 0,
   );
 
   /// Index of the centred game (committed).
@@ -130,7 +139,8 @@ class _GamesDeckState extends State<GamesDeck>
   /// The slot target the running spring is settling on, or null when idle.
   double? _settleTarget;
 
-  /// Continuous deck offset in slot units: `0` = rest, `±1` = one card on.
+  /// Continuous, unbounded deck offset in slot units: `0` = rest, `±1` = one
+  /// card on, `±3` = three cards on.
   double get _t => _controller.value;
 
   @override
@@ -139,18 +149,17 @@ class _GamesDeckState extends State<GamesDeck>
     super.dispose();
   }
 
-  void _onDragDown(DragDownDetails details) {
+  void _onDragStart(DragStartDetails details) {
     _settleTarget = null;
     _controller.stop();
   }
 
   void _onDragUpdate(DragUpdateDetails details) {
     if (widget.games.length <= 1) return;
-    final next = (_controller.value + details.delta.dy / _gapDy).clamp(
-      -_overshootLimit,
-      _overshootLimit,
-    );
-    _controller.value = next;
+    // Unbounded: dragging past a slot keeps cycling the deck instead of
+    // locking at one position. Inverted vs the raw delta: an upward drag
+    // reveals the card above.
+    _controller.value = _controller.value - details.delta.dy / _gapDy;
   }
 
   void _onDragEnd(DragEndDetails details) {
@@ -160,22 +169,38 @@ class _GamesDeckState extends State<GamesDeck>
       return;
     }
 
-    final velocitySlots = (details.primaryVelocity ?? 0) / _gapDy;
+    final velocitySlots = -(details.primaryVelocity ?? 0) / _gapDy;
     final value = _controller.value;
     final double target;
     if (velocitySlots.abs() >= _flingVelocity) {
-      target = velocitySlots.isNegative ? -1 : 1;
+      // A throw: project the travel with friction-style decay and land on an
+      // integer slot, so a harder throw flips more cards (no per-step lock).
+      target = (value + velocitySlots / _flingDamping).roundToDouble();
     } else if (value.abs() >= _arrival) {
-      target = value.isNegative ? -1 : 1;
+      target = value.roundToDouble();
     } else {
       target = 0;
     }
 
+    _settleTo(target, velocitySlots);
+  }
+
+  /// A cancelled gesture (another recognizer won) still has to land the deck,
+  /// so it settles like a slow release.
+  void _onDragCancel() {
+    final value = _controller.value;
+    _settleTo(value.abs() >= _arrival ? value.roundToDouble() : 0, 0);
+  }
+
+  /// Settles `_t` on [target] from the current value with [velocitySlots] of
+  /// throw momentum (0 for a slow release/scroll snap).
+  void _settleTo(double target, double velocitySlots) {
+    final value = _controller.value;
+    if (target == 0 && value == 0) return;
     if (MediaQuery.disableAnimationsOf(context)) {
       _finish(target);
       return;
     }
-
     _settleTarget = target;
     _controller
         .animateWith(SpringSimulation(_spring, value, target, velocitySlots))
@@ -191,20 +216,20 @@ class _GamesDeckState extends State<GamesDeck>
     _finish(target);
   }
 
-  /// Commits a settled transition: `target == 0` re-bases to rest, `±1`
-  /// advances / retreats one game and re-bases in the same frame (invisible —
+  /// Commits a settled transition: `target == 0` re-bases to rest, otherwise
+  /// advances `round(target)` games and re-bases in the same frame (invisible —
   /// slots are computed relative to the new [_index]).
   void _finish(double target) {
-    if (target == 0) {
+    final steps = target.round();
+    if (steps == 0) {
       _settleTarget = null;
       setState(() => _controller.value = 0);
       return;
     }
     final n = widget.games.length;
-    final dir = target > 0 ? 1 : -1;
     _settleTarget = null;
     setState(() {
-      _index = ((_index + dir) % n + n) % n;
+      _index = ((_index + steps) % n + n) % n;
       _controller.value = 0;
     });
   }
@@ -227,13 +252,18 @@ class _GamesDeckState extends State<GamesDeck>
   /// pulls in). Deduped by game (small `|s|` wins) for very short decks.
   List<_DeckSlot> _visibleSlots(int n) {
     final t = _t;
-    final tDeck = _deckProgress(t);
-    final ks = t < 0 ? const [-2, -1, 0, 1] : const [-1, 0, 1, 2];
+    // Re-base the unbounded offset to the current step so the geometry stays
+    // periodic: a throw of ±3 renders as three consecutive transitions.
+    final shift = t >= 0 ? t.floor() : t.ceil();
+    final localT = t - shift;
+    final base = _index + shift;
+    final tDeck = _deckProgress(localT);
+    final ks = localT < 0 ? const [-2, -1, 0, 1] : const [-1, 0, 1, 2];
     final candidates = <_DeckSlot>[];
     for (final k in ks) {
-      final s = k == 0 ? -t : k - tDeck;
+      final s = k == 0 ? -localT : k - tDeck;
       if (s.abs() > 2.0) continue;
-      candidates.add(_DeckSlot(game: ((_index + k) % n + n) % n, s: s));
+      candidates.add(_DeckSlot(game: ((base + k) % n + n) % n, s: s));
     }
     candidates.sort((a, b) => a.s.abs().compareTo(b.s.abs()));
     final seen = <int>{};
@@ -296,9 +326,10 @@ class _GamesDeckState extends State<GamesDeck>
 
         return GestureDetector(
           behavior: HitTestBehavior.opaque,
-          onVerticalDragDown: _onDragDown,
+          onVerticalDragStart: _onDragStart,
           onVerticalDragUpdate: _onDragUpdate,
           onVerticalDragEnd: _onDragEnd,
+          onVerticalDragCancel: _onDragCancel,
           child: AnimatedBuilder(
             animation: _controller,
             builder: (context, _) {
