@@ -82,18 +82,21 @@ int shellIndexFor(String location) {
 }
 
 /// The Social tab's pending counter — received friend requests + group
-/// invites. Minigame invites moved to the Games tab badge (2026-09-20), so
+/// invites. Minigame invites moved to the Games tab badge, so
 /// each tab owns the red circle for its own slice.
 final pendingCountsProvider = Provider<int>((ref) {
-  final requests =
-      ref
-          .watch(friendRequestsProvider)
-          .valueOrNull
-          ?.requests
-          .where((r) => r.type == 'received')
-          .length ??
-      0;
-  final invites = ref.watch(groupInvitesProvider).valueOrNull?.length ?? 0;
+  final requests = ref.watch(
+    friendRequestsProvider.select(
+      (v) =>
+          v.valueOrNull?.requests
+              .where((r) => r.type == 'received')
+              .length ??
+          0,
+    ),
+  );
+  final invites = ref.watch(
+    groupInvitesProvider.select((v) => v.valueOrNull?.length ?? 0),
+  );
   return requests + invites;
 });
 
@@ -104,7 +107,7 @@ class MainShell extends ConsumerWidget {
   const MainShell({super.key, required this.child, required this.currentIndex});
 
   /// Bottom inset for shell-tab bodies (Juega's `navBarInset` pattern,
-  /// 2026-08-27 Premium pill): the tab content clears the floating nav bar
+  /// Premium pill): the tab content clears the floating nav bar
   /// instead of scrolling beneath it — `extendBody` draws the body under
   /// the bar, so every tab pads its bottom by this much.
   static double navBarInset(BuildContext context) =>
@@ -115,11 +118,11 @@ class MainShell extends ConsumerWidget {
     final l10n = AppLocalizations.of(context);
     final socialCount = ref.watch(pendingCountsProvider);
     final gamesCount = ref.watch(pendingMinigameInvitesProvider);
-    // R19 (F13 DIRECT): 150ms opacity fade-in on tab switch, keyed on the
+    // 150ms opacity fade-in on tab switch, keyed on the
     // tab index so every switch restarts it. No spatial motion (tabs have no
     // directional relationship — Juega's fadeIn, without flutter_animate).
     // The shared `VTabFade` owns the reduced-motion contract
-    // (`disableAnimations` → static, U-18) + the duration/curve tokens.
+    // (`disableAnimations` → static) + the duration/curve tokens.
     final body = VTabFade(key: ValueKey(currentIndex), child: child);
     // Friendships + inbox + group memberships + minigame-invite + minigame-
     // session realtime: the listeners are mounted for the shell's lifetime —
@@ -135,7 +138,7 @@ class MainShell extends ConsumerWidget {
         Scaffold(
           extendBody: true,
           body: body,
-          // Premium floating pill (2026-08-27, Juega style): a rounded
+          // Premium floating pill: a rounded
           // liquid-glass bar with safe-area padding + a bottom inset so the
           // tab content never hides under it. Behavior is untouched: index,
           // taps, badge, fade.
@@ -151,13 +154,12 @@ class MainShell extends ConsumerWidget {
   }
 }
 
-/// Premium floating pill nav bar — a faithful port of Juega's Premium pill
-/// (`Juega/lib/shared/widgets/main_shell.dart`, 2026-08-27 user directive:
-/// "CHECK JUEGA … easy to copy paste … unified code that works").
+/// Premium floating pill nav bar — a faithful port of Juega's Premium pill.
 ///
 /// Geometry is identical to Juega: a `SafeArea` → `Padding` (24,0,24,20) →
-/// glass pill (blur 20, α0.85 fill, radius 24, inner padding 12×10) → a
-/// `spaceAround` `Row` of `AnimatedContainer` tabs (padding 16×8, radius 16).
+/// glass pill (blur 20, `surface` α0.1 fill, white α0.15 sheen, radius 14,
+/// inner padding 6×6) → a
+/// `spaceAround` `Row` of `AnimatedContainer` tabs (padding 8×8, radius 16).
 /// The selected tab carries a 4×4 dot under the icon; because exactly one
 /// tab is ALWAYS selected, the pill's height and width are constant — they
 /// never change on tab switch.
@@ -176,8 +178,7 @@ class _FloatingNavBar extends ConsumerWidget {
     required this.l10n,
   });
 
-  /// Compact pill radius (2026-09-20 user directive: "smaller, tighter
-  /// rounded corners, less spacing" so six tabs fit comfortably).
+  /// Compact pill radius so six tabs fit comfortably.
   static const double _radius = 14;
 
   @override
@@ -192,7 +193,11 @@ class _FloatingNavBar extends ConsumerWidget {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
               decoration: BoxDecoration(
-                color: AppColors.surface.withValues(alpha: 0.85),
+                // Juega's `PremiumCard` glass: the SAME recipe — a backdrop
+                // blur with a nearly-transparent `surface` fill (alpha 0.1)
+                // and a faint 0.15 white sheen. The earlier 0.85 alpha was a
+                // mis-port and read as a solid black bar.
+                color: AppColors.surface.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(_radius),
                 border: Border.all(
                   color: AppColors.white.withValues(alpha: 0.15),
@@ -212,7 +217,7 @@ class _FloatingNavBar extends ConsumerWidget {
     );
   }
 
-  /// One tab — compact anatomy for six tabs (2026-09-20): `GestureDetector`
+  /// One tab — compact anatomy for six tabs: `GestureDetector`
   /// (opaque hit) → `AnimatedContainer` (8×6 padding) → `Column` [icon stack,
   /// selected dot]. A tab with a pending [badges] count gains the red circle
   /// while the user is elsewhere.
@@ -231,7 +236,8 @@ class _FloatingNavBar extends ConsumerWidget {
           message: label,
           child: AnimatedContainer(
             duration: SamayDurations.standard,
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+            constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
