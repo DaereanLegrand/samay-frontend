@@ -1016,6 +1016,25 @@ class AppLocalizationsEn extends AppLocalizations {
   String get errorsNotFoundGeneric => 'Not found.';
 
   @override
+  String get errorsEmailNotConfirmed =>
+      'Email not confirmed. Check your inbox.';
+
+  @override
+  String get errorsInvalidEmail => 'Invalid email address.';
+
+  @override
+  String get errorsSamePassword => 'Choose a different password.';
+
+  @override
+  String get errorsOtpDisabled => 'Code sign-in is disabled.';
+
+  @override
+  String get errorsUserBanned => 'Your account is suspended.';
+
+  @override
+  String get errorsReauthenticationNeeded => 'Sign in again to continue.';
+
+  @override
   String get errorsInvalidCredentials => 'Invalid email or password';
 
   @override
@@ -2329,6 +2348,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get minigamesNoAnswers => 'No answers recorded';
 
   @override
+  String get minigamesLeaderboardSwipeHint => 'Swipe to see more ranks';
+
+  @override
   String get minigamesErrorLoadGame => 'Could not load the game';
 
   @override
@@ -2652,27 +2674,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get minigamesGoToGame => 'Go to game';
 
   @override
-  String get minigamesTwoLiesInstructions =>
-      'Write 3 statements about yourself: 2 lies and 1 truth. Select which one is the truth.';
-
-  @override
   String minigamesTwoLiesStatementNumber(int number) {
     return 'Statement $number';
   }
 
   @override
-  String get minigamesTwoLiesStatementPlaceholder =>
-      'Write your statement here...';
-
-  @override
-  String get minigamesTwoLiesMarkTruth => 'This is the truth';
-
-  @override
-  String get minigamesTwoLiesSubmitStatements => 'Submit statements';
+  String get minigamesTwoLiesMarkTruthPrompt => 'Mark which one is the truth';
 
   @override
   String get minigamesTwoLiesGuessPrompt =>
       'Which of these 3 statements is THE TRUTH?';
+
+  @override
+  String get minigamesTwoLiesHoldHint => 'Hold a card to mark your truth';
 
   @override
   String get minigamesTwoLiesVoteConfirm => 'Vote for this option';
@@ -2699,10 +2713,6 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get minigamesTwoLiesFillAllError =>
       'You must complete all 3 statements';
-
-  @override
-  String get minigamesTwoLiesSelectTruthError =>
-      'You must mark exactly one statement as the truth';
 
   @override
   String get codeAlreadyAttendedReturn => 'Go back';

@@ -15,8 +15,8 @@ import 'package:samay/shared/widgets/v_refreshable.dart';
 class BlockedUsersScreen extends ConsumerWidget {
   const BlockedUsersScreen({super.key});
 
-  // U-26 (U-24 F3): an empty (non-null) username would RangeError on
-  // substring — the '?' initial fallback.
+  // An empty (non-null) username would RangeError on substring — the '?'
+  // initial fallback.
   String _initials(UserProfile user) {
     final username = user.username;
     return username.isEmpty ? '?' : username.substring(0, 1).toUpperCase();
@@ -27,7 +27,7 @@ class BlockedUsersScreen extends ConsumerWidget {
     final l10n = AppLocalizations.of(context);
     final blockedAsync = ref.watch(blockedUsersProvider);
     final blocked = blockedAsync.valueOrNull;
-    // R13 (F3): pull-to-refresh reloads the blocked list — the empty state
+    // Pull-to-refresh reloads the blocked list — the empty state
     // stays refreshable too (VRefreshable).
     Future<void> onRefresh() =>
         ref.read(blockedUsersProvider.notifier).refresh();

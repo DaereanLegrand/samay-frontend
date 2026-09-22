@@ -8,13 +8,13 @@ import 'package:samay/shared/widgets/error_view.dart';
 import 'package:samay/shared/widgets/v_header_bar.dart';
 import 'package:samay/shared/widgets/state_views.dart';
 
-/// EINV (I-66): resolves a `/event/<invite_token>` deep link into the event
+/// Resolves a `/event/<invite_token>` deep link into the event
 /// detail screen.
 ///
 /// The single `/event/:eventId` route branches here for token-shaped params
 /// (non-UUID — UUID params are event ids and render [EventDetailScreen]
 /// directly). The former `/event/:inviteToken` route was SHADOWED by
-/// `/event/:eventId` (I-55's documented ordering issue) and has been
+/// `/event/:eventId` (a documented ordering issue) and has been
 /// removed; the token path shows a loading state while resolving, then the
 /// detail screen, a not-found fallback for unknown tokens, or an error view
 /// with retry for resolution failures.

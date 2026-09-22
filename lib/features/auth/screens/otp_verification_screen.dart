@@ -3,11 +3,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
+import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/design_tokens/app_typography.dart';
 import 'package:samay/core/logging/app_logger.dart';
 import 'package:samay/core/providers/auth_provider.dart';
 import 'package:samay/core/router/route_extras.dart';
 import 'package:samay/core/router/route_paths.dart';
+import 'package:samay/core/theme/samay_durations.dart';
 import 'package:samay/core/utils/otp_format.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/v_button.dart';
@@ -23,14 +25,14 @@ class OtpVerificationScreen extends ConsumerStatefulWidget {
     required this.password,
   });
 
-  /// Client-side cooldown before the user may request a new code (SEC-05/H-23).
-  /// Mirrors GoTrue's `email_sent` rate limit (`supabase/config.toml`) so the
-  /// user is guided instead of rejected by the server. Deliberately not in
+  /// Client-side cooldown before the user may request a new code. Mirrors
+  /// GoTrue's `email_sent` rate limit (`supabase/config.toml`) so the user is
+  /// guided instead of rejected by the server. Deliberately not in
   /// [SamayDurations] — that token set covers *animation* durations.
   static const int resendCooldownSeconds = 60;
 
   /// Consecutive wrong attempts after which verification is blocked until a
-  /// new code is requested (server-side caps are S-10/I-31's scope).
+  /// new code is requested.
   static const int maxFailedAttempts = 5;
 
   static const int otpCodeLength = 6;
@@ -53,13 +55,13 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
   /// `verifyOtp`. It must NOT mirror the global `authStateProvider` error:
   /// the notifier signs out in its failure path and the `signedOut` listener
   /// rewrites the global provider to `AsyncData` before the next frame, so
-  /// the message would be silently lost (2026-08-26 user report). GoTrue
-  /// answers every rejected email code with `otp_expired`, so the message is
-  /// a single fixed literal — never type-split on server codes.
+  /// the message would be silently lost. GoTrue answers every rejected email
+  /// code with `otp_expired`, so the message is a single fixed literal — never
+  /// type-split on server codes.
   String? _verifyError;
 
-  /// Single-shot latch (2026-08-24 fake-OTP-error fix): once a code has been
-  /// VERIFIED, no further submit may run. GoTrue answers ANY rejected email
+  /// Single-shot latch: once a code has been VERIFIED, no further submit may
+  /// run. GoTrue answers ANY rejected email
   /// code with `otp_expired` — including one already consumed by the
   /// successful verification — so a duplicate submit (late tap, autofill
   /// event; this screen stays mounted offstage under the pushed routes)
@@ -117,9 +119,9 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
     });
   }
 
-  /// U-14 R1: the pre-auth funnel's escape hatch (Juega's `_back()` also
-  /// clears the transient session). Signs out — clearing any transient OTP
-  /// session — and lands on the login screen.
+  /// The pre-auth funnel's escape hatch (Juega's `_back()` also clears the
+  /// transient session). Signs out — clearing any transient OTP session — and
+  /// lands on the login screen.
   Future<void> _backToLogin() async {
     await ref.read(authStateProvider.notifier).signOut();
     if (!mounted) return;
@@ -140,74 +142,37 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
     }
   }
 
-  /// The 6-digit code field as a liquid-glass slab. Resting: 1px white α0.25
-  /// ring on `surfaceAlt` α0.5 fill with the neumorphic top highlight — the
-  /// shared [VInput] recipe. Focused: the ring brightens to solid white
-  /// (monochrome 2026-08-26 — the gold gradient ring + halo are gone).
+  /// The 6-digit code field as a sharp slab: a resting `border` hairline that
+  /// brightens to solid white on focus. Under reduced motion the swap is
+  /// instant.
   Widget _codeField() {
-    // ANIM-OFF (2026-08-14): zero-duration under reduced motion — the glass
-    // ring swaps instantly instead of animating.
     final shellDuration = MediaQuery.disableAnimationsOf(context)
         ? Duration.zero
-        : const Duration(milliseconds: 200);
+        : SamayDurations.fast;
     return AnimatedContainer(
       key: const ValueKey('otpGlassShell'),
       duration: shellDuration,
-      curve: Curves.easeOutCubic,
+      curve: SamayDurations.defaultCurve,
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: _codeFocused
-              ? [
-                  AppColors.white.withValues(alpha: 1),
-                  AppColors.white.withValues(alpha: 1),
-                ]
-              : [
-                  AppColors.white.withValues(alpha: 0.25),
-                  AppColors.white.withValues(alpha: 0.25),
-                ],
+        color: AppColors.surfaceAlt,
+        border: Border.all(
+          color: _codeFocused ? AppColors.white : AppColors.border,
         ),
-        borderRadius: BorderRadius.circular(16),
       ),
-      padding: const EdgeInsets.all(1),
-      child: AnimatedContainer(
-        duration: shellDuration,
-        curve: Curves.easeOutCubic,
-        decoration: BoxDecoration(
-          color: AppColors.surfaceAlt.withValues(alpha: 0.5),
-          borderRadius: BorderRadius.circular(15),
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
+      child: TextField(
+        controller: _codeController,
+        focusNode: _codeFocusNode,
+        maxLength: OtpVerificationScreen.otpCodeLength,
+        textAlign: TextAlign.center,
+        keyboardType: TextInputType.number,
+        style: AppTypography.otpInputText.copyWith(color: AppColors.white),
+        decoration: const InputDecoration(
+          counterText: '',
+          border: InputBorder.none,
+          filled: false,
         ),
-        // Neumorphic top highlight: a hairline of light falling on the rim.
-        foregroundDecoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              AppColors.white.withValues(alpha: 0.04),
-              AppColors.white.withValues(alpha: 0.0),
-            ],
-            stops: const [0.0, 0.4],
-          ),
-          borderRadius: BorderRadius.circular(15),
-        ),
-        child: TextField(
-          controller: _codeController,
-          focusNode: _codeFocusNode,
-          maxLength: OtpVerificationScreen.otpCodeLength,
-          textAlign: TextAlign.center,
-          keyboardType: TextInputType.number,
-          // §3.3 otpInputText token (30/w800/ls8 — was inline 32/ls12;
-          // U-02's handoff). White digits on black per §1 P2.
-          style: AppTypography.otpInputText.copyWith(color: AppColors.white),
-          decoration: const InputDecoration(
-            counterText: '',
-            // The glass shell draws the border — no decoration border.
-            border: InputBorder.none,
-            filled: false,
-          ),
-          onChanged: _onCodeChanged,
-        ),
+        onChanged: _onCodeChanged,
       ),
     );
   }
@@ -276,12 +241,14 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
         _attemptBlocked = true;
       }
     });
-    // Kept on one line on purpose: the I-15 l10n guard skips `AppLogger`
-    // lines by substring, so a formatted multi-line call would leak the
-    // literal into the hardcoded-Spanish scan (see the U-07 log). Also a
-    // log message, not UI text — never localize, never split.
+    // Kept on one line on purpose: the l10n guard skips `AppLogger` lines by
+    // substring, so a formatted multi-line call would leak the literal into
+    // the hardcoded-Spanish scan. Also a log message, not UI text — never
+    // localize, never split.
     // ignore: avoid_escaping_inner_quotes
-    AppLogger.instance.warn('OTP verification failed ($_failedAttempts/${OtpVerificationScreen.maxFailedAttempts}) for ${widget.email}');
+    AppLogger.instance.warn(
+      'OTP verification failed ($_failedAttempts/${OtpVerificationScreen.maxFailedAttempts}) for ${widget.email}',
+    );
   }
 
   @override
@@ -298,52 +265,39 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
               constraints: BoxConstraints(minHeight: constraints.maxHeight),
               child: IntrinsicHeight(
                 child: Padding(
-                  padding: const EdgeInsets.all(24),
+                  padding: const EdgeInsets.all(AppSpacing.xl),
                   child: Column(
                     children: [
-                      const SizedBox(height: 32),
-                      // §3.2 auth big header — monochrome VDisplayText.
+                      const SizedBox(height: AppSpacing.xxl),
                       VDisplayText(text: l10n.authEnterVerificationCode),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: AppSpacing.sm),
                       Text(
                         l10n.authOtpSentTo(widget.email),
                         style: Theme.of(context).textTheme.bodyMedium,
                       ),
-                      // XL-16 (03_signup density verdict): hint → field
-                      // breathes at 40.
-                      const SizedBox(height: 40),
-                      // The 6-digit code field is the star — a liquid-glass
-                      // slab whose 1px border ring brightens to solid white on
-                      // focus (monochrome). The digits keep the §3.3
-                      // otpInputText voice (30/w800/ls8, white).
+                      const SizedBox(height: AppSpacing.xxl),
                       _codeField(),
                       // The failure message of THIS verify attempt (captured
                       // post-await — the global auth provider is unreliable
-                      // here, see `_verifyError`). §5.2: glowPink — never raw
-                      // red on black.
+                      // here, see `_verifyError`).
                       if (_verifyError != null)
                         Padding(
-                          padding: const EdgeInsets.only(top: 20),
+                          padding: const EdgeInsets.only(top: AppSpacing.lg),
                           child: Text(
                             _verifyError!,
                             style: const TextStyle(color: AppColors.error),
                           ),
                         ),
-                      // U-14 R2: surface I-29's wrong-attempt budget. XL-18
-                      // (Gemma 04_otp "pedestrian form" — remove helper
-                      // duplication): the counter appears ONLY near the limit
-                      // (remaining ≤ 2) — early failures read through the
-                      // error text alone; the blocked state owns the last
-                      // word. Shifts to the error color at the last attempt.
+                      // The counter appears ONLY near the limit (remaining ≤ 2);
+                      // the blocked state owns the last word. It shifts to the
+                      // error color at the last attempt.
                       if (_failedAttempts > 0 &&
                           _remainingAttempts <= 2 &&
                           _remainingAttempts > 0)
                         Padding(
-                          padding: const EdgeInsets.only(top: 20),
+                          padding: const EdgeInsets.only(top: AppSpacing.lg),
                           child: Text(
                             l10n.authOtpAttemptsRemaining(_remainingAttempts),
-                            // §2.4 AA text (mutedStrong) normally; §5.2
-                            // glowPink at ≤ 1 attempt left.
                             style: TextStyle(
                               color: _remainingAttempts <= 1
                                   ? AppColors.error
@@ -353,22 +307,20 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
                         ),
                       if (_attemptBlocked)
                         Padding(
-                          padding: const EdgeInsets.only(top: 20),
+                          padding: const EdgeInsets.only(top: AppSpacing.lg),
                           child: Text(
                             l10n.authOtpTooManyAttempts,
                             style: const TextStyle(color: AppColors.error),
                           ),
                         ),
                       const Spacer(),
-                      // §5.1 primary CTA — the black button voice
-                      // (user directive 2026-08-14).
                       VButton.dark(
                         label: l10n.authVerify,
                         loading: auth.isLoading,
                         onPressed: _attemptBlocked ? null : _verify,
                       ),
-                      const SizedBox(height: 8),
-                      // XL-16: secondary links are plain + muted so the CTA
+                      const SizedBox(height: AppSpacing.sm),
+                      // Secondary links stay plain + muted so the CTA
                       // dominates the bottom edge.
                       TextButton(
                         onPressed: canResend ? _resend : null,
@@ -379,9 +331,7 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
                           style: const TextStyle(color: AppColors.mutedStrong),
                         ),
                       ),
-                      // U-14 R1: the funnel's escape hatch — sign out and
-                      // return to login (Juega `verify_email_screen.dart:305-308`).
-                      const SizedBox(height: 8),
+                      const SizedBox(height: AppSpacing.sm),
                       TextButton(
                         onPressed: _backToLogin,
                         child: Text(
@@ -389,7 +339,7 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
                           style: const TextStyle(color: AppColors.mutedStrong),
                         ),
                       ),
-                      const SizedBox(height: 32),
+                      const SizedBox(height: AppSpacing.xxl),
                     ],
                   ),
                 ),

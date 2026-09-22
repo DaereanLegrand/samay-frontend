@@ -19,7 +19,7 @@ class AuthGuard {
     final data = auth.valueOrNull;
 
     // Banned users are confined to the ban screen — no route (public or
-    // authenticated) may render for them (AUTH spec: ban enforcement, I-35).
+    // authenticated) may render for them.
     if (data != null && data.banned) {
       return location == RoutePaths.banned ? null : RoutePaths.banned;
     }
@@ -49,7 +49,7 @@ class AuthGuard {
         location == RoutePaths.privacyTerms ||
         location == RoutePaths.profileSetup;
 
-    // Funnel-scoped gate (2026-09-01): the signup funnel (verify / age gate /
+    // Funnel-scoped gate: the signup funnel (verify / age gate /
     // privacy terms / profile setup) is STRICTLY part of the signup process.
     // It is reachable only while authenticated AND without a completed profile
     // — i.e. exactly the signup-in-progress state that walks OTP → age gate →
@@ -70,7 +70,7 @@ class AuthGuard {
   }
 }
 
-// NOTE (no-fallback policy, 2026-08-13): the guard must never navigate a
+// NOTE: the guard must never navigate a
 // user to an UNRELATED screen they did not explicitly request. The only
 // implicit redirects are: banned → ban screen, unauthenticated → login,
 // authenticated → feed. The signup funnel (verify / age gate / privacy terms /

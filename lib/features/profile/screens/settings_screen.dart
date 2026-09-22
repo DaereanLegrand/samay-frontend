@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
+import 'package:samay/core/design_tokens/app_icon_sizes.dart';
+import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/design_tokens/app_typography.dart';
 import 'package:samay/core/providers/auth_provider.dart';
 import 'package:samay/core/providers/theme_provider.dart';
@@ -13,12 +15,13 @@ import 'package:samay/features/profile/screens/privacy_info_screen.dart';
 import 'package:samay/features/social/providers/social_providers.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/v_card.dart';
+import 'package:samay/shared/widgets/v_chip.dart';
 import 'package:samay/shared/widgets/v_header_bar.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
 
-  /// U-15 R7: sign-out now goes through the F8 confirm dialog (the same
+  /// Sign-out goes through the confirm dialog (the same
   /// dialog discipline as the delete-account flow) — a stray tap can no
   /// longer drop the session. Confirmed → signOut + login; cancel → stay.
   Future<void> _confirmSignOut(BuildContext context, WidgetRef ref) async {
@@ -37,9 +40,8 @@ class SettingsScreen extends ConsumerWidget {
             onPressed: () => Navigator.pop(ctx, true),
             child: Text(
               l10n.profileSignOut,
-              // §5.2 (U-09): the danger confirm uses the error semantic
-              // (glowPink, 6.00:1 AA) — never raw red on black. Mirrors the
-              // delete-account dialog precedent.
+              // The danger confirm uses the error semantic (glowPink,
+              // 6.00:1 AA) — never raw red on black.
               style: const TextStyle(color: AppColors.error),
             ),
           ),
@@ -55,7 +57,7 @@ class SettingsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
-    // UI-05 / L-16 (I-65): persisted theme-mode choice (default dark).
+    // Persisted theme-mode choice (default dark).
     final themeMode =
         ref.watch(themeModeProvider).valueOrNull ?? ThemeMode.dark;
     return Scaffold(
@@ -63,11 +65,8 @@ class SettingsScreen extends ConsumerWidget {
         title: l10n.profileSettingsTitle,
         child: ListView(
           children: [
-            // U-15 R6 (F18 ADAPTED): Juega's grouped settings (VISUAL/ACCOUNT/
-            // LEGAL cards) → Samay's flat section headers (uppercase
-            // `AppTypography.sectionLabel` — Inter letter-spaced) + sharp
-            // glass groups with hairline row dividers (LUXE v2: the U-15
-            // grouping structure now wears liquid glass).
+            // Flat section headers (uppercase `AppTypography.sectionLabel` —
+            // Inter letter-spaced) with hairline row dividers.
             _SectionHeader(l10n.settingsSectionAppearance),
             VCard(
               // The transparent Material lets the ListTiles paint their ink
@@ -88,7 +87,7 @@ class SettingsScreen extends ConsumerWidget {
                 ),
               ),
             ),
-            // Chat group (2026-08-15): the read-receipts privacy switch —
+            // The read-receipts privacy switch —
             // WhatsApp-style ✓/✓✓/read ticks. When off, the reader's device
             // never stamps `read_at`, so the peer never sees blue checks.
             _SectionHeader(l10n.settingsSectionChat),
@@ -119,10 +118,9 @@ class SettingsScreen extends ConsumerWidget {
                       label: l10n.profileSubscription,
                       onTap: () => context.push(RoutePaths.subscriptions),
                     ),
-                    const Divider(),
-                    // R2: the notifications row opens the real
-                    // notification-preferences screen (persisted toggles,
-                    // local Hive config cache — no more disabled placeholder).
+                    const Divider(height: 1, color: AppColors.hairline),
+                    // The notifications row opens the notification-preferences
+                    // screen (persisted toggles, local Hive config cache).
                     _SettingsTile(
                       icon: Icons.notifications,
                       label: l10n.profileNotifications,
@@ -132,20 +130,20 @@ class SettingsScreen extends ConsumerWidget {
                         ),
                       ),
                     ),
-                    const Divider(),
+                    const Divider(height: 1, color: AppColors.hairline),
                     _SettingsTile(
                       icon: Icons.person,
                       label: l10n.profileEditTitle,
                       onTap: () => context.push(RoutePaths.profileEdit),
                     ),
-                    const Divider(),
-                    // C-social (2026-08-18): the public-profile privacy
+                    const Divider(height: 1, color: AppColors.hairline),
+                    // The public-profile privacy
                     // switch — when ON the name/photo appear on the global
                     // user ranking (Social tab). Bound to users.profile_public
                     // via profilePublicProvider.
                     _PublicProfileTile(),
-                    const Divider(),
-                    // R2: the privacy row opens the static privacy/terms info
+                    const Divider(height: 1, color: AppColors.hairline),
+                    // The privacy row opens the static privacy/terms info
                     // screen (the signup-funnel consent gate cannot render
                     // standalone — it requires email/dateOfBirth extras).
                     _SettingsTile(
@@ -157,23 +155,22 @@ class SettingsScreen extends ConsumerWidget {
                         ),
                       ),
                     ),
-                    const Divider(),
+                    const Divider(height: 1, color: AppColors.hairline),
                     _SettingsTile(
                       icon: Icons.block,
                       label: l10n.profileBlockedUsers,
                       onTap: () => context.push(RoutePaths.blockedUsers),
                     ),
-                    const Divider(),
-                    // U-15 R7: the danger pair closes the account section —
-                    // delete + sign out, both in the error semantic (LUXE:
-                    // danger stays semantic, the gold family never touches it).
+                    const Divider(height: 1, color: AppColors.hairline),
+                    // The danger pair closes the account section — delete +
+                    // sign out, both in the danger semantic.
                     _SettingsTile(
                       icon: Icons.delete_forever,
                       label: l10n.profileDeleteMyAccount,
                       destructive: true,
                       onTap: () => context.push(RoutePaths.deleteAccount),
                     ),
-                    const Divider(),
+                    const Divider(height: 1, color: AppColors.hairline),
                     _SettingsTile(
                       icon: Icons.logout,
                       label: l10n.profileSignOut,
@@ -203,9 +200,7 @@ class SettingsScreen extends ConsumerWidget {
   }
 }
 
-/// U-15 R6: settings section header — the §3.3 overline voice
-/// (`AppTypography.sectionLabel`: uppercase Inter w600 12, 2.0 tracking,
-/// mutedStrong 7.37:1 AA). The grouping voice, flat — LUXE v2 (XL-08).
+/// Settings section header — the `AppTypography.sectionLabel` overline voice.
 class _SectionHeader extends StatelessWidget {
   const _SectionHeader(this.label);
 
@@ -214,13 +209,18 @@ class _SectionHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.screenHorizontal,
+        AppSpacing.xl,
+        AppSpacing.screenHorizontal,
+        AppSpacing.sm,
+      ),
       child: Text(label.toUpperCase(), style: AppTypography.sectionLabel),
     );
   }
 }
 
-/// The public-profile privacy switch (C-social, 2026-08-18):
+/// The public-profile privacy switch:
 /// `users.profile_public` via [profilePublicProvider]. When ON the name and
 /// photo appear on the global user ranking. Optimistic — a persistence
 /// failure rolls the switch back and surfaces a snackbar.
@@ -255,8 +255,8 @@ class _PublicProfileTile extends ConsumerWidget {
   }
 }
 
-/// Settings menu row (PERF-08/CQ-05: the repeated ListTile shapes are
-/// one const sub-widget; only the data that changes is passed in).
+/// One settings row: icon, label and a chevron affordance when it navigates.
+/// Destructive rows use the error semantic.
 class _SettingsTile extends StatelessWidget {
   const _SettingsTile({
     required this.icon,
@@ -272,31 +272,37 @@ class _SettingsTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListTile(
-      // The tiles live inside VGlassCard groups (R6 — LUXE v2), which
-      // already carry the 16px glass padding — zero content padding keeps
-      // the row metrics identical to the pre-grouping flat list.
-      contentPadding: EdgeInsets.zero,
-      leading: Icon(
-        icon,
-        // §5.2 (U-09): danger rows use the error semantic — glowPink
-        // 6.00:1 AA at normal size; glowPinkDeep is AA-large-only and
-        // banned as a sole text color (§2.5 rule 6).
-        color: destructive ? AppColors.error : null,
-      ),
-      title: Text(
-        label,
-        style: destructive ? const TextStyle(color: AppColors.error) : null,
-      ),
-      // The chevron is the "navigates elsewhere" affordance — a row with no
-      // destination must not show it.
-      trailing: onTap != null ? const Icon(Icons.chevron_right) : null,
+    final color = destructive ? AppColors.error : null;
+    return InkWell(
       onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
+        child: Row(
+          children: [
+            Icon(icon, size: AppIconSizes.md, color: color ?? AppColors.white),
+            const SizedBox(width: AppSpacing.md),
+            Expanded(
+              child: Text(
+                label,
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(color: color),
+              ),
+            ),
+            if (onTap != null)
+              const Icon(
+                Icons.chevron_right,
+                size: AppIconSizes.md,
+                color: AppColors.mutedStrong,
+              ),
+          ],
+        ),
+      ),
     );
   }
 }
 
-/// UI-05 / L-16 (I-65): theme-mode picker. Dark is the brand default;
+/// Theme-mode picker. Dark is the brand default;
 /// 'system' is the future seam (it resolves to the disco dark theme on most
 /// devices — both app themes are dark by design).
 class _ThemeSection extends StatelessWidget {
@@ -309,9 +315,7 @@ class _ThemeSection extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     return Padding(
-      // Inside the R6 appearance VCard: the card carries the 16px horizontal
-      // padding; only the vertical rhythm stays here.
-      padding: const EdgeInsets.symmetric(vertical: 8),
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -319,28 +323,25 @@ class _ThemeSection extends StatelessWidget {
             l10n.settingsTheme,
             style: Theme.of(context).textTheme.titleMedium,
           ),
-          const SizedBox(height: 12),
-          SizedBox(
-            width: double.infinity,
-            child: SegmentedButton<ThemeMode>(
-              segments: [
-                ButtonSegment(
-                  value: ThemeMode.dark,
-                  label: Text(l10n.settingsThemeDark),
+          const SizedBox(height: AppSpacing.md),
+          Row(
+            children: [
+              Expanded(
+                child: VChip(
+                  label: l10n.settingsThemeDark,
+                  selected: themeMode == ThemeMode.dark,
+                  onSelected: () => onChanged(ThemeMode.dark),
                 ),
-                ButtonSegment(
-                  value: ThemeMode.system,
-                  label: Text(l10n.settingsThemeSystem),
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              Expanded(
+                child: VChip(
+                  label: l10n.settingsThemeSystem,
+                  selected: themeMode == ThemeMode.system,
+                  onSelected: () => onChanged(ThemeMode.system),
                 ),
-              ],
-              selected: {themeMode},
-              onSelectionChanged: (selection) => onChanged(selection.first),
-              // §5.4 chip treatment is theme-owned since U-27 (the
-              // `segmentedButtonTheme` in app_theme.dart): transparent +
-              // white unselected, white fill + black text selected, white
-              // side, sharp. Labels resolve the theme's labelLarge (Inter
-              // w700) — token-clean.
-            ),
+              ),
+            ],
           ),
         ],
       ),
@@ -348,7 +349,7 @@ class _ThemeSection extends StatelessWidget {
   }
 }
 
-/// The read-receipts privacy switch (2026-08-15): `users.read_receipts_enabled`
+/// The read-receipts privacy switch: `users.read_receipts_enabled`
 /// via [readReceiptsEnabledProvider]. Optimistic — a persistence failure
 /// rolls the switch back and surfaces a snackbar.
 class _ReadReceiptsTile extends ConsumerWidget {

@@ -5,12 +5,9 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 /// In-app notifications: history, read-state and realtime delivery.
 ///
-/// Part of the ARC-05/CQ-01 decomposition of the former monolithic
-/// `SupabaseService` (I-11).
-///
-/// Migrated to [RestClient] (I-51): all table access goes through the typed
-/// envelope; the `client` field remains for the auth accessor and legacy
-/// call sites until the facade deletion (STOP-100).
+/// Migrated to [RestClient]: all table access goes through the typed
+/// envelope; the `client` field remains for the auth accessor and
+/// compatibility call sites until the facade deletion.
 class NotificationService {
   final SupabaseClient client;
   final RealtimeService realtime;
@@ -40,7 +37,7 @@ class NotificationService {
   }
 
   /// Subscribes to live notification inserts for the current user. The
-  /// returned channel lets callers unsubscribe on dispose (I-53).
+  /// returned channel lets callers unsubscribe on dispose.
   Future<RealtimeChannel> subscribeToNotifications(
     void Function(Map<String, dynamic>) onInsert,
   ) {

@@ -2,18 +2,28 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 
+/// `app_config` key for the search-field debounce window in milliseconds.
+const searchDebounceMsKey = 'app.search_debounce_ms';
+
+/// Fallback when the debounce config row is missing or unparsable.
+const searchDebounceMsDefault = 300;
+
+/// The configured search debounce in milliseconds, or
+/// [searchDebounceMsDefault] when unset.
+int searchDebounceMs(Map<String, String>? appConfig) =>
+    int.tryParse(appConfig?[searchDebounceMsKey] ?? '') ?? searchDebounceMsDefault;
+
 /// Collapses rapid invocations of an action into a single execution that runs
 /// once [delay] of quiet has passed since the last call — the standard
-/// search-field debounce (finding PERF-05 / L-24, shared by invite_screen and
-/// search_screen).
+/// search-field debounce.
 ///
 /// Every [run] replaces the previous pending action, so N keystrokes inside
 /// the window cost exactly one query. Screens own one instance for their
 /// lifetime and call [cancel] from `dispose`, which makes the debouncer
 /// dispose-safe: no action can fire after the widget is gone.
 ///
-/// Delay is injectable (constructor) and mutable ([delay]) so tests and remote
-/// config (`app_config`) can tune it without recreating the instance.
+/// Delay is injectable (constructor) and mutable ([delay]) so callers can
+/// re-tune it from `app_config`.
 class Debouncer {
   Debouncer([this.delay = const Duration(milliseconds: 300)]);
 

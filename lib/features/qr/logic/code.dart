@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'package:cryptography/cryptography.dart';
 import 'package:flutter/foundation.dart';
 
-/// Attendance-code domain (Stage 5, 2026-09-08).
+/// Attendance-code domain.
 ///
 /// The attendance screen shows a plain QR encoding a 24-hex code derived
 /// authenticator-style (TOTP-like) from a per-(event, attendee) secret + the

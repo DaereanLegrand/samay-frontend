@@ -4,15 +4,14 @@ import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/core/design_tokens/app_radius.dart';
 import 'package:samay/core/design_tokens/app_typography.dart';
 
-/// Samay disco theme — phase 1 (I-17) rebuilt on the I-16 design tokens,
-/// finalized by U-04 with the full component-theme set (DESIGN.md
-/// §5/§6).
+/// Samay disco theme — built on the design tokens with the full
+/// component-theme set (DESIGN.md §5/§6).
 ///
-/// Contract: `docs/design/DESIGN.md` (D-11, §1–§4). Palette and
+/// Contract: `docs/design/DESIGN.md` (§1–§4). Palette and
 /// ThemeExtension live in `lib/core/design_tokens/app_colors.dart`
-/// ([AppColors] + [SamayThemeExtension]) — the single source for
-/// U-01..U-05. Typography (roles + glow) lives in
-/// `lib/core/design_tokens/app_typography.dart` ([AppTypography]) — U-02.
+/// ([AppColors] + [SamayThemeExtension]) — the single source of
+/// colors. Typography (roles + glow) lives in
+/// `lib/core/design_tokens/app_typography.dart` ([AppTypography]).
 /// This file only composes them into a `ThemeData`.
 class SamayTheme {
   SamayTheme._();
@@ -32,7 +31,7 @@ class SamayTheme {
       ),
       fontFamily: AppTypography.inter,
       // Design doc §3.3 type scale — fully owned by
-      // [AppTypography.textTheme] (U-02). Display roles are Playfair Display
+      // [AppTypography.textTheme]. Display roles are Playfair Display
       // bold (rendered verbatim/white through VDisplayText); body/UI voices
       // stay light Inter per the MVP spec. Roles outside the §3.3 table
       // (titleSmall, caption, overline) keep the Material defaults merged by
@@ -44,7 +43,7 @@ class SamayTheme {
         backgroundColor: AppColors.discoBlack,
         foregroundColor: AppColors.white,
       ),
-      // LUXE v2 (XL-06): the shell bar is a liquid-glass strip — the Material
+      // v2: the shell bar is a liquid-glass strip — the Material
       // bar paints a translucent dark tint (`surface` α0.85) OVER the white
       // glass sheen + blur + top hairline that MainShell's `_NavGlassStrip`
       // paints behind it. `withValues` is not const → this block drops
@@ -60,7 +59,7 @@ class SamayTheme {
         showUnselectedLabels: false,
         showSelectedLabels: false,
       ),
-      // ── Component themes (U-04) — §2 surfaces + §4.2 sharp + §5 specs ────
+      // Component themes — §2 surfaces + §4.2 sharp + §5 specs
       //
       // Values are token-only (black/white/grey/pink); corners are sharp
       // (`AppRadius.sharp`); borders are hairline `#1A1A1A` or `border
@@ -77,16 +76,16 @@ class SamayTheme {
       dialogTheme: const DialogThemeData(
         // §1 P1 "black always … every sheet, every dialog".
         backgroundColor: AppColors.discoBlack,
-        surfaceTintColor: Colors.transparent,
+        surfaceTintColor: AppColors.transparent,
         shape: RoundedRectangleBorder(borderRadius: AppRadius.sharp),
       ),
-      // ── LUXE v2 (XL-03): iOS swipe-back on every pushed route ────────────
+      // iOS swipe-back on every pushed route
       // `CupertinoPageTransitionsBuilder` gives the native left-to-right
-      // edge-swipe back gesture (LUXE directive #9). Applied on every
+      // edge-swipe back gesture. Applied on every
       // platform so the iPhone-17-Pro focus carries everywhere. The const
       // builders map keeps `SamayTheme.dark == SamayTheme.dark` (const
       // canonicalization → value equality, pinned by the equality test).
-      // ANIM-ON (2026-09-03): [StaticPageTransitionsBuilder] renders routes
+      // ANIM-ON: [StaticPageTransitionsBuilder] renders routes
       // with the Cupertino swipe, suppressed only under OS-level reduced
       // motion (`disableAnimations` — the app-wide forced override was
       // removed from `SamayApp`).
@@ -102,7 +101,7 @@ class SamayTheme {
           TargetPlatform.fuchsia: StaticPageTransitionsBuilder(),
         },
       ),
-      // ── User override (2026-08-18): borderless inputs — NO border, NO
+      // User override: borderless inputs — NO border, NO
       // background, placeholder-only. Raw Material TextFields inherit this;
       // `VInput` hardcodes the same treatment (`v_input.dart`).
       inputDecorationTheme: const InputDecorationThemeData(
@@ -119,7 +118,7 @@ class SamayTheme {
       // §5.3 cards: `surface` fill over black, hairline 1px border, sharp.
       cardTheme: const CardThemeData(
         color: AppColors.surface,
-        surfaceTintColor: Colors.transparent,
+        surfaceTintColor: AppColors.transparent,
         shape: RoundedRectangleBorder(
           borderRadius: AppRadius.sharp,
           side: BorderSide(color: AppColors.hairline),
@@ -128,7 +127,7 @@ class SamayTheme {
       // §5.4 chips: transparent, 1px white border, white label; selected =
       // white fill + black label; sharp; no checkmark.
       chipTheme: const ChipThemeData(
-        backgroundColor: Colors.transparent,
+        backgroundColor: AppColors.transparent,
         selectedColor: AppColors.white,
         labelStyle: TextStyle(color: AppColors.white),
         secondaryLabelStyle: TextStyle(color: AppColors.discoBlack),
@@ -136,16 +135,16 @@ class SamayTheme {
         shape: RoundedRectangleBorder(borderRadius: AppRadius.sharp),
         showCheckmark: false,
       ),
-      // Segmented pickers (settings theme selector, U-09 → U-27): the same
+      // Segmented pickers: the same
       // §5.4 chip treatment — transparent + white unselected, white fill +
       // black text selected, white side, sharp. `SegmentedButton.styleFrom`
       // builds `WidgetStateProperty.fromMap` state maps (value-equal), so
-      // this does NOT break `SamayTheme.dark == SamayTheme.dark` — pinned by
-      // the equality test. Do NOT switch it to `resolveWith` (U-04's
-      // MISTAKE).
+      // this keeps `SamayTheme.dark == SamayTheme.dark` value-equal. Do NOT
+      // switch it to `resolveWith` (state maps must stay value-equal, or the
+      // theme equality breaks).
       segmentedButtonTheme: SegmentedButtonThemeData(
         style: SegmentedButton.styleFrom(
-          backgroundColor: Colors.transparent,
+          backgroundColor: AppColors.transparent,
           foregroundColor: AppColors.white,
           selectedBackgroundColor: AppColors.white,
           selectedForegroundColor: AppColors.discoBlack,
@@ -198,7 +197,7 @@ class SamayTheme {
       // Popup menus: black surface, white text/icons, sharp.
       popupMenuTheme: const PopupMenuThemeData(
         color: AppColors.discoBlack,
-        surfaceTintColor: Colors.transparent,
+        surfaceTintColor: AppColors.transparent,
         textStyle: TextStyle(color: AppColors.white),
         iconColor: AppColors.white,
         shape: RoundedRectangleBorder(borderRadius: AppRadius.sharp),
@@ -206,7 +205,7 @@ class SamayTheme {
       // Date picker: black surface + header, white header text, sharp.
       datePickerTheme: const DatePickerThemeData(
         backgroundColor: AppColors.discoBlack,
-        surfaceTintColor: Colors.transparent,
+        surfaceTintColor: AppColors.transparent,
         headerBackgroundColor: AppColors.discoBlack,
         headerForegroundColor: AppColors.white,
         shape: RoundedRectangleBorder(borderRadius: AppRadius.sharp),
@@ -233,7 +232,7 @@ class SamayTheme {
 
 /// Page transition that renders routes STATICALLY under OS-level reduced
 /// motion (`MediaQuery.disableAnimationsOf`) and otherwise delegates to the
-/// Cupertino swipe (the LUXE v2 route gesture).
+/// Cupertino swipe.
 class StaticPageTransitionsBuilder extends PageTransitionsBuilder {
   const StaticPageTransitionsBuilder();
 

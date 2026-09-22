@@ -6,7 +6,7 @@ import 'package:samay/core/providers/service_providers.dart';
 import 'package:samay/features/chat/providers/chat_providers.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' show RealtimeChannel;
 
-/// Remote-side freshness for the chat inbox / unread badge (2026-08-15).
+/// Remote-side freshness for the chat inbox / unread badge.
 ///
 /// Lives for as long as the shell is mounted: subscribes to the current
 /// user's `messages` insert stream (`sender_id <> me` — RLS restricts

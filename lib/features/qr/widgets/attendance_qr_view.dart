@@ -27,7 +27,7 @@ class AttendanceQrView extends StatelessWidget {
         data: code,
         version: QrVersions.auto,
         padding: EdgeInsets.zero,
-        backgroundColor: Colors.transparent,
+        backgroundColor: AppColors.transparent,
         eyeStyle: const QrEyeStyle(
           eyeShape: QrEyeShape.square,
           color: AppColors.white,

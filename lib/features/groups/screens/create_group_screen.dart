@@ -27,7 +27,7 @@ typedef GalleryPicker = Future<XFile?> Function(ImageSource source);
 class CreateGroupScreen extends ConsumerStatefulWidget {
   const CreateGroupScreen({super.key, this.permissions, this.galleryPicker});
 
-  /// Injectable for tests (SEC-07); defaults to the real service.
+  /// Injectable for tests; defaults to the real service.
   final PermissionService? permissions;
 
   /// Injectable for tests; defaults to `ImagePicker.pickImage(gallery)`.
@@ -110,7 +110,7 @@ class _CreateGroupScreenState extends ConsumerState<CreateGroupScreen> {
         'cover_url': coverUrl,
       });
       // The group's chat row is created with it (group_service) — refresh the
-      // inbox so the new group chat shows immediately (P1, 2026-09-15).
+      // inbox so the new group chat shows immediately.
       ref.invalidate(chatInboxProvider);
       setState(() => _loading = false);
       if (mounted) {
@@ -151,8 +151,8 @@ class _CreateGroupScreenState extends ConsumerState<CreateGroupScreen> {
                     child: Container(
                       height: 160,
                       decoration: BoxDecoration(
-                        // §5.8 skeleton-base surface for the empty cover slot +
-                        // the §2.1 interactive-outline token (never raw greys).
+                        // Skeleton-base surface for the empty cover slot +
+                        // the interactive-outline token (never raw greys).
                         color: AppColors.surfaceAlt,
                         border: Border.all(color: AppColors.border),
                       ),
@@ -198,8 +198,7 @@ class _CreateGroupScreenState extends ConsumerState<CreateGroupScreen> {
                     maxLines: 3,
                   ),
                   const SizedBox(height: 32),
-                  // §5.1 LUXE: creating the group is the screen's primary
-                  // action.
+                  // Creating the group is the screen's primary action.
                   VButton.dark(
                     label: l10n.commonCreate,
                     loading: _loading,

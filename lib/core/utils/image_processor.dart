@@ -6,7 +6,6 @@ import 'package:image/image.dart' as img;
 import 'package:samay/core/errors/app_error.dart';
 
 /// Client-side image downscaling + JPEG re-encode for uploads (finding
-/// PERF-03 / M-36).
 ///
 /// Every upload stored on Supabase Storage is a **quality-80 JPEG** capped at
 /// `maxLongEdge = 1920` px, produced on the client so nothing bigger ever
@@ -33,11 +32,11 @@ import 'package:samay/core/errors/app_error.dart';
 /// ## Threading tradeoff (verified empirically)
 ///
 /// Decode + re-encode runs on the **main isolate**. An `Isolate.run` variant
-/// was built and tested first (Juega's reference pattern), but the dart:ui
+/// fails because the dart:ui
 /// engine calls (`ImmutableBuffer` / `ImageDescriptor` / codec / `toByteData`)
-/// fail inside spawned isolates in every environment verified — `flutter_tester`
-/// **and** the macOS desktop embedder on Flutter 3.44.1 (see the I-22 daily
-/// log, "isolate probe" section). Main-isolate processing therefore wins:
+/// do not work inside spawned isolates on the verified platforms:
+/// `flutter_tester` **and** the macOS desktop embedder on Flutter 3.44.1.
+/// Main-isolate processing therefore wins:
 /// correct everywhere, at the cost of a UI-thread hitch during the resize
 /// (hundreds of ms for a 12 MP photo). If a platform is found where the codec
 /// works in a spawned isolate, reintroduce the worker path behind the entry

@@ -2,9 +2,6 @@ import 'package:samay/core/errors/app_error.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 /// Content moderation: user reports against content.
-///
-/// Part of the ARC-05/CQ-01 decomposition of the former monolithic
-/// `SupabaseService` (I-11).
 class ModerationService {
   final SupabaseClient client;
 

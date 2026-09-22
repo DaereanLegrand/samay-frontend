@@ -6,6 +6,8 @@ import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
+import 'package:samay/core/design_tokens/app_radius.dart';
+import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/design_tokens/app_typography.dart';
 import 'package:samay/core/logging/app_logger.dart';
 import 'package:samay/core/providers/config_provider.dart';
@@ -27,7 +29,7 @@ import 'package:samay/shared/widgets/v_input.dart';
 /// (same thin-wrapper pattern as `CreateGroupScreen`/`EditProfileScreen`).
 typedef EventCoverPicker = Future<XFile?> Function(ImageSource source);
 
-/// ECRT — Event creation flow (foundation, I-54).
+/// Event creation flow.
 ///
 /// Single-scroll form covering the spec's steps 1–5 and 7: type selector
 /// (Casual/Juerga/Tono), details (name, description, date/time pickers,
@@ -38,12 +40,12 @@ typedef EventCoverPicker = Future<XFile?> Function(ImageSource source);
 /// DB CHECK constraint `check_casual_no_preshards`).
 ///
 /// Step 6 (invite hosts) and step 7's daily-limit check + static QR are
-/// tracked separately (I-55 / EINV / EEDG); the creator is auto-inserted as
-/// host by `EventService.createEvent`.
+/// tracked separately; the creator is auto-inserted as host by
+/// `EventService.createEvent`.
 ///
 /// Route: `/group/:groupId/create-event` (group-scoped prefill). A standalone
-/// `/event/create` path was deliberately NOT added — see the I-54 daily log
-/// for the route-ordering decision.
+/// `/event/create` path is deliberately NOT added, keeping route ordering
+/// unambiguous.
 class CreateEventScreen extends ConsumerStatefulWidget {
   const CreateEventScreen({
     super.key,
@@ -56,7 +58,7 @@ class CreateEventScreen extends ConsumerStatefulWidget {
   /// route); `null` for the standalone public flow.
   final String? groupId;
 
-  /// Injectable for tests (SEC-07); defaults to the real service.
+  /// Injectable for tests; defaults to the real service.
   final PermissionService? permissions;
 
   /// Injectable for tests; defaults to `ImagePicker.pickImage(gallery)`.
@@ -82,7 +84,7 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
   late EventFormData _form = EventFormData(
     startsAt: _defaultStarts(),
     endsAt: _defaultEnds(),
-    // Group-route prefills: the event is born group-scoped (ECRT step 3).
+    // Group-route prefills: the event is born group-scoped.
     visibility: widget.groupId == null
         ? EventVisibility.public
         : EventVisibility.group,
@@ -102,13 +104,14 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
 
   /// Default start: 1 h out, but clamped to TODAY near midnight. A naive
   /// `now + 1 h` crosses into the next calendar day (e.g. 23:05 → 00:05
-  /// tomorrow), which silently shifted "starts now"-style events ~24 h out
-  /// (2026-09-09). Same-day keeps the event immediate; the server accepts a
-  /// start that has already passed and the code window opens at once.
+  /// tomorrow), which silently shifts "starts now"-style events ~24 h out.
+  /// Same-day keeps the event immediate; the server accepts a start that has
+  /// already passed and the code window opens at once.
   static DateTime _defaultStarts() {
     final now = DateTime.now();
     final start = now.add(const Duration(hours: 1));
-    final crossesMidnight = start.year != now.year ||
+    final crossesMidnight =
+        start.year != now.year ||
         start.month != now.month ||
         start.day != now.day;
     return crossesMidnight ? now : start;
@@ -157,9 +160,8 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
       final profile = await ref.read(currentUserProvider.future);
       final tier = profile?.entitlementTier ?? 'free';
       final cfg = await ref.read(appConfigProvider.future);
-      final cap = int.tryParse(
-            cfg['events.${tier}_max_attendees'] ?? '',
-          ) ??
+      final cap =
+          int.tryParse(cfg['events.${tier}_max_attendees'] ?? '') ??
           _fallbackCap(tier);
       if (!mounted) return;
       setState(() {
@@ -168,7 +170,10 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
         _form = _form.copyWith(capacity: _capacity);
       });
     } catch (e, st) {
-      AppLogger.instance.error('create event: resolve capacity error: $e', '$st');
+      AppLogger.instance.error(
+        'create event: resolve capacity error: $e',
+        '$st',
+      );
     }
   }
 
@@ -197,8 +202,8 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
     if (file != null && mounted) setState(() => _coverImage = file);
   }
 
-  /// ECRT step 4: switching to Juerga requires the explicit location warning
-  /// confirmation; cancelling keeps the previous type (no silent switch).
+  /// Switching to Juerga requires the explicit location warning confirmation;
+  /// cancelling keeps the previous type (no silent switch).
   Future<void> _selectType(EventType type) async {
     final l10n = AppLocalizations.of(context);
     if (type == EventType.juerga && _form.type != EventType.juerga) {
@@ -351,8 +356,8 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
       if (!mounted) return;
       // The events tab list is cached — invalidate so the new event shows.
       ref.invalidate(myEventsProvider);
-      // EDET (I-55) owns the real detail screen; until then the route keeps
-      // its coming-soon placeholder — navigation shape is already final.
+      // The event detail screen owns the real detail view; until then the
+      // route keeps its coming-soon placeholder — navigation shape is final.
       context.push(RoutePaths.eventDetail(created['id'] as String));
     } catch (e, st) {
       setState(() => _loading = false);
@@ -393,7 +398,7 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
     return Scaffold(
       body: VHeaderBar(
         child: ListView(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.all(AppSpacing.xl),
           children: [
             GestureDetector(
               onTap: _pickImage,
@@ -401,8 +406,8 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
                 height: 160,
                 decoration: BoxDecoration(
                   // §5.8 skeleton-base surface for the empty cover slot + the
-                  // §2.1 interactive-outline token (never raw greys — U-21
-                  // flagged the Colors.grey[900] mix; create_group precedent).
+                  // §2.1 interactive-outline token (never raw greys —
+                  // create_group precedent).
                   color: AppColors.surfaceAlt,
                   border: Border.all(color: AppColors.border),
                 ),
@@ -424,7 +429,7 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
                               size: 40,
                               color: AppColors.muted,
                             ),
-                            const SizedBox(height: 8),
+                            const SizedBox(height: AppSpacing.sm),
                             Text(
                               l10n.groupsAddCover,
                               style: const TextStyle(
@@ -436,20 +441,20 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
                       ),
               ),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: AppSpacing.xl),
             VInput(controller: _nameController, label: l10n.eventsNameLabel),
-            const SizedBox(height: 16),
+            const SizedBox(height: AppSpacing.lg),
             VInput(
               controller: _descriptionController,
               label: l10n.eventsDescriptionOptional,
               maxLines: 3,
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: AppSpacing.xl),
             _sectionLabel(l10n.eventsTypeLabel),
-            const SizedBox(height: 8),
+            const SizedBox(height: AppSpacing.sm),
             Wrap(
-              spacing: 8,
-              runSpacing: 8,
+              spacing: AppSpacing.sm,
+              runSpacing: AppSpacing.sm,
               children: [
                 for (final type in EventType.values)
                   VChip(
@@ -463,34 +468,33 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
                   ),
               ],
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: AppSpacing.sm),
             Text(
               _typeDescription(l10n),
               style: const TextStyle(color: AppColors.mutedStrong),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: AppSpacing.xl),
             _dateRow(context, starts: true),
-            const SizedBox(height: 8),
+            const SizedBox(height: AppSpacing.sm),
             _dateRow(context, starts: false),
-            const SizedBox(height: 16),
+            const SizedBox(height: AppSpacing.lg),
             VInput(
               controller: _locationController,
               label: l10n.eventsLocationLabel,
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: AppSpacing.xl),
             _sectionLabel(l10n.eventsCapacityTitle),
-            const SizedBox(height: 12),
+            const SizedBox(height: AppSpacing.md),
             _buildCapacityStepper(context),
-            const SizedBox(height: 8),
+            const SizedBox(height: AppSpacing.sm),
             Text(
               l10n.eventsCapacityHint,
-              style: const TextStyle(
-                color: AppColors.mutedStrong,
-                fontSize: 12,
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: AppColors.mutedStrong),
             ),
             if (_capacity >= _tierCap) ...[
-              const SizedBox(height: 4),
+              const SizedBox(height: AppSpacing.xs),
               Align(
                 alignment: Alignment.centerLeft,
                 child: TextButton.icon(
@@ -507,11 +511,11 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
                 ),
               ),
             ],
-            const SizedBox(height: 24),
+            const SizedBox(height: AppSpacing.xl),
             _sectionLabel(l10n.eventsVisibilityLabel),
-            const SizedBox(height: 8),
+            const SizedBox(height: AppSpacing.sm),
             Wrap(
-              spacing: 8,
+              spacing: AppSpacing.sm,
               children: [
                 VChip(
                   label: l10n.eventsVisibilityPublic,
@@ -525,15 +529,15 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
                 ),
               ],
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: AppSpacing.lg),
             if (_form.visibility == EventVisibility.group) ...[
               _buildGroupSelector(context),
-              const SizedBox(height: 16),
+              const SizedBox(height: AppSpacing.lg),
             ] else ...[
               _sectionLabel(l10n.eventsJoinModeLabel),
-              const SizedBox(height: 8),
+              const SizedBox(height: AppSpacing.sm),
               Wrap(
-                spacing: 8,
+                spacing: AppSpacing.sm,
                 children: [
                   VChip(
                     label: l10n.eventsJoinModeOpen,
@@ -554,34 +558,34 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
                   ),
                 ],
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: AppSpacing.sm),
               Text(
                 _form.joinMode == EventJoinMode.approval
                     ? l10n.eventsJoinModeApprovalDescription
                     : l10n.eventsJoinModeOpenDescription,
                 style: const TextStyle(color: AppColors.mutedStrong),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: AppSpacing.lg),
             ],
             if (_form.preshardsEnabled) ...[
               _sectionLabel(l10n.eventsPreshardsLabel),
-              const SizedBox(height: 8),
+              const SizedBox(height: AppSpacing.sm),
               VInput(
                 controller: _poolController,
                 label: l10n.eventsPreshardsPoolLabel,
                 keyboardType: TextInputType.number,
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: AppSpacing.lg),
               VInput(
                 controller: _capController,
                 label: l10n.eventsPreshardsCapLabel,
                 keyboardType: TextInputType.number,
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: AppSpacing.lg),
               _sectionLabel(l10n.eventsRemainderLabel),
-              const SizedBox(height: 8),
+              const SizedBox(height: AppSpacing.sm),
               Wrap(
-                spacing: 8,
+                spacing: AppSpacing.sm,
                 children: [
                   VChip(
                     label: l10n.eventsRemainderReturn,
@@ -608,14 +612,14 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
                   ),
                 ],
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: AppSpacing.sm),
               Text(
                 l10n.eventsDynamicQrHint,
                 style: const TextStyle(color: AppColors.mutedStrong),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: AppSpacing.lg),
             ],
-            const SizedBox(height: 8),
+            const SizedBox(height: AppSpacing.sm),
             VButton.dark(
               label: l10n.groupsCreateEvent,
               loading: _loading,
@@ -635,9 +639,9 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
   /// pipeline is not built yet.
   void _contactUs() {
     final l10n = AppLocalizations.of(context);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(l10n.eventsContactSoon)),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(l10n.eventsContactSoon)));
   }
 
   void _setCapacity(int value) {
@@ -651,11 +655,11 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
 
   Widget _buildCapacityStepper(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8),
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
       decoration: BoxDecoration(
         color: AppColors.surfaceAlt,
         border: Border.all(color: AppColors.border),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(AppRadius.none),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -666,11 +670,9 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
           ),
           Text(
             '$_capacity',
-            style: const TextStyle(
-              color: AppColors.white,
-              fontSize: 22,
-              fontWeight: FontWeight.w600,
-            ),
+            style: Theme.of(
+              context,
+            ).textTheme.headlineSmall?.copyWith(color: AppColors.white),
           ),
           IconButton(
             onPressed: _capacity < _tierCap
@@ -690,14 +692,15 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
       child: InputDecorator(
         decoration: InputDecoration(
           labelText: starts ? l10n.eventsStartsLabel : l10n.eventsEndsLabel,
-          // §5.2/§2.4: field labels are mutedStrong (#999999 AA); `muted`
-          // #666666 fails 1.4.3 at normal size (hints keep `muted`).
           labelStyle: const TextStyle(color: AppColors.mutedStrong),
-          // Pinned: this is a display row, not a text input — the label
-          // keeps floating above (theme default is `never`).
           floatingLabelBehavior: FloatingLabelBehavior.always,
-          enabledBorder: const UnderlineInputBorder(
-            borderSide: BorderSide(color: AppColors.white),
+          enabledBorder: const OutlineInputBorder(
+            borderRadius: AppRadius.sharp,
+            borderSide: BorderSide(color: AppColors.border),
+          ),
+          border: const OutlineInputBorder(
+            borderRadius: AppRadius.sharp,
+            borderSide: BorderSide(color: AppColors.border),
           ),
         ),
         child: Text(
@@ -735,15 +738,19 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
         InputDecorator(
           decoration: InputDecoration(
             labelText: l10n.eventsGroupSelectorLabel,
-            // §5.2/§2.4: label mutedStrong (see the date-row comment).
             labelStyle: const TextStyle(color: AppColors.mutedStrong),
-            // Pinned: dropdown row, not a text input (theme default `never`).
             floatingLabelBehavior: FloatingLabelBehavior.always,
-            enabledBorder: const UnderlineInputBorder(
+            enabledBorder: const OutlineInputBorder(
+              borderRadius: AppRadius.sharp,
+              borderSide: BorderSide(color: AppColors.border),
+            ),
+            focusedBorder: const OutlineInputBorder(
+              borderRadius: AppRadius.sharp,
               borderSide: BorderSide(color: AppColors.white),
             ),
-            focusedBorder: const UnderlineInputBorder(
-              borderSide: BorderSide(color: AppColors.white, width: 2),
+            border: const OutlineInputBorder(
+              borderRadius: AppRadius.sharp,
+              borderSide: BorderSide(color: AppColors.border),
             ),
           ),
           isEmpty: current == null,
@@ -763,7 +770,7 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
                 setState(() => _form = _form.copyWith(groupId: value)),
           ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: AppSpacing.sm),
         if (_groupsError)
           Text(
             l10n.eventsGroupsLoadError,

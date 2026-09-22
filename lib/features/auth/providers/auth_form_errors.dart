@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-/// Flow-scoped error state for the auth forms (2026-08-24 fake-OTP-error fix).
+/// Flow-scoped error state for the auth forms.
 ///
 /// These providers hold ONLY the errors produced by the flow's own action —
 /// local field validation plus the server failure captured right after the

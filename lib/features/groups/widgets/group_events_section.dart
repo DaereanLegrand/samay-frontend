@@ -13,9 +13,9 @@ import 'package:samay/shared/widgets/error_view.dart';
 import 'package:samay/shared/widgets/state_views.dart';
 
 /// The group's events rendered INLINE (non-scrolling) — the group detail is
-/// one scroll now (Phase A, 2026-09-15): the Events tab is gone and this
-/// section feeds the parent scroll. Loading/error/empty are handled here; an
-/// empty group hides the section entirely.
+/// a single scroll: the Events tab is gone and this section feeds the parent
+/// scroll. Loading/error/empty are handled here; an empty group hides the
+/// section entirely.
 class GroupEventsSection extends ConsumerStatefulWidget {
   const GroupEventsSection({super.key, required this.groupId});
 

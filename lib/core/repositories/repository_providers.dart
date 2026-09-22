@@ -4,7 +4,7 @@ import 'package:samay/core/repositories/friends_repository.dart';
 import 'package:samay/core/repositories/groups_repository.dart';
 import 'package:samay/core/repositories/profile_repository.dart';
 
-/// Riverpod wiring for the repository layer (I-50).
+/// Riverpod wiring for the repository layer.
 ///
 /// One singleton instance per container, overridable in tests:
 ///

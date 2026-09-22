@@ -84,7 +84,7 @@ class _PrivacyTermsScreenState extends State<PrivacyTermsScreen> {
   }
 }
 
-/// One consent row (the U-19 replacement for `CheckboxListTile`): the
+/// One consent row (the replacement for `CheckboxListTile`): the
 /// checkbox + title/subtitle column are plain widgets whose intrinsic
 /// height is exact, so the pinned/scroll body above never under-measures.
 /// Renders the same theme roles as the ListTile it replaces (titleMedium

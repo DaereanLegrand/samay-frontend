@@ -85,7 +85,7 @@ class _MinigameSessionDetailScreenState
   bool _kickedShown = false;
   Timer? _kickPoller;
 
-  /// D (2026-09-15): true from the countdown→playing flip until the opaque
+  /// True from the countdown→playing flip until the opaque
   /// play route has committed. The countdown overlay is dropped in the same
   /// rebuild that triggers the push; without this cover the lobby showed
   /// through the play screen's transition.
@@ -100,7 +100,7 @@ class _MinigameSessionDetailScreenState
   @override
   void initState() {
     super.initState();
-    // 2026-08-30: a REMOVED participant can no longer read the session row
+    // A REMOVED participant can no longer read the session row
     // (RLS) and realtime stops delivering to them, so the kicked user's UI
     // would otherwise sit stale forever. Poll the authoritative session state
     // and surface the "Oops!" popup once the user stops being a participant.
@@ -117,7 +117,7 @@ class _MinigameSessionDetailScreenState
     if (_kickedShown || !mounted) return;
     final myId = ref.read(authStateProvider).valueOrNull?.user?['id'];
     if (myId == null) return;
-    // 2026-08-30: a REMOVED participant loses RLS read access to the session
+    // A REMOVED participant loses RLS read access to the session
     // row, so the CACHED provider stays frozen with the old participants list
     // forever. Poll the RAW service instead — getSession returns null once the
     // row is unreadable, the definitive kicked signal. Never flag on a
@@ -146,7 +146,7 @@ class _MinigameSessionDetailScreenState
     if (!mounted || _kickedShown) return;
     _kickedShown = true;
     _kickPoller?.cancel();
-    // 2026-08-30: refresh the kicked client's cached lists so returning to the
+    // Refresh the kicked client's cached lists so returning to the
     // game landing page drops the match (PARTIDAS EN CURSO) and any closed
     // invite row — without a hot restart.
     ref.invalidate(myMinigameSessionsProvider);
@@ -188,7 +188,7 @@ class _MinigameSessionDetailScreenState
     // the partida is still active — 205_minigame_invite_lobby).
     final isFinished = session.valueOrNull?['status'] == 'finished';
 
-    // 2026-09-20 revamp: the header carries the partida name (row 2), the live
+    // The header carries the partida name (row 2), the live
     // pool (icon + total) and the status — all sourced from the LIVE session
     // row so a participant join recomputes them in the same rebuild.
     final sessionRow = session.valueOrNull;
@@ -200,7 +200,7 @@ class _MinigameSessionDetailScreenState
     final headerPartidaName =
         sessionRow == null ? null : minigameSessionName(l10n, sessionRow);
 
-    // 215_minigame_invite_context (2026-09-11): the authoritative "am I in
+    // 215_minigame_invite_context: the authoritative "am I in
     // this session" switch. A non-participant is a pending invitee or a
     // stranger — neither may ever render `_LobbySection`, whose roster RPC is
     // readable to a pending invitee (that was the pre-accept roster flash).
@@ -236,7 +236,7 @@ class _MinigameSessionDetailScreenState
             context.mounted &&
             !_navigatedToMatch) {
           _navigatedToMatch = true;
-          // D: cover the lobby in the same frame the countdown overlay drops,
+          // Cover the lobby in the same frame the countdown overlay drops,
           // then push the opaque play route. The cover holds until that route
           // has committed, so only the match screen is ever visible.
           setState(() => _startingNavigation = true);
@@ -252,7 +252,7 @@ class _MinigameSessionDetailScreenState
 
     return Scaffold(
       body: VHeaderBar(
-        // Double-row header (2026-09-20): row 1 is the minigame name in
+        // Double-row header: row 1 is the minigame name in
         // LOWERCASE ("partida" → "verdad o reto"), row 2 the partida name.
         titleWidget: MinigameHeaderTitle(
           word: sessionRow == null
@@ -265,7 +265,7 @@ class _MinigameSessionDetailScreenState
         ),
         // Actions: the live pool (icon + total, tap → payout breakdown), then
         // the host's Invite button (205_minigame_invite_lobby). The match
-        // status lives on the JUGADORES row (2026-09-20).
+        // status lives on the JUGADORES row.
         actions: [
           if (sessionRow != null) ...[
             MinigamePoolAmount(
@@ -304,7 +304,7 @@ class _MinigameSessionDetailScreenState
             final countdown = gameState.valueOrNull?.skeleton.isCountdown ??
                 false;
 
-            // 215_minigame_invite_context (2026-09-11): a not-yet-accepted
+            // 215_minigame_invite_context: a not-yet-accepted
             // invitee must never see the roster. `isParticipant` gates the
             // lobby; a non-participant waits on the invite/context load and
             // then renders ONLY the inviter ("INVITADO POR").
@@ -354,7 +354,7 @@ class _MinigameSessionDetailScreenState
                     ),
                   )
                 else if (_startingNavigation)
-                  // D: the countdown just ended and the opaque play route is
+                  // The countdown just ended and the opaque play route is
                   // being pushed — hold a full-screen cover so the lobby is
                   // never exposed during the handoff.
                   const Positioned.fill(
@@ -410,7 +410,7 @@ class _MinigameSessionDetailScreenState
         context,
       ).showSnackBar(SnackBar(content: Text(l10n.minigamesInviteDeclined)));
     } on MinigameSessionRejectedException catch (e) {
-      // Typed rejection → friendly localized message (I-62 pattern), never
+      // Typed rejection → friendly localized message, never
       // the raw exception text.
       if (!context.mounted) return;
       ScaffoldMessenger.of(
@@ -533,9 +533,8 @@ class _InviteCard extends StatelessWidget {
                     if (hasName)
                       Text(
                         l10n.minigamesInvitedBy,
-                        style: const TextStyle(
+                        style: AppTypography.bodySmall.copyWith(
                           color: AppColors.mutedStrong,
-                          fontSize: 11,
                         ),
                       ),
                   ],
@@ -547,9 +546,8 @@ class _InviteCard extends StatelessWidget {
             const SizedBox(height: AppSpacing.sm),
             Text(
               l10n.minigamesInviteFromGroup(groupName!),
-              style: const TextStyle(
+              style: AppTypography.bodySmall.copyWith(
                 color: AppColors.mutedStrong,
-                fontSize: 12,
               ),
             ),
           ],
@@ -602,7 +600,7 @@ class _LobbySection extends ConsumerWidget {
     final tooFewForBottle =
         gameType == 'drunk_bottle' && participantIds.length < kDrunkBottleMinPlayers;
 
-    // Finished sessions carry the settled ranking (TODO F): each participant
+    // Finished sessions carry the settled ranking: each participant
     // row shows its rank/score and taps through to the leaderboard focused on
     // that player. Null (not yet settled / still loading) simply leaves the
     // rows in roster order with no ranking.
@@ -617,7 +615,7 @@ class _LobbySection extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // 2026-09-20 revamp: "JUGADORES (<live count>)" with the match status
+        // "JUGADORES (<live count>)" with the match status
         // at the row's right. `participantIds` rides the realtime session row,
         // so a join/remove updates the count immediately.
         Row(
@@ -665,7 +663,7 @@ class _LobbySection extends ConsumerWidget {
                     // participant[0] id (null-safe). The roster may briefly lag
                     // that array after a join/remove (hot reload preserves
                     // provider state) — a mismatch must mark the wrong player,
-                    // never crash a row (2026-08-30).
+                    // never crash a row.
                     for (var i = 0; i < ordered.length; i++) ...[
                       if (i > 0) const Divider(height: 1),
                       _ParticipantRow(
@@ -675,7 +673,7 @@ class _LobbySection extends ConsumerWidget {
                         canRemove:
                             isCreator && ordered[i].id != myId && !finished,
                         // The "Listo" ready chip is pre-play semantics — once
-                        // the match is running it means nothing (2026-09-02).
+                        // the match is running it means nothing.
                         showReadyChip: !isPlaying,
                         rank: rankByPlayer[ordered[i].id]?.rank,
                         score: rankByPlayer[ordered[i].id]?.score,
@@ -712,14 +710,14 @@ class _LobbySection extends ConsumerWidget {
             isPublic: session?['is_public'] == true,
           ),
         if (finished)
-          // TODO F: a settled match's entry point to the finished leaderboard.
+          // Finished-match entry point to the leaderboard.
           VButton.emphasized(
             label: l10n.minigamesViewLeaderboard,
             onPressed: () =>
                 context.push(RoutePaths.minigameLeaderboard(sessionId)),
           )
         else ...[
-          // 2026-09-02: the match is already RUNNING (a participant reopened
+          // The match is already RUNNING (a participant reopened
           // the partida after leaving the app / losing connection mid-play —
           // they never left the roster). Empezar/¿Listo? are pre-play
           // semantics and mean nothing here, so BOTH host and participant get
@@ -763,7 +761,7 @@ class _LobbySection extends ConsumerWidget {
     );
   }
 
-  /// Returns the caller to the RUNNING match (2026-09-02): pushes the play
+  /// Returns the caller to the RUNNING match: pushes the play
   /// screen for the session's game type, exactly like the live countdown →
   /// playing navigation does — the game-state row is already `playing` and
   /// holds the current round, so the play screen picks up the right
@@ -835,7 +833,7 @@ class _LobbySection extends ConsumerWidget {
     );
     if (confirmed != true || !context.mounted) return;
     try {
-      // 2026-08-30 stale-state repair: the RPC either removes the player or
+      // Stale-state repair: the RPC either removes the player or
       // answers a typed `not_participant` (the row was already refreshed — a
       // double tap, or a concurrent remove). The removed player is already
       // out server-side; there is nothing to undo, so the retry must not
@@ -923,9 +921,8 @@ class _PublishSwitchState extends ConsumerState<_PublishSwitch> {
                   const SizedBox(height: 2),
                   Text(
                     l10n.minigamesPublishSubtitle,
-                    style: const TextStyle(
+                    style: AppTypography.bodySmall.copyWith(
                       color: AppColors.mutedStrong,
-                      fontSize: 12,
                     ),
                   ),
                 ],
@@ -946,14 +943,14 @@ class _PublishSwitchState extends ConsumerState<_PublishSwitch> {
 /// One participant row in the lobby: avatar, username (+ host marker), a
 /// Ready chip for OTHERS (only when they are ready — a not-ready player shows
 /// nothing, and the HOST never shows a ready chip: the host is ready by
-/// default, 2026-08-30), and a creator-only remove button.
+/// default), and a creator-only remove button.
 ///
 /// [showReadyChip] suppresses the "Listo" chip once the match is RUNNING
-/// (2026-09-02) — ready is pre-play semantics and means nothing mid-game.
+/// — ready is pre-play semantics and means nothing mid-game.
 /// Playfair's cap-height centre sits ~0.0615em BELOW its line-box centre
 /// (ascent 1.082, descent 0.251, cap 0.708): at the rank numeral's 22px size
 /// that is ~1.35px. The finished player-list rank is nudged up by this so the
-/// numeral is optically centred on the avatar/row centreline (2026-09-20).
+/// numeral is optically centred on the avatar/row centreline.
 const double _rankOpticalNudge = -1.35;
 
 class _ParticipantRow extends StatelessWidget {
@@ -977,9 +974,8 @@ class _ParticipantRow extends StatelessWidget {
 
   /// The settled rank/score/prize (finished sessions only) — null while the
   /// match is still active. When present the row shows the ranking (EVERY
-  /// participant is ranked since 218) plus the points scored and the amount
-  /// won, and becomes tappable to open the leaderboard focused on this player
-  /// (TODO F).
+  /// participant is ranked) plus the points scored and the amount won, and
+  /// becomes tappable to open the leaderboard focused on this player.
   final int? rank;
   final int? score;
 
@@ -1013,8 +1009,8 @@ class _ParticipantRow extends StatelessWidget {
           if (rank != null) ...[
             // Fixed slot so every name starts on the same x. The 36px height
             // matches the avatar: the numeral's line box is centred in the SAME
-            // band as the avatar, so it reads aligned with the player row
-            // (2026-09-20). `height: 1.0` keeps the glyph box tight and the
+            // band as the avatar, so it reads aligned with the player row.
+            // `height: 1.0` keeps the glyph box tight and the
             // optical nudge corrects Playfair's cap-centre offset.
             SizedBox(
               width: 30,
@@ -1025,8 +1021,7 @@ class _ParticipantRow extends StatelessWidget {
                   child: Text(
                     '$rank',
                     textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontFamily: AppTypography.playfair,
+                    style: AppTypography.headlineLarge.copyWith(
                       fontSize: 22,
                       fontWeight: FontWeight.w700,
                       height: 1.0,
@@ -1054,27 +1049,25 @@ class _ParticipantRow extends StatelessWidget {
                 ),
                 if (score != null)
                   // Finished: the scored points AND the amount won (shard icon
-                  // + bare number — no "shards" literal, 2026-09-20).
+                  // + bare number — no "shards" literal).
                   Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
                         l10n.minigamesPointsAmount(score!),
-                        style: const TextStyle(
+                        style: AppTypography.bodySmall.copyWith(
                           color: AppColors.mutedStrong,
-                          fontSize: 12,
                         ),
                       ),
                       if (prize != null) ...[
-                        const Padding(
-                          padding: EdgeInsets.symmetric(
+                        Padding(
+                          padding: const EdgeInsets.symmetric(
                             horizontal: AppSpacing.sm,
                           ),
                           child: Text(
                             '·',
-                            style: TextStyle(
+                            style: AppTypography.bodySmall.copyWith(
                               color: AppColors.mutedStrong,
-                              fontSize: 12,
                             ),
                           ),
                         ),
@@ -1082,9 +1075,8 @@ class _ParticipantRow extends StatelessWidget {
                         const SizedBox(width: AppSpacing.xs),
                         Text(
                           '$prize',
-                          style: const TextStyle(
+                          style: AppTypography.bodySmall.copyWith(
                             color: AppColors.mutedStrong,
-                            fontSize: 12,
                           ),
                         ),
                       ],
@@ -1093,9 +1085,8 @@ class _ParticipantRow extends StatelessWidget {
                 else if (isCreator)
                   Text(
                     l10n.minigamesCreator,
-                    style: const TextStyle(
+                    style: AppTypography.bodySmall.copyWith(
                       color: AppColors.mutedStrong,
-                      fontSize: 11,
                     ),
                   ),
               ],
@@ -1103,8 +1094,8 @@ class _ParticipantRow extends StatelessWidget {
           ),
           // Others show their ready state only once ready — a not-ready
           // participant renders nothing, and the chip is the plain (non-
-          // emphasized) "Listo"/"Ready" with NO username (2026-08-30). Hidden
-          // entirely once the match is running (2026-09-02).
+          // emphasized) "Listo"/"Ready" with NO username. Hidden
+          // entirely once the match is running.
           if (showReadyChip && !isCreator && participant.ready)
             VChip(label: l10n.minigamesReady, selected: false, compact: true),
           if (onTap != null)
@@ -1134,7 +1125,7 @@ class _ParticipantRow extends StatelessWidget {
 }
 
 /// The non-creator participant's ready toggle — sits exactly where the
-/// creator's "Empezar partida" button does (2026-08-30). Not ready shows the
+/// creator's "Empezar partida" button does. Not ready shows the
 /// EMPHASIZED "¿Listo?" (white fill, black font); once ready it flips to the
 /// flat outlined "Listo". The HOST is ready by default and never sees this.
 class _ReadyToggle extends StatelessWidget {
@@ -1358,7 +1349,7 @@ class _CountdownOverlayState extends ConsumerState<_CountdownOverlay> {
   }
 }
 
-/// The anonymous-mode nickname control for the LOBBY (2026-09-10 move): shows
+/// The anonymous-mode nickname control for the LOBBY: shows
 /// the caller's current temp nickname and an "update name" button that opens
 /// [_AliasDialog]. The nickname is a display name (never encrypted) and
 /// streams live to every lobby member via `minigame_aliases`; the server

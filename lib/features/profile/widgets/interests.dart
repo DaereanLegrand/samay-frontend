@@ -3,13 +3,12 @@ import 'package:samay/core/models/user_interests.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/v_chip.dart';
 
-/// Curated interest-tag catalog (PRFL "interest tags" gap — I-36 foundation).
+/// Curated interest-tag catalog.
 ///
 /// The identifiers are stable lowercase slugs that map 1:1 to ARB labels
 /// through [interestTagLabel]; the catalog is deliberately a plain `const`
-/// list so the picker and tests stay dead simple. Persistence needs a
-/// `users.interest_tags text[]` column migration (see the I-36 daily log —
-/// owned by the migration agents I-31/I-32, NOT this app layer).
+/// list so the picker stays dead simple. Persistence needs a
+/// `users.interest_tags text[]` column migration (owned by the DB layer).
 const List<String> kInterestTagIds = <String>[
   'musica',
   'fiestas',
@@ -46,7 +45,7 @@ String interestTagLabel(AppLocalizations l10n, String tagId) {
   throw ArgumentError.value(tagId, 'tagId', 'Unknown interest tag id');
 }
 
-/// Multi-select tag picker (PRFL "interest tags" gap — I-36 foundation).
+/// Multi-select tag picker.
 ///
 /// A `Wrap` of [VChip] (disco-styled [FilterChip]s) rendering the whole
 /// catalog; [onChanged] receives the new selection set on every toggle. The

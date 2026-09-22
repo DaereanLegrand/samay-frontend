@@ -130,10 +130,3 @@ class FeedNotifier extends AsyncNotifier<List<FeedItem>> {
 final feedProvider = AsyncNotifierProvider<FeedNotifier, List<FeedItem>>(
   FeedNotifier.new,
 );
-
-/// A quick count of the items that need the user's attention (pending
-/// minigame invites) — used by the feed header badge if needed.
-final feedPendingCountProvider = Provider<int>((ref) {
-  final items = ref.watch(feedProvider).valueOrNull ?? const [];
-  return items.where((e) => e.fromParticipant).length;
-});

@@ -8,21 +8,20 @@ import 'package:samay/shared/widgets/profile_avatar.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/show_app_error.dart';
 
-/// R17 (F9 ADAPTED): the admin member-actions bottom sheet.
+/// The admin member-actions bottom sheet.
 ///
-/// Opens a glass sheet (LUXE: a liquid-radius `VGlass` slab with the violet
-/// family ring + glow sits inside the modal's black chrome — behavior is
-/// byte-identical to the pre-LUXE sharp sheet) with role-fitting options for
+/// Opens a glass sheet (a liquid-radius `VGlass` slab with the violet family
+/// ring + glow inside the modal's black chrome) with role-fitting options for
 /// the target member:
 ///
 /// * `member` → promote to staff, kick.
 /// * `staff` → demote to member, kick.
 /// * `host` (owner) → no options (callers do not open the sheet).
 ///
-/// Kick is confirmed through a dialog first (F8 — danger reads better in a
+/// Kick is confirmed through a dialog first (danger reads better in a
 /// dialog). Every action resolves through the existing `GroupsRepository`
 /// member RPCs (`kickMember` / `setMemberRole`); failures surface as a
-/// transient snackbar (F7). After a successful action [onChanged] is called
+/// transient snackbar. After a successful action [onChanged] is called
 /// so the caller reloads its member data.
 Future<void> showMemberActionsSheet(
   BuildContext context, {
@@ -42,8 +41,8 @@ Future<void> showMemberActionsSheet(
   return showModalBottomSheet<void>(
     context: context,
     backgroundColor: AppColors.discoBlack,
-    // Sharp (N2): the sheet itself carries no radius — the glass slab inside
-    // owns the liquid corners (LUXE).
+    // Sharp: the sheet itself carries no radius — the glass slab inside
+    // owns the liquid corners.
     shape: const RoundedRectangleBorder(),
     builder: (sheetContext) => SafeArea(
       child: Container(

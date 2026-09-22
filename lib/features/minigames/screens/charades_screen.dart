@@ -6,8 +6,11 @@ import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/extensions/error_mapper.dart';
 import 'package:samay/core/providers/auth_provider.dart';
+import 'package:samay/core/services/minigame_service.dart';
 import 'package:samay/features/minigames/logic/minigame_engine.dart';
+import 'package:samay/features/minigames/logic/minigame_meta.dart';
 import 'package:samay/features/minigames/providers/minigames_providers.dart';
+import 'package:samay/features/minigames/widgets/minigame_play_header.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/state_views.dart';
 import 'package:samay/shared/widgets/v_button.dart';
@@ -57,11 +60,57 @@ class CharadesScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final gameState = ref.watch(minigameGameStateProvider(sessionId));
+    final myId = ref.watch(authStateProvider).valueOrNull?.user?['id'] as String?;
+    final roster =
+        ref.watch(minigameParticipantsProvider(sessionId)).valueOrNull ??
+        const <MinigameParticipant>[];
+    final gameNameLower = minigameGameNameLower(
+      l10n,
+      MinigameType.charades.value,
+    );
+    final headerTitle = gameState.when(
+      loading: () => minigameStatusTitle(
+        word: l10n.minigamesBarWaiting,
+        secondary: gameNameLower,
+        l10n: l10n,
+      ),
+      error: (_, _) => minigameStatusTitle(
+        word: l10n.minigamesBarError,
+        secondary: gameNameLower,
+        l10n: l10n,
+      ),
+      data: (state) {
+        final s = state.skeleton;
+        if (s.charadesIsPlaying) {
+          final displayName =
+              roster
+                  .where((p) => p.id == s.charadesTurnId)
+                  .map((p) => p.username)
+                  .firstOrNull ??
+              '';
+          return minigameTurnTitle(
+            isMine: s.charadesIsMyTurn(myId),
+            displayName: displayName,
+            secondary: gameNameLower,
+            l10n: l10n,
+          );
+        }
+        if (s.charadesPhase == 'summary') {
+          return minigameStatusTitle(
+            word: l10n.charadesTimeUp,
+            secondary: gameNameLower,
+            l10n: l10n,
+          );
+        }
+        return null;
+      },
+    );
 
     return Scaffold(
       backgroundColor: AppColors.discoBlack,
       body: VHeaderBar(
-        title: l10n.minigamesGameCharades,
+        titleWidget: headerTitle,
+        title: headerTitle == null ? gameNameLower : null,
         child: gameState.when(
           loading: () => const VLoadingView(),
           error: (e, _) => Center(child: Text(e.toAppError().message)),
@@ -403,10 +452,6 @@ class _PlayingView extends StatelessWidget {
     final total = skeleton.charadesSeconds;
     final fraction = total <= 0 ? 0.0 : (seconds / total).clamp(0.0, 1.0);
     final urgent = seconds <= 10;
-    final turnName = roster
-        .where((p) => p.id == skeleton.charadesTurnId)
-        .map((p) => p.username)
-        .firstOrNull;
 
     return Column(
       children: [
@@ -414,16 +459,6 @@ class _PlayingView extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
           child: Column(
             children: [
-              Text(
-                isMine
-                    ? l10n.charadesActNow
-                    : l10n.charadesPlayingBy(turnName ?? ''),
-                style: const TextStyle(
-                  color: AppColors.mutedStrong,
-                  fontSize: 13,
-                ),
-              ),
-              const SizedBox(height: AppSpacing.sm),
               // Countdown: the number plus a bar that drains with it.
               Text(
                 '$seconds',

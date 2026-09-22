@@ -4,9 +4,8 @@ import 'package:samay/core/providers/service_providers.dart';
 import 'package:samay/core/router/route_paths.dart';
 import 'package:samay/core/services/notification_service.dart';
 
-/// Coarse relative-time bucket for a notification timestamp (NOTI spec
-/// "timestamp" row). Pure logic so the label mapping is unit-testable; the
-/// UI layer resolves each bucket to an l10n key.
+/// Coarse relative-time bucket for a notification timestamp ("timestamp"
+/// row). Pure logic; the UI layer resolves each bucket to an l10n key.
 enum NotificationAge { now, minutes, hours, days }
 
 /// A bucket + rounded value for [notificationTimeSpan].
@@ -33,9 +32,9 @@ NotificationTimeSpan notificationTimeSpan(DateTime createdAt, DateTime now) {
   return NotificationTimeSpan(NotificationAge.days, diff.inDays);
 }
 
-/// Resolves the navigation target for a notification (NOTI spec "Notification
-/// Types & Deep Links"): an explicit `deepLink` in `data` (the I-66 payload
-/// convention) wins; otherwise the target is derived from the type + id
+/// Resolves the navigation target for a notification ("Notification
+/// Types & Deep Links"): an explicit `deepLink` in `data` wins; otherwise the
+/// target is derived from the type + id
 /// fields. Returns null when the row carries no navigable target.
 String? notificationDeepLink(String type, Map<String, dynamic>? data) {
   if (data == null) return null;
@@ -76,7 +75,7 @@ String? notificationDeepLink(String type, Map<String, dynamic>? data) {
 
 /// True when [path] resolves to a registered GoRouter route (the deep-link
 /// guard: a notification may only navigate where a route exists — otherwise
-/// the tap just marks the notification read, NOTI spec). Segment-exact: a
+/// the tap just marks the notification read). Segment-exact: a
 /// path with trailing segments beyond a known route shape (e.g. the spec's
 /// `/user/{userId}/friend`, which has no route yet) is rejected.
 bool isRegisteredRoutePath(String path) {
@@ -150,7 +149,7 @@ class NotificationsNotifier extends AsyncNotifier<List<NotificationItem>> {
     return rows.map(NotificationItem.fromJson).toList();
   }
 
-  /// Re-runs [build] (pull-to-refresh, finding SM-09).
+  /// Re-runs [build].
   Future<void> refresh() async => ref.invalidateSelf();
 
   /// Marks one notification read on the server, then locally (the unread dot
@@ -165,7 +164,7 @@ class NotificationsNotifier extends AsyncNotifier<List<NotificationItem>> {
     ]);
   }
 
-  /// Marks every unread notification read (NOTI spec "mark all read").
+  /// Marks every unread notification read.
   Future<void> markAllRead() async {
     final current = state.valueOrNull;
     if (current == null) return;
@@ -199,7 +198,7 @@ final notificationsProvider = AsyncNotifierProvider<NotificationsNotifier,
     List<NotificationItem>>(NotificationsNotifier.new);
 
 /// Number of unread notifications — derived so widgets watching only the
-/// count rebuild on read-state changes (finding SM-13/L-05 select pattern).
+/// count rebuild on read-state changes.
 final unreadCountProvider = Provider<int>((ref) {
   final notifications = ref.watch(notificationsProvider).valueOrNull;
   if (notifications == null) return 0;

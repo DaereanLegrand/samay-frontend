@@ -6,17 +6,17 @@ import 'package:samay/core/services/discovery_service.dart';
 import 'package:samay/core/services/friendship_service.dart';
 import 'package:samay/core/services/user_service.dart';
 
-/// Friends domain repository (I-50): thin, typed facade over
+/// Friends domain repository: thin, typed facade over
 /// [FriendshipService] (friendship lifecycle) and [UserService] (profile
 /// lookups for friend tiles).
 ///
 /// Dependency direction doctrine (DEVELOPMENT-WORKFLOW §5): providers depend
 /// on repositories, repositories on services, services on the Supabase client.
 /// Feature providers must read this repository via `friendsRepositoryProvider`
-/// (Riverpod) instead of the legacy `SupabaseService.instance` singleton —
+/// (Riverpod) instead of the `SupabaseService.instance` singleton —
 /// this is what makes the feature layer mockable at the service boundary.
 ///
-/// Typed where the I-10 freezed models match the service shape
+/// Typed where the freezed models match the service shape
 /// ([UserProfile], [FriendshipSummary]); raw `Map<String, dynamic>` rows are
 /// passed through where the service enriches rows beyond the models
 /// (`searchUsers` adds `friendship_status`/`hidden`; `getFriendRequests`
@@ -46,6 +46,12 @@ class FriendsRepository {
     final res = await _friendships.getFriends();
     return [for (final f in res) FriendshipSummary.fromJson(f)];
   }
+
+  /// Profiles of [userIds] in ONE `user_search_view` read — the batch form of
+  /// [getUserProfile] for the non-own-row branch. Rows with no visible profile
+  /// are absent from the result.
+  Future<List<Map<String, dynamic>>> getUserProfiles(List<String> userIds) =>
+      _users.getUserProfiles(userIds);
 
   /// Search-shaped profile rows for [ids] via the `get_friend_profiles`
   /// SECURITY DEFINER RPC — ONE batched query (no N+1), scoped to the caller's
@@ -94,7 +100,7 @@ class FriendsRepository {
 
   /// Sends a friend request to [userId], returning `pending` (new request)
   /// or `accepted` (the addressee already had a pending request against the
-  /// current user — instant mutual accept, R15).
+  /// current user — instant mutual accept).
   Future<String> sendFriendRequest(String userId) =>
       _friendships.sendFriendRequest(userId);
 

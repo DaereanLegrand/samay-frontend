@@ -12,7 +12,7 @@ import 'package:samay/core/utils/throttled_refresh.dart';
 /// Names are fetched per user because the friendships table only stores ids;
 /// the map is keyed by `user_id`.
 ///
-/// No-fallback (2026-08-14): a friend whose profile cannot be resolved is
+/// No-fallback: a friend whose profile cannot be resolved is
 /// an ERROR, never a placeholder name — [build] throws and the screens
 /// render the ErrorView + retry.
 class FriendRequestsData {
@@ -37,7 +37,7 @@ class FriendsListNotifier extends AsyncNotifier<List<UserProfile>>
     final byId = {for (final r in rows) r['id'] as String: r};
     final profiles = <UserProfile>[];
     for (final f in res) {
-      // No-fallback (2026-08-14): a friend with an unresolvable profile is
+      // No-fallback: a friend with an unresolvable profile is
       // an ERROR — never silently dropped from the list.
       final row = byId[f.userId];
       if (row == null) {
@@ -49,7 +49,7 @@ class FriendsListNotifier extends AsyncNotifier<List<UserProfile>>
     return profiles;
   }
 
-  /// Re-runs [build] to reload the friend list (finding SM-09). R20: skipped
+  /// Re-runs [build] to reload the friend list.  skipped
   /// while the last fetch is younger than [refreshThrottle].
   Future<void> refresh() async {
     if (!shouldRefetch()) return;
@@ -67,24 +67,25 @@ class FriendRequestsNotifier extends AsyncNotifier<FriendRequestsData>
   Future<FriendRequestsData> build() async {
     final repo = ref.read(friendsRepositoryProvider);
     final requests = await repo.getFriendRequests();
+    final userIds = <String>{for (final r in requests) r.userId}.toList();
+    final rows = await repo.getUserProfiles(userIds);
+    final byId = {for (final row in rows) row['id'] as String: row};
     final names = <String, String>{};
-    for (final r in requests) {
-      final userId = r.userId;
-      if (names.containsKey(userId)) continue;
-      // No-fallback (2026-08-14): an unresolvable or username-less profile is
+    for (final userId in userIds) {
+      // No-fallback: an unresolvable or username-less profile is
       // an ERROR — never the "Usuario" placeholder.
-      final profile = await repo.getUserProfile(userId);
-      if (profile == null || profile.username.isEmpty) {
+      final username = byId[userId]?['username'] as String?;
+      if (username == null || username.isEmpty) {
         throw ProfileResolutionError(userId);
       }
-      names[userId] = profile.username;
+      names[userId] = username;
     }
     markFetched();
     return FriendRequestsData(requests: requests, names: names);
   }
 
-  /// Re-runs [build] after accepting/declining a request (finding SM-09).
-  /// R20: skipped while the last fetch is younger than [refreshThrottle].
+  /// Re-runs [build] after accepting/declining a request.
+  /// skipped while the last fetch is younger than [refreshThrottle].
   Future<void> refresh() async {
     if (!shouldRefetch()) return;
     ref.invalidateSelf();
@@ -101,20 +102,22 @@ class BlockedUsersNotifier extends AsyncNotifier<List<UserProfile>>
   Future<List<UserProfile>> build() async {
     final repo = ref.read(friendsRepositoryProvider);
     final res = await repo.getBlockedUsers();
+    final ids = [for (final b in res) b['blocked_user_id'] as String];
+    final rows = await repo.getUserProfiles(ids);
+    final byId = {for (final row in rows) row['id'] as String: row};
     final profiles = <UserProfile>[];
-    for (final b in res) {
-      final uid = b['blocked_user_id'] as String;
-      // No-fallback (2026-08-14): an unresolvable blocked-user profile is an
+    for (final uid in ids) {
+      // No-fallback: an unresolvable blocked-user profile is an
       // ERROR — never a truncated-uid placeholder.
-      final profile = await repo.getUserProfile(uid);
-      if (profile == null) throw ProfileResolutionError(uid);
-      profiles.add(profile);
+      final row = byId[uid];
+      if (row == null) throw ProfileResolutionError(uid);
+      profiles.add(UserProfile.fromJson(row));
     }
     markFetched();
     return profiles;
   }
 
-  /// Re-runs [build] after unblocking a user (finding SM-09). R20: skipped
+  /// Re-runs [build] after unblocking a user.  skipped
   /// while the last fetch is younger than [refreshThrottle].
   Future<void> refresh() async {
     if (!shouldRefetch()) return;
@@ -136,7 +139,7 @@ class SearchResultsNotifier
     return results;
   }
 
-  /// Re-runs [build] after a friend request changes a result's status. R20:
+  /// Re-runs [build] after a friend request changes a result's status. 
   /// skipped while the last fetch is younger than [refreshThrottle].
   Future<void> refresh() async {
     if (!shouldRefetch()) return;

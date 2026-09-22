@@ -1,6 +1,7 @@
 import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/material.dart';
+import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/design_tokens/app_typography.dart';
 import 'package:samay/shared/widgets/v_display_text.dart';
@@ -49,10 +50,10 @@ abstract final class VHeaderMetrics {
 
   /// Neutral glass surface behind the collapsed title (matches the bottom-nav
   /// pill: `surface` α0.85 over black).
-  static const Color glassFill = Color(0xD90A0A0A);
+  static final Color glassFill = AppColors.surface.withValues(alpha: 0.85);
 
   /// Faint white bottom sheen of the glass (the nav pill's α0.15 border).
-  static const Color glassSheen = Color(0x26FFFFFF);
+  static final Color glassSheen = AppColors.white.withValues(alpha: 0.15);
 
   /// Backdrop blur sigma of the glass (matches the nav pill).
   static const double glassBlur = 20;
@@ -71,6 +72,13 @@ abstract final class VHeaderMetrics {
   /// Fine-tune (px, down-positive) applied to every action AFTER optical
   /// centering. 0 by default.
   static const double actionNudge = 0;
+
+  /// The down-positive offset that lands [style]'s reference band (cap/x-height
+  /// per [opticalReference]) on the header's shared centerline when the style's
+  /// own line box is centered in the title row. Shared by titles and custom
+  /// title widgets so every header element uses ONE centerline.
+  static double opticalShiftFor(BuildContext context, TextStyle style) =>
+      _opticalShift(context, style);
 }
 
 /// Which typographic band defines the header's shared optical centerline.
@@ -87,7 +95,7 @@ enum HeaderOpticalReference {
   xHeight,
 }
 
-// ── Optical alignment (Model A) ──────────────────────────────────────────────
+// Optical alignment (Model A)
 //
 // One shared centerline per header: the title's reference band center (cap- or
 // x-height, per [VHeaderMetrics.opticalReference]). The band is derived from
@@ -108,7 +116,7 @@ double _referenceRatio(String? family) =>
 /// it up when the box is taller):
 ///   natural line = fontSize·(ascent+descent)
 ///   shorter box → baseline = (box − natural)/2 + fontSize·ascent
-///   taller  box → baseline = box · ascent/(ascent+descent)
+///   taller box → baseline = box · ascent/(ascent+descent)
 /// An analytic [TextPainter] does NOT reproduce this for a compressed box, so
 /// computing it here keeps the header shift exact at any font/size.
 double _baselineInBox(TextStyle style, double fontSize) {
@@ -133,27 +141,31 @@ double _opticalShift(BuildContext context, TextStyle style) {
   return boxH / 2 - bandCenter;
 }
 
-/// The label style used to align a TEXT action (buttons). Icons are aligned by
+/// The label style for aligning a TEXT action (buttons). Icons are aligned by
 /// their box; text buttons by their label's optical band.
 TextStyle _actionLabelStyle(BuildContext context) =>
-    Theme.of(context).textTheme.labelLarge ?? const TextStyle(fontSize: 14);
+    Theme.of(context).textTheme.labelLarge ?? AppTypography.labelLarge;
 
-// ── Back-arrow optical side bearings (measured) ──────────────────────────────
+// Back-arrow optical side bearings (measured)
 //
 // MaterialIcons glyphs do NOT fill their 24px em box: the ink has side
 // bearings, so the icon box edge is not the arrow's optical edge. Measured from
 // `MaterialIcons-Regular.otf` (unitsPerEm 512) with fontTools, at 24px:
 //
-//   arrow_back (Android)          ink x 85..427     → 3.984px L / 3.984px R
-//   arrow_back_ios_new_rounded    ink x 137..368.25 → 6.422px L / 6.738px R
+//   arrow_back (Android) ink x 85..427 → 3.984px L / 3.984px R
+//   arrow_back_ios_new_rounded ink x 137..368.25 → 6.422px L / 6.738px R
 //
 // The header therefore gives the arrow the SAME optical gap on both sides:
 //   leading gap = leadingPad + inkLeft
-//   trailing gap = inkRight            (title starts flush at the icon box edge)
+//   trailing gap = inkRight (title starts flush at the icon box edge)
 // Equal ⇒ leadingPad = inkRight − inkLeft (0 Android / 0.316px iOS), and both
 // gaps equal max(inkLeft, inkRight). The title's own glyph left-bearing is
 // intrinsic to the text and intentionally not compensated.
 const double _kBackArrowIconSize = 24;
+
+/// Minimum tap target of the back arrow, in logical px. Kept at the 44pt
+/// accessibility floor (the icon itself is only 24px).
+const double _kBackArrowMinTapTarget = 44;
 const double _arrowBackInkLeft = 85 / 512 * _kBackArrowIconSize;
 const double _arrowBackInkRight = (512 - 427) / 512 * _kBackArrowIconSize;
 const double _arrowBackIosInkLeft = 137 / 512 * _kBackArrowIconSize;
@@ -161,12 +173,11 @@ const double _arrowBackIosInkRight = (512 - 368.25) / 512 * _kBackArrowIconSize;
 
 /// Scoped [IconButtonTheme] override for the back arrow only.
 ///
-/// Material's M3 [IconButton] defaults (8px padding + 40px minimum box + a
-/// padded tap target) center the 24px glyph ~12px inside its leading edge. With
-/// them stripped, the glyph ink sits at its natural bearing; the sub-pixel
+/// The button keeps a >=44pt tap target ([_kBackArrowMinTapTarget]) while the
+/// glyph is start-aligned so its ink sits at its natural bearing. The sub-pixel
 /// platform leading pad below equalizes the optical gaps on both sides of the
 /// arrow (see the bearing table above). Scoped to the back arrow so trailing
-/// icon actions keep their default 48px targets.
+/// icon actions keep their default targets.
 ButtonStyle _backArrowButtonStyle(BuildContext context) {
   final isIos = switch (Theme.of(context).platform) {
     TargetPlatform.iOS || TargetPlatform.macOS => true,
@@ -178,8 +189,10 @@ ButtonStyle _backArrowButtonStyle(BuildContext context) {
     padding: WidgetStatePropertyAll(
       EdgeInsetsDirectional.only(start: (inkRight - inkLeft).clamp(0.0, 24.0)),
     ),
-    minimumSize: const WidgetStatePropertyAll(Size.zero),
-    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+    minimumSize: const WidgetStatePropertyAll(
+      Size(_kBackArrowMinTapTarget, _kBackArrowMinTapTarget),
+    ),
+    alignment: AlignmentDirectional.centerStart,
   );
 }
 

@@ -1,9 +1,8 @@
-/// Pure age-verification policy extracted from `age_gate_screen.dart` (I-46,
-/// TST-06/M-13). Calendar-accurate 18-year rule: the widget's old
-/// `365 * 18`-day approximation is replaced by this shared function so the
-/// 17y364d boundary and leap-day birthdays behave correctly everywhere.
+/// Pure age-verification policy shared by the age gate. Calendar-accurate
+/// 18-year rule: the shared function (not a `365 * 18`-day approximation)
+/// keeps the 17y364d boundary and leap-day birthdays correct everywhere.
 ///
-/// [now] is injectable for deterministic tests; defaults to `DateTime.now()`.
+/// [now] is injectable; defaults to `DateTime.now()`.
 bool isAdult(DateTime? birthDate, {DateTime? now}) {
   if (birthDate == null) return false;
   final reference = now ?? DateTime.now();

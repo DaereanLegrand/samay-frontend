@@ -10,7 +10,6 @@ import 'package:samay/crypto/envelope.dart';
 import 'package:samay/crypto/interfaces.dart';
 
 /// E2EE group chat — Signal sender-key ("sender-key message") model
-/// (ISSUE 4; E2EE-ARCHITECTURE.md §9.6 follow-up).
 ///
 /// ## Model
 ///
@@ -63,7 +62,6 @@ import 'package:samay/crypto/interfaces.dart';
 /// simply re-distributed (the member shows as missing) instead of stranding
 /// a member without a chain.
 ///
-/// ## Group epochs (2026-08-17 live finding: message #2 undeliverable)
 ///
 /// A roster change (member added/removed) wipes the group keys and mints a
 /// FRESH chain — a new epoch. The registry OWNS the group-level `epoch`
@@ -76,61 +74,53 @@ import 'package:samay/crypto/interfaces.dart';
 /// Receivers use the epoch to tell a GENUINE rekey apart from a stale
 /// same-epoch duplicate: [processSenderKeyBundle] accepts a bundle whose
 /// epoch is HIGHER than the stored record's even when its `chain_index`
-/// (0 on a fresh chain) is <= the record's `lastSeenN` — pre-fix the F2c
-/// no-regress guard swallowed exactly this case, the receiver never learned
-/// the new key, and every rekeyed message (index 0 of the new chain) hit the
-/// old record's replay check and was dropped (while the sender still saw
-/// blue "read" ticks: the row WAS delivered and `mark_messages_read`
-/// stamped it).
+/// (0 on a fresh chain) is <= the record's `lastSeenN`. Without that, a
+/// rekeyed message (index 0 of the new chain) would hit the old record's
+/// replay check and be dropped while the sender still saw "read" ticks
+/// (the row was delivered and `mark_messages_read` stamped it).
 ///
-/// ## Audit fixes (2026-08-16, F1/F2/F4)
+/// Protocol invariants enforced here:
 ///
-/// - **F1 (DoS):** the header `chain_index` is attacker-controlled; the
-///   pre-fix decrypt walked the chain UNBOUNDED — a 0x03 row with
-///   chain_index = 0xFFFFFFFF forces ~4.29e9 HKDF steps before the AEAD
-///   check, re-run on every reload/redelivery. [decrypt] now drops the
-///   envelope when `chainIndex - lastSeenN > e2eeSenderKeyMaxSkip`
-///   (mirrors double_ratchet's MAX_SKIP) — no derivation, no record
-///   advancement.
-/// - **F2 (re-distribution):** (a) the bundle now carries `chain_index` =
-///   the sender record's `lastSentN` (was hardcoded 0, which reset receivers
-///   to `lastSeenN = -1` against the CURRENT root and broke the invariant
-///   `root == C_{lastSeenN+1}` → every later message failed AEAD); (b) the
-///   registry persists per-sender `distributed_to` target sets so
-///   [membersMissingSenderKey] stops re-reporting members whose bundle was
-///   already distributed (the pre-fix "this device holds their chain" proxy
-///   re-distributed to every non-sender on EVERY send); (c)
-///   [processSenderKeyBundle] has a no-regress guard — a same-epoch
-///   stale/duplicate bundle (`chain_index <= lastSeenN`) never overwrites a
-///   live record. Since 2026-08-17 the guard is epoch-aware: a bundle from a
-///   HIGHER epoch (the roster-change rekey) IS accepted, a bundle from a
-///   LOWER epoch is ignored, and within the SAME epoch only a higher
-///   `chain_index` (gap heal) is accepted. Since 2026-08-16 an IDENTITY
-///   change supersedes the epoch guard: a bundle whose `sender_ik_dh`
-///   differs from the stored record's is the sender's genuine NEW identity
-///   (reinstall / account-switch / device-change — the bundle arrives
-///   decrypted through the pairwise session bound to the row's sender, RLS
-///   `sender_id = auth.uid()` on insert; the E2EE §7.5 1:1
-///   `peerIdentityChanged` heal analogue) and is accepted even from a LOWER
-///   epoch, replacing the pre-reinstall record. The same-identity epoch
-///   rules above stay intact.
-/// - **Distribution contract split (2026-08-17):**
-///   [membersMissingSenderKey] is now a PURE candidate computation
+/// - **Bounded chain walk (DoS):** the header `chain_index` is
+///   attacker-controlled; [decrypt] drops the envelope when
+///   `chainIndex - lastSeenN > e2eeSenderKeyMaxSkip` (mirrors
+///   double_ratchet's MAX_SKIP) — no derivation, no record advancement.
+/// - **Re-distribution:** the bundle carries `chain_index` =
+///   the sender record's `lastSentN` so receivers position at the right
+///   `lastSeenN` against the root (the invariant `root == C_{lastSeenN+1}`
+///   must hold); the registry persists per-sender `distributed_to` target
+///   sets so [membersMissingSenderKey] does not re-report members whose
+///   bundle was already distributed; and [processSenderKeyBundle] has a
+///   no-regress guard — a same-epoch stale/duplicate bundle (`chain_index <=
+///   lastSeenN`) never overwrites a live record.
+/// - **Epoch + identity rules:** a bundle from a HIGHER epoch (the
+///   roster-change rekey) is accepted, a bundle from a LOWER epoch is
+///   ignored, and within the SAME epoch only a higher `chain_index` (gap
+///   heal) is accepted. An IDENTITY change supersedes the epoch guard: a
+///   bundle whose `sender_ik_dh` differs from the stored record's is the
+///   sender's genuine NEW identity (reinstall / account-switch /
+///   device-change — the bundle arrives decrypted through the pairwise
+///   session bound to the row's sender, RLS `sender_id = auth.uid()` on
+///   insert; the E2EE §7.5 1:1 `peerIdentityChanged` heal analogue) and is
+///   accepted even from a LOWER epoch, replacing the stored record. The
+///   same-identity epoch rules above stay intact.
+/// - **Distribution contract:**
+///   [membersMissingSenderKey] is a PURE candidate computation
 ///   (active roster minus the sender minus the persisted `distributed_to`
-///   targets) — it never persists. The chat layer calls the new
+///   targets) — it never persists. The chat layer calls
 ///   [markSenderKeyDistributed] AFTER each successful distribution-row
 ///   insert; a member whose pairwise session could not be established is
 ///   never recorded, so it stays missing for the next send.
-/// - **F4 (cross-group confusion):** records and bundles carry the chat id
+/// - **Cross-group confusion guard:** records and bundles carry the chat id
 ///   (`chat_id`); [decrypt] requires the record loaded via the envelope's
 ///   `group_id` to belong to the chat the row actually arrived in —
 ///   mismatch is a silent protocol drop.
-/// - **On-device migration:** record/registry JSON are now version 3;
-///   v1/v2 state fails `fromJson` and is treated as ABSENT, so pre-fix
-///   devices re-distribute once and stabilize on v3 (no manual migration).
-///   A v2 device's rekey bundle (epoch 0, no field) is rejected by the
-///   bundle-version guard, so receivers never mis-apply an un-epoch'd
-///   bundle to a live record.
+/// - **On-device migration:** record/registry JSON are version 3; older
+///   state fails `fromJson` and is treated as ABSENT, so devices
+///   re-distribute once and stabilize on v3 (no manual migration). An older
+///   rekey bundle (epoch 0, no field) is rejected by the bundle-version
+///   guard, so receivers never mis-apply an un-epoch'd bundle to a live
+///   record.
 ///
 /// ## Logging
 ///
@@ -166,9 +156,7 @@ class GroupE2eeCipher {
     return _identity!;
   }
 
-  // -------------------------------------------------------------------------
   // Public API (the chat-layer contract — wired by the service agent)
-  // -------------------------------------------------------------------------
 
   /// Encrypts [plaintext] for the group as [senderUserId] and returns the
   /// base64url type-0x03 envelope (one row in `messages.content`).
@@ -236,9 +224,9 @@ class GroupE2eeCipher {
   /// `ik_dh`, the chat id, the chain root (base64url), the sender's current
   /// `chain_index` (= `lastSentN` — the last message the receivers have
   /// seen; the chain root is ready for message `lastSentN + 1`) and the
-  /// record's group `epoch` (2026-08-17: receivers accept a bundle whose
-  /// epoch is higher than their stored record's — the roster-change rekey;
-  /// within the same epoch the no-regress guard still applies). The
+  /// record's group `epoch`. Receivers accept a bundle whose epoch is higher
+  /// than their stored record's — the roster-change rekey; within the same
+  /// epoch the no-regress guard applies. The
   /// chat layer delivers it to each member as the PLAINTEXT of a pairwise
   /// ratchet message and routes inbound plaintexts through
   /// [isSenderKeyBundle].
@@ -286,10 +274,9 @@ class GroupE2eeCipher {
     }
   }
 
-  /// True when [plaintext] is a sender-key REQUEST (marker check, 2026-08-17
-  /// retry protocol) — the chat layer routes pairwise plaintexts through
-  /// this BEFORE the bundle check (a request and a bundle are mutually
-  /// exclusive kinds).
+  /// True when [plaintext] is a sender-key REQUEST (marker check) — the chat
+  /// layer routes pairwise plaintexts through this BEFORE the bundle check (a
+  /// request and a bundle are mutually exclusive kinds).
   Future<bool> isSenderKeyRequest(String plaintext) async {
     try {
       final decoded = jsonDecode(plaintext);
@@ -305,9 +292,9 @@ class GroupE2eeCipher {
   /// and the id of the member whose chain is missing. The chat layer
   /// delivers it as the PLAINTEXT of a pairwise ratchet message addressed
   /// (via `messages.recipient_id`) to exactly that member — the Signal
-  /// retry-request analogue (2026-08-17 missing-chain deadlock heal). The
+  /// retry-request analogue. The
   /// requester's identity is the row's RLS-bound `sender_id`, never a
-  /// self-attested field (the K1 lesson).
+  /// self-attested field.
   Future<String> senderKeyRequestJson({
     required String groupChatId,
     required String groupId,
@@ -364,7 +351,7 @@ class GroupE2eeCipher {
   /// equals the local identity — a replayed own distribution must not
   /// clobber the live sending chain).
   ///
-  /// [expectedSenderIkDh] (K1 re-audit, 2026-08-16): the base64url X25519
+  /// [expectedSenderIkDh]: the base64url X25519
   /// identity key BOUND to the pairwise session that delivered this bundle
   /// ([E2eeMessageCipher.boundPeerIkDh]). The bundle's `sender_ik_dh` is
   /// SELF-ATTESTED — the bundle minting device writes it — while
@@ -377,10 +364,9 @@ class GroupE2eeCipher {
   /// possession-based) authenticates the sender, not the bundle's
   /// self-claim. A mismatch is IGNORED on every acceptance path (fresh
   /// record, identity change, epoch rekey, gap heal). Null (no session /
-  /// unknown peer) keeps the historical best-effort behavior.
+  /// unknown peer) skips the binding check.
   ///
-  /// Epoch-aware no-regress guard (F2c + 2026-08-17 rekey epochs +
-  /// 2026-08-16 reinstall heal):
+  /// Epoch-aware no-regress guard:
   ///
   /// - no existing record → accepted (fresh chain);
   /// - the bundle's `sender_ik_dh` differs from the stored record's —
@@ -389,17 +375,17 @@ class GroupE2eeCipher {
   ///   the bundle only ever arrives decrypted through the pairwise session
   ///   bound to the message row's `sender_id` (RLS `sender_id = auth.uid()`
   ///   on insert), so the pairwise session authenticates the sender's NEW
-  ///   identity — the fresh chain supersedes the pre-reinstall record even
+  ///   identity — the fresh chain supersedes the stored record even
   ///   when its epoch is lower;
   /// - `bundle.epoch > record.epoch` → ACCEPTED — a genuine rekey: the
   ///   roster-change wipe minted a fresh chain whose index restarts at 0,
-  ///   so the pre-epoch `chain_index <= lastSeenN` guard MUST NOT apply
-  ///   (pre-fix it swallowed the legitimate rekey bundle, the receiver
-  ///   never learned the new key, and every rekeyed message was dropped);
+  ///   so the `chain_index <= lastSeenN` guard MUST NOT apply (otherwise the
+  ///   legitimate rekey bundle is swallowed, the receiver never learns the
+  ///   new key, and every rekeyed message is dropped);
   /// - `bundle.epoch < record.epoch` → ignored (stale bundle from an old
   ///   epoch replaying after the rekey);
   /// - `bundle.epoch == record.epoch && chain_index <= lastSeenN` →
-  ///   ignored (the F2c stale same-epoch duplicate);
+  ///   ignored;
   /// - `bundle.epoch == record.epoch && chain_index > lastSeenN` →
   ///   accepted (gap heal — the receiver is behind on the same chain).
   ///
@@ -471,15 +457,13 @@ class GroupE2eeCipher {
       );
       return;
     }
-    // K1 identity binding (2026-08-16 re-audit): the bundle's `sender_ik_dh`
+    // Identity binding: the bundle's `sender_ik_dh`
     // is SELF-ATTESTED — the minting device writes it — while
-    // `sender_user_id` is only RLS-bound to the message row. The chat layer
-    // passes the delivering pairwise session's BOUND peer identity
-    // (E2eeMessageCipher.boundPeerIkDh); when present it MUST match the
-    // bundle's ik_dh or the bundle is ignored on EVERY acceptance path —
-    // the pairwise session (X3DH, possession-based) authenticates the
-    // sender, not the bundle's self-claim. Null keeps the historical
-    // best-effort behavior (no session / unknown peer).
+    // `sender_user_id` is only RLS-bound to the message row. When the chat
+    // layer passes the delivering pairwise session's BOUND peer identity
+    // (E2eeMessageCipher.boundPeerIkDh) it MUST match the bundle's ik_dh, or
+    // the bundle is ignored on every acceptance path — the pairwise session
+    // (X3DH, possession-based) authenticates the sender. Null skips the check.
     final expected = expectedSenderIkDh;
     if (expected != null) {
       final expectedBytes = base64UrlNoPadDecode(expected);
@@ -493,7 +477,7 @@ class GroupE2eeCipher {
           'e2ee group sender-key bundle IGNORED group=$groupId '
           'chat=$groupChatId sender=$senderUserId — bundle sender_ik_dh '
           'does not match the delivering pairwise session\'s bound peer '
-          'identity (K1); the bundle is never accepted',
+          'identity; the bundle is never accepted',
         );
         return;
       }
@@ -569,10 +553,10 @@ class GroupE2eeCipher {
   ///
   /// - `dropped` (silent, Signal semantics): undecodable/foreign envelope,
   ///   no record for the sender (NoSession), the record's chat binding does
-  ///   not match the chat the row arrived in (F4 cross-group confusion),
+  ///   not match the chat the row arrived in,
   ///   envelope `sender_ik_dh` != the stored bundle's (identity changed),
   ///   `n <= lastSeenN` (replay / duplicate / out-of-order), a chain gap
-  ///   beyond [e2eeSenderKeyMaxSkip] (F1 DoS cap — dropped WITHOUT deriving
+  ///   beyond [e2eeSenderKeyMaxSkip] (DoS cap — dropped WITHOUT deriving
   ///   anything and WITHOUT advancing the record), or the sender's own echo.
   /// - `failed` (the undecryptable bubble): AEAD authentication failure
   ///   (tampering). The chain is NOT advanced on failure (atomicity §4.5
@@ -611,10 +595,10 @@ class GroupE2eeCipher {
       );
       // missingChain: the drop is the requestable class — this device has
       // no chain material for the sender, so the chat layer asks the sender
-      // to re-distribute (2026-08-17 retry protocol).
+      // to re-distribute.
       return const E2eeDecryptResult.dropped(missingChain: true);
     }
-    // F4 cross-group chat binding: the record is routed by the envelope's
+    // cross-group chat binding: the record is routed by the envelope's
     // groupId only, but it was distributed in ONE chat. A row carrying this
     // chain into ANY OTHER chat is a protocol drop — never shown there
     // (the AEAD aad binds the chat, but the chain itself must not leak
@@ -637,7 +621,7 @@ class GroupE2eeCipher {
       );
       // missingChain: the stored record is bound to a stale identity — this
       // device needs the sender's FRESH chain (reinstall-era bundle), so the
-      // chat layer requests a re-distribution (2026-08-17 retry protocol).
+      // chat layer requests a re-distribution.
       return const E2eeDecryptResult.dropped(missingChain: true);
     }
     if (chainIndex <= record.lastSeenN) {
@@ -648,7 +632,7 @@ class GroupE2eeCipher {
       );
       return const E2eeDecryptResult.dropped();
     }
-    // F1 bounded gap walk: the header chain_index is attacker-controlled —
+    // bounded gap walk: the header chain_index is attacker-controlled —
     // an unbounded derivation walk is a remote CPU DoS (u32-max index ≈
     // 4.29e9 HKDF steps, re-run on every reload/redelivery). Dart ints are
     // 64-bit, so the subtraction itself cannot overflow; a huge chainIndex
@@ -728,12 +712,12 @@ class GroupE2eeCipher {
   /// Active members who still need [senderUserId]'s distribution bundle, as
   /// known to THIS device: [activeMemberIds] minus the sender itself minus
   /// the members already recorded as this (group, sender)'s distribution
-  /// TARGET SET (F2b — the pre-fix "this device holds their chain" proxy
-  /// re-distributed to every non-sender on EVERY send). The chat layer calls
+  /// TARGET SET (so a member is never re-distributed to on every send). The
+  /// chat layer calls
   /// this on the local member's cipher before each distribution round (group
   /// open, membership change) and sends the bundle to the returned members.
   ///
-  /// PURE computation (2026-08-17 distribution-contract split): it NEVER
+  /// PURE computation: it NEVER
   /// persists. The chat layer calls [markSenderKeyDistributed] AFTER each
   /// successful distribution-row insert; a member whose pairwise session
   /// could not be established is never recorded and stays missing for the
@@ -755,8 +739,7 @@ class GroupE2eeCipher {
   }
 
   /// Persists [memberIds] as part of [senderUserId]'s distribution target
-  /// set for [groupChatId] (F2b; the persistence half of the 2026-08-17
-  /// distribution-contract split). The chat layer calls this AFTER each
+  /// set for [groupChatId]. The chat layer calls this AFTER each
   /// successful distribution-row insert — never before: a member that was
   /// NOT actually distributed to (no published prekey bundle, insert
   /// failure) must remain missing so the next send retries it. The registry
@@ -786,11 +769,11 @@ class GroupE2eeCipher {
   }
 
   /// Removes [memberIds] from [senderUserId]'s distribution target set for
-  /// [groupChatId] — the persistence half of the 2026-08-17 retry protocol:
+  /// [groupChatId] — the persistence half of the retry protocol:
   /// a member whose device REQUESTED this sender's chain is un-marked so
   /// [membersMissingSenderKey] reports them again and the next distribution
-  /// round re-sends the bundle (the deadlock heal — pre-fix a member who
-  /// missed/stale-processed the bundle was marked distributed forever and
+  /// round re-sends the bundle (the deadlock heal: a member who
+  /// missed/stale-processed the bundle is otherwise marked distributed and
   /// never re-keyed). Members that were never marked are a no-op; an absent
   /// registry is a no-op too (nothing can be marked yet — a request can only
   /// arrive for a chain that was actually distributed).
@@ -829,8 +812,7 @@ class GroupE2eeCipher {
   /// counter: [membersMissingSenderKey] reports every member missing until
   /// the fresh key is distributed, and the epoch bump (creating the
   /// registry at epoch 1 when absent) makes receivers holding an OLD-epoch
-  /// record ACCEPT the fresh distribution bundle (2026-08-17 rekey epochs —
-  /// the pre-fix no-regress guard swallowed legitimate rekeys).
+  /// record ACCEPT the fresh distribution bundle.
   Future<void> wipeGroupKeys(String groupChatId) async {
     final registry = await _loadRegistry(groupChatId);
     if (registry == null) {
@@ -873,16 +855,14 @@ class GroupE2eeCipher {
     );
   }
 
-  // -------------------------------------------------------------------------
   // Internals
-  // -------------------------------------------------------------------------
 
   /// Loads or creates [senderUserId]'s own chain record for [groupId]
   /// (creating it mints a 32-byte root from `Random.secure()` and binds the
   /// current identity's `ik_dh`). A minted record stamps the CURRENT
   /// registry group epoch (0 when no registry exists yet) — the epoch the
   /// distribution bundle carries, so receivers can distinguish the fresh
-  /// post-rekey chain from the stale one (2026-08-17 rekey epochs).
+  /// post-rekey chain from the stale one.
   Future<GroupSenderKeyRecord> _ensureOwnRecord({
     required String groupChatId,
     required String senderUserId,
@@ -1007,7 +987,7 @@ class GroupE2eeCipher {
   }
 }
 
-/// A member's sender-key chain state for one group (ISSUE 4), persisted as
+/// A member's sender-key chain state for one group, persisted as
 /// JSON under `group_sender_key:<groupId>:<senderUserId>`.
 ///
 /// [chainRoot] is the CURRENT chain key (base64url, 32 bytes): for the
@@ -1018,20 +998,19 @@ class GroupE2eeCipher {
 /// only secret in the record — it lives in the platform keystore like every
 /// other E2EE secret (§8).
 ///
-/// [chatId] is the chat the chain was distributed in (F4 — cross-group
+/// [chatId] is the chat the chain was distributed in (cross-group
 /// binding): decryption only accepts envelopes arriving in that chat.
 ///
-/// [epoch] is the group epoch the chain was minted in (2026-08-17 rekey
-/// epochs — the registry's group-level counter; 0 for the pre-rekey chain).
-/// Receivers compare it against the bundle's epoch to tell a GENUINE rekey
-/// (higher epoch) from a same-epoch stale/duplicate; [decrypt] itself does
-/// NOT check it — the record IS the epoch.
+/// [epoch] is the group epoch the chain was minted in (the registry's
+/// group-level counter; 0 when no registry existed). Receivers compare it
+/// against the bundle's epoch to tell a GENUINE rekey (higher epoch) from a
+/// same-epoch stale/duplicate; [decrypt] itself does NOT check it — the
+/// record IS the epoch.
 ///
-/// Schema version 3 since the 2026-08-17 rekey-epoch fix. v1/v2 records (no
-/// `chat_id` / no `epoch`) are rejected by [fromJson] — on-device state
-/// migration is simply "treated as absent": decrypt drops (NoSession
-/// semantics), the sender re-distributes once, and a v3 record replaces the
-/// old one.
+/// Schema version 3. Older v1/v2 records (no `chat_id` / no `epoch`) are
+/// rejected by [fromJson] — on-device state migration is simply "treated as
+/// absent": decrypt drops (NoSession semantics), the sender re-distributes
+/// once, and a v3 record replaces the old one.
 class GroupSenderKeyRecord {
   const GroupSenderKeyRecord({
     required this.chatId,
@@ -1101,7 +1080,7 @@ class GroupSenderKeyRecord {
   /// Parses a persisted record. Returns null for malformed JSON, a chain
   /// root that is not 32 bytes, a malformed `ik_dh` (corrupt/foreign
   /// record → treated as absent: decrypt drops, encrypt re-keys), or an
-  /// unsupported schema version (pre-fix v1/v2 records lack `chat_id` /
+  /// unsupported schema version (older v1/v2 records lack `chat_id` /
   /// `epoch` — also treated as absent; the member is re-distributed once,
   /// then stable).
   static GroupSenderKeyRecord? fromJson(String json) {
@@ -1160,12 +1139,12 @@ class GroupSenderKeyRecord {
 /// created by [GroupE2eeCipher.markSenderKeyDistributed] alone has no
 /// records and thus no group id yet).
 ///
-/// [epoch] is the group-level epoch counter (2026-08-17 rekey epochs — 0
-/// until the first wipe). [GroupE2eeCipher.wipeGroupKeys] never deletes the
+/// [epoch] is the group-level epoch counter (0 until the first wipe).
+/// [GroupE2eeCipher.wipeGroupKeys] never deletes the
 /// registry; it clears `senders` + `distributed_to` and bumps [epoch], so
 /// the next distribution bundle carries a higher epoch and receivers
-/// holding an old-epoch record accept it. Schema version 3 since the
-/// 2026-08-17 fix; v1/v2 registries are rejected by [fromJson] — treated as
+/// holding an old-epoch record accept it. Schema version 3; older v1/v2
+/// registries are rejected by [fromJson] — treated as
 /// absent (nothing distributed yet → one re-distribution round, then
 /// stable).
 class _GroupRegistry {
@@ -1179,7 +1158,7 @@ class _GroupRegistry {
   final String? groupId;
   final Set<String> senders;
 
-  /// Per-sender distribution target sets (F2b): for each sender, the
+  /// Per-sender distribution target sets: for each sender, the
   /// members its bundle has been distributed to — [membersMissingSenderKey]
   /// excludes exactly these (plus the sender itself) from the active roster.
   final Map<String, List<String>> distributedTo;

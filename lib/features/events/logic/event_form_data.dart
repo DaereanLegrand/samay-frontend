@@ -1,7 +1,6 @@
 import 'package:samay/core/utils/input_sanitizer.dart';
 
-/// Event creation types (ECRT spec step 1; DB enum `event_type` —
-/// `supabase/migrations/20260510000001_full_schema.sql` §1).
+/// Event creation types (DB enum `event_type`).
 enum EventType {
   casual('casual'),
   juerga('juerga'),
@@ -14,7 +13,7 @@ enum EventType {
 }
 
 /// Where the event lives: public (feed, join_mode set) or group-scoped
-/// (invitation-only, `join_mode = NULL` per ECRT step 3).
+/// (invitation-only, `join_mode = NULL`).
 enum EventVisibility { public, group }
 
 /// Public-events join policy (DB enum `join_mode`: open / approval).
@@ -28,7 +27,7 @@ enum EventJoinMode {
 }
 
 /// What happens to the preshard remainder at distribution time (DB enum
-/// `preshard_remainder_action` — ECRT step 5, EEDG `shard-distribution`).
+/// `preshard_remainder_action` — the `shard-distribution` flow).
 enum EventRemainderAction {
   returnToContributors('return'),
   redistribute('redistribute');
@@ -54,7 +53,7 @@ enum EventFormError {
 /// "explicitly nulled" (required to clear optional fields).
 const Object _unset = Object();
 
-/// Typed, immutable form state for the ECRT creation flow.
+/// Typed, immutable form state for the event creation flow.
 ///
 /// Pure data + pure validation: no BuildContext, no services — the screen
 /// binds widgets to a `copyWith` loop and hands the validated result to
@@ -100,7 +99,7 @@ class EventFormData {
 
   final EventRemainderAction? remainderAction;
 
-  /// ECRT step 4: the Juerga location warning must be explicitly confirmed.
+  /// The Juerga location warning must be explicitly confirmed.
   final bool juergaLocationConfirmed;
 
   /// The preshards section is only rendered (and only valid) for Juerga/Tono;
@@ -149,7 +148,7 @@ class EventFormData {
     );
   }
 
-  /// Applies the client-side caps (H-24/InputSanitizer) to free text before
+  /// Applies the client-side caps to free text before
   /// it reaches the payload.
   EventFormData sanitized() {
     return copyWith(
@@ -165,7 +164,7 @@ class EventFormData {
     );
   }
 
-  /// Validation rules (ECRT steps 1–5):
+  /// Validation rules:
   ///
   /// * name required
   /// * `ends_at` must be after `starts_at`
@@ -209,7 +208,7 @@ class EventFormData {
       'ends_at': endsAt.toUtc().toIso8601String(),
       'location_name': locationName.trim().isEmpty ? null : locationName.trim(),
       'group_id': groupScoped ? groupId : null,
-      // Group-scoped events are always invitation-only (ECRT step 3).
+      // Group-scoped events are always invitation-only.
       'join_mode': groupScoped ? null : joinMode?.wire,
       // Casual is forced to a zero pool client-side too (defense-in-depth
       // for the DB CHECK constraint).

@@ -1,5 +1,5 @@
-/// OTP input formatting for `otp_verification_screen.dart` (I-46,
-/// TST-06/M-13): the auto-submit and manual-verify paths both run the entered
+/// OTP input formatting for `otp_verification_screen.dart`: the auto-submit
+/// and manual-verify paths both run the entered
 /// text through this so pasted/sms-hyphenated codes ('123-456', '123 456')
 /// verify as '123456'.
 ///

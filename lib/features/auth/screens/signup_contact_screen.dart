@@ -37,7 +37,7 @@ class _SignupContactScreenState extends ConsumerState<SignupContactScreen> {
   void initState() {
     super.initState();
     // Fresh entry = fresh error surface (flow-scoped error providers,
-    // 2026-08-24 fake-OTP-error fix). Post-frame: provider writes are
+    // fake-OTP-error fix). Post-frame: provider writes are
     // illegal during the widget life-cycle.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(signupErrorsProvider.notifier).clear();
@@ -89,9 +89,9 @@ class _SignupContactScreenState extends ConsumerState<SignupContactScreen> {
                   onPressed: () => Navigator.pop(dialogContext),
                   child: Text(l10n.commonOk),
                 ),
-                // Explicit labeled navigation (no-fallback policy
-                // 2026-08-13): the ONLY way off this dialog is a button the
-                // user deliberately taps — "Iniciar sesión" goes to login.
+                // Explicit labeled navigation (no-fallback policy): the ONLY
+                // way off this dialog is a button the user deliberately taps —
+                // "Iniciar sesión" goes to login.
                 TextButton(
                   onPressed: () {
                     Navigator.pop(dialogContext);
@@ -147,8 +147,7 @@ class _SignupContactScreenState extends ConsumerState<SignupContactScreen> {
                       // §3.2 auth big header — monochrome VDisplayText
                       // (verbatim copy, flat white glyphs).
                       VDisplayText(text: l10n.authCreateYourAccount),
-                      // XL-19 (03_signup — still "dense", luxury 3/10): the
-                      // hero → fields rhythm tightens to 32 and the field
+                      // Hero → fields rhythm tightens to 32 and the field
                       // group reads at 16 — the 3 fields + CTA are ONE quiet
                       // column, nothing else.
                       const SizedBox(height: 32),

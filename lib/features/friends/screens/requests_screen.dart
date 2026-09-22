@@ -29,7 +29,7 @@ class _RequestsScreenState extends ConsumerState<RequestsScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
-  /// Row ids whose accept/decline/cancel action is in flight (R11, F4): the
+  /// Row ids whose accept/decline/cancel action is in flight: the
   /// tapped row's buttons swap for a spinner; every other row stays
   /// interactive.
   final Set<String> _processing = {};
@@ -47,7 +47,7 @@ class _RequestsScreenState extends ConsumerState<RequestsScreen>
   }
 
   /// Runs [action] with the [id]'s per-row busy state; clears it afterwards
-  /// and surfaces failures as a transient snackbar (F7: snackbars for row
+  /// and surfaces failures as a transient snackbar (snackbars for row
   /// actions — never a blocking dialog).
   Future<void> _run(String id, Future<void> Function() action) async {
     if (_processing.contains(id)) return;
@@ -65,7 +65,7 @@ class _RequestsScreenState extends ConsumerState<RequestsScreen>
   Future<void> _acceptFriend(String id) => _run(id, () async {
     await ref.read(friendsRepositoryProvider).acceptFriendRequest(id);
     ref.invalidate(friendRequestsProvider);
-    // The new friend must appear in the list immediately (2026-08-14).
+    // The new friend must appear in the list immediately.
     ref.invalidate(friendsListProvider);
   });
 
@@ -80,10 +80,10 @@ class _RequestsScreenState extends ConsumerState<RequestsScreen>
       _run(membershipId, () async {
         await ref.read(groupsRepositoryProvider).acceptInvite(membershipId);
         ref.invalidate(groupInvitesProvider);
-        // ISSUE 2 (B7): an accepted group must appear in the user's groups
+        // An accepted group must appear in the user's groups
         // list immediately.
         ref.invalidate(myGroupsProvider);
-        // USER FIX 2: while the user was INVITED, RLS denied the group member
+        // While the user was INVITED, RLS denied the group member
         // list and groupMembersProvider cached an empty list (keepAlive
         // family + ThrottledRefresh) — the chat thread's sender labels and
         // the members tab would stay empty after the accept. Invalidate the
@@ -99,7 +99,7 @@ class _RequestsScreenState extends ConsumerState<RequestsScreen>
       _run(membershipId, () async {
         await ref.read(groupsRepositoryProvider).declineInvite(membershipId);
         ref.invalidate(groupInvitesProvider);
-        // ISSUE 2 (B7): a declined invite must disappear from the groups list
+        // A declined invite must disappear from the groups list
         // (it was listed as pending).
         ref.invalidate(myGroupsProvider);
       });
@@ -109,7 +109,7 @@ class _RequestsScreenState extends ConsumerState<RequestsScreen>
     final l10n = AppLocalizations.of(context);
     final requestsAsync = ref.watch(friendRequestsProvider);
     final invitesAsync = ref.watch(groupInvitesProvider);
-    // R12 (F5): count badges on the received/invites tabs — the counts come
+    // Count badges on the received/invites tabs — the counts come
     // from the already-loaded providers; zero renders nothing (VCountBadge).
     final receivedCount =
         requestsAsync.valueOrNull?.requests
@@ -178,7 +178,7 @@ class _RequestsScreenState extends ConsumerState<RequestsScreen>
     required bool isReceived,
   }) {
     final l10n = AppLocalizations.of(context);
-    // R13 (F3): every tab refreshes its own provider — requests (received +
+    // Every tab refreshes its own provider — requests (received +
     // sent) and invites separately.
     Future<void> onRequestsRefresh() =>
         ref.read(friendRequestsProvider.notifier).refresh();
@@ -205,7 +205,7 @@ class _RequestsScreenState extends ConsumerState<RequestsScreen>
         separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.sm),
         itemBuilder: (_, i) {
           final r = items[i];
-          // No-fallback (2026-08-14): every request row must resolve its
+          // No-fallback: every request row must resolve its
           // user's name in the provider — a missing entry is a bug, not a
           // placeholder to render.
           final name = names[r.userId]!;
@@ -291,7 +291,7 @@ class _RequestsScreenState extends ConsumerState<RequestsScreen>
   }
 }
 
-/// Requests tab label with the R12 (F5) pending-count badge — the badge
+/// Requests tab label with the pending-count badge — the badge
 /// renders only when [count] > 0 (VCountBadge shrinks to nothing at 0).
 class _TabLabel extends StatelessWidget {
   final String text;
@@ -311,13 +311,13 @@ class _TabLabel extends StatelessWidget {
   }
 }
 
-/// Accept/decline action pair (PERF-08: the repeated trailing action row of
+/// Accept/decline action pair (the repeated trailing action row of
 /// the requests and invites lists is one const sub-widget).
 ///
 /// Monochrome: the accept action is the white emphasized fill (black label);
 /// decline stays the theme `TextButton`.
-/// R11 (F4): when [busy], the pair collapses into a single 16px white
-/// spinner (N3: never accent-colored) while the tapped row's request is in
+/// when [busy], the pair collapses into a single 16px white
+/// spinner (never accent-colored) while the tapped row's request is in
 /// flight — every other row keeps its buttons.
 class _ActionPair extends StatelessWidget {
   final VoidCallback onAccept;
@@ -351,7 +351,7 @@ class _ActionPair extends StatelessWidget {
 }
 
 /// Single action button with the same in-flight spinner swap (the sent-tab
-/// cancel row, R11).
+/// cancel row.
 class _BusyButton extends StatelessWidget {
   final String label;
   final VoidCallback onPressed;
@@ -370,9 +370,9 @@ class _BusyButton extends StatelessWidget {
   }
 }
 
-/// The R11 per-row busy spinner: 16px white `CircularProgressIndicator`
-/// (16-20px per the report; the U-04 progressIndicatorTheme is white).
-/// ANIM-OFF (2026-08-14): renders as a static ring under reduced motion.
+/// The per-row busy spinner: 16px white `CircularProgressIndicator`
+/// (16-20px per the report; the progressIndicatorTheme is white).
+/// ANIM-OFF: renders as a static ring under reduced motion.
 class _RowSpinner extends StatelessWidget {
   const _RowSpinner();
 

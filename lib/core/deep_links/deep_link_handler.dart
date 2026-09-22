@@ -22,7 +22,7 @@ import 'package:samay/l10n/app_localizations.dart';
 /// [handleDeepLink] composes both, resolves the token to an event id through
 /// an injectable callback, and navigates with `router.go` to
 /// `RoutePaths.eventDetail(eventId)` — the single `/event/:eventId` route
-/// (I-66) then renders the detail. On failure a snackbar is shown through the
+/// then renders the detail. On failure a snackbar is shown through the
 /// router's navigator context (localized via [AppLocalizations], falling back
 /// to [failureMessage] when provided — injectable for tests).
 final class DeepLinkHandler {
@@ -113,14 +113,14 @@ final class DeepLinkHandler {
 /// Raw deep-link stream (String URIs) feeding [DeepLinkListener].
 ///
 /// **Null until the app_links wiring lands** — `main.dart` overrides this
-/// provider with `AppLinks().uriLinkStream` (I-66; the package already
-/// resolves transitively via supabase_flutter and is a registered native
-/// plugin on every platform). Tests override it with a controlled
-/// [StreamController]. The seam keeps the handler and listener
+/// provider with `AppLinks().uriLinkStream` (the package resolves transitively
+/// via supabase_flutter and is a registered native
+/// plugin on every platform). A controlled
+/// [StreamController] can override it. The seam keeps the handler and listener
 /// platform-free; `app_links` is only imported by `main.dart`.
 final deepLinkStreamProvider = Provider<Stream<String>?>((ref) => null);
 
-/// App-root subscription widget (I-66): forwards every raw link from
+/// App-root subscription widget: forwards every raw link from
 /// [deepLinkStreamProvider] to [DeepLinkHandler]. Inert — a zero-size
 /// [SizedBox.shrink] — when the provider is null.
 ///

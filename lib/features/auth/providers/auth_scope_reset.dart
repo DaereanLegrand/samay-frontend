@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:samay/core/providers/auth_provider.dart';
 import 'package:samay/core/providers/user_provider.dart';
 import 'package:samay/features/chat/providers/chat_providers.dart';
+import 'package:samay/features/cosmetics/providers/cosmetics_providers.dart';
 import 'package:samay/features/events/providers/events_providers.dart';
 import 'package:samay/features/feed/providers/feed_providers.dart';
 import 'package:samay/features/friends/providers/friends_cache_provider.dart';
@@ -15,13 +16,14 @@ import 'package:samay/features/photos/providers/photos_providers.dart';
 import 'package:samay/features/profile/providers/profile_providers.dart' as profile;
 import 'package:samay/features/qr/providers/code_providers.dart';
 import 'package:samay/features/shards/providers/shard_ledger_providers.dart';
+import 'package:samay/features/social/providers/social_providers.dart';
 
-/// Account-switch staleness fix (2026-08-14).
+/// Account-switch staleness guard.
 ///
 /// **ON LOGOUT, FLUSH ALL DATA** (user directive): non-autodispose providers
 /// live for the whole container lifetime, so after signing out — and then
 /// signing in as another user in the same app session — every cached
-/// user-scoped provider used to show the PREVIOUS account's data (friends
+/// user-scoped provider would otherwise show the PREVIOUS account's data (friends
 /// lists, requests, groups, notifications, chats, QR tokens...).
 ///
 /// This widget is mounted once at the app root (`SamayApp`, above the
@@ -61,11 +63,14 @@ class AuthScopeReset extends ConsumerWidget {
     profile.myProfileProvider,
     profile.myGroupsProvider,
     currentUserProvider,
+    myCosmeticsProvider,
+    profilePublicProvider,
+    readReceiptsEnabledProvider,
     // notifications / chat / qr / minigames / photos / feed / shards
     notificationsProvider,
     chatMessagesProvider,
     chatInboxProvider,
-    // chat service + E2EE stores (2026-08-15): the ChatService singleton
+    // chat service + E2EE stores: the ChatService singleton
     // caches sessions/outbox in memory — without flushing it, a same-process
     // sign-out/in keeps sending with the previous account's stale sessions
     // (the "Mensaje no descifrable" bug survived sign-out because of this).
@@ -76,9 +81,19 @@ class AuthScopeReset extends ConsumerWidget {
     e2eeSessionStoreProvider,
     myCodeProvider,
     minigameSessionsProvider,
+    myMinigameSessionsProvider,
+    myPendingInvitesProvider,
     minigameInviteProvider,
     minigameInviteFriendsOnlyProvider,
+    minigameInviteContextProvider,
+    minigameInviteeStatesProvider,
+    minigameAliasesProvider,
     minigameGameStateProvider,
+    minigameParticipantsProvider,
+    minigamePlayerContentProvider,
+    minigameResultProvider,
+    groupDetailCombinedProvider,
+    groupChatIdProvider,
     eventPhotosProvider,
     feedProvider,
     shardLedgerProvider,

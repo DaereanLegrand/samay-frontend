@@ -1,8 +1,7 @@
 # Samay — Documentation Hub
 
 Docs describe the codebase **as it is right now**. Historical records live in
-git history, not in the docs tree; `docs/history/` exists only for fresh
-session logs going forward.
+git history, not in the docs tree; `docs/history/` holds dated session logs.
 
 ## Where things live
 
@@ -14,7 +13,7 @@ session logs going forward.
 | **Design** | `docs/design/DESIGN.md` | The current minimal design language; token source of truth is code (`lib/core/design_tokens/`) |
 | **Security** | `docs/security/` | `SECURITY.md` (precautions applied now + why + open items), `E2EE-ARCHITECTURE.md` (chat crypto spec) |
 | **Infra** | `<private-ops-repo>/` | `SELFHOSTING.md` (stack runbook), `DEPLOYMENT-PLACEHOLDER.md` (deployment targets as placeholders), `DATABASE.md` (DB catalog: tables/RPCs/triggers/realtime/cron/storage), `BACKEND.md` (Go CLI command tree + API routes + internals) |
-| **History** | `docs/history/phase-XX/` | Optional dated session logs (`YYYY-MM-DD_<slug>.md`, MISTAKE blocks) — starts empty |
+| **History** | `docs/history/phase-XX/` | Dated session logs (`YYYY-MM-DD_<slug>.md`, MISTAKE blocks) — already populated (`docs/history/phase-16/…`) |
 
 ## Quick navigation
 

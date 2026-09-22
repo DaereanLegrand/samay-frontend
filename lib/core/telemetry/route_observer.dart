@@ -2,7 +2,6 @@ import 'package:flutter/widgets.dart';
 import 'package:samay/core/services/telemetry_service.dart';
 
 /// Reports route changes to [TelemetryService] as `screen_view` events
-/// (I-68, LOG-07 audit trail foundation).
 ///
 /// Registered as a [NavigatorObserver] on the app's [GoRouter] (inside
 /// `routerProvider`). go_router sets each page's `RouteSettings.name` to the

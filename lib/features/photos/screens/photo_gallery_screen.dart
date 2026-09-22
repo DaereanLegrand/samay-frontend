@@ -25,7 +25,7 @@ import 'package:samay/shared/widgets/v_network_image.dart';
 /// (same thin-wrapper pattern as `CreateEventScreen`/`CreateGroupScreen`).
 typedef PhotoPicker = Future<XFile?> Function(ImageSource source);
 
-/// PHUP — event photo gallery (I-59): grid of thumbnails served via signed
+/// Event photo gallery: grid of thumbnails served via signed
 /// URLs, optimistic like hearts, long-press reporting, and the upload flow
 /// (permission → pick → preview-less upload through `uploadPhotoProvider`).
 ///
@@ -42,7 +42,7 @@ class PhotoGalleryScreen extends ConsumerStatefulWidget {
 
   final String eventId;
 
-  /// Injectable for tests (SEC-07); defaults to the real service.
+  /// Injectable for tests; defaults to the real service.
   final PermissionService? permissions;
 
   /// Injectable for tests; defaults to `ImagePicker.pickImage(gallery)`.
@@ -145,7 +145,7 @@ class _PhotoGalleryScreenState extends ConsumerState<PhotoGalleryScreen> {
                   ? const VSpinner(size: 18)
                   : const Icon(Icons.add_a_photo_outlined),
             ),
-          // Plugged gallery (2026-08-13): the collage auto-wall entry.
+          // The collage auto-wall entry.
           IconButton(
             key: const ValueKey('photos-wall-button'),
             tooltip: l10n.collageTitle,
@@ -172,14 +172,12 @@ class _PhotoGalleryScreenState extends ConsumerState<PhotoGalleryScreen> {
                   decoration: BoxDecoration(
                     color: AppColors.surface,
                     border: Border.all(color: AppColors.hairline),
-                    borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
                     l10n.photosUploadWindowClosed,
                     textAlign: TextAlign.center,
-                    style: const TextStyle(
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: AppColors.mutedStrong,
-                      fontSize: 12,
                     ),
                   ),
                 ),
@@ -262,8 +260,7 @@ class _ReportDialogState extends State<_ReportDialog> {
               autofocus: true,
               maxLength: 500,
               style: const TextStyle(color: AppColors.white),
-              // User override (2026-08-18): no border, no background — a
-              // bare borderless field.
+              // No border, no background — a bare borderless field.
               decoration: InputDecoration(
                 hintText: l10n.photosReportHint,
                 hintStyle: const TextStyle(color: AppColors.muted),
@@ -375,8 +372,8 @@ class _PhotoTile extends StatelessWidget {
                     visualDensity: VisualDensity.compact,
                     padding: EdgeInsets.zero,
                     constraints: const BoxConstraints(
-                      minWidth: 28,
-                      minHeight: 28,
+                      minWidth: 44,
+                      minHeight: 44,
                     ),
                     iconSize: 18,
                     onPressed: onLike,
@@ -389,10 +386,9 @@ class _PhotoTile extends StatelessWidget {
                   ),
                   Text(
                     l10n.photosLikesCount(photo.likesCount),
-                    style: const TextStyle(
-                      color: AppColors.white,
-                      fontSize: 11,
-                    ),
+                    style: Theme.of(
+                      context,
+                    ).textTheme.bodySmall?.copyWith(color: AppColors.white),
                   ),
                 ],
               ),

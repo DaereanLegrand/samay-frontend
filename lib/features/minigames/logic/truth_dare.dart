@@ -56,15 +56,6 @@ String? truthDarePromptBody(Map<String, dynamic>? prompt) {
   return body is String && body.isNotEmpty ? body : null;
 }
 
-/// Localized "el jugador es X, elige Verdad o Reto" header for the judge.
-/// The caller resolves [subjectName]; null falls back to the generic line.
-String truthDareChooseHeader(AppLocalizations l10n, String? subjectName) {
-  if (subjectName == null || subjectName.isEmpty) {
-    return l10n.minigamesChoosePromptGeneric;
-  }
-  return l10n.minigamesChoosePromptFor(subjectName);
-}
-
 /// The default anonymous temp nickname for a participant (202_minigame_play_v2):
 /// localized `anónimoXXX` with a random-unique numeric suffix.
 String defaultAnonAlias(AppLocalizations l10n, {required String seed}) {

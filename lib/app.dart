@@ -11,7 +11,7 @@ import 'package:samay/shared/widgets/connectivity_banner.dart';
 import 'package:samay/shared/widgets/crash_recovery_banner.dart';
 
 class SamayApp extends ConsumerWidget {
-  /// LOG-03: true when a crash marker existed at launch and was recovered —
+  /// True when a crash marker existed at launch and was recovered —
   /// [main.dart] feeds the `recoverCrashMarker` result through here so the
   /// user-facing recovery banner shows exactly once after a real crash.
   final bool recoveredFromCrash;
@@ -21,7 +21,7 @@ class SamayApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(routerProvider);
-    // UI-05 / L-16 (I-65): the persisted theme-mode choice (default dark)
+    // the persisted theme-mode choice (default dark)
     // drives MaterialApp's mode. Both `theme` and `darkTheme` are the disco
     // theme — dark is the brand (design doc §1 P1) — so 'system' is a
     // future-proof seam, not a light mode.
@@ -35,15 +35,15 @@ class SamayApp extends ConsumerWidget {
       locale: const Locale('es'),
       supportedLocales: AppLocalizations.supportedLocales,
       localizationsDelegates: AppLocalizations.localizationsDelegates,
-      // I-67: the connectivity banner mounts below Localizations/Theme/
+      // the connectivity banner mounts below Localizations/Theme/
       // MediaQuery (so its copy resolves and it can measure) but above the
       // Navigator — a global, route-independent offline indicator. Optimistic:
       // hidden while the status is loading/unknown (valueOrNull ?? true).
-      // EINV (I-66): the deep-link listener mounts below Localizations (so
+      // EINV: the deep-link listener mounts below Localizations (so
       // its snackbar copy resolves) but above the Navigator. Inert when
       // deepLinkStreamProvider is null (default — tests).
-      // ANIM-ON (2026-09-03): the forced `disableAnimations: true` override
-      // (ANIM-OFF 2026-08-14) is REMOVED — animations run and honor the
+      // ANIM-ON: the forced `disableAnimations: true` override
+      // is REMOVED — animations run and honor the
       // OS-level reduced-motion preference via `MediaQuery.disableAnimationsOf`
       // per widget.
       builder: (context, child) {
@@ -54,24 +54,24 @@ class SamayApp extends ConsumerWidget {
             Positioned.fill(
               child: Stack(children: [?child, const DeepLinkListener()]),
             ),
-            // LOGOUT FLUSH (2026-08-14): mounted above the Navigator so
+            // LOGOUT FLUSH: mounted above the Navigator so
             // the auth screens are covered too — on logout every
             // user-scoped provider is invalidated (no stale data survives
             // an account switch in the same session).
             const AuthScopeReset(),
-            // FRIENDS CACHE (2026-08-29): fetches the friend list in the
+            // FRIENDS CACHE: fetches the friend list in the
             // background on auth and persists it to the device DB so the
             // invite/buscar pickers render friends for empty + <5-char
             // queries with zero network I/O.
             const FriendsCacheWarmer(),
-            // I-67: the connectivity banner overlays the top of the screen.
+            // the connectivity banner overlays the top of the screen.
             const Positioned(
               top: 0,
               left: 0,
               right: 0,
               child: ConnectivityBanner(),
             ),
-            // LOG-03: the recovery banner sits above the bottom nav bar,
+            // The recovery banner sits above the bottom nav bar,
             // fully reachable regardless of the OS status bar or Dynamic
             // Island. Positioned with safe-area inset so it never hides
             // behind the gesture bar on iOS/home-indicator devices.

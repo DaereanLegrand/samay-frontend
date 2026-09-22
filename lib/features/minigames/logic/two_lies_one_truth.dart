@@ -82,6 +82,3 @@ int? twoLiesVoteIndexFromReaction(ReactionKind? reaction) {
     _ => null,
   };
 }
-
-/// Converts a statement index (0, 1, or 2) into the wire reaction string ('vote_0'..'vote_2').
-String twoLiesWireReactionForIndex(int index) => 'vote_$index';

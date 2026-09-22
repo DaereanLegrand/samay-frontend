@@ -23,7 +23,7 @@ const double _qrOutEnd = 0.7;
 const double _revealStart = _qrOutEnd / 2;
 
 /// Full-bleed terminal state shown the instant the caller's own
-/// `event_attendances` row exists (2026-09-10, Task D; reworked 2026-09-11).
+/// `event_attendances` row exists.
 ///
 /// Played when a false → true attendance flip is observed while the QR is on
 /// screen. The QR stays pinned exactly where the live code was (no horizontal
@@ -89,7 +89,7 @@ class _AttendeeAssistAnimationState extends State<AttendeeAssistAnimation>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // Reduced motion: no ticker — show the terminal state directly (§7.5).
+    // Reduced motion: no ticker — show the terminal state directly.
     if (MediaQuery.disableAnimationsOf(context)) {
       _controller.stop();
       _controller.value = 1.0;

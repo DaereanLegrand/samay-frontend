@@ -1,10 +1,10 @@
-/// Shared form-validation primitives (I-73).
+/// Shared form-validation primitives.
 ///
 /// One validation pattern for every form in the app: field validators return
 /// a user-facing message or `null` (valid), [compose] chains several into a
 /// first-failure-wins pipeline, and [FormState] groups per-field errors for a
-/// whole form. Pure Dart, no BuildContext, no Flutter imports — unit-testable
-/// in isolation (mirrors `password_policy.dart` / `age_policy.dart`, I-46).
+/// whole form. Pure Dart, no BuildContext, no Flutter imports
+/// (mirrors `password_policy.dart` / `age_policy.dart`).
 ///
 /// Validators are strict on purpose: they validate what they receive. Callers
 /// sanitize first (`InputSanitizer`) and decide whether to trim; the only

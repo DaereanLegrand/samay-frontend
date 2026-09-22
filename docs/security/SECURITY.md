@@ -62,7 +62,9 @@ Industry standards these decisions align with:
 
 - **Where:** `ALTER TABLE … ENABLE/FORCE ROW LEVEL SECURITY` across the
   migration set (`supabase/migrations/**`, mirrored byte-identical in
-  `supabase-testing/migrations/**`); 38 FORCE statements today.
+  `supabase-testing/migrations/**`); 44 FORCE statements today, and every
+  FORCE-RLS table also has RLS ENABLED (a pgTAP invariant guards against a
+  FORCE-without-ENABLE table silently bypassing its policies).
 - **Why:** Postgres applies RLS to the table owner too *only* with `FORCE`
   (R8). Without it, any leak of the owner/postgres credential silently
   disables the entire authorization model. With it, RLS holds even for
@@ -119,8 +121,11 @@ Industry standards these decisions align with:
 ### 2.6 Storage
 
 - Buckets: `avatars` + `groups` public-read (public assets by design),
-  `events` private; object access governed by `storage.objects` RLS policies;
-  event photos served through 1-hour signed URLs.
+  `events` private; `minigame_images` **private, participant-gated**
+  (`storage_objects_minigame_images_select` / `..._insert` — encrypted
+  minigame image ciphertext only, never plaintext/keys); object access governed
+  by `storage.objects` RLS policies; event photos served through 1-hour signed
+  URLs.
 - **Why signed URLs:** private-bucket objects must not be guessable; short
   expiry bounds link sharing. Signing runs through the caller's RLS session,
   so a SELECT policy must match — access control stays in one model.
@@ -213,7 +218,7 @@ is a rotating QR encoding the current code (derived locally, byte-identical to
 | Compile-time config via `--dart-define`; `.env` gitignored; nothing bundled as an asset | Runtime-loaded `.env` files ship inside the APK/IPA and are trivially extractable | `lib/core/config/env_config.dart`, Makefile |
 | Hive boxes encrypted (AES-256, key in secure storage) | Caches (config, photo URLs, message metadata) otherwise persist unencrypted on disk; key stored beside data = no encryption | `storage_service.dart` |
 | Typed `RestClient` filter chain | String-interpolated PostgREST filters were an SQL-injection class risk; typed chain methods make interpolation unreachable by construction | `lib/core/services/rest_client.dart` |
-| `InputSanitizer` at every write boundary (trim, control-char strip, NFKC, grapheme-safe caps) | Zero-width/bidi characters enable spoofing; oversized inputs break layouts and DB constraints | `input_sanitizer.dart`, 29 unit tests |
+| `InputSanitizer` at every write boundary (trim, control-char strip, NFKC, grapheme-safe caps) | Zero-width/bidi characters enable spoofing; oversized inputs break layouts and DB constraints | `input_sanitizer.dart` (server-side shape CHECKs back it up; the Dart unit suite was deleted 2026-08-31) |
 | Client OTP guard (60 s resend cooldown, 5-attempt cap) | UX-level abuse brake; complements (does not replace) server limits | `otp_verification_screen.dart` |
 | Ban screen + ban-aware auth state | Banned accounts must visibly lose access even before server-side token enforcement lands | `ban_service.dart`, `auth_guard.dart` |
 | Runtime permissions via `permission_handler` | Camera/gallery access without prompting fails silently or violates store policy | qr_scanner/photo flows |

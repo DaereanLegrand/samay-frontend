@@ -6,7 +6,7 @@ import 'package:samay/features/friends/providers/recent_friends_provider.dart';
 
 /// Combined user-search rows for the user-picking UIs (groups invite, friends
 /// buscar/search, minigame picker) — the "cached friends + backend search"
-/// contract (2026-08-28):
+/// contract:
 ///
 /// * **Query < [InputSanitizer.searchQueryMinLength] (5)** → the on-device
 ///   friends cache only, filtered by the partial query. No `search_users` RPC

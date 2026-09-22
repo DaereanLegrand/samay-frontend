@@ -12,7 +12,7 @@ import 'package:samay/shared/widgets/error_view.dart';
 import 'package:samay/shared/widgets/profile_avatar.dart';
 import 'package:samay/shared/widgets/state_views.dart';
 
-/// The Amigos segment of the Social tab (redesign 2026-09-20).
+/// The Amigos segment of the Social tab.
 ///
 /// Large-avatar rows — a 56px avatar beside the @username — replacing the old
 /// action-tile row + dense ListTiles. Requests live in the Social header
@@ -125,7 +125,7 @@ class _FriendRow extends StatelessWidget {
     );
   }
 
-  // U-26 (U-24 F3): an empty (non-null) username would RangeError on
+  // an empty (non-null) username would RangeError on
   // substring — the '?' initial fallback.
   static String _initials(UserProfile user) {
     final username = user.username;

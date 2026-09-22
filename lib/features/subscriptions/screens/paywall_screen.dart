@@ -150,15 +150,11 @@ String formatPEN(int centimos) {
 }
 
 /// The user's explicit current tier ('free'/'pro'/'vip') from the auth state,
-/// or null when the GoTrue user JSON carries no `subscription_tier` (RCBH has
-/// not landed) — a null resolves to NO badge, never a claim of the free tier.
+/// or null when the user JSON carries no `subscription_tier` — a null resolves
+/// to NO badge, never a claim of the free tier.
 ///
-/// NOTE (I-61): the GoTrue user JSON does not yet carry `subscription_tier`
-/// end-to-end (`UserService.getUserProfile` now selects the column — I-62 —
-/// but the auth-state user map is only populated by RCBH's fallback sync) —
-/// this reads `user['subscription_tier']` (or the `user_metadata` fallback)
-/// when present and otherwise returns null. The RCBH client fallback sync
-/// (SBAS) will populate it end-to-end.
+/// Reads `user['subscription_tier']` (or the `user_metadata` fallback) when
+/// present, otherwise returns null.
 String? currentTierFromAuth(AuthState authState) {
   final user = authState.user;
   if (user == null) return null;
@@ -179,9 +175,8 @@ String? currentTierFromAuth(AuthState authState) {
 /// the "Actual" badge on the current tier, and purchase buttons that stay
 /// disabled (with a "Próximamente" tooltip) while RevenueCat is in stub mode.
 ///
-/// Monochrome: flat tier cards, the white display hero (the redundant
-/// AppBar title is gone — ORCHESTRATION directive #8: one hero per screen
-/// max).
+/// Monochrome: flat tier cards and a single white display hero (one hero per
+/// screen; no AppBar title).
 class PaywallScreen extends ConsumerWidget {
   const PaywallScreen({super.key});
 
@@ -229,8 +224,8 @@ class PaywallScreen extends ConsumerWidget {
             return ListView(
               padding: const EdgeInsets.all(AppSpacing.xl),
               children: [
-                // The single display hero (LUXE directive #8): the AppBar
-                // title is removed — the header owns the screen.
+                // The single display hero: the AppBar title is removed and the
+                // header owns the screen.
                 VDisplayText(text: l10n.paywallHeader, size: 32),
                 const SizedBox(height: AppSpacing.sm),
                 Text(
@@ -268,7 +263,7 @@ class PaywallScreen extends ConsumerWidget {
   }
 }
 
-class _TierCard extends StatelessWidget {
+class _TierCard extends StatefulWidget {
   final PaywallTier tier;
   final AppLocalizations l10n;
   final Map<String, String> config;
@@ -286,12 +281,24 @@ class _TierCard extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
-    final monthly = paywallMonthlyPrice(tier.id, config);
-    final annual = paywallAnnualPrice(tier.id, config);
+  State<_TierCard> createState() => _TierCardState();
+}
 
-    // Monochrome flat tier cards; the current tier carries the emphasized
-    // badge.
+class _TierCardState extends State<_TierCard> {
+  /// The tier comparison is progressive disclosure: the card stays compact
+  /// (title, price, CTA) until the user opens the feature rows.
+  bool _expanded = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final tier = widget.tier;
+    final l10n = widget.l10n;
+    final monthly = paywallMonthlyPrice(tier.id, widget.config);
+    final annual = paywallAnnualPrice(tier.id, widget.config);
+    final current = widget.isCurrent
+        ? VBadge.emphasized(label: l10n.paywallCurrentBadge)
+        : null;
+
     return VCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -301,14 +308,10 @@ class _TierCard extends StatelessWidget {
               Expanded(
                 child: Text(
                   paywallRowLabel(l10n, tier.titleKey),
-                  style: const TextStyle(
-                    color: AppColors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                  ),
+                  style: Theme.of(context).textTheme.titleLarge,
                 ),
               ),
-              if (isCurrent) VBadge.emphasized(label: l10n.paywallCurrentBadge),
+              ?current,
             ],
           ),
           const SizedBox(height: AppSpacing.sm),
@@ -325,11 +328,7 @@ class _TierCard extends StatelessWidget {
               style: Theme.of(context).textTheme.bodyMedium,
             ),
           ],
-          const SizedBox(height: AppSpacing.md),
-          const Divider(height: 1, thickness: 1, color: AppColors.hairline),
-          const SizedBox(height: AppSpacing.md),
-          for (final row in paywallRows) _FeatureRow(row: row, l10n: l10n),
-          if (onUpgrade != null) ...[
+          if (widget.onUpgrade != null) ...[
             const SizedBox(height: AppSpacing.lg),
             Tooltip(
               message: l10n.comingSoonSoon,
@@ -337,9 +336,25 @@ class _TierCard extends StatelessWidget {
                 label: tier.id == 'pro'
                     ? l10n.paywallUpgradePro
                     : l10n.paywallUpgradeVip,
-                onPressed: stubMode ? null : onUpgrade,
+                onPressed: widget.stubMode ? null : widget.onUpgrade,
               ),
             ),
+          ],
+          Align(
+            alignment: Alignment.center,
+            child: IconButton(
+              onPressed: () => setState(() => _expanded = !_expanded),
+              tooltip: l10n.commonMoreOptions,
+              icon: Icon(
+                _expanded ? Icons.expand_less : Icons.expand_more,
+                color: AppColors.mutedStrong,
+              ),
+            ),
+          ),
+          if (_expanded) ...[
+            const Divider(height: 1, thickness: 1, color: AppColors.hairline),
+            const SizedBox(height: AppSpacing.md),
+            for (final row in paywallRows) _FeatureRow(row: row, l10n: l10n),
           ],
         ],
       ),

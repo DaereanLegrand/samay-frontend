@@ -7,7 +7,7 @@ import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/v_network_image.dart';
 
 /// Full-screen image viewer — the shared "pop to visualize" surface
-/// (2026-09-15, abstracted from the truth-dare answer preview so every feature
+/// abstracted from the truth-dare answer preview so every feature
 /// reuses one viewer).
 ///
 /// Supply exactly one of [url] (network) or [bytes] (in-memory/local).
@@ -16,7 +16,7 @@ import 'package:samay/shared/widgets/v_network_image.dart';
 ///
 /// `useSafeArea: false` keeps the picture in the FULL viewport, so its
 /// `contain` placement (centered) matches the inline full-bleed presentation —
-/// no vertical jump between the tapped and untapped states (2026-09-17). The
+/// no vertical jump between the tapped and untapped states. The
 /// close button keeps its own [SafeArea].
 Future<void> showFullScreenImage(
   BuildContext context, {

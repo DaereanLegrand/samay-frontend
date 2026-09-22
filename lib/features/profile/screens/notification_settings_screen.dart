@@ -8,7 +8,7 @@ import 'package:samay/shared/widgets/state_views.dart';
 import 'package:samay/shared/widgets/v_card.dart';
 import 'package:samay/shared/widgets/v_header_bar.dart';
 
-/// Notification preferences (R2 — wires the settings Notificaciones row).
+/// Notification preferences — wires the settings Notificaciones row.
 ///
 /// Each toggle maps to a persisted key in the encrypted local config cache
 /// (see [NotificationPrefsNotifier]); the screen shows the current state and
@@ -79,7 +79,7 @@ class NotificationSettingsScreen extends ConsumerWidget {
                 ),
               ),
               const SizedBox(height: AppSpacing.md),
-              // R2: honest copy — the prefs live on-device only; the
+              // honest copy — the prefs live on-device only; the
               // remote push pipeline is a later step.
               Text(
                 l10n.notificationSettingsLocalNote,

@@ -25,7 +25,7 @@ class PurchaserInfo {
   bool get hasActiveEntitlement => activeEntitlements.isNotEmpty;
 }
 
-/// Seam over the `purchases_flutter` plugin (I-61 foundation): the RSDK wiring
+/// Seam over the `purchases_flutter` plugin: the RSDK wiring
 /// swaps in the real driver; tests inject a fake. The service only touches the
 /// driver when a public SDK key is present — stub mode never reaches the
 /// plugin, so unit tests run without platform channels.
@@ -81,7 +81,7 @@ class PurchasesDriver implements RevenueCatDriver {
   }
 }
 
-/// RevenueCat facade (I-61 foundation, RSDK-compatible).
+/// RevenueCat facade.
 ///
 /// Two modes, selected at construction by the presence of the public SDK key:
 ///
@@ -102,7 +102,7 @@ class RevenueCatService {
     if (_apiKey.isEmpty) {
       AppLogger.instance.warn(
         'RevenueCat stub mode: no REVENUECAT_PUBLIC_SDK_KEY dart-define — '
-        'purchase UI is disabled (I-61 foundation; RSDK wiring lands later).',
+        'purchase UI is disabled (RSDK wiring pending).',
       );
     }
   }

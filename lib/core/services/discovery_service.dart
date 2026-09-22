@@ -14,7 +14,7 @@ class DiscoveryService {
   /// User search via the `search_users(p_query)` SECURITY DEFINER RPC
   /// (migration 130_search/01_search_rpc.sql): the server validates the
   /// trimmed query length (>= 5 chars), enforces the 60/min per-user quota
-  /// (raises SR001 → RateLimitError via error_mapper) and caps results at
+  /// and caps results at
   /// 20 rows. Friendship enrichment (status/pending direction, block
   /// filtering + hiding) stays client-side below.
   Future<List<Map<String, dynamic>>> searchUsers(String query) async {

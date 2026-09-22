@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 
 /// Immutable value object for a user's interest-tag selection (PRFL gap
-/// foundation — I-36).
+/// foundation).
 ///
 /// Storage contract: `users.interest_tags text[]`. [fromDb] accepts both the
 /// PostgREST native list form and a JSON-encoded array string; [toDb] emits

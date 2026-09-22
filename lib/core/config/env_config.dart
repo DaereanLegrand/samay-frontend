@@ -1,4 +1,4 @@
-/// Build-time environment configuration (SEC-03 / SEC-09 / M-31 / SUP-05).
+/// Build-time environment configuration.
 ///
 /// Supabase values are injected at compile time via `--dart-define` (or
 /// `--dart-define-from-file=.env`, see Makefile) and read with

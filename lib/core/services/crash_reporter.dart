@@ -9,22 +9,20 @@ import 'package:samay/core/logging/app_logger.dart';
 ///
 /// A DSN is a public ingest endpoint (safe to ship by design), but it must
 /// never be hardcoded here: a build without the define runs the app in
-/// **stub mode** (crash reporting disabled, I-70 foundation — the
-/// sentry_flutter SDK wiring lands when the S-18/security decision adopts a
-/// real backend, and the DSN itself is a deploy-time value per the
-/// DEPLOYMENT-PLACEHOLDER.md placeholder philosophy).
+/// **stub mode** (crash reporting disabled — the
+/// sentry_flutter SDK wiring lands when a real backend is adopted; the DSN
+/// itself is a deploy-time value).
 const String sentryDsn = String.fromEnvironment(
   'SENTRY_DSN',
   defaultValue: '',
 );
 
-/// Non-reversible identifier scrub for crash-report user context (I-70,
-/// SECURITY.md §2.8 data-minimization contract): SHA-256 hex of [userId].
+/// Non-reversible identifier scrub for crash-report user context
+/// (SECURITY.md §2.8 data-minimization contract): SHA-256 hex of [userId].
 ///
 /// The sink never receives the raw id — in particular never an email — and
 /// the hash is deterministic, so a crash backend can correlate a user's
-/// reports across sessions without ever holding PII. Pure function —
-/// unit-tested in `test/services/crash_reporter_test.dart`.
+/// reports across sessions without ever holding PII. Pure function.
 Future<String> hashUserId(String userId) async {
   final digest = await Sha256().hash(utf8.encode(userId));
   return digest.bytes.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
@@ -35,7 +33,7 @@ Future<String> hashUserId(String userId) async {
 /// The sentry_flutter SDK wiring (future) implements this with
 /// `Sentry.captureException` / `Sentry.configureScope`; tests inject a
 /// recording fake; stub mode never touches it. Mirrors the TelemetrySink
-/// seam pattern (I-68) and the RevenueCatDriver seam (I-61).
+/// seam pattern and the RevenueCatDriver seam.
 abstract class CrashSink {
   /// Delivers a crash with its [error], [stack] and optional [context]
   /// key/value pairs.
@@ -53,13 +51,12 @@ abstract class CrashSink {
   void addBreadcrumb(String message);
 }
 
-/// Remote crash-reporting seam (I-70 foundation — Sentry placeholder,
-/// LOG-05 / ERR-10).
+/// Remote crash-reporting seam (Sentry placeholder).
 ///
 /// Two modes, selected at construction by the presence of the `SENTRY_DSN`
 /// dart-define:
 ///
-/// * **stub mode** (no DSN — every build until the SDK wiring lands):
+/// * **stub mode** (no DSN):
 ///   `isEnabled` is false; `reportError` logs the crash via
 ///   [AppLogger.error] (error level survives release builds, so a stub-mode
 ///   build never silently swallows a crash), and `setUser`/`addBreadcrumb`
@@ -82,8 +79,7 @@ class CrashReporter {
     if (_dsn.isEmpty) {
       AppLogger.instance.info(
         'CrashReporter stub mode: no SENTRY_DSN dart-define — remote crash '
-        'reporting disabled (I-70 foundation; sentry_flutter wiring lands '
-        'with the S-18 security decision).',
+        'reporting disabled (sentry_flutter wiring pending).',
       );
     }
   }

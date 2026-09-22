@@ -1,12 +1,11 @@
-/// Reusable pagination primitives for list-style features (I-72).
+/// Reusable pagination primitives for list-style features.
 ///
-/// Extracted from I-56's chat pagination pattern (`ChatMessagesState` +
-/// offset/hasMore bookkeeping) so future features — events list, leaderboard,
-/// notifications history — get infinite-scroll pagination for free.
+/// The chat pagination pattern (`ChatMessagesState` +
+/// offset/hasMore bookkeeping), shared so other list features — events list,
+/// leaderboard, notifications history — get infinite-scroll pagination.
 ///
-/// Pure Dart on purpose: no Riverpod import here, so the state machine is
-/// unit-testable in isolation. The Riverpod seam lives in
-/// `lib/core/providers/paged_provider.dart` ([PagedProvider]).
+/// Pure Dart on purpose: no Riverpod import here, so the state machine stays
+/// pure. Feature providers wire the fetch seam.
 library;
 
 /// One page-window of a paginated list: the accumulated rows plus the paging
@@ -111,7 +110,6 @@ class PagedState<T> {
 /// ([idOf]), the page size and the `maxItems` cap, and produces the next
 /// [PagedState] for [loadFirst]/[loadMore].
 ///
-/// ## Message-cap awareness (CHMC/TRIG)
 ///
 /// The DB rolling window stores at most `maxItems` rows per list (chat:
 /// `chat.message_cap` = 1000, enforced by the `enforce_message_cap` trigger).

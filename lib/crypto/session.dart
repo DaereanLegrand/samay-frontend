@@ -14,7 +14,7 @@ import 'package:samay/crypto/x3dh.dart';
 /// Ratchet + envelope framing, persisted after every operation
 /// (E2EE-ARCHITECTURE.md §7).
 ///
-/// This is the concrete [E2eeMessageCipher]: the chat layer (I-38) holds
+/// This is the concrete [E2eeMessageCipher]: the chat layer holds
 /// one instance per chat and calls [encryptText]/[decryptEnvelope].
 ///
 /// ## Wire behavior
@@ -38,7 +38,8 @@ import 'package:samay/crypto/x3dh.dart';
 ///   touching the session (X3DH §4.2 replay mitigation).
 /// - Undecryptable messages return null and leave the session untouched
 ///   (atomicity §4.5). A failed init attempt discards all state changes and
-///   restores the previously active session (Sesame §3.4 error handling).
+///   restores the session that was active before the attempt (Sesame §3.4
+///   error handling).
 class E2eeSession implements E2eeMessageCipher {
   E2eeSession({
     required this.chatId,
@@ -71,13 +72,13 @@ class E2eeSession implements E2eeMessageCipher {
   /// Initiator-only: false until the init envelope has been produced.
   bool _hasSentInit = false;
 
-  /// Initiator-only, Signal `unacknowledgedPreKeyMessage` semantics
-  /// (2026-08-15): true only after the peer's FIRST successfully decrypted
+  /// Initiator-only, Signal `unacknowledgedPreKeyMessage` semantics: true
+  /// only after the peer's FIRST successfully decrypted
   /// ratchet reply acknowledged our init. While false, every outbound
   /// message is re-sent as a FRESH init envelope — the peer can always
   /// (re)establish the session, even after app restarts or a lost init.
-  /// Old session JSON (no field) restores as false → stale sessions heal on
-  /// the next send (the live "Mensaje no descifrable" bug).
+  /// A session JSON without the field restores as false → stale sessions heal
+  /// on the next send.
   bool _initAcknowledged = false;
 
   /// Initiator-only: X3DH init fields for the one-time init envelope.
@@ -99,9 +100,7 @@ class E2eeSession implements E2eeMessageCipher {
 
   String get _role => _ratchet?.role ?? 'initiator';
 
-  // ---------------------------------------------------------------------------
   // E2eeMessageCipher
-  // ---------------------------------------------------------------------------
 
   @override
   Future<String> encrypt({
@@ -130,8 +129,8 @@ class E2eeSession implements E2eeMessageCipher {
     var peer = _peerIkDh;
     // A freshly created cipher instance has no session in memory — the
     // bound peer identity lives in the store. Restore it so the comparison
-    // works before any send/decrypt touched the session (2026-08-16 —
-    // §7.5 detection must fire on the first chat open after a restart).
+    // works before any send/decrypt touched the session (§7.5 detection
+    // must fire on the first chat open after a restart).
     if (peer == null) {
       final saved = await _sessionStore.loadSession(chatId);
       if (saved != null) {
@@ -148,13 +147,13 @@ class E2eeSession implements E2eeMessageCipher {
     return !constantTimeEquals(bundle.identityKey, peer);
   }
 
-  /// The peer's X25519 identity public key bound to the session (K1
-  /// re-audit, 2026-08-16): the in-memory key when the session is loaded,
+  /// The peer's X25519 identity public key bound to the session: the
+  /// in-memory key when the session is loaded,
   /// otherwise restored from the persisted session JSON (`peer_ik_dh`,
   /// §8.3 — set by the 0x01 responder flow from the initiator's
   /// `sender_ik_dh` and by the initiator from the fetched bundle). Null
   /// when no session exists — the group distribution decrypt path then
-  /// falls back to the historical best-effort behavior (no expected key).
+  /// has no expected key.
   @override
   Future<Uint8List?> boundPeerIkDh() async {
     var peer = _peerIkDh;
@@ -168,9 +167,7 @@ class E2eeSession implements E2eeMessageCipher {
     return peer == null ? null : Uint8List.fromList(peer);
   }
 
-  // ---------------------------------------------------------------------------
   // Core operations
-  // ---------------------------------------------------------------------------
 
   /// Encrypts [plaintext] (UTF-8) for the peer and returns the base64url
   /// envelope string (type 0x01 on the session's first outbound message,
@@ -182,17 +179,15 @@ class E2eeSession implements E2eeMessageCipher {
     final identity = await _identityKeys();
     await _ensureSessionReady(identity);
 
-    // Signal unacknowledged-prekey semantics (2026-08-16, getPreKeyMessage):
+    // Signal unacknowledged-prekey semantics:
     // while the peer has not acknowledged our init, every outbound message
     // is RE-WRAPPED as a type-0x01 init envelope with the SAME baseKey and
     // prekey ids persisted on the session — the peer reuses its existing
     // session (baseKey lookup), so nothing is re-fetched and no one-time
-    // prekey is ever consumed twice. The pre-fix design re-ran fresh X3DH
-    // per send (new ekA + bundle fetch per message), which burned OPKs and
-    // made re-processed history permanently undecryptable.
+    // prekey is ever consumed twice.
     //
     // Two cases still heal with ONE fresh X3DH:
-    //  - a restored LEGACY session JSON without the persisted init fields;
+    //  - a restored session JSON without the persisted init fields;
     //  - an idle session past the 90-day expiry (the peer-side session is
     //    gone, so a re-wrapped init could never decrypt there either).
     if (_role == 'initiator' &&
@@ -204,7 +199,7 @@ class E2eeSession implements E2eeMessageCipher {
             _clock().difference(_ratchet!.lastUsedAt) > e2eeSessionMaxAge)) {
       AppLogger.instance.warn(
         'e2ee unacknowledged init chat=$chatId peer=$peerUserId — '
-        're-initiating with a fresh X3DH (legacy session or idle past '
+        're-initiating with a fresh X3DH (missing init fields or idle past '
         'e2eeSessionMaxAge)',
       );
       await wipe();
@@ -299,7 +294,7 @@ class E2eeSession implements E2eeMessageCipher {
   /// marker). (Account-level wipe of ALL material is
   /// `E2eeKeyStore.wipeAll()` — §7.6.) The chat layer uses this to roll
   /// back an initiator session whose init INSERT failed — the next encrypt
-  /// re-initiates fresh X3DH (2026-08-15 session/insert atomicity).
+  /// re-initiates fresh X3DH.
   @override
   Future<void> wipe() async {
     _ratchet = null;
@@ -356,10 +351,10 @@ class E2eeSession implements E2eeMessageCipher {
       'has_sent_init': _hasSentInit,
       'init_acknowledged': _initAcknowledged,
       'last_init_marker': _lastInitMarker,
-      // Init fields (2026-08-16): the baseKey + prekey ids the session was
+      // Init fields: the baseKey + prekey ids the session was
       // built around — the initiator re-wraps unacknowledged sends with them
       // (Signal getPreKeyMessage), the responder matches re-sent inits by
-      // them. Null on legacy JSON.
+      // them. Null when the fields are absent from the persisted JSON.
       'ek_a': _ekA == null ? null : base64UrlNoPadEncode(_ekA!),
       'spk_id': _spkId,
       'opk_id': _opkId,
@@ -378,9 +373,7 @@ class E2eeSession implements E2eeMessageCipher {
     });
   }
 
-  // ---------------------------------------------------------------------------
   // Internals
-  // ---------------------------------------------------------------------------
 
   Future<E2eeIdentityKeys> _identityKeys() async {
     _identity ??= await _keyStore.loadOrCreateIdentity();
@@ -432,12 +425,12 @@ class E2eeSession implements E2eeMessageCipher {
   }
 
   /// Type 0x01: X3DH responder flow (§5.4). A NEW init envelope replaces
-  /// any existing session (last-processed-wins, §7.2 / D-11) and moves the
+  /// any existing session (last-processed-wins, §7.2) and moves the
   /// displaced session to the inactive list (Sesame §3.2); a RE-SENT init
   /// (same baseKey — Signal's unacknowledged-prekey re-wrap) is decrypted
   /// via the EXISTING session, never re-running X3DH and never touching a
-  /// one-time prekey (SessionBuilder.processV3 `hasSessionState(baseKey)`
-  /// — 2026-08-16); a REPLAYED init is dropped without touching the session
+  /// one-time prekey (SessionBuilder.processV3 `hasSessionState(baseKey)`);
+  /// a REPLAYED init is dropped without touching the session
   /// (X3DH §4.2). On auth failure all state changes are discarded and the
   /// previous session is restored (Sesame §3.4) — an attacker cannot clobber
   /// a healthy session with a forged init.
@@ -473,9 +466,7 @@ class E2eeSession implements E2eeMessageCipher {
     // decrypt via the existing session's ratchet (the chain advanced, so the
     // message decrypts like any other). No X3DH, no OPK load/delete, no
     // archive: this is what makes the initiator's re-wrapped prekey messages
-    // decryptable even after the one-time prekey was consumed (the pre-fix
-    // fresh-X3DH design burned an OPK per send and made re-processed history
-    // permanently undecryptable — the live "Mensaje no descifrable" class).
+    // decryptable even after the one-time prekey was consumed.
     final reused = await _decryptWithBaseKeySession(env, identity);
     if (reused != null) return reused;
 
@@ -564,20 +555,20 @@ class E2eeSession implements E2eeMessageCipher {
         env,
         identity,
       );
-      // Consumed OPK: delete now (forward secrecy, R1 §3.4 / §5.4 step 2).
+      // Consumed OPK: delete now.
       if (needsOpk) {
         await _keyStore.deleteOneTimePrekey(env.opkId!);
       }
       _lastInitMarker = marker;
       // Signal `clearUnacknowledgedPreKeyMessage` runs on ANY successful
-      // decrypt (2026-08-16): processing the peer's init acknowledges our
+      // decrypt: processing the peer's init acknowledges our
       // own — the simultaneous-initiation loop converges instead of
       // re-initiating forever.
       _initAcknowledged = true;
       await _persist();
       return E2eeDecryptResult.plaintext(plaintext);
     } on RatchetError {
-      // Abort and restore everything (R1 §3.4 / §5.4 step 6 + Sesame §3.4:
+      // Abort and restore everything (§3.4 / §5.4 step 6 + Sesame §3.4:
       // a failed init must not destroy the established session).
       _ratchet = prevRatchet;
       _peerIkDh = prevPeerIkDh;
@@ -680,7 +671,7 @@ class E2eeSession implements E2eeMessageCipher {
   }
 
   /// Type 0x02: existing-session decrypt. Never creates sessions from
-  /// ratchet messages (Sesame R3 §3.4 / §6.5). A message that fails against
+  /// ratchet messages. A message that fails against
   /// the active session is tried against each inactive session; the first
   /// match is activated and the previous active session becomes inactive
   /// (Sesame §3.4 — session convergence on simultaneous initiation).
@@ -887,7 +878,7 @@ class E2eeSession implements E2eeMessageCipher {
   void _restore(String json) {
     final map = jsonDecode(json) as Map<String, dynamic>;
     _ratchet = RatchetState.fromJson(map);
-    // Null-tolerant (K1 re-audit nit): a session JSON missing/corrupt in
+    // Null-tolerant: a session JSON missing/corrupt in
     // these fields must never throw — the identity fields degrade to null
     // (the no-session guards in the encrypt/decrypt paths take over).
     final peerIkDhRaw = map['peer_ik_dh'];
@@ -895,15 +886,15 @@ class E2eeSession implements E2eeMessageCipher {
     final peerIkSigRaw = map['peer_ik_sig'];
     _peerIkSig = peerIkSigRaw is String ? base64UrlNoPadDecode(peerIkSigRaw) : null;
     _hasSentInit = map['has_sent_init'] as bool? ?? true;
-    // Old JSON (pre-2026-08-15) has no field → false → an unacknowledged
+    // A JSON without the field → false → an unacknowledged
     // init heals on the next send (Signal unacknowledged-prekey semantics).
     _initAcknowledged = map['init_acknowledged'] as bool? ?? false;
     _lastInitMarker = map['last_init_marker'] as String?;
-    // Init fields (2026-08-16, Signal getPreKeyMessage): the initiator's
+    // Init fields: the initiator's
     // baseKey + prekey ids, persisted so an unacknowledged init RE-WRAPS
     // instead of re-running fresh X3DH. On the responder they record the
     // init this session was built from (baseKey matching for re-sent inits).
-    // Absent on legacy JSON → the initiator heals with one fresh X3DH.
+    // When absent, the initiator heals with one fresh X3DH.
     final ekA = map['ek_a'];
     _ekA = ekA is String ? base64UrlNoPadDecode(ekA) : null;
     _spkId = map['spk_id'] as int?;
@@ -947,7 +938,7 @@ class E2eeSession implements E2eeMessageCipher {
 /// the old session still decrypts; deleted once the retention window passes
 /// (Sesame §6.4/§6.5). [aliceBaseKey] is the baseKey (`ek_a`) this session
 /// was built around — re-sent inits are matched to it (Signal
-/// `hasSessionState(version, baseKey)`, 2026-08-16).
+/// `hasSessionState(version, baseKey)`).
 class _RetiredSession {
   _RetiredSession({
     required this.ratchet,

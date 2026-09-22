@@ -5,11 +5,10 @@ import 'package:samay/crypto/codec.dart';
 import 'package:samay/crypto/constants.dart';
 import 'package:samay/crypto/e2ee_primitives.dart';
 
-/// The Signal Double Ratchet (R2 rev 4, §3) as specced in
+/// The Signal Double Ratchet as specced in
 /// E2EE-ARCHITECTURE.md §4 — non-HE variant with the recommended algorithms
-/// of R2 §7.2 and nonces derived from the message key.
+/// of §7.2 and nonces derived from the message key.
 ///
-/// ## Atomicity (R2 §3.5 / E2EE §4.5)
 ///
 /// `ratchetDecrypt` runs on a deep copy of the state and only commits the
 /// copy back to the caller's state object after the AEAD step succeeds.
@@ -22,7 +21,7 @@ class RatchetError extends E2eeCryptoException {
   const RatchetError(super.message);
 }
 
-/// Double Ratchet message header (R2 §3.2): the sender's ratchet public key
+/// Double Ratchet message header: the sender's ratchet public key
 /// plus the previous-chain length and message number.
 class RatchetHeader {
   const RatchetHeader({required this.dh, required this.pn, required this.n});
@@ -49,7 +48,7 @@ class SkippedKeyIndex {
   int get hashCode => Object.hash(n, Object.hashAll(dh));
 }
 
-/// Mutable Double Ratchet state (R2 §3.2 mapped to E2EE §4.2 names).
+/// Mutable Double Ratchet state.
 ///
 /// Field names follow the mission contract: `rootKey` (RK),
 /// `sendingChainKey` (CKs), `receivingChainKey` (CKr),
@@ -153,7 +152,7 @@ class RatchetState {
     lastUsedAt = work.lastUsedAt;
   }
 
-  /// Drops skipped message keys older than 30 days (E2EE §4.6, R2 §8.4).
+  /// Drops skipped message keys older than 30 days.
   /// Called on session save after every successful decrypt.
   void pruneSkippedKeys(DateTime now) {
     final cutoff = now.subtract(e2eeSkippedKeyMaxAge);
@@ -270,7 +269,7 @@ Future<({Uint8List nextChainKey, Uint8List messageKey})> kdfChainKey(
 ) =>
     deriveMessageKey(chainKey);
 
-/// RatchetInitAlice (R2 §3.3 / E2EE §4.3): the X3DH initiator. `rootKey` is
+/// RatchetInitAlice: the X3DH initiator. `rootKey` is
 /// the X3DH shared secret `SK`; `bobRatchetKey` is Bob's signed prekey
 /// public key (SPKB).
 Future<RatchetState> ratchetInitAlice({
@@ -292,9 +291,9 @@ Future<RatchetState> ratchetInitAlice({
   );
 }
 
-/// RatchetInitBob (R2 §3.3 / E2EE §4.3): the X3DH responder. `rootKey` is
+/// RatchetInitBob: the X3DH responder. `rootKey` is
 /// the X3DH shared secret `SK`; `bobRatchetKeyPair` is Bob's stored signed
-/// prekey keypair (his initial ratchet pair, R2 §7.1).
+/// prekey keypair.
 Future<RatchetState> ratchetInitBob({
   required Uint8List rootKey,
   required E2eeKeyPair bobRatchetKeyPair,
@@ -311,7 +310,7 @@ Future<RatchetState> ratchetInitBob({
   );
 }
 
-/// RatchetEncrypt (R2 §3.4): advances the sending chain, produces the
+/// RatchetEncrypt: advances the sending chain, produces the
 /// header + ciphertext. [adBase] is the 128-byte AD_base (§6.1); the AEAD
 /// associated data is `adBase ‖ header_bytes` (CONCAT rule, fixed-length
 /// header so no length prefix is needed).
@@ -346,7 +345,7 @@ Future<(RatchetHeader, Uint8List)> ratchetEncrypt(
   return (header, ciphertext);
 }
 
-/// RatchetDecrypt (R2 §3.5 / E2EE §4.5): full receive path — skipped keys,
+/// RatchetDecrypt: full receive path — skipped keys,
 /// DH ratchet on new ratchet keys, symmetric-ratchet step, AEAD decrypt.
 ///
 /// Runs atomically on a deep copy: on any failure (auth, skip limit) the
@@ -427,7 +426,6 @@ Future<void> _skipMessageKeys(RatchetState state, int until, DateTime now) async
 
 /// `DHRatchet(header)`: seals the previous sending chain, installs the new
 /// remote ratchet key and derives fresh receiving + sending chains
-/// (R2 §3.5 / E2EE §4.5).
 Future<void> _dhRatchet(RatchetState state, RatchetHeader header) async {
   state.prevSendingChainLen = state.sendingMsgKeyIdx;
   state.sendingMsgKeyIdx = 0;

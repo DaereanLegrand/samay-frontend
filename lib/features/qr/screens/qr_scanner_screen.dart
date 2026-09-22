@@ -52,21 +52,21 @@ class _ScanError extends _ScanResult {
   final bool retryable;
 }
 
-/// QRSC — host/staff attendance QR scanner.
+/// Host/staff attendance QR scanner.
 ///
 /// Full-screen camera via `mobile_scanner`, white scan-frame overlay with the
 /// white scan line, host event name and "Escanea el código QR
-/// del asistente" hint (QRSC §Scanner Screen). Camera access goes through
+/// del asistente" hint. Camera access goes through
 /// [PermissionService] (`Permission.camera`) with the rationale/settings UX;
-/// the torch toggle is an overlay action (mission extension of QRSC's "no
-/// torch" note — phone screens don't glare, the toggle is off by default).
+/// the torch toggle is an overlay action, off by default (phone screens don't
+/// glare).
 ///
 /// On scan: `EventService.validateCode(eventId, code)` (the `validate_code`
 /// RPC — 07_code.sql). The attendee QR encodes the rotating 24-hex code, so
 /// the scanner validates the read payload as that code. Confirmed → ✓
 /// animation + attendee name, "Listo" after ~2s, scanner returns to ready.
 /// Business rejections (invalid code / not in window / already scanned / …)
-/// show the QRSC-spec copy and auto-clear. A missing/unreachable RPC
+/// show the rejection copy and auto-clear. A missing/unreachable RPC
 /// (PGRST202) shows a retryable network error.
 ///
 /// Route: `/scanner/:eventId` (feature-flag gated on `AppFeatureFlag.qr`).
@@ -80,20 +80,19 @@ class QrScannerScreen extends ConsumerStatefulWidget {
 
   final String eventId;
 
-  /// Injectable for tests (SEC-07); defaults to the real service.
+  /// Injectable for tests; defaults to the real service.
   final PermissionService? permissions;
 
   /// Injectable for tests; defaults to the real `mobile_scanner` widget.
   final QrScannerViewBuilder? scannerBuilder;
 
   /// The mobile_scanner `errorBuilder` panel (runtime camera failure — the
-  /// camera widget itself replaces its view with this). U-25: the hand-rolled
-  /// title+button column (which predated U-21's permission panels) now renders
-  /// the same §5.9 [VEmptyView] the `unavailable`/`denied` states use — icon,
-  /// title, body and the outlined retry — so the three camera-failure faces
-  /// are one canonical widget. Static + [visibleForTesting] because the
-  /// mobile_scanner plugin's errorBuilder only fires on a device; the widget
-  /// test mounts the panel directly.
+  /// camera widget itself replaces its view with this). Renders the same
+  /// [VEmptyView] the `unavailable`/`denied` states use — icon, title, body
+  /// and the outlined retry — so the three camera-failure faces are one
+  /// canonical widget. Static + [visibleForTesting] because the mobile_scanner
+  /// plugin's errorBuilder only fires on a device; the widget test mounts the
+  /// panel directly.
   @visibleForTesting
   static Widget cameraErrorPanel(AppLocalizations l10n, VoidCallback onRetry) {
     return VEmptyView(
@@ -147,7 +146,7 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen> {
       // the initState path (dependOnInheritedWidget guard).
       final l10n = AppLocalizations.of(context);
       // Requestable deny → rationale snackbar; permanent deny → settings
-      // dialog (PermissionService's full UX, SEC-07).
+      // dialog (PermissionService's full UX).
       await _permissions.ensureWithPrompt(
         context,
         permission: Permission.camera,
@@ -187,7 +186,7 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen> {
     }
   }
 
-  /// Auto-return to the ready state (QRSC success flow: "Listo" after ~2s).
+  /// Auto-return to the ready state ("Listo" after ~2s).
   void _scheduleReady() {
     _resultTimer?.cancel();
     _resultTimer = Timer(const Duration(seconds: 2), () {
@@ -336,7 +335,7 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen> {
                     },
                     errorBuilder: (context, error) => _cameraError(l10n),
                   ),
-            // Scan frame + white scan line (QRSC overlay spec).
+            // Scan frame + white scan line.
             const IgnorePointer(child: Center(child: _ScanOverlay())),
             Positioned(
               top: AppSpacing.lg,
@@ -462,9 +461,8 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen> {
                 if (retryable) ...[
                   const SizedBox(height: AppSpacing.md),
                   VButton(
-                    // Reuses commonRetry ('Reintentar'/'Retry' — same copy
-                    // the QRSC spec requires): avoids a new ARB key while the
-                    // ARB pair is contended by other agents (I-60/I-61/I-62).
+                    // Reuses commonRetry ('Reintentar'/'Retry'): avoids a new
+                    // ARB key for the scanner's retry action.
                     label: l10n.commonRetry,
                     onPressed: _retryLastScan,
                   ),
@@ -477,7 +475,7 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen> {
   }
 }
 
-/// Scan-frame overlay (QRSC: white outline, corner brackets) + the white
+/// Scan-frame overlay (white outline, corner brackets) + the white
 /// scan line sweeping top→bottom on the idle-safe engine (one
 /// 2.4s sweep then a [SamayDurations.motionCycleRest] settle, so
 /// `pumpAndSettle`-based tests land deterministically). Reduced motion →
@@ -552,7 +550,7 @@ class _ScanOverlayState extends State<_ScanOverlay>
   }
 }
 
-/// White scan-frame guide (QRSC: white outline, corner brackets) with the
+/// White scan-frame guide (white outline, corner brackets) with the
 /// white scan line at [progress] (0 → top edge, 1 → bottom edge). The line
 /// is the only moving part; the frame is static white.
 class _ScanFramePainter extends CustomPainter {

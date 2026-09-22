@@ -16,7 +16,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$EventPhoto {
 
- String get id; String get eventId; String get uploadedByUserId; String get storagePath; int get likesCount; bool get reported; DateTime get createdAt;/// Signed URL resolved client-side by the gallery provider (PHUP — I-59).
+ String get id; String get eventId; String get uploadedByUserId; String get storagePath; int get likesCount; bool get reported; DateTime get createdAt;/// Signed URL resolved client-side by the gallery provider.
 /// Never present in the `event_photos` row; filled via `copyWith` once the
 /// storage client issues it, null until then.
  String? get signedUrl;/// Whether the current user has liked this photo (one like per user per
@@ -234,7 +234,7 @@ class _EventPhoto implements EventPhoto {
 @override@JsonKey() final  int likesCount;
 @override@JsonKey() final  bool reported;
 @override final  DateTime createdAt;
-/// Signed URL resolved client-side by the gallery provider (PHUP — I-59).
+/// Signed URL resolved client-side by the gallery provider.
 /// Never present in the `event_photos` row; filled via `copyWith` once the
 /// storage client issues it, null until then.
 @override final  String? signedUrl;

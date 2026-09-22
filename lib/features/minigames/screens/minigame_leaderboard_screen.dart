@@ -4,10 +4,9 @@ import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/features/minigames/widgets/finished_leaderboard.dart';
 import 'package:samay/shared/widgets/v_header_bar.dart';
 
-/// The finished-match leaderboard as its own route (TODO F).
+/// The finished-match leaderboard as its own route.
 ///
-/// Full-bleed page whose only chrome is the floating back arrow — the same
-/// framing the play screen gives the finished carousel — wrapping
+/// Full-bleed page whose only chrome is the floating back arrow, wrapping
 /// [FinishedLeaderboard]. When [initialParticipantId] is supplied the carousel
 /// opens focused on that player, so tapping a row in the finished session
 /// detail lands on their card.

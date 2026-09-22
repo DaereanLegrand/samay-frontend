@@ -9,9 +9,8 @@ import 'package:samay/shared/widgets/v_button.dart';
 ///
 /// Themed per DESIGN.md: black background, white/gray text,
 /// accent icon in the **error** role — [AppColors.error], the semantic
-/// alias of the glowPink token (6.00:1 — AA). Error is the one place pink
-/// may appear (LUXE directive 2026-08-12: pink is not a main color; error
-/// semantics keep it as the documented exception).
+/// alias of the glowPink token (6.00:1 — AA). Error keeps pink as the one
+/// documented exception to the monochrome palette.
 class ErrorView extends StatelessWidget {
   final String message;
   final IconData icon;
@@ -49,8 +48,8 @@ class ErrorView extends StatelessWidget {
             ),
             if (onRetry != null) ...[
               const SizedBox(height: AppSpacing.xl),
-              // U-19: full-width CTA capped at 320 — the fixed 200px width
-              // clipped long labels at 1.5× text scale (§7.3).
+              // full-width CTA capped at 320 so long labels do not clip at
+              // 1.5× text scale (§7.3).
               ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 320),
                 child: VButton.outlined(

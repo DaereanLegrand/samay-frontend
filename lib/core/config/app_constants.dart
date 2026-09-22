@@ -8,7 +8,7 @@ abstract final class AppConstants {
   /// How long the finished-match leaderboard waits for the decrypted
   /// per-answer content (`minigame_answers` + the private image blobs, joined
   /// to their prompts) before giving up and offering a discreet retry in place
-  /// of the answer area. 5s per the user directive (2026-09-11).
+  /// of the answer area. 5s per the user directive.
   static const Duration leaderboardAnswersTimeout = Duration(seconds: 5);
 
   /// Per-attempt timeout for uploading an encrypted minigame answer image to

@@ -36,18 +36,17 @@ const int _activationMinutes = 30;
 /// * **ended** — event status `ended` or past `ends_at`: no code needed.
 /// * **alreadyAttended** — the caller has been confirmed (host/staff scanner
 ///   wrote their `event_attendances` row): the terminal "Ya te registraste"
-///   state replaces the QR forever (2026-09-10, Task C). A live false → true
-///   flip observed while the QR is on screen plays the assist reveal (the code
-///   dissolves in place, then a check mark + "LISTO"/"DONE" condense in as the
-///   inverse — 2026-09-11, Task D); opening already assisted renders it
-///   directly.
+///   state replaces the QR forever. A live false → true flip observed while the
+///   QR is on screen plays the assist reveal (the code dissolves in place, then
+///   a check mark + "LISTO"/"DONE" condense in as the inverse); opening already
+///   assisted renders it directly.
 /// * **notInvited** — caller is neither host/staff nor an invited attendee.
 /// * **notInWindow** — before activation (`starts_at - 30 min`): countdown,
 ///   then re-fetch when the window opens.
 /// * **active** — white-module QR on black, framed by a thin ring (white track
 ///   + black 3px countdown fill over it) that fills to the next code.
 ///
-/// **Server-clock anchoring (2026-09-09, hardened with a monotonic clock):**
+/// **Server-clock anchoring (hardened with a monotonic clock):**
 /// devices can drift tens of seconds from the server, so the screen never uses
 /// the raw device epoch to pick a window. `get_my_code` returns `serverNowMs`;
 /// at apply the screen records the server phase into the window
@@ -74,7 +73,7 @@ class _AttendanceCodeScreenState extends ConsumerState<AttendanceCodeScreen> {
   Timer? _ticker;
 
   /// This event's `event_attendances` stream while the QR is open and the
-  /// caller is NOT yet assisted (2026-09-10, Task D). The scanner's write lands
+  /// caller is NOT yet assisted. The scanner's write lands
   /// here even on a deep-linked `/qr/:eventId` (no detail screen underneath),
   /// so the terminal reveal fires live. RLS (`ea_read_access`) gates delivery;
   /// owned and unsubscribed on dispose AND the moment the caller is assisted.
@@ -141,7 +140,7 @@ class _AttendanceCodeScreenState extends ConsumerState<AttendanceCodeScreen> {
     super.dispose();
   }
 
-  /// Owns the assist seam on THIS screen (2026-09-10, Task D): while the QR is
+  /// Owns the assist seam on THIS screen: while the QR is
   /// mounted and the caller is not yet assisted, stream this event's
   /// `event_attendances` rows and re-read the authoritative own-attendance
   /// value on any change. This is what makes a deep-linked `/qr/:eventId`

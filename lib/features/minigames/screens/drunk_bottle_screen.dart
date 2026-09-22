@@ -6,8 +6,11 @@ import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/extensions/error_mapper.dart';
 import 'package:samay/core/providers/auth_provider.dart';
+import 'package:samay/core/services/minigame_service.dart';
 import 'package:samay/features/minigames/logic/minigame_engine.dart';
+import 'package:samay/features/minigames/logic/minigame_meta.dart';
 import 'package:samay/features/minigames/providers/minigames_providers.dart';
+import 'package:samay/features/minigames/widgets/minigame_play_header.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/profile_avatar.dart';
 import 'package:samay/shared/widgets/state_views.dart';
@@ -40,11 +43,60 @@ class DrunkBottleScreen extends ConsumerWidget {
         ref.watch(minigameParticipantsProvider(sessionId)).valueOrNull ??
         const <MinigameParticipant>[];
     final gameState = ref.watch(minigameGameStateProvider(sessionId));
+    final myId = ref.watch(authStateProvider).valueOrNull?.user?['id'];
+    final gameNameLower = minigameGameNameLower(
+      l10n,
+      MinigameType.drunkBottle.value,
+    );
+    final headerTitle = gameState.when(
+      loading: () => minigameStatusTitle(
+        word: l10n.minigamesBarWaiting,
+        secondary: gameNameLower,
+        l10n: l10n,
+      ),
+      error: (_, _) => minigameStatusTitle(
+        word: l10n.minigamesBarError,
+        secondary: gameNameLower,
+        l10n: l10n,
+      ),
+      data: (state) {
+        final s = state.skeleton;
+        final enoughPlayers = participants.length >= kDrunkBottleMinPlayers;
+        if (!enoughPlayers) return null;
+        if (s.bottleSpinning) {
+          return minigameStatusTitle(
+            word: l10n.minigamesBottleSpinning,
+            secondary: gameNameLower,
+            l10n: l10n,
+          );
+        }
+        final winner = s.bottleSelectedId == null
+            ? null
+            : participants
+                  .where((p) => p.id == s.bottleSelectedId)
+                  .firstOrNull;
+        if (winner != null) {
+          return minigameStatusTitle(
+            word: winner.id == myId
+                ? l10n.minigamesBottleYourTurn
+                : l10n.minigamesBottleLandedOn(winner.username),
+            secondary: gameNameLower,
+            l10n: l10n,
+          );
+        }
+        return minigameStatusTitle(
+          word: l10n.minigamesBottleTapToSpin,
+          secondary: gameNameLower,
+          l10n: l10n,
+        );
+      },
+    );
 
     return Scaffold(
       backgroundColor: AppColors.discoBlack,
       body: VHeaderBar(
-        title: l10n.minigamesGameDrunkBottle,
+        titleWidget: headerTitle,
+        title: headerTitle == null ? gameNameLower : null,
         child: gameState.when(
           loading: () => const VLoadingView(),
           error: (e, _) => Center(child: Text(e.toAppError().message)),
@@ -210,44 +262,28 @@ class _BottleTableState extends ConsumerState<_BottleTable>
         : seated.where((p) => p.id == selectedId).firstOrNull;
     final enoughPlayers = seated.length >= kDrunkBottleMinPlayers;
 
-    final String status;
-    if (!enoughPlayers) {
-      status = l10n.minigamesBottleMinPlayers(
-        kDrunkBottleMinPlayers,
-        seated.length,
-      );
-    } else if (spinning) {
-      status = l10n.minigamesBottleSpinning;
-    } else if (winner != null) {
-      status = winner.id == myId
-          ? l10n.minigamesBottleYourTurn
-          : l10n.minigamesBottleLandedOn(winner.username);
-    } else {
-      status = l10n.minigamesBottleTapToSpin;
-    }
-
     return Column(
       children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(
-            AppSpacing.lg,
-            AppSpacing.xs,
-            AppSpacing.lg,
-            AppSpacing.sm,
-          ),
-          child: Text(
-            status,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: winner != null && !spinning
-                  ? AppColors.white
-                  : AppColors.mutedStrong,
-              fontSize: winner != null && !spinning ? 18 : 14,
-              fontWeight:
-                  winner != null && !spinning ? FontWeight.w700 : FontWeight.w400,
+        if (!enoughPlayers)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.lg,
+              AppSpacing.xs,
+              AppSpacing.lg,
+              AppSpacing.sm,
+            ),
+            child: Text(
+              l10n.minigamesBottleMinPlayers(
+                kDrunkBottleMinPlayers,
+                seated.length,
+              ),
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: AppColors.mutedStrong,
+                fontSize: 14,
+              ),
             ),
           ),
-        ),
         Expanded(
           child: Center(
             child: LayoutBuilder(

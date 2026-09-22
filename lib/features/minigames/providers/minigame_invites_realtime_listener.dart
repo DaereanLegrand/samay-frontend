@@ -6,7 +6,7 @@ import 'package:samay/core/providers/service_providers.dart';
 import 'package:samay/features/notifications/providers/notifications_providers.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' show RealtimeChannel;
 
-/// Remote-side freshness for the minigame-invite badge (2026-08-27).
+/// Remote-side freshness for the minigame-invite badge.
 ///
 /// Lives for as long as the shell is mounted: subscribes to the current
 /// user's `notifications` realtime stream and invalidates

@@ -6,11 +6,10 @@ import 'package:samay/crypto/x3dh.dart';
 
 /// The four swappable E2EE interfaces (E2EE-ARCHITECTURE.md §10.4).
 ///
-/// The chat layer (I-38) depends ONLY on these abstract types: swapping the
+/// The chat layer depends ONLY on these abstract types: swapping the
 /// implementation (e.g. to `libsignal_protocol_dart` later) is a matter of
-/// new concrete classes behind the same contracts — the UI never changes
-/// (verified by V-06).
-/// A user's long-term identity keypair set (E2EE §5.1, decision D-2):
+/// new concrete classes behind the same contracts — the UI never changes.
+/// A user's long-term identity keypair set (E2EE §5.1):
 /// X25519 DH identity + Ed25519 signing identity.
 class E2eeIdentityKeys {
   const E2eeIdentityKeys({
@@ -87,11 +86,11 @@ abstract class E2eeKeyStore {
   /// Loads the private keypair for one-time prekey [id], null if consumed.
   Future<E2eeKeyPair?> loadOneTimePrekeyPrivate(int id);
 
-  /// Deletes a consumed one-time prekey (forward secrecy, R1 §3.4).
+  /// Deletes a consumed one-time prekey.
   Future<void> deleteOneTimePrekey(int id);
 
-  /// The account uid this key material belongs to (Signal model, 2026-08-15:
-  /// the identity persists across sign-out; it is bound to the account, not
+  /// The account uid this key material belongs to (Signal model: the
+  /// identity persists across sign-out; it is bound to the account, not
   /// the session). Null on a fresh install. Used by the auth layer to wipe
   /// material when a DIFFERENT account signs in on the same device.
   Future<String?> ownerUid();
@@ -134,15 +133,15 @@ abstract class E2eeSessionStore {
   Future<void> wipeAll();
 }
 
-/// Decrypt outcome tri-state (Signal semantics, 2026-08-16).
+/// Decrypt outcome tri-state.
 ///
 /// The chat layer must distinguish a protocol-level SILENT drop (replay,
 /// stale identity, missing prekey material, no session — Signal's
 /// `DuplicateMessageException` / `NoSessionException` cases, which are
 /// dropped without any user-visible error) from a GENUINE undecryptable
 /// failure (tampered ciphertext / ratchet mismatch — the "Mensaje no
-/// descifrable" bubble). The pre-fix `String?` contract conflated the two,
-/// which turned replays and re-processed history into bubbles.
+/// descifrable" bubble). A plain `String?` would conflate the two and turn
+/// replays and re-processed history into bubbles.
 class E2eeDecryptResult {
   const E2eeDecryptResult.plaintext(this.plaintext)
       : dropped = false,
@@ -150,10 +149,10 @@ class E2eeDecryptResult {
         missingChain = false;
 
   /// [missingChain] marks a SILENT drop whose root cause is the ABSENCE of
-  /// the sender's chain material on this device (group sender keys,
-  /// 2026-08-17): no sender-key record for the envelope's sender, or the
-  /// stored record's identity no longer matches the envelope's (stale
-  /// pre-reinstall record). The chat layer reacts by requesting the sender
+  /// the sender's chain material on this device (group sender keys): no
+  /// sender-key record for the envelope's sender, or the
+  /// stored record's identity does not match the envelope's (stale
+  /// record). The chat layer reacts by requesting the sender
   /// to RE-DISTRIBUTE its chain (the Signal retry-request analogue) instead
   /// of waiting forever for a rekey that never comes. All other drop
   /// reasons (replay, out-of-order, gap beyond MAX_SKIP) are left false —
@@ -212,7 +211,7 @@ abstract class E2eeMessageCipher {
   /// layer uses this to roll the session back when the INSERT of the init
   /// fails — otherwise the persisted session believes the init was delivered
   /// and every retry sends undecryptable ratchet messages to a peer that
-  /// never received it (2026-08-15 session/insert atomicity bug).
+  /// never received it.
   bool envelopeIsInit(String envelope);
 
   /// Discards the session: deletes it from the store and zeroes the in-memory
@@ -233,19 +232,19 @@ abstract class E2eeMessageCipher {
   /// 0x01 responder flow records the initiator's `ik_dh` at session
   /// creation and the stored session JSON carries it as `peer_ik_dh`.
   ///
-  /// The group distribution decrypt path (K1 re-audit, 2026-08-16) uses it
+  /// The group distribution decrypt path uses it
   /// to cross-check a sender-key bundle's SELF-ATTESTED `sender_ik_dh`:
   /// a bundle minted with a LEARNED foreign key is rejected unless it
   /// matches the key bound to the pairwise session that delivered it.
   ///
-  /// Null when no session is bound (unknown peer) — callers keep their
-  /// historical best-effort behavior. Implementers may return null.
+  /// Null when no session is bound (unknown peer) — callers treat the
+  /// check as unavailable. Implementers may return null.
   Future<Uint8List?> boundPeerIkDh();
 }
 
 /// Server prekey RPCs (§9.3 — `fetch_prekey_bundle`, `publish_prekeys`).
-/// The Supabase-backed implementation ships with I-38; I-37 only defines the
-/// contract (and tests use an in-memory fake server).
+/// This defines only the contract; concrete service implementations (and
+/// in-memory fakes) live behind it.
 abstract class E2eePrekeyService {
   /// Fetches the peer's current prekey bundle (rate-limited server-side,
   /// §5.5). Null when the peer has no published keys.
@@ -256,7 +255,7 @@ abstract class E2eePrekeyService {
   Future<void> publishAll();
 
   /// Ensures the local bundle is published, but ONLY when nothing is
-  /// published yet (E2EE §12.2 step 4 auth-lifecycle hook, wired 2026-08-15):
+  /// published yet:
   /// called on session restore to heal accounts that predate the
   /// profile-creation publish — a peer without a bundle cannot receive a
   /// first message. No-op when the own row already exists.

@@ -18,6 +18,7 @@ import 'package:samay/features/minigames/logic/minigame_meta.dart';
 import 'package:samay/features/minigames/providers/minigames_providers.dart';
 import 'package:samay/features/minigames/screens/minigames_screen.dart'
     show MinigameScope, minigameRejectionMessage;
+import 'package:samay/features/minigames/widgets/minigame_header_title.dart';
 import 'package:samay/features/minigames/widgets/minigame_pool.dart';
 import 'package:samay/features/profile/providers/profile_providers.dart'
     as profile;
@@ -32,7 +33,7 @@ import 'package:samay/shared/widgets/v_input.dart';
 import 'package:samay/shared/widgets/v_shard_icon.dart';
 import 'package:samay/shared/widgets/v_spinner.dart';
 
-/// Dedicated per-game landing page (2026-08-28): the reusable shell every
+/// Dedicated per-game landing page: the reusable shell every
 /// minigame owns — game title + icon, explanation, audience ("con amigos /
 /// solo"), the primary "Nueva partida" action and the list of this game's
 /// ongoing partidas.
@@ -45,8 +46,8 @@ import 'package:samay/shared/widgets/v_spinner.dart';
 /// wizard lets the player switch to a Group. Direct sessions come from
 /// [myMinigameSessionsProvider]; group sessions from the scoped
 /// [minigameSessionsProvider]. The list is filtered to [gameType] and shows
-/// the caller's partidas — ongoing first, then finished (user directive
-/// 2026-09-15: a settled match stays in the list instead of dropping off).
+/// the caller's partidas — ongoing first, then finished (a settled match
+/// stays in the list instead of dropping off).
 class MinigameDetailScreen extends ConsumerStatefulWidget {
   const MinigameDetailScreen({super.key, required this.gameType});
 
@@ -65,7 +66,7 @@ class _MinigameDetailScreenState extends ConsumerState<MinigameDetailScreen> {
   final Set<String> _busySessionIds = <String>{};
 
   Future<void> _openNewPartida() async {
-    // 2026-09-01: creation is invite-free — the host enters the LOBBY and
+    // Creation is invite-free — the host enters the LOBBY and
     // invites from there. The wizard pops the created session id; this screen
     // then jumps straight into the waiting room so the host lands with the
     // AppBar Invite button ready.
@@ -84,7 +85,7 @@ class _MinigameDetailScreenState extends ConsumerState<MinigameDetailScreen> {
     context.push(RoutePaths.minigameSession(sessionId));
   }
 
-  /// Inline ACCEPT (2026-08-30): accepts the pending invite straight from the
+  /// Inline ACCEPT: accepts the pending invite straight from the
   /// per-game list — no need to open the session detail first. On success the
   /// user is taken to the partida LOBBY (the session detail becomes the
   /// pre-play room once they are a participant). Rejections surface the typed
@@ -116,7 +117,7 @@ class _MinigameDetailScreenState extends ConsumerState<MinigameDetailScreen> {
     }
   }
 
-  /// Inline DECLINE (2026-08-30): declines the pending invite straight from
+  /// Inline DECLINE: declines the pending invite straight from
   /// the per-game list. The accept/decline action invalidates
   /// [myPendingInvitesProvider], so the row drops off the list on success.
   Future<void> _declineInvite(String sessionId) async {
@@ -155,7 +156,10 @@ class _MinigameDetailScreenState extends ConsumerState<MinigameDetailScreen> {
 
     return Scaffold(
       body: VHeaderBar(
-        title: minigameGameNameLower(l10n, type.value),
+        titleWidget: MinigameHeaderTitle(
+          word: minigameGameNameLower(l10n, type.value),
+          secondary: type.tagline(l10n),
+        ),
         child: ListView.builder(
           padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
           itemCount: _listItemCount(l10n),
@@ -167,7 +171,7 @@ class _MinigameDetailScreenState extends ConsumerState<MinigameDetailScreen> {
 
   /// The lazy list: index 0 is the fixed hero + CTA + heading block; the
   /// ongoing partidas (mine + pending invited) follow one per item
-  /// (PERF-01: data-derived rows must be lazily built). Loading/error/empty
+  /// (data-derived rows must be lazily built). Loading/error/empty
   /// collapse the list to the hero block alone.
   int _listItemCount(AppLocalizations l10n) {
     // Block 1: hero + CTA + "en curso" heading (+ its empty/loading state).
@@ -184,8 +188,8 @@ class _MinigameDetailScreenState extends ConsumerState<MinigameDetailScreen> {
 
   /// Every partida of this game the caller can see — ongoing AND finished.
   /// Ongoing rows come first, finished ones after, each newest first, so a
-  /// settled match stays reachable at the foot of the list (user directive
-  /// 2026-09-15) without pushing the live games down.
+  /// settled match stays reachable at the foot of the list without pushing
+  /// the live games down.
   List<Map<String, dynamic>> _partidasOfThisGame() {
     final sessions = ref.watch(myMinigameSessionsProvider).valueOrNull;
     if (sessions == null) return const [];
@@ -233,7 +237,7 @@ class _MinigameDetailScreenState extends ConsumerState<MinigameDetailScreen> {
         children: [
           _buildHero(l10n, type),
           const SizedBox(height: AppSpacing.lg),
-          // White button with black font (2026-08-28 user directive) — the
+          // White button with black font — the
           // primary CTA voice on the per-game page.
           VButton.emphasized(
             label: l10n.minigamesNewPartida,
@@ -314,21 +318,13 @@ class _MinigameDetailScreenState extends ConsumerState<MinigameDetailScreen> {
     );
   }
 
-  /// Title + tagline + explanation + audience chip — the fixed hero block.
-  /// No duplicated title: the AppBar already names the game (2026-08-28
-  /// user directive — drop the redundant hero title + icon).
+  /// Explanation + audience chip — the fixed hero block.
+  /// No duplicated title: the AppBar already names the game — drop the
+  /// redundant hero title + icon.
   Widget _buildHero(AppLocalizations l10n, MinigameType type) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          type.tagline(l10n),
-          style: const TextStyle(
-            color: AppColors.mutedStrong,
-            fontSize: 14,
-          ),
-        ),
-        const SizedBox(height: AppSpacing.md),
         Text(
           type.explanation(l10n),
           style: Theme.of(context).textTheme.bodyLarge,
@@ -343,7 +339,7 @@ class _MinigameDetailScreenState extends ConsumerState<MinigameDetailScreen> {
   /// stay in the group hub / group scope; the feed lands on Direct by
   /// default). Loading/error render inline; the empty view renders in the
   /// header block; the rows themselves are lazily built items of the outer
-  /// [ListView.builder] (PERF-01).
+  /// [ListView.builder].
   /// The open lobby's non-row state (210_minigame_public): the loader, the
   /// error retry or the empty line. The rows themselves are their own lazy
   /// list items, so this never has to size an unbounded child.
@@ -364,9 +360,8 @@ class _MinigameDetailScreenState extends ConsumerState<MinigameDetailScreen> {
               padding: const EdgeInsets.only(bottom: AppSpacing.sm),
               child: Text(
                 l10n.minigamesPublicEmpty,
-                style: const TextStyle(
+                style: AppTypography.bodyMedium.copyWith(
                   color: AppColors.mutedStrong,
-                  fontSize: 13,
                   height: 1.35,
                 ),
               ),
@@ -442,8 +437,7 @@ class _MinigameDetailScreenState extends ConsumerState<MinigameDetailScreen> {
 
 /// Small outlined pill for the audience fact ("Para jugar con amigos"):
 /// transparent fill, 1px `border` hairline, white text, sharp corners — the
-/// design-token voice for a secondary label (2026-08-28 user directive;
-/// outlined, not emphasized).
+/// design-token voice for a secondary label (outlined, not emphasized).
 class _AudienceTag extends StatelessWidget {
   final String label;
 
@@ -454,17 +448,13 @@ class _AudienceTag extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: 6),
       decoration: BoxDecoration(
-        color: Colors.transparent,
+        color: AppColors.transparent,
         border: Border.all(color: AppColors.border),
         borderRadius: AppRadius.sharp,
       ),
       child: Text(
         label,
-        style: const TextStyle(
-          color: AppColors.white,
-          fontSize: 12,
-          fontWeight: FontWeight.w600,
-        ),
+        style: AppTypography.labelMedium.copyWith(color: AppColors.white),
       ),
     );
   }
@@ -475,7 +465,7 @@ class _AudienceTag extends StatelessWidget {
 /// INVITE (170_minigame_invite_badges) — an invited friend's "partida-N
 /// ready to accept" entry — which renders:
 ///
-///   * the who-invited context (2026-08-30): "Invitado por {name}" for a
+/// * the who-invited context: "Invitado por {name}" for a
 ///     DIRECT session, "Grupo {name}" for a GROUP session — resolved from the
 ///     notification payload the server embeds (RLS keeps the raw group/user
 ///     rows unreadable to a non-member invitee),
@@ -520,7 +510,7 @@ class _SessionRow extends ConsumerWidget {
     // DIRECT session shows the inviter's username (both ride the notification
     // payload for a PENDING row — RLS hides the underlying rows from a
     // non-member invitee). An ONGOING group row has no invite payload, so its
-    // name is resolved from the caller's groups (1, 2026-09-15) to carry the
+    // name is resolved from the caller's groups to carry the
     // group tag in PARTIDAS EN CURSO.
     final groupName = pendingInvite
         ? payloadGroupName
@@ -556,7 +546,7 @@ class _SessionRow extends ConsumerWidget {
                       style: Theme.of(context).textTheme.titleMedium,
                     ),
                     const SizedBox(height: AppSpacing.xs),
-                    // 2026-09-20 revamp: pool + live player count, no
+                    // Pool + live player count, no
                     // "apuesta"/"shards" literals. The pool recomputes when a
                     // participant joins (live session row).
                     Row(
@@ -577,9 +567,8 @@ class _SessionRow extends ConsumerWidget {
                         Text(
                           '${l10n.minigamesParticipantsTitle.toUpperCase()} '
                           '$participants',
-                          style: const TextStyle(
+                          style: AppTypography.bodySmall.copyWith(
                             color: AppColors.mutedStrong,
-                            fontSize: 12,
                           ),
                         ),
                       ],
@@ -588,9 +577,8 @@ class _SessionRow extends ConsumerWidget {
                       const SizedBox(height: AppSpacing.xs),
                       Text(
                         fromLabel,
-                        style: const TextStyle(
+                        style: AppTypography.bodySmall.copyWith(
                           color: AppColors.mutedStrong,
-                          fontSize: 12,
                         ),
                       ),
                     ],
@@ -620,7 +608,7 @@ class _SessionRow extends ConsumerWidget {
 }
 
 /// The inline ACCEPT (emphasized check) / DECLINE (outlined x) pair on a
-/// pending-invite row (2026-08-30). The check is the emphasized voice — white
+/// pending-invite row. The check is the emphasized voice — white
 /// fill, black icon; the x is the outlined voice — transparent fill, white
 /// border + icon. While the RPC is in flight both turn into a single spinner
 /// and ignore taps (double-tap guard).
@@ -661,7 +649,7 @@ class _PublicSessionRow extends StatelessWidget {
         ),
         decoration: BoxDecoration(
           color: AppColors.surfaceAlt,
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: AppRadius.sharp,
           border: Border.all(color: AppColors.hairline),
         ),
         child: Row(
@@ -678,9 +666,8 @@ class _PublicSessionRow extends StatelessWidget {
                   Text(
                     '${l10n.minigamesPublicHostedBy(host)} · '
                     '${l10n.minigamesPublicPlayers(count, limit)}',
-                    style: const TextStyle(
+                    style: AppTypography.bodySmall.copyWith(
                       color: AppColors.mutedStrong,
-                      fontSize: 12,
                     ),
                   ),
                 ],
@@ -756,7 +743,7 @@ class _PendingInviteActions extends StatelessWidget {
             onPressed: onDecline,
             tooltip: l10n.minigamesInviteDecline,
             style: IconButton.styleFrom(
-              backgroundColor: Colors.transparent,
+              backgroundColor: AppColors.transparent,
               side: const BorderSide(color: AppColors.white),
               shape: const RoundedRectangleBorder(),
               padding: EdgeInsets.zero,
@@ -785,7 +772,7 @@ class _NewPartidaScreen extends ConsumerStatefulWidget {
 class _NewPartidaScreenState extends ConsumerState<_NewPartidaScreen> {
   /// Shared control-row height for the two-column mode section: the chips
   /// and the anonymous switch both occupy this fixed height so their control
-  /// baselines align and the gap to their labels matches (2026-09-01).
+  /// baselines align and the gap to their labels matches.
   static const double wizardControlHeight = 40;
 
   final _nameController = TextEditingController();
@@ -822,7 +809,7 @@ class _NewPartidaScreenState extends ConsumerState<_NewPartidaScreen> {
     final ongoing = sessions
             ?.where((row) => row['status'] != 'finished')
             .where((row) => row['game_type'] == widget.gameType.value)
-            // 1 (2026-09-15): myMinigameSessionsProvider now also carries GROUP
+            // myMinigameSessionsProvider now also carries GROUP
             // rows; the DIRECT auto-name still counts only direct games. The
             // group scope reads its own per-group provider, so this is a no-op
             // there.
@@ -851,7 +838,7 @@ class _NewPartidaScreenState extends ConsumerState<_NewPartidaScreen> {
 
     setState(() => _creating = true);
     try {
-      // 2026-09-01: the wizard creates with ZERO invitees — invites happen
+      // The wizard creates with ZERO invitees — invites happen
       // in the lobby (invite_minigame_players). Both .create() calls return
       // the created session id so the wizard pops it up for auto-entry.
       final String sessionId;
@@ -916,7 +903,7 @@ class _NewPartidaScreenState extends ConsumerState<_NewPartidaScreen> {
 
     return Scaffold(
       body: VHeaderBar(
-        // AppBar titles are lowercase (2026-08-30 directive): the l10n
+        // AppBar titles are lowercase: the l10n
         // default is capitalized ("Nueva partida"), so the wizard title
         // lowercases it here.
         title: l10n.minigamesNewPartida.toLowerCase(),
@@ -933,9 +920,8 @@ class _NewPartidaScreenState extends ConsumerState<_NewPartidaScreen> {
                 Text(
                   // Just the number — the shard icon already conveys the unit.
                   '$balance',
-                  style: const TextStyle(
+                  style: AppTypography.bodyMedium.copyWith(
                     color: AppColors.white,
-                    fontSize: 14,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -948,7 +934,7 @@ class _NewPartidaScreenState extends ConsumerState<_NewPartidaScreen> {
           children: [
             // Scope: labels row (Partida | Elige un grupo) then controls row
             // (Directa/Grupo | selected group) — the two columns share the
-            // same vertical lines (2026-09-01 directive).
+            // same vertical lines.
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -1007,7 +993,7 @@ class _NewPartidaScreenState extends ConsumerState<_NewPartidaScreen> {
             // override after) + the anonymous toggle.
             // Two columns: left = "Modo de juego" + its Por turnos/Asíncrono
             // chips; right = "Partida anónima" + its switch. Labels share one
-            // vertical line, controls the next (2026-09-01 directive). Both
+            // vertical line, controls the next. Both
             // control areas share [wizardControlHeight] so the chips and the
             // switch sit on the same baseline with identical label gaps.
             Row(
@@ -1068,9 +1054,8 @@ class _NewPartidaScreenState extends ConsumerState<_NewPartidaScreen> {
               ),
             ],
             const SizedBox(height: AppSpacing.md),
-            // 201_minigame_voting: the total-turn target (default 5). The
-            // host-set prize-position (N) selector is deferred (TODO) — the
-            // client sends the default N = 3.
+            // Total-turn target (default 5). The host-set prize-position (N)
+            // selector is deferred; the client sends the default N = 3.
             _WagerRoundsRow(
               wagerController: _wagerController,
               roundsController: _roundsController,
@@ -1110,7 +1095,7 @@ class _NewPartidaScreenState extends ConsumerState<_NewPartidaScreen> {
 }
 
 /// The wizard's compact subtitle (create-partida) — UPPERCASE, regular weight,
-/// small (2026-09-01 user directive: all subtitles uppercase + not bold).
+/// small.
 /// Rendered ABOVE its control group; left-aligned labels get left padding,
 /// right-aligned get right padding — ONLY on these title tiles.
 class _WizardSectionLabel extends StatelessWidget {
@@ -1121,12 +1106,8 @@ class _WizardSectionLabel extends StatelessWidget {
 
   /// Shared style — the compact wizard-subtitle voice. Uppercase is applied at
   /// render time (`.toUpperCase()`); regular weight (not bold).
-  static const TextStyle style = TextStyle(
-    fontFamily: 'Inter',
-    fontSize: 11,
+  static final TextStyle style = AppTypography.sectionLabelSmall.copyWith(
     fontWeight: FontWeight.w400,
-    letterSpacing: 2.0,
-    color: AppColors.mutedStrong,
   );
 
   @override
@@ -1148,7 +1129,7 @@ class _WizardSectionLabel extends StatelessWidget {
 /// The selected group's name on the RIGHT of the Directa/Grupo chips when
 /// Grupo is selected — vertically centered with the chips. Tapping it opens
 /// the group picker sheet. The "Elige un grupo" LABEL lives one row above in
-/// the scope labels row (2026-09-01 directive); this widget renders only the
+/// the scope labels row; this widget renders only the
 /// value (name or a "…" prompt while nothing is chosen).
 class _SelectedGroupButton extends ConsumerWidget {
   final String? groupId;
@@ -1175,12 +1156,11 @@ class _SelectedGroupButton extends ConsumerWidget {
               selectedName ?? l10n.minigamesChooseGroupEllipsis,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: TextStyle(
+              style: AppTypography.bodyMedium.copyWith(
                 color: selectedName != null
                     ? AppColors.white
                     : AppColors.mutedStrong,
                 fontWeight: FontWeight.w600,
-                fontSize: 14,
               ),
             ),
           ),
@@ -1198,7 +1178,7 @@ class _SelectedGroupButton extends ConsumerWidget {
 
 /// Bottom-sheet list of every [groups] group (radio-style selection). Picking
 /// returns the chosen group id; dismissing returns null. The sheet is the
-/// wizard's "picker with all groups list" (2026-09-01 user directive).
+/// wizard's "picker with all groups list".
 Future<String?> showGroupPickerSheet(
   BuildContext context, {
   required List<Group> groups,
@@ -1282,7 +1262,7 @@ Future<String?> showGroupPickerSheet(
 }
 
 /// The wager + rounds row in the create-partida wizard — two columns in one
-/// row (2026-09-01 directive): LEFT = "Usando" (plain editable amount with a
+/// row: LEFT = "Usando" (plain editable amount with a
 /// shard icon on the right); RIGHT = "Rondas" (wheel picker).
 class _WagerRoundsRow extends StatelessWidget {
   final TextEditingController wagerController;
@@ -1305,14 +1285,13 @@ class _WagerRoundsRow extends StatelessWidget {
           child: _labelFieldColumn(
             label: l10n.minigamesWagerLabel,
             // Constrain the wager input width so the amount + shard icon sit
-            // together instead of the input stretching full column width
-            // (2026-09-01).
+            // together instead of the input stretching full column width.
             field: Align(
               alignment: Alignment.centerLeft,
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 120),
                 // Plain editable amount field (no wheel picker — the picker
-                // stays only on Rondas; 2026-09-01). Shard symbol on the
+                // stays only on Rondas). Shard symbol on the
                 // RIGHT of the number.
                 child: VInput(
                   label: l10n.minigamesWagerLabel,
@@ -1339,11 +1318,11 @@ class _WagerRoundsRow extends StatelessWidget {
             field: _NumberField(
               hint: l10n.minigamesRoundsHint,
               controller: roundsController,
-              // Rondas value right-aligned like its column (2026-09-01).
+              // Rondas value right-aligned like its column.
               textAlign: TextAlign.end,
             ),
             // Rondas right-aligned against the column's right edge so the two
-            // columns mirror (2026-09-01).
+            // columns mirror.
             alignEnd: true,
           ),
         ),
@@ -1372,7 +1351,7 @@ class _WagerRoundsRow extends StatelessWidget {
             textAlign: alignEnd ? TextAlign.end : TextAlign.start,
           ),
         ),
-        // Tight gap between label and its input (2026-09-01).
+        // Tight gap between label and its input.
         const SizedBox(height: 0),
         field,
       ],
@@ -1413,9 +1392,9 @@ class _LabeledNumberRow extends StatelessWidget {
   }
 }
 
-/// A compact numeric field that opens a scrollable wheel picker on tap
-/// (2026-09-01 user directive: "Rondas" + the async fields use the scrollable
-/// picker for easier set up; the wager "Usando" is a plain `VInput`). It
+/// A compact numeric field that opens a scrollable wheel picker on tap —
+/// "Rondas" and the async fields use the scrollable picker; the wager
+/// "Usando" is a plain `VInput`. It
 /// LOOKS like a numeric `VInput` (bare text on black, same hint voice) but the
 /// keyboard never opens — the whole field is an inkwell that slides up a
 /// monochrome `CupertinoPicker` bottom sheet; picking writes the value into
@@ -1425,7 +1404,7 @@ class _NumberField extends StatelessWidget {
   final TextEditingController controller;
 
   /// Text alignment of the input value (the Rondas input right-aligns to
-  /// mirror the right-aligned column; 2026-09-01).
+  /// mirror the right-aligned column).
   final TextAlign textAlign;
 
   const _NumberField({
@@ -1451,10 +1430,8 @@ class _NumberField extends StatelessWidget {
         onTap: () => _openPicker(context),
         showCursor: false,
         textAlign: textAlign,
-        style: const TextStyle(
+        style: AppTypography.bodyLarge.copyWith(
           color: AppColors.white,
-          fontSize: 17,
-          fontWeight: FontWeight.w400,
           height: 1.35,
         ),
         decoration: InputDecoration(
@@ -1464,10 +1441,8 @@ class _NumberField extends StatelessWidget {
           focusedBorder: InputBorder.none,
           filled: false,
           floatingLabelBehavior: FloatingLabelBehavior.never,
-          hintStyle: const TextStyle(
+          hintStyle: AppTypography.bodyLarge.copyWith(
             color: AppColors.mutedStrong,
-            fontSize: 17,
-            fontWeight: FontWeight.w400,
             height: 1.35,
           ),
           contentPadding: const EdgeInsets.symmetric(
@@ -1543,10 +1518,8 @@ Future<int?> showNumberWheelSheet(
                       Center(
                         child: Text(
                           '$v',
-                          style: const TextStyle(
+                          style: AppTypography.headlineSmall.copyWith(
                             color: AppColors.white,
-                            fontSize: 20,
-                            fontWeight: FontWeight.w600,
                           ),
                         ),
                       ),
@@ -1565,7 +1538,7 @@ Future<int?> showNumberWheelSheet(
 /// hides usernames during play — participants use temp nicknames until the
 /// leaderboard. Two-column mode section: the label sits ABOVE the switch in
 /// the right column, so both mode labels share one line and both controls
-/// (chips + switch) the next (2026-09-01 directive).
+/// (chips + switch) the next.
 class _AnonymousToggle extends StatelessWidget {
   const _AnonymousToggle({required this.value, required this.onChanged});
 
@@ -1591,7 +1564,7 @@ class _AnonymousToggle extends StatelessWidget {
         // Same fixed control height as the mode chips so the switch centers
         // on the chips' baseline; the materialSwitchTapTargetSize.shrinkWrap
         // removes the extra tap-target padding that inflated the label gap
-        // and dropped the switch below the chips (2026-09-01). Right padding
+        // and dropped the switch below the chips. Right padding
         // mirrors the label's so text and switch share the right edge.
         Padding(
           padding: const EdgeInsets.only(right: AppSpacing.sm),

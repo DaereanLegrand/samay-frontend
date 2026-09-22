@@ -4,9 +4,6 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
 
 /// Group lifecycle: creation, membership, invites, roles and management.
-///
-/// Part of the ARC-05/CQ-01 decomposition of the former monolithic
-/// `SupabaseService` (I-11).
 class GroupService {
   final SupabaseClient client;
 
@@ -91,6 +88,14 @@ class GroupService {
     return Map<String, dynamic>.from(res);
   }
 
+  /// Groups for [groupIds] in ONE read — the batch form of [getGroup]. Ids
+  /// with no visible row are absent from the result.
+  Future<List<Map<String, dynamic>>> getGroups(List<String> groupIds) async {
+    if (groupIds.isEmpty) return const [];
+    final res = await client.from('groups').select().inFilter('id', groupIds);
+    return [for (final g in res) Map<String, dynamic>.from(g)];
+  }
+
   /// The chat id of [groupId]'s group chat — the `chats` row with
   /// `type = 'group'` and `reference_id = [groupId]` — or null when the chat
   /// row does not exist. Active members can read the group chat row
@@ -111,7 +116,7 @@ class GroupService {
   Future<List<Map<String, dynamic>>> getGroupMembers(String groupId) async {
     final res = await client
         .from('group_members')
-        // OPT-009: `group_id` is required by the freezed GroupMember model
+        // `group_id` is required by the freezed GroupMember model
         // (its absence TypeError'd group-detail into "Error del servidor").
         // The join aliases the security-barrier user_search_view as `users` —
         // the raw `users` join is own-row-only under RLS, which dropped every
@@ -160,7 +165,7 @@ class GroupService {
 
   /// Transfers host leadership to [newHostId].
   ///
-  /// OPT-009: routed through the `transfer_host` SECURITY DEFINER RPC —
+  /// Routed through the `transfer_host` SECURITY DEFINER RPC —
   /// a single transaction (demote self to staff + promote the new
   /// host), so a partially-applied transfer can never leave a group with
   /// two hosts or none, and the role-hierarchy RLS (only a host may
@@ -196,7 +201,7 @@ class GroupService {
   Future<List<Map<String, dynamic>>> getMyGroups() async {
     final user = auth.currentUser;
     if (user == null) throw const UnauthorizedError();
-    // ISSUE 2: `status` rides along so invited memberships keep their pending
+    // `status` rides along so invited memberships keep their pending
     // marker in the groups list (the detail screen also gates on it).
     final memberships = await client
         .from('group_members')
@@ -230,7 +235,7 @@ class GroupService {
   }
 
   /// The current user's own membership row for [groupId], or null when there
-  /// is none. ISSUE 2: the detail screen gates the invited state on `status`.
+  /// is none. The detail screen gates the invited state on `status`.
   Future<Map<String, dynamic>?> getMyMembership(String groupId) async {
     final user = auth.currentUser;
     if (user == null) throw const UnauthorizedError();

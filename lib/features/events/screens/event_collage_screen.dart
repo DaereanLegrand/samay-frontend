@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/core/design_tokens/app_icon_sizes.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
+import 'package:samay/core/design_tokens/app_typography.dart';
 import 'package:samay/core/extensions/error_mapper.dart';
 import 'package:samay/core/models/event_photo.dart';
 import 'package:samay/features/events/providers/events_providers.dart';
@@ -14,7 +15,7 @@ import 'package:samay/shared/widgets/state_views.dart';
 import 'package:samay/shared/widgets/v_display_text.dart';
 import 'package:samay/shared/widgets/v_network_image.dart';
 
-/// COLL (phase-08 / R1 events sweep): the event photo-wall — every photo of
+/// The event photo-wall — every photo of
 /// the event (the [eventPhotosProvider] signed-URL gallery) in a tight grid
 /// with the event title overlaid on the wall.
 ///
@@ -115,9 +116,8 @@ class _CollageWall extends StatelessWidget {
                 const SizedBox(height: AppSpacing.xs),
                 Text(
                   l10n.collagePhotoCount(photos.length),
-                  style: const TextStyle(
+                  style: AppTypography.bodySmall.copyWith(
                     color: AppColors.mutedStrong,
-                    fontSize: 12,
                   ),
                 ),
               ],

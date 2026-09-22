@@ -4,7 +4,7 @@ import 'package:samay/core/services/shards_service.dart';
 import 'package:samay/features/profile/providers/profile_providers.dart';
 
 /// Failure kinds for a cosmetic purchase, mapped to friendly localized
-/// messages by the shop screen (I-62 — COSM purchase flow error mapping).
+/// messages by the shop screen.
 enum CosmeticPurchaseFailure { insufficientShards, tierRequirement }
 
 /// Typed purchase error so the UI never pattern-matches raw exception
@@ -38,7 +38,7 @@ class CosmeticsCatalogNotifier
     return _shards.listCosmetics();
   }
 
-  /// Re-runs [build] (pull-to-refresh, finding SM-09).
+  /// Re-runs [build].
   Future<void> refresh() async => ref.invalidateSelf();
 }
 

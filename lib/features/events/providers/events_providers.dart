@@ -15,7 +15,7 @@ class EventDetailNotifier extends FamilyAsyncNotifier<Event, String>
     return event;
   }
 
-  /// Re-runs [build] after any mutation (edit, cancel, status change). R20:
+  /// Re-runs [build] after any mutation (edit, cancel, status change). 
   /// skipped while the last fetch is younger than [refreshThrottle].
   Future<void> refresh() async {
     if (!shouldRefetch()) return;
@@ -63,7 +63,7 @@ class EventHostsNotifier
     return hosts;
   }
 
-  /// Re-runs [build] after host-list changes. R20: skipped while the
+  /// Re-runs [build] after host-list changes.  skipped while the
   /// last fetch is younger than [refreshThrottle].
   Future<void> refresh() async {
     if (!shouldRefetch()) return;
@@ -107,7 +107,7 @@ class MyEventInviteNotifier
     return invite;
   }
 
-  /// Re-runs [build] after accepting/declining an invite. R20: skipped
+  /// Re-runs [build] after accepting/declining an invite.  skipped
   /// while the last fetch is younger than [refreshThrottle].
   Future<void> refresh() async {
     if (!shouldRefetch()) return;
@@ -134,7 +134,7 @@ class MyEventInviteNotifier
   }
 
   /// Declines the caller's pending invite to [arg]. The server DELETES the
-  /// row (2026-09-02 directive) so the reserved seat frees for the host to
+  /// row so the reserved seat frees for the host to
   /// re-invite. Reloads the own invite + the host's roster.
   Future<void> decline() async {
     final inviteId = (await future)?['id'] as String?;
@@ -196,7 +196,7 @@ class EventGuestsNotifier
     return guests;
   }
 
-  /// Re-runs [build] after any invite accept/decline/invite (finding SM-09).
+  /// Re-runs [build] after any invite accept/decline/invite.
   Future<void> refresh() async {
     if (!shouldRefetch()) return;
     ref.invalidateSelf();
@@ -231,7 +231,7 @@ class MyEventsNotifier extends AsyncNotifier<List<Event>>
     with ThrottledRefresh {
   EventService get _service => ref.read(eventServiceProvider);
 
-  /// The events tab list (R1 events sweep): every event visible to the
+  /// The events tab list: every event visible to the
   /// session, ordered by `starts_at` ASC (the service's ordering).
   @override
   Future<List<Event>> build() async {
@@ -240,7 +240,7 @@ class MyEventsNotifier extends AsyncNotifier<List<Event>>
     return events;
   }
 
-  /// Re-runs [build] (pull-to-refresh). R20: skipped while the last fetch
+  /// Re-runs [build] (pull-to-refresh).  skipped while the last fetch
   /// is younger than [refreshThrottle].
   Future<void> refresh() async {
     if (!shouldRefetch()) return;

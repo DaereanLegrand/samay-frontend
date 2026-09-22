@@ -4,10 +4,10 @@ import 'dart:typed_data';
 import 'package:samay/crypto/constants.dart';
 import 'package:samay/crypto/e2ee_primitives.dart';
 
-/// X3DH key agreement (R1 §3) with the Samay parameters of
+/// X3DH key agreement with the Samay parameters of
 /// E2EE-ARCHITECTURE.md §5: X25519, SHA-256, HKDF info
 /// `samay.e2ee.x3dh.v1`, the 32×0xFF `F` marker, and the Ed25519 prekey
-/// signature (decision D-2 — XEdDSA is not available in `package:cryptography`).
+/// signature (XEdDSA is not available in `package:cryptography`).
 /// Bob's published prekey bundle as fetched from the server (§5.3).
 ///
 /// `signature` is `Ed25519(IK_sig_B_priv, Encode(SPKB))` — the 32-byte
@@ -61,8 +61,8 @@ class X3dhInitiateResult {
 /// Initiator side of X3DH (Alice, §5.3).
 ///
 /// 1. Verifies `Sig(IK_sig_B, Encode(SPKB))` — aborts with
-///    [E2eeCryptoException] on failure (R1 §3.3, closes the forged-prekey
-///    weak-forward-secrecy attack R1 §4.5).
+///    [E2eeCryptoException] on failure (§3.3; closes the forged-prekey
+///    weak-forward-secrecy attack of §4.5).
 /// 2. Generates ephemeral EKA and computes DH1..DH4.
 /// 3. `SK = HKDF(salt = 0x00×32, ikm = F ‖ DH1 ‖ DH2 ‖ DH3 [‖ DH4],
 ///    info = "samay.e2ee.x3dh.v1", L = 32)`.

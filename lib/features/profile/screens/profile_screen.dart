@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:samay/core/config/feature_flags.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/core/design_tokens/app_icon_sizes.dart';
+import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/design_tokens/app_typography.dart';
 import 'package:samay/core/extensions/error_mapper.dart';
 import 'package:samay/core/providers/auth_provider.dart';
@@ -13,10 +14,8 @@ import 'package:samay/features/profile/providers/profile_providers.dart';
 import 'package:samay/shared/widgets/profile_avatar.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/error_view.dart';
-import 'package:samay/shared/widgets/v_card.dart';
 import 'package:samay/shared/widgets/state_views.dart';
 import 'package:samay/shared/widgets/v_header_bar.dart';
-import 'package:samay/shared/widgets/v_shard_icon.dart';
 
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
@@ -37,6 +36,7 @@ class ProfileScreen extends ConsumerWidget {
     final authState = ref.watch(authStateProvider);
     final profileAsync = ref.watch(myProfileProvider);
     final groupsAsync = ref.watch(myGroupsProvider);
+    final featureFlags = ref.watch(featureFlagsProvider);
     final l10n = AppLocalizations.of(context);
 
     final showLoading =
@@ -71,8 +71,8 @@ class ProfileScreen extends ConsumerWidget {
             VHeaderSliver(
               title: l10n.profileTitle,
               actions: [
-                // U-26 (4.1.2): the gear is icon-only — the tooltip is its
-                // accessibility name for screen readers.
+                // The gear is icon-only — the tooltip is its accessibility
+                // name for screen readers.
                 IconButton(
                   icon: const Icon(Icons.settings),
                   tooltip: l10n.profileSettingsTitle,
@@ -80,162 +80,274 @@ class ProfileScreen extends ConsumerWidget {
                 ),
               ],
             ),
-            SliverToBoxAdapter(
-              child: showLoading
-                  // First load shows the shared spinner.
-                  ? const VLoadingView()
-                  : error != null
-                  ? ErrorView(
-                      message: error.toAppError().message,
-                      onRetry: () => _refresh(ref),
-                    )
-                  : _buildProfile(
-                      context,
-                      ref,
-                      l10n,
-                      profile,
-                      groups,
-                      displayName,
-                      initials,
-                    ),
-            ),
+            if (showLoading)
+              // First load shows the shared spinner.
+              const SliverToBoxAdapter(child: VLoadingView())
+            else if (error != null)
+              SliverToBoxAdapter(
+                child: ErrorView(
+                  message: error.toAppError().message,
+                  onRetry: () => _refresh(ref),
+                ),
+              )
+            else
+              ..._profileSlivers(
+                context,
+                l10n,
+                profile,
+                groups,
+                displayName,
+                initials,
+                showCosmetics: featureFlags.cosmeticsSection,
+              ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildProfile(
+  /// The profile body as slivers so the group list stays lazy for a user with
+  /// many groups.
+  List<Widget> _profileSlivers(
     BuildContext context,
-    WidgetRef ref,
     AppLocalizations l10n,
     Map<String, dynamic>? profile,
     List<Map<String, dynamic>> groups,
     String displayName,
-    String initials,
-  ) {
-    return Padding(
-      padding: EdgeInsets.fromLTRB(
-        24,
-        24,
-        24,
-        24 + MainShell.navBarInset(context),
+    String initials, {
+    required bool showCosmetics,
+  }) {
+    final bio = profile?['bio'] as String?;
+    final personalShards = profile?['personal_shards'] as int? ?? 0;
+    final preshards = profile?['preshards'] as int? ?? 0;
+    final horizontal = AppSpacing.screenHorizontal;
+    return [
+      // Cover hero: a flat `surfaceAlt` band with the avatar centered. The
+      // avatar is the edit affordance (it pushes the shaped editor).
+      SliverToBoxAdapter(
+        child: _CoverHero(
+          initials: initials,
+          imageUrl: profile?['avatar_url'] as String?,
+          tooltip: l10n.profileEditTitle,
+          onTap: () => context.push(RoutePaths.profileEdit),
+        ),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // U-15 R8 (F18 ADAPTED): the avatar is the edit
-          // affordance — tapping it pushes the edit screen (the
-          // pushed screen is the Samay-shaped editor). One hero per
-          // screen: the top 'perfil' title owns the display voice,
-          // so the username renders as a non-hero handle below the
-          // avatar (2026-09-03 unification).
-          Center(
-            child: Tooltip(
-              message: l10n.profileEditTitle,
-              child: InkWell(
-                customBorder: const CircleBorder(),
-                onTap: () => context.push(RoutePaths.profileEdit),
-                child: ProfileAvatar(
-                  initials: initials,
-                  imageUrl: profile?['avatar_url'] as String?,
+      SliverPadding(
+        padding: EdgeInsets.fromLTRB(horizontal, AppSpacing.lg, horizontal, 0),
+        sliver: SliverToBoxAdapter(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: InkWell(
+                  onTap: () => context.push(RoutePaths.profileEdit),
+                  child: Text(
+                    displayName,
+                    style: Theme.of(
+                      context,
+                    ).textTheme.titleMedium?.copyWith(color: AppColors.white),
+                  ),
                 ),
               ),
-            ),
-          ),
-          const SizedBox(height: 12),
-          Center(
-            child: InkWell(
-              onTap: () => context.push(RoutePaths.profileEdit),
-              child: Text(
-                displayName,
-                style: Theme.of(
-                  context,
-                ).textTheme.titleMedium?.copyWith(color: AppColors.white),
+              if (bio != null && bio.isNotEmpty) ...[
+                const SizedBox(height: AppSpacing.md),
+                Text(
+                  bio,
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: AppColors.mutedStrong,
+                  ),
+                ),
+              ],
+              const SizedBox(height: AppSpacing.xl),
+              _StatStrip(
+                personalShards: personalShards,
+                preshards: preshards,
+                groupsCount: groups.length,
+                shardsLabel: l10n.shardsLedgerTabShards,
+                preshardsLabel: l10n.shardsLedgerTabPreshards,
+                groupsLabel: l10n.profileMyGroups,
+                onTap: () => context.push(RoutePaths.shardsLedger),
               ),
-            ),
+              const SizedBox(height: AppSpacing.xl),
+              Text(
+                l10n.profileMyGroups.toUpperCase(),
+                style: AppTypography.sectionLabel,
+              ),
+              const SizedBox(height: AppSpacing.sm),
+            ],
           ),
-          const SizedBox(height: 24),
-          _BalanceCard(
-            personalShards: profile?['personal_shards'] as int? ?? 0,
-            preshards: profile?['preshards'] as int? ?? 0,
-            // SLED (I-64): the balance card opens the shard/preshard
-            // ledger history at `/shards/ledger`.
-            onTap: () => context.push(RoutePaths.shardsLedger),
-          ),
-          if (profile?['bio'] != null &&
-              (profile!['bio'] as String).isNotEmpty) ...[
-            const SizedBox(height: 16),
-            Text(
-              profile['bio'] as String,
-              // §2.4: secondary text at body size must be
-              // mutedStrong (7.37:1 AA) — never muted.
-              style: Theme.of(
-                context,
-              ).textTheme.bodyMedium?.copyWith(color: AppColors.mutedStrong),
-            ),
-          ],
-          const SizedBox(height: 24),
-          // LUXE v2 (XL-08): the groups header is the §3.3
-          // sectionLabel overline voice (uppercase Inter,
-          // letter-spaced) — not a title.
-          Text(
-            l10n.profileMyGroups.toUpperCase(),
-            style: AppTypography.sectionLabel,
-          ),
-          const SizedBox(height: 8),
-          groups.isEmpty
-              // U-15 R9 (F2 DIRECT): the 60px bare Text becomes the
-              // icon+title+hint voice — still inside the ListView, so
-              // the empty state stays pull-to-refreshable.
-              ? VEmptyView(
+        ),
+      ),
+      SliverPadding(
+        padding: EdgeInsets.symmetric(horizontal: horizontal),
+        sliver: groups.isEmpty
+            ? SliverToBoxAdapter(
+                child: VEmptyView(
                   icon: Icons.group_outlined,
                   title: l10n.profileNoGroupsYet,
                   description: l10n.profileNoGroupsHint,
-                )
-              : Column(
-                  children: [
-                    // U-19: the fixed-height 120px nested box
-                    // (U-09 flag) is gone — §7.3 forbids hard
-                    // heights on text containers. The tiles now
-                    // render inline so every row grows with the
-                    // text scale and the outer ListView scrolls
-                    // naturally (no inner viewport, no clipping).
-                    for (var i = 0; i < groups.length; i++)
-                      _GroupTile(
-                        name: groups[i]['name'] as String? ?? '',
-                        shards: l10n.groupsShardsCountShort(
-                          (groups[i]['group_shards'] as num?)?.toInt() ?? 0,
-                        ),
-                        showDivider: i > 0,
-                      ),
-                  ],
                 ),
-          // PRFL cosmetics entry point (I-36 foundation → I-62):
-          // flag-gated (I-49 release gating); the row navigates
-          // to the cosmetics shop at `/cosmetics` (COSM spec).
-          if (ref.watch(featureFlagsProvider).cosmeticsSection) ...[
-            const SizedBox(height: 32),
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              leading: const Icon(Icons.style, size: 20),
-              title: Text(
-                l10n.profileCosmetics,
-                style: Theme.of(context).textTheme.labelLarge,
+              )
+            : SliverList.builder(
+                itemCount: groups.length,
+                itemBuilder: (context, i) => _GroupTile(
+                  name: groups[i]['name'] as String? ?? '',
+                  shards: l10n.groupsShardsCountShort(
+                    (groups[i]['group_shards'] as num?)?.toInt() ?? 0,
+                  ),
+                  showDivider: i > 0,
+                ),
               ),
-              trailing: const Icon(Icons.chevron_right, size: 20),
-              onTap: () => context.push(RoutePaths.cosmetics),
-            ),
-          ],
-        ],
+      ),
+      SliverToBoxAdapter(
+        child: Padding(
+          padding: EdgeInsets.fromLTRB(
+            horizontal,
+            showCosmetics ? AppSpacing.xxl : 0,
+            horizontal,
+            AppSpacing.xl + MainShell.navBarInset(context),
+          ),
+          child: showCosmetics
+              ? _CosmeticsRow(
+                  label: l10n.profileCosmetics,
+                  onTap: () => context.push(RoutePaths.cosmetics),
+                )
+              : const SizedBox.shrink(),
+        ),
+      ),
+    ];
+  }
+}
+
+/// Flat monochrome cover band with the avatar centered on it.
+class _CoverHero extends StatelessWidget {
+  const _CoverHero({
+    required this.initials,
+    required this.imageUrl,
+    required this.tooltip,
+    required this.onTap,
+  });
+
+  final String initials;
+  final String? imageUrl;
+  final String tooltip;
+  final VoidCallback onTap;
+
+  static const double _height = 180;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: _height,
+      alignment: Alignment.center,
+      decoration: const BoxDecoration(
+        color: AppColors.surfaceAlt,
+        border: Border(bottom: BorderSide(color: AppColors.hairline)),
+      ),
+      child: Tooltip(
+        message: tooltip,
+        child: InkWell(
+          customBorder: const CircleBorder(),
+          onTap: onTap,
+          child: ProfileAvatar(initials: initials, imageUrl: imageUrl),
+        ),
       ),
     );
   }
 }
 
-/// One profile-groups row (PERF-08: const sub-widget — the U-19 inline
-/// replacement of the fixed-height nested list; the hairline divider sits
-/// above every row except the first, matching the old `ListView.separated`).
+/// The shards / preshards / groups numbers as a three-cell strip with hairline
+/// rules; the whole strip opens the shard ledger.
+class _StatStrip extends StatelessWidget {
+  const _StatStrip({
+    required this.personalShards,
+    required this.preshards,
+    required this.groupsCount,
+    required this.shardsLabel,
+    required this.preshardsLabel,
+    required this.groupsLabel,
+    required this.onTap,
+  });
+
+  final int personalShards;
+  final int preshards;
+  final int groupsCount;
+  final String shardsLabel;
+  final String preshardsLabel;
+  final String groupsLabel;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        decoration: const BoxDecoration(
+          border: Border.symmetric(
+            horizontal: BorderSide(color: AppColors.hairline),
+          ),
+        ),
+        padding: const EdgeInsets.symmetric(vertical: AppSpacing.lg),
+        child: Row(
+          children: [
+            Expanded(
+              child: _StatCell(value: '$personalShards', label: shardsLabel),
+            ),
+            const _StatDivider(),
+            Expanded(
+              child: _StatCell(value: '$preshards', label: preshardsLabel),
+            ),
+            const _StatDivider(),
+            Expanded(
+              child: _StatCell(value: '$groupsCount', label: groupsLabel),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _StatCell extends StatelessWidget {
+  const _StatCell({required this.value, required this.label});
+
+  final String value;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(value, style: Theme.of(context).textTheme.titleLarge),
+        const SizedBox(height: AppSpacing.xs),
+        Text(
+          label.toUpperCase(),
+          textAlign: TextAlign.center,
+          style: AppTypography.labelSmall.copyWith(
+            color: AppColors.mutedStrong,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _StatDivider extends StatelessWidget {
+  const _StatDivider();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 1,
+      height: AppSpacing.xxl,
+      color: AppColors.hairline,
+    );
+  }
+}
+
+/// One profile-groups row: icon, name and shard count, hairline-separated.
 class _GroupTile extends StatelessWidget {
   final String name;
   final String shards;
@@ -251,67 +363,76 @@ class _GroupTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        if (showDivider) const Divider(height: 1),
-        ListTile(
-          dense: true,
-          leading: const Icon(Icons.group, size: 20),
-          title: Text(name),
-          trailing: Text(shards),
+        if (showDivider) const Divider(height: 1, color: AppColors.hairline),
+        Padding(
+          padding: const EdgeInsets.symmetric(
+            vertical: AppSpacing.listRowVertical,
+          ),
+          child: Row(
+            children: [
+              const Icon(
+                Icons.group,
+                size: AppIconSizes.md,
+                color: AppColors.mutedStrong,
+              ),
+              const SizedBox(width: AppSpacing.md),
+              Expanded(
+                child: Text(
+                  name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              Text(
+                shards,
+                style: Theme.of(
+                  context,
+                ).textTheme.bodySmall?.copyWith(color: AppColors.mutedStrong),
+              ),
+            ],
+          ),
         ),
       ],
     );
   }
 }
 
-class _BalanceCard extends StatelessWidget {
-  final int personalShards;
-  final int preshards;
-  final VoidCallback onTap;
+/// The flag-gated cosmetics entry, as a hairline row.
+class _CosmeticsRow extends StatelessWidget {
+  const _CosmeticsRow({required this.label, required this.onTap});
 
-  const _BalanceCard({
-    required this.personalShards,
-    required this.preshards,
-    required this.onTap,
-  });
+  final String label;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    // The balance card: white numbers, gold diamond (the currency token,
-    // §5.6). The transparent Material lets the InkWell paint its ink above
-    // the card face.
-    return VCard(
-      child: Material(
-        type: MaterialType.transparency,
-        child: InkWell(
-          onTap: onTap,
-          child: Row(
-            children: [
-              // §5.6: the balance card uses the lg 24 gold diamond.
-              const VShardIcon(size: AppIconSizes.lg),
-              const SizedBox(width: 12),
-              // U-19: the shards column is `Expanded` (§7.3 — the fixed
-              // `Spacer` let the natural-width column overflow the Row at
-              // ≥1.5× text scale; the expanded text wraps instead).
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      l10n.profileShardsCount(personalShards),
-                      style: Theme.of(context).textTheme.bodyLarge,
-                    ),
-                    Text(
-                      l10n.profilePreshardsCount(preshards),
-                      style: Theme.of(context).textTheme.bodyMedium,
-                    ),
-                  ],
-                ),
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        decoration: const BoxDecoration(
+          border: Border(top: BorderSide(color: AppColors.hairline)),
+        ),
+        padding: const EdgeInsets.symmetric(
+          vertical: AppSpacing.listRowVertical,
+        ),
+        child: Row(
+          children: [
+            const Icon(
+              Icons.style,
+              size: AppIconSizes.md,
+              color: AppColors.mutedStrong,
+            ),
+            const SizedBox(width: AppSpacing.md),
+            Expanded(
+              child: Text(
+                label,
+                style: Theme.of(context).textTheme.titleMedium,
               ),
-              const SizedBox(width: 8),
-              const Icon(Icons.chevron_right, size: 20),
-            ],
-          ),
+            ),
+            const Icon(Icons.chevron_right, size: AppIconSizes.md),
+          ],
         ),
       ),
     );

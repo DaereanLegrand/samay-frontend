@@ -14,7 +14,7 @@ abstract class EventPhoto with _$EventPhoto {
     @Default(0) int likesCount,
     @Default(false) bool reported,
     required DateTime createdAt,
-    /// Signed URL resolved client-side by the gallery provider (PHUP — I-59).
+    /// Signed URL resolved client-side by the gallery provider.
     /// Never present in the `event_photos` row; filled via `copyWith` once the
     /// storage client issues it, null until then.
     String? signedUrl,

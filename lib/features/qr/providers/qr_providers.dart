@@ -1,4 +1,4 @@
-/// Outcome of a `validate_code` RPC call (QRSC error-handling contract).
+/// Outcome of a `validate_code` RPC call.
 enum QrScanResult {
   confirmed,
   alreadyScanned,

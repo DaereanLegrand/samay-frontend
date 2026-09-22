@@ -5,14 +5,13 @@ import 'package:samay/shared/widgets/v_spinner.dart';
 
 enum VButtonVariant { outlined, emphasized, dark }
 
-/// Samay primary button — DESIGN.md §5.1 (U-05), monochrome
-/// (2026-08-26 user directive: all color stripped down).
+/// Samay primary button — DESIGN.md §5.1, monochrome
 ///
 /// | Variant | Spec |
 /// |---|---|
 /// | `VButton` / `VButton.outlined` | 1px white border, transparent fill, white `labelLarge` text, sharp, full-width, 14px vertical padding |
 /// | `VButton.emphasized` | white fill, black text, sharp, full-width |
-/// | `VButton.dark` | black (`surfaceAlt`) fill, white text, 1px white hairline — the primary-CTA voice (user directive 2026-08-14) |
+/// | `VButton.dark` | black (`surfaceAlt`) fill, white text, 1px white hairline — the primary-CTA voice |
 ///
 /// Disabled (`onPressed: null` or [loading]): outline/text drop to
 /// `muted #666666` (exempt from contrast as an inactive component).
@@ -21,7 +20,7 @@ enum VButtonVariant { outlined, emphasized, dark }
 /// color (contrast-safe against the fill).
 class VButton extends StatelessWidget {
   /// Design doc §5.1: 14px vertical padding (not on the 8-step scale) —
-  /// the documented U-03 keeper, shared by every variant.
+  /// shared by every variant.
   static const EdgeInsets _padding = EdgeInsets.symmetric(
     horizontal: 14,
     vertical: 14,
@@ -91,7 +90,7 @@ class VButton extends StatelessWidget {
     );
   }
 
-  /// BLACK button (user directive 2026-08-14): `surfaceAlt` black fill,
+  /// BLACK button: `surfaceAlt` black fill,
   /// white text, 1px white hairline — the home/login CTA voice.
   factory VButton.dark({
     Key? key,
@@ -118,7 +117,7 @@ class VButton extends StatelessWidget {
     final Color overlayBase;
     switch (variant) {
       case VButtonVariant.outlined:
-        fill = Colors.transparent;
+        fill = AppColors.transparent;
         text = AppColors.white;
         borderColor = AppColors.white;
         overlayBase = AppColors.white;
@@ -128,7 +127,7 @@ class VButton extends StatelessWidget {
         borderColor = null;
         overlayBase = AppColors.discoBlack;
       case VButtonVariant.dark:
-        // BLACK button (user directive 2026-08-14): black fill, white text,
+        // BLACK button: black fill, white text,
         // 1px white hairline.
         fill = AppColors.surfaceAlt;
         text = AppColors.white;
@@ -146,7 +145,7 @@ class VButton extends StatelessWidget {
         WidgetStateProperty.resolveWith((states) {
           final color = states.contains(WidgetState.disabled)
               ? AppColors.muted
-              : (borderColor ?? Colors.transparent);
+              : (borderColor ?? AppColors.transparent);
           return BorderSide(color: color);
         });
 

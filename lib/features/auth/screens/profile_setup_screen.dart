@@ -36,7 +36,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
     super.initState();
     // Fresh entry = fresh error surface: a previous attempt's messages must
     // never survive into a re-entered screen (flow-scoped error providers,
-    // 2026-08-24 fake-OTP-error fix). Post-frame: provider writes are
+    // fake-OTP-error fix). Post-frame: provider writes are
     // illegal during the widget life-cycle.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(signupErrorsProvider.notifier).clear();

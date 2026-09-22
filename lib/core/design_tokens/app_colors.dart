@@ -3,7 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 /// Samay disco color palette — the single source of truth for every color in
-/// the app (DESIGN.md §2, owned by U-01 for finalization).
+/// the app (DESIGN.md §2).
 ///
 /// Rule: screens and widgets must never invent ad-hoc `Color(0x…)` values —
 /// they reference [AppColors] (or the [SamayThemeExtension] below). New colors
@@ -46,8 +46,6 @@ abstract final class AppColors {
     'badgeRed': badgeRed,
   };
 
-  // ── Neutrals (core) — §2.1 ────────────────────────────────────────────────
-
   /// Page background — **always** black (pillar P1). Contrast vs black: n/a.
   static const Color discoBlack = Color(0xFF000000);
 
@@ -57,9 +55,8 @@ abstract final class AppColors {
   /// Raised surfaces: sheets, menus, skeleton base. Depth only (1.11:1).
   static const Color surfaceAlt = Color(0xFF111111);
 
-  /// Card borders, dividers (decorative). Decoration only (1.21:1) — see §7.2
-  /// for the boundary rule: a hairline is never the *only* indicator of an
-  /// interactive region.
+  /// Card borders, dividers (decorative). Decoration only (1.21:1) — a
+  /// hairline is never the *only* indicator of an interactive region.
   static const Color hairline = Color(0xFF1A1A1A);
 
   /// Interactive outlines: unselected chips, avatar rings. Non-text 3:1 rule
@@ -76,10 +73,11 @@ abstract final class AppColors {
   /// Primary text, icons, emphasized fills. 21:1 — AA/AAA.
   static const Color white = Color(0xFFFFFFFF);
 
-  /// Background for tags
-  static const Color softGray = Color(0xf2f2f2FF);
+  /// Fully transparent — shader-mask stops and `dividerColor` no-op fills.
+  static const Color transparent = Color(0x00000000);
 
-  // ── Signature glow pink — §2.2 ─────────────────────────────────────────────
+  /// Background for tags.
+  static const Color softGray = Color(0xf2f2f2FF);
 
   /// **The signature.** Display titles with glow, brand accents,
   /// selected/highlight states, glow buttons. 6.00:1 — AA.
@@ -91,8 +89,6 @@ abstract final class AppColors {
   /// Pressed state of pink fills, dark-on-pink text pairing. 3.58:1 —
   /// AA-large only; decorative at opacity < 1 (§2.5 rule 6).
   static const Color glowPinkDeep = Color(0xFFC2185B);
-
-  // ── Soft disco accents (status/icons only) — §2.3 ──────────────────────────
 
   /// VIP/subscription tier, premium badges, "pro" features. 4.96:1 — AA.
   static const Color discoViolet = Color(0xFF8B5CF6);
@@ -109,65 +105,57 @@ abstract final class AppColors {
   /// Leaderboard tier 3, bronze ranks. 6.68:1 — AA.
   static const Color discoBronze = Color(0xFFCD7F32);
 
-  // ── LUXE pastel + vivid ends — §2.3 (gradient families) ──────────────────
-  //
-  // The light ends of the 6 LUXE gradient families (the LUXE restyle pass (historical)
-  // §"Gradient family → screen map") plus the two vivid ends that had no
-  // canonical token yet. Pastels are near-white by construction ("watered
-  // down with white", LUXE directive #3) so they sit at AAA contrast on
-  // black. They are meant for gradient layers / glow tints — decorative
-  // fills at low alpha — never for body text roles (use `white`/`mutedStrong`).
+  // The light ends of the 6 gradient families plus the two vivid ends that had
+  // no canonical token. Pastels are near-white by construction ("watered down
+  // with white") so they sit at AAA contrast on black. They are meant for
+  // gradient layers / glow tints — decorative fills at low alpha — never for
+  // body text roles (use `white`/`mutedStrong`).
 
-  /// LUXE rose family light end (#FF8CBE). 9.75:1 — AAA.
+  /// Gradient rose family light end. 9.75:1 — AAA.
   static const Color pastelRose = Color(0xFFFF8CBE);
 
-  /// LUXE violet family light end (#BFA5FA). 9.98:1 — AAA.
+  /// Gradient violet family light end (#BFA5FA). 9.98:1 — AAA.
   static const Color pastelViolet = Color(0xFFBFA5FA);
 
-  /// LUXE cyan family light end (#73F1FF). 15.75:1 — AAA.
+  /// Gradient cyan family light end. 15.75:1 — AAA.
   static const Color pastelCyan = Color(0xFF73F1FF);
 
-  /// LUXE gold family light end (#FFE19D). 16.51:1 — AAA.
+  /// Gradient gold family light end (#FFE19D). 16.51:1 — AAA.
   static const Color pastelGold = Color(0xFFFFE19D);
 
-  /// LUXE mint family light end (#91F1CD). 15.66:1 — AAA.
+  /// Gradient mint family light end. 15.66:1 — AAA.
   static const Color pastelMint = Color(0xFF91F1CD);
 
-  /// LUXE peach family light end (#FFCCBB). 14.60:1 — AAA.
+  /// Gradient peach family light end (#FFCCBB). 14.60:1 — AAA.
   static const Color pastelPeach = Color(0xFFFFCCBB);
 
-  /// LUXE mint family vivid end (#37E6A5). 13.02:1 — AAA.
+  /// Gradient mint family vivid end (#37E6A5). 13.02:1 — AAA.
   static const Color mint = Color(0xFF37E6A5);
 
-  /// LUXE peach family vivid end (#FF8A65). 9.08:1 — AA/AAA.
+  /// Gradient peach family vivid end. 9.08:1 — AA/AAA.
   static const Color peach = Color(0xFFFF8A65);
 
-  // ── Chat message status (2026-08-15, WhatsApp-style ticks) ────────────────
-  //
-  // The sent/received/read indicators live INSIDE the own (white) message
-  // bubble, so both colors are verified against white (they must also stay
-  // legible on the black page for any future dark-bubble variant).
+  // Chat message status (WhatsApp-style ticks). The sent/received/read
+  // indicators live INSIDE the own (white) message bubble, so both colors are
+  // verified against white (they must also stay legible on the black page for
+  // any future dark-bubble variant).
 
   /// Sent/received tick grey (#757575). 4.61:1 on white — AA; 4.55:1 on
   /// black — AA.
   static const Color statusGrey = Color(0xFF757575);
 
-  /// Read tick blue — WhatsApp's read color adapted for a white bubble
-  /// (#007AFF, iOS system blue). 4.02:1 on white — AA; 5.23:1 on black — AA.
+  /// Read tick blue — iOS system blue (#007AFF). 4.02:1 on white — AA;
+  /// 5.23:1 on black — AA.
   static const Color statusRead = Color(0xFF007AFF);
 
-  /// Red badge fill — the "request/invite pending" voice (user directive
-  /// 2026-08-27: red circle badges, overrides the monochrome rule for this
-  /// one semantic element). A deeper red (#E53935, Material red 600) so a
-  /// white 1px-free solid circle reads cleanly on the black page — white
-  /// count text on it is 7.00:1 — AA/AAA.
+  /// Red badge fill for the "request/invite pending" voice. A deeper red
+  /// (#E53935, Material red 600) so a white solid circle reads cleanly on the
+  /// black page — white count text on it is 7.00:1 — AA/AAA.
   static const Color badgeRed = Color(0xFFE53935);
 
-  // ── Semantic aliases — §2 usage roles → canonical tokens ───────────────────
-  //
-  // Role names for the doc's *usage* column (§2.1–§2.3, §5.x). Every alias
-  // resolves to a canonical §2 token — no invented hexes (design doc §8.1:
-  // new colors require a doc row + verified ratio; these are not new colors).
+  // Role names for the doc's usage column (§2.1–§2.3, §5.x). Every alias
+  // resolves to a canonical token — no invented hexes (design doc §8.1: new
+  // colors require a doc row + verified ratio; these are not new colors).
 
   /// VIP/subscription tier, premium badges, "pro" features (§2.3).
   static const Color statusVip = discoViolet;
@@ -182,8 +170,7 @@ abstract final class AppColors {
   /// (§2.3/§5.6).
   static const Color currencyShards = discoGold;
 
-  /// Positive/success signal. The doc defines no literal "success" row —
-  /// this resolves the role to its bright-positive token, discoCyan
+  /// Positive/success signal — the bright-positive token, discoCyan
   /// (13.65:1 — AAA).
   static const Color success = discoCyan;
 
@@ -199,8 +186,7 @@ abstract final class AppColors {
   /// §5.2 error family — never raw red on black (§5.2).
   static const Color danger = glowPinkDeep;
 
-  /// Pending request/invite badge fill — the red circle badge voice
-  /// (user directive 2026-08-27; white text on `badgeRed` is 7.00:1).
+  /// Pending request/invite badge fill — white text on `badgeRed` is 7.00:1.
   static const Color statusPending = badgeRed;
 
   /// Role → canonical-token map (tests/tooling). Values only ever alias
@@ -217,12 +203,10 @@ abstract final class AppColors {
     'statusPending': statusPending,
   };
 
-  // ── Contrast helper — §7.1 ─────────────────────────────────────────────────
-
   /// WCAG 2.2 contrast ratio between [foreground] and [background]:
   /// `(L1 + 0.05) / (L2 + 0.05)` over linearized sRGB relative luminance
   /// (`L = 0.2126R + 0.7152G + 0.0722B`). Pure function — safe to call from
-  /// tests and the U-26 accessibility audit.
+  /// tooling.
   static double contrastRatio(Color foreground, Color background) {
     final l1 = _relativeLuminance(foreground);
     final l2 = _relativeLuminance(background);
@@ -246,11 +230,10 @@ abstract final class AppColors {
 }
 
 /// Theme extension exposing the Samay palette through the Flutter theme
-/// system (finding UI-06; DESIGN.md §2 + §8.1).
+/// system (DESIGN.md §2 + §8.1).
 ///
-/// Registered on `ThemeData.extensions` (I-17) so widgets resolve it via
-/// `Theme.of(context).extension<SamayThemeExtension>()` or the
-/// `context.samayColors` convenience (`lib/core/extensions/context_extensions.dart`).
+/// Registered on `ThemeData.extensions` so widgets resolve it via
+/// `Theme.of(context).extension<SamayThemeExtension>()`.
 @immutable
 class SamayThemeExtension extends ThemeExtension<SamayThemeExtension> {
   /// The canonical dark/disco palette — the app's only theme.

@@ -7,12 +7,12 @@ import 'package:samay/core/providers/service_providers.dart';
 import 'package:samay/core/services/storage_service.dart';
 
 /// App-level configuration from the `app_config` table, with an encrypted
-/// local cache (H-09 refresh migration + STOR offline fallback, I-71).
+/// local cache.
 ///
 /// Every successful fetch is written through to the encrypted Hive
-/// `config_cache` box (I-26) — fire-and-forget, write failures are logged,
+/// `config_cache` box — fire-and-forget, write failures are logged,
 /// never surfaced. When a fetch fails while the device is offline
-/// ([connectivityProvider] false — the I-67 handoff) and the cache holds a
+/// and the cache holds a
 /// config, the cached copy is served instead of the error. Server errors
 /// while online are NEVER masked by the cache.
 final appConfigProvider = AsyncNotifierProvider<AppConfigNotifier,
@@ -21,7 +21,7 @@ final appConfigProvider = AsyncNotifierProvider<AppConfigNotifier,
 class AppConfigNotifier extends AsyncNotifier<Map<String, String>> {
   HiveService get _hive => ref.read(hiveServiceProvider);
 
-  /// Manual refresh seam (H-09): re-runs [build] — fresh fetch, cache
+  /// Manual refresh seam: re-runs [build] — fresh fetch, cache
   /// write-through on success, offline fallback on failure.
   Future<void> refresh() async => ref.invalidateSelf();
 
@@ -29,8 +29,8 @@ class AppConfigNotifier extends AsyncNotifier<Map<String, String>> {
   Future<Map<String, String>> build() async {
     // Watching connectivity re-runs this build on every online/offline
     // transition: going offline swaps in the cache, coming back online
-    // re-fetches. Loading/error states are treated as online (I-67
-    // fail-open: `valueOrNull ?? true`) so the cache never masks a server
+    // re-fetches. Loading/error states are treated as online (fail-open:
+    // `valueOrNull ?? true`) so the cache never masks a server
     // error while connectivity is unknown.
     final offline = ref.watch(connectivityProvider).valueOrNull == false;
     try {
@@ -47,7 +47,7 @@ class AppConfigNotifier extends AsyncNotifier<Map<String, String>> {
   }
 
   /// Reads the encrypted cache, treating uninitialized/re-created Hive
-  /// (I-26 key-loss degradation) as a miss — never a thrown error.
+  /// as a miss — never a thrown error.
   Map<String, String>? _cachedConfig() {
     try {
       final cached = _hive.getCachedConfig();

@@ -2,15 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:samay/core/theme/samay_durations.dart';
 
 /// One-shot `fast` (150ms) easeOutCubic fade-in for shell tab switches
-/// (DESIGN.md §6.1 "subtle, fast"; promoted from U-17's
-/// `_ShellTabFade` — R19, the shell flow alignment).
+/// (DESIGN.md §6.1 "subtle, fast").
 ///
 /// Key the instance on the tab index (`VTabFade(key: ValueKey(index), …)`)
 /// so every switch restarts the fade from opacity 0. Deliberately NOT an
 /// `AnimatedSwitcher`: the switcher keeps the outgoing tab in the tree
 /// during the transition, and the go_router nested Navigator carries
 /// GlobalKey'd route entries — two live Navigators collide (duplicate
-/// GlobalKeys, U-17's documented crash hazard). A fade-in disposes the old
+/// GlobalKeys). A fade-in disposes the old
 /// tab immediately (Juega's `fadeIn(...)` semantics).
 ///
 /// Reduced motion (`MediaQuery.disableAnimationsOf(context)`) → static child

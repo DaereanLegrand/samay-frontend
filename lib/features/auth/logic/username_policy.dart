@@ -4,7 +4,7 @@ import 'package:samay/shared/constants/auth_constants.dart';
 /// Username validation policy for the signup funnel (profile setup).
 ///
 /// Pure Dart, no BuildContext — same contract as `password_policy.dart` /
-/// `age_policy.dart` (I-46): the messages are Spanish literals by design
+/// `age_policy.dart`: the messages are Spanish literals by design
 /// (es-first app, BuildContext-free error contract like the error classes in
 /// `lib/core/errors/**`), mapped verbatim at presentation time.
 ///

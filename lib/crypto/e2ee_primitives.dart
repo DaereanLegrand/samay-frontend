@@ -126,11 +126,11 @@ Future<Uint8List> hmacSha256(Uint8List key, Uint8List data) async {
   return Uint8List.fromList(mac.bytes);
 }
 
-/// The symmetric-ratchet chain step `KDF_CK` (E2EE §4.1, R2 §3.1):
+/// The symmetric-ratchet chain step `KDF_CK`:
 ///
 /// ```
 /// ck_next = HMAC-SHA256(key = ck, data = 0x02)
-/// mk      = HMAC-SHA256(key = ck, data = 0x01)
+/// mk = HMAC-SHA256(key = ck, data = 0x01)
 /// ```
 ///
 /// Returns `(nextChainKey, messageKey)` — deterministic, both 32 bytes.
@@ -150,7 +150,7 @@ Future<({Uint8List nextChainKey, Uint8List messageKey})> deriveMessageKey(
 /// ```
 ///
 /// The nonce is *derived from the message key* — never random, never
-/// transmitted (R2 §7.2 option). Since each message key is used exactly
+/// transmitted. Since each message key is used exactly
 /// once, the nonce is unique per (key, message) by construction.
 Future<Uint8List> expandMessageKey(Uint8List messageKey) => hkdfSha256(
   ikm: messageKey,
@@ -160,7 +160,7 @@ Future<Uint8List> expandMessageKey(Uint8List messageKey) => hkdfSha256(
 );
 
 /// AES-256-GCM encryption. [key] is 32 bytes, [nonce] 12 bytes.
-/// Returns `ciphertext ‖ tag` (128-bit tag, R2 §8.6) — the layout used by
+/// Returns `ciphertext ‖ tag` — the layout used by
 /// the envelope (§6.3/§6.4 `ciphertext` field).
 Future<Uint8List> aesGcmEncrypt({
   required Uint8List key,

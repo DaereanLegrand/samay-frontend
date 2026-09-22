@@ -5,7 +5,7 @@ import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/theme/samay_durations.dart';
 
-/// LUXE v2 AI-thinking typing indicator (the LUXE restyle pass (historical) component
+/// v2 AI-thinking typing indicator component
 /// vocabulary — owned by XL-04): 3 small dots with a staggered pulse,
 /// α0.4↔1.0 easeInOut, for the chat input.
 ///

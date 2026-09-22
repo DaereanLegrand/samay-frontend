@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
+import 'package:samay/core/design_tokens/app_typography.dart';
 import 'package:samay/shared/widgets/rank_bracket.dart';
 
-/// Rank-bracket badge — DESIGN.md §5.5 (U-05).
+/// Rank-bracket badge — DESIGN.md §5.5.
 ///
 /// `border #333333` fill + white bold 11px uppercase label, sharp. Podium
 /// enhancement: pass `rank` 1–3 (leaderboard top-3 rows) to accent the border
@@ -35,9 +36,8 @@ class RankBadge extends StatelessWidget {
       ),
       child: Text(
         label.toUpperCase(),
-        style: TextStyle(
+        style: AppTypography.headlineSmall.copyWith(
           color: accent ?? AppColors.white,
-          fontSize: 20,
           fontWeight: FontWeight.bold,
           letterSpacing: 0.5,
         ),

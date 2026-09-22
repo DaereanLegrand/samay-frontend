@@ -2,7 +2,7 @@ import 'package:samay/core/services/chat_service.dart';
 import 'package:samay/core/services/realtime_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' show RealtimeChannel;
 
-/// Chat domain repository (I-50): thin facade over [ChatService].
+/// Chat domain repository: thin facade over [ChatService].
 ///
 /// Dependency direction doctrine (DEVELOPMENT-WORKFLOW §5): providers depend
 /// on repositories, repositories on services, services on the Supabase client.

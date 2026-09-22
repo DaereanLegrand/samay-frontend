@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:samay/core/design_tokens/app_colors.dart';
+import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/extensions/error_mapper.dart';
 import 'package:samay/core/logging/app_logger.dart';
 import 'package:samay/core/providers/auth_provider.dart';
@@ -26,7 +28,7 @@ typedef GalleryPicker = Future<XFile?> Function(ImageSource source);
 class EditProfileScreen extends ConsumerStatefulWidget {
   const EditProfileScreen({super.key, this.permissions, this.galleryPicker});
 
-  /// Injectable for tests (SEC-07); defaults to the real service.
+  /// Injectable for tests; defaults to the real service.
   final PermissionService? permissions;
 
   /// Injectable for tests; defaults to `ImagePicker.pickImage(gallery)`.
@@ -97,9 +99,9 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     }
   }
 
-  /// PRFL avatar-upload flow (I-36): OS photo permission → gallery pick →
-  /// compress in [MediaService.uploadUserAvatar] → persist the URL →
-  /// invalidate [myProfileProvider] so every profile consumer refetches.
+  /// The avatar-upload flow: OS photo permission → gallery pick → compress in
+  /// [MediaService.uploadUserAvatar] → persist the URL → invalidate
+  /// [myProfileProvider] so every profile consumer refetches.
   Future<void> _uploadAvatar() async {
     final l10n = AppLocalizations.of(context);
     final granted = await _permissions.ensureWithPrompt(
@@ -191,7 +193,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
             // First load shows the shared spinner.
             ? const VLoadingView()
             : ListView(
-                padding: const EdgeInsets.all(24),
+                padding: const EdgeInsets.all(AppSpacing.screenHorizontal),
                 children: [
                   Center(
                     child: Stack(
@@ -205,14 +207,17 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                           right: 0,
                           child: CircleAvatar(
                             radius: 16,
-                            backgroundColor: Colors.white,
+                            backgroundColor: AppColors.white,
                             child: _uploadingAvatar
-                                ? const VSpinner(size: 16, color: Colors.black)
+                                ? const VSpinner(
+                                    size: 16,
+                                    color: AppColors.discoBlack,
+                                  )
                                 : IconButton(
                                     icon: const Icon(
                                       Icons.camera_alt,
                                       size: 14,
-                                      color: Colors.black,
+                                      color: AppColors.discoBlack,
                                     ),
                                     tooltip: l10n.profileAvatarChange,
                                     onPressed: _uploadAvatar,
@@ -223,19 +228,17 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                       ],
                     ),
                   ),
-                  const SizedBox(height: 32),
+                  const SizedBox(height: AppSpacing.xxl),
                   VInput(controller: _bioController, label: l10n.profileBio),
-                  const SizedBox(height: 32),
-                  // The save CTA is the white emphasized fill (black label).
+                  const SizedBox(height: AppSpacing.xxl),
                   VButton.emphasized(
                     label: l10n.profileSaveChanges,
                     loading: _saving,
                     onPressed: _save,
                   ),
-                  const SizedBox(height: 16),
-                  // U-26 (U-23 F4): the password-change placeholder renders
-                  // disabled — an enabled no-op button fails 2.1.1/4.1.2;
-                  // disabled drops to `muted` per §5.1.
+                  const SizedBox(height: AppSpacing.lg),
+                  // The password-change placeholder renders disabled — an
+                  // enabled no-op button would be a misleading affordance.
                   TextButton(
                     onPressed: null,
                     child: Text(l10n.profileChangePassword),

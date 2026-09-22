@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/core/design_tokens/app_icon_sizes.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
+import 'package:samay/core/design_tokens/app_typography.dart';
 import 'package:samay/core/extensions/error_mapper.dart';
 import 'package:samay/core/models/event.dart';
 import 'package:samay/core/router/route_paths.dart';
@@ -19,7 +20,7 @@ import 'package:samay/shared/widgets/v_button.dart';
 import 'package:samay/shared/widgets/v_header_bar.dart';
 import 'package:samay/shared/widgets/v_network_image.dart';
 
-/// The events tab (R1 events sweep): the session's events earliest-first,
+/// The events tab: the session's events earliest-first,
 /// with a create CTA that opens the standalone `/events/create` flow (an
 /// event can be public or group-scoped; group entry points stay reachable).
 ///
@@ -37,7 +38,7 @@ class _MyEventsScreenState extends ConsumerState<MyEventsScreen> {
     await ref.read(myEventsProvider.notifier).refresh();
   }
 
-  /// Creation from the Events tab (2026-09-08): opens the standalone
+  /// Creation from the Events tab: opens the standalone
   /// `/events/create` flow (events can still be created from a group via
   /// the group detail route).
   void _openCreateEvent() {
@@ -95,7 +96,7 @@ class _MyEventsScreenState extends ConsumerState<MyEventsScreen> {
                   ),
                 ),
                 // The create CTA sits right under the hero and scrolls away
-                // with the content (2026-09-08: standalone create flow).
+                // with the content.
                 SliverToBoxAdapter(
                   child: Padding(
                     padding: const EdgeInsets.fromLTRB(
@@ -114,9 +115,8 @@ class _MyEventsScreenState extends ConsumerState<MyEventsScreen> {
                         const SizedBox(height: AppSpacing.sm),
                         Text(
                           l10n.eventsCreateCtaBody,
-                          style: const TextStyle(
+                          style: AppTypography.bodySmall.copyWith(
                             color: AppColors.mutedStrong,
-                            fontSize: 12,
                           ),
                         ),
                       ],
@@ -218,9 +218,8 @@ class _MyEventCard extends StatelessWidget {
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
+                      style: AppTypography.bodySmall.copyWith(
                         color: AppColors.mutedStrong,
-                        fontSize: 13,
                       ),
                     ),
                   ),
@@ -240,9 +239,8 @@ class _MyEventCard extends StatelessWidget {
                       event.locationName ?? l10n.eventNoLocation,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
+                      style: AppTypography.bodySmall.copyWith(
                         color: AppColors.mutedStrong,
-                        fontSize: 13,
                       ),
                     ),
                   ),

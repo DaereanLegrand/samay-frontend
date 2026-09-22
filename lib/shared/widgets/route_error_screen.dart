@@ -7,9 +7,8 @@ import 'package:samay/shared/widgets/v_button.dart';
 import 'package:samay/shared/widgets/v_header_bar.dart';
 
 /// Fallback screen for unrecoverable routing failures: unknown routes,
-/// missing path parameters, and invalid navigation extras (findings NAV-03 /
-/// NAV-04 / NAV-06 / H-03 / H-04 / M-08). Never crashes — the "Volver" button
-/// pops back to the previous flow step when one exists.
+/// missing path parameters, and invalid navigation extras. Never crashes —
+/// the "Volver" button pops back to the previous flow step when one exists.
 class RouteErrorScreen extends StatelessWidget {
   final String? title;
   final String? message;
@@ -41,7 +40,7 @@ class RouteErrorScreen extends StatelessWidget {
                     style: Theme.of(context).textTheme.bodyLarge,
                   ),
                   const SizedBox(height: AppSpacing.xl),
-                  // U-19: full-width CTA capped at 320 — the fixed 200px width
+                  // full-width CTA capped at 320 — the fixed 200px width
                   // clipped long labels at 1.5× text scale (§7.3).
                   ConstrainedBox(
                     constraints: const BoxConstraints(maxWidth: 320),

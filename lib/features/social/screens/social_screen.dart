@@ -11,8 +11,9 @@ import 'package:samay/features/social/screens/amigos_tab_screen.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/v_count_badge.dart';
 import 'package:samay/shared/widgets/v_header_bar.dart';
+import 'package:samay/shared/widgets/v_pill_tab_bar.dart';
 
-/// The Social tab root (redesign 2026-09-20).
+/// The Social tab root.
 ///
 /// Minimal: the pill sub-tabs (Grupos | Amigos) stay, but the per-segment
 /// button-tile rows are gone. The header carries search + the single shared
@@ -95,7 +96,19 @@ class _SocialScreenState extends ConsumerState<SocialScreen>
                 ),
               ],
               bottomHeight: _kSegmentTabBarHeight,
-              bottom: _SegmentedTabBar(controller: _tabController, l10n: l10n),
+              bottom: Padding(
+                padding: const EdgeInsets.only(
+                  left: AppSpacing.screenHorizontal,
+                  right: AppSpacing.screenHorizontal,
+                  top: _kSegmentInsetTop,
+                  bottom: _kSegmentInsetBottom,
+                ),
+                child: VPillTabBar(
+                  key: const ValueKey('socialSegmentedTabBar'),
+                  controller: _tabController,
+                  labels: [l10n.socialTabGroups, l10n.socialTabFriends],
+                ),
+              ),
             ),
           ),
         ],
@@ -108,9 +121,6 @@ class _SocialScreenState extends ConsumerState<SocialScreen>
   }
 }
 
-/// Segmented tab-bar track height (transparent tap band; no fill).
-const double _kSegmentTrackHeight = 40;
-
 /// Top inset of the segment band — the gap between the page Header title row
 /// and the switch.
 const double _kSegmentInsetTop = AppSpacing.lg;
@@ -118,63 +128,9 @@ const double _kSegmentInsetTop = AppSpacing.lg;
 /// Bottom inset of the segment band (breathing room above the list content).
 const double _kSegmentInsetBottom = AppSpacing.xs;
 
-/// Fully-rounded outline radius of the selected segment (half the track).
-const double _kSegmentRadius = _kSegmentTrackHeight / 2;
-
 /// Height of the segmented band (track + top/bottom inset).
 const double _kSegmentTabBarHeight =
-    _kSegmentTrackHeight + _kSegmentInsetTop + _kSegmentInsetBottom;
-
-/// The Social segmented control, styled with the bottom nav bar's palette
-/// (2026-09-20 directive): a `surface`@0.85 glass pill with a white@0.15
-/// hairline border; the active segment is a white outline with a white label,
-/// every other segment is a plain `muted` label — the nav bar's
-/// selected/unselected colors.
-class _SegmentedTabBar extends StatelessWidget {
-  final TabController controller;
-  final AppLocalizations l10n;
-
-  const _SegmentedTabBar({required this.controller, required this.l10n});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      key: const ValueKey('socialSegmentedTabBar'),
-      margin: const EdgeInsets.only(
-        left: AppSpacing.screenHorizontal,
-        right: AppSpacing.screenHorizontal,
-        top: _kSegmentInsetTop,
-        bottom: _kSegmentInsetBottom,
-      ),
-      height: _kSegmentTrackHeight,
-      // Nav-bar colors: the same `surface`@0.85 fill and white@0.15 border as
-      // the floating pill in main_shell.dart.
-      decoration: BoxDecoration(
-        color: AppColors.surface.withValues(alpha: 0.85),
-        borderRadius: BorderRadius.circular(_kSegmentRadius),
-        border: Border.all(color: AppColors.white.withValues(alpha: 0.15)),
-      ),
-      child: TabBar(
-        controller: controller,
-        indicator: BoxDecoration(
-          border: Border.all(color: AppColors.white),
-          borderRadius: BorderRadius.circular(_kSegmentRadius),
-        ),
-        indicatorSize: TabBarIndicatorSize.tab,
-        dividerColor: Colors.transparent,
-        labelColor: AppColors.white,
-        unselectedLabelColor: AppColors.muted,
-        labelStyle: Theme.of(context).textTheme.labelMedium,
-        padding: EdgeInsets.zero,
-        labelPadding: EdgeInsets.zero,
-        tabs: [
-          Tab(text: l10n.socialTabGroups),
-          Tab(text: l10n.socialTabFriends),
-        ],
-      ),
-    );
-  }
-}
+    VPillTabBar.trackHeight + _kSegmentInsetTop + _kSegmentInsetBottom;
 
 /// The requests action on the Amigos segment: a person-add icon carrying the
 /// pending count (received friend requests + group invites) as a red circle.

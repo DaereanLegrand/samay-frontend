@@ -22,12 +22,11 @@ import 'package:samay/shared/widgets/v_header_bar.dart';
 import 'package:samay/shared/widgets/v_network_image.dart';
 import 'package:samay/shared/widgets/v_shard_icon.dart';
 
-/// Group detail — ONE scroll (2026-09-15 restructure): the Info | Chat |
-/// Miembros | Eventos tab bar is gone. The screen shows the group identity,
-/// a 2×2 sharp action grid (Chat · Donar · Miembros · Crear partida) and the
-/// inline events section; invite/create-event/leave live in the header's
-/// three-dot menu. Chat always opens the shared [ChatScreen] (the same chat
-/// screen the feed flow uses) — never an embedded thread.
+/// Group detail: a full-bleed cover banner with the group name and menu in a
+/// transparent header, a flat identity strip (shards / members / rank), the
+/// group description and an action row (Chat · Donar · Miembros · Crear
+/// partida), then the inline events section. Invite/create-event/leave live in
+/// the header menu. Chat opens the shared [ChatScreen].
 class GroupDetailScreen extends ConsumerStatefulWidget {
   const GroupDetailScreen({super.key, required this.groupId});
 
@@ -94,7 +93,7 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen> {
             ),
           );
         }
-        // ISSUE 2: an invited user has not joined — a single Aceptar/Rechazar
+        // An invited user has not joined — a single Aceptar/Rechazar
         // panel, nothing else. A missing membership row (null) is active.
         if (data.membership?['status'] == 'invited') {
           return _buildInvitedPanel(data.group!, data.membership!);
@@ -104,14 +103,14 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen> {
     );
   }
 
-  /// ISSUE 2: the invited (pending) state — explanation + Aceptar/Rechazar.
+  /// The invited (pending) state — explanation + Aceptar/Rechazar.
   Widget _buildInvitedPanel(Group g, Map<String, dynamic> membership) {
     final l10n = AppLocalizations.of(context);
     final membershipId = membership['id'] as String;
     return _scaffold(
       Center(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.all(AppSpacing.xl),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -120,12 +119,12 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen> {
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.bodyLarge,
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: AppSpacing.xl),
               VButton.dark(
                 label: l10n.commonAccept,
                 onPressed: () => _acceptInvite(membershipId),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: AppSpacing.sm),
               TextButton(
                 onPressed: () => _declineInvite(membershipId),
                 child: Text(l10n.commonReject),
@@ -159,10 +158,9 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen> {
     final l10n = AppLocalizations.of(context);
     final isFrozen = g.frozenAt != null;
 
-    // Modern hero (user directive 2026-09-15): the cover is full-bleed from
-    // the very top of the viewport (under the status bar) with a transparent
-    // header overlay. The banner is a NORMAL sliver (not the app bar's
-    // flexibleSpace) so it stays reliably tappable.
+    // The cover is full-bleed from the very top of the viewport (under the
+    // status bar) with a transparent header overlay. The banner is a NORMAL
+    // sliver (not the app bar's flexibleSpace) so it stays reliably tappable.
     final statusBar = MediaQuery.paddingOf(context).top;
     return Scaffold(
       body: Stack(
@@ -188,10 +186,8 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen> {
                           color: AppColors.errorFill,
                           child: Text(
                             l10n.groupsFrozenBanner,
-                            style: const TextStyle(
-                              fontSize: 12,
-                              color: AppColors.white,
-                            ),
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(color: AppColors.white),
                             textAlign: TextAlign.center,
                           ),
                         ),
@@ -223,22 +219,16 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen> {
               ),
             ],
           ),
-          // Transparent header overlay (back + three-dot menu) over the banner.
+          // Transparent header overlay (back + title + menu) over the banner.
           Positioned(
             top: 0,
             left: 0,
             right: 0,
             child: SafeArea(
               bottom: false,
-              child: SizedBox(
-                height: kToolbarHeight,
-                child: Row(
-                  children: [
-                    const BackButton(color: AppColors.white),
-                    const Spacer(),
-                    _menu(l10n),
-                  ],
-                ),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
+                child: VHeaderTitleRow(title: g.name, actions: [_menu(l10n)]),
               ),
             ),
           ),
@@ -259,55 +249,48 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen> {
           VNetworkImage(imageUrl: g.coverUrl!, fit: BoxFit.cover)
         else
           const ColoredBox(color: AppColors.surfaceAlt),
-        const DecoratedBox(
-          decoration: BoxDecoration(
-            // Clean for the top 65%, then a single ramp to full black at the
-            // bottom where the shards/members/rank sit (user directive
-            // 2026-09-15: stronger, bottom only).
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [Colors.transparent, Colors.transparent, Color(0xFF000000)],
-              stops: [0, 0.65, 1],
-            ),
-          ),
-        ),
+        // Flat black identity strip at the banner floor (no gradient): it
+        // keeps the shards/members/rank legible over any cover.
         Positioned(
-          left: AppSpacing.lg,
-          right: AppSpacing.lg,
-          bottom: AppSpacing.lg,
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        const VShardIcon(color: AppColors.discoViolet),
-                        const SizedBox(width: AppSpacing.sm),
-                        Flexible(
-                          child: Text(
-                            l10n.groupsShardsCountShort(g.groupShards),
-                            style: Theme.of(context).textTheme.bodyLarge,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          child: Container(
+            color: AppColors.discoBlack,
+            padding: const EdgeInsets.all(AppSpacing.lg),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const VShardIcon(color: AppColors.statusVip),
+                          const SizedBox(width: AppSpacing.sm),
+                          Flexible(
+                            child: Text(
+                              l10n.groupsShardsCountShort(g.groupShards),
+                              style: Theme.of(context).textTheme.bodyLarge,
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: AppSpacing.xs),
-                    Text(
-                      l10n.groupsMembersCountShort(members.length),
-                      style: Theme.of(context).textTheme.bodyMedium,
-                    ),
-                  ],
+                        ],
+                      ),
+                      const SizedBox(height: AppSpacing.xs),
+                      Text(
+                        l10n.groupsMembersCountShort(members.length),
+                        style: Theme.of(context).textTheme.bodyMedium,
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              if (g.rankBracket != null) ...[
-                const SizedBox(width: AppSpacing.md),
-                RankBadge(bracket: g.rankBracket!),
+                if (g.rankBracket != null) ...[
+                  const SizedBox(width: AppSpacing.md),
+                  RankBadge(bracket: g.rankBracket!),
+                ],
               ],
-            ],
+            ),
           ),
         ),
       ],
@@ -330,7 +313,10 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen> {
       onSelected: _onMenu,
       itemBuilder: (_) => [
         PopupMenuItem(value: 'invite', child: Text(l10n.commonInvite)),
-        PopupMenuItem(value: 'create_event', child: Text(l10n.groupsCreateEvent)),
+        PopupMenuItem(
+          value: 'create_event',
+          child: Text(l10n.groupsCreateEvent),
+        ),
         PopupMenuItem(value: 'leave', child: Text(l10n.groupsAbandon)),
       ],
     );
@@ -347,20 +333,22 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen> {
     }
   }
 
-  /// Minimal icon-only action row: Chat · Donar · Miembros · Crear partida.
+  /// The group action row: Chat · Donar · Miembros · Crear partida, each an
+  /// icon over its label.
   Widget _actionRow(AppLocalizations l10n) {
     final showGames = ref.isEnabled(AppFeatureFlag.minigames);
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _ActionIcon(
           icon: Icons.chat_bubble_outline,
-          tooltip: l10n.chatTitle,
+          label: l10n.chatTitle,
           onTap: _openChat,
         ),
         _ActionIcon(
           icon: Icons.volunteer_activism_outlined,
-          tooltip: l10n.groupsDonateTitle,
+          label: l10n.groupsDonateTitle,
           onTap: () async {
             await context.push(RoutePaths.donateToGroup(widget.groupId));
             _invalidateData();
@@ -368,13 +356,13 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen> {
         ),
         _ActionIcon(
           icon: Icons.people_outline,
-          tooltip: l10n.groupsTabMembers,
+          label: l10n.groupsTabMembers,
           onTap: () => context.push(RoutePaths.groupMembers(widget.groupId)),
         ),
         if (showGames)
           _ActionIcon(
             icon: Icons.sports_esports_outlined,
-            tooltip: l10n.minigamesNewPartida,
+            label: l10n.minigamesNewPartida,
             onTap: () => context.push(RoutePaths.minigames(widget.groupId)),
           ),
       ],
@@ -417,25 +405,43 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen> {
   }
 }
 
-/// A minimal icon-only action (user directive 2026-09-15: no labels, no
-/// bordered tiles — just the glyph on the black canvas).
+/// One action: the glyph over its label, inside a 44pt-minimum tap target.
 class _ActionIcon extends StatelessWidget {
   const _ActionIcon({
     required this.icon,
-    required this.tooltip,
+    required this.label,
     required this.onTap,
   });
 
   final IconData icon;
-  final String tooltip;
+  final String label;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return IconButton(
-      onPressed: onTap,
-      tooltip: tooltip,
-      icon: Icon(icon, size: 26, color: AppColors.white),
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.sm,
+          vertical: AppSpacing.xs,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 26, color: AppColors.white),
+            const SizedBox(height: AppSpacing.xs),
+            Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(
+                context,
+              ).textTheme.labelSmall?.copyWith(color: AppColors.mutedStrong),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

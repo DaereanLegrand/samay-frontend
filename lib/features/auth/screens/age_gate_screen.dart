@@ -50,7 +50,7 @@ class _AgeGateScreenState extends ConsumerState<AgeGateScreen> {
                         l10n.authMinAgeMessage,
                         style: Theme.of(context).textTheme.bodyMedium,
                       ),
-                      // XL-19: hint → picker at 32 (tighter rhythm than 40) —
+                      // Hint → picker at 32 (tighter rhythm than 40) —
                       // hero, one-line hint, picker, CTA.
                       const SizedBox(height: 32),
                       TextButton.icon(

@@ -21,48 +21,67 @@ extension ObjectX on Object {
         case 'over_sms_send_rate_limit':
           return RateLimitError();
         case 'invalid_credentials':
-          return ValidationError('credenciales', 'Correo o contraseña inválidos');
+          return ValidationError(
+            'credenciales',
+            '',
+            localizer: (l) => l.errorsInvalidCredentials,
+          );
         case 'email_not_confirmed':
           return ValidationError(
             'correo',
-            'Correo no confirmado. Revisa tu bandeja de entrada.',
+            '',
+            localizer: (l) => l.errorsEmailNotConfirmed,
           );
         case 'email_address_invalid':
-          return ValidationError('correo', 'Correo electrónico inválido.');
+          return ValidationError(
+            'correo',
+            '',
+            localizer: (l) => l.errorsInvalidEmail,
+          );
         case 'email_exists':
         case 'user_already_exists':
           return ValidationError(
             'correo',
-            'Ya existe una cuenta con este correo.',
+            '',
+            localizer: (l) => l.authEmailAlreadyRegistered,
           );
         case 'weak_password':
           return ValidationError(
             'contraseña',
-            'La contraseña no cumple los requisitos mínimos.',
+            '',
+            localizer: (l) => l.authPasswordTooWeak,
           );
         case 'same_password':
           return ValidationError(
             'contraseña',
-            'Debes elegir una contraseña diferente.',
+            '',
+            localizer: (l) => l.errorsSamePassword,
           );
         case 'validation_failed':
-          return ValidationError('datos', 'Datos inválidos. Verifica los campos.');
+          return ValidationError('datos', '');
         case 'otp_expired':
           return ValidationError(
             'código',
-            'El código ha expirado. Solicita uno nuevo.',
+            '',
+            localizer: (l) => l.errorsOtpExpired,
           );
         case 'otp_disabled':
           return ValidationError(
             'código',
-            'El inicio de sesión con código está deshabilitado.',
+            '',
+            localizer: (l) => l.errorsOtpDisabled,
           );
         case 'user_banned':
-          return ValidationError('cuenta', 'Tu cuenta está suspendida.');
+          return ValidationError(
+            'cuenta',
+            '',
+            localizer: (l) => l.errorsUserBanned,
+          );
         case 'reauthentication_needed':
           return ValidationError(
             'sesión',
-            'Vuelve a autenticarte para continuar.',
+            '',
+            localizer: (l) => l.errorsReauthenticationNeeded,
           );
         case 'request_timeout':
           return NetworkError();
@@ -100,9 +119,19 @@ extension ObjectX on Object {
       // (PostgrestException.fromJson falls back to the HTTP status string).
       if (code == 'SR001' || code == '429') return RateLimitError();
       if (code == '23503') {
-        return ValidationError('data', 'Referencia inválida');
+        return ValidationError(
+          'data',
+          '',
+          localizer: (l) => l.errorsInvalidReference,
+        );
       }
-      if (code == '23505') return ValidationError('data', 'Ya existe');
+      if (code == '23505') {
+        return ValidationError(
+          'data',
+          '',
+          localizer: (l) => l.errorsAlreadyExists,
+        );
+      }
       if (code == '42501') return PermissionError();
       if (code == 'P0001') return ServerError(e.message);
       if (code.startsWith('28')) return NetworkError();
@@ -153,7 +182,11 @@ extension ObjectX on Object {
     }
 
     if (this is FormatException) {
-      return ValidationError('data', 'Formato inválido');
+      return ValidationError(
+        'data',
+        '',
+        localizer: (l) => l.errorsInvalidFormat,
+      );
     }
 
     if (this is TimeoutException) {

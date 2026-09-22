@@ -15,9 +15,6 @@ Uint8List u32be(int value) => Uint8List.fromList([
   value & 0xFF,
 ]);
 
-/// Reads one byte at [offset].
-int readU8(Uint8List bytes, int offset) => bytes[offset];
-
 /// Reads four big-endian bytes at [offset] as an unsigned 32-bit integer.
 int readU32be(Uint8List bytes, int offset) =>
     (bytes[offset] << 24) |

@@ -364,7 +364,7 @@ class _LedgerTile extends StatelessWidget {
     final positive = entry.delta >= 0;
     final reference = shortReferenceId(entry.referenceId);
 
-    // XL-17: the row is a hairline list row — no glass card, no glow, no
+    // The row is a hairline list row — no glass card, no glow, no
     // shard diamond beside the delta (the flat gold delta already carries
     // the "+" accent; the diamond is the balance-card token).
     return Padding(

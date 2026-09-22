@@ -8,6 +8,7 @@ import 'package:samay/core/router/route_paths.dart';
 import 'package:samay/core/services/minigame_service.dart';
 import 'package:samay/features/minigames/providers/minigames_providers.dart';
 import 'package:samay/features/minigames/widgets/games_deck.dart';
+import 'package:samay/features/minigames/widgets/minigame_header_title.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/v_header_bar.dart';
 
@@ -61,7 +62,13 @@ class GamesTabScreen extends ConsumerWidget {
           // behind the title instead of covering it.
           Align(
             alignment: Alignment.topCenter,
-            child: VHeaderBar(title: l10n.minigamesTitle, showBack: false),
+            child: VHeaderBar(
+              titleWidget: MinigameHeaderTitle(
+                word: l10n.minigamesTitle,
+                secondary: l10n.minigamesTagline,
+              ),
+              showBack: false,
+            ),
           ),
         ],
       ),

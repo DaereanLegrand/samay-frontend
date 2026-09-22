@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
+import 'package:samay/core/design_tokens/app_typography.dart';
 import 'package:samay/core/models/user_search_result.dart';
 import 'package:samay/features/friends/widgets/user_picker_view.dart';
 import 'package:samay/features/minigames/providers/minigames_providers.dart';
@@ -17,7 +18,7 @@ import 'package:samay/shared/widgets/v_header_bar.dart';
 /// blocked gates are enforced server-side.
 ///
 /// The HOST's picker shows an "enviada"/"sent" tag on invitees who already
-/// hold a PENDING invite for this session (2026-09-02) — read-only, from
+/// hold a PENDING invite for this session — read-only, from
 /// [minigameInviteeStatesProvider]. A declined invite deletes its row, so a
 /// declined (or kicked) player renders as a fresh invitee: re-inviting is a
 /// normal invite, there is no distinct resend affordance.
@@ -70,9 +71,8 @@ class _MinigameInviteScreenState extends ConsumerState<MinigameInviteScreen> {
       padding: const EdgeInsets.only(left: AppSpacing.sm),
       child: Text(
         l10n.minigamesInviteSent,
-        style: const TextStyle(
+        style: AppTypography.bodySmall.copyWith(
           color: AppColors.mutedStrong,
-          fontSize: 12,
         ),
       ),
     );

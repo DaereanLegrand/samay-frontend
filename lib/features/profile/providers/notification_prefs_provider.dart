@@ -11,9 +11,9 @@ class NotificationPref {
   const NotificationPref(this.key, {this.defaultEnabled = true});
 }
 
-/// Notification-preference store (R2): the in-app notification prefs the
+/// Notification-preference store: the in-app notification prefs the
 /// settings screen exposes. Persisted in the encrypted `config_cache` Hive
-/// box (same seam as the theme-mode choice, I-65); failures degrade to the
+/// box; failures degrade to the
 /// defaults and are logged — a preference must never block the screen.
 final notificationPrefsProvider =
     AsyncNotifierProvider<NotificationPrefsNotifier, Map<String, bool>>(
@@ -42,7 +42,7 @@ class NotificationPrefsNotifier extends AsyncNotifier<Map<String, bool>> {
           pref.key: cached[pref.key] != 'false' && pref.defaultEnabled,
       };
     } catch (e, st) {
-      // Uninitialized/re-created Hive (I-26 key-loss degradation): treat the
+      // Uninitialized/re-created Hive: treat the
       // cache as a miss — every preference falls back to its default.
       AppLogger.instance.warn(
         'Notification prefs cache unreadable ($e); using defaults.',

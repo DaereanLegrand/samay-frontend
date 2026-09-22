@@ -3,7 +3,7 @@ import 'package:samay/core/models/ledger_entry.dart';
 import 'package:samay/core/providers/service_providers.dart';
 import 'package:samay/core/services/shards_service.dart';
 
-/// The combined shard + preshard ledger state (SLED — I-64).
+/// The combined shard + preshard ledger state.
 ///
 /// [shards] and [preshards] are the two newest-first movement lists; the
 /// derived totals sum every delta per side, so the UI can show the net
@@ -35,7 +35,7 @@ class ShardLedgerNotifier extends AsyncNotifier<ShardLedgerData> {
     return ShardLedgerData(shards: shards, preshards: preshards);
   }
 
-  /// Re-runs [build] (pull-to-refresh, finding SM-09).
+  /// Re-runs [build].
   Future<void> refresh() async => ref.invalidateSelf();
 }
 

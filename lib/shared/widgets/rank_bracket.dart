@@ -1,13 +1,13 @@
-/// Rank-bracket policy (I-46, TST-06/M-13).
+/// Rank-bracket policy.
 ///
 /// [rankBracketForPercentile] mirrors the `recalculate_ranks` SQL CASE
-/// (`supabase/migrations/20260520000001_admin_rpc_and_rls.sql:187`):
+/// (`supabase/migrations/120_views_ranking/02_ranking.sql`):
 /// ≥90 → b90_100, ≥80 → b80_90, ≥60 → b60_80, ≥40 → b40_60, ≥20 → b20_40,
 /// else b0_20.
 ///
-/// Labels are single ranking letters (user directive 2026-09-15): S is the
+/// Labels are single ranking letters: S is the
 /// top bracket, E the bottom. BuildContext-free constants by design (same
-/// rationale as error strings in `lib/core/errors/**` — M-15); the app is
+/// rationale as error strings in `lib/core/errors/**`); the app is
 /// es-first and [RankBadge] renders them uppercased.
 const _bracketLabels = <String, String>{
   'b90_100': 'S',
@@ -19,7 +19,7 @@ const _bracketLabels = <String, String>{
 };
 
 /// The display label for a rank bracket, falling back to the raw bracket key
-/// for unknown values (previously the inline switch in `RankBadge`).
+/// for unknown values.
 String rankBracketLabel(String bracket) => _bracketLabels[bracket] ?? bracket;
 
 /// The rank bracket a percentile (0–100) falls into.

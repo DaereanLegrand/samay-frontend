@@ -24,7 +24,7 @@ class BanStatus {
 /// token refresh) and forces a sign-out onto a dedicated ban screen. This is a
 /// best-effort UX gate: the authoritative enforcement belongs server-side (a
 /// Supabase Auth Hook — `custom_access_token_hook` — rejecting token issuance
-/// when `banned_at IS NOT NULL`; handoff noted in the I-35 daily log).
+/// when `banned_at IS NOT NULL`).
 ///
 /// Fail-open by design: when the check itself cannot run (network, RLS, no
 /// profile row yet), the user is treated as not banned — a false positive here

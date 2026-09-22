@@ -17,7 +17,7 @@ import 'package:samay/core/services/storage_service.dart';
 import 'package:samay/core/services/user_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-/// Riverpod wiring for the decomposed feature services (I-11, ARC-05/CQ-01).
+/// Riverpod wiring for the decomposed feature services.
 ///
 /// One singleton instance per container. Override [supabaseClientProvider] in
 /// tests to inject a mock client and exercise any service in isolation:
@@ -35,13 +35,12 @@ final configServiceProvider = Provider<ConfigService>((ref) {
   return ConfigService(client: ref.watch(supabaseClientProvider));
 });
 
-/// Injectable seam for the encrypted Hive config cache ([HiveService], I-26).
+/// Injectable seam for the encrypted Hive config cache.
 ///
-/// Production uses the real service (initialized in `main()` by I-26); tests
-/// override this provider with an in-memory fake. Promoted here from
-/// `theme_provider.dart` (I-71) so every cache consumer — theme persistence
-/// (I-65) and the app-config offline fallback (I-71) — shares one wiring
-/// point.
+/// Production uses the real service (initialized in `main()`); callers may
+/// override this provider with an in-memory fake. Shared by every cache
+/// consumer — theme persistence
+/// and the app-config offline fallback — through one wiring point.
 final hiveServiceProvider = Provider<HiveService>((ref) {
   return HiveService();
 });
