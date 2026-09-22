@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 /// Samay corner-radius tokens — **SHARP** per the MVP spec ("no rounded
-/// pastel") and DESIGN.md §4.2 (owned by U-03).
+/// pastel") and DESIGN.md §4.2.
 ///
 /// Every UI component radius is `0`: buttons, cards, chips, inputs, dialogs,
 /// sheets, badges. The `#333333` hairline borders carry the geometry.
@@ -33,7 +33,14 @@ abstract final class AppRadius {
   /// per §4.2 exceptions). Never for boxes.
   static const double full = 999;
 
-  /// Convenience for `RoundedRectangleBorder(borderRadius: ...)`.
+  /// The sanctioned rounded-surface exception (DESIGN.md §3, user directive
+  /// 2026-09-21): the Games-tab card deck renders its cards as a fanned
+  /// hand, and a card reads as a *card* only with a corner radius. Scoped to
+  /// the minigame deck (`games_deck.dart`) — not a general licence for
+  /// rounded boxes.
+  static const double card = 16;
+
+  /// Convenience for `RoundedRectangleBorder(borderRadius:...)`.
   static const BorderRadius sharp = BorderRadius.zero;
 
   /// Circle avatar geometry (radius value, not diameter — matches
