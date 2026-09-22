@@ -73,14 +73,18 @@ token changes in code, change it here in the same commit.
   (16) and Playfair Display titles (`VDisplayText`, size 24) so a card reads
   as a card in the fanned hand (user directive 2026-09-21). Scoped to that
   widget — every other surface stays sharp (`AppRadius.none`) and every other
-  title stays Inter. The deck stays strictly monochrome: selected =
-  `surfaceAlt`, others = `surface`, every card outlined by a 1px `muted`
-  border. The Games tab is a stack with **no animation**: the current game is a
-  centred card (width 0.8×, height 0.72× of the base, aspect 0.8, scaled 1.5×);
-  `cur - 1` sits behind and lower (under the nav pill, blurred through it) and
-  `cur + 1` behind and higher (under the header), each with a stable random
-  tilt + sideways shift. A horizontal swipe swaps instantly; a tap opens the
-  current game.
+  title stays Inter. The deck stays strictly monochrome: every card is a
+  `surfaceAlt` fill outlined by a 1px `muted` border. The Games tab is a
+  vertical finger-tracked stack: the current game is a centred card (width
+  0.8×, height 0.72× of the base, aspect 0.8, scaled 1.5×); `cur - 1` sits
+  behind and lower (under the nav pill, blurred through it) and `cur + 1`
+  behind and higher (under the header), each with a stable random tilt +
+  sideways shift. A **vertical drag is two-phase**: the centred card follows
+  the finger while its horizontal offset is LOCKED to a quadratic-Bézier arc
+  (`x = t² · targetX`), then — once it crosses half a slot — the rest of the
+  deck catches up along its own arcs; the release velocity drives a
+  `SpringSimulation` settle (snap back below the arrival point) and a tap
+  opens the centred game (`2026-09-21`, `games-deck-vertical-bezier`).
 - **Display copy routes through `VDisplayText`** — verbatim case, white
   glyphs, size-token mapping (64/40/32/28).
 - **Header vertical alignment is optical, not geometric.** Every header routes
