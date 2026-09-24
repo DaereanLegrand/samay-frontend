@@ -66,6 +66,16 @@ dependencies:
   # RevenueCat SDK (I-61 re-add per DEP-01/RSDK re-add plan; 10.x dropped the
   # transitive freezed_annotation pin that forced the original ^8.4.1 bump).
   purchases_flutter: ^10.8.0
+  # Event location picker + km discovery filter (2026-09-24): vector tiles
+  # served by tiles.qallariy.lat via flutter_map + vector_map_tiles (the same
+  # stack used by ../Juega) and device geolocation via geolocator.
+  flutter_map: ^7.0.2
+  vector_map_tiles: ^8.0.0
+  vector_map_tiles_pmtiles: ^1.5.0
+  vector_tile: ^2.0.1
+  latlong2: ^0.9.1
+  geolocator: ^14.0.2
+  http: ^1.4.0
 
 dev_dependencies:
   # Testing is backend-only (directive 2026-08-31): Go `*_test.go`, pgTAP

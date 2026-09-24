@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/design_tokens/app_typography.dart';
@@ -9,6 +10,7 @@ import 'package:samay/core/models/event.dart';
 import 'package:samay/features/events/providers/events_providers.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/error_view.dart';
+import 'package:samay/shared/widgets/location_picker_sheet.dart';
 import 'package:samay/shared/widgets/show_app_error.dart';
 import 'package:samay/shared/widgets/v_card.dart';
 import 'package:samay/shared/widgets/v_header_bar.dart';
@@ -39,6 +41,8 @@ class _EventEditScreenState extends ConsumerState<EventEditScreen> {
   late DateTime _startsAt;
   late DateTime _endsAt;
   String _remainderAction = 'return';
+  double? _lat;
+  double? _lng;
   bool _initialized = false;
   bool _saving = false;
   String? _validationError;
@@ -59,6 +63,8 @@ class _EventEditScreenState extends ConsumerState<EventEditScreen> {
     _nameController.text = event.name;
     _descriptionController.text = event.description ?? '';
     _locationController.text = event.locationName ?? '';
+    _lat = event.locationLat;
+    _lng = event.locationLng;
     final pool = event.preshardsPool;
     _poolController.text = pool > 0 ? '$pool' : '';
     final cap = event.preshardsCapPerUser;
@@ -92,6 +98,17 @@ class _EventEditScreenState extends ConsumerState<EventEditScreen> {
     onPicked(DateTime(date.year, date.month, date.day, time.hour, time.minute));
   }
 
+  Future<void> _pickCoordinates() async {
+    final current =
+        (_lat == null || _lng == null) ? null : LatLng(_lat!, _lng!);
+    final picked = await showLocationPicker(context, initial: current);
+    if (picked == null || !mounted) return;
+    setState(() {
+      _lat = picked.latitude;
+      _lng = picked.longitude;
+    });
+  }
+
   Future<void> _save() async {
     final l10n = AppLocalizations.of(context);
     final name = _nameController.text.trim();
@@ -118,6 +135,10 @@ class _EventEditScreenState extends ConsumerState<EventEditScreen> {
       'starts_at': _startsAt.toIso8601String(),
       'ends_at': _endsAt.toIso8601String(),
     };
+    if (_lat != null && _lng != null) {
+      patch['location_lat'] = _lat;
+      patch['location_lng'] = _lng;
+    }
     if (_poolEditable) {
       final cap = int.tryParse(_capController.text.trim());
       patch['preshards_pool'] = pool ?? 0;
@@ -194,6 +215,27 @@ class _EventEditScreenState extends ConsumerState<EventEditScreen> {
           VInput(
             label: l10n.eventsLocationLabel,
             controller: _locationController,
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton.icon(
+              onPressed: _pickCoordinates,
+              icon: const Icon(
+                Icons.place_outlined,
+                size: 18,
+                color: AppColors.white,
+              ),
+              label: Text(
+                (_lat == null || _lng == null)
+                    ? l10n.eventsPickLocation
+                    : l10n.locationPickerCoordinates(
+                        '${_lat!.toStringAsFixed(5)}, '
+                        '${_lng!.toStringAsFixed(5)}',
+                      ),
+                style: const TextStyle(color: AppColors.white),
+              ),
+            ),
           ),
           const SizedBox(height: AppSpacing.lg),
           _DateTimeButton(

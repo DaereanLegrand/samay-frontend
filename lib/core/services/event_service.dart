@@ -1,5 +1,6 @@
 import 'package:samay/core/errors/app_error.dart';
 import 'package:samay/core/models/event.dart';
+import 'package:samay/core/models/event_discovery_hit.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 /// Event lifecycle: creation, listing, updates and photo likes.
@@ -57,6 +58,36 @@ class EventService {
     final res = await query.order('starts_at', ascending: true);
     return (res as List)
         .map((e) => Event.fromJson(Map<String, dynamic>.from(e)))
+        .toList();
+  }
+
+  /// Server-side event discovery via the `search_events` RPC
+  /// (131_events_search). [query] is sanitized by the caller before it gets
+  /// here and re-validated server-side (2..50 chars → else SQLSTATE SR002).
+  /// When [lat]/[lng] are given the RPC filters by distance with a hard
+  /// 100 km cap, even for a custom reference point. Each returned row carries
+  /// the caller's accepted-friend activity (`friendsGoing`/`friendsPending`)
+  /// and the RPC's ranking `score`.
+  Future<List<EventDiscoveryHit>> searchEvents({
+    String? query,
+    double? lat,
+    double? lng,
+    double? radiusKm,
+    int limit = 50,
+  }) async {
+    final user = auth.currentUser;
+    if (user == null) throw const UnauthorizedError();
+
+    final trimmed = query?.trim();
+    final res = await client.rpc('search_events', params: {
+      'p_query': (trimmed == null || trimmed.isEmpty) ? null : trimmed,
+      'p_lat': lat,
+      'p_lng': lng,
+      'p_radius_km': radiusKm,
+      'p_limit': limit,
+    });
+    return (res as List)
+        .map((e) => EventDiscoveryHit.fromJson(Map<String, dynamic>.from(e)))
         .toList();
   }
 

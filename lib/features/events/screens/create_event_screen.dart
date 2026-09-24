@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/core/design_tokens/app_radius.dart';
@@ -16,8 +17,10 @@ import 'package:samay/core/providers/user_provider.dart';
 import 'package:samay/core/router/route_paths.dart';
 import 'package:samay/core/services/permission_service.dart';
 import 'package:samay/features/events/logic/event_form_data.dart';
+import 'package:samay/features/events/providers/event_discovery_providers.dart';
 import 'package:samay/features/events/providers/events_providers.dart';
 import 'package:samay/l10n/app_localizations.dart';
+import 'package:samay/shared/widgets/location_picker_sheet.dart';
 import 'package:samay/shared/widgets/show_app_error.dart';
 import 'package:samay/shared/widgets/v_button.dart';
 import 'package:samay/shared/widgets/v_chip.dart';
@@ -316,6 +319,22 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
     });
   }
 
+  /// Opens the map/link/coords picker and stores the chosen point on the form
+  /// (feeds `events.location_lat/lng` → server-side km discovery).
+  Future<void> _pickCoordinates() async {
+    final current = (_form.locationLat == null || _form.locationLng == null)
+        ? null
+        : LatLng(_form.locationLat!, _form.locationLng!);
+    final picked = await showLocationPicker(context, initial: current);
+    if (picked == null || !mounted) return;
+    setState(() {
+      _form = _form.copyWith(
+        locationLat: picked.latitude,
+        locationLng: picked.longitude,
+      );
+    });
+  }
+
   Future<void> _submit() async {
     final form = _form
         .copyWith(
@@ -356,6 +375,7 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
       if (!mounted) return;
       // The events tab list is cached — invalidate so the new event shows.
       ref.invalidate(myEventsProvider);
+      ref.invalidate(eventDiscoveryProvider);
       // The event detail screen owns the real detail view; until then the
       // route keeps its coming-soon placeholder — navigation shape is final.
       context.push(RoutePaths.eventDetail(created['id'] as String));
@@ -481,6 +501,28 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
             VInput(
               controller: _locationController,
               label: l10n.eventsLocationLabel,
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            Row(
+              children: [
+                TextButton.icon(
+                  onPressed: _pickCoordinates,
+                  icon: const Icon(
+                    Icons.place_outlined,
+                    size: 18,
+                    color: AppColors.white,
+                  ),
+                  label: Text(
+                    _form.locationLat == null || _form.locationLng == null
+                        ? l10n.eventsPickLocation
+                        : l10n.locationPickerCoordinates(
+                            '${_form.locationLat!.toStringAsFixed(5)}, '
+                            '${_form.locationLng!.toStringAsFixed(5)}',
+                          ),
+                    style: const TextStyle(color: AppColors.white),
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: AppSpacing.xl),
             _sectionLabel(l10n.eventsCapacityTitle),

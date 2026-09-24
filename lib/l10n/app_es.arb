@@ -3199,6 +3199,121 @@
   "@eventsEmptyBody": {
     "description": "Events tab empty state body"
   },
+  "searchTooShort": "Escribe al menos 2 caracteres para buscar",
+  "@searchTooShort": {
+    "description": "Validation message for a too-short search query (SR002)"
+  },
+  "eventsSearchHint": "Buscar eventos",
+  "@eventsSearchHint": {
+    "description": "Events tab search field placeholder"
+  },
+  "eventsSearchTooltip": "Buscar eventos",
+  "@eventsSearchTooltip": {
+    "description": "Events tab search action tooltip"
+  },
+  "eventsFilterTooltip": "Filtrar por distancia",
+  "@eventsFilterTooltip": {
+    "description": "Events tab km filter action tooltip"
+  },
+  "eventsNearbyToggle": "Cerca de mí",
+  "@eventsNearbyToggle": {
+    "description": "Events tab toggle that enables the km distance filter"
+  },
+  "eventsUseMyLocation": "Usar mi ubicación",
+  "@eventsUseMyLocation": {
+    "description": "Events tab button that resolves the device location"
+  },
+  "eventsPickLocation": "Elegir una ubicación",
+  "@eventsPickLocation": {
+    "description": "Events tab button that opens the manual location picker"
+  },
+  "eventsDistanceKm": "{km} km",
+  "@eventsDistanceKm": {
+    "placeholders": {
+      "km": {
+        "type": "String"
+      }
+    },
+    "description": "Distance to an event rendered on a card"
+  },
+  "eventsFriendsGoing": "{count} amigos van",
+  "@eventsFriendsGoing": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    },
+    "description": "Accepted-friend signal on an event card"
+  },
+  "eventsLocationSectionTitle": "Ubicación",
+  "@eventsLocationSectionTitle": {
+    "description": "Create/edit event location section heading"
+  },
+  "eventsLocationOptionalHint": "Opcional — arrastra el mapa para fijar el punto exacto.",
+  "@eventsLocationOptionalHint": {
+    "description": "Create/edit event location helper"
+  },
+  "locationPickerTitle": "Elegir una ubicación",
+  "@locationPickerTitle": {
+    "description": "Location picker sheet title"
+  },
+  "locationPickerLinkTab": "Enlace",
+  "@locationPickerLinkTab": {
+    "description": "Location picker: paste a maps link"
+  },
+  "locationPickerCoordsTab": "Coords",
+  "@locationPickerCoordsTab": {
+    "description": "Location picker: type lat,lng"
+  },
+  "locationPickerMapTab": "Mapa",
+  "@locationPickerMapTab": {
+    "description": "Location picker: pick on the map"
+  },
+  "locationPickerLinkHint": "Pega un enlace de Google Maps o lat,lng",
+  "@locationPickerLinkHint": {
+    "description": "Location picker link-mode hint"
+  },
+  "locationPickerCoordsHint": "p. ej. -16.3988, -71.5369",
+  "@locationPickerCoordsHint": {
+    "description": "Location picker coords-mode hint"
+  },
+  "locationPickerResolve": "Resolver",
+  "@locationPickerResolve": {
+    "description": "Location picker resolve button"
+  },
+  "locationPickerUse": "Usar",
+  "@locationPickerUse": {
+    "description": "Location picker use resolved point"
+  },
+  "locationPickerUseThisLocation": "Usar esta ubicación",
+  "@locationPickerUseThisLocation": {
+    "description": "Location picker confirm map center"
+  },
+  "locationPickerCoordinates": "Coordenadas: {value}",
+  "@locationPickerCoordinates": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    },
+    "description": "Resolved coordinates readout"
+  },
+  "locationPickerDenied": "Permiso de ubicación denegado",
+  "@locationPickerDenied": {
+    "description": "Location picker permission denied error"
+  },
+  "locationPickerUnavailable": "Ubicación no disponible",
+  "@locationPickerUnavailable": {
+    "description": "Location picker device-location failure"
+  },
+  "locationPickerResolveFailed": "No se pudo resolver esa ubicación",
+  "@locationPickerResolveFailed": {
+    "description": "Location picker link/coords resolve failure"
+  },
+  "locationPickerPastePrompt": "Primero pega un enlace o coordenadas",
+  "@locationPickerPastePrompt": {
+    "description": "Location picker empty-input prompt"
+  },
   "featureUnavailableTitle": "No disponible",
   "@featureUnavailableTitle": {
     "description": "Neutral flag-gate fallback heading (no coming-soon copy)"

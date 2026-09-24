@@ -3040,6 +3040,121 @@
   "@eventsEmptyBody": {
     "description": "Events tab empty state body"
   },
+  "searchTooShort": "Type at least 2 characters to search",
+  "@searchTooShort": {
+    "description": "Validation message for a too-short search query (SR002)"
+  },
+  "eventsSearchHint": "Search events",
+  "@eventsSearchHint": {
+    "description": "Events tab search field placeholder"
+  },
+  "eventsSearchTooltip": "Search events",
+  "@eventsSearchTooltip": {
+    "description": "Events tab search action tooltip"
+  },
+  "eventsFilterTooltip": "Filter by distance",
+  "@eventsFilterTooltip": {
+    "description": "Events tab km filter action tooltip"
+  },
+  "eventsNearbyToggle": "Near me",
+  "@eventsNearbyToggle": {
+    "description": "Events tab toggle that enables the km distance filter"
+  },
+  "eventsUseMyLocation": "Use my location",
+  "@eventsUseMyLocation": {
+    "description": "Events tab button that resolves the device location"
+  },
+  "eventsPickLocation": "Pick a location",
+  "@eventsPickLocation": {
+    "description": "Events tab button that opens the manual location picker"
+  },
+  "eventsDistanceKm": "{km} km",
+  "@eventsDistanceKm": {
+    "placeholders": {
+      "km": {
+        "type": "String"
+      }
+    },
+    "description": "Distance to an event rendered on a card"
+  },
+  "eventsFriendsGoing": "{count} friends going",
+  "@eventsFriendsGoing": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    },
+    "description": "Accepted-friend signal on an event card"
+  },
+  "eventsLocationSectionTitle": "Location",
+  "@eventsLocationSectionTitle": {
+    "description": "Create/edit event location section heading"
+  },
+  "eventsLocationOptionalHint": "Optional — drag the map to set the exact spot.",
+  "@eventsLocationOptionalHint": {
+    "description": "Create/edit event location helper"
+  },
+  "locationPickerTitle": "Pick a location",
+  "@locationPickerTitle": {
+    "description": "Location picker sheet title"
+  },
+  "locationPickerLinkTab": "Link",
+  "@locationPickerLinkTab": {
+    "description": "Location picker: paste a maps link"
+  },
+  "locationPickerCoordsTab": "Coords",
+  "@locationPickerCoordsTab": {
+    "description": "Location picker: type lat,lng"
+  },
+  "locationPickerMapTab": "Map",
+  "@locationPickerMapTab": {
+    "description": "Location picker: pick on the map"
+  },
+  "locationPickerLinkHint": "Paste a Google Maps link or lat,lng",
+  "@locationPickerLinkHint": {
+    "description": "Location picker link-mode hint"
+  },
+  "locationPickerCoordsHint": "e.g. -16.3988, -71.5369",
+  "@locationPickerCoordsHint": {
+    "description": "Location picker coords-mode hint"
+  },
+  "locationPickerResolve": "Resolve",
+  "@locationPickerResolve": {
+    "description": "Location picker resolve button"
+  },
+  "locationPickerUse": "Use",
+  "@locationPickerUse": {
+    "description": "Location picker use resolved point"
+  },
+  "locationPickerUseThisLocation": "Use this location",
+  "@locationPickerUseThisLocation": {
+    "description": "Location picker confirm map center"
+  },
+  "locationPickerCoordinates": "Coordinates: {value}",
+  "@locationPickerCoordinates": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    },
+    "description": "Resolved coordinates readout"
+  },
+  "locationPickerDenied": "Location permission denied",
+  "@locationPickerDenied": {
+    "description": "Location picker permission denied error"
+  },
+  "locationPickerUnavailable": "Location unavailable",
+  "@locationPickerUnavailable": {
+    "description": "Location picker device-location failure"
+  },
+  "locationPickerResolveFailed": "Could not resolve that location",
+  "@locationPickerResolveFailed": {
+    "description": "Location picker link/coords resolve failure"
+  },
+  "locationPickerPastePrompt": "Paste a link or coordinates first",
+  "@locationPickerPastePrompt": {
+    "description": "Location picker empty-input prompt"
+  },
   "featureUnavailableTitle": "Unavailable",
   "@featureUnavailableTitle": {
     "description": "Neutral flag-gate fallback heading (no coming-soon copy)"

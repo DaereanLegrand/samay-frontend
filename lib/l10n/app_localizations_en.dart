@@ -2468,6 +2468,88 @@ class AppLocalizationsEn extends AppLocalizations {
       'Invitations and events you create will show up here.';
 
   @override
+  String get searchTooShort => 'Type at least 2 characters to search';
+
+  @override
+  String get eventsSearchHint => 'Search events';
+
+  @override
+  String get eventsSearchTooltip => 'Search events';
+
+  @override
+  String get eventsFilterTooltip => 'Filter by distance';
+
+  @override
+  String get eventsNearbyToggle => 'Near me';
+
+  @override
+  String get eventsUseMyLocation => 'Use my location';
+
+  @override
+  String get eventsPickLocation => 'Pick a location';
+
+  @override
+  String eventsDistanceKm(String km) {
+    return '$km km';
+  }
+
+  @override
+  String eventsFriendsGoing(int count) {
+    return '$count friends going';
+  }
+
+  @override
+  String get eventsLocationSectionTitle => 'Location';
+
+  @override
+  String get eventsLocationOptionalHint =>
+      'Optional — drag the map to set the exact spot.';
+
+  @override
+  String get locationPickerTitle => 'Pick a location';
+
+  @override
+  String get locationPickerLinkTab => 'Link';
+
+  @override
+  String get locationPickerCoordsTab => 'Coords';
+
+  @override
+  String get locationPickerMapTab => 'Map';
+
+  @override
+  String get locationPickerLinkHint => 'Paste a Google Maps link or lat,lng';
+
+  @override
+  String get locationPickerCoordsHint => 'e.g. -16.3988, -71.5369';
+
+  @override
+  String get locationPickerResolve => 'Resolve';
+
+  @override
+  String get locationPickerUse => 'Use';
+
+  @override
+  String get locationPickerUseThisLocation => 'Use this location';
+
+  @override
+  String locationPickerCoordinates(String value) {
+    return 'Coordinates: $value';
+  }
+
+  @override
+  String get locationPickerDenied => 'Location permission denied';
+
+  @override
+  String get locationPickerUnavailable => 'Location unavailable';
+
+  @override
+  String get locationPickerResolveFailed => 'Could not resolve that location';
+
+  @override
+  String get locationPickerPastePrompt => 'Paste a link or coordinates first';
+
+  @override
   String get featureUnavailableTitle => 'Unavailable';
 
   @override

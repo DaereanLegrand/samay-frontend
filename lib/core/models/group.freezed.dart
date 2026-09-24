@@ -18,7 +18,7 @@ mixin _$Group {
 
  String get id; String get name; String? get description; String? get coverUrl; int get groupShards;/// Active member count, attached by `GroupService.getMyGroups` (the
 /// `groups` table carries no count column).
- int get memberCount; String? get sizeTier; String? get rankBracket; DateTime? get frozenAt; String? get myRole;/// The caller's own membership status (`active`/`invited`),
+ int get memberCount; String? get sizeTier; String? get rankBracket; DateTime? get frozenAt; String? get myRole;/// the caller's own membership status (`active`/`invited`),
 /// attached by `GroupService.getMyGroups` alongside `my_role`.
  String? get myStatus;
 /// Create a copy of Group
@@ -239,7 +239,7 @@ class _Group implements Group {
 @override final  String? rankBracket;
 @override final  DateTime? frozenAt;
 @override final  String? myRole;
-/// The caller's own membership status (`active`/`invited`),
+/// the caller's own membership status (`active`/`invited`),
 /// attached by `GroupService.getMyGroups` alongside `my_role`.
 @override final  String? myStatus;
 

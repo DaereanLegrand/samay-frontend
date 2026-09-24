@@ -11,6 +11,7 @@
         supabase-seed-config \
         supabase-seed-test \
         migrate-check \
+        login \
         ios-beta ios-release android-alpha android-release \
         deploy-api deploy-dashboard deploy-venue bundle-install
 
@@ -37,6 +38,10 @@ help:
 	@echo "    tunnel-android           SSH adb tunnel to the <build-host>'s Android/emulator (LAN-first)"
 	@echo "    tunnel-waydroid          SSH adb tunnel to the <build-host>'s waydroid"
 	@echo "    ios-signing-restore      reset the pbxproj signing placeholders (opt-008)"
+	@echo ""
+	@echo "  SIMULATOR LOGIN (MCP)"
+	@echo "    login [TARGET=simulator] inject the email into the login screen via Xcode MCP"
+	@echo "                             (DEVICE=\"iPhone 11\"; DRY_RUN=1 to only capture)"
 	@echo ""
 	@echo "  CHECKS / TESTS"
 	@echo "    check                    full static gate: analyzers + go vet + ports + secrets"
@@ -880,6 +885,20 @@ install-hooks:
 	@git config core.hooksPath tools/hooks
 	@[ -x tools/hooks/pre-commit ] || { echo "❌  tools/hooks/pre-commit missing or not executable — fix before committing."; exit 1; }
 	@echo "✅  core.hooksPath → tools/hooks — pre-commit gate active (tools/pre-commit.sh)"
+
+# ── Simulator login (Xcode MCP) ──────────────────────────────────────────────
+# Focuses the login screen's EMAIL field and injects the address through
+# Xcode's DeviceInteraction MCP — the workaround for the host→Simulator
+# keyboard bug where '@' never reaches the device area. Only the email is
+# injected; type the password (tester123) and tap Sign in by hand.
+#
+#   make login TARGET=simulator                 # iPhone 11 → tester4, else tester3
+#   make login TARGET=simulator DEVICE="iPhone 11"
+#   make login TARGET=simulator DRY_RUN=1       # capture + print, inject nothing
+#
+# Interaction-only: never installs/launches the app, never touches `make dev`.
+login:
+	@python3 tools/xcode_login.py --target "$(TARGET)" --device "$(DEVICE)" $(if $(DRY_RUN),--dry-run,)
 
 # ── Fastlane stubs (MKE-05 / MKE-07 Makefile half, M-15) ─────────────────────
 # Lane-name CONTRACT for M-17 (iOS) / M-18 (Android) — fixed HERE and in
