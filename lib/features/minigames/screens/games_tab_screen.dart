@@ -29,10 +29,10 @@ class GamesTabScreen extends ConsumerWidget {
     final pendingByType = ref.watch(pendingMinigameInvitesByTypeProvider);
     final matchesByGame = ref.watch(gameTabMatchesProvider);
     final statusTop = MediaQuery.paddingOf(context).top;
-    // The header's total height (status inset + title band): the deck reserves
-    // it at the top so the centred card keeps its position, while the header
-    // itself is painted ON TOP of the deck in the Stack below.
-    final headerTotal = statusTop + VHeaderMetrics.barHeight(statusTop);
+    // The header's total height (status inset + outer pads + title band): the
+    // deck reserves it at the top so the centred card keeps its position, while
+    // the header itself is painted ON TOP of the deck in the Stack below.
+    final headerTotal = statusTop + VHeaderMetrics.barOuterHeight(statusTop);
 
     return Scaffold(
       backgroundColor: AppColors.discoBlack,

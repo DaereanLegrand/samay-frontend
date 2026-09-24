@@ -10,6 +10,7 @@ import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/design_tokens/app_typography.dart';
 import 'package:samay/core/extensions/error_mapper.dart';
 import 'package:samay/core/models/event_discovery_hit.dart';
+import 'package:samay/core/router/main_shell.dart';
 import 'package:samay/core/router/route_paths.dart';
 import 'package:samay/core/services/location_service.dart';
 import 'package:samay/features/events/logic/event_formatters.dart';
@@ -101,26 +102,6 @@ class _MyEventsScreenState extends ConsumerState<MyEventsScreen> {
     }
   }
 
-  Future<void> _toggleNearby(bool enabled) async {
-    final l10n = AppLocalizations.of(context);
-    if (!enabled) {
-      ref.read(eventNearbyEnabledProvider.notifier).set(false);
-      return;
-    }
-    final hasPoint = ref.read(eventReferencePointProvider) != null;
-    if (!hasPoint) {
-      final ok = await _useMyLocation();
-      if (!mounted) return;
-      if (!ok) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(l10n.locationPickerDenied)),
-        );
-        return;
-      }
-    }
-    ref.read(eventNearbyEnabledProvider.notifier).set(true);
-  }
-
   Future<void> _pickLocation() async {
     final current = ref.read(eventReferencePointProvider);
     final picked = await showLocationPicker(
@@ -136,7 +117,6 @@ class _MyEventsScreenState extends ConsumerState<MyEventsScreen> {
             longitude: picked.longitude,
           ),
         );
-    ref.read(eventNearbyEnabledProvider.notifier).set(true);
   }
 
   @override
@@ -164,7 +144,9 @@ class _MyEventsScreenState extends ConsumerState<MyEventsScreen> {
                 ),
                 IconButton(
                   icon: Icon(
-                    _filterOpen ? Icons.tune : Icons.tune_outlined,
+                    _filterOpen
+                        ? Icons.location_on
+                        : Icons.location_on_outlined,
                     color: AppColors.white,
                   ),
                   tooltip: l10n.eventsFilterTooltip,
@@ -200,12 +182,10 @@ class _MyEventsScreenState extends ConsumerState<MyEventsScreen> {
                                 onChanged: _onSearchChanged,
                               ),
                             if (_filterOpen) ...[
-                              const SizedBox(height: AppSpacing.md),
-                              RadiusFilterBar(l10n: l10n),
+                              RadiusSlider(l10n: l10n),
                               const SizedBox(height: AppSpacing.sm),
-                              _NearbyControls(
+                              _LocationControls(
                                 resolving: _resolving,
-                                onToggle: _toggleNearby,
                                 onUseMyLocation: _useMyLocation,
                                 onPickLocation: _pickLocation,
                               ),
@@ -257,6 +237,11 @@ class _MyEventsScreenState extends ConsumerState<MyEventsScreen> {
                 ];
               },
             ),
+            // Clear the floating shell nav bar so the last card can scroll
+            // above it (nav-bar height + 16).
+            SliverToBoxAdapter(
+              child: SizedBox(height: MainShell.navBarInset(context)),
+            ),
           ],
         ),
       ),
@@ -264,18 +249,18 @@ class _MyEventsScreenState extends ConsumerState<MyEventsScreen> {
   }
 }
 
-/// "Cerca de mí" toggle plus the reference-point controls (device location or
-/// a manually picked point). The km chips above it select the radius; the
-/// server hard-caps at 100 km.
-class _NearbyControls extends ConsumerWidget {
+/// The reference-point controls: resolve the device location ("Usar mi
+/// ubicación") or pick one on the map ("Elegir ubicación"). Once a point
+/// exists the pick button's label becomes the chosen location (its coordinates
+/// — there is no geocoder), and tapping it re-opens the map picker. The radius
+/// slider above is disabled until a point exists (server hard-caps at 100 km).
+class _LocationControls extends ConsumerWidget {
   final bool resolving;
-  final Future<void> Function(bool) onToggle;
   final Future<bool> Function() onUseMyLocation;
   final Future<void> Function() onPickLocation;
 
-  const _NearbyControls({
+  const _LocationControls({
     required this.resolving,
-    required this.onToggle,
     required this.onUseMyLocation,
     required this.onPickLocation,
   });
@@ -283,55 +268,32 @@ class _NearbyControls extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
-    final enabled = ref.watch(eventNearbyEnabledProvider);
     final point = ref.watch(eventReferencePointProvider);
+    final labelStyle = AppTypography.labelMedium.copyWith(
+      color: AppColors.white,
+    );
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    return Row(
       children: [
-        Row(
-          children: [
-            Expanded(
-              child: Text(
-                l10n.eventsNearbyToggle,
-                style: AppTypography.bodyLarge.copyWith(color: AppColors.white),
-              ),
-            ),
-            Switch(
-              value: enabled,
-              activeThumbColor: AppColors.white,
-              onChanged: resolving ? null : (v) => onToggle(v),
-            ),
-          ],
+        TextButton(
+          onPressed: resolving ? null : () => onUseMyLocation(),
+          child: Text(l10n.eventsUseMyLocation, style: labelStyle),
         ),
-        Row(
-          children: [
-            TextButton(
-              onPressed: resolving ? null : () => onUseMyLocation(),
-              child: Text(
-                l10n.eventsUseMyLocation,
-                style: AppTypography.labelMedium.copyWith(color: AppColors.white),
-              ),
+        Flexible(
+          child: TextButton(
+            onPressed: onPickLocation,
+            child: Text(
+              point == null
+                  ? l10n.eventsPickLocation
+                  : l10n.locationPickerCoordinates(
+                      '${point.latitude.toStringAsFixed(5)}, '
+                      '${point.longitude.toStringAsFixed(5)}',
+                    ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: labelStyle,
             ),
-            TextButton(
-              onPressed: onPickLocation,
-              child: Text(
-                l10n.eventsPickLocation,
-                style: AppTypography.labelMedium.copyWith(color: AppColors.white),
-              ),
-            ),
-            if (point == null)
-              Expanded(
-                child: Text(
-                  l10n.feedNoLocationNotice,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppTypography.bodySmall.copyWith(
-                    color: AppColors.mutedStrong,
-                  ),
-                ),
-              ),
-          ],
+          ),
         ),
       ],
     );

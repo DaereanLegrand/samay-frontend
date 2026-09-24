@@ -118,6 +118,31 @@ token changes in code, change it here in the same commit.
   `MinigameHeaderTitle` positions its line 1 with
   `VHeaderMetrics.opticalShiftFor`, so a two-line minigame header sits at the
   exact same glyph position as every plain header.
+- **Header bars always carry `AppSpacing.sm` (8px) above and below.**
+  `VHeaderMetrics.headerOuterPad` is applied *outside* `barHeight`, so the
+  bar's own geometry never changes; call sites that must reserve the header's
+  footprint use `VHeaderMetrics.barOuterHeight`. The OS top safe-area inset is
+  additional, and the per-device `heroTopPad` fallback (16px only when the OS
+  reserves no inset) is unchanged inside the bar. The
+  `VHeaderSliver` keeps the same 8px bands, so fixed bars and scroll headers
+  share one footprint.
+- **Tab-root scroll headers are ALWAYS transparent — no collapse, no glass.**
+  `VHeaderSliver` pins the shared title row (title + actions) at a fixed y over
+  a top scrim gradient; content scrolls beneath it and the actions are never
+  lost. This replaced the earlier iOS large-title collapse / blurred-glass bar.
+- **Every shell tab reserves the floating nav bar as a bottom inset.** Tab-root
+  scroll views end with a `SliverToBoxAdapter(SizedBox(height:
+  MainShell.navBarInset(context)))` so the last item can scroll above the pill.
+  `navBarInset` = the body's `MediaQuery.padding.bottom` (which `extendBody:
+  true` sets to the nav bar's full height) + 16.
+- **The Events-tab distance filter is a single radius `Slider`** (0–100 km in
+  5 km steps) with its value shown to the right. `0` is the deactivated
+  position — only the faint inactive track paints and the thumb stays visible;
+  the slider is disabled (greyed) until a reference point exists. Setting the
+  point is via "Usar mi ubicación" (device GPS) or "Elegir ubicación" (the map
+  picker, whose button becomes the chosen coordinates). The server hard-caps at
+  100 km. Themed monochrome in `app_theme.dart` (white active, `border`
+  inactive, `muted`/`surfaceAlt` disabled).
 - **Primary CTA voice is `VButton.dark`** (black fill, white text, white
   hairline); `emphasized` (white fill, black text) for auth-form submits;
   `outlined` for secondary actions.

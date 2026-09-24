@@ -489,9 +489,11 @@ class _ActiveCode extends StatelessWidget {
               bottom: false,
               child: Padding(
                 padding: EdgeInsets.only(
-                  top: VHeaderMetrics.heroTopPad(
-                    MediaQuery.paddingOf(context).top,
-                  ),
+                  top:
+                      VHeaderMetrics.headerOuterPad +
+                      VHeaderMetrics.heroTopPad(
+                        MediaQuery.paddingOf(context).top,
+                      ),
                   left: AppSpacing.screenHorizontal,
                 ),
                 child: const SizedBox(

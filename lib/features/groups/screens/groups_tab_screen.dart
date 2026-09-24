@@ -8,6 +8,7 @@ import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/extensions/error_mapper.dart';
 import 'package:samay/core/models/group.dart';
 import 'package:samay/core/models/group_member.dart';
+import 'package:samay/core/router/main_shell.dart';
 import 'package:samay/core/router/route_paths.dart';
 import 'package:samay/features/feed/widgets/avatar_physics_cluster.dart';
 import 'package:samay/features/groups/providers/groups_providers.dart';
@@ -92,6 +93,11 @@ class GroupsTab extends ConsumerWidget {
                   ];
                 },
               ),
+          // Clear the floating shell nav bar so the last row can scroll above
+          // it (nav-bar height + 16).
+          SliverToBoxAdapter(
+            child: SizedBox(height: MainShell.navBarInset(context)),
+          ),
         ],
       ),
     );

@@ -257,13 +257,6 @@ class AppLocalizationsEs extends AppLocalizations {
   }
 
   @override
-  String get feedRadiusAnywhere => 'En cualquier lugar';
-
-  @override
-  String get feedNoLocationNotice =>
-      'Sin ubicación disponible — mostrando todos los eventos';
-
-  @override
   String get feedAllCaughtUp => 'Estás al día';
 
   @override
@@ -2486,13 +2479,10 @@ class AppLocalizationsEs extends AppLocalizations {
   String get eventsFilterTooltip => 'Filtrar por distancia';
 
   @override
-  String get eventsNearbyToggle => 'Cerca de mí';
-
-  @override
   String get eventsUseMyLocation => 'Usar mi ubicación';
 
   @override
-  String get eventsPickLocation => 'Elegir una ubicación';
+  String get eventsPickLocation => 'Elegir ubicación';
 
   @override
   String eventsDistanceKm(String km) {

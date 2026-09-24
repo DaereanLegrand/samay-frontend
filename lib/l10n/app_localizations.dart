@@ -530,23 +530,11 @@ abstract class AppLocalizations {
   /// **'Destacado'**
   String get feedFeaturedBadge;
 
-  /// Radius filter chip label in kilometers
+  /// Radius value label in kilometers (Events-tab distance slider)
   ///
   /// In es, this message translates to:
   /// **'{radius} km'**
   String feedRadiusKm(int radius);
-
-  /// Radius filter chip label for the anywhere option (999 km)
-  ///
-  /// In es, this message translates to:
-  /// **'En cualquier lugar'**
-  String get feedRadiusAnywhere;
-
-  /// Notice shown while no device location is available, so the radius filter cannot apply
-  ///
-  /// In es, this message translates to:
-  /// **'Sin ubicación disponible — mostrando todos los eventos'**
-  String get feedNoLocationNotice;
 
   /// Empty agnostic feed state heading
   ///
@@ -4580,22 +4568,16 @@ abstract class AppLocalizations {
   /// **'Filtrar por distancia'**
   String get eventsFilterTooltip;
 
-  /// Events tab toggle that enables the km distance filter
-  ///
-  /// In es, this message translates to:
-  /// **'Cerca de mí'**
-  String get eventsNearbyToggle;
-
   /// Events tab button that resolves the device location
   ///
   /// In es, this message translates to:
   /// **'Usar mi ubicación'**
   String get eventsUseMyLocation;
 
-  /// Events tab button that opens the manual location picker
+  /// Events tab button that opens the map picker; becomes the chosen location
   ///
   /// In es, this message translates to:
-  /// **'Elegir una ubicación'**
+  /// **'Elegir ubicación'**
   String get eventsPickLocation;
 
   /// Distance to an event rendered on a card

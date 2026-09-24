@@ -10,6 +10,7 @@ import 'package:samay/core/design_tokens/app_typography.dart';
 import 'package:samay/core/logging/app_logger.dart';
 import 'package:samay/core/models/notification_item.dart';
 import 'package:samay/core/providers/service_providers.dart';
+import 'package:samay/core/router/main_shell.dart';
 import 'package:samay/features/notifications/providers/notifications_providers.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/error_view.dart';
@@ -115,8 +116,8 @@ class _NotificationCenterScreenState
     final unread = ref.watch(unreadCountProvider);
 
     return Scaffold(
-      // Collapsing iOS-style header (shared mechanism); notifications scroll
-      // beneath it.
+      // Always-transparent pinned header (shared mechanism); notifications
+      // scroll beneath it.
       body: RefreshIndicator(
         onRefresh: () => ref.read(notificationsProvider.notifier).refresh(),
         child: CustomScrollView(
@@ -134,13 +135,18 @@ class _NotificationCenterScreenState
               ],
             ),
             ..._contentSlivers(context, ref, l10n, notifications),
+            // Clear the floating shell nav bar so the last row can scroll
+            // above it (nav-bar height + 16).
+            SliverToBoxAdapter(
+              child: SizedBox(height: MainShell.navBarInset(context)),
+            ),
           ],
         ),
       ),
     );
   }
 
-  /// The scroll body under the collapsing header, as slivers.
+  /// The scroll body under the transparent pinned header, as slivers.
   List<Widget> _contentSlivers(
     BuildContext context,
     WidgetRef ref,
