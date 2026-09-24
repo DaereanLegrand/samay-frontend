@@ -118,6 +118,16 @@ extension ObjectX on Object {
       // search_users per-user limiter; 429 comes from the Kong route limiter
       // (PostgrestException.fromJson falls back to the HTTP status string).
       if (code == 'SR001' || code == '429') return RateLimitError();
+      // SR002 = the query failed the 2..50 server-side length cap;
+      // SR003 = the RPC rejected an unauthenticated caller.
+      if (code == 'SR002') {
+        return ValidationError(
+          'query',
+          '',
+          localizer: (l) => l.searchTooShort,
+        );
+      }
+      if (code == 'SR003') return const UnauthorizedError();
       if (code == '23503') {
         return ValidationError(
           'data',

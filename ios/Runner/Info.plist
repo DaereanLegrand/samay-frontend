@@ -4,12 +4,6 @@
 <dict>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
-	<key>NSCameraUsageDescription</key>
-	<string>Samay usa la cámara para escanear códigos QR de asistencia a eventos.</string>
-	<key>NSPhotoLibraryUsageDescription</key>
-	<string>Samay necesita acceso a tus fotos para que puedas elegir la portada de tus grupos.</string>
-	<key>NSPhotoLibraryAddUsageDescription</key>
-	<string>Samay necesita permiso para guardar imágenes en tu galería (collages y portadas exportadas).</string>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
@@ -32,6 +26,14 @@
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>Samay usa la cámara para escanear códigos QR de asistencia a eventos.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Samay uses your location to set an event's exact spot and to filter events near you.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Samay necesita permiso para guardar imágenes en tu galería (collages y portadas exportadas).</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Samay necesita acceso a tus fotos para que puedas elegir la portada de tus grupos.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

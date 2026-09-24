@@ -2474,6 +2474,90 @@ class AppLocalizationsEs extends AppLocalizations {
       'Cuando te inviten o crees uno, aparecerá aquí.';
 
   @override
+  String get searchTooShort => 'Escribe al menos 2 caracteres para buscar';
+
+  @override
+  String get eventsSearchHint => 'Buscar eventos';
+
+  @override
+  String get eventsSearchTooltip => 'Buscar eventos';
+
+  @override
+  String get eventsFilterTooltip => 'Filtrar por distancia';
+
+  @override
+  String get eventsNearbyToggle => 'Cerca de mí';
+
+  @override
+  String get eventsUseMyLocation => 'Usar mi ubicación';
+
+  @override
+  String get eventsPickLocation => 'Elegir una ubicación';
+
+  @override
+  String eventsDistanceKm(String km) {
+    return '$km km';
+  }
+
+  @override
+  String eventsFriendsGoing(int count) {
+    return '$count amigos van';
+  }
+
+  @override
+  String get eventsLocationSectionTitle => 'Ubicación';
+
+  @override
+  String get eventsLocationOptionalHint =>
+      'Opcional — arrastra el mapa para fijar el punto exacto.';
+
+  @override
+  String get locationPickerTitle => 'Elegir una ubicación';
+
+  @override
+  String get locationPickerLinkTab => 'Enlace';
+
+  @override
+  String get locationPickerCoordsTab => 'Coords';
+
+  @override
+  String get locationPickerMapTab => 'Mapa';
+
+  @override
+  String get locationPickerLinkHint =>
+      'Pega un enlace de Google Maps o lat,lng';
+
+  @override
+  String get locationPickerCoordsHint => 'p. ej. -16.3988, -71.5369';
+
+  @override
+  String get locationPickerResolve => 'Resolver';
+
+  @override
+  String get locationPickerUse => 'Usar';
+
+  @override
+  String get locationPickerUseThisLocation => 'Usar esta ubicación';
+
+  @override
+  String locationPickerCoordinates(String value) {
+    return 'Coordenadas: $value';
+  }
+
+  @override
+  String get locationPickerDenied => 'Permiso de ubicación denegado';
+
+  @override
+  String get locationPickerUnavailable => 'Ubicación no disponible';
+
+  @override
+  String get locationPickerResolveFailed => 'No se pudo resolver esa ubicación';
+
+  @override
+  String get locationPickerPastePrompt =>
+      'Primero pega un enlace o coordenadas';
+
+  @override
   String get featureUnavailableTitle => 'No disponible';
 
   @override

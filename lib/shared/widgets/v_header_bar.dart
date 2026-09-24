@@ -543,6 +543,25 @@ class _CollapsingDelegate extends SliverPersistentHeaderDelegate {
     final titleStack = Stack(
       fit: StackFit.expand,
       children: [
+        // Top scrim: a black fade so the transparent header title stays
+        // legible over content that passes behind it. Always on — the header
+        // reserves no opaque surface of its own until the glass fades in.
+        Positioned.fill(
+          child: IgnorePointer(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    AppColors.discoBlack.withValues(alpha: 0.55),
+                    AppColors.discoBlack.withValues(alpha: 0.0),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
         // Glass is always present; it fades in over scrolling content.
         Positioned.fill(
           child: IgnorePointer(

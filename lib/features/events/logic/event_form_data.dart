@@ -66,6 +66,8 @@ class EventFormData {
     required this.startsAt,
     required this.endsAt,
     this.locationName = '',
+    this.locationLat,
+    this.locationLng,
     this.visibility = EventVisibility.public,
     this.groupId,
     this.joinMode = EventJoinMode.open,
@@ -86,6 +88,11 @@ class EventFormData {
   final DateTime startsAt;
   final DateTime endsAt;
   final String locationName;
+
+  /// Optional map coordinates captured via the location picker. When set, the
+  /// event participates in the server-side km discovery filter.
+  final double? locationLat;
+  final double? locationLng;
   final EventVisibility visibility;
   final String? groupId;
   final EventJoinMode? joinMode;
@@ -114,6 +121,8 @@ class EventFormData {
     DateTime? startsAt,
     DateTime? endsAt,
     String? locationName,
+    Object? locationLat = _unset,
+    Object? locationLng = _unset,
     EventVisibility? visibility,
     Object? groupId = _unset,
     Object? joinMode = _unset,
@@ -130,6 +139,12 @@ class EventFormData {
       startsAt: startsAt ?? this.startsAt,
       endsAt: endsAt ?? this.endsAt,
       locationName: locationName ?? this.locationName,
+      locationLat: identical(locationLat, _unset)
+          ? this.locationLat
+          : locationLat as double?,
+      locationLng: identical(locationLng, _unset)
+          ? this.locationLng
+          : locationLng as double?,
       visibility: visibility ?? this.visibility,
       groupId: identical(groupId, _unset) ? this.groupId : groupId as String?,
       joinMode: identical(joinMode, _unset)
@@ -207,6 +222,8 @@ class EventFormData {
       'starts_at': startsAt.toUtc().toIso8601String(),
       'ends_at': endsAt.toUtc().toIso8601String(),
       'location_name': locationName.trim().isEmpty ? null : locationName.trim(),
+      'location_lat': locationLat,
+      'location_lng': locationLng,
       'group_id': groupScoped ? groupId : null,
       // Group-scoped events are always invitation-only.
       'join_mode': groupScoped ? null : joinMode?.wire,

@@ -4556,6 +4556,156 @@ abstract class AppLocalizations {
   /// **'Cuando te inviten o crees uno, aparecerá aquí.'**
   String get eventsEmptyBody;
 
+  /// Validation message for a too-short search query (SR002)
+  ///
+  /// In es, this message translates to:
+  /// **'Escribe al menos 2 caracteres para buscar'**
+  String get searchTooShort;
+
+  /// Events tab search field placeholder
+  ///
+  /// In es, this message translates to:
+  /// **'Buscar eventos'**
+  String get eventsSearchHint;
+
+  /// Events tab search action tooltip
+  ///
+  /// In es, this message translates to:
+  /// **'Buscar eventos'**
+  String get eventsSearchTooltip;
+
+  /// Events tab km filter action tooltip
+  ///
+  /// In es, this message translates to:
+  /// **'Filtrar por distancia'**
+  String get eventsFilterTooltip;
+
+  /// Events tab toggle that enables the km distance filter
+  ///
+  /// In es, this message translates to:
+  /// **'Cerca de mí'**
+  String get eventsNearbyToggle;
+
+  /// Events tab button that resolves the device location
+  ///
+  /// In es, this message translates to:
+  /// **'Usar mi ubicación'**
+  String get eventsUseMyLocation;
+
+  /// Events tab button that opens the manual location picker
+  ///
+  /// In es, this message translates to:
+  /// **'Elegir una ubicación'**
+  String get eventsPickLocation;
+
+  /// Distance to an event rendered on a card
+  ///
+  /// In es, this message translates to:
+  /// **'{km} km'**
+  String eventsDistanceKm(String km);
+
+  /// Accepted-friend signal on an event card
+  ///
+  /// In es, this message translates to:
+  /// **'{count} amigos van'**
+  String eventsFriendsGoing(int count);
+
+  /// Create/edit event location section heading
+  ///
+  /// In es, this message translates to:
+  /// **'Ubicación'**
+  String get eventsLocationSectionTitle;
+
+  /// Create/edit event location helper
+  ///
+  /// In es, this message translates to:
+  /// **'Opcional — arrastra el mapa para fijar el punto exacto.'**
+  String get eventsLocationOptionalHint;
+
+  /// Location picker sheet title
+  ///
+  /// In es, this message translates to:
+  /// **'Elegir una ubicación'**
+  String get locationPickerTitle;
+
+  /// Location picker: paste a maps link
+  ///
+  /// In es, this message translates to:
+  /// **'Enlace'**
+  String get locationPickerLinkTab;
+
+  /// Location picker: type lat,lng
+  ///
+  /// In es, this message translates to:
+  /// **'Coords'**
+  String get locationPickerCoordsTab;
+
+  /// Location picker: pick on the map
+  ///
+  /// In es, this message translates to:
+  /// **'Mapa'**
+  String get locationPickerMapTab;
+
+  /// Location picker link-mode hint
+  ///
+  /// In es, this message translates to:
+  /// **'Pega un enlace de Google Maps o lat,lng'**
+  String get locationPickerLinkHint;
+
+  /// Location picker coords-mode hint
+  ///
+  /// In es, this message translates to:
+  /// **'p. ej. -16.3988, -71.5369'**
+  String get locationPickerCoordsHint;
+
+  /// Location picker resolve button
+  ///
+  /// In es, this message translates to:
+  /// **'Resolver'**
+  String get locationPickerResolve;
+
+  /// Location picker use resolved point
+  ///
+  /// In es, this message translates to:
+  /// **'Usar'**
+  String get locationPickerUse;
+
+  /// Location picker confirm map center
+  ///
+  /// In es, this message translates to:
+  /// **'Usar esta ubicación'**
+  String get locationPickerUseThisLocation;
+
+  /// Resolved coordinates readout
+  ///
+  /// In es, this message translates to:
+  /// **'Coordenadas: {value}'**
+  String locationPickerCoordinates(String value);
+
+  /// Location picker permission denied error
+  ///
+  /// In es, this message translates to:
+  /// **'Permiso de ubicación denegado'**
+  String get locationPickerDenied;
+
+  /// Location picker device-location failure
+  ///
+  /// In es, this message translates to:
+  /// **'Ubicación no disponible'**
+  String get locationPickerUnavailable;
+
+  /// Location picker link/coords resolve failure
+  ///
+  /// In es, this message translates to:
+  /// **'No se pudo resolver esa ubicación'**
+  String get locationPickerResolveFailed;
+
+  /// Location picker empty-input prompt
+  ///
+  /// In es, this message translates to:
+  /// **'Primero pega un enlace o coordenadas'**
+  String get locationPickerPastePrompt;
+
   /// Neutral flag-gate fallback heading (no coming-soon copy)
   ///
   /// In es, this message translates to:

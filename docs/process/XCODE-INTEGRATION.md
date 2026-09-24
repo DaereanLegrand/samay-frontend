@@ -157,3 +157,44 @@ iPhone 17, plus iPads (`xcrun simctl list devices available`).
 - Xcode's MCP tool set is large and adds context cost; if it gets noisy,
   disable globally with `"tools": { "xcode*": false }` and opt in per agent.
 - No admin/privileged commands from agents — hand them to the human.
+
+---
+
+## 4. Simulator login automation (`make login`)
+
+The macOS host → iOS Simulator keyboard path never delivers `@` to the device
+area (a Mac text box types it fine), so an email can't be typed by hand into
+the running app. `make login` injects it through the MCP `DeviceInteraction`
+tools instead (the same path that bypasses the host keyboard):
+
+```bash
+make login TARGET=simulator                      # iPhone 11 → tester4, else tester3
+make login TARGET=simulator DEVICE="iPhone 11"
+make login TARGET=simulator DRY_RUN=1            # capture + print, inject nothing
+```
+
+- Driver: `tools/xcode_login.py` — a stdio JSON-RPC client for
+  `xcrun mcpbridge` (no LLM). It focuses the login screen's **email** field and
+  types the address as `\u{0040}` for `@`; the password (`tester123`) and Sign
+  in stay manual.
+- It is interaction-only: no build/install/launch, and it never touches a
+  running `make dev` session.
+- It aborts (no taps) unless the captured hierarchy shows the login screen.
+
+### First-run approval (per agent identity)
+
+A script-spawned MCP client is a **new agent identity**, so Xcode rejects its
+tool calls until approved. The script makes an `XcodeOpenWorkspace` call first,
+which is what triggers Xcode's approval prompt — click **Allow**. The two
+official ways:
+
+1. **No sudo (GUI):** re-run `make login`; approve the Xcode dialog. The
+   script prints the same guidance if it detects the unapproved error.
+2. **Sudo (CLI):**
+   ```bash
+   xcrun mcp-server status --format json    # pendingAgentApprovals[].id
+   sudo xcrun mcp-server approve <id> --always
+   ```
+
+The `opencode` agent is already approved (see §1.2); the login script is a
+separate identity and must be approved once.
