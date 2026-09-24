@@ -326,20 +326,12 @@
   },
   "feedRadiusKm": "{radius} km",
   "@feedRadiusKm": {
-    "description": "Radius filter chip label in kilometers",
+    "description": "Radius value label in kilometers (Events-tab distance slider)",
     "placeholders": {
       "radius": {
         "type": "int"
       }
     }
-  },
-  "feedRadiusAnywhere": "Anywhere",
-  "@feedRadiusAnywhere": {
-    "description": "Radius filter chip label for the anywhere option (999 km)"
-  },
-  "feedNoLocationNotice": "No location available — showing all events",
-  "@feedNoLocationNotice": {
-    "description": "Notice shown while no device location is available, so the radius filter cannot apply"
   },
   "feedAllCaughtUp": "You're all caught up",
   "@feedAllCaughtUp": {
@@ -3056,17 +3048,13 @@
   "@eventsFilterTooltip": {
     "description": "Events tab km filter action tooltip"
   },
-  "eventsNearbyToggle": "Near me",
-  "@eventsNearbyToggle": {
-    "description": "Events tab toggle that enables the km distance filter"
-  },
   "eventsUseMyLocation": "Use my location",
   "@eventsUseMyLocation": {
     "description": "Events tab button that resolves the device location"
   },
-  "eventsPickLocation": "Pick a location",
+  "eventsPickLocation": "Pick location",
   "@eventsPickLocation": {
-    "description": "Events tab button that opens the manual location picker"
+    "description": "Events tab button that opens the map picker; becomes the chosen location"
   },
   "eventsDistanceKm": "{km} km",
   "@eventsDistanceKm": {

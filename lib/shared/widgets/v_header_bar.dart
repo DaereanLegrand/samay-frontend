@@ -1,5 +1,3 @@
-import 'dart:ui' show ImageFilter;
-
 import 'package:flutter/material.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
@@ -20,6 +18,11 @@ abstract final class VHeaderMetrics {
   static const EdgeInsets titleInset = EdgeInsets.symmetric(
     horizontal: AppSpacing.screenHorizontal,
   );
+
+  /// External gap above AND below the header bar — always [AppSpacing.sm]
+  /// (8px), on every device. Applied OUTSIDE [barHeight], so the bar's own
+  /// geometry is unchanged; the OS top safe-area inset is additional.
+  static const double headerOuterPad = AppSpacing.sm;
 
   /// Fallback top gap, used ONLY when the OS reserves no top safe-area inset.
   /// 16px (`AppSpacing.lg`).
@@ -45,18 +48,11 @@ abstract final class VHeaderMetrics {
   static double barHeight(double statusTop) =>
       heroTopPad(statusTop) * 2 + titleRowHeight;
 
-  /// The compact band below the status inset once fully collapsed.
-  static const double collapsedBarHeight = titleRowHeight;
-
-  /// Neutral glass surface behind the collapsed title (matches the bottom-nav
-  /// pill: `surface` α0.85 over black).
-  static final Color glassFill = AppColors.surface.withValues(alpha: 0.85);
-
-  /// Faint white bottom sheen of the glass (the nav pill's α0.15 border).
-  static final Color glassSheen = AppColors.white.withValues(alpha: 0.15);
-
-  /// Backdrop blur sigma of the glass (matches the nav pill).
-  static const double glassBlur = 20;
+  /// Total vertical space a fixed bar occupies below the OS safe-area inset:
+  /// [headerOuterPad] + [barHeight] + [headerOuterPad]. Call sites that must
+  /// reserve the header's footprint use this instead of summing by hand.
+  static double barOuterHeight(double statusTop) =>
+      barHeight(statusTop) + headerOuterPad * 2;
 
   /// The typographic band that defines the header's SHARED optical centerline.
   /// Every element in [VHeaderTitleRow] (back arrow, title, actions) is
@@ -293,10 +289,10 @@ bool _actionIsText(Widget action) {
 
 /// Unified top bar — one definition for every pushed screen's header.
 ///
-/// Fixed title bar (does not scroll): [VHeaderMetrics.heroTopPad] below the OS
-/// safe inset (0 when the OS already reserves one), the shared
-/// [VHeaderTitleRow], an optional full-bleed [bottom] strip, and an expanding
-/// [child] body.
+/// Fixed title bar (does not scroll): [VHeaderMetrics.headerOuterPad] above and
+/// below the bar, [VHeaderMetrics.heroTopPad] below the OS safe inset (0 when
+/// the OS already reserves one), the shared [VHeaderTitleRow], an optional
+/// full-bleed [bottom] strip, and an expanding [child] body.
 class VHeaderBar extends StatelessWidget {
   final String? title;
   final Widget? titleWidget;
@@ -326,23 +322,28 @@ class VHeaderBar extends StatelessWidget {
     final header = Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        SizedBox(
-          height: VHeaderMetrics.barHeight(statusTop),
-          child: Padding(
-            padding: VHeaderMetrics.titleInset,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                SizedBox(height: topGap),
-                VHeaderTitleRow(
-                  title: title,
-                  titleWidget: titleWidget,
-                  actions: actions,
-                  showBack: showBack,
-                  onBack: onBack,
-                  maxLines: maxLines,
-                ),
-              ],
+        Padding(
+          padding: const EdgeInsets.symmetric(
+            vertical: VHeaderMetrics.headerOuterPad,
+          ),
+          child: SizedBox(
+            height: VHeaderMetrics.barHeight(statusTop),
+            child: Padding(
+              padding: VHeaderMetrics.titleInset,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  SizedBox(height: topGap),
+                  VHeaderTitleRow(
+                    title: title,
+                    titleWidget: titleWidget,
+                    actions: actions,
+                    showBack: showBack,
+                    onBack: onBack,
+                    maxLines: maxLines,
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -363,13 +364,17 @@ class VHeaderBar extends StatelessWidget {
   }
 }
 
-/// iOS-style collapsing header for scrollable tab roots (Feed 'samay',
-/// Eventos 'mis eventos'). Use as the FIRST sliver of a `CustomScrollView`.
+/// Always-transparent pinned header for scrollable tab roots (Feed 'samay',
+/// Eventos 'mis eventos', Perfil, Notificaciones, Social). Use as the FIRST
+/// sliver of a `CustomScrollView`.
 ///
-/// Expanded: the shared hero title at [VHeaderMetrics.heroTopPad], exactly
-/// aligned with the fixed [VHeaderBar]. As the user scrolls, the header
-/// collapses (iOS large-title style) to a compact centered title over a
-/// neutral blurred glass ([VHeaderMetrics.glassFill]/[glassBlur]).
+/// There is NO collapse and NO glass fill: the shared title row (title +
+/// actions) stays pinned at the SAME y at rest and while scrolling, over a top
+/// scrim gradient that keeps it legible above the content passing beneath.
+/// Geometry matches the fixed [VHeaderBar]: the title sits at
+/// [VHeaderMetrics.heroTopPad] below the OS inset and
+/// [VHeaderMetrics.headerOuterPad], with a trailing
+/// [VHeaderMetrics.headerOuterPad] band under the row.
 class VHeaderSliver extends StatelessWidget {
   final String? title;
   final Widget? titleWidget;
@@ -404,7 +409,7 @@ class VHeaderSliver extends StatelessWidget {
     final statusTop = MediaQuery.paddingOf(context).top;
     return SliverPersistentHeader(
       pinned: true,
-      delegate: _CollapsingDelegate(
+      delegate: _TransparentHeaderDelegate(
         title: title,
         titleWidget: titleWidget,
         actions: actions,
@@ -419,9 +424,9 @@ class VHeaderSliver extends StatelessWidget {
   }
 }
 
-/// [VHeaderSliver]'s persistent delegate. min = collapsed glass bar,
-/// max = expanded hero.
-class _CollapsingDelegate extends SliverPersistentHeaderDelegate {
+/// [VHeaderSliver]'s delegate: a fixed, transparent, pinned header
+/// (`minExtent == maxExtent`).
+class _TransparentHeaderDelegate extends SliverPersistentHeaderDelegate {
   final String? title;
   final Widget? titleWidget;
   final List<Widget>? actions;
@@ -432,7 +437,7 @@ class _CollapsingDelegate extends SliverPersistentHeaderDelegate {
   final Widget? bottom;
   final double bottomHeight;
 
-  _CollapsingDelegate({
+  _TransparentHeaderDelegate({
     required this.title,
     required this.titleWidget,
     required this.actions,
@@ -444,19 +449,19 @@ class _CollapsingDelegate extends SliverPersistentHeaderDelegate {
     required this.bottomHeight,
   });
 
-  double get _titleExpandedInset =>
+  /// Title band + the external top/bottom [VHeaderMetrics.headerOuterPad].
+  double get _extent =>
       statusTop +
+      VHeaderMetrics.headerOuterPad +
       VHeaderMetrics.heroTopPad(statusTop) +
-      VHeaderMetrics.titleRowHeight;
-
-  double get _titleCollapsedInset =>
-      statusTop + VHeaderMetrics.collapsedBarHeight;
+      VHeaderMetrics.titleRowHeight +
+      VHeaderMetrics.headerOuterPad;
 
   @override
-  double get minExtent => _titleCollapsedInset + bottomHeight;
+  double get minExtent => _extent + bottomHeight;
 
   @override
-  double get maxExtent => _titleExpandedInset + bottomHeight;
+  double get maxExtent => _extent + bottomHeight;
 
   @override
   Widget build(
@@ -464,88 +469,42 @@ class _CollapsingDelegate extends SliverPersistentHeaderDelegate {
     double shrinkOffset,
     bool overlapsContent,
   ) {
-    // The status-bar/notch inset. The collapsed glass extends under it (iOS
-    // large-title style); the expanded title clears it with [heroTopPad].
     final statusTop = MediaQuery.paddingOf(context).top;
     final topGap = VHeaderMetrics.heroTopPad(statusTop);
-    // When the OS already reserves a top inset the hero top gap is 0, so the
-    // expanded and collapsed bands coincide (titleRange == 0) and there is
-    // nothing to collapse — treat it as fully expanded.
-    final titleRange = maxExtent - minExtent - bottomHeight;
-    final progress = titleRange <= 0
-        ? 0.0
-        : (shrinkOffset / titleRange).clamp(0.0, 1.0).toDouble();
-    final titleCurrentHeight = maxExtent - shrinkOffset - bottomHeight;
 
-    // Expanded top-aligned title row (clears the status bar by heroTopPad).
-    final expandedTitle = Padding(
-      padding: EdgeInsets.only(top: statusTop + topGap),
-      child: VHeaderTitleRow(
-        title: title,
-        titleWidget: titleWidget,
-        actions: actions,
-        showBack: showBack,
-        onBack: onBack,
-        maxLines: maxLines,
-      ),
-    );
-
-    // Glass surface with the compact title centered inside.
-    final glassTitle = VHeaderTitleRow(
-      title: title,
-      titleWidget: titleWidget,
-      actions: actions,
-      showBack: showBack,
-      onBack: onBack,
-      maxLines: 1,
-    );
-    final glass = ClipRect(
-      child: BackdropFilter(
-        filter: ImageFilter.blur(
-          sigmaX: VHeaderMetrics.glassBlur,
-          sigmaY: VHeaderMetrics.glassBlur,
-        ),
-        child: Container(
-          width: double.infinity,
-          height: titleCurrentHeight,
-          color: VHeaderMetrics.glassFill,
-          child: Stack(
-            children: [
-              // Compact title centered in the band BELOW the status inset.
-              Positioned(
-                left: 0,
-                right: 0,
-                top: statusTop,
-                height: (titleCurrentHeight - statusTop).clamp(
-                  0,
-                  double.infinity,
-                ),
-                child: Opacity(
-                  opacity: progress,
-                  child: Center(
-                    child: Padding(
-                      padding: VHeaderMetrics.titleInset,
-                      child: glassTitle,
-                    ),
-                  ),
-                ),
-              ),
-              Align(
-                alignment: Alignment.bottomCenter,
-                child: Container(height: 1, color: VHeaderMetrics.glassSheen),
-              ),
-            ],
+    // The shared title row (title + actions) at the SAME y at rest and while
+    // scrolling — always pinned, always transparent.
+    final titleRow = Positioned(
+      top: 0,
+      left: 0,
+      right: 0,
+      child: Padding(
+        padding: VHeaderMetrics.titleInset,
+        child: Padding(
+          padding: EdgeInsets.only(
+            top: statusTop + VHeaderMetrics.headerOuterPad + topGap,
+          ),
+          child: SizedBox(
+            height: VHeaderMetrics.titleRowHeight,
+            child: VHeaderTitleRow(
+              title: title,
+              titleWidget: titleWidget,
+              actions: actions,
+              showBack: showBack,
+              onBack: onBack,
+              maxLines: maxLines,
+            ),
           ),
         ),
       ),
     );
 
-    final titleStack = Stack(
+    // Transparent header: a top scrim gradient for legibility over the content
+    // passing beneath, with the title + actions always on top. No opaque
+    // surface, no collapse.
+    final band = Stack(
       fit: StackFit.expand,
       children: [
-        // Top scrim: a black fade so the transparent header title stays
-        // legible over content that passes behind it. Always on — the header
-        // reserves no opaque surface of its own until the glass fades in.
         Positioned.fill(
           child: IgnorePointer(
             child: DecoratedBox(
@@ -562,43 +521,21 @@ class _CollapsingDelegate extends SliverPersistentHeaderDelegate {
             ),
           ),
         ),
-        // Glass is always present; it fades in over scrolling content.
-        Positioned.fill(
-          child: IgnorePointer(
-            child: Opacity(opacity: progress, child: glass),
-          ),
-        ),
-        // The expanded hero fades out as it collapses away.
-        Positioned(
-          top: 0,
-          left: 0,
-          right: 0,
-          child: Opacity(
-            opacity: 1 - progress,
-            child: IgnorePointer(
-              ignoring: progress > 0.5,
-              child: Padding(
-                padding: VHeaderMetrics.titleInset,
-                child: expandedTitle,
-              ),
-            ),
-          ),
-        ),
+        titleRow,
       ],
     );
 
-    // The title region (collapsing) sits above the pinned bottom strip.
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        SizedBox(height: titleCurrentHeight, child: titleStack),
+        SizedBox(height: _extent, child: band),
         if (bottom != null) ...[SizedBox(height: bottomHeight, child: bottom)],
       ],
     );
   }
 
   @override
-  bool shouldRebuild(covariant _CollapsingDelegate oldDelegate) {
+  bool shouldRebuild(covariant _TransparentHeaderDelegate oldDelegate) {
     return title != oldDelegate.title ||
         titleWidget != oldDelegate.titleWidget ||
         actions != oldDelegate.actions ||

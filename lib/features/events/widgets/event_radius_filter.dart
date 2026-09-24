@@ -3,69 +3,59 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/design_tokens/app_typography.dart';
+import 'package:samay/features/events/providers/event_discovery_providers.dart';
 import 'package:samay/features/events/providers/event_radius_providers.dart';
 import 'package:samay/l10n/app_localizations.dart';
-import 'package:samay/shared/widgets/v_chip.dart';
 
-/// Radius chips (5/20/50/anywhere) from `app_config`
-/// (`feed.nearby_radius_km_options`); the selection drives
-/// [eventRadiusFilterProvider]. Functional today as a preference — the
-/// distance filter applies once a device location exists.
+/// The Events-tab distance filter: a single radius [Slider] (0..100 km in 5 km
+/// steps) with its value to the right. 0 is the deactivated position — the
+/// track shows only its faint inactive tint and the thumb stays visible; the
+/// user drags up to activate the distance filter.
 ///
-/// Monochrome: plain `VChip` — white border + label, white fill + black
-/// label when selected.
-class RadiusFilterBar extends ConsumerWidget {
+/// The slider is only operable once a reference point exists (set through the
+/// location controls next to it). Replaces the old km chip row and the
+/// "Cerca de mí" switch.
+class RadiusSlider extends ConsumerWidget {
   final AppLocalizations l10n;
 
-  const RadiusFilterBar({super.key, required this.l10n});
+  const RadiusSlider({super.key, required this.l10n});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final options = ref.watch(eventRadiusOptionsProvider);
-    final selected = ref.watch(eventRadiusFilterProvider);
-    return SizedBox(
-      // §7.3: the chip row must grow with the text scale — a hard
-      // 36px height clips the chips at ≥1.5× (the `AppSpacing.scale` helper).
-      height: AppSpacing.scale(context, 36),
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        padding: EdgeInsets.zero,
-        itemCount: options.length,
-        separatorBuilder: (_, _) => const SizedBox(width: AppSpacing.sm),
-        itemBuilder: (context, index) {
-          final radius = options[index];
-          final anywhere = radius >= kEventRadiusAnywhereKm;
-          return VChip(
-            label: anywhere
-                ? l10n.feedRadiusAnywhere
-                : l10n.feedRadiusKm(radius.round()),
-            selected: selected == radius,
-            onSelected: () =>
-                ref.read(eventRadiusFilterProvider.notifier).select(radius),
-          );
-        },
-      ),
-    );
-  }
-}
-
-/// The radius filter block at the top of the events tab: chips + honest
-/// no-location notice. Scrolls away beneath the pinned [VHeaderSliver] glass.
-class EventRadiusHeader extends StatelessWidget {
-  final AppLocalizations l10n;
-
-  const EventRadiusHeader({super.key, required this.l10n});
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    final hasLocation = ref.watch(eventReferencePointProvider) != null;
+    final value = ref
+        .watch(eventRadiusFilterProvider)
+        .clamp(kEventRadiusMinKm, kEventRadiusMaxKm)
+        .toDouble();
+    final divisions =
+        ((kEventRadiusMaxKm - kEventRadiusMinKm) / kEventRadiusStepKm).round();
+    return Row(
       children: [
-        RadiusFilterBar(l10n: l10n),
-        const SizedBox(height: AppSpacing.xs),
-        Text(
-          l10n.feedNoLocationNotice,
-          style: AppTypography.bodySmall.copyWith(color: AppColors.mutedStrong),
+        Expanded(
+          child: Slider(
+            value: value,
+            min: kEventRadiusMinKm,
+            max: kEventRadiusMaxKm,
+            divisions: divisions,
+            label: l10n.feedRadiusKm(value.round()),
+            // Disabled (greyed) until a reference point exists — without one
+            // the distance filter cannot apply.
+            onChanged: hasLocation
+                ? (v) => ref.read(eventRadiusFilterProvider.notifier).select(v)
+                : null,
+          ),
+        ),
+        const SizedBox(width: AppSpacing.sm),
+        // Fixed slot so the track never shifts as the value changes.
+        SizedBox(
+          width: 56,
+          child: Text(
+            l10n.feedRadiusKm(value.round()),
+            textAlign: TextAlign.right,
+            style: AppTypography.labelMedium.copyWith(
+              color: hasLocation ? AppColors.white : AppColors.muted,
+            ),
+          ),
         ),
       ],
     );

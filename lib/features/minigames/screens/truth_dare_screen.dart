@@ -318,7 +318,7 @@ class TruthDareScreen extends ConsumerWidget {
           );
     final screenStatusTop = MediaQuery.paddingOf(context).top;
     final screenHeaderBottom =
-        screenStatusTop + VHeaderMetrics.barHeight(screenStatusTop);
+        screenStatusTop + VHeaderMetrics.barOuterHeight(screenStatusTop);
     // The reto picture picker ("Añadir imagen") is rendered by the SCREEN,
     // directly BELOW the prompt banner — it must never sit behind
     // the question. Only the by-turns subject editor, before the answer lands,
@@ -371,9 +371,11 @@ class TruthDareScreen extends ConsumerWidget {
                 bottom: false,
                 child: Padding(
                   padding: EdgeInsets.only(
-                    top: VHeaderMetrics.heroTopPad(
-                      MediaQuery.paddingOf(context).top,
-                    ),
+                    top:
+                        VHeaderMetrics.headerOuterPad +
+                        VHeaderMetrics.heroTopPad(
+                          MediaQuery.paddingOf(context).top,
+                        ),
                     left: AppSpacing.screenHorizontal,
                   ),
                   child: const SizedBox(

@@ -186,6 +186,18 @@ class SamayTheme {
         checkColor: WidgetStatePropertyAll(AppColors.discoBlack),
         shape: RoundedRectangleBorder(borderRadius: AppRadius.sharp),
       ),
+      // Sliders (Events-tab distance filter): white active track + thumb over a
+      // `border` inactive track; disabled states fall back to `muted`/`surfaceAlt`.
+      // Token-only and const so `SamayTheme.dark` keeps value equality.
+      sliderTheme: const SliderThemeData(
+        activeTrackColor: AppColors.white,
+        thumbColor: AppColors.white,
+        inactiveTrackColor: AppColors.border,
+        disabledActiveTrackColor: AppColors.border,
+        disabledInactiveTrackColor: AppColors.surfaceAlt,
+        disabledThumbColor: AppColors.muted,
+        trackHeight: 2,
+      ),
       // TabBar: white indicator + white label. `unselectedLabelColor` and
       // `labelStyle` are deliberately left to the M3 defaults — §2.4 bans
       // `muted` for small informational text (3.66:1 < 4.5:1), and the

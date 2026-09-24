@@ -444,7 +444,8 @@ class _RankCardState extends State<_RankCard> {
     final insets = EdgeInsets.fromLTRB(
       AppSpacing.cardPadding,
       VHeaderMetrics.heroTopPad(MediaQuery.paddingOf(context).top) +
-          VHeaderMetrics.titleRowHeight,
+          VHeaderMetrics.titleRowHeight +
+          VHeaderMetrics.headerOuterPad * 2,
       AppSpacing.cardPadding,
       AppSpacing.cardPadding,
     );
@@ -1038,7 +1039,8 @@ class _AnswerPage extends StatelessWidget {
               padding: EdgeInsets.fromLTRB(
                 AppSpacing.cardPadding,
                 VHeaderMetrics.heroTopPad(MediaQuery.paddingOf(context).top) +
-                    VHeaderMetrics.titleRowHeight,
+                    VHeaderMetrics.titleRowHeight +
+                    VHeaderMetrics.headerOuterPad * 2,
                 AppSpacing.cardPadding,
                 AppSpacing.cardPadding,
               ),

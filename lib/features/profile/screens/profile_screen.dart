@@ -61,8 +61,8 @@ class ProfileScreen extends ConsumerWidget {
         .toUpperCase();
 
     return Scaffold(
-      // Collapsing iOS-style header (shared mechanism) with the profile body
-      // scrolling beneath it. Pull-to-refresh wraps the whole scroll view.
+      // Always-transparent pinned header (shared mechanism) with the profile
+      // body scrolling beneath it. Pull-to-refresh wraps the whole scroll view.
       body: RefreshIndicator(
         onRefresh: () => _refresh(ref),
         child: CustomScrollView(

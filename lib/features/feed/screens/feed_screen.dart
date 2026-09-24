@@ -7,6 +7,7 @@ import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/design_tokens/app_typography.dart';
 import 'package:samay/core/models/event.dart';
 import 'package:samay/core/models/feed_item.dart';
+import 'package:samay/core/router/main_shell.dart';
 import 'package:samay/core/router/route_paths.dart';
 import 'package:samay/features/chat/providers/chat_providers.dart';
 import 'package:samay/features/events/logic/event_formatters.dart';
@@ -51,8 +52,8 @@ class FeedScreen extends ConsumerWidget {
         child: CustomScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
           slivers: [
-            // iOS-style collapsing brand hero ('samay'), pinned as a neutral
-            // glass bar once scrolled (shared header mechanism).
+            // Always-transparent pinned brand hero ('samay') over a top scrim
+            // (shared header mechanism) — no collapse, no glass.
             VHeaderSliver(
               title: l10n.feedBrand,
               actions: const [_ChatInboxButton()],
@@ -97,6 +98,11 @@ class FeedScreen extends ConsumerWidget {
                   ),
                 ];
               },
+            ),
+            // Clear the floating shell nav bar so the last item can scroll
+            // above it (nav-bar height + 16).
+            SliverToBoxAdapter(
+              child: SizedBox(height: MainShell.navBarInset(context)),
             ),
           ],
         ),

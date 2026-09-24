@@ -54,19 +54,6 @@ class EventReferencePointNotifier extends Notifier<EventReferencePoint?> {
   void clear() => state = null;
 }
 
-/// Whether the "Cerca de mí" distance filter is active.
-final eventNearbyEnabledProvider =
-    NotifierProvider<EventNearbyEnabledNotifier, bool>(
-      EventNearbyEnabledNotifier.new,
-    );
-
-class EventNearbyEnabledNotifier extends Notifier<bool> {
-  @override
-  bool build() => false;
-
-  void set(bool value) => state = value;
-}
-
 /// The Eventos tab list. When a text query (≥ [kEventSearchMinLength]) or the
 /// nearby filter is active it calls the server-side `search_events` RPC
 /// (distance + friend signal + ranking); otherwise it falls back to the plain
@@ -82,11 +69,12 @@ class EventDiscoveryNotifier extends AsyncNotifier<List<EventDiscoveryHit>> {
   Future<List<EventDiscoveryHit>> build() async {
     final service = ref.watch(eventServiceProvider);
     final query = ref.watch(eventSearchQueryProvider).trim();
-    final nearby = ref.watch(eventNearbyEnabledProvider);
     final point = ref.watch(eventReferencePointProvider);
     final radius = ref.watch(eventRadiusFilterProvider);
     final hasQuery = query.length >= kEventSearchMinLength;
-    final hasNearby = nearby && point != null;
+    // 0 km is the deactivated position, so the distance filter needs both a
+    // reference point and an activated radius.
+    final hasNearby = point != null && radius > kEventRadiusMinKm;
 
     if (!hasQuery && !hasNearby) {
       final events = await service.listEvents();

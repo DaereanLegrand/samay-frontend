@@ -77,9 +77,11 @@ class TwoLiesScreen extends ConsumerWidget {
                 bottom: false,
                 child: Padding(
                   padding: EdgeInsets.only(
-                    top: VHeaderMetrics.heroTopPad(
-                      MediaQuery.paddingOf(context).top,
-                    ),
+                    top:
+                        VHeaderMetrics.headerOuterPad +
+                        VHeaderMetrics.heroTopPad(
+                          MediaQuery.paddingOf(context).top,
+                        ),
                     left: AppSpacing.screenHorizontal,
                   ),
                   child: const SizedBox(
@@ -1011,7 +1013,7 @@ class _TwoLiesFinishedBody extends ConsumerWidget {
         final statusTop = MediaQuery.paddingOf(context).top;
         return ListView(
           padding: EdgeInsets.only(
-            top: statusTop + VHeaderMetrics.barHeight(statusTop),
+            top: statusTop + VHeaderMetrics.barOuterHeight(statusTop),
             left: AppSpacing.lg,
             right: AppSpacing.lg,
             bottom: AppSpacing.xl,
