@@ -28,9 +28,9 @@ import 'package:samay/shared/widgets/v_spinner.dart';
 /// header, mirroring the attendance QR screen).
 ///
 /// Every ranked participant gets a card (winners and non-winners alike),
-/// ordered by rank; the selected card sits forward and centered while its
-/// neighbours recede to the sides with a perspective transform, blurring into
-/// and out of mist as the page passes. Every card fills the same
+/// ordered by rank; each page spans the WHOLE viewport (so an answer picture is
+/// edge-to-edge full-bleed) while the horizontal swipe's perspective transform
+/// blurs the passing page into and out of mist. Every card fills the same
 /// viewport-sized box: the prompt rides at the top, the answer body centers,
 /// and the identity block (RANK + USERNAME, then POINTS · SHARDS) is pinned to
 /// the card floor. A picture answer becomes the card's full-bleed background
@@ -162,15 +162,12 @@ class _LeaderboardCarouselState extends State<LeaderboardCarousel> {
     _index = _firstIndexOf(widget.initialParticipantId);
     _controller = PageController(
       initialPage: _index,
-      // A single rank has no neighbour to peek — keep it full-bleed.
-      viewportFraction: widget.rows.length > 1 ? _viewportFraction : 1.0,
+      // Each page spans the WHOLE viewport so a picture answer is truly
+      // full-bleed edge-to-edge. Rank navigation is the horizontal swipe plus
+      // the on-card rank pager — no resting neighbour peek.
     );
     _swipeHintVisible = widget.rows.length > 1;
   }
-
-  /// Each page spans most of the viewport so the neighbouring rank card stays
-  /// partially visible at rest — the resting affordance that more ranks exist.
-  static const double _viewportFraction = 0.86;
 
   /// The page index of [participantId] (0 / rank 1 when absent or unknown).
   int _firstIndexOf(String? participantId) {
@@ -203,10 +200,9 @@ class _LeaderboardCarouselState extends State<LeaderboardCarousel> {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        // Every page spans most of the viewport with a resting peek of the
-        // neighbouring card; a picture answer fills its own page edge-to-edge.
-        // The height falls back to a sane value only for a transient
-        // degenerate layout pass.
+        // Every page spans the WHOLE viewport; a picture answer fills it
+        // edge-to-edge. The height falls back to a sane value only for a
+        // transient degenerate layout pass.
         final cardHeight = constraints.maxHeight.isFinite
             ? constraints.maxHeight
             : 620.0;

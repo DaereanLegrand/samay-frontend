@@ -143,6 +143,40 @@ Juega's running Supabase owns host ports 5432/54321/54323/8443 — NEVER map Sam
 
 `tools/check_ports.sh --strict` must exit 0 after any infra change.
 
+## Xcode MCP device interaction (command syntax)
+
+UI verification on a simulator/device runs through the Xcode MCP
+`DeviceInteraction*` tools; interactions are issued by
+`xcode_DeviceInteractionSynthesize`'s `interactionCommand` string. Full runbook:
+`docs/process/XCODE-INTEGRATION.md`. The command grammar (export the skill with
+`xcrun agent skills export --output-dir <dir>` → `device-interaction/SKILL.md`):
+
+| Command | Action |
+|---|---|
+| `t <x> <y> [duration]` | Tap at coordinates (optional hold seconds) |
+| `d <x> <y>` | Double tap |
+| `t <x1> <y1> f <x2> <y2> [duration]` | Swipe from start to end |
+| `drag <x1> <y1> <x2> <y2> [hold] [move]` | Press-and-hold then drag |
+| `mt [x y, ...] dur [x y, ...] dur ...` | Multi-touch sequence (pinch, etc.) |
+| `b h/p/u/d [duration]` | Hardware button: home / power / vol-up / vol-down |
+| `sender keyboard kbd <text>` | Type into the FOCUSED field — MUST be the last command in the chain; rest of the string is verbatim. Special chars via `\u{XXXX}` (e.g. `\u{000A}` = Return) |
+| `w <duration>` | Wait |
+| `orientation faceDown/faceUp/landscapeLeft/landscapeRight/portrait/portraitUpsideDown` | Set orientation (iOS) |
+| `c <rotations>` / `r <up/down/left/right/select/menu/home/playpause>` | watchOS / tvOS only |
+
+Rules:
+- Prefer each element's hierarchy `hitPoint` over screenshot-estimated
+  coordinates; never guess from the image first.
+- Chain a focus tap and the typing in one command, e.g.
+  `t 207 256 sender keyboard kbd user@example.com sender keyboard kbd ...`
+  is NOT valid — the keyboard command must be LAST, so type one field per call:
+  `t 207 256 sender keyboard kbd user@example.com`, capture, then
+  `t 207 324 sender keyboard kbd secret`.
+- Capture (empty `interactionCommand`) before and after every interaction.
+- Never `DeviceInteractionInstallAndRun` over the human's running dev session;
+  never trigger a hot reload/restart yourself (`.opencode/DEV-SERVER.md`).
+- Do not shut down / kill / restart the human's simulators.
+
 ## Documentation Standards
 
 - `docs/README.md` — docs hub / map
