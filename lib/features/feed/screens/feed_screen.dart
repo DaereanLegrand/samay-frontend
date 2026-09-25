@@ -18,6 +18,7 @@ import 'package:samay/features/minigames/logic/minigame_meta.dart';
 import 'package:samay/features/minigames/providers/minigames_providers.dart';
 import 'package:samay/features/minigames/widgets/minigame_pool.dart';
 import 'package:samay/l10n/app_localizations.dart';
+import 'package:samay/shared/widgets/circulating_text.dart';
 import 'package:samay/shared/widgets/error_view.dart';
 import 'package:samay/shared/widgets/state_views.dart';
 import 'package:samay/shared/widgets/v_badge.dart';
@@ -182,11 +183,11 @@ class _EventCard extends StatelessWidget {
                 ),
                 const SizedBox(height: AppSpacing.md),
               ],
-              Text(
-                event.name,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.titleLarge,
+              CirculatingText(
+                text: event.name,
+                style:
+                    Theme.of(context).textTheme.titleLarge ??
+                    const TextStyle(fontWeight: FontWeight.w600),
               ),
               const SizedBox(height: AppSpacing.xs),
               Wrap(
@@ -263,9 +264,9 @@ class _EventCard extends StatelessWidget {
   }
 }
 
-/// Height of a feed match card's content row. The avatar physics box is given
-/// the same height so the bubbles fill the whole card.
-const double _kMatchCardHeight = 128;
+/// Height of a feed match card's content. The avatar physics box is given the
+/// remaining height after the single-row name header so the bubbles fill it.
+const double _kMatchCardHeight = 150;
 
 /// A specific minigame match in the feed.
 ///
@@ -293,6 +294,7 @@ class _MinigameMatchCard extends ConsumerWidget {
     final players =
         participants.isEmpty ? item.participantCount : participants.length;
     final showsBadge = item.fromParticipant || item.status == 'active';
+    final titleStyle = Theme.of(context).textTheme.titleLarge;
     return InkWell(
       onTap: () => context.push(RoutePaths.minigameSession(sessionId)),
       child: Padding(
@@ -304,61 +306,67 @@ class _MinigameMatchCard extends ConsumerWidget {
         ),
         child: SizedBox(
           height: _kMatchCardHeight,
-          child: Row(
+          child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Expanded(
-                flex: 2,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          minigameGameNameLower(l10n, item.gameType),
-                          style: AppTypography.sectionLabelSmall,
-                        ),
-                        Text(
-                          item.title,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: Theme.of(context).textTheme.titleLarge,
-                        ),
-                      ],
-                    ),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        if (item.fromParticipant)
-                          VBadge.emphasized(label: l10n.feedMinigameInvite)
-                        else if (item.status == 'active')
-                          VBadge(label: l10n.minigamesStatusActive),
-                        if (showsBadge) const SizedBox(height: AppSpacing.sm),
-                        MinigamePoolAmount(
-                          wager: wager,
-                          players: players,
-                          positions: positions,
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
+              // Single-row, full-width name header above the bubbles. Each
+              // line circulates on its own if it is wider than the card.
+              CirculatingText(
+                text: minigameGameNameLower(l10n, item.gameType),
+                style: AppTypography.sectionLabelSmall,
               ),
-              const SizedBox(width: AppSpacing.md),
+              const SizedBox(height: AppSpacing.xs),
+              CirculatingText(
+                text: item.title,
+                style:
+                    titleStyle ??
+                    const TextStyle(fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: AppSpacing.sm),
               Expanded(
-                flex: 3,
-                child: AvatarPhysicsCluster(
-                  participants: [
-                    for (final p in participants)
-                      ClusterAvatar(
-                        id: p.id,
-                        username: p.username,
-                        avatarUrl: p.avatarUrl,
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Expanded(
+                      flex: 2,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (item.fromParticipant)
+                            VBadge.emphasized(label: l10n.feedMinigameInvite)
+                          else if (item.status == 'active')
+                            VBadge(label: l10n.minigamesStatusActive),
+                          if (showsBadge) const SizedBox(height: AppSpacing.sm),
+                          MinigamePoolAmount(
+                            wager: wager,
+                            players: players,
+                            positions: positions,
+                          ),
+                        ],
                       ),
+                    ),
+                    const SizedBox(width: AppSpacing.md),
+                    Expanded(
+                      flex: 3,
+                      child: LayoutBuilder(
+                        builder: (context, constraints) => AvatarPhysicsCluster(
+                          participants: [
+                            for (final p in participants)
+                              ClusterAvatar(
+                                id: p.id,
+                                username: p.username,
+                                avatarUrl: p.avatarUrl,
+                              ),
+                          ],
+                          height: constraints.maxHeight.isFinite
+                              ? constraints.maxHeight
+                              : _kMatchCardHeight,
+                        ),
+                      ),
+                    ),
                   ],
-                  height: _kMatchCardHeight,
                 ),
               ),
             ],
