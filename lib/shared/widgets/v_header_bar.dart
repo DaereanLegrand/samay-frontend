@@ -1,8 +1,12 @@
+import 'dart:ui' show lerpDouble;
+
 import 'package:flutter/material.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/design_tokens/app_typography.dart';
+import 'package:samay/core/theme/samay_durations.dart';
 import 'package:samay/shared/widgets/v_display_text.dart';
+import 'package:samay/shared/widgets/v_glass_pill.dart';
 
 /// Single source of truth for every top-header dimension in the app.
 ///
@@ -23,6 +27,24 @@ abstract final class VHeaderMetrics {
   /// (8px), on every device. Applied OUTSIDE [barHeight], so the bar's own
   /// geometry is unchanged; the OS top safe-area inset is additional.
   static const double headerOuterPad = AppSpacing.sm;
+
+  /// Apple-style glass-pill mode: the glyph size the title shrinks to inside
+  /// its capsule (`headlineLarge` — Playfair 28) and, when [VHeaderTitleRow]
+  /// [VHeaderTitleRow.pills] is on, the back arrow / title / actions each get
+  /// their own [VGlassPill] over a fully transparent bar.
+  static const double pillTitleSize = 28;
+
+  /// Horizontal padding of the title capsule (the circles have none).
+  static const EdgeInsets pillTitlePadding = EdgeInsets.symmetric(
+    horizontal: AppSpacing.lg,
+  );
+
+  /// Circle diameter of the back arrow / icon actions, and the height of the
+  /// title capsule — matches [titleRowHeight], so a pill row never grows.
+  static const double pillDiameter = titleRowHeight;
+
+  /// Gap between adjacent pills.
+  static const double pillGap = AppSpacing.sm;
 
   /// Fallback top gap, used ONLY when the OS reserves no top safe-area inset.
   /// 16px (`AppSpacing.lg`).
@@ -151,50 +173,26 @@ TextStyle _actionLabelStyle(BuildContext context) =>
 //   arrow_back (Android) ink x 85..427 → 3.984px L / 3.984px R
 //   arrow_back_ios_new_rounded ink x 137..368.25 → 6.422px L / 6.738px R
 //
-// The header therefore gives the arrow the SAME optical gap on both sides:
-//   leading gap = leadingPad + inkLeft
-//   trailing gap = inkRight (title starts flush at the icon box edge)
-// Equal ⇒ leadingPad = inkRight − inkLeft (0 Android / 0.316px iOS), and both
-// gaps equal max(inkLeft, inkRight). The title's own glyph left-bearing is
-// intrinsic to the text and intentionally not compensated.
+// [VHeaderTitleRow] uses these to slide the back glyph from its bare optical x
+// (start-aligned, ink on the inset edge) to the centre of its glass circle as
+// the pill state animates in.
 const double _kBackArrowIconSize = 24;
-
-/// Minimum tap target of the back arrow, in logical px. Kept at the 44pt
-/// accessibility floor (the icon itself is only 24px).
-const double _kBackArrowMinTapTarget = 44;
 const double _arrowBackInkLeft = 85 / 512 * _kBackArrowIconSize;
 const double _arrowBackInkRight = (512 - 427) / 512 * _kBackArrowIconSize;
 const double _arrowBackIosInkLeft = 137 / 512 * _kBackArrowIconSize;
 const double _arrowBackIosInkRight = (512 - 368.25) / 512 * _kBackArrowIconSize;
 
-/// Scoped [IconButtonTheme] override for the back arrow only.
-///
-/// The button keeps a >=44pt tap target ([_kBackArrowMinTapTarget]) while the
-/// glyph is start-aligned so its ink sits at its natural bearing. The sub-pixel
-/// platform leading pad below equalizes the optical gaps on both sides of the
-/// arrow (see the bearing table above). Scoped to the back arrow so trailing
-/// icon actions keep their default targets.
-ButtonStyle _backArrowButtonStyle(BuildContext context) {
-  final isIos = switch (Theme.of(context).platform) {
-    TargetPlatform.iOS || TargetPlatform.macOS => true,
-    _ => false,
-  };
-  final inkLeft = isIos ? _arrowBackIosInkLeft : _arrowBackInkLeft;
-  final inkRight = isIos ? _arrowBackIosInkRight : _arrowBackInkRight;
-  return ButtonStyle(
-    padding: WidgetStatePropertyAll(
-      EdgeInsetsDirectional.only(start: (inkRight - inkLeft).clamp(0.0, 24.0)),
-    ),
-    minimumSize: const WidgetStatePropertyAll(
-      Size(_kBackArrowMinTapTarget, _kBackArrowMinTapTarget),
-    ),
-    alignment: AlignmentDirectional.centerStart,
-  );
-}
-
 /// The single shared title row used by every header presentation: an optional
 /// back arrow, the title (plain [VDisplayText] or a custom [titleWidget] such
 /// as the truth/dare two-line header), and trailing [actions].
+///
+/// [pillProgress] drives the Apple "liquid glass" morph: `0` is the bare
+/// historical row (large display title, plain icons); `1` is the pill state —
+/// back arrow, title (shrunk to [VHeaderMetrics.pillTitleSize]) and every
+/// action each in their own [VGlassPill] over a transparent bar. Intermediate
+/// values interpolate the title size, the capsule paddings/gaps and the bubble
+/// opacity/scale, so the transition animates smoothly both ways. [VHeaderBar]
+/// holds it at `1`; the pinned [VHeaderSliver] animates `0 → 1` on scroll.
 class VHeaderTitleRow extends StatelessWidget {
   final String? title;
   final Widget? titleWidget;
@@ -203,6 +201,9 @@ class VHeaderTitleRow extends StatelessWidget {
   final VoidCallback? onBack;
   final int? maxLines;
   final double height;
+
+  /// 0 = bare row, 1 = glass pills; values between animate the morph.
+  final double pillProgress;
 
   const VHeaderTitleRow({
     super.key,
@@ -213,64 +214,201 @@ class VHeaderTitleRow extends StatelessWidget {
     this.onBack,
     this.maxLines = 1,
     this.height = VHeaderMetrics.titleRowHeight,
+    this.pillProgress = 0,
   });
 
   @override
   Widget build(BuildContext context) {
+    final p = pillProgress.clamp(0.0, 1.0);
+
     // Model A — one shared optical centerline. The Row's own center is the
     // centerline; each element is shifted so its reference band center lands
     // there: icons by their grid-balanced box, text by its font-metric band.
-    final titleStyle = VDisplayText.styleFor(VDisplayText.defaultSize);
+    final titleSize = lerpDouble(
+      VDisplayText.defaultSize,
+      VHeaderMetrics.pillTitleSize,
+      p,
+    )!;
+    final titleStyle = VDisplayText.styleFor(titleSize);
     final titleShift = title != null && titleWidget == null
         ? _opticalShift(context, titleStyle)
         : 0.0;
     final labelShift = _opticalShift(context, _actionLabelStyle(context));
+    final hasTitle = title != null || titleWidget != null;
+
+    // Same platform icon as [BackButtonIcon], plus the shared legibility
+    // shadow so the arrow reads over imagery.
+    final backIcon = Icon(switch (Theme.of(context).platform) {
+      TargetPlatform.iOS ||
+      TargetPlatform.macOS => Icons.arrow_back_ios_new_rounded,
+      _ => Icons.arrow_back,
+    }, shadows: AppTypography.legibilityShadows);
+
+    final Widget? titleInner =
+        titleWidget ??
+        (title != null
+            ? Transform.translate(
+                offset: Offset(0, titleShift),
+                child: VDisplayText(
+                  text: title!,
+                  size: titleSize,
+                  maxLines: maxLines,
+                ),
+              )
+            : null);
+
+    // Actions: icons align by box center, text buttons by their label band.
+    // Fine-tune rides `actionNudge` — callers never offset.
+    final actionWidgets = <Widget>[
+      for (final action in actions ?? const <Widget>[])
+        Transform.translate(
+          offset: Offset(
+            0,
+            (_actionIsText(action) ? labelShift : 0.0) +
+                VHeaderMetrics.actionNudge,
+          ),
+          child: action,
+        ),
+    ];
+
+    // Morph geometry: bare at 0, pill at 1.
+    final backGap = lerpDouble(AppSpacing.md, VHeaderMetrics.pillGap, p)!;
+    final actionGap = lerpDouble(0, VHeaderMetrics.pillGap, p)!;
+    final titlePadding = EdgeInsets.symmetric(
+      horizontal: lerpDouble(0, AppSpacing.lg, p)!,
+    );
+    final actionScale = lerpDouble(0.8, 1.0, p)!;
+
+    // The back glyph keeps its bare optical x at p=0 and slides to the centre
+    // of its circle as the bubble grows.
+    final isIos = switch (Theme.of(context).platform) {
+      TargetPlatform.iOS || TargetPlatform.macOS => true,
+      _ => false,
+    };
+    final inkLeft = isIos ? _arrowBackIosInkLeft : _arrowBackInkLeft;
+    final inkRight = isIos ? _arrowBackIosInkRight : _arrowBackInkRight;
+    final bareIconDx =
+        (inkRight - inkLeft).clamp(0.0, 24.0) +
+        _kBackArrowIconSize / 2 -
+        VHeaderMetrics.pillDiameter / 2;
+    final iconDx = (1 - p) * bareIconDx;
 
     return SizedBox(
       height: height,
       child: Row(
         children: [
           if (showBack)
-            Transform.translate(
-              offset: const Offset(0, VHeaderMetrics.backArrowNudge),
-              child: IconButtonTheme(
-                data: IconButtonThemeData(
-                  style: _backArrowButtonStyle(context),
-                ),
+            VGlassPill(
+              reveal: p,
+              scale: actionScale,
+              child: SizedBox(
+                width: VHeaderMetrics.pillDiameter,
+                height: VHeaderMetrics.pillDiameter,
                 child: IconButton(
                   onPressed: onBack ?? () => Navigator.of(context).maybePop(),
                   tooltip: MaterialLocalizations.of(context).backButtonTooltip,
-                  // Same platform icon as [BackButtonIcon], plus the shared
-                  // legibility shadow so the arrow reads over imagery.
-                  icon: Icon(switch (Theme.of(context).platform) {
-                    TargetPlatform.iOS ||
-                    TargetPlatform.macOS => Icons.arrow_back_ios_new_rounded,
-                    _ => Icons.arrow_back,
-                  }, shadows: AppTypography.legibilityShadows),
+                  icon: Transform.translate(
+                    offset: Offset(iconDx, VHeaderMetrics.backArrowNudge),
+                    child: backIcon,
+                  ),
                 ),
               ),
             ),
-          if (showBack && (title != null || titleWidget != null))
-            const SizedBox(width: AppSpacing.md),
-          if (titleWidget != null)
-            Expanded(child: titleWidget!)
-          else if (title != null)
+          if (showBack && hasTitle) SizedBox(width: backGap),
+          if (titleInner != null)
             Expanded(
-              child: Transform.translate(
-                offset: Offset(0, titleShift),
-                child: VDisplayText(text: title!, maxLines: maxLines),
+              child: Align(
+                alignment: AlignmentDirectional.centerStart,
+                child: VGlassPill(
+                  reveal: p,
+                  scale: lerpDouble(0.95, 1.0, p)!,
+                  padding: titlePadding,
+                  child: SizedBox(
+                    height: VHeaderMetrics.pillDiameter,
+                    child: Align(
+                      alignment: AlignmentDirectional.centerStart,
+                      widthFactor: 1,
+                      child: titleInner,
+                    ),
+                  ),
+                ),
               ),
             ),
-          // Actions: icons align by box center, text buttons by their label
-          // band. Fine-tune rides `actionNudge` — callers never offset.
-          ...?actions?.map((action) {
-            final shift =
-                (_actionIsText(action) ? labelShift : 0.0) +
-                VHeaderMetrics.actionNudge;
-            return Transform.translate(offset: Offset(0, shift), child: action);
-          }),
+          for (var i = 0; i < actionWidgets.length; i++) ...[
+            if (i > 0 || hasTitle || showBack) SizedBox(width: actionGap),
+            VGlassPill(reveal: p, scale: actionScale, child: actionWidgets[i]),
+          ],
         ],
       ),
+    );
+  }
+}
+
+/// Animates [VHeaderTitleRow]'s glass-pill morph from the enclosing list's
+/// scroll state.
+///
+/// The pinned [SliverPersistentHeader] cannot rebuild per scroll frame itself
+/// (its geometry is constant when `minExtent == maxExtent`), so this stateful
+/// wrapper listens to the [ScrollPosition] and drives an [AnimationController]
+/// `0 → 1` when the list moves and `1 → 0` when it returns to the top. The
+/// controller's value is the row's [VHeaderTitleRow.pillProgress].
+class _AnimatedPillHeaderRow extends StatefulWidget {
+  const _AnimatedPillHeaderRow({required this.builder});
+
+  final Widget Function(BuildContext context, double progress) builder;
+
+  @override
+  State<_AnimatedPillHeaderRow> createState() => _AnimatedPillHeaderRowState();
+}
+
+class _AnimatedPillHeaderRowState extends State<_AnimatedPillHeaderRow>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller = AnimationController(
+    vsync: this,
+    duration: SamayDurations.standard,
+  );
+  ScrollPosition? _position;
+  bool _scrolled = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _controller.duration = MediaQuery.disableAnimationsOf(context)
+        ? Duration.zero
+        : SamayDurations.standard;
+    final position = Scrollable.maybeOf(context)?.position;
+    if (position != _position) {
+      _position?.removeListener(_handleScroll);
+      _position = position;
+      _position?.addListener(_handleScroll);
+      _scrolled = (position?.pixels ?? 0) > 0.5;
+      _controller.value = _scrolled ? 1 : 0;
+    }
+  }
+
+  void _handleScroll() {
+    final scrolled = (_position?.pixels ?? 0) > 0.5;
+    if (scrolled == _scrolled) return;
+    _scrolled = scrolled;
+    if (scrolled) {
+      _controller.forward();
+    } else {
+      _controller.reverse();
+    }
+  }
+
+  @override
+  void dispose() {
+    _position?.removeListener(_handleScroll);
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, _) => widget.builder(context, _controller.value),
     );
   }
 }
@@ -292,7 +430,10 @@ bool _actionIsText(Widget action) {
 /// Fixed title bar (does not scroll): [VHeaderMetrics.headerOuterPad] above and
 /// below the bar, [VHeaderMetrics.heroTopPad] below the OS safe inset (0 when
 /// the OS already reserves one), the shared [VHeaderTitleRow], an optional
-/// full-bleed [bottom] strip, and an expanding [child] body.
+/// full-bleed [bottom] strip, and an expanding [child] body. The bar paints
+/// NOTHING: its [VHeaderTitleRow] is always in pill mode, so the back arrow,
+/// title and actions each float in their own [VGlassPill] (blurring whatever
+/// the screen paints behind the bar).
 class VHeaderBar extends StatelessWidget {
   final String? title;
   final Widget? titleWidget;
@@ -319,36 +460,37 @@ class VHeaderBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final statusTop = MediaQuery.paddingOf(context).top;
     final topGap = VHeaderMetrics.heroTopPad(statusTop);
-    final header = Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(
-            vertical: VHeaderMetrics.headerOuterPad,
-          ),
-          child: SizedBox(
-            height: VHeaderMetrics.barHeight(statusTop),
-            child: Padding(
-              padding: VHeaderMetrics.titleInset,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  SizedBox(height: topGap),
-                  VHeaderTitleRow(
-                    title: title,
-                    titleWidget: titleWidget,
-                    actions: actions,
-                    showBack: showBack,
-                    onBack: onBack,
-                    maxLines: maxLines,
-                  ),
-                ],
+    // Fully transparent bar: the title row floats its own glass pills over
+    // whatever the screen paints behind it. [VHeaderBar] is always in pill mode.
+    final bar = Padding(
+      padding: const EdgeInsets.symmetric(
+        vertical: VHeaderMetrics.headerOuterPad,
+      ),
+      child: SizedBox(
+        height: VHeaderMetrics.barHeight(statusTop),
+        child: Padding(
+          padding: VHeaderMetrics.titleInset,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              SizedBox(height: topGap),
+              VHeaderTitleRow(
+                title: title,
+                titleWidget: titleWidget,
+                actions: actions,
+                showBack: showBack,
+                onBack: onBack,
+                maxLines: maxLines,
+                pillProgress: 1,
               ),
-            ),
+            ],
           ),
         ),
-        ?bottom,
-      ],
+      ),
+    );
+    final header = Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [bar, ?bottom],
     );
 
     final content = child == null
@@ -368,10 +510,13 @@ class VHeaderBar extends StatelessWidget {
 /// Eventos 'mis eventos', Perfil, Notificaciones, Social). Use as the FIRST
 /// sliver of a `CustomScrollView`.
 ///
-/// There is NO collapse and NO glass fill: the shared title row (title +
+/// There is NO collapse and NO opaque band: the shared title row (title +
 /// actions) stays pinned at the SAME y at rest and while scrolling, over a top
-/// scrim gradient that keeps it legible above the content passing beneath.
-/// Geometry matches the fixed [VHeaderBar]: the title sits at
+/// scrim gradient that keeps it legible above the content passing beneath. At
+/// REST the row is bare (the large display title, unfilled icons); once the
+/// list is SCROLLED the row switches to Apple-style [VGlassPill]s — back arrow,
+/// title (shrunk to [VHeaderMetrics.pillTitleSize]) and actions each blur their
+/// own backdrop. Geometry matches the fixed [VHeaderBar]: the title sits at
 /// [VHeaderMetrics.heroTopPad] below the OS inset and
 /// [VHeaderMetrics.headerOuterPad], with a trailing
 /// [VHeaderMetrics.headerOuterPad] band under the row.
@@ -473,7 +618,8 @@ class _TransparentHeaderDelegate extends SliverPersistentHeaderDelegate {
     final topGap = VHeaderMetrics.heroTopPad(statusTop);
 
     // The shared title row (title + actions) at the SAME y at rest and while
-    // scrolling — always pinned, always transparent.
+    // scrolling. `_AnimatedPillHeaderRow` morphs it into glass pills once the
+    // list moves.
     final titleRow = Positioned(
       top: 0,
       left: 0,
@@ -486,22 +632,24 @@ class _TransparentHeaderDelegate extends SliverPersistentHeaderDelegate {
           ),
           child: SizedBox(
             height: VHeaderMetrics.titleRowHeight,
-            child: VHeaderTitleRow(
-              title: title,
-              titleWidget: titleWidget,
-              actions: actions,
-              showBack: showBack,
-              onBack: onBack,
-              maxLines: maxLines,
+            child: _AnimatedPillHeaderRow(
+              builder: (context, progress) => VHeaderTitleRow(
+                title: title,
+                titleWidget: titleWidget,
+                actions: actions,
+                showBack: showBack,
+                onBack: onBack,
+                maxLines: maxLines,
+                pillProgress: progress,
+              ),
             ),
           ),
         ),
       ),
     );
 
-    // Transparent header: a top scrim gradient for legibility over the content
-    // passing beneath, with the title + actions always on top. No opaque
-    // surface, no collapse.
+    // A top scrim gradient keeps the bare row legible over the content passing
+    // beneath; the pills carry their own blur. No opaque surface, no collapse.
     final band = Stack(
       fit: StackFit.expand,
       children: [
@@ -513,7 +661,7 @@ class _TransparentHeaderDelegate extends SliverPersistentHeaderDelegate {
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [
-                    AppColors.discoBlack.withValues(alpha: 0.55),
+                    AppColors.discoBlack.withValues(alpha: 0.45),
                     AppColors.discoBlack.withValues(alpha: 0.0),
                   ],
                 ),
