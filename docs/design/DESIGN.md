@@ -126,10 +126,34 @@ token changes in code, change it here in the same commit.
   reserves no inset) is unchanged inside the bar. The
   `VHeaderSliver` keeps the same 8px bands, so fixed bars and scroll headers
   share one footprint.
-- **Tab-root scroll headers are ALWAYS transparent — no collapse, no glass.**
-  `VHeaderSliver` pins the shared title row (title + actions) at a fixed y over
-  a top scrim gradient; content scrolls beneath it and the actions are never
-  lost. This replaced the earlier iOS large-title collapse / blurred-glass bar.
+- **Tab-root scroll headers are pinned; their rows become Apple-style glass
+  pills on scroll.** `VHeaderSliver` pins the shared title row (title + actions)
+  at a fixed y; content scrolls beneath it and the actions are never lost.
+- **Headers are transparent; the title and each action float in their own
+  glass pill.** `VHeaderTitleRow` has two presentations. **Bare** (rest): the
+  glyphs sit directly on the bar over the top scrim. **Pills** (Apple "liquid
+  glass"): every element — back arrow, title, each action — floats in its own
+  `VGlassPill`, a stadium capsule built from the SAME recipe as the floating
+  nav pill (`BackdropFilter` blur 20, `surface` α0.1 fill, white α0.15 hairline;
+  `lib/shared/widgets/v_glass_pill.dart`), so each blurs only what is directly
+  behind it. The bar itself paints nothing but the scrim. In pill mode the title
+  shrinks from the 40px display to `VHeaderMetrics.pillTitleSize` (Playfair 28)
+  and the pill diameter matches `titleRowHeight` (48), so the row never grows.
+  `VHeaderBar` is ALWAYS pills (a fixed bar is permanently docked over its
+  body); `VHeaderSliver` morphs into pills as soon as its list is scrolled and
+  back to the bare large title at the top. The morph is ANIMATED both ways
+  (`_AnimatedPillHeaderRow` watches the `ScrollPosition` and drives an
+  `AnimationController` 0→1 / 1→0 over `SamayDurations.standard`, instant under
+  reduced motion): the title size lerps 40→28, the capsule padding/gaps grow,
+  and each bubble materialises while scaling up. `VGlassPill.reveal` ramps the
+  blur sigma and the fill/border alpha — deliberately NOT an `Opacity` widget,
+  because `BackdropFilter` under `Opacity` (or any saveLayer-pushing filter) does
+  not blur (flutter#31706); `VGlassPill.scale` is a plain `Transform` of the
+  bubble only (the child never scales), and a hidden bubble (`reveal ≤ 0.001`)
+  skips its `BackdropFilter` entirely. Pills never clip their child, so a badge
+  that spills past a button still shows. This replaced the earlier header-wide
+  progressive-blur shader (rejected: read as "too big" and did not match the
+  reference).
 - **Every shell tab reserves the floating nav bar as a bottom inset.** Tab-root
   scroll views end with a `SliverToBoxAdapter(SizedBox(height:
   MainShell.navBarInset(context)))` so the last item can scroll above the pill.
