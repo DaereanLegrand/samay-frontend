@@ -6,7 +6,7 @@ import 'package:samay/core/design_tokens/app_spacing.dart';
 /// A single-line text that stays put when it fits and circulates (a seamless
 /// horizontal marquee) when it is wider than the space it is given.
 ///
-/// This is the generic sibling of the Games-tab [GameNameBand]: the feed uses
+/// This is the generic sibling of the Games-tab `GameNameBand`: the feed uses
 /// it for card titles so a long name never wraps to a second row — it either
 /// renders whole or scrolls as a ring of repeated units.
 ///
@@ -42,7 +42,7 @@ class _CirculatingTextState extends State<CirculatingText>
   );
 
   double _unitWidth = 0;
-  double? _cachedWidth;
+  Size? _cachedSize;
   double? _cachedScale;
 
   @override
@@ -51,7 +51,7 @@ class _CirculatingTextState extends State<CirculatingText>
     if (oldWidget.text != widget.text ||
         oldWidget.style != widget.style ||
         oldWidget.gap != widget.gap) {
-      _cachedWidth = null;
+      _cachedSize = null;
       _unitWidth = 0;
     }
   }
@@ -70,44 +70,54 @@ class _CirculatingTextState extends State<CirculatingText>
     return LayoutBuilder(
       builder: (context, constraints) {
         final width = constraints.maxWidth.isFinite ? constraints.maxWidth : 0.0;
-        final textWidth = _textWidthFor(scaler);
-        final fits = textWidth <= width;
+        final size = _measure(scaler);
+        final fits = size.width <= width;
 
         if (fits) {
           _stop();
           return _line();
         }
 
-        final unit = textWidth + widget.gap;
+        final unit = size.width + widget.gap;
         _syncMotion(reduced, unit);
         final copies = unit <= 0 ? 1 : ((width + unit) / unit).ceil() + 1;
 
-        final row = OverflowBox(
-          alignment: Alignment.centerLeft,
-          maxWidth: double.infinity,
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              for (var i = 0; i < copies; i++)
-                Padding(
-                  padding: EdgeInsets.only(right: widget.gap),
-                  child: _line(),
-                ),
-            ],
-          ),
+        final row = Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            for (var i = 0; i < copies; i++)
+              Padding(
+                padding: EdgeInsets.only(right: widget.gap),
+                child: _line(),
+              ),
+          ],
         );
 
-        return ClipRect(
-          child: reduced
-              ? row
-              : AnimatedBuilder(
-                  animation: _controller,
-                  builder: (context, child) => Transform.translate(
-                    offset: Offset(-_controller.value * unit, 0),
-                    child: child,
-                  ),
-                  child: row,
-                ),
+        // A bounded strip: the incoming height may be unbounded (the widget
+        // can sit in a Column inside a scroll view), so the marquee pins the
+        // line height explicitly before letting the row overflow horizontally.
+        final lineHeight = size.height;
+        return SizedBox(
+          height: lineHeight,
+          child: ClipRect(
+            child: OverflowBox(
+              alignment: Alignment.centerLeft,
+              minWidth: 0,
+              maxWidth: double.infinity,
+              minHeight: lineHeight,
+              maxHeight: lineHeight,
+              child: reduced
+                  ? row
+                  : AnimatedBuilder(
+                      animation: _controller,
+                      builder: (context, child) => Transform.translate(
+                        offset: Offset(-_controller.value * unit, 0),
+                        child: child,
+                      ),
+                      child: row,
+                    ),
+            ),
+          ),
         );
       },
     );
@@ -121,9 +131,9 @@ class _CirculatingTextState extends State<CirculatingText>
     overflow: TextOverflow.visible,
   );
 
-  double _textWidthFor(TextScaler scaler) {
+  Size _measure(TextScaler scaler) {
     final scale = scaler.scale(1);
-    final cached = _cachedWidth;
+    final cached = _cachedSize;
     if (cached != null && _cachedScale == scale) return cached;
     final painter = TextPainter(
       text: TextSpan(text: widget.text, style: widget.style),
@@ -132,8 +142,8 @@ class _CirculatingTextState extends State<CirculatingText>
       textScaler: scaler,
     )..layout();
     _cachedScale = scale;
-    _cachedWidth = painter.width;
-    return painter.width;
+    _cachedSize = painter.size;
+    return painter.size;
   }
 
   void _syncMotion(bool reduced, double unit) {
