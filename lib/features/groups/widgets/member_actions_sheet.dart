@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
+import 'package:samay/core/design_tokens/app_typography.dart';
 import 'package:samay/core/logging/app_logger.dart';
 import 'package:samay/core/repositories/repository_providers.dart';
 import 'package:samay/shared/widgets/profile_avatar.dart';
@@ -66,8 +67,7 @@ Future<void> showMemberActionsSheet(
                 title: Text(username),
                 subtitle: Text(
                   role.toUpperCase(),
-                  style: const TextStyle(
-                    fontSize: 12,
+                  style: AppTypography.labelMedium.copyWith(
                     color: AppColors.mutedStrong,
                   ),
                 ),

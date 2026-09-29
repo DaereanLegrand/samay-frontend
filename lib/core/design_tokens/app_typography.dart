@@ -178,20 +178,27 @@ abstract final class AppTypography {
     height: 1.4,
   );
 
-  /// Body copy (light per the MVP spec). Inter light at 16.
+  /// Body copy. Inter regular at 16.
+  ///
+  /// The MVP spec asked for Inter **light** (w300) here and in [bodyMedium].
+  /// On a pure-black background that weight is the app's main legibility
+  /// complaint from real phones: hairline white strokes bloom on OLED and
+  /// wash out under sunlight, and at 14 they stop being readable at arm's
+  /// length. Regular keeps the same metrics, family and colour — only the
+  /// stem width changes — so nothing reflows.
   static const TextStyle bodyLarge = TextStyle(
     fontFamily: inter,
     fontSize: 16,
-    fontWeight: FontWeight.w300,
+    fontWeight: FontWeight.w400,
     letterSpacing: 0,
     height: 1.5,
   );
 
-  /// Secondary body. Inter light at 14.
+  /// Secondary body. Inter regular at 14 (see [bodyLarge] on the weight).
   static const TextStyle bodyMedium = TextStyle(
     fontFamily: inter,
     fontSize: 14,
-    fontWeight: FontWeight.w300,
+    fontWeight: FontWeight.w400,
     letterSpacing: 0,
     height: 1.5,
   );

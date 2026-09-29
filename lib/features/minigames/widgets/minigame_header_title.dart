@@ -86,7 +86,7 @@ class MinigameHeaderTitle extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(
                 fontFamily: AppTypography.inter,
-                fontSize: 11,
+                fontSize: 12,
                 fontWeight: FontWeight.w500,
                 letterSpacing: 0.2,
                 height: 1.0,

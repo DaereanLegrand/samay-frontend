@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/core/design_tokens/app_radius.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
+import 'package:samay/core/design_tokens/app_typography.dart';
 import 'package:samay/core/extensions/error_mapper.dart';
 import 'package:samay/core/logging/app_logger.dart';
 import 'package:samay/core/providers/auth_provider.dart';
@@ -334,8 +335,7 @@ class _SubjectEditorCardState extends ConsumerState<_SubjectEditorCard> {
                           Text(
                             widget.l10n.minigamesTwoLiesHoldHint,
                             textAlign: TextAlign.center,
-                            style: const TextStyle(
-                              fontSize: 12,
+                            style: AppTypography.bodyMedium.copyWith(
                               color: AppColors.mutedStrong,
                             ),
                           ),
@@ -429,9 +429,7 @@ class _SubjectEditorCardState extends ConsumerState<_SubjectEditorCard> {
               padding: const EdgeInsets.only(left: AppSpacing.sm),
               child: Text(
                 widget.l10n.minigamesTwoLiesStatementNumber(index + 1),
-                style: const TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w500,
+                style: AppTypography.labelMedium.copyWith(
                   color: AppColors.mutedStrong,
                 ),
               ),

@@ -398,22 +398,19 @@ class _Rule extends StatelessWidget {
             ),
             child: Text(
               '$number',
-              style: const TextStyle(
-                color: AppColors.white,
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
-              ),
+              style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                    color: AppColors.white,
+                    fontWeight: FontWeight.w700,
+                  ),
             ),
           ),
           const SizedBox(width: AppSpacing.sm),
           Expanded(
             child: Text(
               text,
-              style: const TextStyle(
-                color: AppColors.softGray,
-                fontSize: 13,
-                height: 1.35,
-              ),
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: AppColors.softGray,
+                  ),
             ),
           ),
         ],
@@ -462,12 +459,9 @@ class _PlayingView extends StatelessWidget {
               // Countdown: the number plus a bar that drains with it.
               Text(
                 '$seconds',
-                style: TextStyle(
-                  color: urgent ? AppColors.glowPink : AppColors.white,
-                  fontSize: 44,
-                  fontWeight: FontWeight.w800,
-                  height: 1,
-                ),
+                style: Theme.of(context).textTheme.displayMedium?.copyWith(
+                      color: urgent ? AppColors.glowPink : AppColors.white,
+                    ),
               ),
               const SizedBox(height: AppSpacing.sm),
               ClipRRect(
@@ -493,12 +487,9 @@ class _PlayingView extends StatelessWidget {
                 child: Text(
                   skeleton.charadesWord ?? '',
                   textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    color: AppColors.white,
-                    fontSize: 56,
-                    fontWeight: FontWeight.w800,
-                    height: 1.1,
-                  ),
+                  style: Theme.of(context).textTheme.displayLarge?.copyWith(
+                        color: AppColors.white,
+                      ),
                 ),
               ),
             ),
@@ -591,15 +582,15 @@ class _Tally extends StatelessWidget {
       children: [
         Text(
           '$value',
-          style: TextStyle(
-            color: color,
-            fontSize: 22,
-            fontWeight: FontWeight.w800,
-          ),
+          style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                color: color,
+              ),
         ),
         Text(
           label,
-          style: const TextStyle(color: AppColors.mutedStrong, fontSize: 11),
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: AppColors.mutedStrong,
+              ),
         ),
       ],
     );
@@ -629,17 +620,17 @@ class _SummaryView extends StatelessWidget {
         Text(
           l10n.charadesTimeUp,
           textAlign: TextAlign.center,
-          style: const TextStyle(
-            color: AppColors.white,
-            fontSize: 24,
-            fontWeight: FontWeight.w800,
-          ),
+          style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                color: AppColors.white,
+              ),
         ),
         const SizedBox(height: AppSpacing.xs),
         Text(
           l10n.charadesTurnScore(skeleton.charadesHits),
           textAlign: TextAlign.center,
-          style: const TextStyle(color: AppColors.mutedStrong, fontSize: 14),
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: AppColors.mutedStrong,
+              ),
         ),
         const SizedBox(height: AppSpacing.lg),
         if (skeleton.charadesLog.isNotEmpty)
@@ -662,15 +653,17 @@ class _SummaryView extends StatelessWidget {
                         Expanded(
                           child: Text(
                             entry.word,
-                            style: TextStyle(
-                              color: entry.correct
-                                  ? AppColors.white
-                                  : AppColors.mutedStrong,
-                              fontSize: 14,
-                              decoration: entry.correct
-                                  ? null
-                                  : TextDecoration.lineThrough,
-                            ),
+                            style: Theme.of(context)
+                                .textTheme
+                                .bodyMedium
+                                ?.copyWith(
+                                  color: entry.correct
+                                      ? AppColors.white
+                                      : AppColors.mutedStrong,
+                                  decoration: entry.correct
+                                      ? null
+                                      : TextDecoration.lineThrough,
+                                ),
                           ),
                         ),
                       ],
@@ -723,10 +716,8 @@ class _Scoreboard extends StatelessWidget {
                         width: 22,
                         child: Text(
                           '${i + 1}',
-                          style: const TextStyle(
-                            color: AppColors.mutedStrong,
-                            fontSize: 12,
-                          ),
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(color: AppColors.mutedStrong),
                         ),
                       ),
                       Expanded(
@@ -736,19 +727,17 @@ class _Scoreboard extends StatelessWidget {
                                   .map((p) => p.username)
                                   .firstOrNull ??
                               '—',
-                          style: const TextStyle(
-                            color: AppColors.white,
-                            fontSize: 14,
-                          ),
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(color: AppColors.white),
                         ),
                       ),
                       Text(
                         '${rows[i].value}',
-                        style: const TextStyle(
-                          color: AppColors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w800,
-                        ),
+                        style: Theme.of(context).textTheme.bodyLarge
+                            ?.copyWith(
+                              color: AppColors.white,
+                              fontWeight: FontWeight.w800,
+                            ),
                       ),
                     ],
                   ),
