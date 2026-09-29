@@ -2642,6 +2642,66 @@ class AppLocalizationsEs extends AppLocalizations {
       'Solo el anfitrión puede empezar la partida.';
 
   @override
+  String minigamesWaitingReady(String names) {
+    return 'Falta que $names marquen Listo';
+  }
+
+  @override
+  String minigamesWaitingReadyOne(String name) {
+    return 'Falta que $name marque Listo';
+  }
+
+  @override
+  String get minigamesRulesTitle => 'Cómo se juega';
+
+  @override
+  String get minigamesRulesAction => 'Cómo se juega';
+
+  @override
+  String get truthDareRule1 =>
+      'Cada ronda le toca a una persona: elige Verdad o Reto.';
+
+  @override
+  String get truthDareRule2 => 'La app saca al azar una pregunta o un reto.';
+
+  @override
+  String get truthDareRule3 =>
+      'Responde o cúmplelo y envía tu respuesta al grupo.';
+
+  @override
+  String get truthDareRule4 =>
+      'Los demás reaccionan y el turno pasa al siguiente.';
+
+  @override
+  String get bottleRule1 => 'La mesa se reparte en porciones: una por jugador.';
+
+  @override
+  String get bottleRule2 => 'Toca Girar y, cuando quieras, toca Parar.';
+
+  @override
+  String get bottleRule3 =>
+      'La botella frena sola: la porción que señala es la elegida.';
+
+  @override
+  String get bottleRule4 =>
+      'Esa persona cumple el reto que aparece y se vuelve a girar.';
+
+  @override
+  String get twoLiesRule1 =>
+      'Cada ronda le toca a una persona: escribe 3 afirmaciones sobre sí misma.';
+
+  @override
+  String get twoLiesRule2 =>
+      'Dos son mentira y una es verdad. Nadie más las ve mientras las escribe.';
+
+  @override
+  String get twoLiesRule3 => 'Los demás votan cuál creen que es la verdadera.';
+
+  @override
+  String get twoLiesRule4 =>
+      'Se revela la respuesta, se reparten puntos y pasa el turno.';
+
+  @override
   String get minigamesWaitingForPlayers => 'Esperando jugadores...';
 
   @override

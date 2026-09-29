@@ -11,6 +11,7 @@ import 'package:samay/features/minigames/logic/minigame_engine.dart';
 import 'package:samay/features/minigames/logic/minigame_meta.dart';
 import 'package:samay/features/minigames/providers/minigames_providers.dart';
 import 'package:samay/features/minigames/widgets/minigame_play_header.dart';
+import 'package:samay/features/minigames/widgets/minigame_rules_sheet.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/state_views.dart';
 import 'package:samay/shared/widgets/v_button.dart';
@@ -111,6 +112,8 @@ class CharadesScreen extends ConsumerWidget {
       body: VHeaderBar(
         titleWidget: headerTitle,
         title: headerTitle == null ? gameNameLower : null,
+        // "Cómo se juega": the same rules sheet on every game.
+        actions: const [MinigameRulesButton(type: MinigameType.charades)],
         child: gameState.when(
           loading: () => const VLoadingView(),
           error: (e, _) => Center(child: Text(e.toAppError().message)),

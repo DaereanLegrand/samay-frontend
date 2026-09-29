@@ -235,7 +235,9 @@ abstract final class AppTypography {
     fontFamily: inter,
     fontSize: 10,
     fontWeight: FontWeight.w500,
-    letterSpacing: 1.2,
+    // 0.12em at 10px was the second-widest tracking; 0.08em keeps the badge
+    // voice without breaking the word apart at the smallest size in the app.
+    letterSpacing: 0.8,
     height: 1.3,
   );
 
@@ -257,7 +259,11 @@ abstract final class AppTypography {
     fontFamily: inter,
     fontSize: 12,
     fontWeight: FontWeight.w600,
-    letterSpacing: 2.0,
+    // 2.0 at 12px is 0.17em — the widest tracking in the app by far, and it
+    // pulled all-caps eyebrows apart into loose letters ("J U G A D O R E S")
+    // that readers have to reassemble. 1.0 (0.08em) still reads as an
+    // eyebrow and stays inside the usual 0.05–0.1em band for small caps.
+    letterSpacing: 1.0,
     color: AppColors.mutedStrong,
   );
 
@@ -268,7 +274,8 @@ abstract final class AppTypography {
     fontFamily: inter,
     fontSize: 11,
     fontWeight: FontWeight.w600,
-    letterSpacing: 2.0,
+    // Same reason as [sectionLabel]; at 11px the old 2.0 was 0.18em.
+    letterSpacing: 1.0,
     color: AppColors.mutedStrong,
   );
 

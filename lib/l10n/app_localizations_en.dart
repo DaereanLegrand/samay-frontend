@@ -2633,6 +2633,66 @@ class AppLocalizationsEn extends AppLocalizations {
   String get minigamesStartOnlyCreator => 'Only the host can start the game.';
 
   @override
+  String minigamesWaitingReady(String names) {
+    return 'Waiting for $names to tap Ready';
+  }
+
+  @override
+  String minigamesWaitingReadyOne(String name) {
+    return 'Waiting for $name to tap Ready';
+  }
+
+  @override
+  String get minigamesRulesTitle => 'How to play';
+
+  @override
+  String get minigamesRulesAction => 'How to play';
+
+  @override
+  String get truthDareRule1 =>
+      'Each round belongs to one player: they pick Truth or Dare.';
+
+  @override
+  String get truthDareRule2 => 'The app draws a random question or dare.';
+
+  @override
+  String get truthDareRule3 =>
+      'Answer it or do it, then send your reply to the table.';
+
+  @override
+  String get truthDareRule4 => 'The others react and the turn moves on.';
+
+  @override
+  String get bottleRule1 => 'The table is split into slices — one per player.';
+
+  @override
+  String get bottleRule2 => 'Tap Spin, then tap Stop whenever you like.';
+
+  @override
+  String get bottleRule3 =>
+      'The bottle slows to a halt: the slice it points at is the pick.';
+
+  @override
+  String get bottleRule4 =>
+      'That player does the dare that appears, then you spin again.';
+
+  @override
+  String get twoLiesRule1 =>
+      'Each round belongs to one player: they write 3 statements about themselves.';
+
+  @override
+  String get twoLiesRule2 =>
+      'Two are lies and one is true. Nobody else sees them while they type.';
+
+  @override
+  String get twoLiesRule3 =>
+      'Everyone else votes for the one they think is true.';
+
+  @override
+  String get twoLiesRule4 =>
+      'The answer is revealed, points are shared out and the turn moves on.';
+
+  @override
   String get minigamesWaitingForPlayers => 'Waiting for players...';
 
   @override

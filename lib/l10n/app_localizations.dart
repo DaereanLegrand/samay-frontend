@@ -4850,6 +4850,102 @@ abstract class AppLocalizations {
   /// **'Solo el anfitrión puede empezar la partida.'**
   String get minigamesStartOnlyCreator;
 
+  /// Lobby: host's Start is blocked until every other player is ready (2+ names)
+  ///
+  /// In es, this message translates to:
+  /// **'Falta que {names} marquen Listo'**
+  String minigamesWaitingReady(String names);
+
+  /// Lobby: host's Start is blocked until every other player is ready (one name)
+  ///
+  /// In es, this message translates to:
+  /// **'Falta que {name} marque Listo'**
+  String minigamesWaitingReadyOne(String name);
+
+  /// Rules sheet heading, shared by every game
+  ///
+  /// In es, this message translates to:
+  /// **'Cómo se juega'**
+  String get minigamesRulesTitle;
+
+  /// Play-screen action that opens the rules sheet
+  ///
+  /// In es, this message translates to:
+  /// **'Cómo se juega'**
+  String get minigamesRulesAction;
+
+  /// Rules step for the truthDare sheet
+  ///
+  /// In es, this message translates to:
+  /// **'Cada ronda le toca a una persona: elige Verdad o Reto.'**
+  String get truthDareRule1;
+
+  /// Rules step for the truthDare sheet
+  ///
+  /// In es, this message translates to:
+  /// **'La app saca al azar una pregunta o un reto.'**
+  String get truthDareRule2;
+
+  /// Rules step for the truthDare sheet
+  ///
+  /// In es, this message translates to:
+  /// **'Responde o cúmplelo y envía tu respuesta al grupo.'**
+  String get truthDareRule3;
+
+  /// Rules step for the truthDare sheet
+  ///
+  /// In es, this message translates to:
+  /// **'Los demás reaccionan y el turno pasa al siguiente.'**
+  String get truthDareRule4;
+
+  /// Rules step for the bottle sheet
+  ///
+  /// In es, this message translates to:
+  /// **'La mesa se reparte en porciones: una por jugador.'**
+  String get bottleRule1;
+
+  /// Rules step for the bottle sheet
+  ///
+  /// In es, this message translates to:
+  /// **'Toca Girar y, cuando quieras, toca Parar.'**
+  String get bottleRule2;
+
+  /// Rules step for the bottle sheet
+  ///
+  /// In es, this message translates to:
+  /// **'La botella frena sola: la porción que señala es la elegida.'**
+  String get bottleRule3;
+
+  /// Rules step for the bottle sheet
+  ///
+  /// In es, this message translates to:
+  /// **'Esa persona cumple el reto que aparece y se vuelve a girar.'**
+  String get bottleRule4;
+
+  /// Rules step for the twoLies sheet
+  ///
+  /// In es, this message translates to:
+  /// **'Cada ronda le toca a una persona: escribe 3 afirmaciones sobre sí misma.'**
+  String get twoLiesRule1;
+
+  /// Rules step for the twoLies sheet
+  ///
+  /// In es, this message translates to:
+  /// **'Dos son mentira y una es verdad. Nadie más las ve mientras las escribe.'**
+  String get twoLiesRule2;
+
+  /// Rules step for the twoLies sheet
+  ///
+  /// In es, this message translates to:
+  /// **'Los demás votan cuál creen que es la verdadera.'**
+  String get twoLiesRule3;
+
+  /// Rules step for the twoLies sheet
+  ///
+  /// In es, this message translates to:
+  /// **'Se revela la respuesta, se reparten puntos y pasa el turno.'**
+  String get twoLiesRule4;
+
   /// Partida lobby: shown before the creator starts the game
   ///
   /// In es, this message translates to:

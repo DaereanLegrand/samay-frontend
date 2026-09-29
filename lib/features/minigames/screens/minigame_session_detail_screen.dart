@@ -600,6 +600,22 @@ class _LobbySection extends ConsumerWidget {
     final tooFewForBottle =
         gameType == 'drunk_bottle' && participantIds.length < kDrunkBottleMinPlayers;
 
+    // Who still has to tap "Listo". The host is ready by definition (they are
+    // the one pressing Empezar), so only participants[1..] count. The server
+    // enforces the same rule (219_minigame_ready_gate) and answers
+    // `not_everyone_ready`; this list is what turns that rejection into a
+    // sentence the table can act on instead of a disabled button with no
+    // explanation.
+    final roster =
+        ref.watch(minigameParticipantsProvider(sessionId)).valueOrNull ??
+        const <MinigameParticipant>[];
+    final liveState = gameState.valueOrNull;
+    final pendingReady = <String>[
+      for (final id in participantIds.skip(1))
+        if (id != null && !(liveState?.isReady(id) ?? false))
+          roster.where((p) => p.id == id).firstOrNull?.username ?? '…',
+    ];
+
     // Finished sessions carry the settled ranking: each participant
     // row shows its rank/score and taps through to the leaderboard focused on
     // that player. Null (not yet settled / still loading) simply leaves the
@@ -740,13 +756,28 @@ class _LobbySection extends ConsumerWidget {
                   style: const TextStyle(color: AppColors.mutedStrong),
                 ),
               ),
+            if (pendingReady.isNotEmpty && !isCountdown)
+              Padding(
+                padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+                child: Text(
+                  pendingReady.length == 1
+                      ? l10n.minigamesWaitingReadyOne(pendingReady.first)
+                      : l10n.minigamesWaitingReady(pendingReady.join(', ')),
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: AppColors.mutedStrong,
+                      ),
+                ),
+              ),
             VButton.emphasized(
               label: l10n.minigamesStart,
               loading: gameState.isLoading,
               // Start is disabled while the countdown runs — the host
-              // cancels instead (190_minigame_countdown) — or while a
-              // drunk_bottle roster is under kDrunkBottleMinPlayers.
-              onPressed: isCountdown || tooFewForBottle
+              // cancels instead (190_minigame_countdown) — while a
+              // drunk_bottle roster is under kDrunkBottleMinPlayers, or while
+              // anyone still has to tap "Listo" (219_minigame_ready_gate).
+              onPressed: isCountdown || tooFewForBottle ||
+                      pendingReady.isNotEmpty
                   ? null
                   : () => _start(context, ref),
             ),

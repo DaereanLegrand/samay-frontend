@@ -13,7 +13,13 @@ String minigameGameName(AppLocalizations l10n, String? gameType) {
     'drunk_bottle' => l10n.minigamesGameDrunkBottle,
     'two_lies_one_truth' => l10n.minigamesGameTwoLiesOneTruth,
     'charades' => l10n.minigamesGameCharades,
-    _ => gameType ?? l10n.minigamesTitle,
+    // A game type the app does not implement yet (the DB enum runs ahead of
+    // the four playable games). It used to print the raw wire value —
+    // "poke_chain", "two_lies_one_truth" — straight at the user. Turn it
+    // into words so the row at least reads as a name.
+    _ => gameType == null || gameType.isEmpty
+        ? l10n.minigamesTitle
+        : gameType.replaceAll('_', ' '),
   };
 }
 
@@ -78,6 +84,37 @@ extension MinigameMeta on MinigameType {
     MinigameAudience.friends => l10n.minigamesAudienceFriends,
     MinigameAudience.solo => l10n.minigamesAudienceSolo,
     MinigameAudience.both => l10n.minigamesAudienceBoth,
+  };
+
+  /// The numbered "Cómo se juega" steps shown by the shared rules sheet
+  /// (`minigame_rules_sheet.dart`). Every game states its own loop in four
+  /// short lines so a player who was never told the rules out loud can still
+  /// follow the board.
+  List<String> rules(AppLocalizations l10n) => switch (this) {
+    MinigameType.truthDare => [
+      l10n.truthDareRule1,
+      l10n.truthDareRule2,
+      l10n.truthDareRule3,
+      l10n.truthDareRule4,
+    ],
+    MinigameType.drunkBottle => [
+      l10n.bottleRule1,
+      l10n.bottleRule2,
+      l10n.bottleRule3,
+      l10n.bottleRule4,
+    ],
+    MinigameType.twoLiesOneTruth => [
+      l10n.twoLiesRule1,
+      l10n.twoLiesRule2,
+      l10n.twoLiesRule3,
+      l10n.twoLiesRule4,
+    ],
+    MinigameType.charades => [
+      l10n.charadesRule1,
+      l10n.charadesRule2,
+      l10n.charadesRule3,
+      l10n.charadesRule4,
+    ],
   };
 
   /// Localized tagline (the one-liner under the game name).
