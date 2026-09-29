@@ -12,6 +12,7 @@ import 'package:samay/features/minigames/logic/minigame_engine.dart';
 import 'package:samay/features/minigames/logic/minigame_meta.dart';
 import 'package:samay/features/minigames/providers/minigames_providers.dart';
 import 'package:samay/features/minigames/widgets/minigame_play_header.dart';
+import 'package:samay/features/minigames/widgets/minigame_rules_sheet.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/profile_avatar.dart';
 import 'package:samay/shared/widgets/state_views.dart';
@@ -114,6 +115,8 @@ class _DrunkBottleScreenState extends ConsumerState<DrunkBottleScreen> {
       body: VHeaderBar(
         titleWidget: headerTitle,
         title: headerTitle == null ? gameNameLower : null,
+        // "Cómo se juega": the same rules sheet on every game.
+        actions: const [MinigameRulesButton(type: MinigameType.drunkBottle)],
         child: gameState.when(
           loading: () => const VLoadingView(),
           error: (e, _) => Center(child: Text(e.toAppError().message)),
@@ -465,9 +468,12 @@ class _Pizza extends StatelessWidget {
 
     return LayoutBuilder(
       builder: (context, constraints) {
+        // The board leaves a margin: the seats sit ON the rim and their name
+        // tags stick out past it, so a table sized to the full width pushed
+        // the 3- and 9-o'clock names off the screen on a phone.
         final radius =
-            min(constraints.maxWidth, constraints.maxHeight / squash) / 2 * 0.94;
-        final avatarRadius = radius * 0.74;
+            min(constraints.maxWidth, constraints.maxHeight / squash) / 2 * 0.84;
+        final avatarRadius = radius * 0.72;
         return Stack(
           alignment: Alignment.center,
           children: [
@@ -492,7 +498,7 @@ class _Pizza extends StatelessWidget {
                   participant: seated[i],
                   isMe: seated[i].id == myId,
                   isWinner: i == selectedIndex,
-                  maxLabelWidth: radius * 0.62,
+                  maxLabelWidth: radius * 0.58,
                 ),
               ),
             // The bottle lying on the table: squashed with the board, then

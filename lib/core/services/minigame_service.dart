@@ -811,6 +811,15 @@ class MinigameService {
         'La partida ya terminó',
         code: 'session_not_active',
       ),
+      // 219_minigame_ready_gate: the host tried to start while someone had
+      // not tapped "Listo". The lobby disables the button in that state, so
+      // reaching here means the roster changed under the host — name the
+      // players so the message is actionable instead of a bare refusal.
+      'not_everyone_ready' => throw ConflictError(
+        'Faltan por estar listos: '
+        '${(result['pending'] as List?)?.join(', ') ?? ''}',
+        code: 'not_everyone_ready',
+      ),
       'no_participants' => throw const ServerError('No participants'),
       _ => throw const ServerError('Unexpected init_minigame_game_state response'),
     };

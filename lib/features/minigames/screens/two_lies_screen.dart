@@ -11,10 +11,12 @@ import 'package:samay/core/extensions/error_mapper.dart';
 import 'package:samay/core/logging/app_logger.dart';
 import 'package:samay/core/providers/auth_provider.dart';
 import 'package:samay/features/minigames/logic/minigame_engine.dart';
+import 'package:samay/core/services/minigame_service.dart';
 import 'package:samay/features/minigames/logic/minigame_meta.dart';
 import 'package:samay/features/minigames/logic/two_lies_one_truth.dart';
 import 'package:samay/features/minigames/providers/minigames_providers.dart';
 import 'package:samay/features/minigames/widgets/minigame_play_header.dart';
+import 'package:samay/features/minigames/widgets/minigame_rules_sheet.dart';
 import 'package:samay/features/minigames/widgets/minigame_shared_widgets.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/error_view.dart';
@@ -141,6 +143,7 @@ class TwoLiesScreen extends ConsumerWidget {
         titleWidget: headerTitle,
         title: headerTitle == null ? gameNameLower : null,
         actions: [
+          const MinigameRulesButton(type: MinigameType.twoLiesOneTruth),
           if (isCreator)
             IconButton(
               icon: const Icon(Icons.close),
