@@ -6,6 +6,7 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
+import 'package:samay/core/design_tokens/app_typography.dart';
 import 'package:samay/core/logging/app_logger.dart';
 import 'package:samay/core/providers/service_providers.dart';
 import 'package:samay/core/services/permission_service.dart';
@@ -346,9 +347,8 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen> {
                   Text(
                     l10n.qrScanEventName(eventName),
                     textAlign: TextAlign.center,
-                    style: const TextStyle(
+                    style: AppTypography.titleMedium.copyWith(
                       color: AppColors.white,
-                      fontSize: 16,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -415,9 +415,8 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen> {
               Text(
                 l10n.qrScanConfirmed,
                 textAlign: TextAlign.center,
-                style: const TextStyle(
+                style: AppTypography.titleLarge.copyWith(
                   color: AppColors.white,
-                  fontSize: 18,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -452,9 +451,8 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen> {
                   textAlign: TextAlign.center,
                   // Error semantics keep the pink alias through
                   // AppColors.error (NO PINK MAINS exempts error text).
-                  style: const TextStyle(
+                  style: AppTypography.titleMedium.copyWith(
                     color: AppColors.error,
-                    fontSize: 16,
                     fontWeight: FontWeight.w600,
                   ),
                 ),

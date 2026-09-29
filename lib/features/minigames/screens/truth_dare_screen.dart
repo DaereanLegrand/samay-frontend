@@ -470,8 +470,7 @@ class TruthDareScreen extends ConsumerWidget {
                 // The async deadline caption, fully capitalized at a smaller size
                 // than the body copy, centered above the async panel. (The
                 // by-turns round counter lives in the header's second line.)
-                const captionStyle = TextStyle(
-                  fontSize: 12,
+                final captionStyle = AppTypography.bodySmall.copyWith(
                   fontWeight: FontWeight.w600,
                   color: AppColors.mutedStrong,
                   shadows: AppTypography.legibilityShadows,
@@ -1169,7 +1168,9 @@ class _AnswerCardState extends ConsumerState<_AnswerCard> {
           child: Text(
             widget.l10n.minigamesAnswerPasarLine,
             textAlign: TextAlign.center,
-            style: const TextStyle(color: AppColors.mutedStrong, fontSize: 12),
+            style: AppTypography.bodySmall.copyWith(
+              color: AppColors.mutedStrong,
+            ),
           ),
         ),
         const SizedBox(height: AppSpacing.md),
@@ -1676,7 +1677,9 @@ class _ReactionsWaitingLine extends StatelessWidget {
     return Text(
       l10n.minigamesAnswerWaitingReactions(reacted, required),
       textAlign: TextAlign.center,
-      style: const TextStyle(color: AppColors.mutedStrong, fontSize: 12),
+      style: AppTypography.bodySmall.copyWith(
+        color: AppColors.mutedStrong,
+      ),
     );
   }
 }
@@ -1903,7 +1906,9 @@ class _AnswerPreviewState extends ConsumerState<_AnswerPreview> {
           Text(
             l10n.minigamesKeyRequesting,
             textAlign: TextAlign.center,
-            style: const TextStyle(color: AppColors.mutedStrong, fontSize: 12),
+            style: AppTypography.bodySmall.copyWith(
+              color: AppColors.mutedStrong,
+            ),
           ),
         ],
       );
@@ -2706,9 +2711,8 @@ class _AsyncReactableTileState extends ConsumerState<_AsyncReactableTile> {
                     widget.answer.round,
                     widget.answer.round,
                   ),
-                  style: const TextStyle(
+                  style: AppTypography.bodySmall.copyWith(
                     color: AppColors.mutedStrong,
-                    fontSize: 12,
                   ),
                 ),
                 if (_decrypted != null && _decrypted!.isNotEmpty) ...[

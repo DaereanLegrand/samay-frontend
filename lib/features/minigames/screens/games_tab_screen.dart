@@ -58,8 +58,36 @@ class GamesTabScreen extends ConsumerWidget {
               ),
             ),
           ),
-          // Painted AFTER the deck: any card that overflows upward is hidden
-          // behind the title instead of covering it.
+          // The header only paints glass once the page SCROLLS; this one
+          // never does, so without a backdrop the card that overflows upward
+          // showed through the title — on a phone the deck's repeating name
+          // strip landed straight on the word "juegos". A black scrim over
+          // exactly the reserved band (fading out just below it) hides the
+          // card there and keeps the flat-black look.
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            height: headerTotal + AppSpacing.xl,
+            child: IgnorePointer(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      AppColors.discoBlack,
+                      AppColors.discoBlack,
+                      AppColors.discoBlack.withValues(alpha: 0),
+                    ],
+                    stops: const [0, 0.78, 1],
+                  ),
+                ),
+              ),
+            ),
+          ),
+          // Painted AFTER the deck and the scrim: any card that overflows
+          // upward is hidden behind the title instead of covering it.
           Align(
             alignment: Alignment.topCenter,
             child: VHeaderBar(

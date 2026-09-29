@@ -77,7 +77,11 @@ abstract final class AppColors {
   static const Color transparent = Color(0x00000000);
 
   /// Background for tags.
-  static const Color softGray = Color(0xf2f2f2FF);
+  ///
+  /// Flutter's `Color(int)` is 0xAARRGGBB, so the CSS-style `0xf2f2f2FF`
+  /// written here read as alpha 0xF2 over blue 0xFF — a 95%-opaque bluish
+  /// white, not the intended opaque #F2F2F2.
+  static const Color softGray = Color(0xFFF2F2F2);
 
   /// **The signature.** Display titles with glow, brand accents,
   /// selected/highlight states, glow buttons. 6.00:1 — AA.

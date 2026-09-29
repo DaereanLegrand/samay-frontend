@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/core/design_tokens/app_icon_sizes.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
+import 'package:samay/core/design_tokens/app_typography.dart';
 import 'package:samay/core/models/ledger_entry.dart';
 import 'package:samay/features/profile/providers/profile_providers.dart';
 import 'package:samay/features/shards/logic/shard_ledger_formatters.dart';
@@ -267,9 +268,8 @@ class _BalanceHeader extends StatelessWidget {
             const SizedBox(height: AppSpacing.sm),
             Text(
               '${l10n.shardsLedgerEarnedNote} ${l10n.shardsLedgerPreshardsNote}',
-              style: const TextStyle(
+              style: AppTypography.bodySmall.copyWith(
                 color: AppColors.mutedStrong,
-                fontSize: 12,
               ),
             ),
           ],
@@ -385,18 +385,16 @@ class _LedgerTile extends StatelessWidget {
                 const SizedBox(height: AppSpacing.xs),
                 Text(
                   formatLedgerTimestamp(entry.createdAt, l10n.localeName),
-                  style: const TextStyle(
+                  style: AppTypography.bodySmall.copyWith(
                     color: AppColors.mutedStrong,
-                    fontSize: 12,
                   ),
                 ),
                 if (reference.isNotEmpty) ...[
                   const SizedBox(height: AppSpacing.xs),
                   Text(
                     l10n.shardsLedgerReference(reference),
-                    style: const TextStyle(
+                    style: AppTypography.bodySmall.copyWith(
                       color: AppColors.mutedStrong,
-                      fontSize: 12,
                     ),
                   ),
                 ],
@@ -407,7 +405,9 @@ class _LedgerTile extends StatelessWidget {
           _GradientDelta(
             text: '${positive ? '+' : ''}${entry.delta}',
             positive: positive,
-            style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
+            style: AppTypography.titleMedium.copyWith(
+              fontWeight: FontWeight.w700,
+            ),
           ),
         ],
       ),

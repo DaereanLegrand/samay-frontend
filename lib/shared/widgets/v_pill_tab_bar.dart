@@ -50,7 +50,9 @@ class VPillTabBar extends StatelessWidget {
         indicatorSize: TabBarIndicatorSize.tab,
         dividerColor: AppColors.transparent,
         labelColor: AppColors.white,
-        unselectedLabelColor: AppColors.muted,
+        // `muted` is 3.66:1 on black — AA-large only, and these are 12px
+        // labels, so unselected tabs were unreadable. `mutedStrong` is AA.
+        unselectedLabelColor: AppColors.mutedStrong,
         labelStyle: Theme.of(context).textTheme.labelMedium,
         padding: EdgeInsets.zero,
         labelPadding: EdgeInsets.zero,
