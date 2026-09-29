@@ -468,12 +468,14 @@ class _Pizza extends StatelessWidget {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        // The board leaves a margin: the seats sit ON the rim and their name
-        // tags stick out past it, so a table sized to the full width pushed
-        // the 3- and 9-o'clock names off the screen on a phone.
+        // The board leaves a margin, and the seats sit well inside the rim:
+        // a name tag is wider than the avatar it labels, so seating players
+        // ON the edge either pushed the 3- and 9-o'clock names off the screen
+        // or forced them to ellipsize into "jugador5d…". Pulling the ring in
+        // buys the tag its full width while the table still fills the view.
         final radius =
-            min(constraints.maxWidth, constraints.maxHeight / squash) / 2 * 0.84;
-        final avatarRadius = radius * 0.72;
+            min(constraints.maxWidth, constraints.maxHeight / squash) / 2 * 0.88;
+        final avatarRadius = radius * 0.62;
         return Stack(
           alignment: Alignment.center,
           children: [
@@ -498,7 +500,7 @@ class _Pizza extends StatelessWidget {
                   participant: seated[i],
                   isMe: seated[i].id == myId,
                   isWinner: i == selectedIndex,
-                  maxLabelWidth: radius * 0.58,
+                  maxLabelWidth: radius * 0.80,
                 ),
               ),
             // The bottle lying on the table: squashed with the board, then

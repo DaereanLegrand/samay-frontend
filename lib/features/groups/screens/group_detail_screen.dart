@@ -227,7 +227,18 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen> {
             child: SafeArea(
               bottom: false,
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
+                // SafeArea contributes nothing where the platform reports no
+                // status inset (the web build, and Android in some
+                // full-screen modes), so this overlay sat flush against the
+                // top edge and the group name's ascenders were sliced off.
+                // The same gap every other header reserves keeps the title
+                // whole.
+                padding: EdgeInsets.fromLTRB(
+                  AppSpacing.sm,
+                  VHeaderMetrics.heroTopPad(MediaQuery.paddingOf(context).top),
+                  AppSpacing.sm,
+                  0,
+                ),
                 child: VHeaderTitleRow(title: g.name, actions: [_menu(l10n)]),
               ),
             ),
