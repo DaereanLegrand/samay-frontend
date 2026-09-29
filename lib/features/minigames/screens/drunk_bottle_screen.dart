@@ -14,9 +14,8 @@ import 'package:samay/shared/widgets/state_views.dart';
 import 'package:samay/shared/widgets/v_button.dart';
 import 'package:samay/shared/widgets/v_header_bar.dart';
 
-/// The minimum roster the bottle needs — with fewer than three slices the
-/// pizza stops being a game (209: lowered from 6 on product feedback).
-const int kDrunkBottleMinPlayers = 3;
+/// The minimum roster the bottle needs — 2 or more players for a party game.
+const int kDrunkBottleMinPlayers = 2;
 
 /// Botella play screen (208 + 209_minigame_bottle_pizza).
 ///
@@ -180,11 +179,15 @@ class _BottleTableState extends ConsumerState<_BottleTable>
 
   /// The seating order to render: the server's dealt seats, filtered to the
   /// players we can actually resolve, falling back to the roster order before
-  /// the first spin.
+  /// the first spin (sorted deterministically by ID so all clients agree).
   List<MinigameParticipant> get _seated {
     final byId = {for (final p in widget.participants) p.id: p};
     final seats = widget.state.skeleton.bottleSeats;
-    if (seats.isEmpty) return widget.participants;
+    if (seats.isEmpty) {
+      final deterministic = List<MinigameParticipant>.from(widget.participants)
+        ..sort((a, b) => a.id.compareTo(b.id));
+      return deterministic;
+    }
     final ordered = [
       for (final id in seats)
         if (byId[id] != null) byId[id]!,
@@ -210,20 +213,89 @@ class _BottleTableState extends ConsumerState<_BottleTable>
         : seated.where((p) => p.id == selectedId).firstOrNull;
     final enoughPlayers = seated.length >= kDrunkBottleMinPlayers;
 
+    // Turn control logic:
+    // 1. While spinning: the player who initiated the spin.
+    // 2. When settled on a winner: the selected player does the reto and spins next!
+    // 3. Before the first spin: the creator / first participant.
+    final String? activeSpinnerId;
+    if (spinning) {
+      activeSpinnerId = skeleton.bottleSpunBy ??
+          skeleton.bottleSelectedId ??
+          seated.firstOrNull?.id;
+    } else if (winner != null) {
+      activeSpinnerId = winner.id;
+    } else {
+      activeSpinnerId = skeleton.bottleSpunBy ?? seated.firstOrNull?.id;
+    }
+
+    final isMyTurn = activeSpinnerId != null && activeSpinnerId == myId;
+    final activeSpinner =
+        seated.where((p) => p.id == activeSpinnerId).firstOrNull;
+    final spinnerDisplay = isMyTurn
+        ? null
+        : (activeSpinner != null && activeSpinner.username.isNotEmpty
+            ? '@${activeSpinner.username}'
+            : 'otro jugador');
+
     final String status;
+    final String buttonLabel;
+    final VoidCallback? onButtonPressed;
+
     if (!enoughPlayers) {
       status = l10n.minigamesBottleMinPlayers(
         kDrunkBottleMinPlayers,
         seated.length,
       );
+      buttonLabel = l10n.minigamesBottleSpin;
+      onButtonPressed = null;
     } else if (spinning) {
-      status = l10n.minigamesBottleSpinning;
+      if (isMyTurn) {
+        status = 'Girando la botella... ¡Toca para detener!';
+        buttonLabel = l10n.minigamesBottleStop;
+        onButtonPressed = () => _run(
+          ref
+              .read(
+                minigameGameStateProvider(widget.sessionId).notifier,
+              )
+              .stopBottle,
+        );
+      } else {
+        status = '$spinnerDisplay está girando la botella...';
+        buttonLabel = 'Girando...';
+        onButtonPressed = null;
+      }
     } else if (winner != null) {
-      status = winner.id == myId
-          ? l10n.minigamesBottleYourTurn
-          : l10n.minigamesBottleLandedOn(winner.username);
+      if (winner.id == myId) {
+        status = '¡Te tocó a ti! Cumple el reto y luego gira la botella';
+        buttonLabel = 'Girar botella (siguiente turno)';
+        onButtonPressed = () => _run(
+          ref
+              .read(
+                minigameGameStateProvider(widget.sessionId).notifier,
+              )
+              .spinBottle,
+        );
+      } else {
+        status = '¡Le tocó a @${winner.username}! Esperando su turno...';
+        buttonLabel = 'Turno de @${winner.username}...';
+        onButtonPressed = null;
+      }
     } else {
-      status = l10n.minigamesBottleTapToSpin;
+      if (isMyTurn) {
+        status = '¡Es tu turno! Toca para girar la botella';
+        buttonLabel = l10n.minigamesBottleSpin;
+        onButtonPressed = () => _run(
+          ref
+              .read(
+                minigameGameStateProvider(widget.sessionId).notifier,
+              )
+              .spinBottle,
+        );
+      } else {
+        status = 'Turno de $spinnerDisplay para girar la botella';
+        buttonLabel = 'Esperando a $spinnerDisplay...';
+        onButtonPressed = null;
+      }
     }
 
     return Column(
@@ -241,10 +313,12 @@ class _BottleTableState extends ConsumerState<_BottleTable>
             style: TextStyle(
               color: winner != null && !spinning
                   ? AppColors.white
-                  : AppColors.mutedStrong,
-              fontSize: winner != null && !spinning ? 18 : 14,
+                  : isMyTurn
+                      ? AppColors.pastelGold
+                      : AppColors.mutedStrong,
+              fontSize: winner != null && !spinning ? 18 : 15,
               fontWeight:
-                  winner != null && !spinning ? FontWeight.w700 : FontWeight.w400,
+                  winner != null && !spinning || isMyTurn ? FontWeight.w700 : FontWeight.w500,
             ),
           ),
         ),
@@ -260,6 +334,7 @@ class _BottleTableState extends ConsumerState<_BottleTable>
                     seated: seated,
                     myId: myId,
                     selectedId: spinning ? null : selectedId,
+                    activeSpinnerId: activeSpinnerId,
                     angle: _currentAngle,
                   ),
                 );
@@ -283,32 +358,11 @@ class _BottleTableState extends ConsumerState<_BottleTable>
           ),
           child: SizedBox(
             width: double.infinity,
-            child: spinning
-                ? VButton.emphasized(
-                    label: l10n.minigamesBottleStop,
-                    loading: _busy,
-                    onPressed: () => _run(
-                      ref
-                          .read(
-                            minigameGameStateProvider(widget.sessionId).notifier,
-                          )
-                          .stopBottle,
-                    ),
-                  )
-                : VButton.emphasized(
-                    label: l10n.minigamesBottleSpin,
-                    loading: _busy,
-                    onPressed: !enoughPlayers
-                        ? null
-                        : () => _run(
-                              ref
-                                  .read(
-                                    minigameGameStateProvider(widget.sessionId)
-                                        .notifier,
-                                  )
-                                  .spinBottle,
-                            ),
-                  ),
+            child: VButton.emphasized(
+              label: buttonLabel,
+              loading: _busy,
+              onPressed: onButtonPressed,
+            ),
           ),
         ),
       ],
@@ -322,12 +376,14 @@ class _Pizza extends StatelessWidget {
     required this.seated,
     required this.myId,
     required this.selectedId,
+    required this.activeSpinnerId,
     required this.angle,
   });
 
   final List<MinigameParticipant> seated;
   final String? myId;
   final String? selectedId;
+  final String? activeSpinnerId;
   final double angle;
 
   /// Slice palette — the app's pastel set, cycled so neighbours differ.
@@ -376,6 +432,7 @@ class _Pizza extends StatelessWidget {
                   participant: seated[i],
                   isMe: seated[i].id == myId,
                   isWinner: i == selectedIndex,
+                  isSpinner: seated[i].id == activeSpinnerId,
                 ),
               ),
             // The bottle. Rotation 0 points at game angle 0 (straight up),
@@ -520,11 +577,13 @@ class _Seat extends StatelessWidget {
     required this.participant,
     required this.isMe,
     required this.isWinner,
+    required this.isSpinner,
   });
 
   final MinigameParticipant participant;
   final bool isMe;
   final bool isWinner;
+  final bool isSpinner;
 
   @override
   Widget build(BuildContext context) {
@@ -542,19 +601,32 @@ class _Seat extends StatelessWidget {
             border: Border.all(
               color: isWinner
                   ? AppColors.white
-                  : isMe
-                      ? AppColors.white.withValues(alpha: 0.45)
-                      : Colors.transparent,
-              width: isWinner ? 3 : 2,
+                  : isSpinner
+                      ? AppColors.pastelGold
+                      : isMe
+                          ? AppColors.white.withValues(alpha: 0.35)
+                          : Colors.transparent,
+              width: isWinner
+                  ? 3
+                  : isSpinner
+                      ? 2.5
+                      : 1.5,
             ),
             boxShadow: isWinner
                 ? [
                     BoxShadow(
-                      color: AppColors.white.withValues(alpha: 0.5),
+                      color: AppColors.white.withValues(alpha: 0.55),
                       blurRadius: 16,
                     ),
                   ]
-                : null,
+                : isSpinner
+                    ? [
+                        BoxShadow(
+                          color: AppColors.pastelGold.withValues(alpha: 0.5),
+                          blurRadius: 12,
+                        ),
+                      ]
+                    : null,
           ),
           child: ProfileAvatar(
             size: isWinner ? 50 : 42,
@@ -569,15 +641,36 @@ class _Seat extends StatelessWidget {
             color: AppColors.discoBlack.withValues(alpha: 0.72),
             borderRadius: BorderRadius.circular(6),
           ),
-          child: Text(
-            participant.username,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              color: isWinner ? AppColors.white : AppColors.softGray,
-              fontSize: 11,
-              fontWeight: isWinner ? FontWeight.w700 : FontWeight.w500,
-            ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                participant.username,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: isWinner
+                      ? AppColors.white
+                      : isSpinner
+                          ? AppColors.pastelGold
+                          : AppColors.softGray,
+                  fontSize: 11,
+                  fontWeight:
+                      isWinner || isSpinner ? FontWeight.w700 : FontWeight.w500,
+                ),
+              ),
+              if (isMe) ...[
+                const SizedBox(width: 3),
+                const Text(
+                  '(Tú)',
+                  style: TextStyle(
+                    color: AppColors.mutedStrong,
+                    fontSize: 9,
+                    fontWeight: FontWeight.w400,
+                  ),
+                ),
+              ],
+            ],
           ),
         ),
       ],

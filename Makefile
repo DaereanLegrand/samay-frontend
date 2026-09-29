@@ -1,4 +1,4 @@
-.PHONY: help build dev install build-install clean clear-storage uninstall build-cli build-linux build-api lint check test \
+.PHONY: help build dev dev-web install build-install clean clear-storage uninstall build-cli build-linux build-api lint check test \
         test-all test-backend-static test-go \
         flutter-analyze define-env secrets-check tunnel-android tunnel-waydroid \
         ios-signing-restore \
@@ -26,7 +26,9 @@ help:
 	@echo "                             (unsigned iphoneos IPA), all (sweep, skips unavailable)"
 	@echo "    dev [TARGET]             build + run with hot reload (ios = physical iPhone,"
 	@echo "                             simulator, android/waydroid via LAN tunnels, ios-adhoc ="
-	@echo "                             deploy + launch); auto-fixes Xcode/signing state"
+	@echo "                             deploy + launch, web = local web-server); auto-fixes Xcode/signing state"
+	@echo "    dev-web [PLAYERS=N]      run Flutter on local web-server (http://127.0.0.1:8080);"
+	@echo "                             PLAYERS=2 opens isolated browser windows for multiplayer testing"
 	@echo "    install [TARGET]         install the built app on target device(s)"
 	@echo "    build-install [TARGET]   build + install in one go (any TARGET)"
 	@echo "    uninstall TARGET         remove the app from device(s) (TARGET REQUIRED)"
@@ -395,11 +397,23 @@ dev:
 			echo "✅  Launched $(APP_ID) on device $$DEVICE" || \
 			echo "⚠️  Installed, but could not launch $(APP_ID) on device (already running?)"; \
 		fi; \
+	elif [ "$(TARGET)" = "web" ]; then \
+		tools/dev_web.sh $(WEB_PORT) $(WEB_HOST) $(PLAYERS); \
 	elif [ -n "$(TARGET)" ]; then \
 		flutter run $(PUB_FLAG) $(FLUTTER_DEFINES) -d "$(TARGET)"; \
 	else \
 		flutter run $(PUB_FLAG) $(FLUTTER_DEFINES); \
 	fi
+
+# ── Web Development (dev-web) ────────────────────────────────────────────────
+WEB_PORT ?= 8080
+WEB_HOST ?= 127.0.0.1
+PLAYERS  ?= 1
+
+dev-web:
+	$(load-env)
+	@tools/dev_web.sh $(WEB_PORT) $(WEB_HOST) $(PLAYERS)
+
 
 install:
 	$(load-env)
