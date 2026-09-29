@@ -400,11 +400,64 @@ class PublicMinigamesNotifier
     extends FamilyAsyncNotifier<List<Map<String, dynamic>>, String> {
   MinigameService get _service => ref.read(minigameServiceProvider);
 
+  /// Guard so a burst of row changes collapses into one reload instead of
+  /// stacking requests.
+  bool _reloading = false;
+
+  /// Set when the provider is disposed: a reload already in flight must not
+  /// write to `state` afterwards.
+  bool _disposed = false;
+
   @override
   Future<List<Map<String, dynamic>>> build(String gameType) {
+    // The open lobby has to be LIVE. It used to load once and never change:
+    // when a host flipped "Partida abierta", `setPublic` invalidated this
+    // provider on the HOST's device only, so anyone already sitting on the
+    // list never saw the partida appear — they had to leave the screen and
+    // come back. Same for a partida that fills up, gets unpublished or
+    // finishes: the row stayed on screen and joining it failed.
+    //
+    // Listening to `minigame_sessions` fixes all of those with one
+    // subscription: RLS decides which rows reach this client, so a publish
+    // arrives as an UPDATE the moment `is_public` flips and a brand-new open
+    // partida arrives as an INSERT — hence `.all` rather than `.update`.
+    ref.listen<AsyncValue<Map<String, dynamic>>>(
+      realtimeChannelProvider((
+        channelName: 'minigame-public-lobby',
+        table: 'minigame_sessions',
+        event: PostgresChangeEvent.all,
+      )),
+      (_, next) {
+        if (next.valueOrNull == null) return;
+        // Mutating state while the notifier is still building trips
+        // Riverpod's cycle assertion.
+        if (!state.hasValue) return;
+        unawaited(_reload());
+      },
+    );
+
+    ref.onDispose(() => _disposed = true);
+
     return _service.listPublicMinigames(
       gameType: gameType.isEmpty ? null : gameType,
     );
+  }
+
+  /// Silent reload: refreshes the rows WITHOUT an [AsyncLoading] hop, so a
+  /// realtime nudge never blanks the list the user is reading.
+  Future<void> _reload() async {
+    if (_reloading) return;
+    _reloading = true;
+    try {
+      final rows = await _service.listPublicMinigames(
+        gameType: arg.isEmpty ? null : arg,
+      );
+      if (!_disposed) state = AsyncData(rows);
+    } catch (_) {
+      // A failed background refresh keeps the last good list on screen.
+    } finally {
+      _reloading = false;
+    }
   }
 
   Future<void> refresh() async {
