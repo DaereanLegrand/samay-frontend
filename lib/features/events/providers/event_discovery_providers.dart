@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:samay/core/models/event.dart';
 import 'package:samay/core/models/event_discovery_hit.dart';
 import 'package:samay/core/providers/service_providers.dart';
 import 'package:samay/core/utils/input_sanitizer.dart';
@@ -78,7 +79,27 @@ class EventDiscoveryNotifier extends AsyncNotifier<List<EventDiscoveryHit>> {
 
     if (!hasQuery && !hasNearby) {
       final events = await service.listEvents();
-      return events
+      // `listEvents` sorts by start date ascending and says nothing about
+      // status, so the tab opened on the OLDEST rows — three FINALIZADO
+      // cards before anything the user can still attend. Upcoming and live
+      // events lead, soonest first; finished and cancelled ones sink to the
+      // bottom, most recent first, so they stay reachable for their photos.
+      // `search_events` applies the same rule server-side
+      // (220_events_search_past_last).
+      final now = DateTime.now();
+      bool isPast(Event e) =>
+          e.status == 'ended' ||
+          e.status == 'cancelled' ||
+          e.endsAt.isBefore(now);
+      final sorted = [...events]..sort((a, b) {
+          final pa = isPast(a);
+          final pb = isPast(b);
+          if (pa != pb) return pa ? 1 : -1;
+          return pa
+              ? b.startsAt.compareTo(a.startsAt)
+              : a.startsAt.compareTo(b.startsAt);
+        });
+      return sorted
           .map(
             (e) => EventDiscoveryHit(
               event: e,
