@@ -15,11 +15,25 @@ plugins {
 //   - ALL FOUR set  → the release buildType signs with the keystore.
 //   - ANY unset     → release builds FAIL FAST at task time with a clear
 //                     message. Release NEVER falls back to the debug key.
+// File-first: KEYSTORE_PROPERTIES points at a RAM-disk keystore.properties
+// (written by tools/release-signing-not-in-repo.sh). Env vars remain as a fallback for the
+// existing §3.3 contract. Release still fails fast when nothing is configured.
+val keystoreProps = java.util.Properties().apply {
+    System.getenv("KEYSTORE_PROPERTIES")?.let { p ->
+        File(p).takeIf(File::isFile)?.inputStream()?.use { load(it) }
+    }
+}
+fun ksProp(key: String, env: String): String? =
+    keystoreProps.getProperty(key) ?: System.getenv(env)
+
 val keystoreEnv = mapOf(
-    "ANDROID_KEYSTORE_PATH" to System.getenv("ANDROID_KEYSTORE_PATH"),
-    "ANDROID_KEYSTORE_ALIAS" to System.getenv("ANDROID_KEYSTORE_ALIAS"),
-    "ANDROID_KEYSTORE_PASSWORD" to System.getenv("ANDROID_KEYSTORE_PASSWORD"),
-    "ANDROID_KEY_ALIAS_PASSWORD" to System.getenv("ANDROID_KEY_ALIAS_PASSWORD"),
+    "ANDROID_KEYSTORE_PATH" to ksProp("storeFile", "ANDROID_KEYSTORE_PATH")?.let { v ->
+        val p = System.getenv("KEYSTORE_PROPERTIES")
+        if (!v.startsWith("/") && p != null) File(File(p).parentFile, v).absolutePath else v
+    },
+    "ANDROID_KEYSTORE_ALIAS" to ksProp("keyAlias", "ANDROID_KEYSTORE_ALIAS"),
+    "ANDROID_KEYSTORE_PASSWORD" to ksProp("storePassword", "ANDROID_KEYSTORE_PASSWORD"),
+    "ANDROID_KEY_ALIAS_PASSWORD" to ksProp("keyPassword", "ANDROID_KEY_ALIAS_PASSWORD"),
 )
 val releaseSigningConfigured = keystoreEnv.values.all { !it.isNullOrBlank() }
 
