@@ -248,6 +248,7 @@ $(error PROD=true and TESTING=true are mutually exclusive)
 endif
 RAM_DIR             ?= /Volumes/SamayRAM
 KEYSTORE_PROPERTIES ?= $(RAM_DIR)/keystore.properties
+PROD_DEFINES        ?= $(RAM_DIR)/dart_defines.env
 endif
 
 # ── fastlane lane env (ios-adhoc builds) ─────────────────────────────────────
@@ -336,7 +337,8 @@ build:
 		echo "✅  Simulator app: build/ios/iphonesimulator/Runner.app"; \
 	elif [ "$(TARGET)" = "android" ] && [ "$(PROD)" = "true" ]; then \
 		[ -f "$(KEYSTORE_PROPERTIES)" ] || { echo "❌  PROD=true needs $(KEYSTORE_PROPERTIES) — run tools/release-signing-not-in-repo.sh fetch android."; exit 1; }; \
-		KEYSTORE_PROPERTIES="$(KEYSTORE_PROPERTIES)" flutter build appbundle --release $(PUB_FLAG) $(FLUTTER_DEFINES) && \
+		DEFS="$(if $(wildcard $(PROD_DEFINES)),--dart-define-from-file=$(PROD_DEFINES),$(FLUTTER_DEFINES))"; \
+		KEYSTORE_PROPERTIES="$(KEYSTORE_PROPERTIES)" flutter build appbundle --release $(PUB_FLAG) $$DEFS && \
 		echo "✅  AAB: build/app/outputs/bundle/release/app-release.aab"; \
 	else \
 		flutter build apk --$(BUILD_MODE) $(PUB_FLAG) $(FLUTTER_DEFINES) && \
