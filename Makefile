@@ -87,7 +87,8 @@ APP_NAME := samay_app
 # guard still kills assembleRelease/bundleRelease without it), and the
 # debug-signed apk installs `-r` over the debug apps already on the devices.
 # Real release/AAB packaging goes through fastlane/M-22 — never this target.
-BUILD_MODE ?= debug
+PROD ?= false
+BUILD_MODE ?= $(if $(filter true,$(PROD)),release,debug)
 APK := build/app/outputs/flutter-apk/app-$(BUILD_MODE).apk
 GO_BIN := samay
 GO_BIN_LINUX := samay-linux
@@ -238,6 +239,17 @@ install: | testing-kong-register
 tunnel-android: | testing-kong-register
 endif
 
+# ── PROD mode (PROD=true) — production-signed build ──────────────────────────
+# PROD does NOT fetch secrets itself: tools/release-signing-not-in-repo.sh must already have
+# materialized the vault profile on the RAM disk. Fails fast otherwise.
+ifeq ($(PROD),true)
+ifeq ($(TESTING),true)
+$(error PROD=true and TESTING=true are mutually exclusive)
+endif
+RAM_DIR             ?= /Volumes/SamayRAM
+KEYSTORE_PROPERTIES ?= $(RAM_DIR)/keystore.properties
+endif
+
 # ── fastlane lane env (ios-adhoc builds) ─────────────────────────────────────
 # The adhoc_local lane reads SUPABASE_URL / SUPABASE_ANON_KEY from the
 # environment (Fastfile dart_defines).
@@ -322,6 +334,10 @@ build:
 	elif [ "$(TARGET)" = "simulator" ]; then \
 		flutter build ios --simulator $(PUB_FLAG) $(FLUTTER_DEFINES) && \
 		echo "✅  Simulator app: build/ios/iphonesimulator/Runner.app"; \
+	elif [ "$(TARGET)" = "android" ] && [ "$(PROD)" = "true" ]; then \
+		[ -f "$(KEYSTORE_PROPERTIES)" ] || { echo "❌  PROD=true needs $(KEYSTORE_PROPERTIES) — run tools/release-signing-not-in-repo.sh fetch android."; exit 1; }; \
+		KEYSTORE_PROPERTIES="$(KEYSTORE_PROPERTIES)" flutter build appbundle --release $(PUB_FLAG) $(FLUTTER_DEFINES) && \
+		echo "✅  AAB: build/app/outputs/bundle/release/app-release.aab"; \
 	else \
 		flutter build apk --$(BUILD_MODE) $(PUB_FLAG) $(FLUTTER_DEFINES) && \
 		echo "✅  APK: $(APK)"; \
