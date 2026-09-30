@@ -12,7 +12,7 @@ git history, not in the docs tree; `docs/history/` holds dated session logs.
 | **Step specs (pending work)** | `docs/specs/steps/` | Specs for steps NOT yet implemented + `cross-references.md` (dependency graph + statuses). Implemented steps have no spec — their behavior is documented by code and tests |
 | **Design** | `docs/design/DESIGN.md` | The current minimal design language; token source of truth is code (`lib/core/design_tokens/`) |
 | **Security** | `docs/security/` | `SECURITY.md` (precautions applied now + why + open items), `E2EE-ARCHITECTURE.md` (chat crypto spec) |
-| **Infra** | `<private-ops-repo>/` | `SELFHOSTING.md` (stack runbook), `BACKEND-SERVER-VM.md` (<base-os> AArch64 backend VM plan: UTM + rootful Podman + launchd), `DEPLOYMENT-PLACEHOLDER.md` (deployment targets as placeholders), `DATABASE.md` (DB catalog: tables/RPCs/triggers/realtime/cron/storage), `BACKEND.md` (Go CLI command tree + API routes + internals) |
+| **Infra** | `<private-ops-repo>/` | `SELFHOSTING.md` (stack runbook), `BACKEND-SERVER-VM.md` (<base-os> AArch64 backend VM: UTM + Docker Engine static + RustFS + launchd), `DEPLOYMENT-PLACEHOLDER.md` (deployment targets as placeholders), `DATABASE.md` (DB catalog: tables/RPCs/triggers/realtime/cron/storage), `BACKEND.md` (Go CLI command tree + API routes + internals) |
 | **History** | `docs/history/phase-XX/` | Dated session logs (`YYYY-MM-DD_<slug>.md`, MISTAKE blocks) — already populated (`docs/history/phase-16/…`) |
 
 ## Quick navigation
