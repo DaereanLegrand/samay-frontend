@@ -726,7 +726,7 @@ supabase-status:
 supabase-reset:
 	cd supabase && docker compose down && \
 	rm -rf volumes/storage && \
-	docker volume rm samay_db-data samay_minio-data 2>/dev/null || true && \
+	docker volume rm samay_db-data samay_rustfs-data 2>/dev/null || true && \
 	docker compose up -d && \
 	docker compose up -d --wait db auth && \
 	sh migrate.sh
@@ -742,7 +742,7 @@ supabase-init:
 
 # ── Docker / Self-hosted Supabase ──────────────────────────
 # Canonical dev stack (SELFHOSTING.md). Each stack dir's .env sets
-# COMPOSE_FILE (the override layering incl. docker-compose.s3.yml → MinIO);
+# COMPOSE_FILE (the override layering incl. docker-compose.rustfs.yml → RustFS);
 # pass OVERRIDES to override the layering for a single run, e.g.:
 #   make supabase-docker-start OVERRIDES="-f docker-compose.yml"   # file backend
 # Host ports are env-driven (POSTGRES_PORT/KONG_HTTP_PORT/... in .env,
@@ -761,12 +761,12 @@ supabase-docker-status:
 	$(load-env)
 	cd supabase && docker compose ps
 
-# Full reset: down → remove DB + storage bind dirs → also remove the MinIO
+# Full reset: down → remove DB + storage bind dirs → also remove the RustFS
 # named volume (reset.sh does NOT clear it — M-06 gotcha; the `|| true` guard
 # covers a fresh clone where the volume doesn't exist yet) → fresh stack up.
 supabase-docker-reset:
 	$(load-env)
-	cd supabase && docker compose down && rm -rf volumes/storage && (docker volume rm samay_db-data samay_minio-data 2>/dev/null || true) && docker compose up -d && docker compose up -d --wait db auth && echo "Running migrations..." && bash ../tools/apply_migrations.sh supabase && echo "Applying required seed-config..." && PGPASSWORD=postgres psql -h localhost -p 54382 -U postgres -d postgres -v ON_ERROR_STOP=1 -f seed-config.sql
+	cd supabase && docker compose down && rm -rf volumes/storage && (docker volume rm samay_db-data samay_rustfs-data 2>/dev/null || true) && docker compose up -d && docker compose up -d --wait db auth && echo "Running migrations..." && bash ../tools/apply_migrations.sh supabase && echo "Applying required seed-config..." && PGPASSWORD=postgres psql -h localhost -p 54382 -U postgres -d postgres -v ON_ERROR_STOP=1 -f seed-config.sql
 
 # Explicit seeding — seed-config is ALREADY auto-applied by init/reset/
 # migrate (fundamental app config); this target exists for idempotent re-runs.
@@ -774,7 +774,7 @@ supabase-seed-config:
 	cd supabase && PGPASSWORD=postgres psql -h localhost -p 54382 -U postgres -d postgres -v ON_ERROR_STOP=1 -f seed-config.sql
 
 # Test data (@tester universe) — EXPLICIT ONLY, never automatic. Note: the
-# 4 storage-object rows dangle until the MinIO blob backup is restored.
+# 4 storage-object rows dangle until the RustFS blob backup is restored.
 supabase-seed-test:
 	cd supabase && PGPASSWORD=postgres psql -h localhost -p 54382 -U postgres -d postgres -v ON_ERROR_STOP=1 -f seed-test.sql
 
@@ -833,7 +833,7 @@ supabase-testing-status:
 
 supabase-testing-reset:
 	$(load-env)
-	cd supabase-testing && docker compose down && rm -rf volumes/storage && (docker volume rm samay-testing_db-data samay-testing_minio-data 2>/dev/null || true) && docker compose up -d && docker compose up -d --wait db auth && echo "Running migrations..." && bash ../tools/apply_migrations.sh supabase-testing && echo "Applying required seed-config..." && PGPASSWORD=postgres psql -h localhost -p 54382 -U postgres -d postgres -v ON_ERROR_STOP=1 -f seed-config.sql
+	cd supabase-testing && docker compose down && rm -rf volumes/storage && (docker volume rm samay-testing_db-data samay-testing_rustfs-data 2>/dev/null || true) && docker compose up -d && docker compose up -d --wait db auth && echo "Running migrations..." && bash ../tools/apply_migrations.sh supabase-testing && echo "Applying required seed-config..." && PGPASSWORD=postgres psql -h localhost -p 54382 -U postgres -d postgres -v ON_ERROR_STOP=1 -f seed-config.sql
 
 # Testing-stack bootstrap: start NON-destructively, apply all migrations, seed.
 # Mailpit is part of the BASE compose (2026-08-22 merge — the overlay caused
