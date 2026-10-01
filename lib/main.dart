@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:ui';
 
 import 'package:app_links/app_links.dart';
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -132,6 +133,12 @@ Future<void> main() async {
       deepLinkStreamProvider.overrideWithValue(
         AppLinks().uriLinkStream.map((uri) => uri.toString()),
       ),
+      // Debug-only: exercise Firebase/FCM locally (the debug keystore SHA-1 is
+      // registered on the Android API key). Release stays dark (push = false).
+      if (kDebugMode)
+        featureFlagsProvider.overrideWithValue(
+          const AppFeatureFlags(push: true),
+        ),
     ],
   );
   // Push (Track 2, dark-first): initialise only when AppFeatureFlag.push is

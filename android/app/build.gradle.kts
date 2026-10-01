@@ -1,4 +1,8 @@
 import java.io.File
+// Must be imported (not `java.util.Properties()`): once the google-services
+// plugin is applied, the `java` extension accessor is in scope and Kotlin parses
+// `java.util` as `(java).util` → "Unresolved reference 'util'".
+import java.util.Properties
 
 plugins {
     id("com.android.application")
@@ -21,7 +25,7 @@ plugins {
 // File-first: KEYSTORE_PROPERTIES points at a RAM-disk keystore.properties
 // (written by tools/release-signing-not-in-repo.sh). Env vars remain as a fallback for the
 // existing §3.3 contract. Release still fails fast when nothing is configured.
-val keystoreProps = java.util.Properties().apply {
+val keystoreProps = Properties().apply {
     System.getenv("KEYSTORE_PROPERTIES")?.let { p ->
         File(p).takeIf(File::isFile)?.inputStream()?.use { load(it) }
     }

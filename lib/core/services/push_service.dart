@@ -1,5 +1,6 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:samay/core/logging/app_logger.dart';
 
@@ -57,6 +58,17 @@ class PushService {
       AppLogger.instance.info(
         'PushService enabled (token ${_token != null ? 'acquired' : 'pending'})',
       );
+      // Debug-only: surface the FCM token for Firebase console "Send test
+      // message" and log rotations.
+      if (kDebugMode && _token != null) {
+        AppLogger.instance.info('FCM token (debug): $_token');
+      }
+      messaging.onTokenRefresh.listen((refreshed) {
+        _token = refreshed;
+        if (kDebugMode) {
+          AppLogger.instance.info('FCM token refreshed (debug): $refreshed');
+        }
+      });
     } catch (e, st) {
       _enabled = false;
       AppLogger.instance.warn(
