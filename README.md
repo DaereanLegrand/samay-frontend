@@ -108,7 +108,7 @@ lib/                          Flutter app
   core/                       config/, design_tokens/, deep_links/, errors/,
                               extensions/, logging/, models/ (freezed),
                               providers/, repositories/, router/, services/,
-                              telemetry/, theme/, utils/
+                              theme/, utils/
   crypto/                     E2EE chat stack (X3DH, double ratchet,
                               group sender keys, key store) — see
                               docs/security/E2EE-ARCHITECTURE.md

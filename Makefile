@@ -249,6 +249,7 @@ endif
 RAM_DIR             ?= /Volumes/SamayRAM
 KEYSTORE_PROPERTIES ?= $(RAM_DIR)/keystore.properties
 PROD_DEFINES        ?= $(RAM_DIR)/dart_defines.env
+EXPORT_OPTIONS      ?= $(RAM_DIR)/ExportOptions.plist
 endif
 
 # ── fastlane lane env (ios-adhoc builds) ─────────────────────────────────────
@@ -320,7 +321,7 @@ build:
 			echo "━━━ build for $$t ━━━"; \
 			make build TARGET=$$t NO_PUB=$(NO_PUB) || true; \
 		done; \
-	elif [ "$(TARGET)" = "ios" ]; then \
+	elif [ "$(TARGET)" = "ios" ] && [ "$(PROD)" != "true" ]; then \
 		flutter build ios --release --no-codesign $(PUB_FLAG) $(FLUTTER_DEFINES) && \
 		cd build/ios && rm -rf Payload && mkdir Payload && \
 		cp -R iphoneos/Runner.app Payload/ && \
@@ -340,6 +341,11 @@ build:
 		DEFS="$(if $(wildcard $(PROD_DEFINES)),--dart-define-from-file=$(PROD_DEFINES),$(FLUTTER_DEFINES))"; \
 		KEYSTORE_PROPERTIES="$(KEYSTORE_PROPERTIES)" flutter build appbundle --release $(PUB_FLAG) $$DEFS && \
 		echo "✅  AAB: build/app/outputs/bundle/release/app-release.aab"; \
+	elif [ "$(TARGET)" = "ios" ] && [ "$(PROD)" = "true" ]; then \
+		[ -f "$(EXPORT_OPTIONS)" ] || { echo "❌  PROD=true needs $(EXPORT_OPTIONS) — run tools/release-signing-not-in-repo.sh fetch apple."; exit 1; }; \
+		DEFS="$(if $(wildcard $(PROD_DEFINES)),--dart-define-from-file=$(PROD_DEFINES),$(FLUTTER_DEFINES))"; \
+		flutter build ipa --release $(PUB_FLAG) $$DEFS --export-options-plist="$(EXPORT_OPTIONS)" && \
+		echo "✅  IPA: build/ios/ipa/*.ipa"; \
 	else \
 		flutter build apk --$(BUILD_MODE) $(PUB_FLAG) $(FLUTTER_DEFINES) && \
 		echo "✅  APK: $(APK)"; \

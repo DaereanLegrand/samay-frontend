@@ -19,6 +19,13 @@ dependencies:
   hive: ^2.2.3
   hive_flutter: ^1.1.0
   supabase_flutter: ^2.8.4
+  # Push notifications (Track 2 PUSH): FCM HTTP v1 (Android) + APNs (iOS).
+  # Client wiring is dark-first behind AppFeatureFlag.push; the backend sends
+  # with the vault-held `fcm-service-account.json`. Requires Firebase platform
+  # config (android/app/google-services.json via `flutterfire configure`) and
+  # the google-services Gradle plugin (settings.gradle.kts / app build.gradle.kts).
+  firebase_core: ^4.15.0
+  firebase_messaging: ^16.7.0
   image_picker: ^1.1.2
   permission_handler: ^12.0.3
   # Connectivity awareness (I-67): device network status for the offline

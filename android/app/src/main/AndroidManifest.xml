@@ -13,6 +13,10 @@
          location is used for "use my location" and the nearby filter. -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
+    <!-- Push notifications (Track 2 PUSH): Android 13+ (API 33) requires the
+         runtime POST_NOTIFICATIONS permission before FCM can show alerts.
+         Requested by PushService when AppFeatureFlag.push is enabled. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <!-- M-27 (2026-08-10): allowBackup=false — E2EE key policy
          (docs/security/E2EE-ARCHITECTURE.md §9.4 / R12): no plaintext
          backups, no adb-backup exfiltration of Keystore-wrapped material.

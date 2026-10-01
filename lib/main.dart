@@ -7,9 +7,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:samay/app.dart';
 import 'package:samay/core/config/env_config.dart';
+import 'package:samay/core/config/feature_flags.dart';
 import 'package:samay/core/deep_links/deep_link_handler.dart';
 import 'package:samay/core/logging/app_logger.dart';
 import 'package:samay/core/services/crash_reporter.dart';
+import 'package:samay/core/services/push_service.dart';
 import 'package:samay/core/services/secure_session_storage.dart';
 import 'package:samay/core/services/storage_service.dart';
 
@@ -132,6 +134,12 @@ Future<void> main() async {
       ),
     ],
   );
+  // Push (Track 2, dark-first): initialise only when AppFeatureFlag.push is
+  // enabled, so a config-less build never prompts for notification permission
+  // or hard-fails. PushService degrades to a logged no-op on any error.
+  if (container.read(featureFlagsProvider).isEnabled(AppFeatureFlag.push)) {
+    await container.read(pushServiceProvider).initialize();
+  }
   runApp(
     UncontrolledProviderScope(
       container: container,

@@ -64,6 +64,11 @@ enum AppFeatureFlag {
 
   /// Dark-mode theme persistence.
   themePersistence,
+
+  /// Push notifications (FCM/APNs). DARK: the client seam exists
+  /// (`PushService`), but the backend sender + device-token registration land
+  /// with Track 2 `PUSH` — do not flip this flag yet.
+  push,
 }
 
 /// The release-gating flag set. Immutable; every getter defaults to the
@@ -84,6 +89,7 @@ class AppFeatureFlags {
     this.photoUpload = true,
     this.e2ee = true,
     this.themePersistence = false,
+    this.push = false,
   });
 
   final bool cosmeticsSection;
@@ -97,6 +103,7 @@ class AppFeatureFlags {
   final bool photoUpload;
   final bool e2ee;
   final bool themePersistence;
+  final bool push;
 
   /// Resolves [flag] to its current state.
   bool isEnabled(AppFeatureFlag flag) => switch (flag) {
@@ -111,6 +118,7 @@ class AppFeatureFlags {
     AppFeatureFlag.photoUpload => photoUpload,
     AppFeatureFlag.e2ee => e2ee,
     AppFeatureFlag.themePersistence => themePersistence,
+    AppFeatureFlag.push => push,
   };
 
   @override
@@ -126,7 +134,8 @@ class AppFeatureFlags {
       other.minigames == minigames &&
       other.photoUpload == photoUpload &&
       other.e2ee == e2ee &&
-      other.themePersistence == themePersistence;
+      other.themePersistence == themePersistence &&
+      other.push == push;
 
   @override
   int get hashCode => Object.hash(
@@ -141,6 +150,7 @@ class AppFeatureFlags {
     photoUpload,
     e2ee,
     themePersistence,
+    push,
   );
 }
 

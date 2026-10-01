@@ -8,8 +8,6 @@ import 'package:samay/core/router/auth_refresh_notifier.dart';
 import 'package:samay/core/router/main_shell.dart';
 import 'package:samay/core/router/route_extras.dart';
 import 'package:samay/core/router/route_paths.dart';
-import 'package:samay/core/services/telemetry_service.dart';
-import 'package:samay/core/telemetry/route_observer.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/features/auth/screens/banned_screen.dart';
 import 'package:samay/features/auth/screens/login_screen.dart';
@@ -84,10 +82,7 @@ Widget _screenForId(
 /// [VTabFade] 150ms fade-in — "subtle, fast").
 /// Pushed routes keep their normal transitions.
 ///
-/// The page keeps go_router's default naming (`state.name ?? state.path`) —
-/// the telemetry observer reads `RouteSettings.name`, so a custom
-/// pageBuilder must set it explicitly or tab screens stop reporting
-/// `screen_view`.
+/// The page keeps go_router's default naming (`state.name ?? state.path`).
 CustomTransitionPage<void> _tabPage(GoRouterState state, Widget child) {
   return NoTransitionPage(
     key: state.pageKey,
@@ -138,13 +133,6 @@ final routerProvider = Provider<GoRouter>((ref) {
     // pushed typed extras (VerifyExtra/…, the OTP funnel) serialize as null
     // and the pushed screens flip to RouteErrorScreen. See RouteExtraCodec.
     extraCodec: const RouteExtraCodec(),
-    // telemetry — every route change reports a `screen_view` event via
-    // the TelemetryService (stub mode = no-op with an info log). One observer
-    // per navigator (a NavigatorObserver can attach to only one navigator):
-    // the root one covers the plain routes; the ShellRoute's own observer
-    // covers the tab screens (the root push of the shell page itself carries
-    // no name and is ignored by the observer).
-    observers: [RouterObserver(ref.read(telemetryServiceProvider))],
     errorBuilder: (context, state) => RouteErrorScreen(
       title: AppLocalizations.of(context).routerRouteNotFound,
       message: AppLocalizations.of(context).routerRouteNotFoundBody,
@@ -222,9 +210,6 @@ final routerProvider = Provider<GoRouter>((ref) {
           currentIndex: shellIndexFor(state.matchedLocation),
           child: child,
         ),
-        // the shell's nested Navigator needs its own observer (see the
-        // routerProvider note above) so tab switches report screen_view too.
-        observers: [RouterObserver(ref.read(telemetryServiceProvider))],
         routes: [
           // the feed is live; the flag remains the
           // kill-switch/remote-config knob (the gate is
@@ -492,8 +477,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         // handoff pushes this route while the lobby sits underneath. A sliding
         // transition exposed BOTH screens for ~250ms; a NoTransitionPage makes
         // the match screen the only screen that ever paints (the lobby cover is
-        // held by MinigameSessionDetailScreen until this page commits). The
-        // name is preserved for the telemetry observer.
+        // held by MinigameSessionDetailScreen until this page commits).
         path: RoutePaths.truthDare(':sessionId'),
         pageBuilder: (context, state) => NoTransitionPage(
           key: state.pageKey,

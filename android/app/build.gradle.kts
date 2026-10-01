@@ -3,6 +3,9 @@ import java.io.File
 plugins {
     id("com.android.application")
     id("kotlin-android")
+    // Firebase (FCM). Reads android/app/google-services.json — the build fails
+    // if that file is missing. Version is declared in settings.gradle.kts.
+    id("com.google.gms.google-services")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
 }
@@ -126,4 +129,11 @@ tasks.matching {
 
 flutter {
     source = "../.."
+}
+
+// Firebase Android BoM — aligns any `com.google.firebase:*` artifacts on one
+// version. FlutterFire pulls its own versions, so nothing is required here
+// today; add unversioned native artifacts (e.g. firebase-messaging) if needed.
+dependencies {
+    implementation(platform("com.google.firebase:firebase-bom:34.19.0"))
 }

@@ -32,8 +32,8 @@ Future<String> hashUserId(String userId) async {
 ///
 /// The sentry_flutter SDK wiring (future) implements this with
 /// `Sentry.captureException` / `Sentry.configureScope`; tests inject a
-/// recording fake; stub mode never touches it. Mirrors the TelemetrySink
-/// seam pattern and the RevenueCatDriver seam.
+/// recording fake; stub mode never touches it. Mirrors the RevenueCatDriver
+/// seam.
 abstract class CrashSink {
   /// Delivers a crash with its [error], [stack] and optional [context]
   /// key/value pairs.
