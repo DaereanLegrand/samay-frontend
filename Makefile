@@ -676,6 +676,10 @@ test-backend-static:
 	bash test/opt-005-seeds-static.sh
 	bash test/opt-007-compose-static.sh
 	bash test/opt-008-makefile-static.sh
+	bash test/<ops-static-check>
+	bash test/<ops-static-check>
+	bash test/<ops-static-check>
+	bash test/<ops-static-check>
 
 test-go:
 	go test ./...
@@ -990,3 +994,44 @@ deploy-venue:
 	@echo "   distribution lanes per §3.3."
 	@echo "   Contract: <private-ops-repo>/DEPLOYMENT-PLACEHOLDER.md."
 	@exit 0
+
+# ── SCM/CI VMs + signing image (tools/<ops-tooling>) ──────────────────────────
+# Host-side bring-up for the dedicated SCM VM (Gitea + GitLab mirror) and the
+# CI runner VM (Gitea Actions act_runner). All VM bundles/disks live under
+# /Volumes/Media only. Secrets are never on this machine: ci-scm-fetch pulls the
+# vault `scm` profile into a RAM disk (SSH to the vault, GPG-gated) for the push.
+# The Apple/GitLab secrets are inserted/rotated on the <build-host> (tools/vault-rotate.sh).
+.PHONY: ci-scm-vm ci-scm-fetch ci-scm-sync ci-fetch ci-sync ci-runner-vm ci-android-image ci-push-image
+ci-scm-vm:
+	@bash tools/<ops-tooling>/<host-script>
+ci-scm-fetch:
+	@bash tools/<ops-tooling>/<host-script>
+ci-scm-sync:
+	@bash tools/<ops-tooling>/<host-script>
+ci-runner-vm:
+	@bash tools/<ops-tooling>/<host-script>
+ci-fetch:
+	@bash tools/<ops-tooling>/<host-script>
+ci-sync:
+	@bash tools/<ops-tooling>/<host-script>
+ci-android-image:
+	@docker build -f <ci-image>.Dockerfile -t <ci-host>/android-signing:3.44.0-jdk17-r1 .
+ci-push-image:
+	@bash tools/<ops-tooling>/<host-script>
+
+# ── <ops-service> <ops-service> VM (tools/<ops-tooling>) ─────────────────────────
+# A minimal <base-os> AArch64 VM running a stripped-down <ops-service> <ops-service>
+# (core only; modules added later), linked to the existing Purely Mail mailbox +
+# domain. VM storage lives under /Volumes/Media only; secrets are fetched from
+# the vault's `<ops-service>` profile into a RAM disk and pushed, never stored here.
+.PHONY: <ops-service> <ops-service> <ops-service> <ops-service> <ops-service>
+<ops-service>:
+	@bash tools/<ops-tooling>/<host-script>
+<ops-service>:
+	@bash tools/<ops-tooling>/<host-script>
+<ops-service>:
+	@bash tools/<ops-tooling>/<host-script>
+<ops-service>:
+	@bash tools/<ops-tooling>/<host-script>
+<ops-service>:
+	@bash tools/<ops-tooling>/<host-script>
