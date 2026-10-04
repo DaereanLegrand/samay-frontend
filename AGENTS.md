@@ -147,7 +147,7 @@ Juega's running Supabase owns host ports 5432/54321/54323/8443 — NEVER map Sam
 (`<base-image>`, hostname `<base-image>`) is baked + sealed once; every
 task VM is an **APFS clone** of it, provisioned with only what its task needs
 (`tools/<ops-tooling>/host-clone.sh`). The earlier <base-os> AArch64 base is preserved,
-renamed **`QallariyBase<base-os>`** (reference/rollback only — no new clones).
+renamed **`QallariyBase-<base-os>`** (reference/rollback only — no new clones).
 The base and its clones (`samay-scm`, `<ci-host>`, `mail`) run inside UTM on
 the `<vm-ip-prefix>0/24` shared network (the host↔VM bridge, reachable from the
 Mac). Their ports are **never** mapped onto the Mac's host ports and never
@@ -157,7 +157,7 @@ tunnel:
 | VM | VM-internal service | Port |
 |---|---|---|
 | `<base-image>` (Alpine) | (template — no services) | — |
-| `QallariyBase<base-os>` | (preserved old template — no services) | — |
+| `QallariyBase-<base-os>` | (preserved old template — no services) | — |
 | `samay-scm` | Gitea web | 3000 |
 | `samay-scm` | Gitea SSH | 2222 |
 | `samay-scm` | GitLab CE HTTP | 8929 |
