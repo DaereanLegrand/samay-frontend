@@ -672,11 +672,14 @@ test: test-all
 
 test-all: test-go test-backend-static
 
+# NOTE: the vault is verified by the SINGLE human-only test `test/vault.sh`
+# (interactive TTY + vault password). It is intentionally NOT part of this
+# target, `make test`, the CI workflow, or the opt-suite — agents must never
+# run it.
 test-backend-static:
 	bash test/opt-005-seeds-static.sh
 	bash test/opt-007-compose-static.sh
 	bash test/opt-008-makefile-static.sh
-	bash test/<ops-static-check>
 	bash test/<ops-static-check>
 	bash test/<ops-static-check>
 	bash test/<ops-static-check>
@@ -1019,19 +1022,15 @@ ci-android-image:
 ci-push-image:
 	@bash tools/<ops-tooling>/<host-script>
 
-# ── <ops-service> <ops-service> VM (tools/<ops-tooling>) ─────────────────────────
-# A minimal <base-os> AArch64 VM running a stripped-down <ops-service> <ops-service>
-# (core only; modules added later), linked to the existing Purely Mail mailbox +
-# domain. VM storage lives under /Volumes/Media only; secrets are fetched from
-# the vault's `<ops-service>` profile into a RAM disk and pushed, never stored here.
-.PHONY: <ops-service> <ops-service> <ops-service> <ops-service> <ops-service>
-<ops-service>:
-	@bash tools/<ops-tooling>/<host-script>
-<ops-service>:
-	@bash tools/<ops-tooling>/<host-script>
-<ops-service>:
-	@bash tools/<ops-tooling>/<host-script>
-<ops-service>:
-	@bash tools/<ops-tooling>/<host-script>
-<ops-service>:
-	@bash tools/<ops-tooling>/<host-script>
+# ── Qallariy Mail VM (tools/mail-bootstrap) ──────────────────────────────────
+# A minimal <base-os> AArch64 VM running <ops-service> (pinned upstream image, no
+# database) as the Qallariy corporate webmail front end for the Purely Mail
+# mailbox. VM storage lives under /Volumes/Media only; secrets are fetched from
+# the vault's `mail` profile into a RAM disk and pushed, never stored here.
+.PHONY: mail-vm mail-fetch mail-sync
+mail-vm:
+	@bash tools/mail-bootstrap/<host-script>
+mail-fetch:
+	@bash tools/mail-bootstrap/<host-script>
+mail-sync:
+	@bash tools/mail-bootstrap/<host-script>

@@ -143,10 +143,12 @@ Juega's running Supabase owns host ports 5432/54321/54323/8443 — NEVER map Sam
 
 `tools/check_ports.sh --strict` must exit 0 after any infra change.
 
-**VM-internal services are NOT host ports.** One <base-os> AArch64 install
-(`samay-base`) is baked + sealed once; every task VM is an **APFS clone** of it,
-provisioned with only what its task needs (`tools/<ops-tooling>/host-clone.sh`). The
-base and its clones (`samay-scm`, `<ci-host>`, `<scout-repo>`) run inside UTM on
+**VM-internal services are NOT host ports.** One **Alpine Linux** AArch64 install
+(`<base-image>`, hostname `<base-image>`) is baked + sealed once; every
+task VM is an **APFS clone** of it, provisioned with only what its task needs
+(`tools/<ops-tooling>/host-clone.sh`). The earlier <base-os> AArch64 base is preserved,
+renamed **`QallariyBase<base-os>`** (reference/rollback only — no new clones).
+The base and its clones (`samay-scm`, `<ci-host>`, `mail`) run inside UTM on
 the `<vm-ip-prefix>0/24` shared network (the host↔VM bridge, reachable from the
 Mac). Their ports are **never** mapped onto the Mac's host ports and never
 exposed on the Mac's LAN; remote access is only through each VM's own Cloudflare
@@ -154,13 +156,14 @@ tunnel:
 
 | VM | VM-internal service | Port |
 |---|---|---|
-| `samay-base` | (template — no services) | — |
+| `<base-image>` (Alpine) | (template — no services) | — |
+| `QallariyBase<base-os>` | (preserved old template — no services) | — |
 | `samay-scm` | Gitea web | 3000 |
 | `samay-scm` | Gitea SSH | 2222 |
 | `samay-scm` | GitLab CE HTTP | 8929 |
 | `<ci-host>` | act_runner | (outbound only) |
-| `<scout-repo>` | <ops-service> (Qallariy Scout) web | 8080 |
-| `<scout-repo>` | MariaDB | (internal only) |
+| `mail` | <ops-service> (Qallariy Mail) web | 8888 |
+| `mail` | Purely Mail IMAP/SMTP | (outbound only) |
 
 VM disks/bundles must live under `/Volumes/Media` — never internal storage.
 
