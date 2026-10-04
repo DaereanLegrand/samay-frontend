@@ -1023,7 +1023,7 @@ ci-push-image:
 	@bash tools/<ops-tooling>/<host-script>
 
 # ── Qallariy Mail VM (tools/mail-bootstrap) ──────────────────────────────────
-# A minimal <base-os> AArch64 VM running <ops-service> (pinned upstream image, no
+# A minimal Alpine Linux AArch64 VM running <ops-service> (pinned upstream image, no
 # database) as the Qallariy corporate webmail front end for the Purely Mail
 # mailbox. VM storage lives under /Volumes/Media only; secrets are fetched from
 # the vault's `mail` profile into a RAM disk and pushed, never stored here.
