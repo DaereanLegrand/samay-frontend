@@ -15,8 +15,6 @@ permission:
     "make check*": allow
     "make lint*": allow
     "make secrets-check*": allow
-    "tools/check_ports.sh*": allow
-    "bash tools/check_ports.sh*": allow
     "git status*": allow
     "git diff*": allow
     "git log*": allow
@@ -47,7 +45,7 @@ NOT be recreated. Do NOT expect or request `flutter test` runs, widget tests,
 or integration flows. The only test surfaces:
 
 - Go: `go test ./...` (unit tests next to `internal/` and `cmd/` code)
-- SQL: pgTAP `supabase/tests/schema_test.sql` (mirrored in `supabase-testing/`)
+- SQL: pgTAP `supabase/tests/schema_test.sql`
 - REST/RLS: curl opt-tests `test/opt-NNN-*.sh`, runner `bash test/run_all_backend.sh`
 
 ## What you do

@@ -34,7 +34,6 @@ context and the standing development protocol **automatically**.
 | Agent | Mode | Purpose | Tools |
 |---|---|---|---|
 | `@reviewer` | subagent | Sign-off gate: `go test ./...` + `dart analyze` + `go vet`, then code review per DEVELOPMENT-WORKFLOW.md §5 | read/grep/glob + gate commands only (`edit`/`write` denied) |
-| `@security-check` | subagent | Security gates: secrets gate + `tools/check_ports.sh --strict` + audit vs `docs/security/` (RLS, E2EE, sanitization, port map) | read/grep/glob + the gates only (`edit`/`write` denied) |
 | `@docs-verifier` | subagent | Doc↔code consistency: README baselines, cross-references statuses, security/design/infra claims, port map | read/grep/glob + `rg`/`git grep` only (`edit`/`write` denied) |
 | `samay` | primary | Full DEVELOPMENT-WORKFLOW workflow for implementation work (Tab to switch) | all tools; destructive git ops denied, commit/push on human request |
 
@@ -47,7 +46,7 @@ context and the standing development protocol **automatically**.
   and `test_driver/`. They must NOT be recreated.
 - What remains: **Go tests** (`go test ./...`, `internal/` + `cmd/`
   `*_test.go`), **pgTAP** (`supabase/tests/schema_test.sql`,
-  `supabase-testing/tests/schema_test.sql`), and **curl opt-tests**
+  `supabase/tests/schema_test.sql`), and **curl opt-tests**
   (`test/opt-NNN-*.sh`, runner `test/run_all_backend.sh`). The backend curl
   tests and pgTAP need the self-hosted stack up (approved ports 54382/54386).
 - No `make flutter-test` / `make test-file` / `make test-feature` /

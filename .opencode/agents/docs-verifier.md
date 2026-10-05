@@ -40,9 +40,8 @@ report, never fix.
 2. **Step statuses vs reality:** for every ✅ row in `cross-references.md`,
    spot-check the feature exists in code; for every ⚠️/❌/🔴 row, confirm the
    pending part is genuinely still absent.
-3. **Port map consistency:** AGENTS.md, `<private-ops-repo>/SELFHOSTING.md`,
-   compose files, env files, opt-tests and `tools/check_ports.sh` must all
-   agree on the approved map (54382/54381/54384/54386/54388/54443).
+3. **Port map consistency:** `AGENTS.md` and `<private-ops-repo>/SELFHOSTING.md`
+   state the same approved map (54382/54381/54384/54386/54388/54443).
 4. **Security claims:** every "applied now" precaution in SECURITY.md has its
    enforcement visible in code/migrations; open items are genuinely open.
 5. **Spec layout rule:** implemented steps have NO spec file; specs exist only

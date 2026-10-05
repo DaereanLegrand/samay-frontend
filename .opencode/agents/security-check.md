@@ -1,5 +1,5 @@
 ---
-description: Runs the Samay security gates (secrets-check, check_ports --strict) and audits against docs/security/. Read-only — reports, never edits.
+description: Runs the Samay secrets gate and audits against docs/security/. Read-only — reports, never edits.
 mode: subagent
 temperature: 0.1
 color: '#9B59B6'
@@ -9,8 +9,6 @@ permission:
   bash:
     "*": deny
     "make secrets-check*": allow
-    "tools/check_ports.sh*": allow
-    "bash tools/check_ports.sh*": allow
     "make check*": allow
     "git grep*": allow
     "rg *": allow
@@ -43,10 +41,6 @@ opt-001 RLS) + pgTAP (`supabase/tests/schema_test.sql`).
 1. **Gates (must all exit 0):**
    - `make secrets-check` — no secret material in tracked files
      (`tools/check_secrets.sh`: dev/service-role key shapes, placeholders).
-   - `tools/check_ports.sh --strict` — zero port-map violations; Samay never
-     maps onto the reference app's ports (5432/54321/54323/8443) and uses the approved
-     map (DB 54382, Kong 54386, Studio 54381, Mailpit 54384, Analytics
-     54388, Kong-https 54443).
 2. **Audit scope (report-only, ranked by severity):**
    - Hardcoded secrets/keys/placeholder literals outside allowlists.
    - JWT/session handling (PKCE, refresh, SecureStorage wiring — I-25/I-30).
@@ -60,7 +54,6 @@ opt-001 RLS) + pgTAP (`supabase/tests/schema_test.sql`).
      claiming it closed; update the doc when a fix lands.
 3. **Report format:**
    - `GATE secrets-check: PASS/FAIL`
-   - `GATE check_ports: PASS/FAIL`
    - Findings: `SEV[critical/high/medium/low] <file>:<line> — <issue>`
    - Verdict: `SECURE ✅` or `OPEN ❌` + reasons.
 

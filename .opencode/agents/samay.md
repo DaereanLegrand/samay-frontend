@@ -47,7 +47,7 @@ exactly — your instructions ARE the rules.
    `make test-integration` targets exist. What ships with every change:
    Go unit tests (`*_test.go` next to `internal/`/`cmd/` code, `go test
    ./...`), pgTAP (`supabase/tests/schema_test.sql`, mirrored in
-   `supabase-testing/`), and curl opt-tests (`test/opt-NNN-*.sh`,
+   `supabase/`), and curl opt-tests (`test/opt-NNN-*.sh`,
    `bash test/run_all_backend.sh` — needs the stack up). No Flutter
    test-first cycle exists; do not invent one.
 4. **Commit policy:** coordinate commits — check `git status` and
