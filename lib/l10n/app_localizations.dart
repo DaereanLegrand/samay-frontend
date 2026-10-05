@@ -245,7 +245,7 @@ abstract class AppLocalizations {
   /// Welcome screen brand wordmark
   ///
   /// In es, this message translates to:
-  /// **'vive'**
+  /// **'samay'**
   String get welcomeSamay;
 
   /// Welcome screen tagline

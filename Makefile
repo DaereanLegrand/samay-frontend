@@ -1,5 +1,5 @@
 # Samay frontend — Flutter app.
-.PHONY: help build dev install build-install uninstall clear-storage clean define-env test \
+.PHONY: help init start build dev install build-install uninstall clear-storage clean define-env test \
         flutter-analyze lint check secrets-check install-hooks guard-local \
         tunnel-android tunnel-waydroid ios-signing-restore login \
         ios-beta ios-release android-alpha android-release bundle-install
@@ -108,6 +108,12 @@ help:
 define-env:
 	@echo "ENV_FILE=$(ENV_FILE)"
 	@echo "FLUTTER_DEFINES=$(FLUTTER_DEFINES)"
+
+# Interactive setup; then `make start` runs against the chosen backend.
+init:
+	@bash tools/init.sh
+
+start: dev
 
 testing-kong-register:
 	@[ -n "$(TESTING_JWT_SECRET)" ] || { echo "TESTING=true needs JWT_SECRET (the local stack signing secret)."; exit 1; }

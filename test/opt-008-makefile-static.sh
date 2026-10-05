@@ -103,7 +103,7 @@ echo "════════════════════════�
 # ── 1. Every documented target resolves via `make -n` ────────────────────────
 echo ""
 echo "━━━ 1. make -n resolves all documented targets ━━━"
-TARGETS="help build dev install build-install clean clear-storage uninstall lint check test \
+TARGETS="help init start build dev install build-install clean clear-storage uninstall lint check test \
 flutter-analyze define-env secrets-check tunnel-android tunnel-waydroid ios-signing-restore \
 ios-beta ios-release android-alpha android-release bundle-install"
 for t in $TARGETS; do
