@@ -1562,6 +1562,90 @@ abstract class AppLocalizations {
   /// **'Al eliminar tu cuenta, tus datos serán anonimizados. Tus mensajes y contribuciones al ranking de grupos se mantendrán pero no serán vinculados a ti. Podrás recuperar tu cuenta dentro de 30 días.'**
   String get profileDeleteExplanation;
 
+  /// Heading offering the two deletion modes
+  ///
+  /// In es, this message translates to:
+  /// **'Cómo quieres eliminar tu cuenta'**
+  String get profileDeleteModeTitle;
+
+  /// Scheduled deletion (grace window) button label
+  ///
+  /// In es, this message translates to:
+  /// **'Eliminar en 30 días'**
+  String get profileDeleteGraceLabel;
+
+  /// Scheduled deletion explanation
+  ///
+  /// In es, this message translates to:
+  /// **'Programa la eliminación. Podrás recuperar tu cuenta iniciando sesión dentro de 30 días; al vencer el plazo se borra por completo.'**
+  String get profileDeleteGraceBody;
+
+  /// Immediate erasure button label
+  ///
+  /// In es, this message translates to:
+  /// **'Eliminar ahora'**
+  String get profileDeleteNowLabel;
+
+  /// Immediate erasure explanation
+  ///
+  /// In es, this message translates to:
+  /// **'Eliminación inmediata e irreversible: se borran tu perfil, tus credenciales y los datos asociados. No se puede deshacer.'**
+  String get profileDeleteNowBody;
+
+  /// Immediate erasure confirmation dialog title
+  ///
+  /// In es, this message translates to:
+  /// **'¿Eliminar ahora y borrar todo?'**
+  String get profileDeleteNowQuestion;
+
+  /// Settings row to export the user's data
+  ///
+  /// In es, this message translates to:
+  /// **'Exportar mis datos'**
+  String get profileExportData;
+
+  /// Export screen app bar title
+  ///
+  /// In es, this message translates to:
+  /// **'exportar'**
+  String get profileExportTitle;
+
+  /// Export screen explanation
+  ///
+  /// In es, this message translates to:
+  /// **'Descarga una copia de tu perfil, amistades, grupos, eventos, shards y datos de la app.'**
+  String get profileExportBody;
+
+  /// E2EE caveat on the export screen
+  ///
+  /// In es, this message translates to:
+  /// **'El chat está cifrado de extremo a extremo: el servidor solo puede exportar texto cifrado. El historial legible vive solo en este dispositivo.'**
+  String get profileExportChatNote;
+
+  /// Export action button
+  ///
+  /// In es, this message translates to:
+  /// **'Exportar'**
+  String get profileExportCta;
+
+  /// Copy export JSON to clipboard
+  ///
+  /// In es, this message translates to:
+  /// **'Copiar al portapapeles'**
+  String get profileExportCopy;
+
+  /// Export success message
+  ///
+  /// In es, this message translates to:
+  /// **'Exportación lista. Se copió al portapapeles.'**
+  String get profileExportSuccess;
+
+  /// Export failure message
+  ///
+  /// In es, this message translates to:
+  /// **'No se pudo exportar. Inténtalo de nuevo.'**
+  String get profileExportError;
+
   /// Prompt asking the user to confirm their email
   ///
   /// In es, this message translates to:

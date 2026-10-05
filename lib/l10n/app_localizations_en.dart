@@ -811,6 +811,53 @@ class AppLocalizationsEn extends AppLocalizations {
       'When you delete your account, your data will be anonymized. Your messages and group ranking contributions will remain but will not be linked to you. You can recover your account within 30 days.';
 
   @override
+  String get profileDeleteModeTitle =>
+      'How do you want to delete your account?';
+
+  @override
+  String get profileDeleteGraceLabel => 'Delete in 30 days';
+
+  @override
+  String get profileDeleteGraceBody =>
+      'Schedule deletion. You can recover your account by signing in within 30 days; it is fully erased when the window ends.';
+
+  @override
+  String get profileDeleteNowLabel => 'Delete now';
+
+  @override
+  String get profileDeleteNowBody =>
+      'Immediate, irreversible deletion: your profile, credentials, and associated data are erased. It cannot be undone.';
+
+  @override
+  String get profileDeleteNowQuestion => 'Delete now and erase everything?';
+
+  @override
+  String get profileExportData => 'Export my data';
+
+  @override
+  String get profileExportTitle => 'export';
+
+  @override
+  String get profileExportBody =>
+      'Download a copy of your profile, friendships, groups, events, shards, and app data.';
+
+  @override
+  String get profileExportChatNote =>
+      'Chat is end-to-end encrypted: the server can only export ciphertext. Readable history lives only on this device.';
+
+  @override
+  String get profileExportCta => 'Export';
+
+  @override
+  String get profileExportCopy => 'Copy to clipboard';
+
+  @override
+  String get profileExportSuccess => 'Export ready. Copied to clipboard.';
+
+  @override
+  String get profileExportError => 'Export failed. Please try again.';
+
+  @override
   String get profileConfirmEmail => 'Confirm your email to continue:';
 
   @override

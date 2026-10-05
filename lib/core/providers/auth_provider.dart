@@ -412,8 +412,17 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
     state = const AsyncData(AuthState());
   }
 
+  /// Mode A — schedule deletion (30-day grace, restorable).
   Future<void> deleteAccount() async {
-    await _service.softDeleteUser();
+    await _service.requestAccountDeletion();
+    await _service.signOut();
+    await _wipeE2eeMaterial();
+    state = const AsyncData(AuthState());
+  }
+
+  /// Mode B — erase immediately and irreversibly.
+  Future<void> deleteAccountNow() async {
+    await _service.purgeAccountNow();
     await _service.signOut();
     await _wipeE2eeMaterial();
     state = const AsyncData(AuthState());

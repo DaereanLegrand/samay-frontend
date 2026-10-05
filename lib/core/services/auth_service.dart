@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:samay/core/errors/app_error.dart';
 import 'package:samay/core/logging/app_logger.dart';
 import 'package:samay/core/models/user_profile.dart';
@@ -117,6 +119,40 @@ class AuthService {
     // tombstones the row server-side (deleted_at + deleted_user_ rename +
     // PII nulling).
     await client.rpc('delete_my_account');
+  }
+
+  /// Mode A — request deletion: tombstone + revoke sessions; the account is
+  /// fully erased by the cron after the grace window, and is restorable by
+  /// signing in and calling [restoreAccount] within that window.
+  Future<void> requestAccountDeletion() async {
+    final user = auth.currentUser;
+    if (user == null) throw const UnauthorizedError();
+    await client.rpc('request_account_deletion');
+  }
+
+  /// Mode B — immediate, irreversible full erasure (public rows, auth.users,
+  /// and queued storage objects). No recovery.
+  Future<void> purgeAccountNow() async {
+    final user = auth.currentUser;
+    if (user == null) throw const UnauthorizedError();
+    await client.rpc('purge_my_account_now');
+  }
+
+  /// Undo a scheduled deletion within the grace window.
+  Future<void> restoreAccount() async {
+    final user = auth.currentUser;
+    if (user == null) throw const UnauthorizedError();
+    await client.rpc('restore_my_account');
+  }
+
+  /// Returns the caller's own data as a JSON string (`export_my_data`).
+  /// Chat is E2EE, so the server can only return ciphertext; readable history
+  /// is merged on-device by the export feature.
+  Future<String> exportMyData() async {
+    final user = auth.currentUser;
+    if (user == null) throw const UnauthorizedError();
+    final res = await client.rpc('export_my_data');
+    return jsonEncode(res);
   }
 
   /// Whether a `users` row exists for [userId].

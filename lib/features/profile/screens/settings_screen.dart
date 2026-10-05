@@ -156,6 +156,14 @@ class SettingsScreen extends ConsumerWidget {
                       ),
                     ),
                     const Divider(height: 1, color: AppColors.hairline),
+                    // Data portability (Ley N° 29733): download a copy of the
+                    // account's own data.
+                    _SettingsTile(
+                      icon: Icons.download_outlined,
+                      label: l10n.profileExportData,
+                      onTap: () => context.push(RoutePaths.exportData),
+                    ),
+                    const Divider(height: 1, color: AppColors.hairline),
                     _SettingsTile(
                       icon: Icons.block,
                       label: l10n.profileBlockedUsers,

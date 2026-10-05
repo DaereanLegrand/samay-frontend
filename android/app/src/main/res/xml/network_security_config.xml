@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Release/global policy: no cleartext HTTP. All endpoints are HTTPS
+     (samay-api.qallariy.lat, tiles.qallariy.lat). The debug variant overrides
+     this in src/debug/res/xml/network_security_config.xml. -->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false" />
+</network-security-config>

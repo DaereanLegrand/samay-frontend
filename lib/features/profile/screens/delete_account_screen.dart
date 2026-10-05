@@ -46,7 +46,7 @@ class _DeleteAccountScreenState extends ConsumerState<DeleteAccountScreen> {
     }
   }
 
-  Future<void> _delete() async {
+  Future<void> _confirmAndDelete({required bool immediate}) async {
     final l10n = AppLocalizations.of(context);
     if (!_emailMatches) {
       if (mounted) {
@@ -59,8 +59,14 @@ class _DeleteAccountScreenState extends ConsumerState<DeleteAccountScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text(l10n.profileDeleteQuestion),
-        content: Text(l10n.profileDeleteBody),
+        title: Text(
+          immediate
+              ? l10n.profileDeleteNowQuestion
+              : l10n.profileDeleteQuestion,
+        ),
+        content: Text(
+          immediate ? l10n.profileDeleteNowBody : l10n.profileDeleteBody,
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
@@ -80,7 +86,12 @@ class _DeleteAccountScreenState extends ConsumerState<DeleteAccountScreen> {
     );
 
     if (confirmed == true) {
-      await ref.read(authStateProvider.notifier).deleteAccount();
+      final notifier = ref.read(authStateProvider.notifier);
+      if (immediate) {
+        await notifier.deleteAccountNow();
+      } else {
+        await notifier.deleteAccount();
+      }
       if (mounted) context.go(RoutePaths.login);
     }
   }
@@ -120,12 +131,39 @@ class _DeleteAccountScreenState extends ConsumerState<DeleteAccountScreen> {
                         keyboardType: TextInputType.emailAddress,
                       ),
                       const Spacer(),
-                      // The danger CTA is the dark primary voice — the
-                      // danger semantic stays in the confirm dialog's error
-                      // color. Disabled (empty email) drops to `muted`.
+                      // Two modes: schedule (recoverable, 30-day grace) or
+                      // erase immediately (irreversible). Both go through
+                      // SECURITY DEFINER RPCs; the immediate path deletes the
+                      // GoTrue auth row too.
+                      Text(
+                        l10n.profileDeleteModeTitle,
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        l10n.profileDeleteGraceBody,
+                        style: Theme.of(context).textTheme.bodyMedium,
+                      ),
+                      const SizedBox(height: 8),
+                      VButton.emphasized(
+                        label: l10n.profileDeleteGraceLabel,
+                        onPressed: emailFilled
+                            ? () => _confirmAndDelete(immediate: false)
+                            : null,
+                      ),
+                      const SizedBox(height: 20),
+                      Text(
+                        l10n.profileDeleteNowBody,
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: AppColors.mutedStrong,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
                       VButton.dark(
-                        label: l10n.profileDeleteTitle,
-                        onPressed: emailFilled ? _delete : null,
+                        label: l10n.profileDeleteNowLabel,
+                        onPressed: emailFilled
+                            ? () => _confirmAndDelete(immediate: true)
+                            : null,
                       ),
                       const SizedBox(height: 32),
                     ],

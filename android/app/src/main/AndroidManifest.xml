@@ -22,13 +22,17 @@
          backups, no adb-backup exfiltration of Keystore-wrapped material.
          enableOnBackInvokedCallback=true — predictive back on targetSdk 33+
          (targetSdk = 36), Flutter docs recommendation. -->
+    <!-- SEC (2026-10-04): cleartext HTTP is denied in release via
+         @xml/network_security_config; only the debug variant permits cleartext
+         (localhost/emulator/VM dev hosts). Never re-add the global
+         android:usesCleartextTraffic flag. -->
     <application
         android:label="Samay"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
         android:allowBackup="false"
         android:enableOnBackInvokedCallback="true"
-        android:usesCleartextTraffic="true">
+        android:networkSecurityConfig="@xml/network_security_config">
         <activity
             android:name=".MainActivity"
             android:exported="true"

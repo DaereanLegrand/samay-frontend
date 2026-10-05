@@ -25,6 +25,7 @@ abstract final class RoutePaths {
   static const shardsLedger = '/shards/ledger';
   static const settings = '/settings';
   static const deleteAccount = '/settings/delete-account';
+  static const exportData = '/settings/export-data';
   static const profileEdit = '/profile/edit';
 
   static String eventDetail(String eventId) => '/event/$eventId';

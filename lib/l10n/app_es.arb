@@ -1088,6 +1088,62 @@
   "@profileDeleteExplanation": {
     "description": "Explanation of what happens when the account is deleted"
   },
+  "profileDeleteModeTitle": "Cómo quieres eliminar tu cuenta",
+  "@profileDeleteModeTitle": {
+    "description": "Heading offering the two deletion modes"
+  },
+  "profileDeleteGraceLabel": "Eliminar en 30 días",
+  "@profileDeleteGraceLabel": {
+    "description": "Scheduled deletion (grace window) button label"
+  },
+  "profileDeleteGraceBody": "Programa la eliminación. Podrás recuperar tu cuenta iniciando sesión dentro de 30 días; al vencer el plazo se borra por completo.",
+  "@profileDeleteGraceBody": {
+    "description": "Scheduled deletion explanation"
+  },
+  "profileDeleteNowLabel": "Eliminar ahora",
+  "@profileDeleteNowLabel": {
+    "description": "Immediate erasure button label"
+  },
+  "profileDeleteNowBody": "Eliminación inmediata e irreversible: se borran tu perfil, tus credenciales y los datos asociados. No se puede deshacer.",
+  "@profileDeleteNowBody": {
+    "description": "Immediate erasure explanation"
+  },
+  "profileDeleteNowQuestion": "¿Eliminar ahora y borrar todo?",
+  "@profileDeleteNowQuestion": {
+    "description": "Immediate erasure confirmation dialog title"
+  },
+  "profileExportData": "Exportar mis datos",
+  "@profileExportData": {
+    "description": "Settings row to export the user's data"
+  },
+  "profileExportTitle": "exportar",
+  "@profileExportTitle": {
+    "description": "Export screen app bar title"
+  },
+  "profileExportBody": "Descarga una copia de tu perfil, amistades, grupos, eventos, shards y datos de la app.",
+  "@profileExportBody": {
+    "description": "Export screen explanation"
+  },
+  "profileExportChatNote": "El chat está cifrado de extremo a extremo: el servidor solo puede exportar texto cifrado. El historial legible vive solo en este dispositivo.",
+  "@profileExportChatNote": {
+    "description": "E2EE caveat on the export screen"
+  },
+  "profileExportCta": "Exportar",
+  "@profileExportCta": {
+    "description": "Export action button"
+  },
+  "profileExportCopy": "Copiar al portapapeles",
+  "@profileExportCopy": {
+    "description": "Copy export JSON to clipboard"
+  },
+  "profileExportSuccess": "Exportación lista. Se copió al portapapeles.",
+  "@profileExportSuccess": {
+    "description": "Export success message"
+  },
+  "profileExportError": "No se pudo exportar. Inténtalo de nuevo.",
+  "@profileExportError": {
+    "description": "Export failure message"
+  },
   "profileConfirmEmail": "Confirma tu correo electrónico para continuar:",
   "@profileConfirmEmail": {
     "description": "Prompt asking the user to confirm their email"

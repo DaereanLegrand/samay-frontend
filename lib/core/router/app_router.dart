@@ -23,6 +23,7 @@ import 'package:samay/features/profile/screens/edit_profile_screen.dart';
 import 'package:samay/features/profile/screens/settings_screen.dart';
 import 'package:samay/features/profile/screens/public_profile_screen.dart';
 import 'package:samay/features/profile/screens/delete_account_screen.dart';
+import 'package:samay/features/profile/screens/export_data_screen.dart';
 import 'package:samay/features/events/screens/create_event_screen.dart';
 import 'package:samay/features/events/screens/event_collage_screen.dart';
 import 'package:samay/features/events/screens/event_detail_screen.dart';
@@ -666,6 +667,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: RoutePaths.deleteAccount,
         builder: (_, _) => const DeleteAccountScreen(),
+      ),
+      GoRoute(
+        path: RoutePaths.exportData,
+        builder: (_, _) => const ExportDataScreen(),
       ),
       GoRoute(
         path: RoutePaths.profileEdit,

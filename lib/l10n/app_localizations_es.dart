@@ -810,6 +810,53 @@ class AppLocalizationsEs extends AppLocalizations {
       'Al eliminar tu cuenta, tus datos serán anonimizados. Tus mensajes y contribuciones al ranking de grupos se mantendrán pero no serán vinculados a ti. Podrás recuperar tu cuenta dentro de 30 días.';
 
   @override
+  String get profileDeleteModeTitle => 'Cómo quieres eliminar tu cuenta';
+
+  @override
+  String get profileDeleteGraceLabel => 'Eliminar en 30 días';
+
+  @override
+  String get profileDeleteGraceBody =>
+      'Programa la eliminación. Podrás recuperar tu cuenta iniciando sesión dentro de 30 días; al vencer el plazo se borra por completo.';
+
+  @override
+  String get profileDeleteNowLabel => 'Eliminar ahora';
+
+  @override
+  String get profileDeleteNowBody =>
+      'Eliminación inmediata e irreversible: se borran tu perfil, tus credenciales y los datos asociados. No se puede deshacer.';
+
+  @override
+  String get profileDeleteNowQuestion => '¿Eliminar ahora y borrar todo?';
+
+  @override
+  String get profileExportData => 'Exportar mis datos';
+
+  @override
+  String get profileExportTitle => 'exportar';
+
+  @override
+  String get profileExportBody =>
+      'Descarga una copia de tu perfil, amistades, grupos, eventos, shards y datos de la app.';
+
+  @override
+  String get profileExportChatNote =>
+      'El chat está cifrado de extremo a extremo: el servidor solo puede exportar texto cifrado. El historial legible vive solo en este dispositivo.';
+
+  @override
+  String get profileExportCta => 'Exportar';
+
+  @override
+  String get profileExportCopy => 'Copiar al portapapeles';
+
+  @override
+  String get profileExportSuccess =>
+      'Exportación lista. Se copió al portapapeles.';
+
+  @override
+  String get profileExportError => 'No se pudo exportar. Inténtalo de nuevo.';
+
+  @override
   String get profileConfirmEmail =>
       'Confirma tu correo electrónico para continuar:';
 
