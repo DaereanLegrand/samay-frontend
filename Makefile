@@ -683,6 +683,7 @@ test-backend-static:
 	bash test/<ops-static-check>
 	bash test/<ops-static-check>
 	bash test/<ops-static-check>
+	bash test/opt-040-scm-native-static.sh
 
 test-go:
 	go test ./...
@@ -999,18 +1000,26 @@ deploy-venue:
 	@exit 0
 
 # ── SCM/CI VMs + signing image (tools/<ops-tooling>) ──────────────────────────
-# Host-side bring-up for the dedicated SCM VM (Gitea + GitLab mirror) and the
-# CI runner VM (Gitea Actions act_runner). All VM bundles/disks live under
-# /Volumes/Media only. Secrets are never on this machine: ci-scm-fetch pulls the
-# vault `scm` profile into a RAM disk (SSH to the vault, GPG-gated) for the push.
-# The Apple/GitLab secrets are inserted/rotated on the <build-host> (tools/vault-rotate.sh).
-.PHONY: ci-scm-vm ci-scm-fetch ci-scm-sync ci-fetch ci-sync ci-runner-vm ci-android-image ci-push-image
-ci-scm-vm:
+# Host-side bring-up for the dedicated ORGANIZATION SCM VM (native Gitea, no
+# Docker) and the CI runner VM (Gitea Actions act_runner). All VM bundles/disks
+# live under /Volumes/Media only. Secrets are never on this machine:
+# <source-host>-fetch pulls the vault `scm` profile into a RAM disk (SSH to the
+# vault, GPG-gated) for the push. The Apple secrets are inserted/rotated on the
+# <build-host> (tools/vault-rotate.sh). `ci-scm-*` are kept as aliases.
+.PHONY: <source-host>-vm <source-host>-fetch <source-host>-sync <source-host>-deploy ci-scm-vm ci-scm-fetch ci-scm-sync ci-fetch ci-sync ci-runner-vm ci-android-image ci-push-image
+<source-host>-vm:
 	@bash tools/<ops-tooling>/<host-script>
-ci-scm-fetch:
+<source-host>-fetch:
 	@bash tools/<ops-tooling>/<host-script>
-ci-scm-sync:
+<source-host>-sync:
 	@bash tools/<ops-tooling>/<host-script>
+# One command: pull the vault `scm` profile (single GPG passphrase, atomic) into
+# the RAM disk, then push it + the guest scripts into the VM (wipes the RAM disk).
+<source-host>-deploy: <source-host>-fetch <source-host>-sync
+# Backwards-compatible aliases.
+ci-scm-vm: <source-host>-vm
+ci-scm-fetch: <source-host>-fetch
+ci-scm-sync: <source-host>-sync
 ci-runner-vm:
 	@bash tools/<ops-tooling>/<host-script>
 ci-fetch:
