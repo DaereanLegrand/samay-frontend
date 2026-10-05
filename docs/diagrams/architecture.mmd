@@ -1,0 +1,79 @@
+flowchart TB
+    subgraph Presentation["Presentation"]
+        UI["features/*/screens<br/>auth, chat, events, feed, friends,<br/>groups, minigames, qr, shards, social"]
+        WID["shared/widgets<br/>design-system v_* widgets"]
+        THEME["core/theme + core/design_tokens"]
+    end
+    subgraph Bootstrap["Bootstrap and DI"]
+        MAIN["main.dart<br/>Hive, Supabase.initialize, push, deep links"]
+        APP["app.dart SamayApp<br/>MaterialApp.router"]
+        DI["ProviderScope + ProviderContainer<br/>core/providers"]
+    end
+    subgraph Routing["Routing"]
+        ROUTER["go_router routerProvider"]
+        GUARD["AuthGuard + AuthRefreshNotifier"]
+        SHELL["ShellRoute MainShell<br/>6-tab navigation"]
+        DEEP["DeepLinkListener"]
+    end
+    subgraph State["State management Riverpod 2"]
+        PROVIDERS["AsyncNotifier / StreamProvider<br/>feature + core providers"]
+        REPO["core/repositories<br/>chat, friends, groups, profile"]
+        FLAGS["core/config<br/>feature_flags, env_config"]
+    end
+    subgraph Domain["Domain"]
+        MODELS["core/models Freezed + JSON"]
+        CONST["core/constants + utils"]
+    end
+    subgraph Services["Services"]
+        SVC["core/services (25)<br/>auth, chat, events, shards,<br/>notification, media, realtime, ..."]
+        CRYPTO["crypto/<br/>X3DH, Double Ratchet,<br/>sender-key group cipher"]
+        REST["core/services/rest_client<br/>PostgREST envelope"]
+        STORE["StorageService<br/>Hive encrypted + secure storage"]
+        TILESVC["shared/services<br/>RetryVectorTileProvider, MapsLink"]
+    end
+    subgraph External["External backend and services"]
+        SUPAAUTH["Supabase Auth<br/>GoTrue + PKCE"]
+        SUPADB["Supabase PostgREST<br/>tables + ~25 RPCs"]
+        SUPART["Supabase Realtime<br/>WebSocket channels"]
+        SUPAS3["Supabase Storage<br/>avatars, groups, events"]
+        FCM["Firebase Cloud Messaging"]
+        TILECDN["tiles.qallariy.lat<br/>MVT / pmtiles"]
+        RC["RevenueCat (stub)"]
+        SENTRY["Sentry (stub)"]
+    end
+    MAIN --> APP
+    APP --> ROUTER
+    ROUTER --> GUARD
+    GUARD --> SHELL
+    MAIN --> DEEP
+    UI --> PROVIDERS
+    WID --> UI
+    THEME --> UI
+    PROVIDERS --> REPO
+    REPO --> SVC
+    PROVIDERS --> SVC
+    PROVIDERS --> MODELS
+    PROVIDERS --> FLAGS
+    SVC --> REST
+    REST --> SUPADB
+    SVC --> SUPAAUTH
+    SVC --> SUPART
+    SVC --> SUPAS3
+    SVC --> CRYPTO
+    SVC --> STORE
+    UI --> TILESVC
+    TILESVC --> TILECDN
+    SVC --> FCM
+    SVC --> RC
+    SVC --> SENTRY
+
+  classDef app fill:#F4EFE6,stroke:#0A1A33,color:#0A1A33,stroke-width:1px;
+  classDef gw fill:#FBF3D9,stroke:#C9A84C,color:#5A4300,stroke-width:1px;
+  classDef svc fill:#E8EFF8,stroke:#24406B,color:#12233D,stroke-width:1px;
+  classDef data fill:#E6F4EA,stroke:#1E7A46,color:#0B3D22,stroke-width:1px;
+  classDef ext fill:#F3E8FD,stroke:#6A4C93,color:#2E1A47,stroke-width:1px;
+  classDef infra fill:#FCE8E6,stroke:#B23A2E,color:#4A120D,stroke-width:1px;
+  linkStyle default stroke:#8A8578,stroke-width:1px;
+  class UI,WID,THEME,MAIN,APP,DI,ROUTER,GUARD,SHELL,DEEP,PROVIDERS,REPO,FLAGS,MODELS,CONST app;
+  class SVC,CRYPTO,REST,STORE,TILESVC svc;
+  class SUPAAUTH,SUPADB,SUPART,SUPAS3,FCM,TILECDN,RC,SENTRY ext;
