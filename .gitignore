@@ -1,0 +1,75 @@
+# Go binaries
+/vive
+/vive-admin
+/vive-api-server
+/vive-linux
+/samay
+/samay-linux
+/samay-loadtest
+*.exe
+
+# Environment
+.env
+# Local-only per-developer overrides (load-env sources it; the Makefile's
+# "never committed" contract for values like IOS_DEVELOPMENT_TEAM).
+.env.local
+# AltServer sideload data (MKE-05 — the AltServer path was removed 2026-08-12;
+# the dir carried a signing identity .p12 and must never be committed).
+AltServerData/
+# Transient fastlane ad-hoc export options (lanes write + remove it; a failed
+# run may leave it behind — never commit the signing team/profile uuid).
+ios/ExportOptions.plist
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+*.iml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Go
+vendor/
+
+# Flutter (when initialized)
+build/
+.dart_tool/
+.packages
+.pub/
+.pubspec.lock
+.flutter-plugins-dependencies
+
+# Supabase temp
+supabase/.temp/
+supabase-testing/.temp/
+supabase/.branches/
+supabase-testing/.branches/
+
+# fastlane (M-17): App Store Connect .p8 keys + Match keys never committed.
+# The .p8 path is a §3.3 env placeholder — the directory must stay ignored so
+# real keys (fastlane/keys/AppStoreConnect_<KEY_ID>.p8) cannot be added.
+fastlane/keys/
+
+# Agent orchestration locks (ephemeral semaphores)
+repo-locks/
+
+# Stray agent logs
+flutter_*.log
+
+# Rust build artifacts (<boot-loader> UEFI loader)
+tools/<ops-tooling>/bootloader/target/
+
+# LUXE campaign screenshot captures (XL-15 harness output)
+luxe-screenshots/
+screenshots/
+
+# Fastlane/CI transient artifacts
+fastlane/report.xml
+ios/Runner.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/
+ios/Runner.xcworkspace/xcshareddata/swiftpm/
+macos/Runner.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/
+macos/Runner.xcworkspace/xcshareddata/swiftpm/

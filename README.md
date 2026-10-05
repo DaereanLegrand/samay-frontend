@@ -39,7 +39,7 @@ make check               # dart analyze + flutter analyze + go vet + ports + sec
 make build-cli           # builds ./samay admin CLI binary
 
 # 5. Backend stack (self-hosted Supabase on the approved ports)
-make supabase-docker-start
+make supabase-start
 bash test/run_all_backend.sh   # curl backend integration tests (needs the stack)
 ```
 
@@ -65,7 +65,7 @@ Nothing env-related is bundled as a Flutter asset and `.env` is gitignored.
 | `make test` | Go + backend static opt gates |
 | `make check` | dart analyze + flutter analyze + go vet + ports gate + secrets gate |
 | `make clean` | Build artifacts |
-| `make supabase-*` / `supabase-docker-*` / `supabase-testing-*` | Supabase stack lifecycle |
+| `make supabase-*` / `supabase-*` / `supabase-testing-*` | Supabase stack lifecycle |
 
 **Build target notes:**
 - `TARGET=android` and `TARGET=waydroid` both use the `.env` URL by default
