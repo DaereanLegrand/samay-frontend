@@ -338,7 +338,7 @@ platform :android do
     assert_credentials_configured!(REQUIRED_ANDROID_CREDENTIAL_ENV)
     aab = build_android_artifact("appbundle")
     supply(
-      track: "internal",
+      track: "beta",
       aab: aab,
       json_key: ENV["PLAY_SERVICE_ACCOUNT_JSON"],
       skip_upload_metadata: true,

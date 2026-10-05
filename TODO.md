@@ -1,16 +1,14 @@
 # TODO — samay-frontend
 
 ## Facts
-- Split from `Vive` (monorepo) with full history; Flutter app `samay`.
-- Bundle id `com.qallariy.samay`.
+- Flutter app `samay` (`com.qallariy.samay`). Split from `Vive`.
+- Makefile is Flutter-only; `guard-local` gates local-only releases.
+- CI: `.gitea/workflows/ci.yml`. iOS `PrivacyInfo.xcprivacy` wired into the Runner target.
 
 ## TODO
-- [ ] Remove infra/VM targets from `Makefile` (supabase-prod-*, <source-host>-*,
-      ci-*, mail-*, release*); they now live in `<private-ops-repo>`.
-- [ ] Vendor missing app-local scripts referenced by `Makefile`:
-      `tools/check_secrets.sh`, `tools/hooks/`, `tools/xcode_login.py`,
-      `<tunnel-host-helper>`.
-- [ ] Fix stale `../Juega` references in `Makefile` and
-      `lib/{core,shared}/services/*`.
-- [ ] Rename stale `welcomeVive` l10n key to a brand-neutral name.
-- [ ] Prune `docs/history/` operational entries or point them at `<private-ops-repo>`.
+- [ ] Prune stale `../Juega` references (lib/ services + docs).
+- [ ] Rename stale l10n key `welcomeVive`.
+- [ ] Trim README backend/infra sections (belong to samay-backend / <private-ops-repo>).
+- [ ] Add `fastlane/metadata/` store copy + screenshots.
+- [ ] Comment prune (lib/, docs/).
+- [ ] TODO(vault): android keystore + Play service account + FCM; Apple ASC keys.

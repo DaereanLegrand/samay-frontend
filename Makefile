@@ -1,6 +1,6 @@
 # Samay frontend — Flutter app.
 .PHONY: help build dev install build-install uninstall clear-storage clean define-env test \
-        flutter-analyze lint check secrets-check install-hooks \
+        flutter-analyze lint check secrets-check install-hooks guard-local \
         tunnel-android tunnel-waydroid ios-signing-restore login \
         ios-beta ios-release android-alpha android-release bundle-install
 
@@ -447,22 +447,29 @@ ios-signing-restore:
 login:
 	@python3 tools/xcode_login.py --target "$(TARGET)" --device "$(DEVICE)" $(if $(DRY_RUN),--dry-run,)
 
-ios-beta:
+# Prod / open-testing releases are LOCAL-ONLY and vault-gated: run on the Mac
+# with the vault profile materialized on a RAM disk; never in CI.
+guard-local:
+	@if [ -n "$$CI" ] || [ -n "$$GITHUB_ACTIONS" ] || [ -n "$$GITEA_ACTIONS" ] || [ -n "$$ACT" ]; then \
+		echo "release/open-testing targets are LOCAL-ONLY (vault-gated); refusing in CI."; exit 1; \
+	fi
+
+ios-beta: guard-local
 	@[ -f fastlane/Fastfile ] || { echo "fastlane iOS not wired yet."; exit 1; }
 	@grep -q 'beta_testflight' fastlane/Fastfile || { echo "lane 'beta_testflight' missing."; exit 1; }
 	bundle exec fastlane ios beta_testflight
 
-ios-release:
+ios-release: guard-local
 	@[ -f fastlane/Fastfile ] || { echo "fastlane iOS not wired yet."; exit 1; }
 	@grep -q 'release_appstore' fastlane/Fastfile || { echo "lane 'release_appstore' missing."; exit 1; }
 	bundle exec fastlane ios release_appstore
 
-android-alpha:
+android-alpha: guard-local
 	@[ -f fastlane/Fastfile ] || { echo "fastlane Android not wired yet."; exit 1; }
 	@grep -q 'alpha_firebase' fastlane/Fastfile || { echo "lane 'alpha_firebase' missing."; exit 1; }
 	bundle exec fastlane android alpha_firebase
 
-android-release:
+android-release: guard-local
 	@[ -f fastlane/Fastfile ] || { echo "fastlane Android not wired yet."; exit 1; }
 	@grep -q 'release_play' fastlane/Fastfile || { echo "lane 'release_play' missing."; exit 1; }
 	bundle exec fastlane android release_play
