@@ -81,7 +81,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get commonMoreOptions => 'Más opciones';
 
   @override
-  String get welcomeVive => 'vive';
+  String get welcomeSamay => 'samay';
 
   @override
   String get welcomeTagline => 'Tu vida social, en un solo lugar';

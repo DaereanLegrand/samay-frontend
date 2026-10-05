@@ -51,7 +51,7 @@ token changes in code, change it here in the same commit.
   (`lib/shared/widgets/v_pill_tab_bar.dart`) — an approved control: a glass
   track (`AppColors.surface` at 0.85 alpha + a white at 0.15 hairline, the same
   glass language as the header bars; the floating bottom-nav pill follows
-  Juega's `PremiumCard` recipe — `surface` α0.1 fill + white α0.15 sheen +
+  the reference app's `PremiumCard` recipe — `surface` α0.1 fill + white α0.15 sheen +
   blur 20 — so the content behind it reads through) with a stadium radius
   (`trackHeight / 2`, 44 pt tap target) and a white active-segment outline.
   The pill shape + glass are scoped to this control; ordinary surfaces stay

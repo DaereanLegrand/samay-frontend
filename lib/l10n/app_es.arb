@@ -96,8 +96,8 @@
   "@commonMoreOptions": {
     "description": "Accessibility tooltip for icon-only overflow menus"
   },
-  "welcomeVive": "vive",
-  "@welcomeVive": {
+  "welcomeSamay": "samay",
+  "@welcomeSamay": {
     "description": "Welcome screen brand wordmark"
   },
   "welcomeTagline": "Tu vida social, en un solo lugar",

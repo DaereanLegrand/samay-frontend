@@ -19,7 +19,7 @@ class SamayLocation {
 /// On Android the default forces the platform LocationManager implementation
 /// instead of the Fused provider: Fused runs a resolvable `checkLocationSettings`
 /// before every request and pops the OS "turn on Location Accuracy" dialog each
-/// time (Baseflow/flutter-geolocator#1210). Ported from `../Juega`.
+/// time (Baseflow/flutter-geolocator#1210). Ported from the reference app.
 LocationSettings mapLocationSettings({required LocationAccuracy accuracy}) {
   if (defaultTargetPlatform == TargetPlatform.android) {
     return AndroidSettings(accuracy: accuracy, forceLocationManager: true);

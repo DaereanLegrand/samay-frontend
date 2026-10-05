@@ -87,7 +87,7 @@ class FriendshipService {
   /// * `pending` — a fresh `pending` friendship row was inserted.
   /// * `accepted` — the addressee had already sent the current user a
   ///   `pending` request, so the friendship is accepted instantly (the
-  ///   atomic mutual-accept flow — Juega's `send_friend_request`
+  ///   atomic mutual-accept flow — the reference app's `send_friend_request`
   ///   returns 'accepted' the same way).
   ///
   /// Throws when the current user already has a friendship/request in the

@@ -39,7 +39,7 @@
   `130_search` and can reuse `search_rate_limits` on a fresh init.
 - Radius is *clamped* to 100 km server-side (not rejected), so a custom
   reference point (e.g. NYC) is still searched within 100 km.
-- Selected tiles/location stack matches `../Juega` for consistency;
+- Selected tiles/location stack matches the reference app for consistency;
   `geolocator` pinned to `^14.0.2` (14.0.3's `package_info_plus`/`win32`
   bump conflicts with `flutter_secure_storage 9.2.4`).
 

@@ -63,7 +63,7 @@ context and the standing development protocol **automatically**.
 - **Focused test loop** no longer applies to Flutter. Backend iteration:
   `go test ./...` for Go, `bash test/opt-NNN-<name>.sh` for a single curl
   opt-test, `bash test/run_all_backend.sh` for the suite (stack up).
-- **`.agents/` was NOT created** (documented decision). Juega's `.agents/`
+- **`.agents/` was NOT created** (documented decision). the reference app's `.agents/`
   holds portable *skills* (the supabase + supabase-postgres-best-practices
   `SKILL.md` packages), not project agent definitions — and the same skills
   already exist user-wide in `~/.agents/skills/`. Samay's project-specific

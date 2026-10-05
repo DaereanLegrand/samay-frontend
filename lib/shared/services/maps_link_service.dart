@@ -8,7 +8,7 @@ import 'package:latlong2/latlong.dart';
 ///
 /// Coordinate parsing happens offline first; only when it fails do we follow
 /// redirects (short links) with auto-redirect disabled and a bounded hop count.
-/// Ported from `../Juega`.
+/// Ported from the reference app.
 class MapsLinkService {
   MapsLinkService({http.Client? client}) : _client = client ?? http.Client();
 

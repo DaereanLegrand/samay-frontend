@@ -1,5 +1,5 @@
 /// the 15s refetch throttle for the shell-tab providers'
-/// `refresh()` paths — Juega's `lastFetchedAt` guard, the "don't refetch the
+/// `refresh()` paths — the reference app's `lastFetchedAt` guard, the "don't refetch the
 /// world on every tab switch" feel.
 ///
 /// Notifiers mix this in, call [markFetched] at the end of a successful

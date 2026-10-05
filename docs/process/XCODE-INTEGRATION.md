@@ -64,8 +64,8 @@ Inspect state (no sudo): `xcrun mcp-server status --format json` → reports
 pending request ids.
 
 Chosen policy for this machine: **headless by default**, agent **opencode**
-approved, permitted folders **`~/Codes/apps/Juega`**, **`~/Codes/apps/tukuy`**
-and **`~/Codes/apps/Vive`**.
+approved, permitted folders **`~/Codes/apps/Hakuy`**, **`~/Codes/apps/tukuy`**
+and **`~/Codes/apps/Samay`**.
 
 ### 1.3 Bring-up (human runs the sudo steps)
 
@@ -74,7 +74,7 @@ and **`~/Codes/apps/Vive`**.
 sudo xcrun mcp-server enable
 
 # 2. Permit the folders (human, sudo)
-sudo xcrun mcp-server allow-folder /Users/daerean/Codes/apps/Juega --always
+sudo xcrun mcp-server allow-folder /Users/daerean/Codes/apps/Hakuy --always
 sudo xcrun mcp-server allow-folder /Users/daerean/Codes/apps/tukuy --always
 
 # 3. Agent approval is NOT granted on connect. The first workspace-touching

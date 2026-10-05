@@ -53,7 +53,7 @@ fi
 
 # ── Test plan ───────────────────────────────────────────────
 tests=(
-  "1.1|Auth: Fresh install → Welcome screen|\"VIVE\" headline + \"Crear cuenta\" / \"Iniciar sesión\""
+  "1.1|Auth: Fresh install → Welcome screen|\"SAMAY\" headline + \"Crear cuenta\" / \"Iniciar sesión\""
   "1.2|Auth: Tap \"Crear cuenta\" → enter email|Navigates to OTP screen"
   "1.3|Auth: Enter OTP → tap \"Verificar\"|Navigates to age gate"
   "1.4|Auth: Enter DOB under 18|Block message \"Debes tener 18+\""

@@ -21,7 +21,7 @@ For _fastlane_ installation instructions, see [Installing _fastlane_](https://do
 [bundle exec] fastlane ios adhoc_local
 ```
 
-Build a signed ad-hoc IPA for on-device installs (Juega pattern: make build TARGET=ios-adhoc → make install TARGET=ios-adhoc). No store upload. Signs with the developer's enrolled team from $IOS_DEVELOPMENT_TEAM (gitignored .env.local) and the installed provisioning profile for com.qallariy.samay; the tracked pbxproj keeps its §3.3 placeholders — team + profile specifier are patched for this build and restored crash-safely.
+Build a signed ad-hoc IPA for on-device installs (the reference app pattern: make build TARGET=ios-adhoc → make install TARGET=ios-adhoc). No store upload. Signs with the developer's enrolled team from $IOS_DEVELOPMENT_TEAM (gitignored .env.local) and the installed provisioning profile for com.qallariy.samay; the tracked pbxproj keeps its §3.3 placeholders — team + profile specifier are patched for this build and restored crash-safely.
 
 ### ios beta_testflight
 

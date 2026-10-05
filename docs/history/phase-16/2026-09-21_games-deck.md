@@ -147,7 +147,7 @@ position and nav bar."*
   drawn only when `n >= 3`.
 - Follow-up 3: the nav-pill gradient/sheen experiment was **reverted** — the
   user never asked to change the navbar. The real answer came from reading
-  `../Juega/lib/shared/widgets/premium_card.dart` + `main_shell.dart`: Juega's
+  `the reference app/lib/shared/widgets/premium_card.dart` + `main_shell.dart`: the reference app's
   glass is `BackdropFilter(blur: 20)` + `surface` at **alpha 0.1** + a `0.2`
   border. Our port had α0.85 (mis-port), which is why the pill read as solid
   black. `main_shell.dart` now uses `surface` α0.1 + white α0.15 sheen + blur

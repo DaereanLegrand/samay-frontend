@@ -246,7 +246,7 @@ abstract class AppLocalizations {
   ///
   /// In es, this message translates to:
   /// **'vive'**
-  String get welcomeVive;
+  String get welcomeSamay;
 
   /// Welcome screen tagline
   ///

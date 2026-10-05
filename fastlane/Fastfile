@@ -143,10 +143,10 @@ def build_ios_ipa(export_method)
   ipa
 end
 
-# Build the release IPA with an explicit ExportOptions.plist (Juega pattern:
+# Build the release IPA with an explicit ExportOptions.plist (the reference app pattern:
 # method + teamID only — the archive's signing identity is matched at export).
 # Returns the produced IPA path. NOTE: fastlane runs lanes chdir'd into
-# fastlane/, so repo-root paths are `../`-relative (Juega Fastfile pattern).
+# fastlane/, so repo-root paths are `../`-relative (the reference app Fastfile pattern).
 def build_ios_ipa_with_export(plist_path)
   defines = dart_defines
   sh("flutter build ipa --release --export-options-plist #{plist_path} #{defines.join(' ')}")
@@ -236,7 +236,7 @@ platform :ios do
     nil
   end
 
-  desc "Build a signed ad-hoc IPA for on-device installs (Juega pattern: make build TARGET=ios-adhoc → make install TARGET=ios-adhoc). No store upload. Signs with the developer's enrolled team from $IOS_DEVELOPMENT_TEAM (gitignored .env.local) and the installed provisioning profile for com.qallariy.samay; the tracked pbxproj keeps its §3.3 placeholders — team + profile specifier are patched for this build and restored crash-safely."
+  desc "Build a signed ad-hoc IPA for on-device installs (the reference app pattern: make build TARGET=ios-adhoc → make install TARGET=ios-adhoc). No store upload. Signs with the developer's enrolled team from $IOS_DEVELOPMENT_TEAM (gitignored .env.local) and the installed provisioning profile for com.qallariy.samay; the tracked pbxproj keeps its §3.3 placeholders — team + profile specifier are patched for this build and restored crash-safely."
   lane :adhoc_local do
     team = ENV["IOS_DEVELOPMENT_TEAM"].to_s
     if team.empty? || team == "XXXXXXXXXX"

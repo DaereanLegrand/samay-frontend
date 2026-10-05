@@ -34,7 +34,7 @@
 - **Always transcode to JPG** (user-confirmed), no size/cap exemption: "every
   upload is JPG" is the invariant. Small PNGs/HEICs (which the old skip logic
   passed through untouched) now re-encode too.
-- **JPEG quality 80** matches Juega's reference. Lossy is acceptable for
+- **JPEG quality 80** matches the reference app's reference. Lossy is acceptable for
   photos; alpha is composited onto white by the encoder (a fully transparent
   PNG uploads as white).
 - Dropped the "never grow a payload" guard (return original if bigger): it

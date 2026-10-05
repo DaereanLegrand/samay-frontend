@@ -36,7 +36,7 @@ opt-001 RLS) + pgTAP (`supabase/tests/schema_test.sql`).
 - `docs/process/DEVELOPMENT-WORKFLOW.md` (rules incl. the port map)
 - `docs/security/SECURITY.md` + `docs/security/E2EE-ARCHITECTURE.md`
 - `docs/security/SECURITY.md` §6 (open items table)
-- `<private-ops-repo>/SELFHOSTING.md` (approved ports, Juega coexistence)
+- `<private-ops-repo>/SELFHOSTING.md` (approved ports, the reference app coexistence)
 
 ## What you do
 
@@ -44,7 +44,7 @@ opt-001 RLS) + pgTAP (`supabase/tests/schema_test.sql`).
    - `make secrets-check` — no secret material in tracked files
      (`tools/check_secrets.sh`: dev/service-role key shapes, placeholders).
    - `tools/check_ports.sh --strict` — zero port-map violations; Samay never
-     maps onto Juega's ports (5432/54321/54323/8443) and uses the approved
+     maps onto the reference app's ports (5432/54321/54323/8443) and uses the approved
      map (DB 54382, Kong 54386, Studio 54381, Mailpit 54384, Analytics
      54388, Kong-https 54443).
 2. **Audit scope (report-only, ranked by severity):**
@@ -67,6 +67,6 @@ opt-001 RLS) + pgTAP (`supabase/tests/schema_test.sql`).
 ## Rules
 
 - Never modify files, never run the app stack, never run docker, never touch
-  Juega (read-only reference). Juega's ports are off-limits for any check.
+  the reference app (read-only reference). the reference app's ports are off-limits for any check.
 - Report out-of-scope issues; do not fix them.
 - Never commit, never push — denied by config.

@@ -27,7 +27,7 @@ class WelcomeScreen extends StatelessWidget {
                       // Monochrome: the welcome wordmark is the
                       // flagship display element — verbatim copy, flat white
                       // Playfair glyphs, no gradient/glow.
-                      VDisplayText(text: l10n.welcomeVive, size: 64),
+                      VDisplayText(text: l10n.welcomeSamay, size: 64),
                       const SizedBox(height: 8),
                       Text(
                         l10n.welcomeTagline,

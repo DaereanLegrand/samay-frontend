@@ -55,8 +55,8 @@ exactly — your instructions ARE the rules.
    in-flight work; commit only what you did. Destructive remote/history ops
    (pull/rebase/merge/reset/checkout/switch/clean/stash) are denied by your
    permissions.
-5. **Never touch Juega** (`/Users/daerean/Codes/apps/Juega`) — read-only
-   reference. Never use Juega's ports (5432/54321/54323/8443); Samay uses
+5. **Never touch the reference app** (`/Users/daerean/Codes/apps/Hakuy`) — read-only
+   reference. Never use the reference app's ports (5432/54321/54323/8443); Samay uses
    DB 54382, Kong 54386, Studio 54381, Mailpit 54384, Analytics 54388,
    Kong-https 54443.
 6. **Security by default:** no secrets in code/tests/docs (placeholders

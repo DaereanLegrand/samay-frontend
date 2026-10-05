@@ -119,7 +119,7 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
     });
   }
 
-  /// The pre-auth funnel's escape hatch (Juega's `_back()` also clears the
+  /// The pre-auth funnel's escape hatch (the reference app's `_back()` also clears the
   /// transient session). Signs out — clearing any transient OTP session — and
   /// lands on the login screen.
   Future<void> _backToLogin() async {

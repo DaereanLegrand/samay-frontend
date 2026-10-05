@@ -78,7 +78,7 @@ Widget _screenForId(
 }
 
 /// The shell tab routes build [NoTransitionPage]s — switching tabs
-/// must NOT slide or zoom (Juega uses NoTransitionPage for its shell
+/// must NOT slide or zoom (the reference app uses NoTransitionPage for its shell
 /// children; the tab switch's subtle motion comes from `MainShell`'s
 /// [VTabFade] 150ms fade-in — "subtle, fast").
 /// Pushed routes keep their normal transitions.

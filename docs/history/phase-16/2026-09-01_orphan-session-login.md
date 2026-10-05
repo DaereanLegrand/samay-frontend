@@ -74,7 +74,7 @@ Fix: `_SamayRoot` now wraps the whole layer in `Material(color:
 scaffoldBackgroundColor)` + `Directionality(ltr)` (Text needs it) + a
 `MediaQuery` so the pulse honors reduced-motion; `VSplashWordmark` is now a
 proper `Scaffold(backgroundColor: discoBlack)` with the wordmark centered.
-Wordmark is lowercase **"samay"** (matches the `welcomeVive` "vive" lowercase
+Wordmark is lowercase **"samay"** (matches the `welcomeSamay` "vive" lowercase
 voice).
 
 Native launch screen (industry standard): the Android window that appears

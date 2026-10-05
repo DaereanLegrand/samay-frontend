@@ -11,7 +11,7 @@ import 'package:samay/shared/widgets/v_display_text.dart';
 import 'package:samay/shared/widgets/v_header_bar.dart';
 import 'package:samay/shared/widgets/v_input.dart';
 
-/// Password recovery — Juega's dedicated `/forgot-password` screen
+/// Password recovery — the reference app's dedicated `/forgot-password` screen
 /// with the disco treatment: `displayMedium` header (§3.2 auth site), the
 /// `VInput` underline, and the in-place success state (the form morphs
 /// into a confirmation, no route push).

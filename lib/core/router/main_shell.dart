@@ -106,7 +106,7 @@ class MainShell extends ConsumerWidget {
 
   const MainShell({super.key, required this.child, required this.currentIndex});
 
-  /// Bottom inset for shell-tab bodies (Juega's `navBarInset` pattern,
+  /// Bottom inset for shell-tab bodies (the reference app's `navBarInset` pattern,
   /// Premium pill): the tab content clears the floating nav bar
   /// instead of scrolling beneath it — `extendBody` draws the body under
   /// the bar, so every tab pads its bottom by this much.
@@ -120,7 +120,7 @@ class MainShell extends ConsumerWidget {
     final gamesCount = ref.watch(pendingMinigameInvitesProvider);
     // 150ms opacity fade-in on tab switch, keyed on the
     // tab index so every switch restarts it. No spatial motion (tabs have no
-    // directional relationship — Juega's fadeIn, without flutter_animate).
+    // directional relationship — the reference app's fadeIn, without flutter_animate).
     // The shared `VTabFade` owns the reduced-motion contract
     // (`disableAnimations` → static) + the duration/curve tokens.
     final body = VTabFade(key: ValueKey(currentIndex), child: child);
@@ -154,9 +154,9 @@ class MainShell extends ConsumerWidget {
   }
 }
 
-/// Premium floating pill nav bar — a faithful port of Juega's Premium pill.
+/// Premium floating pill nav bar — a faithful port of the reference app's Premium pill.
 ///
-/// Geometry is identical to Juega: a `SafeArea` → `Padding` (24,0,24,20) →
+/// Geometry is identical to the reference app: a `SafeArea` → `Padding` (24,0,24,20) →
 /// glass pill (blur 20, `surface` α0.1 fill, white α0.15 sheen, radius 14,
 /// inner padding 6×6) → a
 /// `spaceAround` `Row` of `AnimatedContainer` tabs (padding 8×8, radius 16).
@@ -193,7 +193,7 @@ class _FloatingNavBar extends ConsumerWidget {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
               decoration: BoxDecoration(
-                // Juega's `PremiumCard` glass: the SAME recipe — a backdrop
+                // the reference app's `PremiumCard` glass: the SAME recipe — a backdrop
                 // blur with a nearly-transparent `surface` fill (alpha 0.1)
                 // and a faint 0.15 white sheen. The earlier 0.85 alpha was a
                 // mis-port and read as a solid black bar.

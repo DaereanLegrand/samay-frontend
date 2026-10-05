@@ -10,7 +10,7 @@ import 'package:samay/core/theme/samay_durations.dart';
 /// during the transition, and the go_router nested Navigator carries
 /// GlobalKey'd route entries — two live Navigators collide (duplicate
 /// GlobalKeys). A fade-in disposes the old
-/// tab immediately (Juega's `fadeIn(...)` semantics).
+/// tab immediately (the reference app's `fadeIn(...)` semantics).
 ///
 /// Reduced motion (`MediaQuery.disableAnimationsOf(context)`) → static child
 /// at full opacity, no ticker (§7.5).

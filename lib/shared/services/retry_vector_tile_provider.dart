@@ -4,7 +4,7 @@ import 'package:vector_map_tiles/vector_map_tiles.dart';
 
 /// Vector tile provider that retries transient tile failures and cools down a
 /// tile after [maxRetries] consecutive failures so a flaky network cannot spin
-/// the map. Ported from `../Juega` (identical behaviour).
+/// the map. Ported from the reference app (identical behaviour).
 class RetryVectorTileProvider extends VectorTileProvider {
   final VectorTileProvider delegate;
   final int maxRetries;

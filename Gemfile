@@ -1,5 +1,5 @@
 # Samay — Ruby dependencies for fastlane + CocoaPods (agent M-17, phase 4.3;
-# to-fix MKE-10, Juega pattern). Bundle only via the Makefile gate:
+# to-fix MKE-10, the reference app pattern). Bundle only via the Makefile gate:
 #
 #   make bundle-install     # = bundle install (Gemfile.lock-aware)
 #   bundle exec fastlane ios <lane>

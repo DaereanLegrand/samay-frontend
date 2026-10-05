@@ -44,10 +44,10 @@ import 'package:samay/core/errors/app_error.dart';
 class ImageProcessor {
   ImageProcessor._();
 
-  /// Longest edge, in pixels, of any uploaded image (matches Juega's cap).
+  /// Longest edge, in pixels, of any uploaded image (matches the reference app's cap).
   static const int defaultMaxLongEdge = 1920;
 
-  /// JPEG encode quality for the re-encode step (Juega's reference value).
+  /// JPEG encode quality for the re-encode step (the reference app's reference value).
   static const int jpegQuality = 80;
 
   /// Reads [bytes] and returns a **quality-80 JPEG** downscaled to at most

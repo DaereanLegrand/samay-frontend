@@ -135,8 +135,8 @@ in `README.md`.
 
 ### 4.1 Approved port map (source of truth: AGENTS.md)
 
-Juega's running Supabase owns host ports **5432, 54321, 54323, 8443** — NEVER
-map Samay services onto them, and never stop/start Juega containers.
+the reference app's running Supabase owns host ports **5432, 54321, 54323, 8443** — NEVER
+map Samay services onto them, and never stop/start the reference app containers.
 
 | Service | Port |
 |---|---|

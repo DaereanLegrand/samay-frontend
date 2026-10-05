@@ -75,7 +75,7 @@ dependencies:
   purchases_flutter: ^10.8.0
   # Event location picker + km discovery filter (2026-09-24): vector tiles
   # served by tiles.qallariy.lat via flutter_map + vector_map_tiles (the same
-  # stack used by ../Juega) and device geolocation via geolocator.
+  # stack used by the reference app) and device geolocation via geolocator.
   flutter_map: ^7.0.2
   vector_map_tiles: ^8.0.0
   vector_map_tiles_pmtiles: ^1.5.0

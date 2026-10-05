@@ -130,7 +130,7 @@ Sync points occur when a track's output is needed by another (e.g., the DB schem
 
 ## Port Convention
 
-Juega's running Supabase owns host ports 5432/54321/54323/8443 — NEVER map Samay services onto them.
+the reference app's running Supabase owns host ports 5432/54321/54323/8443 — NEVER map Samay services onto them.
 
 | Service | Port | Note |
 |---------|------|------|

@@ -406,7 +406,7 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
   Future<void> signOut() async {
     await _service.signOut();
     // E2EE §7.6: the identity + prekeys + chat
-    // sessions SURVIVE a sign-out — the key material is bound to the
+    // sessions SURSAMAY a sign-out — the key material is bound to the
     // ACCOUNT, not the session. Only an account switch (ownership guard in
     // [_ensureE2eeKeysPublished]) or account deletion wipes it.
     state = const AsyncData(AuthState());
