@@ -219,3 +219,140 @@ Build in layers so the next feature slots in without a rewrite:
   Authoritative per-step statuses: `docs/specs/steps/cross-references.md`;
   open work items: specs kept under `docs/specs/steps/` for unimplemented steps.
 - **Security posture + open items:** [`docs/security/SECURITY.md`](docs/security/SECURITY.md).
+
+---
+
+## Architecture
+
+Structural pieces of the Flutter app. Every backend call goes through the single
+Supabase client (Auth, PostgREST tables/RPCs, Realtime, Storage); E2EE chat keys
+and sessions live in `lib/crypto/` over encrypted Hive + secure storage.
+
+```mermaid
+flowchart TB
+    subgraph Presentation["Presentation"]
+        UI["features/*/screens<br/>auth, chat, events, feed, friends,<br/>groups, minigames, qr, shards, social"]
+        WID["shared/widgets<br/>design-system v_* widgets"]
+        THEME["core/theme + core/design_tokens"]
+    end
+    subgraph Bootstrap["Bootstrap and DI"]
+        MAIN["main.dart<br/>Hive, Supabase.initialize, push, deep links"]
+        APP["app.dart SamayApp<br/>MaterialApp.router"]
+        DI["ProviderScope + ProviderContainer<br/>core/providers"]
+    end
+    subgraph Routing["Routing"]
+        ROUTER["go_router routerProvider"]
+        GUARD["AuthGuard + AuthRefreshNotifier"]
+        SHELL["ShellRoute MainShell<br/>6-tab navigation"]
+        DEEP["DeepLinkListener"]
+    end
+    subgraph State["State management Riverpod 2"]
+        PROVIDERS["AsyncNotifier / StreamProvider<br/>feature + core providers"]
+        REPO["core/repositories<br/>chat, friends, groups, profile"]
+        FLAGS["core/config<br/>feature_flags, env_config"]
+    end
+    subgraph Domain["Domain"]
+        MODELS["core/models Freezed + JSON"]
+        CONST["core/constants + utils"]
+    end
+    subgraph Services["Services"]
+        SVC["core/services (25)<br/>auth, chat, events, shards,<br/>notification, media, realtime, ..."]
+        CRYPTO["crypto/<br/>X3DH, Double Ratchet,<br/>sender-key group cipher"]
+        REST["core/services/rest_client<br/>PostgREST envelope"]
+        STORE["StorageService<br/>Hive encrypted + secure storage"]
+        TILESVC["shared/services<br/>RetryVectorTileProvider, MapsLink"]
+    end
+    subgraph External["External backend and services"]
+        SUPAAUTH["Supabase Auth<br/>GoTrue + PKCE"]
+        SUPADB["Supabase PostgREST<br/>tables + ~25 RPCs"]
+        SUPART["Supabase Realtime<br/>WebSocket channels"]
+        SUPAS3["Supabase Storage<br/>avatars, groups, events"]
+        FCM["Firebase Cloud Messaging"]
+        TILECDN["tiles.qallariy.lat<br/>MVT / pmtiles"]
+        RC["RevenueCat (stub)"]
+        SENTRY["Sentry (stub)"]
+    end
+    MAIN --> APP
+    APP --> ROUTER
+    ROUTER --> GUARD
+    GUARD --> SHELL
+    MAIN --> DEEP
+    UI --> PROVIDERS
+    WID --> UI
+    THEME --> UI
+    PROVIDERS --> REPO
+    REPO --> SVC
+    PROVIDERS --> SVC
+    PROVIDERS --> MODELS
+    PROVIDERS --> FLAGS
+    SVC --> REST
+    REST --> SUPADB
+    SVC --> SUPAAUTH
+    SVC --> SUPART
+    SVC --> SUPAS3
+    SVC --> CRYPTO
+    SVC --> STORE
+    UI --> TILESVC
+    TILESVC --> TILECDN
+    SVC --> FCM
+    SVC --> RC
+    SVC --> SENTRY
+```
+
+## Deployment
+
+`make init` writes the backend pointer; `make dev` runs the app against the
+local Docker stack, a cloudflared tunnel, or production. `fastlane` drives
+TestFlight/Play, with Xcode Cloud and Gitea Actions as CI.
+
+```mermaid
+flowchart LR
+    subgraph Dev["Developer Mac"]
+        SRC["Samay/frontend<br/>Flutter + Dart"]
+        MK["Makefile<br/>init / dev / build"]
+        FL["fastlane<br/>lanes + cocoapods"]
+    end
+    subgraph Targets["App targets"]
+        IOS["iOS 16+<br/>com.qallariy.samay"]
+        AND["Android<br/>com.qallariy.samay"]
+    end
+    subgraph LocalBE["Local backends"]
+        DOCKER["Supabase Docker stack<br/>Kong :54386<br/>Postgres :54382"]
+        TUNNEL["cloudflared tunnel<br/>samay-api-testing.qallariy.lat"]
+    end
+    subgraph ProdBE["Production"]
+        PRODAPI["samay-api.qallariy.lat"]
+        VM200["<deploy-target> VM<br/><vm-ip>"]
+    end
+    subgraph Ext["External services"]
+        FB["Firebase project samay-510205"]
+        TILES["tiles.qallariy.lat"]
+        RC["RevenueCat"]
+        ST["Sentry (planned)"]
+        ASC["App Store Connect / TestFlight"]
+        PLAY["Google Play"]
+    end
+    subgraph CIC["CI"]
+        XC["Xcode Cloud<br/><ci-dir>"]
+        GITEA["Gitea Actions<br/>analyze + static gates"]
+    end
+    SRC --> MK
+    MK --> IOS
+    MK --> AND
+    SRC --> FL
+    IOS -.-> DOCKER
+    AND -.-> DOCKER
+    DOCKER --> TUNNEL
+    IOS -.-> TUNNEL
+    IOS -->|prod| PRODAPI
+    AND -->|prod| PRODAPI
+    PRODAPI --> VM200
+    IOS --> FB
+    IOS --> TILES
+    IOS --> RC
+    IOS --> ST
+    FL --> ASC
+    FL --> PLAY
+    SRC --> XC
+    SRC --> GITEA
+```
