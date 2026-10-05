@@ -1,7 +1,7 @@
 # Samay frontend — Flutter app.
-.PHONY: help init start build dev install build-install uninstall clear-storage clean define-env test \
-        flutter-analyze lint check secrets-check install-hooks guard-local \
-        tunnel-android tunnel-waydroid ios-signing-restore login \
+.PHONY: help init start build dev install build-install uninstall clear clean env test \
+        analyze check secrets hooks guard-local \
+        tunnel-android tunnel-waydroid signing-restore login \
         ios-beta ios-release android-alpha android-release bundle-install
 
 APP_NAME := samay_app
@@ -99,13 +99,13 @@ endef
 
 help:
 	@echo "Samay frontend — make targets (TARGET=all|android|waydroid|ios|ios-adhoc|simulator)"
-	@echo "  BUILD/RUN: build dev install build-install uninstall clear-storage clean"
-	@echo "  TUNNELS:   tunnel-android tunnel-waydroid ios-signing-restore"
+	@echo "  BUILD/RUN: build dev install build-install uninstall clear clean"
+	@echo "  TUNNELS:   tunnel-android tunnel-waydroid signing-restore"
 	@echo "  LOGIN:     login [TARGET=simulator]"
-	@echo "  GATES:     flutter-analyze lint check secrets-check install-hooks define-env"
+	@echo "  GATES:     analyze check secrets hooks env"
 	@echo "  RELEASE:   ios-beta ios-release android-alpha android-release bundle-install"
 
-define-env:
+env:
 	@echo "ENV_FILE=$(ENV_FILE)"
 	@echo "FLUTTER_DEFINES=$(FLUTTER_DEFINES)"
 
@@ -210,8 +210,8 @@ dev:
 			echo "IOS_DEVELOPMENT_TEAM not set in .env.local."; \
 			exit 1; \
 		fi; \
-		make ios-signing-restore; \
-		trap 'make ios-signing-restore 2>/dev/null' EXIT INT TERM HUP; \
+		make signing-restore; \
+		trap 'make signing-restore 2>/dev/null' EXIT INT TERM HUP; \
 		$(BREW_BUNDLE) exec ruby tools/ios_dev_signing.rb apply "$$TEAM"; \
 		grep -q "DEVELOPMENT_TEAM = $$TEAM" ios/Runner.xcodeproj/project.pbxproj || { echo "signing patch did not stick; rerun."; exit 1; }; \
 		echo "Running on device: $$DEVICE"; \
@@ -321,7 +321,7 @@ install:
 		adb install -r $(APK); \
 	fi
 
-clear-storage:
+clear:
 	@UNAME=$$(uname); \
 	if [ "$$UNAME" = "Darwin" ] && [ "$(TARGET)" = "android" ]; then \
 		$(call tunnel-android, adb -s localhost:$(TUNNEL_ANDROID_PORT) shell pm clear $(APP_ID)); \
@@ -410,22 +410,20 @@ clean:
 	flutter clean
 	rm -rf build/ios/ipa
 
-flutter-analyze:
+analyze:
 	dart analyze
 
 test:
 	bash test/opt-008-makefile-static.sh
 
-lint: flutter-analyze
-
-check: secrets-check
+check: secrets
 	dart analyze
 	flutter analyze
 
-secrets-check:
+secrets:
 	@tools/check_secrets.sh
 
-install-hooks:
+hooks:
 	@git config core.hooksPath tools/hooks
 	@[ -x tools/hooks/pre-commit ] || { echo "tools/hooks/pre-commit missing or not executable"; exit 1; }
 	@echo "core.hooksPath -> tools/hooks"
@@ -445,7 +443,7 @@ tunnel-waydroid:
 		adb connect localhost:$(TUNNEL_WAYDROID_PORT); \
 		$(TUNNEL_WAYDROID_CMD))
 
-ios-signing-restore:
+signing-restore:
 	@git checkout HEAD -- ios/Runner.xcodeproj/project.pbxproj && \
 		rm -f /tmp/samay-pbxproj.bak 2>/dev/null; \
 		echo "ios signing restored from HEAD"

@@ -103,8 +103,8 @@ echo "════════════════════════�
 # ── 1. Every documented target resolves via `make -n` ────────────────────────
 echo ""
 echo "━━━ 1. make -n resolves all documented targets ━━━"
-TARGETS="help init start build dev install build-install clean clear-storage uninstall lint check test \
-flutter-analyze define-env secrets-check tunnel-android tunnel-waydroid ios-signing-restore \
+TARGETS="help init start build dev install build-install clean clear uninstall \
+check test analyze env secrets tunnel-android tunnel-waydroid signing-restore \
 ios-beta ios-release android-alpha android-release bundle-install"
 for t in $TARGETS; do
   if make -n "$t" >/dev/null 2>&1; then
@@ -124,13 +124,13 @@ if make -n install TARGET=ios-adhoc >/dev/null 2>&1; then pass "make -n install 
 if make -n dev TARGET=waydroid >/dev/null 2>&1; then pass "make -n dev TARGET=waydroid (Darwin tunnel-waydroid + direct branches resolve dry)"; else fail "make -n dev TARGET=waydroid"; fi
 if make -n dev TARGET=android >/dev/null 2>&1; then pass "make -n dev TARGET=android (Darwin tunnel-android + emulator branches resolve dry)"; else fail "make -n dev TARGET=android"; fi
 if make -n install TARGET=waydroid >/dev/null 2>&1; then pass "make -n install TARGET=waydroid (tunneled adb install resolves dry)"; else fail "make -n install TARGET=waydroid"; fi
-if make -n clear-storage TARGET=waydroid >/dev/null 2>&1; then pass "make -n clear-storage TARGET=waydroid (tunneled pm clear resolves dry)"; else fail "make -n clear-storage TARGET=waydroid"; fi
+if make -n clear TARGET=waydroid >/dev/null 2>&1; then pass "make -n clear TARGET=waydroid (tunneled pm clear resolves dry)"; else fail "make -n clear TARGET=waydroid"; fi
 if make -n tunnel-waydroid >/dev/null 2>&1; then pass "make -n tunnel-waydroid (waydroid tunnel target resolves dry)"; else fail "make -n tunnel-waydroid"; fi
 if make -n uninstall TARGET=all >/dev/null 2>&1; then pass "make -n uninstall TARGET=all (all-devices branch resolves dry)"; else fail "make -n uninstall TARGET=all"; fi
 if make -n build TARGET=all >/dev/null 2>&1; then pass "make -n build TARGET=all (all-platforms branch resolves dry)"; else fail "make -n build TARGET=all"; fi
 if make -n install TARGET=all >/dev/null 2>&1; then pass "make -n install TARGET=all (all-devices branch resolves dry)"; else fail "make -n install TARGET=all"; fi
 if make -n dev TARGET=ios >/dev/null 2>&1; then pass "make -n dev TARGET=ios (physical-iPhone flutter run branch resolves dry)"; else fail "make -n dev TARGET=ios"; fi
-if make -n ios-signing-restore >/dev/null 2>&1; then pass "make -n ios-signing-restore (pbxproj placeholder restore resolves dry)"; else fail "make -n ios-signing-restore"; fi
+if make -n signing-restore >/dev/null 2>&1; then pass "make -n signing-restore (pbxproj placeholder restore resolves dry)"; else fail "make -n signing-restore"; fi
 if make -n help >/dev/null 2>&1; then pass "make -n help (target cheatsheet resolves dry)"; else fail "make -n help"; fi
 if make -n build-install TARGET=all >/dev/null 2>&1; then pass "make -n build-install TARGET=all (build+install sweep resolves dry)"; else fail "make -n build-install TARGET=all"; fi
 if make -n uninstall TARGET=simulator >/dev/null 2>&1; then pass "make -n uninstall TARGET=simulator (simctl branch resolves dry)"; else fail "make -n uninstall TARGET=simulator"; fi
