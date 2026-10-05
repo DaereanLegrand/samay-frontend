@@ -683,6 +683,8 @@ test-backend-static:
 	bash test/<ops-static-check>
 	bash test/<ops-static-check>
 	bash test/<ops-static-check>
+	bash test/<ops-static-check>
+	bash test/opt-039-<vm-tooling>-static.sh
 	bash test/opt-040-scm-native-static.sh
 
 test-go:
@@ -864,6 +866,25 @@ supabase-testing-init:
 # See supabase-testing/seed-sample-matches.sh.
 supabase-testing-seed-sample-matches:
 	bash supabase-testing/seed-sample-matches.sh
+
+# ── Production backend VM — generic, app-agnostic lifecycle (<vm-tooling>)
+# One image (QallariyDocker-Alpine), many apps; app data comes from
+# <vm-tooling>/apps/<APP>.env (default samay). Secrets are RAM-only and
+# host-mediated from the vault: start/restart prompt for the vault passphrase.
+# The image ships no credentials and the gated units fail closed without them.
+# See <vm-tooling>/README.md.
+QVM_APP ?= samay
+.PHONY: supabase-prod-image supabase-prod-init supabase-prod-start supabase-prod-restart supabase-prod-status
+supabase-prod-image:
+	@APP=$(QVM_APP) bash <vmctl> image
+supabase-prod-init:
+	@APP=$(QVM_APP) bash <vmctl> init --app $(QVM_APP)
+supabase-prod-start:
+	@APP=$(QVM_APP) bash <vmctl> start --app $(QVM_APP)
+supabase-prod-restart:
+	@APP=$(QVM_APP) bash <vmctl> restart --app $(QVM_APP)
+supabase-prod-status:
+	@APP=$(QVM_APP) bash <vmctl> status --app $(QVM_APP)
 
 # ── Remote-device tunnel (MKE-08 / M-13) ─────────────────────────────────────
 # SSH-forward adb from a remote host that has a device attached (Juega
