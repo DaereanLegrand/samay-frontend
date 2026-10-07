@@ -6,9 +6,9 @@ import 'package:samay/core/design_tokens/app_radius.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/design_tokens/app_typography.dart';
 import 'package:samay/core/services/location_service.dart';
+import 'package:samay/core/services/qallariy_tiles.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/services/maps_link_service.dart';
-import 'package:samay/shared/services/retry_vector_tile_provider.dart';
 import 'package:samay/shared/widgets/v_button.dart';
 import 'package:samay/shared/widgets/v_chip.dart';
 import 'package:samay/shared/widgets/v_input.dart';
@@ -257,12 +257,7 @@ class _LocationPickerSheetState extends State<LocationPickerSheet> {
   }
 
   Widget _mapSection(AppLocalizations l10n) {
-    final tileProvider = RetryVectorTileProvider(
-      delegate: NetworkVectorTileProvider(
-        urlTemplate: kQallariyTileUrl,
-        maximumZoom: 15,
-      ),
-    );
+    final tileProvider = qallariyTileProvider();
     final center = widget.initial ??
         const LatLng(kDefaultLocationLat, kDefaultLocationLng);
 

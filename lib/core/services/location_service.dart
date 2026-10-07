@@ -1,11 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
 
-/// Vector tile endpoint used by every Samay map (event location picker,
-/// discovery reference point). Vector (`.mvt`) protomaps tiles.
-const String kQallariyTileUrl =
-    'https://tiles.qallariy.lat/20260603/{z}/{x}/{y}.mvt';
-
 /// A plain lat/lng pair (keeps geolocator types out of the UI layer).
 class SamayLocation {
   final double latitude;
