@@ -1,8 +1,8 @@
 # Samay frontend — Flutter app.
 .PHONY: help init start build dev install build-install uninstall clear clean env test \
-        analyze check secrets hooks guard-local \
+        analyze check secrets hooks guard-local track-guard deploy publish \
         tunnel-android tunnel-waydroid signing-restore login \
-        ios-beta ios-release android-alpha android-release bundle-install
+        ios-beta ios-release android-alpha android-release release bundle-install
 
 APP_NAME := samay_app
 PROD ?= false
@@ -10,6 +10,9 @@ BUILD_MODE ?= $(if $(filter true,$(PROD)),release,debug)
 APK := build/app/outputs/flutter-apk/app-$(BUILD_MODE).apk
 IPA_ADHOC := build/ios/ipa/$(APP_NAME)-adhoc.ipa
 APP_ID := com.qallariy.samay
+# Vault fetch/wipe helper for PROD builds. No fallback: PROD stops if it is
+# absent (all-or-nothing).
+RELEASE_SECRETS ?= tools/release-signing-not-in-repo.sh
 
 export PATH := /opt/homebrew/opt/ruby/bin:/Users/daerean/.local/share/gem/ruby/4.0.0/bin:$(PATH)
 BREW_BUNDLE := /opt/homebrew/opt/ruby/bin/bundle
@@ -19,8 +22,8 @@ IOS_DEVELOPMENT_TEAM ?= $(shell sed -n 's/^IOS_DEVELOPMENT_TEAM=//p' .env.local 
 TUNNEL_HOST          ?= <build-host>
 TUNNEL_ANDROID_PORT  ?= 5565
 TUNNEL_WAYDROID_PORT ?= 5566
-TUNNEL_CMD    ?= flutter run $(PUB_FLAG) $(FLUTTER_DEFINES) -d localhost:$(TUNNEL_ANDROID_PORT)
-TUNNEL_WAYDROID_CMD ?= flutter run $(PUB_FLAG) $(FLUTTER_DEFINES) -d localhost:$(TUNNEL_WAYDROID_PORT)
+TUNNEL_CMD    ?= flutter run $(PUB_FLAG) $(DEV_DEFINES) -d localhost:$(TUNNEL_ANDROID_PORT)
+TUNNEL_WAYDROID_CMD ?= flutter run $(PUB_FLAG) $(DEV_DEFINES) -d localhost:$(TUNNEL_WAYDROID_PORT)
 
 define tunnel-android
   HOST="$(TUNNEL_HOST)"; [ -n "$$HOST" ] || { echo "TUNNEL_HOST is required"; exit 2; }; \
@@ -46,6 +49,16 @@ endef
 NO_PUB ?= true
 TARGET ?=
 
+# Store-native release tracks (for `build PROD=true` + `deploy`). TRACK is a
+# comma-separated list; there is NO TRACK=all. Vocabularies are per-TARGET and
+# are NOT interchangeable:
+#   ios:     internal external prod
+#   android: internal alpha beta production
+TRACK ?=
+IOS_TRACKS     := internal external prod
+ANDROID_TRACKS := internal alpha beta production
+TRACK_REQUIRED ?= false
+
 ifeq ($(NO_PUB),false)
 PUB_FLAG :=
 else
@@ -58,6 +71,10 @@ FLUTTER_DEFINES :=
 else
 FLUTTER_DEFINES := --dart-define-from-file=.env
 endif
+
+# `dev` always targets the testing API (see .env). Explicit define wins over the file.
+API_TESTING_URL := $(shell sed -n 's/^API_TESTING_URL=//p' .env 2>/dev/null | head -1)
+API_TESTING_URL := $(if $(API_TESTING_URL),$(API_TESTING_URL),https://samay-api-testing.qallariy.lat)
 
 ANDROID_GATEWAY_HOST := $(if $(findstring Linux,$(shell uname -s)),10.0.2.2,127.0.0.1)
 OS_IS_DARWIN := $(findstring Darwin,$(shell uname -s))
@@ -74,6 +91,13 @@ build: | testing-kong-register
 dev: | testing-kong-register
 install: | testing-kong-register
 tunnel-android: | testing-kong-register
+endif
+
+# `dev` always points SUPABASE_URL at the testing API (explicit define wins over .env).
+ifeq ($(TESTING),true)
+DEV_DEFINES := $(FLUTTER_DEFINES)
+else
+DEV_DEFINES := $(FLUTTER_DEFINES) --dart-define=SUPABASE_URL=$(API_TESTING_URL)
 endif
 
 ifeq ($(PROD),true)
@@ -103,7 +127,8 @@ help:
 	@echo "  TUNNELS:   tunnel-android tunnel-waydroid signing-restore"
 	@echo "  LOGIN:     login [TARGET=simulator]"
 	@echo "  GATES:     analyze check secrets hooks env"
-	@echo "  RELEASE:   ios-beta ios-release android-alpha android-release bundle-install"
+	@echo "  RELEASE:   ios-beta ios-release android-alpha android-release release bundle-install"
+	@echo "  TRACKS:    deploy TARGET=ios|android|all TRACK=<list>  (build PROD=true honours TRACK too)"
 
 env:
 	@echo "ENV_FILE=$(ENV_FILE)"
@@ -153,37 +178,57 @@ build:
 		flutter build ios --simulator $(PUB_FLAG) $(FLUTTER_DEFINES) && \
 		echo "Simulator app: build/ios/iphonesimulator/Runner.app"; \
 	elif [ "$(TARGET)" = "android" ] && [ "$(PROD)" = "true" ]; then \
-		[ -f "$(KEYSTORE_PROPERTIES)" ] || { echo "PROD=true needs $(KEYSTORE_PROPERTIES)."; exit 1; }; \
-		DEFS="$(if $(wildcard $(PROD_DEFINES)),--dart-define-from-file=$(PROD_DEFINES),$(FLUTTER_DEFINES))"; \
-		KEYSTORE_PROPERTIES="$(KEYSTORE_PROPERTIES)" flutter build appbundle --release $(PUB_FLAG) $$DEFS && \
+		[ -x "$(RELEASE_SECRETS)" ] || { echo "PROD=true needs executable $(RELEASE_SECRETS) (vault fetch/wipe)."; exit 1; }; \
+		trap '$(RELEASE_SECRETS) wipe >/dev/null 2>&1 || true' EXIT INT TERM HUP; \
+		$(RELEASE_SECRETS) wipe >/dev/null 2>&1 || true; \
+		$(RELEASE_SECRETS) fetch android; \
+		[ -f "$(KEYSTORE_PROPERTIES)" ] || { echo "vault 'android' profile yielded no $(KEYSTORE_PROPERTIES)."; exit 1; }; \
+		[ -f "$(PROD_DEFINES)" ] || { echo "vault 'android' profile yielded no $(PROD_DEFINES)."; exit 1; }; \
+		KEYSTORE_PROPERTIES="$(KEYSTORE_PROPERTIES)" flutter build appbundle --release $(PUB_FLAG) --dart-define-from-file="$(PROD_DEFINES)" && \
 		echo "AAB: build/app/outputs/bundle/release/app-release.aab"; \
 	elif [ "$(TARGET)" = "ios" ] && [ "$(PROD)" = "true" ]; then \
-		[ -f "$(EXPORT_OPTIONS)" ] || { echo "PROD=true needs $(EXPORT_OPTIONS)."; exit 1; }; \
-		DEFS="$(if $(wildcard $(PROD_DEFINES)),--dart-define-from-file=$(PROD_DEFINES),$(FLUTTER_DEFINES))"; \
-		flutter build ipa --release $(PUB_FLAG) $$DEFS --export-options-plist="$(EXPORT_OPTIONS)" && \
+		[ -x "$(RELEASE_SECRETS)" ] || { echo "PROD=true needs executable $(RELEASE_SECRETS) (vault fetch/wipe)."; exit 1; }; \
+		PLIST_BACKUP=""; \
+		cleanup() { \
+			[ -n "$$PLIST_BACKUP" ] && tools/ios_google_oauth.sh restore "$$PLIST_BACKUP" >/dev/null 2>&1 || true; \
+			$(RELEASE_SECRETS) wipe >/dev/null 2>&1 || true; \
+		}; \
+		trap cleanup EXIT INT TERM HUP; \
+		$(RELEASE_SECRETS) wipe >/dev/null 2>&1 || true; \
+		$(RELEASE_SECRETS) fetch apple; \
+		[ -f "$(EXPORT_OPTIONS)" ] || { echo "vault 'apple' profile yielded no $(EXPORT_OPTIONS)."; exit 1; }; \
+		[ -f "$(PROD_DEFINES)" ] || { echo "vault 'apple' profile yielded no $(PROD_DEFINES)."; exit 1; }; \
+		GID=$$(cat "$(RAM_DIR)/google-oauth-client-id"); \
+		[ -n "$$GID" ] || { echo "vault 'apple' profile yielded no google-oauth-client-id."; exit 1; }; \
+		PLIST_BACKUP=$$(tools/ios_google_oauth.sh apply "$$GID"); \
+		flutter build ipa --release $(PUB_FLAG) --dart-define-from-file="$(PROD_DEFINES)" --dart-define=GOOGLE_OAUTH_IOS_CLIENT_ID="$$GID" --export-options-plist="$(EXPORT_OPTIONS)" && \
 		echo "IPA: build/ios/ipa/*.ipa"; \
 	else \
 		flutter build apk --$(BUILD_MODE) $(PUB_FLAG) $(FLUTTER_DEFINES) && \
 		echo "APK: $(APK)"; \
 	fi
 
+# `build` validates TRACK when supplied (PROD ios/android); it is not required
+# here — only `deploy` requires it (see the track-aware deploy section).
+build: track-guard
+
 dev:
 	$(load-env)
 	@UNAME=$$(uname); \
 	if [ "$$UNAME" = "Darwin" ] && [ "$(TARGET)" = "android" ]; then \
-		$(call tunnel-android, flutter run $(PUB_FLAG) $(FLUTTER_DEFINES) -d localhost:$(TUNNEL_ANDROID_PORT)); \
+		$(call tunnel-android, flutter run $(PUB_FLAG) $(DEV_DEFINES) -d localhost:$(TUNNEL_ANDROID_PORT)); \
 	elif [ "$$UNAME" = "Darwin" ] && [ "$(TARGET)" = "waydroid" ]; then \
-		$(call tunnel-waydroid, flutter run $(PUB_FLAG) $(FLUTTER_DEFINES) -d localhost:$(TUNNEL_WAYDROID_PORT)); \
+		$(call tunnel-waydroid, flutter run $(PUB_FLAG) $(DEV_DEFINES) -d localhost:$(TUNNEL_WAYDROID_PORT)); \
 	elif [ "$(TARGET)" = "waydroid" ]; then \
 		IP=$$($(call waydroid-preflight)); \
 		adb connect "$$IP:5555"; \
-		flutter run $(PUB_FLAG) $(FLUTTER_DEFINES) -d "$$IP:5555"; \
+		flutter run $(PUB_FLAG) $(DEV_DEFINES) -d "$$IP:5555"; \
 	elif [ "$(TARGET)" = "android" ]; then \
 		DEV=$$(adb devices | grep -o 'emulator-[0-9]*' | head -1); \
 		if [ -n "$$DEV" ]; then \
-			flutter run $(PUB_FLAG) $(FLUTTER_DEFINES) -d "$$DEV"; \
+			flutter run $(PUB_FLAG) $(DEV_DEFINES) -d "$$DEV"; \
 		else \
-			flutter run $(PUB_FLAG) $(FLUTTER_DEFINES); \
+			flutter run $(PUB_FLAG) $(DEV_DEFINES); \
 		fi; \
 	elif [ "$(TARGET)" = "simulator" ]; then \
 		DEVS=$$(xcrun simctl list devices booted | awk -F '[()]' '/Booted/ {print $$2}'); \
@@ -197,7 +242,7 @@ dev:
 			echo "$$DEVS" | gum choose --header "Pick a simulator:" > /tmp/_sim_pick && \
 			DEV=$$(cat /tmp/_sim_pick); \
 		fi; \
-		flutter run $(PUB_FLAG) $(FLUTTER_DEFINES) -d "$$DEV"; \
+		flutter run $(PUB_FLAG) $(DEV_DEFINES) -d "$$DEV"; \
 	elif [ "$(TARGET)" = "ios" ]; then \
 		DEVICE=$$(flutter devices --machine 2>/dev/null | python3 -c 'import json,sys; devs=json.load(sys.stdin); ios=[d["id"] for d in devs if d.get("targetPlatform")=="ios" and not d.get("emulator")]; print(ios[0] if ios else "")'); \
 		if [ -z "$$DEVICE" ]; then DEVICE=$$(idevice_id -l 2>/dev/null | head -1); fi; \
@@ -225,7 +270,7 @@ dev:
 		else \
 			xcrun devicectl device process terminate --device "$$DEVICE" "$(APP_ID)" 2>/dev/null || true; \
 		fi; \
-		flutter run $(PUB_FLAG) $(FLUTTER_DEFINES) -d "$$DEVICE"; \
+		flutter run $(PUB_FLAG) $(DEV_DEFINES) -d "$$DEVICE"; \
 		RC=$$?; \
 		if [ "$$RC" -ne 0 ]; then \
 			echo "Known iOS/Xcode regression (flutter/flutter#181480); stale Xcode windows are auto-closed (NO_XCODE_RESET=1 disables)."; \
@@ -241,9 +286,9 @@ dev:
 			echo "Installed, but could not launch $(APP_ID)."; \
 		fi; \
 	elif [ -n "$(TARGET)" ]; then \
-		flutter run $(PUB_FLAG) $(FLUTTER_DEFINES) -d "$(TARGET)"; \
+		flutter run $(PUB_FLAG) $(DEV_DEFINES) -d "$(TARGET)"; \
 	else \
-		flutter run $(PUB_FLAG) $(FLUTTER_DEFINES); \
+		flutter run $(PUB_FLAG) $(DEV_DEFINES); \
 	fi
 
 install:
@@ -458,6 +503,26 @@ guard-local:
 		echo "release/open-testing targets are LOCAL-ONLY (vault-gated); refusing in CI."; exit 1; \
 	fi
 
+# Validate TRACK against the per-TARGET store-native vocabulary. Silent no-op
+# when TRACK is empty and TRACK_REQUIRED is false (so `build` stays usable
+# without it); `deploy` sets TRACK_REQUIRED=true. No TRACK=all.
+track-guard:
+	@tracks="$(TRACK)"; \
+	case ",$$tracks," in *,all,*) echo "TRACK=all is not allowed — list tracks explicitly (ios: $(IOS_TRACKS) · android: $(ANDROID_TRACKS))."; exit 1;; esac; \
+	if [ -z "$$tracks" ]; then \
+		if [ "$(TRACK_REQUIRED)" = "true" ]; then echo "TRACK is required (TARGET=$(TARGET) — ios: $(IOS_TRACKS) · android: $(ANDROID_TRACKS))."; exit 1; fi; \
+		exit 0; \
+	fi; \
+	case "$(TARGET)" in \
+		ios) allowed="$(IOS_TRACKS)";; \
+		android) allowed="$(ANDROID_TRACKS)";; \
+		all) allowed="$(IOS_TRACKS) $(ANDROID_TRACKS)";; \
+		*) echo "TRACK requires TARGET=ios|android|all (got '$(TARGET)')."; exit 1;; \
+	esac; \
+	for t in $$(echo "$$tracks" | tr ',' ' '); do \
+		case " $$allowed " in *" $$t "*) : ;; *) echo "unknown TRACK '$$t' for TARGET=$(TARGET) (allowed: $$allowed)."; exit 1;; esac; \
+	done
+
 ios-beta: guard-local
 	@[ -f fastlane/Fastfile ] || { echo "fastlane iOS not wired yet."; exit 1; }
 	@grep -q 'beta_testflight' fastlane/Fastfile || { echo "lane 'beta_testflight' missing."; exit 1; }
@@ -481,3 +546,54 @@ android-release: guard-local
 bundle-install:
 	@[ -f Gemfile ] || { echo "No Gemfile — fastlane not wired yet."; exit 1; }
 	$(BREW_BUNDLE) install
+
+# Signed PROD artifacts for BOTH platforms in one command (local-only,
+# vault-gated). Each platform fetches its vault profile into the RAM disk,
+# builds, then wipes — so each prompts for the vault passphrase once. The
+# per-platform targets are `build PROD=true TARGET=ios|android`; this target
+# is just the two-step convenience wrapper.
+release:
+	@$(MAKE) build PROD=true TARGET=ios NO_PUB=$(NO_PUB)
+	@$(MAKE) build PROD=true TARGET=android NO_PUB=$(NO_PUB)
+
+# ── Track-aware build + deploy ───────────────────────────────────────────────
+# build PROD=true TARGET=ios|android TRACK=<list>   → validated build only
+# deploy TARGET=ios|android|all TRACK=<list>        → build every platform in
+#   scope (vault-gated), then publish the built artifact to each requested
+#   store track via fastlane. TRACK is required, store-native, comma-separated;
+#   there is NO TRACK=all. For TARGET=all a track valid for only one platform
+#   is applied there and skipped on the other.
+#   ios tracks: internal (TestFlight internal) external (TestFlight external) prod (App Store)
+#   android tracks: internal alpha beta production (Google Play)
+deploy: TRACK_REQUIRED=true
+deploy: track-guard
+	@set -e; \
+	targets="$(TARGET)"; \
+	case "$$targets" in ios|android) : ;; all) targets="ios android";; *) echo "deploy: TARGET must be ios|android|all"; exit 1;; esac; \
+	for t in $$targets; do $(MAKE) --no-print-directory build PROD=true TARGET=$$t TRACK="$(TRACK)" NO_PUB=$(NO_PUB); done; \
+	$(MAKE) --no-print-directory publish TARGET="$(TARGET)" TRACK="$(TRACK)"
+
+publish: TRACK_REQUIRED=true
+publish: track-guard
+	@set -e; \
+	targets="$(TARGET)"; \
+	case "$$targets" in ios|android) : ;; all) targets="ios android";; *) echo "publish: TARGET must be ios|android|all"; exit 1;; esac; \
+	[ -x "$(RELEASE_SECRETS)" ] || { echo "publish: needs executable $(RELEASE_SECRETS) (vault fetch/wipe)."; exit 1; }; \
+	for t in $$targets; do \
+		case "$$t" in ios) profile=apple;; android) profile=android;; esac; \
+		$(RELEASE_SECRETS) fetch "$$profile"; \
+		eval "$$($(RELEASE_SECRETS) env "$$profile")"; \
+		for track in $$(echo "$(TRACK)" | tr ',' ' '); do \
+			[ -n "$$track" ] || continue; \
+			case "$$t" in \
+				ios) \
+					case " $(IOS_TRACKS) " in *" $$track "*) ;; *) echo "publish: skip ios/$$track (not an iOS track)"; continue;; esac; \
+					case "$$track" in internal) lane=track_internal;; external) lane=track_external;; prod) lane=release_appstore;; esac; \
+					TRACK="$$track" bundle exec fastlane ios "$$lane";; \
+				android) \
+					case " $(ANDROID_TRACKS) " in *" $$track "*) ;; *) echo "publish: skip android/$$track (not an Android track)"; continue;; esac; \
+					TRACK="$$track" bundle exec fastlane android track_play;; \
+			esac; \
+		done; \
+		$(RELEASE_SECRETS) wipe; \
+	done

@@ -12,4 +12,6 @@
 - [ ] Trim README backend/infra sections (belong to samay-backend / <private-ops-repo>).
 - [ ] Add `fastlane/metadata/` store copy + screenshots.
 - [ ] Comment prune (lib/, docs/).
-- [ ] TODO(vault): android keystore + Play service account + FCM; Apple ASC keys.
+- [ ] TODO(vault): android keystore + Play service account + FCM; Apple ASC keys
+      + Gitea `match` repo password. Acquisition order:
+      `<private-ops-repo>/KEY-ACQUISITION.md`.

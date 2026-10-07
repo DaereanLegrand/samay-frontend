@@ -114,6 +114,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get authUnknownLoginError => 'Unknown error signing in';
 
   @override
+  String get authContinueWithApple => 'Continue with Apple';
+
+  @override
+  String get authContinueWithGoogle => 'Continue with Google';
+
+  @override
+  String get authOrDivider => 'or';
+
+  @override
   String get authVerifyCode => 'Verify code';
 
   @override

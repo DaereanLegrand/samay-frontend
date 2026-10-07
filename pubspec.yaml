@@ -83,6 +83,9 @@ dependencies:
   latlong2: ^0.9.1
   geolocator: ^14.0.2
   http: ^1.4.0
+  google_sign_in: ^7.2.0
+  sign_in_with_apple: ^8.2.0
+  crypto: ^3.0.7
 
 dev_dependencies:
   # Testing is backend-only (directive 2026-08-31): Go `*_test.go`, pgTAP

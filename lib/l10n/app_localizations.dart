@@ -302,6 +302,24 @@ abstract class AppLocalizations {
   /// **'Error desconocido al iniciar sesión'**
   String get authUnknownLoginError;
 
+  /// Sign in with Apple button label
+  ///
+  /// In es, this message translates to:
+  /// **'Continuar con Apple'**
+  String get authContinueWithApple;
+
+  /// Google sign-in button label
+  ///
+  /// In es, this message translates to:
+  /// **'Continuar con Google'**
+  String get authContinueWithGoogle;
+
+  /// Divider between password and social sign-in options
+  ///
+  /// In es, this message translates to:
+  /// **'o'**
+  String get authOrDivider;
+
   /// OTP verification screen app bar title
   ///
   /// In es, this message translates to:

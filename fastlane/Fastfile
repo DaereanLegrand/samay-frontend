@@ -44,7 +44,7 @@ REQUIRED_CREDENTIAL_ENV = {
   "APP_STORE_CONNECT_API_KEY_ID" => "AAAAAAAAAA",
   "APP_STORE_CONNECT_API_ISSUER_ID" => "00000000-0000-0000-0000-000000000000",
   "APP_STORE_CONNECT_API_KEY" => "fastlane/keys/AppStoreConnect_AAAAAAAAAA.p8",
-  "MATCH_GIT_URL" => "git@github.com:samay-app/samay-match.git",
+  "MATCH_GIT_URL" => "https://gitea-scm.qallariy.lat/qallariy/samay-match.git",
   "MATCH_PASSWORD" => "CHANGE_ME",
   "TEAM_ID" => "XXXXXXXXXX",
   "APPLE_ID" => "CHANGE_ME",
@@ -65,6 +65,19 @@ REQUIRED_ANDROID_CREDENTIAL_ENV = {
 }.freeze
 
 VALID_EXPORT_METHODS = %w[app-store ad-hoc development enterprise].freeze
+
+# Upload-only lanes (driven by `make deploy`): the artifact is built by the
+# vault-gated Makefile step, so only the store API key is required here — Match
+# provisioning and the build-time keystore/Firebase creds are not used.
+REQUIRED_ASC_UPLOAD_ENV = {
+  "APP_STORE_CONNECT_API_KEY_ID" => "AAAAAAAAAA",
+  "APP_STORE_CONNECT_API_ISSUER_ID" => "00000000-0000-0000-0000-000000000000",
+  "APP_STORE_CONNECT_API_KEY" => "fastlane/keys/AppStoreConnect_AAAAAAAAAA.p8"
+}.freeze
+
+REQUIRED_ANDROID_UPLOAD_ENV = {
+  "PLAY_SERVICE_ACCOUNT_JSON" => "fastlane/keys/google-play-service-account.json"
+}.freeze
 
 # Abort the lane unless every credential is set AND not equal to its §3.3
 # placeholder. Parametrized by the platform credential hash (iOS
@@ -170,15 +183,34 @@ def build_android_artifact(artifact)
   path
 end
 
+# The already-built PROD artifact from the vault-gated Makefile step (`make
+# build PROD=true TARGET=…` / the `make deploy` build phase). fastlane runs
+# chdir'd into fastlane/, so repo-root paths are `../`-relative.
+def prebuilt_ios_ipa
+  ipa = Dir.glob(File.join(Dir.pwd, "..", "build", "ios", "ipa", "*.ipa")).first
+  UI.user_error!("No IPA under build/ios/ipa — build it first: make build PROD=true TARGET=ios TRACK=…") if ipa.nil?
+  ipa
+end
+
+def prebuilt_android_aab
+  aab = File.expand_path("../build/app/outputs/bundle/release/app-release.aab", Dir.pwd)
+  UI.user_error!("No AAB at build/app/outputs/bundle/release/app-release.aab — build it first: make build PROD=true TARGET=android TRACK=…") unless File.exist?(aab)
+  aab
+end
+
 # Documented-not-executed while placeholders are in place (the guard above
 # fails first). Once $MATCH_GIT_URL / $MATCH_PASSWORD / $TEAM_ID are real, Match
 # provisions the certificates + profiles for the Manual-style Runner target.
+# The match repo is private on Gitea (gitea-scm.qallariy.lat); $MATCH_PASSWORD
+# is vault-gated (owner-only). Build hosts that must NOT create signing material
+# set $MATCH_READONLY=true (decrypt + install only).
 def ensure_matching_signing(export_method, api_key)
   match(
     git_url: ENV["MATCH_GIT_URL"],
     type: match_type_for(export_method),
     app_store_connect_api_key: api_key,
-    readonly: false
+    password: ENV["MATCH_PASSWORD"],
+    readonly: ENV["MATCH_READONLY"].to_s == "true"
   )
 end
 
@@ -314,6 +346,26 @@ platform :ios do
       force: true
     )
   end
+
+  # ── `make deploy` upload lanes (upload the vault-built IPA; no rebuild) ────
+  desc "Upload the vault-built IPA to TestFlight internal testers (TRACK=internal)"
+  lane :track_internal do
+    assert_credentials_configured!(REQUIRED_ASC_UPLOAD_ENV)
+    upload_to_testflight(api_key: app_store_connect_key, ipa: prebuilt_ios_ipa)
+  end
+
+  desc "Upload the vault-built IPA to TestFlight external testers (TRACK=external; set TESTFLIGHT_EXTERNAL_GROUPS)"
+  lane :track_external do
+    assert_credentials_configured!(REQUIRED_ASC_UPLOAD_ENV)
+    groups = ENV.fetch("TESTFLIGHT_EXTERNAL_GROUPS", "").split(",").map(&:strip).reject(&:empty?)
+    UI.user_error!("TRACK=external needs TESTFLIGHT_EXTERNAL_GROUPS (comma-separated TestFlight group names).") if groups.empty?
+    upload_to_testflight(
+      api_key: app_store_connect_key,
+      ipa: prebuilt_ios_ipa,
+      distribute_external: true,
+      groups: groups
+    )
+  end
 end
 
 platform :android do
@@ -340,6 +392,23 @@ platform :android do
     supply(
       track: "beta",
       aab: aab,
+      json_key: ENV["PLAY_SERVICE_ACCOUNT_JSON"],
+      skip_upload_metadata: true,
+      skip_upload_screenshots: true,
+      skip_upload_images: true,
+      skip_upload_apk: true
+    )
+  end
+
+  # ── `make deploy` upload lane (uploads the vault-built AAB; no rebuild) ────
+  desc "Upload the vault-built AAB to a Google Play track ($TRACK: internal|alpha|beta|production)"
+  lane :track_play do
+    assert_credentials_configured!(REQUIRED_ANDROID_UPLOAD_ENV)
+    track = ENV["TRACK"].to_s
+    UI.user_error!("TRACK must be internal, alpha, beta or production (got '#{track}').") unless %w[internal alpha beta production].include?(track)
+    supply(
+      track: track,
+      aab: prebuilt_android_aab,
       json_key: ENV["PLAY_SERVICE_ACCOUNT_JSON"],
       skip_upload_metadata: true,
       skip_upload_screenshots: true,

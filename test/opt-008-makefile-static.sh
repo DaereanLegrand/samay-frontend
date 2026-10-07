@@ -105,6 +105,7 @@ echo ""
 echo "━━━ 1. make -n resolves all documented targets ━━━"
 TARGETS="help init start build dev install build-install clean clear uninstall \
 check test analyze env secrets tunnel-android tunnel-waydroid signing-restore \
+track-guard \
 ios-beta ios-release android-alpha android-release bundle-install"
 for t in $TARGETS; do
   if make -n "$t" >/dev/null 2>&1; then
@@ -134,6 +135,37 @@ if make -n signing-restore >/dev/null 2>&1; then pass "make -n signing-restore (
 if make -n help >/dev/null 2>&1; then pass "make -n help (target cheatsheet resolves dry)"; else fail "make -n help"; fi
 if make -n build-install TARGET=all >/dev/null 2>&1; then pass "make -n build-install TARGET=all (build+install sweep resolves dry)"; else fail "make -n build-install TARGET=all"; fi
 if make -n uninstall TARGET=simulator >/dev/null 2>&1; then pass "make -n uninstall TARGET=simulator (simctl branch resolves dry)"; else fail "make -n uninstall TARGET=simulator"; fi
+
+# ── 1b. TRACK vocabulary contract (`build PROD=true` + `deploy`) ─────────────
+# Store-native, per-TARGET vocabularies; comma lists allowed; no TRACK=all.
+echo ""
+echo "━━━ 1b. TRACK contract ━━━"
+check_track() { # label TARGET TRACK expect-zero?
+  local st; make -s track-guard TARGET="$2" TRACK="$3" >/dev/null 2>&1; st=$?
+  if { [ "$4" = 0 ] && [ "$st" = 0 ]; } || { [ "$4" != 0 ] && [ "$st" != 0 ]; }; then
+    pass "TRACK: $1"
+  else
+    fail "TRACK: $1 (expected exit-nonzero=$4, got $st)"
+  fi
+}
+check_track "ios accepts prod"                ios     prod           0
+check_track "ios accepts internal,external"   ios     internal,external 0
+check_track "ios rejects alpha"               ios     alpha          1
+check_track "android accepts production"      android production     0
+check_track "android accepts internal,beta"   android internal,beta  0
+check_track "android rejects external"        android external       1
+check_track "TARGET=all accepts the union"    all     internal,prod  0
+check_track "TARGET=all rejects TRACK=all"    all     all            1
+if make -s deploy TARGET=ios >/dev/null 2>&1; then
+  fail "deploy without TRACK must fail"
+else
+  pass "deploy without TRACK fails (TRACK required)"
+fi
+if grep -qE '^deploy:' "$MAKEFILE" && grep -qE '^publish:' "$MAKEFILE"; then
+  pass "deploy + publish targets present"
+else
+  fail "deploy/publish targets missing"
+fi
 
 # ── 2. Fastlane stub contract (lane names fixed for M-17/M-18) ───────────────
 echo ""
@@ -266,7 +298,7 @@ if [ -d "$REPO/fastlane" ]; then
     pass "fastlane/keys/google-play-service-account.json absent (path only, per §3.3)"
   fi
   grep -q 'AAAAAAAAAA' "$FL" && pass "ASC key-id placeholder (AAAAAAAAAA) present" || fail "ASC key-id placeholder missing"
-  grep -q 'git@github.com:samay-app/samay-match.git' "$FL" && pass "MATCH_GIT_URL placeholder present" || fail "MATCH_GIT_URL placeholder missing"
+  grep -q 'https://gitea-scm.qallariy.lat/qallariy/samay-match.git' "$FL" && pass "MATCH_GIT_URL placeholder present" || fail "MATCH_GIT_URL placeholder missing"
   grep -q 'CHANGE_ME' "$FL" && pass "CHANGE_ME placeholder present" || fail "CHANGE_ME placeholder missing"
 fi
 

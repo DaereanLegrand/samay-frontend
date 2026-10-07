@@ -1,5 +1,7 @@
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_sign_in/google_sign_in.dart';
+import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' hide AuthState;
 import 'package:samay/core/errors/app_error.dart';
 import 'package:samay/core/extensions/error_mapper.dart';
@@ -292,6 +294,49 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
     } catch (e, st) {
       state = AsyncError(e.toAppError(), st);
     }
+  }
+
+  /// Native Google sign-in. A user-cancelled sheet is a no-op, not an error.
+  Future<void> signInWithGoogle() async {
+    state = const AsyncLoading<AuthState>().copyWithPrevious(state);
+    try {
+      await _service.signInWithGoogle();
+      await _completeSocialSignIn();
+    } on GoogleSignInException catch (e, st) {
+      if (e.code == GoogleSignInExceptionCode.canceled) {
+        state = AsyncData(state.valueOrNull ?? const AuthState());
+        return;
+      }
+      state = AsyncError(e.toAppError(), st);
+    } catch (e, st) {
+      state = AsyncError(e.toAppError(), st);
+    }
+  }
+
+  /// Native Sign in with Apple. A user-cancelled sheet is a no-op.
+  Future<void> signInWithApple() async {
+    state = const AsyncLoading<AuthState>().copyWithPrevious(state);
+    try {
+      await _service.signInWithApple();
+      await _completeSocialSignIn();
+    } on SignInWithAppleAuthorizationException catch (e, st) {
+      if (e.code == AuthorizationErrorCode.canceled) {
+        state = AsyncData(state.valueOrNull ?? const AuthState());
+        return;
+      }
+      state = AsyncError(e.toAppError(), st);
+    } catch (e, st) {
+      state = AsyncError(e.toAppError(), st);
+    }
+  }
+
+  Future<void> _completeSocialSignIn() async {
+    final user = _service.getCurrentUser();
+    if (user == null) {
+      state = AsyncData(state.valueOrNull ?? const AuthState());
+      return;
+    }
+    state = AsyncData(await _authStateForUser(user, forceBanCheck: true));
   }
 
   Future<void> sendOtp(String email) async {

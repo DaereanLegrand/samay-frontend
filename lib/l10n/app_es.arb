@@ -147,6 +147,18 @@
   "@authUnknownLoginError": {
     "description": "Fallback message when login fails with no mapped error"
   },
+  "authContinueWithApple": "Continuar con Apple",
+  "@authContinueWithApple": {
+    "description": "Sign in with Apple button label"
+  },
+  "authContinueWithGoogle": "Continuar con Google",
+  "@authContinueWithGoogle": {
+    "description": "Google sign-in button label"
+  },
+  "authOrDivider": "o",
+  "@authOrDivider": {
+    "description": "Divider between password and social sign-in options"
+  },
   "authVerifyCode": "Verificar código",
   "@authVerifyCode": {
     "description": "OTP verification screen app bar title"

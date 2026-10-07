@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show defaultTargetPlatform;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -87,6 +88,33 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     }
   }
 
+  /// Runs a native social sign-in and routes to the feed on success. A
+  /// cancelled sheet is handled in the notifier (state stays unauthenticated);
+  /// any other failure surfaces the mapped error.
+  Future<void> _social(Future<void> Function() action) async {
+    if (_submitting) return;
+    final l10n = AppLocalizations.of(context);
+    setState(() => _submitting = true);
+    try {
+      await action();
+      if (!mounted) return;
+      if (ref.read(authStateProvider).valueOrNull?.authenticated == true) {
+        context.go(RoutePaths.mainFeed);
+        return;
+      }
+      setState(() => _submitting = false);
+      final message =
+          ref.read(authStateProvider).errorMessage ?? l10n.authUnknownLoginError;
+      showAppError(context, message, blocking: true);
+    } catch (e, st) {
+      AppLogger.instance.error('social sign-in error: $e', '$st');
+      if (mounted) {
+        setState(() => _submitting = false);
+        showAppError(context, e.toAppError().message, blocking: true);
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final loginError = ref.watch(loginErrorProvider);
@@ -156,6 +184,54 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             ref.watch(authStateProvider).isLoading,
                         onPressed: _login,
                       ),
+                      const SizedBox(height: 24),
+                      Row(
+                        children: [
+                          const Expanded(
+                            child: Divider(color: AppColors.hairline),
+                          ),
+                          Padding(
+                            padding:
+                                const EdgeInsets.symmetric(horizontal: 12),
+                            child: Text(
+                              l10n.authOrDivider,
+                              style: const TextStyle(
+                                color: AppColors.mutedStrong,
+                              ),
+                            ),
+                          ),
+                          const Expanded(
+                            child: Divider(color: AppColors.hairline),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      VButton.outlined(
+                        label: l10n.authContinueWithGoogle,
+                        loading: _submitting,
+                        onPressed: _submitting
+                            ? null
+                            : () => _social(
+                                  () => ref
+                                      .read(authStateProvider.notifier)
+                                      .signInWithGoogle(),
+                                ),
+                      ),
+                      if (defaultTargetPlatform == TargetPlatform.iOS ||
+                          defaultTargetPlatform == TargetPlatform.macOS) ...[
+                        const SizedBox(height: 12),
+                        VButton.outlined(
+                          label: l10n.authContinueWithApple,
+                          loading: _submitting,
+                          onPressed: _submitting
+                              ? null
+                              : () => _social(
+                                    () => ref
+                                        .read(authStateProvider.notifier)
+                                        .signInWithApple(),
+                                  ),
+                        ),
+                      ],
                       const SizedBox(height: 12),
                       TextButton(
                         onPressed: () => context.push(RoutePaths.signup),
