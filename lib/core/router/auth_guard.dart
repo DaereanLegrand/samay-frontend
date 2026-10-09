@@ -63,6 +63,12 @@ class AuthGuard {
     }
 
     if (location == RoutePaths.login || location == RoutePaths.welcome) {
+      // Authenticated with a completed profile → feed. A profile-less session
+      // is left on the pre-auth route: the explicit social sign-in flow owns
+      // navigating it into the onboarding funnel (age gate → terms → profile
+      // setup) so the typed email extra is preserved. Restored orphans never
+      // reach here — they are signed out on restore.
+      if (!data.hasProfile) return null;
       return RoutePaths.mainFeed;
     }
 

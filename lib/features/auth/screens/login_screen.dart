@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/core/logging/app_logger.dart';
 import 'package:samay/core/providers/auth_provider.dart';
+import 'package:samay/core/router/route_extras.dart';
 import 'package:samay/core/router/route_paths.dart';
 import 'package:samay/core/extensions/error_mapper.dart';
 import 'package:samay/core/utils/form_validators.dart' as form_validators;
@@ -98,8 +99,21 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     try {
       await action();
       if (!mounted) return;
-      if (ref.read(authStateProvider).valueOrNull?.authenticated == true) {
-        context.go(RoutePaths.mainFeed);
+      final auth = ref.read(authStateProvider).valueOrNull;
+      if (auth != null && auth.authenticated) {
+        if (auth.hasProfile) {
+          // Returning account.
+          context.go(RoutePaths.mainFeed);
+        } else {
+          // New OAuth account: GoTrue already registered the auth user, so skip
+          // OTP and start the onboarding funnel (age gate → terms → profile
+          // setup) to create the profile.
+          setState(() => _submitting = false);
+          context.push(
+            RoutePaths.ageGate,
+            extra: AgeGateExtra(email: auth.user?['email'] as String? ?? ''),
+          );
+        }
         return;
       }
       setState(() => _submitting = false);

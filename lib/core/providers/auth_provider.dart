@@ -178,12 +178,36 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
         }
         break;
       case AuthChangeEvent.initialSession:
-      case AuthChangeEvent.signedIn:
+        // A RESTORED session with no profile is a true orphan (backend reset /
+        // account wipe): sign out. A FRESH sign-in (signedIn below) may be a
+        // signup in progress, so it is never orphan-gated here.
         if (session?.user != null) {
           final user = session!.user.toJson();
           final resolved = await _orphanGate(
             user,
             await _authStateForUserSafe(user, forceBanCheck: true),
+          );
+          state = AsyncData(resolved);
+          if (resolved.authenticated) {
+            await _ensureE2eeKeysPublished(uid: user['id'] as String?);
+          }
+        } else {
+          state = const AsyncData(AuthState());
+        }
+        break;
+      case AuthChangeEvent.signedIn:
+        // A fresh sign-in. OAuth (Google/Apple) auto-creates the auth user on
+        // the id-token grant; OTP signup creates it on verification. Either way
+        // the `users` row does NOT exist yet — that is "signup in progress",
+        // not an orphan. Surface `authenticated && !hasProfile` so the router
+        // walks the onboarding funnel (age gate → terms → profile setup). The
+        // password path rejects a profile-less account explicitly (see
+        // [signIn]); restored sessions are gated on initialSession / refresh.
+        if (session?.user != null) {
+          final user = session!.user.toJson();
+          final resolved = await _authStateForUserSafe(
+            user,
+            forceBanCheck: true,
           );
           state = AsyncData(resolved);
           if (resolved.authenticated) {
@@ -290,7 +314,20 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
         state = AsyncData(state.valueOrNull ?? const AuthState());
         return;
       }
-      state = AsyncData(await _authStateForUser(user, forceBanCheck: true));
+      final resolved = await _authStateForUser(user, forceBanCheck: true);
+      if (!resolved.hasProfile) {
+        // Password sign-in implies a registered account. An auth user with no
+        // `users` row is an orphan (backend reset / admin wipe) — NOT an OAuth
+        // signup — so sign out and land on login instead of the funnel.
+        AppLogger.instance.warn(
+          'password sign-in with no profile row (uid=${user['id']}) — orphan '
+          'session, signing out to the login screen',
+        );
+        await _service.signOut();
+        state = const AsyncData(AuthState());
+        return;
+      }
+      state = AsyncData(resolved);
     } catch (e, st) {
       state = AsyncError(e.toAppError(), st);
     }
