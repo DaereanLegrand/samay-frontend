@@ -75,6 +75,22 @@ android {
         versionName = flutter.versionName
     }
 
+    // Per-environment flavors. Every flavor keeps applicationId
+    // "com.qallariy.samay" (set in defaultConfig) — an applicationIdSuffix would
+    // break the OAuth Android client (its package name must match) and the
+    // Play/App Store identity. Only one flavor is installable at a time.
+    // Each flavor resolves its own android/app/src/<flavor>/google-services.json
+    // (com.google.gms.google-services reads the variant source set); a flavor
+    // with no file fails the build — there is no shared fallback.
+    // The "dev" flavor is the shared testing environment: AGP reserves product
+    // flavor names starting with "test", so the testing env's flavor is "dev".
+    flavorDimensions += "env"
+    productFlavors {
+        create("dev") { dimension = "env" }
+        create("staging") { dimension = "env" }
+        create("prod") { dimension = "env" }
+    }
+
     signingConfigs {
         if (releaseSigningConfigured) {
             create("release") {

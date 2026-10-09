@@ -2,18 +2,24 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>CLIENT_ID</key>
+	<string>384058632735-a8m49o8s6q7s5hmbbic0or2so64qedaj.apps.googleusercontent.com</string>
+	<key>REVERSED_CLIENT_ID</key>
+	<string>com.googleusercontent.apps.384058632735-a8m49o8s6q7s5hmbbic0or2so64qedaj</string>
+	<key>ANDROID_CLIENT_ID</key>
+	<string>384058632735-8opakfee5vp4tc0o2ni86kmm9nh0b63q.apps.googleusercontent.com</string>
 	<key>API_KEY</key>
-	<string>AIzaSyAgfvPYVix5k_q7emP8uRh3COYSfa8YEYs</string>
+	<string>AIzaSyCyZBOnr44OhgXcBXBsLsr_tr-3drdFpuw</string>
 	<key>GCM_SENDER_ID</key>
-	<string>719034292864</string>
+	<string>384058632735</string>
 	<key>PLIST_VERSION</key>
 	<string>1</string>
 	<key>BUNDLE_ID</key>
 	<string>com.qallariy.samay</string>
 	<key>PROJECT_ID</key>
-	<string>samay-510205</string>
+	<string>samay-testing</string>
 	<key>STORAGE_BUCKET</key>
-	<string>samay-510205.firebasestorage.app</string>
+	<string>samay-testing.firebasestorage.app</string>
 	<key>IS_ADS_ENABLED</key>
 	<false></false>
 	<key>IS_ANALYTICS_ENABLED</key>
@@ -25,6 +31,6 @@
 	<key>IS_SIGNIN_ENABLED</key>
 	<true></true>
 	<key>GOOGLE_APP_ID</key>
-	<string>1:719034292864:ios:c7efbd4c32893ae9152465</string>
+	<string>1:384058632735:ios:70211feecbbbcdc992832a</string>
 </dict>
 </plist>

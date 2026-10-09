@@ -13,6 +13,17 @@
 # Local-only per-developer overrides (load-env sources it; the Makefile's
 # "never committed" contract for values like IOS_DEVELOPMENT_TEAM).
 .env.local
+
+# Firebase client config. testing (Android flavor "dev") is OPEN and committed
+# (android/app/src/dev/google-services.json,
+# ios/Runner/GoogleService-Info.plist); staging/prod are vault-gated and
+# materialized into these paths at release by tools/release-signing-not-in-repo.sh
+# (fetch android|apple) — never commit them. See <private-ops-repo>.
+android/app/src/staging/google-services.json
+android/app/src/prod/google-services.json
+# flutterfire-generated options for a contributor's own Firebase project; not
+# read by the app (Firebase.initializeApp() uses the native config above).
+lib/firebase_options.dart
 # AltServer sideload data (MKE-05 — the AltServer path was removed 2026-08-12;
 # the dir carried a signing identity .p12 and must never be committed).
 AltServerData/

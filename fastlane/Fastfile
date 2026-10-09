@@ -168,18 +168,21 @@ def build_ios_ipa_with_export(plist_path)
   ipa
 end
 
-# Build a release Android artifact ("apk" or "appbundle"); return its path.
-# NOTE: flutter build apk/appbundle IS gradle assembleRelease/bundleRelease
-# (the §3.3 "gradle bundleRelease" shape) with the flutter toolchain wired in.
-def build_android_artifact(artifact)
+# Build a release Android artifact ("apk" or "appbundle") for a product flavor;
+# return its path. NOTE: flutter build apk/appbundle IS gradle
+# assembleRelease/bundleRelease (the §3.3 "gradle bundleRelease" shape) with the
+# flutter toolchain wired in. Flavors are defined in android/app/build.gradle.kts
+# ("dev" = testing env, "staging", "prod"); the flavored outputs are named
+# app-<flavor>-release.apk / bundle/<flavor>Release/app-<flavor>-release.aab.
+def build_android_artifact(artifact, flavor)
   defines = dart_defines
-  sh("flutter build #{artifact} --release #{defines.join(' ')}")
+  sh("flutter build #{artifact} --release --flavor #{flavor} #{defines.join(' ')}")
   path = case artifact
-         when "apk" then File.join(Dir.pwd, "build", "app", "outputs", "flutter-apk", "app-release.apk")
-         when "appbundle" then File.join(Dir.pwd, "build", "app", "outputs", "bundle", "release", "app-release.aab")
+         when "apk" then File.join(Dir.pwd, "build", "app", "outputs", "flutter-apk", "app-#{flavor}-release.apk")
+         when "appbundle" then File.join(Dir.pwd, "build", "app", "outputs", "bundle", "#{flavor}Release", "app-#{flavor}-release.aab")
          else UI.user_error!("build_android_artifact: unknown artifact '#{artifact}' (must be apk or appbundle)")
          end
-  UI.user_error!("No #{artifact == 'apk' ? 'APK' : 'AAB'} at #{path} — did 'flutter build #{artifact} --release' succeed?") unless File.exist?(path)
+  UI.user_error!("No #{artifact == 'apk' ? 'APK' : 'AAB'} at #{path} — did 'flutter build #{artifact} --release --flavor #{flavor}' succeed?") unless File.exist?(path)
   path
 end
 
@@ -193,8 +196,8 @@ def prebuilt_ios_ipa
 end
 
 def prebuilt_android_aab
-  aab = File.expand_path("../build/app/outputs/bundle/release/app-release.aab", Dir.pwd)
-  UI.user_error!("No AAB at build/app/outputs/bundle/release/app-release.aab — build it first: make build PROD=true TARGET=android TRACK=…") unless File.exist?(aab)
+  aab = File.expand_path("../build/app/outputs/bundle/prodRelease/app-prod-release.aab", Dir.pwd)
+  UI.user_error!("No AAB at build/app/outputs/bundle/prodRelease/app-prod-release.aab — build it first: make build PROD=true TARGET=android TRACK=…") unless File.exist?(aab)
   aab
 end
 
@@ -373,11 +376,15 @@ platform :android do
   # passwords + Firebase token + Play service account): a release-shaped build
   # must never run while any §3.3 placeholder is still set — signing lands
   # with the real credentials only (M-27 wires gradle signingConfigs).
+  # Flavors (android/app/build.gradle.kts): alpha_firebase builds the "dev"
+  # (testing) flavor; release_play builds "prod" (needs the vault-provided
+  # android/app/src/prod/google-services.json — use `make deploy` for the
+  # vault-fetched build+upload path).
 
   desc "Build the release APK and distribute it to Firebase App Distribution testers (§3.3, MVP §10)"
   lane :alpha_firebase do
     assert_credentials_configured!(REQUIRED_ANDROID_CREDENTIAL_ENV)
-    apk = build_android_artifact("apk")
+    apk = build_android_artifact("apk", "dev")
     firebase_app_distribution(
       apk_path: apk,
       firebase_cli_token: ENV["FIREBASE_API_TOKEN"],
@@ -388,7 +395,7 @@ platform :android do
   desc "Build the release app bundle and upload it to Google Play via supply (§3.3)"
   lane :release_play do
     assert_credentials_configured!(REQUIRED_ANDROID_CREDENTIAL_ENV)
-    aab = build_android_artifact("appbundle")
+    aab = build_android_artifact("appbundle", "prod")
     supply(
       track: "beta",
       aab: aab,

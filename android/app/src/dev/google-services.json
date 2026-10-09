@@ -1,0 +1,46 @@
+{
+  "project_info": {
+    "project_number": "384058632735",
+    "project_id": "samay-testing",
+    "storage_bucket": "samay-testing.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:384058632735:android:9bdfa64b7731e98f92832a",
+        "android_client_info": {
+          "package_name": "com.qallariy.samay"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "384058632735-dcmjlck6kod0ud9bco4374nfbcmdgcrl.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDLWlSj6RP0I-Mti-0tHmEcHFW2uJnNFs8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "384058632735-dcmjlck6kod0ud9bco4374nfbcmdgcrl.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "384058632735-a8m49o8s6q7s5hmbbic0or2so64qedaj.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.qallariy.samay"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

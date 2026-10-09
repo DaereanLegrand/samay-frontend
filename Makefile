@@ -7,7 +7,12 @@
 APP_NAME := samay_app
 PROD ?= false
 BUILD_MODE ?= $(if $(filter true,$(PROD)),release,debug)
-APK := build/app/outputs/flutter-apk/app-$(BUILD_MODE).apk
+# Android product flavor (build.gradle.kts flavorDimensions "env"). Dev/CI builds
+# default to "dev" (the testing environment's flavor; AGP reserves the "test"
+# prefix, so the shared testing env builds as `--flavor dev`). PROD=true builds
+# the prod flavor.
+ANDROID_FLAVOR ?= $(if $(filter true,$(PROD)),prod,dev)
+APK := build/app/outputs/flutter-apk/app-$(ANDROID_FLAVOR)-$(BUILD_MODE).apk
 IPA_ADHOC := build/ios/ipa/$(APP_NAME)-adhoc.ipa
 APP_ID := com.qallariy.samay
 # Vault fetch/wipe helper for PROD builds. No fallback: PROD stops if it is
@@ -22,8 +27,8 @@ IOS_DEVELOPMENT_TEAM ?= $(shell sed -n 's/^IOS_DEVELOPMENT_TEAM=//p' .env.local 
 TUNNEL_HOST          ?= <build-host>
 TUNNEL_ANDROID_PORT  ?= 5565
 TUNNEL_WAYDROID_PORT ?= 5566
-TUNNEL_CMD    ?= flutter run $(PUB_FLAG) $(DEV_DEFINES) -d localhost:$(TUNNEL_ANDROID_PORT)
-TUNNEL_WAYDROID_CMD ?= flutter run $(PUB_FLAG) $(DEV_DEFINES) -d localhost:$(TUNNEL_WAYDROID_PORT)
+TUNNEL_CMD    ?= flutter run --flavor $(ANDROID_FLAVOR) $(PUB_FLAG) $(DEV_DEFINES) -d localhost:$(TUNNEL_ANDROID_PORT)
+TUNNEL_WAYDROID_CMD ?= flutter run --flavor $(ANDROID_FLAVOR) $(PUB_FLAG) $(DEV_DEFINES) -d localhost:$(TUNNEL_WAYDROID_PORT)
 
 define tunnel-android
   HOST="$(TUNNEL_HOST)"; [ -n "$$HOST" ] || { echo "TUNNEL_HOST is required"; exit 2; }; \
@@ -179,18 +184,24 @@ build:
 		echo "Simulator app: build/ios/iphonesimulator/Runner.app"; \
 	elif [ "$(TARGET)" = "android" ] && [ "$(PROD)" = "true" ]; then \
 		[ -x "$(RELEASE_SECRETS)" ] || { echo "PROD=true needs executable $(RELEASE_SECRETS) (vault fetch/wipe)."; exit 1; }; \
-		trap '$(RELEASE_SECRETS) wipe >/dev/null 2>&1 || true' EXIT INT TERM HUP; \
+		mkdir -p android/app/src/prod; \
+		android_cleanup() { rm -f android/app/src/prod/google-services.json; $(RELEASE_SECRETS) wipe >/dev/null 2>&1 || true; }; \
+		trap android_cleanup EXIT INT TERM HUP; \
 		$(RELEASE_SECRETS) wipe >/dev/null 2>&1 || true; \
 		$(RELEASE_SECRETS) fetch android; \
 		[ -f "$(KEYSTORE_PROPERTIES)" ] || { echo "vault 'android' profile yielded no $(KEYSTORE_PROPERTIES)."; exit 1; }; \
 		[ -f "$(PROD_DEFINES)" ] || { echo "vault 'android' profile yielded no $(PROD_DEFINES)."; exit 1; }; \
-		KEYSTORE_PROPERTIES="$(KEYSTORE_PROPERTIES)" flutter build appbundle --release $(PUB_FLAG) --dart-define-from-file="$(PROD_DEFINES)" && \
-		echo "AAB: build/app/outputs/bundle/release/app-release.aab"; \
+		[ -f "$(RAM_DIR)/google-services.json" ] || { echo "vault 'android' profile yielded no google-services.json (prod Firebase config)."; exit 1; }; \
+		cp "$(RAM_DIR)/google-services.json" android/app/src/prod/google-services.json; \
+		KEYSTORE_PROPERTIES="$(KEYSTORE_PROPERTIES)" flutter build appbundle --release --flavor $(ANDROID_FLAVOR) $(PUB_FLAG) --dart-define-from-file="$(PROD_DEFINES)" && \
+		echo "AAB: build/app/outputs/bundle/$(ANDROID_FLAVOR)Release/app-$(ANDROID_FLAVOR)-release.aab"; \
 	elif [ "$(TARGET)" = "ios" ] && [ "$(PROD)" = "true" ]; then \
 		[ -x "$(RELEASE_SECRETS)" ] || { echo "PROD=true needs executable $(RELEASE_SECRETS) (vault fetch/wipe)."; exit 1; }; \
 		PLIST_BACKUP=""; \
+		FIREBASE_BACKUP=""; \
 		cleanup() { \
 			[ -n "$$PLIST_BACKUP" ] && tools/ios_google_oauth.sh restore "$$PLIST_BACKUP" >/dev/null 2>&1 || true; \
+			if [ -n "$$FIREBASE_BACKUP" ]; then cp "$$FIREBASE_BACKUP" ios/Runner/GoogleService-Info.plist; rm -f "$$FIREBASE_BACKUP"; fi; \
 			$(RELEASE_SECRETS) wipe >/dev/null 2>&1 || true; \
 		}; \
 		trap cleanup EXIT INT TERM HUP; \
@@ -198,13 +209,15 @@ build:
 		$(RELEASE_SECRETS) fetch apple; \
 		[ -f "$(EXPORT_OPTIONS)" ] || { echo "vault 'apple' profile yielded no $(EXPORT_OPTIONS)."; exit 1; }; \
 		[ -f "$(PROD_DEFINES)" ] || { echo "vault 'apple' profile yielded no $(PROD_DEFINES)."; exit 1; }; \
+		[ -f "$(RAM_DIR)/GoogleService-Info.plist" ] || { echo "vault 'apple' profile yielded no GoogleService-Info.plist (prod Firebase config)."; exit 1; }; \
+		FIREBASE_BACKUP=$$(mktemp); cp ios/Runner/GoogleService-Info.plist "$$FIREBASE_BACKUP"; cp "$(RAM_DIR)/GoogleService-Info.plist" ios/Runner/GoogleService-Info.plist; \
 		GID=$$(cat "$(RAM_DIR)/google-oauth-client-id"); \
 		[ -n "$$GID" ] || { echo "vault 'apple' profile yielded no google-oauth-client-id."; exit 1; }; \
 		PLIST_BACKUP=$$(tools/ios_google_oauth.sh apply "$$GID"); \
 		flutter build ipa --release $(PUB_FLAG) --dart-define-from-file="$(PROD_DEFINES)" --dart-define=GOOGLE_OAUTH_IOS_CLIENT_ID="$$GID" --export-options-plist="$(EXPORT_OPTIONS)" && \
 		echo "IPA: build/ios/ipa/*.ipa"; \
 	else \
-		flutter build apk --$(BUILD_MODE) $(PUB_FLAG) $(FLUTTER_DEFINES) && \
+		flutter build apk --$(BUILD_MODE) --flavor $(ANDROID_FLAVOR) $(PUB_FLAG) $(FLUTTER_DEFINES) && \
 		echo "APK: $(APK)"; \
 	fi
 
