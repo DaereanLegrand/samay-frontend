@@ -25,16 +25,24 @@ IconData notificationIconForType(String type) {
   return switch (type) {
     'event_invite' => Icons.event,
     'friend_request' => Icons.person_add,
-    'event_starting' => Icons.notifications_active,
+    // Server emits `event_live`; the spec/seeds used `event_starting`.
+    'event_starting' || 'event_live' => Icons.notifications_active,
     'qr_active' => Icons.qr_code,
     'attendance_confirmed' => Icons.check_circle,
     'shard_received' => Icons.diamond,
-    'rank_update' => Icons.leaderboard,
-    'chat_message' => Icons.chat_bubble,
+    // Server emits `rank_bracket`; the spec used `rank_update`.
+    'rank_update' || 'rank_bracket' => Icons.leaderboard,
+    // Server emits `new_message`; the spec/seeds used `chat_message`.
+    'chat_message' || 'new_message' => Icons.chat_bubble,
     'minigame_invite' => Icons.sports_esports,
+    // Generic "it's your turn" across every minigame (truth_dare,
+    // drunk_bottle, two_lies_one_truth, charades).
+    'minigame_turn' => Icons.sports_esports,
     'poke_received' => Icons.bolt,
     'invite_approval' => Icons.event_available,
-    'feature_approved' => Icons.star,
+    // Server emits a single `feature_request` carrying data.status; the spec
+    // split it into approved/rejected.
+    'feature_request' || 'feature_approved' => Icons.star,
     'feature_rejected' => Icons.star_border,
     'report_warned' => Icons.warning_amber,
     'content_removed' => Icons.delete,

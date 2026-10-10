@@ -10,6 +10,7 @@ import 'package:samay/core/providers/service_providers.dart';
 import 'package:samay/core/services/auth_service.dart';
 import 'package:samay/core/services/ban_service.dart';
 import 'package:samay/core/services/crash_reporter.dart';
+import 'package:samay/core/services/push_service.dart';
 import 'package:samay/core/utils/async_ops.dart';
 import 'package:samay/features/chat/providers/chat_providers.dart';
 
@@ -486,6 +487,13 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
   }
 
   Future<void> signOut() async {
+    // Push: drop the device token BEFORE the session ends (the RPC is
+    // authenticated-only), so a signed-out device stops receiving pushes.
+    try {
+      await ref.read(pushServiceProvider).unregister();
+    } catch (e, st) {
+      AppLogger.instance.warn('push unregister on signOut failed: $e', '$st');
+    }
     await _service.signOut();
     // E2EE §7.6: the identity + prekeys + chat
     // sessions SURSAMAY a sign-out — the key material is bound to the

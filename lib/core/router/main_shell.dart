@@ -15,6 +15,7 @@ import 'package:samay/features/groups/providers/groups_providers.dart';
 import 'package:samay/features/minigames/providers/minigame_invites_realtime_listener.dart';
 import 'package:samay/features/minigames/providers/minigame_sessions_realtime_listener.dart';
 import 'package:samay/features/minigames/providers/minigames_providers.dart';
+import 'package:samay/features/notifications/providers/push_notification_listener.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/v_count_badge.dart';
 import 'package:samay/shared/widgets/v_tab_fade.dart';
@@ -135,6 +136,7 @@ class MainShell extends ConsumerWidget {
         const GroupMembershipsRealtimeListener(),
         const MinigameInvitesRealtimeListener(),
         const MinigameSessionsRealtimeListener(),
+        const PushNotificationListener(),
         Scaffold(
           extendBody: true,
           body: body,

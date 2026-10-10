@@ -59,10 +59,17 @@ String? notificationDeepLink(String type, Map<String, dynamic>? data) {
       // so it lands on the session detail (accept/decline) — not the group.
       if (sessionId != null) return RoutePaths.minigameSession(sessionId);
       return groupId == null ? null : RoutePaths.groupDetail(groupId);
+    case 'minigame_turn':
+      // Generic turn notice: every minigame routes to its session.
+      return sessionId == null ? null : RoutePaths.minigameSession(sessionId);
+    // Server emits `rank_bracket`; the spec used `rank_update`.
     case 'rank_update':
+    case 'rank_bracket':
     case 'poke_received':
       return groupId == null ? null : RoutePaths.groupDetail(groupId);
+    // Server emits `new_message`; the spec/seeds used `chat_message`.
     case 'chat_message':
+    case 'new_message':
       return chatId == null ? null : RoutePaths.chat(chatId);
     default:
       if (eventId != null) return RoutePaths.eventDetail(eventId);
