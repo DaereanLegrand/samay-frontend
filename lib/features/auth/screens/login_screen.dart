@@ -1,10 +1,9 @@
 import 'package:flutter/foundation.dart' show defaultTargetPlatform;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
-import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
-import 'package:samay/core/design_tokens/app_radius.dart';
 import 'package:samay/core/logging/app_logger.dart';
 import 'package:samay/core/providers/auth_provider.dart';
 import 'package:samay/core/router/route_extras.dart';
@@ -138,49 +137,41 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       defaultTargetPlatform == TargetPlatform.iOS ||
       defaultTargetPlatform == TargetPlatform.macOS;
 
-  /// Compact, brand-compliant "Continue with Google" control: the official
-  /// Google "G" (full color, on a white disc) inside a borderless, transparent
-  /// button. The control is icon-only, so an accessible label is attached. While
-  /// [_submitting] it dims (no spinner) and is inert.
-  Widget _googleSignInButton(AppLocalizations l10n) {
+  /// A borderless, transparent, icon-only sign-in control: a 44pt white disc
+  /// holding a provider mark, with an accessible label. 44pt is Apple's
+  /// recommended logo-only button size and the size at which each brand's mark
+  /// keeps its official proportion (Google's "G" ≈41% of the disc, Apple's logo
+  /// ≈43%), so the two controls are equal and neither mark reads as smaller.
+  /// While [_submitting] it dims (no spinner) and is inert.
+  Widget _socialIconButton({
+    required String label,
+    required VoidCallback? onPressed,
+    required Widget child,
+  }) {
     return Semantics(
       button: true,
       enabled: !_submitting,
-      label: l10n.authContinueWithGoogle,
+      label: label,
       child: Tooltip(
-        message: l10n.authContinueWithGoogle,
+        message: label,
         child: SizedBox(
-          width: 56,
-          height: 56,
-          child: VButton.outlined(
-            borderless: true,
-            loading: _submitting,
-            showLoadingSpinner: false,
-            onPressed: _submitting
-                ? null
-                : () => _social(
-                      () => ref
-                          .read(authStateProvider.notifier)
-                          .signInWithGoogle(),
-                    ),
+          width: 44,
+          height: 44,
+          child: TextButton(
+            onPressed: onPressed,
+            style: TextButton.styleFrom(
+              padding: EdgeInsets.zero,
+              minimumSize: Size.zero,
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              shape: const CircleBorder(),
+              foregroundColor: AppColors.white,
+              backgroundColor: AppColors.transparent,
+              overlayColor: AppColors.white,
+            ),
             child: AnimatedOpacity(
               duration: const Duration(milliseconds: 150),
               opacity: _submitting ? 0.4 : 1,
-              child: Container(
-                width: 28,
-                height: 28,
-                alignment: Alignment.center,
-                decoration: const BoxDecoration(
-                  color: AppColors.white,
-                  shape: BoxShape.circle,
-                ),
-                child: Image.asset(
-                  'assets/icons/google.png',
-                  width: 18,
-                  height: 18,
-                  filterQuality: FilterQuality.high,
-                ),
-              ),
+              child: child,
             ),
           ),
         ),
@@ -188,29 +179,76 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     );
   }
 
-  /// Apple's guideline-conformant "Continue with Apple" button (the
-  /// `sign_in_with_apple` package's widget: Apple logo + localized text). It has
-  /// no loading state, so while [_submitting] it is made inert and dimmed
-  /// instead of showing a spinner.
+  /// Brand-compliant "Continue with Google" control: the official Google "G"
+  /// (full color, on a white disc). The G is displayed at its supplied 18pt
+  /// size — Google prohibits recoloring or resizing the mark — which is ≈41% of
+  /// the 44pt disc, in line with Google's own icon-button proportion.
+  Widget _googleSignInButton(AppLocalizations l10n) {
+    return _socialIconButton(
+      label: l10n.authContinueWithGoogle,
+      onPressed: _submitting
+          ? null
+          : () => _social(
+                () => ref.read(authStateProvider.notifier).signInWithGoogle(),
+              ),
+      child: Container(
+        width: 44,
+        height: 44,
+        alignment: Alignment.center,
+        decoration: const BoxDecoration(
+          color: AppColors.white,
+          shape: BoxShape.circle,
+        ),
+        child: Image.asset(
+          'assets/icons/google.png',
+          width: 18,
+          height: 18,
+          filterQuality: FilterQuality.high,
+        ),
+      ),
+    );
+  }
+
+  /// Apple's guideline-conformant **logo-only** Sign in with Apple control.
+  ///
+  /// A custom button (Apple's system-provided buttons always carry a title):
+  /// the official Apple Design Resources logo-only artwork — white square +
+  /// black logo — used unmodified at a 1:1 aspect ratio and masked to a circle
+  /// (the HIG's sanctioned "circular mask"). The artwork's own square is the
+  /// button face, so it is scaled until that square fills the 44pt disc (no
+  /// crop, no added padding, never a hand-drawn mark) and the logo keeps the
+  /// artwork's built-in proportion — Apple's own masked-circle geometry. At 44pt
+  /// the Apple mark (≈43%) is at least the size of Google's "G" (≈41%), so it is
+  /// no smaller than the other sign-in option. Icon-only, so an accessible label
+  /// is attached; while [_submitting] it dims (no spinner) and is inert.
   Widget _appleSignInButton(AppLocalizations l10n) {
-    return IgnorePointer(
-      ignoring: _submitting,
-      child: AnimatedOpacity(
-        duration: const Duration(milliseconds: 150),
-        opacity: _submitting ? 0.4 : 1,
-        child: SignInWithAppleButton(
-          onPressed: _submitting
-              ? null
-              : () => _social(
-                    () => ref
-                        .read(authStateProvider.notifier)
-                        .signInWithApple(),
-                  ),
-          text: l10n.authContinueWithApple,
-          style: SignInWithAppleButtonStyle.white,
-          borderRadius: AppRadius.sharp,
-          height: 56,
-          iconAlignment: SignInWithAppleIconAlignment.center,
+    return _socialIconButton(
+      label: l10n.authContinueWithApple,
+      onPressed: _submitting
+          ? null
+          : () => _social(
+                () => ref.read(authStateProvider.notifier).signInWithApple(),
+              ),
+      child: Container(
+        width: 44,
+        height: 44,
+        alignment: Alignment.center,
+        clipBehavior: Clip.antiAlias,
+        decoration: const BoxDecoration(
+          color: AppColors.white,
+          shape: BoxShape.circle,
+        ),
+        child: Transform.scale(
+          // The bundled SVG canvas is 56pt and its coloured square is 44pt.
+          // Enlarging by 56/44 makes that square exactly fill the disc, so the
+          // logo keeps the artwork's built-in proportion.
+          scale: 56 / 44,
+          child: SvgPicture.asset(
+            'assets/icons/apple_logo_only.svg',
+            width: 44,
+            height: 44,
+            excludeFromSemantics: true,
+          ),
         ),
       ),
     );
@@ -309,10 +347,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       const SizedBox(height: 20),
                       if (_isApplePlatform)
                         Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             _googleSignInButton(l10n),
-                            const SizedBox(width: 12),
-                            Expanded(child: _appleSignInButton(l10n)),
+                            // >= 1/10 of the 44pt button height (HIG).
+                            const SizedBox(width: 16),
+                            _appleSignInButton(l10n),
                           ],
                         )
                       else

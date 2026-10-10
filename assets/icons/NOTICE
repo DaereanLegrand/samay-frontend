@@ -19,3 +19,23 @@ https://developers.google.com/identity/branding-guidelines
 Requirements honored by this app: the "G" is displayed full color (never
 monochrome), on a white background, unmodified, and the Google sign-in control
 is presented at least as prominently as the other sign-in option.
+
+apple_logo_only.svg
+-------------------
+Content: Apple's official "Logo - SIWA - Logo-only - Black" artwork (white
+square + black Apple logo), used only on the logo-only "Sign in with Apple"
+control.
+
+Provenance: extracted verbatim (SHA-256 7ee1bc1706bc228f37a937de914e2ebe
+1605aebba3c35f11c3963087573fc11f) from Apple's Sign in with Apple Logo download
+(https://devimages-cdn.apple.com/design/resources/download/Logo-Sign-in-with-Apple.dmg,
+"Sign in with Apple - Logo Only/SVG/"). Distributed under the Apple Developer
+Artwork License Agreement for Sign in with Apple.
+
+Trademarks: the Apple logo and "Sign in with Apple" are trademarks of Apple
+Inc. Use is governed by the Human Interface Guidelines "Creating a custom Sign
+in with Apple button" (logo-only) rules.
+
+Requirements honored by this app: the artwork is rendered unmodified at a 1:1
+aspect ratio (no crop, no added padding, no re-drawn logo), and the control is
+only shown on iOS/macOS where the native Sign in with Apple flow is available.

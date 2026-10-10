@@ -6,6 +6,13 @@
 - CI: `.gitea/workflows/ci.yml`. iOS `PrivacyInfo.xcprivacy` wired into the Runner target.
 
 ## TODO
+- [ ] **NEXT — Prod full builds.** Produce fully signed iOS + Android **prod**
+      builds with **all keys wired**, run on a **Tart VM**, with the signing
+      material materialized from the **vault** (Apple ASC certs/profiles +
+      `match` repo password; Android keystore + Play service account + FCM).
+      Extends the local-only `guard-local` release flow to a clean macOS VM.
+      See `<private-ops-repo>/LOCAL-BUILDS.md`, `<private-ops-repo>/PROD-READINESS.md`,
+      `<private-ops-repo>/KEY-ACQUISITION.md`.
 - [x] Prune cross-brand refs; `welcomeVive`→`welcomeSamay` (see <private-ops-repo>/REPO-AUDIT.md).
 - [x] Per-env Android flavors (`dev`/`staging`/`prod`) + Firebase client config:
       testing committed/open, staging/prod vault-gated. Gum chooser in `make init`

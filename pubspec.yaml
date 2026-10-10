@@ -86,6 +86,11 @@ dependencies:
   google_sign_in: ^7.2.0
   sign_in_with_apple: ^8.2.0
   crypto: ^3.0.7
+  # Renders the official vector (SVG) "Sign in with Apple" logo-only artwork for
+  # the custom logo-only button (HIG: use SVG/PDF for logo-only buttons that are
+  # not 44x44 pt). Flutter Favorite; the SVG is bundled unmodified so the logo
+  # is Apple's download, never a hand-drawn mark.
+  flutter_svg: ^2.3.0
 
 dev_dependencies:
   # Testing is backend-only (directive 2026-08-31): Go `*_test.go`, pgTAP
@@ -108,8 +113,14 @@ flutter:
   # "G" (from the Google Sign-In SDK, Apache-2.0); density variants resolve from
   # assets/icons/{2.0x,3.0x}/google.png. See assets/icons/NOTICE for provenance
   # and the Google branding requirements (full color, on white, unmodified).
+  #
+  # The Apple logo-only SVG is the official artwork from Apple Design Resources
+  # (Logo-Sign-in-with-Apple.dmg), bundled unmodified and rendered via
+  # flutter_svg for the logo-only Sign in with Apple control. See
+  # assets/icons/NOTICE for provenance and the HIG usage terms.
   assets:
     - assets/icons/google.png
+    - assets/icons/apple_logo_only.svg
   fonts:
     - family: Inter
       fonts:
