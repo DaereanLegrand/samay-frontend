@@ -104,6 +104,12 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   generate: true
+  # Bundled brand icon for the "Continue with Google" control. Official Google
+  # "G" (from the Google Sign-In SDK, Apache-2.0); density variants resolve from
+  # assets/icons/{2.0x,3.0x}/google.png. See assets/icons/NOTICE for provenance
+  # and the Google branding requirements (full color, on white, unmodified).
+  assets:
+    - assets/icons/google.png
   fonts:
     - family: Inter
       fonts:

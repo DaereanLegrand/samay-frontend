@@ -26,11 +26,15 @@
       scheme committed in `Info.plist`). New OAuth users enter the onboarding
       funnel (age gate → privacy terms → profile setup, **OTP skipped**). See
       `docs/history/phase-16/2026-10-09_oauth-signup-onboarding.md`.
-- [ ] TODO(frontend): testing **Apple Sign In / Sign Up** — enable + verify the
-      same onboarding funnel with the GoTrue Apple provider. Apple is
-      secret-bearing (Services ID + ES256 client-secret JWT), unlike Google
-      native id-token; populate `qallariy/samay/testing/server/apple-*` in the
-      vault first.
+- [x] TODO(frontend): testing **Apple Sign In / Sign Up** — enabled. GoTrue's
+      Apple provider is live on the testing stack secretlessly: the native
+      `signInWithIdToken` grant validates the token audience against the
+      client-id list (App ID/bundle id) and never constructs the Apple provider,
+      so no Services ID / ES256 JWT / vault entries are needed (those are only
+      for the web flow). The app flow (`signInWithApple`, iOS/macOS button,
+      `com.apple.developer.applesignin` entitlement) was already wired and reuses
+      the OAuth onboarding funnel. See
+      `docs/history/phase-16/2026-10-09_apple-signin-testing.md`.
 - [x] TODO(frontend): testing Google backend secret — **none required**. GoTrue's
       `id_token` grant validates the id-token audience against the client-id list
       and never uses the client secret (`token_oidc.go`), so testing stays

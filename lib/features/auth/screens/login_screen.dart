@@ -2,7 +2,9 @@ import 'package:flutter/foundation.dart' show defaultTargetPlatform;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
+import 'package:samay/core/design_tokens/app_radius.dart';
 import 'package:samay/core/logging/app_logger.dart';
 import 'package:samay/core/providers/auth_provider.dart';
 import 'package:samay/core/router/route_extras.dart';
@@ -129,6 +131,91 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     }
   }
 
+  /// Apple platforms provide a native Sign in with Apple control; elsewhere the
+  /// button is hidden (Google Play has no equivalent mandate; the iOS app still
+  /// offers Apple for App Store guideline 4.8).
+  bool get _isApplePlatform =>
+      defaultTargetPlatform == TargetPlatform.iOS ||
+      defaultTargetPlatform == TargetPlatform.macOS;
+
+  /// Compact, brand-compliant "Continue with Google" control: the official
+  /// Google "G" (full color, on a white disc) inside a borderless, transparent
+  /// button. The control is icon-only, so an accessible label is attached. While
+  /// [_submitting] it dims (no spinner) and is inert.
+  Widget _googleSignInButton(AppLocalizations l10n) {
+    return Semantics(
+      button: true,
+      enabled: !_submitting,
+      label: l10n.authContinueWithGoogle,
+      child: Tooltip(
+        message: l10n.authContinueWithGoogle,
+        child: SizedBox(
+          width: 56,
+          height: 56,
+          child: VButton.outlined(
+            borderless: true,
+            loading: _submitting,
+            showLoadingSpinner: false,
+            onPressed: _submitting
+                ? null
+                : () => _social(
+                      () => ref
+                          .read(authStateProvider.notifier)
+                          .signInWithGoogle(),
+                    ),
+            child: AnimatedOpacity(
+              duration: const Duration(milliseconds: 150),
+              opacity: _submitting ? 0.4 : 1,
+              child: Container(
+                width: 28,
+                height: 28,
+                alignment: Alignment.center,
+                decoration: const BoxDecoration(
+                  color: AppColors.white,
+                  shape: BoxShape.circle,
+                ),
+                child: Image.asset(
+                  'assets/icons/google.png',
+                  width: 18,
+                  height: 18,
+                  filterQuality: FilterQuality.high,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Apple's guideline-conformant "Continue with Apple" button (the
+  /// `sign_in_with_apple` package's widget: Apple logo + localized text). It has
+  /// no loading state, so while [_submitting] it is made inert and dimmed
+  /// instead of showing a spinner.
+  Widget _appleSignInButton(AppLocalizations l10n) {
+    return IgnorePointer(
+      ignoring: _submitting,
+      child: AnimatedOpacity(
+        duration: const Duration(milliseconds: 150),
+        opacity: _submitting ? 0.4 : 1,
+        child: SignInWithAppleButton(
+          onPressed: _submitting
+              ? null
+              : () => _social(
+                    () => ref
+                        .read(authStateProvider.notifier)
+                        .signInWithApple(),
+                  ),
+          text: l10n.authContinueWithApple,
+          style: SignInWithAppleButtonStyle.white,
+          borderRadius: AppRadius.sharp,
+          height: 56,
+          iconAlignment: SignInWithAppleIconAlignment.center,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final loginError = ref.watch(loginErrorProvider);
@@ -219,33 +306,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           ),
                         ],
                       ),
-                      const SizedBox(height: 16),
-                      VButton.outlined(
-                        label: l10n.authContinueWithGoogle,
-                        loading: _submitting,
-                        onPressed: _submitting
-                            ? null
-                            : () => _social(
-                                  () => ref
-                                      .read(authStateProvider.notifier)
-                                      .signInWithGoogle(),
-                                ),
-                      ),
-                      if (defaultTargetPlatform == TargetPlatform.iOS ||
-                          defaultTargetPlatform == TargetPlatform.macOS) ...[
-                        const SizedBox(height: 12),
-                        VButton.outlined(
-                          label: l10n.authContinueWithApple,
-                          loading: _submitting,
-                          onPressed: _submitting
-                              ? null
-                              : () => _social(
-                                    () => ref
-                                        .read(authStateProvider.notifier)
-                                        .signInWithApple(),
-                                  ),
-                        ),
-                      ],
+                      const SizedBox(height: 20),
+                      if (_isApplePlatform)
+                        Row(
+                          children: [
+                            _googleSignInButton(l10n),
+                            const SizedBox(width: 12),
+                            Expanded(child: _appleSignInButton(l10n)),
+                          ],
+                        )
+                      else
+                        Center(child: _googleSignInButton(l10n)),
                       const SizedBox(height: 12),
                       TextButton(
                         onPressed: () => context.push(RoutePaths.signup),

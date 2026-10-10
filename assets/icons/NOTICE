@@ -1,0 +1,21 @@
+Third-party brand assets bundled in this directory
+==================================================
+
+google.png, 2.0x/google.png, 3.0x/google.png
+--------------------------------------------
+Content: the official Google "G" logo (standard color, 18/36/54 px density
+variants), used only on the "Continue with Google" sign-in control.
+
+Provenance: extracted verbatim from the Google Sign-In SDK for iOS
+(GoogleSignIn-iOS, GoogleSignIn/Sources/Resources/google.png and @2x/@3x).
+The SDK is distributed under the Apache License, Version 2.0 (see
+android/NOTICE for the full license text).
+
+Trademarks: the Google name, logo, and the "G" mark are trademarks of Google
+LLC. Apache-2.0 grants no trademark rights (Section 6). Use is governed by the
+Sign in with Google Branding Guidelines:
+https://developers.google.com/identity/branding-guidelines
+
+Requirements honored by this app: the "G" is displayed full color (never
+monochrome), on a white background, unmodified, and the Google sign-in control
+is presented at least as prominently as the other sign-in option.

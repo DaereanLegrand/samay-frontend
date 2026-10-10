@@ -30,6 +30,13 @@ class VButton extends StatelessWidget {
   final String? label;
   final VoidCallback? onPressed;
   final bool loading;
+
+  /// When false, a [loading] button disables (drops to `muted`) but keeps
+  /// rendering its [child]/[label] instead of the foreground spinner.
+  final bool showLoadingSpinner;
+
+  /// Drops the 1px border stroke (the variant fill/foreground are unchanged).
+  final bool borderless;
   final VButtonVariant variant;
 
   const VButton._({
@@ -37,6 +44,8 @@ class VButton extends StatelessWidget {
     this.label,
     this.onPressed,
     this.loading = false,
+    this.showLoadingSpinner = true,
+    this.borderless = false,
     this.child,
     this.variant = VButtonVariant.outlined,
   });
@@ -46,6 +55,8 @@ class VButton extends StatelessWidget {
     String? label,
     VoidCallback? onPressed,
     bool loading = false,
+    bool showLoadingSpinner = true,
+    bool borderless = false,
     Widget? child,
   }) {
     return VButton._(
@@ -53,6 +64,8 @@ class VButton extends StatelessWidget {
       label: label,
       onPressed: onPressed,
       loading: loading,
+      showLoadingSpinner: showLoadingSpinner,
+      borderless: borderless,
       child: child,
     );
   }
@@ -62,6 +75,8 @@ class VButton extends StatelessWidget {
     String? label,
     VoidCallback? onPressed,
     bool loading = false,
+    bool showLoadingSpinner = true,
+    bool borderless = false,
     Widget? child,
   }) {
     return VButton._(
@@ -69,6 +84,8 @@ class VButton extends StatelessWidget {
       label: label,
       onPressed: onPressed,
       loading: loading,
+      showLoadingSpinner: showLoadingSpinner,
+      borderless: borderless,
       child: child,
     );
   }
@@ -78,6 +95,8 @@ class VButton extends StatelessWidget {
     String? label,
     VoidCallback? onPressed,
     bool loading = false,
+    bool showLoadingSpinner = true,
+    bool borderless = false,
     Widget? child,
   }) {
     return VButton._(
@@ -85,6 +104,8 @@ class VButton extends StatelessWidget {
       label: label,
       onPressed: onPressed,
       loading: loading,
+      showLoadingSpinner: showLoadingSpinner,
+      borderless: borderless,
       variant: VButtonVariant.emphasized,
       child: child,
     );
@@ -97,6 +118,8 @@ class VButton extends StatelessWidget {
     String? label,
     VoidCallback? onPressed,
     bool loading = false,
+    bool showLoadingSpinner = true,
+    bool borderless = false,
     Widget? child,
   }) {
     return VButton._(
@@ -104,6 +127,8 @@ class VButton extends StatelessWidget {
       label: label,
       onPressed: onPressed,
       loading: loading,
+      showLoadingSpinner: showLoadingSpinner,
+      borderless: borderless,
       variant: VButtonVariant.dark,
       child: child,
     );
@@ -141,13 +166,16 @@ class VButton extends StatelessWidget {
           if (states.contains(WidgetState.disabled)) return AppColors.muted;
           return text;
         });
-    final WidgetStateProperty<BorderSide?> side =
-        WidgetStateProperty.resolveWith((states) {
-          final color = states.contains(WidgetState.disabled)
-              ? AppColors.muted
-              : (borderColor ?? AppColors.transparent);
-          return BorderSide(color: color);
-        });
+    final WidgetStateProperty<BorderSide?> side = borderless
+        ? const WidgetStatePropertyAll<BorderSide?>(
+            BorderSide(color: AppColors.transparent),
+          )
+        : WidgetStateProperty.resolveWith((states) {
+            final color = states.contains(WidgetState.disabled)
+                ? AppColors.muted
+                : (borderColor ?? AppColors.transparent);
+            return BorderSide(color: color);
+          });
 
     // §5.1 press feedback: α0.1 overlay of the variant's base color — the
     // per-state alphas are derived by TextButton.styleFrom.
@@ -166,7 +194,7 @@ class VButton extends StatelessWidget {
       child: TextButton(
         onPressed: loading ? null : onPressed,
         style: style,
-        child: loading
+        child: loading && showLoadingSpinner
             ? VSpinner(size: 20, color: text)
             : child ??
                   Text(
