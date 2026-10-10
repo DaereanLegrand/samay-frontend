@@ -6,13 +6,16 @@
 - CI: `.gitea/workflows/ci.yml`. iOS `PrivacyInfo.xcprivacy` wired into the Runner target.
 
 ## TODO
-- [ ] **NEXT — Prod full builds.** Produce fully signed iOS + Android **prod**
-      builds with **all keys wired**, run on a **Tart VM**, with the signing
-      material materialized from the **vault** (Apple ASC certs/profiles +
-      `match` repo password; Android keystore + Play service account + FCM).
-      Extends the local-only `guard-local` release flow to a clean macOS VM.
-      See `<private-ops-repo>/LOCAL-BUILDS.md`, `<private-ops-repo>/PROD-READINESS.md`,
-      `<private-ops-repo>/KEY-ACQUISITION.md`.
+- [ ] **NEXT — Staging/prod full builds.** Produce fully signed iOS + Android
+      builds with **all keys wired**, run on a **Tart VM**, with signing material
+      from the **vault**. `ENV=staging|prod` is wired (`build PROD=true ENV=…
+      TARGET=ios|android MODE=adhoc|store`; `ENV=staging tools/release-signing-not-in-repo.sh …`).
+      Remaining: provision staging (vault/Firebase), bake `tailscale` into the
+      Tart base. See `<private-ops-repo>/STAGING.md`, `<private-ops-repo>/LOCAL-BUILDS.md`,
+      `<private-ops-repo>/PROD-READINESS.md`, `<private-ops-repo>/KEY-ACQUISITION.md`.
+- [x] iOS build passes the **real iOS client id** (`google-oauth-ios-client-id`)
+      to `GIDClientID` + `GOOGLE_OAUTH_IOS_CLIENT_ID` (falls back to the Web id
+      only for legacy profiles lacking it).
 - [x] Prune cross-brand refs; `welcomeVive`→`welcomeSamay` (see <private-ops-repo>/REPO-AUDIT.md).
 - [x] Per-env Android flavors (`dev`/`staging`/`prod`) + Firebase client config:
       testing committed/open, staging/prod vault-gated. Gum chooser in `make init`
@@ -22,8 +25,9 @@
 - [ ] Trim README backend/infra sections (belong to samay-backend / <private-ops-repo>).
 - [ ] Add `fastlane/metadata/` store copy + screenshots.
 - [ ] Comment prune (lib/, docs/).
-- [ ] TODO(fastlane): prod iOS build passes the Web client id as the iOS client
-      id (Makefile `TARGET=ios PROD=true`) — pass the real iOS client id.
+- [x] TODO(fastlane): iOS build uses the real iOS client id when the vault
+      profile carries `google-oauth-ios-client-id` (add that entry to the prod
+      `qallariy/samay/public/**` to close the prod case; staging already has it).
 - [ ] TODO(vault): android keystore + Play service account + FCM; Apple ASC keys
       + Gitea `match` repo password. Acquisition order:
       `<private-ops-repo>/KEY-ACQUISITION.md`.

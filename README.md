@@ -8,7 +8,8 @@ QR check-in and E2EE chat.
 - `make init` → `make start` (= `make dev`) — run against the backend chosen at init.
 - `make build TARGET=ios-adhoc|simulator|android|all` · `make install`.
 - `make analyze check secrets hooks env` · `make test`.
-- Release (local-only, vault-gated): `make ios-beta|ios-release|android-alpha|android-release`.
+- Release (local-only, vault-gated): `make build PROD=true [ENV=prod|staging] TARGET=ios|android [MODE=adhoc]` · `make deploy TARGET=… ENV=… TRACK=…` · `make ios-beta|ios-release|android-alpha|android-release`.
+- Full staging (backend + app builds, ephemeral Tart): `<private-ops-repo>/STAGING.md`.
 
 ## Docs
 

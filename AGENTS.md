@@ -5,6 +5,7 @@ The Flutter app **Samay** (`com.qallariy.samay`); split from `Vive`.
 ## Commands
 - Setup: `make init` (gum; writes `.env`, picks local/tunnel/prod backend).
 - Run: `make start` (= `make dev`). Build: `make build TARGET=ios-adhoc|simulator|android|all`.
+- Release: `make build PROD=true [ENV=prod|staging] TARGET=ios|android [MODE=adhoc]` · `make deploy TARGET=… ENV=… TRACK=…`.
 - Gates: `make check`, `make test`.
 - Release (local-only, vault-gated): `make ios-beta|ios-release|android-alpha|android-release`.
 

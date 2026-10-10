@@ -6,12 +6,20 @@
 
 APP_NAME := samay_app
 PROD ?= false
+# Release environment for `build PROD=true`: prod (default) or staging. Selects
+# the vault app-build profile (staging-apple/staging-android), the Android
+# product flavor, and the Firebase client config.
+ENV ?= prod
 BUILD_MODE ?= $(if $(filter true,$(PROD)),release,debug)
 # Android product flavor (build.gradle.kts flavorDimensions "env"). Dev/CI builds
 # default to "dev" (the testing environment's flavor; AGP reserves the "test"
 # prefix, so the shared testing env builds as `--flavor dev`). PROD=true builds
-# the prod flavor.
-ANDROID_FLAVOR ?= $(if $(filter true,$(PROD)),prod,dev)
+# the ENV flavor (prod or staging).
+ANDROID_FLAVOR ?= $(if $(filter true,$(PROD)),$(ENV),dev)
+# iOS export method for `build PROD=true TARGET=ios`: store (App Store Connect,
+# default) or ad-hoc (an on-device ad-hoc IPA). MODE=adhoc is the shorthand.
+MODE ?= store
+IOS_EXPORT_METHOD ?= $(if $(filter adhoc,$(MODE)),ad-hoc,app-store-connect)
 APK := build/app/outputs/flutter-apk/app-$(ANDROID_FLAVOR)-$(BUILD_MODE).apk
 IPA_ADHOC := build/ios/ipa/$(APP_NAME)-adhoc.ipa
 APP_ID := com.qallariy.samay
@@ -27,8 +35,6 @@ IOS_DEVELOPMENT_TEAM ?= $(shell sed -n 's/^IOS_DEVELOPMENT_TEAM=//p' .env.local 
 TUNNEL_HOST          ?= <build-host>
 TUNNEL_ANDROID_PORT  ?= 5565
 TUNNEL_WAYDROID_PORT ?= 5566
-TUNNEL_CMD    ?= flutter run --flavor $(ANDROID_FLAVOR) $(PUB_FLAG) $(DEV_DEFINES) -d localhost:$(TUNNEL_ANDROID_PORT)
-TUNNEL_WAYDROID_CMD ?= flutter run --flavor $(ANDROID_FLAVOR) $(PUB_FLAG) $(DEV_DEFINES) -d localhost:$(TUNNEL_WAYDROID_PORT)
 
 define tunnel-android
   HOST="$(TUNNEL_HOST)"; [ -n "$$HOST" ] || { echo "TUNNEL_HOST is required"; exit 2; }; \
@@ -105,6 +111,13 @@ else
 DEV_DEFINES := $(FLUTTER_DEFINES) --dart-define=SUPABASE_URL=$(API_TESTING_URL)
 endif
 
+# Single Android/Waydroid dev run command, shared by `dev` and the tunnel
+# targets. It ALWAYS pins the selected product flavor: without `--flavor`,
+# `flutter run` triggers an unflavored `assembleDebug` that builds EVERY flavor,
+# including the vault-gated `staging`/`prod` ones whose `google-services.json`
+# is absent (so it dies in `process<Flavor>DebugGoogleServices`).
+ANDROID_RUN := flutter run --flavor $(ANDROID_FLAVOR) $(PUB_FLAG) $(DEV_DEFINES)
+
 ifeq ($(PROD),true)
 ifeq ($(TESTING),true)
 $(error PROD=true and TESTING=true are mutually exclusive)
@@ -134,6 +147,8 @@ help:
 	@echo "  GATES:     analyze check secrets hooks env"
 	@echo "  RELEASE:   ios-beta ios-release android-alpha android-release release bundle-install"
 	@echo "  TRACKS:    deploy TARGET=ios|android|all TRACK=<list>  (build PROD=true honours TRACK too)"
+	@echo "  ENV:       build PROD=true ENV=prod|staging  (staging = vault staging-apple|staging-android profile)"
+	@echo "  IOS MODE:  build PROD=true TARGET=ios MODE=store|adhoc"
 
 env:
 	@echo "ENV_FILE=$(ENV_FILE)"
@@ -184,15 +199,15 @@ build:
 		echo "Simulator app: build/ios/iphonesimulator/Runner.app"; \
 	elif [ "$(TARGET)" = "android" ] && [ "$(PROD)" = "true" ]; then \
 		[ -x "$(RELEASE_SECRETS)" ] || { echo "PROD=true needs executable $(RELEASE_SECRETS) (vault fetch/wipe)."; exit 1; }; \
-		mkdir -p android/app/src/prod; \
-		android_cleanup() { rm -f android/app/src/prod/google-services.json; $(RELEASE_SECRETS) wipe >/dev/null 2>&1 || true; }; \
+		mkdir -p android/app/src/$(ANDROID_FLAVOR); \
+		android_cleanup() { rm -f android/app/src/$(ANDROID_FLAVOR)/google-services.json; $(RELEASE_SECRETS) wipe >/dev/null 2>&1 || true; }; \
 		trap android_cleanup EXIT INT TERM HUP; \
 		$(RELEASE_SECRETS) wipe >/dev/null 2>&1 || true; \
-		$(RELEASE_SECRETS) fetch android; \
-		[ -f "$(KEYSTORE_PROPERTIES)" ] || { echo "vault 'android' profile yielded no $(KEYSTORE_PROPERTIES)."; exit 1; }; \
-		[ -f "$(PROD_DEFINES)" ] || { echo "vault 'android' profile yielded no $(PROD_DEFINES)."; exit 1; }; \
-		[ -f "$(RAM_DIR)/google-services.json" ] || { echo "vault 'android' profile yielded no google-services.json (prod Firebase config)."; exit 1; }; \
-		cp "$(RAM_DIR)/google-services.json" android/app/src/prod/google-services.json; \
+		$(RELEASE_SECRETS) fetch android $(ENV); \
+		[ -f "$(KEYSTORE_PROPERTIES)" ] || { echo "vault '$(ENV)/android' profile yielded no $(KEYSTORE_PROPERTIES)."; exit 1; }; \
+		[ -f "$(PROD_DEFINES)" ] || { echo "vault '$(ENV)/android' profile yielded no $(PROD_DEFINES)."; exit 1; }; \
+		[ -f "$(RAM_DIR)/google-services.json" ] || { echo "vault '$(ENV)/android' profile yielded no google-services.json ($(ENV) Firebase config)."; exit 1; }; \
+		cp "$(RAM_DIR)/google-services.json" android/app/src/$(ANDROID_FLAVOR)/google-services.json; \
 		KEYSTORE_PROPERTIES="$(KEYSTORE_PROPERTIES)" flutter build appbundle --release --flavor $(ANDROID_FLAVOR) $(PUB_FLAG) --dart-define-from-file="$(PROD_DEFINES)" && \
 		echo "AAB: build/app/outputs/bundle/$(ANDROID_FLAVOR)Release/app-$(ANDROID_FLAVOR)-release.aab"; \
 	elif [ "$(TARGET)" = "ios" ] && [ "$(PROD)" = "true" ]; then \
@@ -206,15 +221,15 @@ build:
 		}; \
 		trap cleanup EXIT INT TERM HUP; \
 		$(RELEASE_SECRETS) wipe >/dev/null 2>&1 || true; \
-		$(RELEASE_SECRETS) fetch apple; \
-		[ -f "$(EXPORT_OPTIONS)" ] || { echo "vault 'apple' profile yielded no $(EXPORT_OPTIONS)."; exit 1; }; \
-		[ -f "$(PROD_DEFINES)" ] || { echo "vault 'apple' profile yielded no $(PROD_DEFINES)."; exit 1; }; \
-		[ -f "$(RAM_DIR)/GoogleService-Info.plist" ] || { echo "vault 'apple' profile yielded no GoogleService-Info.plist (prod Firebase config)."; exit 1; }; \
+		IOS_EXPORT_METHOD="$(IOS_EXPORT_METHOD)" $(RELEASE_SECRETS) fetch apple $(ENV); \
+		[ -f "$(EXPORT_OPTIONS)" ] || { echo "vault '$(ENV)/apple' profile yielded no $(EXPORT_OPTIONS)."; exit 1; }; \
+		[ -f "$(PROD_DEFINES)" ] || { echo "vault '$(ENV)/apple' profile yielded no $(PROD_DEFINES)."; exit 1; }; \
+		[ -f "$(RAM_DIR)/GoogleService-Info.plist" ] || { echo "vault '$(ENV)/apple' profile yielded no GoogleService-Info.plist ($(ENV) Firebase config)."; exit 1; }; \
 		FIREBASE_BACKUP=$$(mktemp); cp ios/Runner/GoogleService-Info.plist "$$FIREBASE_BACKUP"; cp "$(RAM_DIR)/GoogleService-Info.plist" ios/Runner/GoogleService-Info.plist; \
-		GID=$$(cat "$(RAM_DIR)/google-oauth-client-id"); \
-		[ -n "$$GID" ] || { echo "vault 'apple' profile yielded no google-oauth-client-id."; exit 1; }; \
-		PLIST_BACKUP=$$(tools/ios_google_oauth.sh apply "$$GID"); \
-		flutter build ipa --release $(PUB_FLAG) --dart-define-from-file="$(PROD_DEFINES)" --dart-define=GOOGLE_OAUTH_IOS_CLIENT_ID="$$GID" --export-options-plist="$(EXPORT_OPTIONS)" && \
+		IOS_GID=$$(cat "$(RAM_DIR)/google-oauth-ios-client-id" 2>/dev/null || cat "$(RAM_DIR)/google-oauth-client-id"); \
+		[ -n "$$IOS_GID" ] || { echo "vault '$(ENV)/apple' profile yielded no iOS client id."; exit 1; }; \
+		PLIST_BACKUP=$$(tools/ios_google_oauth.sh apply "$$IOS_GID"); \
+		flutter build ipa --release $(PUB_FLAG) --dart-define-from-file="$(PROD_DEFINES)" --dart-define=GOOGLE_OAUTH_IOS_CLIENT_ID="$$IOS_GID" --export-options-plist="$(EXPORT_OPTIONS)" && \
 		echo "IPA: build/ios/ipa/*.ipa"; \
 	else \
 		flutter build apk --$(BUILD_MODE) --flavor $(ANDROID_FLAVOR) $(PUB_FLAG) $(FLUTTER_DEFINES) && \
@@ -229,19 +244,19 @@ dev:
 	$(load-env)
 	@UNAME=$$(uname); \
 	if [ "$$UNAME" = "Darwin" ] && [ "$(TARGET)" = "android" ]; then \
-		$(call tunnel-android, flutter run $(PUB_FLAG) $(DEV_DEFINES) -d localhost:$(TUNNEL_ANDROID_PORT)); \
+		$(call tunnel-android, $(ANDROID_RUN) -d localhost:$(TUNNEL_ANDROID_PORT)); \
 	elif [ "$$UNAME" = "Darwin" ] && [ "$(TARGET)" = "waydroid" ]; then \
-		$(call tunnel-waydroid, flutter run $(PUB_FLAG) $(DEV_DEFINES) -d localhost:$(TUNNEL_WAYDROID_PORT)); \
+		$(call tunnel-waydroid, $(ANDROID_RUN) -d localhost:$(TUNNEL_WAYDROID_PORT)); \
 	elif [ "$(TARGET)" = "waydroid" ]; then \
 		IP=$$($(call waydroid-preflight)); \
 		adb connect "$$IP:5555"; \
-		flutter run $(PUB_FLAG) $(DEV_DEFINES) -d "$$IP:5555"; \
+		$(ANDROID_RUN) -d "$$IP:5555"; \
 	elif [ "$(TARGET)" = "android" ]; then \
 		DEV=$$(adb devices | grep -o 'emulator-[0-9]*' | head -1); \
 		if [ -n "$$DEV" ]; then \
-			flutter run $(PUB_FLAG) $(DEV_DEFINES) -d "$$DEV"; \
+			$(ANDROID_RUN) -d "$$DEV"; \
 		else \
-			flutter run $(PUB_FLAG) $(DEV_DEFINES); \
+			$(ANDROID_RUN); \
 		fi; \
 	elif [ "$(TARGET)" = "simulator" ]; then \
 		DEVS=$$(xcrun simctl list devices booted | awk -F '[()]' '/Booted/ {print $$2}'); \
@@ -491,7 +506,7 @@ tunnel-android:
 		(trap 'kill $$SSH_PID 2>/dev/null; adb disconnect localhost:$(TUNNEL_ANDROID_PORT) 2>/dev/null' EXIT; \
 		ssh -N -L $(TUNNEL_ANDROID_PORT):127.0.0.1:5555 "$$HOST" & SSH_PID=$$!; sleep 1; \
 		adb connect localhost:$(TUNNEL_ANDROID_PORT); \
-		$(TUNNEL_CMD))
+		$(ANDROID_RUN) -d localhost:$(TUNNEL_ANDROID_PORT))
 
 tunnel-waydroid:
 	@HOST="$(TUNNEL_HOST)"; [ -n "$$HOST" ] || { echo "TUNNEL_HOST is required"; exit 2; }; \
@@ -499,7 +514,7 @@ tunnel-waydroid:
 		(trap 'kill $$SSH_PID 2>/dev/null; adb disconnect localhost:$(TUNNEL_WAYDROID_PORT) 2>/dev/null' EXIT; \
 		ssh -N -L $(TUNNEL_WAYDROID_PORT):$$WIP:5555 "$$HOST" & SSH_PID=$$!; sleep 1; \
 		adb connect localhost:$(TUNNEL_WAYDROID_PORT); \
-		$(TUNNEL_WAYDROID_CMD))
+		$(ANDROID_RUN) -d localhost:$(TUNNEL_WAYDROID_PORT))
 
 signing-restore:
 	@git checkout HEAD -- ios/Runner.xcodeproj/project.pbxproj && \
@@ -566,8 +581,8 @@ bundle-install:
 # per-platform targets are `build PROD=true TARGET=ios|android`; this target
 # is just the two-step convenience wrapper.
 release:
-	@$(MAKE) build PROD=true TARGET=ios NO_PUB=$(NO_PUB)
-	@$(MAKE) build PROD=true TARGET=android NO_PUB=$(NO_PUB)
+	@$(MAKE) build PROD=true TARGET=ios ENV="$(ENV)" NO_PUB=$(NO_PUB)
+	@$(MAKE) build PROD=true TARGET=android ENV="$(ENV)" NO_PUB=$(NO_PUB)
 
 # ── Track-aware build + deploy ───────────────────────────────────────────────
 # build PROD=true TARGET=ios|android TRACK=<list>   → validated build only
@@ -583,8 +598,8 @@ deploy: track-guard
 	@set -e; \
 	targets="$(TARGET)"; \
 	case "$$targets" in ios|android) : ;; all) targets="ios android";; *) echo "deploy: TARGET must be ios|android|all"; exit 1;; esac; \
-	for t in $$targets; do $(MAKE) --no-print-directory build PROD=true TARGET=$$t TRACK="$(TRACK)" NO_PUB=$(NO_PUB); done; \
-	$(MAKE) --no-print-directory publish TARGET="$(TARGET)" TRACK="$(TRACK)"
+	for t in $$targets; do $(MAKE) --no-print-directory build PROD=true TARGET=$$t ENV="$(ENV)" TRACK="$(TRACK)" NO_PUB=$(NO_PUB); done; \
+	$(MAKE) --no-print-directory publish TARGET="$(TARGET)" ENV="$(ENV)" TRACK="$(TRACK)"
 
 publish: TRACK_REQUIRED=true
 publish: track-guard
@@ -594,7 +609,7 @@ publish: track-guard
 	[ -x "$(RELEASE_SECRETS)" ] || { echo "publish: needs executable $(RELEASE_SECRETS) (vault fetch/wipe)."; exit 1; }; \
 	for t in $$targets; do \
 		case "$$t" in ios) profile=apple;; android) profile=android;; esac; \
-		$(RELEASE_SECRETS) fetch "$$profile"; \
+		IOS_EXPORT_METHOD="$(IOS_EXPORT_METHOD)" $(RELEASE_SECRETS) fetch "$$profile" $(ENV); \
 		eval "$$($(RELEASE_SECRETS) env "$$profile")"; \
 		for track in $$(echo "$(TRACK)" | tr ',' ' '); do \
 			[ -n "$$track" ] || continue; \
@@ -605,7 +620,7 @@ publish: track-guard
 					TRACK="$$track" bundle exec fastlane ios "$$lane";; \
 				android) \
 					case " $(ANDROID_TRACKS) " in *" $$track "*) ;; *) echo "publish: skip android/$$track (not an Android track)"; continue;; esac; \
-					TRACK="$$track" bundle exec fastlane android track_play;; \
+					ENV="$(ENV)" TRACK="$$track" bundle exec fastlane android track_play;; \
 			esac; \
 		done; \
 		$(RELEASE_SECRETS) wipe; \

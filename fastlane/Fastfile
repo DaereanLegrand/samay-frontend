@@ -196,8 +196,12 @@ def prebuilt_ios_ipa
 end
 
 def prebuilt_android_aab
-  aab = File.expand_path("../build/app/outputs/bundle/prodRelease/app-prod-release.aab", Dir.pwd)
-  UI.user_error!("No AAB at build/app/outputs/bundle/prodRelease/app-prod-release.aab — build it first: make build PROD=true TARGET=android TRACK=…") unless File.exist?(aab)
+  # Flavor follows the release environment (ENV=prod|staging) set by the
+  # Makefile's `publish` step; the AAB name embeds the flavor.
+  flavor = ENV.fetch("ENV", "prod")
+  rel = "#{flavor}Release/app-#{flavor}-release.aab"
+  aab = File.expand_path("../build/app/outputs/bundle/#{rel}", Dir.pwd)
+  UI.user_error!("No AAB at build/app/outputs/bundle/#{rel} — build it first: make build PROD=true TARGET=android ENV=#{flavor} TRACK=…") unless File.exist?(aab)
   aab
 end
 
