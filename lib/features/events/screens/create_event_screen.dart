@@ -100,7 +100,7 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
   bool _groupsError = false;
 
   /// Attendee capacity (host + staff + guests). The server freezes the real
-  /// cap; the stepper is bounded to the creator's entitlement-tier max.
+  /// cap; the stepper is bounded to the creator's subscription-tier max.
   int _capacity = 7;
   int _tierCap = 7;
   bool _capacityEdited = false;
@@ -155,13 +155,13 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
     }
   }
 
-  /// Resolves the creator's entitlement-tier attendance cap from
-  /// app_config (`events.{free,t2,t1,t0}_max_attendees`). Falls back to the
+  /// Resolves the creator's subscription-tier attendance cap from
+  /// app_config (`events.{free,pro,vip}_max_attendees`). Falls back to the
   /// seeded free value (7) while the profile/config are loading or missing.
   Future<void> _loadEntitlement() async {
     try {
       final profile = await ref.read(currentUserProvider.future);
-      final tier = profile?.entitlementTier ?? 'free';
+      final tier = profile?.subscriptionTier ?? 'free';
       final cfg = await ref.read(appConfigProvider.future);
       final cap =
           int.tryParse(cfg['events.${tier}_max_attendees'] ?? '') ??
@@ -182,9 +182,8 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
 
   static int _fallbackCap(String tier) {
     return switch (tier) {
-      't2' => 14,
-      't1' => 56,
-      't0' => 1120,
+      'pro' => 56,
+      'vip' => 1120,
       _ => 7,
     };
   }

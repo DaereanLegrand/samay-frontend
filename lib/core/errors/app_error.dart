@@ -146,7 +146,7 @@ class ConflictError extends AppError {
 }
 
 /// Raised by purchase flows when RevenueCat is not configured (stub mode —
-/// no `REVENUECAT_PUBLIC_SDK_KEY` dart-define). Subclassed
+/// no RevenueCat public SDK key dart-define). Subclassed
 /// here because [AppError] is sealed: all error types live in this library.
 class NotConfiguredError extends AppError {
   NotConfiguredError();

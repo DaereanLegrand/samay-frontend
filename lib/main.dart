@@ -5,6 +5,7 @@ import 'package:app_links/app_links.dart';
 import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:purchases_flutter/purchases_flutter.dart' as rc;
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:samay/app.dart';
 import 'package:samay/core/config/env_config.dart';
@@ -13,6 +14,7 @@ import 'package:samay/core/deep_links/deep_link_handler.dart';
 import 'package:samay/core/logging/app_logger.dart';
 import 'package:samay/core/services/crash_reporter.dart';
 import 'package:samay/core/services/push_service.dart';
+import 'package:samay/core/services/revenuecat_service.dart';
 import 'package:samay/core/services/secure_session_storage.dart';
 import 'package:samay/core/services/storage_service.dart';
 
@@ -121,6 +123,40 @@ Future<void> main() async {
       authFlowType: AuthFlowType.pkce,
     ),
   );
+  // RevenueCat (RSDK): configure the SDK only when the build carries a public
+  // SDK key for this platform (vault-fetched via `RC=true`, passed as
+  // --dart-define=REVENUECAT_PUBLIC_SDK_KEY_APPLE|_GOOGLE, or
+  // REVENUECAT_TEST_STORE_KEY in debug). Without one the app stays in stub
+  // mode (no store calls). `logIn(<supabase uid>)` sets RevenueCat's
+  // app_user_id to the Supabase user, so the `revenuecat-webhook` can resolve
+  // the account; `logOut` on sign-out. Any failure degrades to no RC — never
+  // blocks boot.
+  final rcKey = revenueCatPublicSdkKey();
+  try {
+    if (rcKey.isNotEmpty) {
+      await rc.Purchases.configure(rc.PurchasesConfiguration(rcKey));
+      final auth = Supabase.instance.client.auth;
+      Future<void> syncRevenueCatUser(Session? session) async {
+        try {
+          if (session != null) {
+            await rc.Purchases.logIn(session.user.id);
+          } else {
+            await rc.Purchases.logOut();
+          }
+        } catch (e) {
+          AppLogger.instance.warn('RevenueCat logIn/logOut failed: $e');
+        }
+      }
+
+      auth.onAuthStateChange.listen(
+        (data) => unawaited(syncRevenueCatUser(data.session)),
+      );
+      await syncRevenueCatUser(auth.currentSession);
+    }
+  } catch (e) {
+    AppLogger.instance.warn('RevenueCat configure skipped: $e');
+  }
+
   // EINV: wire the app_links platform stream into the deep-link seam.
   // `AppLinks()` is touched here (before runApp) so the cold-start link is
   // captured: `uriLinkStream` delivers the initial link exactly once
@@ -133,12 +169,13 @@ Future<void> main() async {
       deepLinkStreamProvider.overrideWithValue(
         AppLinks().uriLinkStream.map((uri) => uri.toString()),
       ),
-      // Debug-only: exercise Firebase/FCM locally (the debug keystore SHA-1 is
-      // registered on the Android API key). Release stays dark (push = false).
-      if (kDebugMode)
-        featureFlagsProvider.overrideWithValue(
-          const AppFeatureFlags(push: true),
-        ),
+      // Subscriptions turn on iff this build carries a RevenueCat key (any
+      // env/platform); push turns on in debug only (the debug keystore SHA-1 is
+      // registered on the Android API key). Release without an RC key stays
+      // dark (subscriptions = false).
+      featureFlagsProvider.overrideWithValue(
+        AppFeatureFlags(push: kDebugMode, subscriptions: rcKey.isNotEmpty),
+      ),
     ],
   );
   // Push (Track 2, dark-first): initialise only when AppFeatureFlag.push is

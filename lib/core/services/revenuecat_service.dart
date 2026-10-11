@@ -1,18 +1,53 @@
+import 'package:flutter/foundation.dart' show defaultTargetPlatform, kDebugMode, TargetPlatform;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:purchases_flutter/purchases_flutter.dart' as rc;
 import 'package:samay/core/errors/app_error.dart';
 import 'package:samay/core/logging/app_logger.dart';
 
-/// Build-time RevenueCat public SDK key, injected via
-/// `--dart-define=REVENUECAT_PUBLIC_SDK_KEY=...` (placeholder `''` default).
+/// Build-time RevenueCat public SDK keys, injected via `--dart-define`.
 ///
-/// The public SDK key is safe to ship by design (it cannot mint purchases),
-/// but it must never be hardcoded here — a build without the define runs the
-/// app in **stub mode** (RSDK placeholder: no store calls, no UI errors).
-const String revenueCatPublicSdkKey = String.fromEnvironment(
-  'REVENUECAT_PUBLIC_SDK_KEY',
+/// RevenueCat's Flutter SDK is **per-platform keyed**: iOS uses an
+/// `appl_…` public key, Android a `goog_…` public key, and local development
+/// uses a distinct **Test Store** key (RevenueCat's built-in test environment,
+/// which needs no App Store / Play setup). All keys are public by design (they
+/// cannot mint purchases) but must never be hardcoded — a build with none of
+/// them runs in **stub mode** (purchase UI disabled).
+///
+/// See https://www.revenuecat.com/docs/getting-started/configuring-sdk and
+/// https://www.revenuecat.com/docs/test-and-launch/sandbox/test-store.
+const String revenueCatSdkKeyApple = String.fromEnvironment(
+  'REVENUECAT_PUBLIC_SDK_KEY_APPLE',
   defaultValue: '',
 );
+const String revenueCatSdkKeyGoogle = String.fromEnvironment(
+  'REVENUECAT_PUBLIC_SDK_KEY_GOOGLE',
+  defaultValue: '',
+);
+const String revenueCatTestStoreKey = String.fromEnvironment(
+  'REVENUECAT_TEST_STORE_KEY',
+  defaultValue: '',
+);
+
+/// The public SDK key that applies to the current build:
+///  * debug build with a Test Store key present → the Test Store key;
+///  * otherwise iOS → the Apple key, Android → the Google key;
+///  * unset / unsupported platform → `''` (stub mode).
+///
+/// A Test Store key must never be used in a release build (RevenueCat's SDK
+/// refuses to run it there), hence the `kDebugMode` gate.
+String revenueCatPublicSdkKey() {
+  if (kDebugMode && revenueCatTestStoreKey.isNotEmpty) {
+    return revenueCatTestStoreKey;
+  }
+  switch (defaultTargetPlatform) {
+    case TargetPlatform.iOS:
+      return revenueCatSdkKeyApple;
+    case TargetPlatform.android:
+      return revenueCatSdkKeyGoogle;
+    default:
+      return '';
+  }
+}
 
 /// Minimal RevenueCat customer snapshot consumed by the app — an
 /// SDK-agnostic view-model so screens never import the plugin types.
@@ -96,13 +131,13 @@ class PurchasesDriver implements RevenueCatDriver {
 class RevenueCatService {
   RevenueCatService({
     RevenueCatDriver? driver,
-    String apiKey = revenueCatPublicSdkKey,
+    String? apiKey,
   })  : _driver = driver ?? PurchasesDriver(),
-        _apiKey = apiKey {
+        _apiKey = apiKey ?? revenueCatPublicSdkKey() {
     if (_apiKey.isEmpty) {
       AppLogger.instance.warn(
-        'RevenueCat stub mode: no REVENUECAT_PUBLIC_SDK_KEY dart-define — '
-        'purchase UI is disabled (RSDK wiring pending).',
+        'RevenueCat stub mode: no REVENUECAT_PUBLIC_SDK_KEY_APPLE|_GOOGLE '
+        '(or REVENUECAT_TEST_STORE_KEY) dart-define — purchase UI is disabled.',
       );
     }
   }

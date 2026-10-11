@@ -16,6 +16,15 @@
 - [x] iOS build passes the **real iOS client id** (`google-oauth-ios-client-id`)
       to `GIDClientID` + `GOOGLE_OAUTH_IOS_CLIENT_ID` (falls back to the Web id
       only for legacy profiles lacking it).
+- [~] RevenueCat IAP: `main.dart` configures + `logIn`/`logOut` on auth;
+      per-platform public keys (`…_APPLE`/`…_GOOGLE`) + Test Store key, opt-in
+      `RC=true` (app-build profile); stub mode without them; `subscriptions` flag
+      auto-on with a key. Remaining (owner): RC projects + store credentials +
+      products + webhook + vault keys; Test Store/sandbox validation (release
+      sandbox needs the store commercial setup). See
+      `<private-ops-repo>/REVENUECAT-TODO.md` / `REVENUECAT.md`.
+- [x] Event capacity UI reads `subscriptionTier` (entitlement_tier dropped in
+      migration `225_subscription_refactor`).
 - [x] Prune cross-brand refs; `welcomeVive`→`welcomeSamay` (see <private-ops-repo>/REPO-AUDIT.md).
 - [x] Per-env Android flavors (`dev`/`staging`/`prod`) + Firebase client config:
       testing committed/open, staging/prod vault-gated. Gum chooser in `make init`

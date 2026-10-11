@@ -173,7 +173,7 @@ class AuthService {
         .from('users')
         .select(
           'id, username, avatar_url, bio, personal_shards, preshards, '
-          'subscription_tier, entitlement_tier, deleted_at, date_of_birth',
+          'subscription_tier, deleted_at, date_of_birth',
         )
         .eq('id', user.id)
         .maybeSingle();

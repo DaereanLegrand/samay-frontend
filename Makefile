@@ -20,6 +20,10 @@ ANDROID_FLAVOR ?= $(if $(filter true,$(PROD)),$(ENV),dev)
 # default) or ad-hoc (an on-device ad-hoc IPA). MODE=adhoc is the shorthand.
 MODE ?= store
 IOS_EXPORT_METHOD ?= $(if $(filter adhoc,$(MODE)),ad-hoc,app-store-connect)
+# RevenueCat opt-in: RC=true injects the env's public SDK key from the vault
+# (the app-build profile emits it). Unset/false ⇒ no key ⇒ the app is in stub
+# mode (purchase UI disabled). See <private-ops-repo> docs + <private-ops-repo>.
+RC ?= false
 APK := build/app/outputs/flutter-apk/app-$(ANDROID_FLAVOR)-$(BUILD_MODE).apk
 IPA_ADHOC := build/ios/ipa/$(APP_NAME)-adhoc.ipa
 APP_ID := com.qallariy.samay
@@ -203,7 +207,7 @@ build:
 		android_cleanup() { rm -f android/app/src/$(ANDROID_FLAVOR)/google-services.json; $(RELEASE_SECRETS) wipe >/dev/null 2>&1 || true; }; \
 		trap android_cleanup EXIT INT TERM HUP; \
 		$(RELEASE_SECRETS) wipe >/dev/null 2>&1 || true; \
-		$(RELEASE_SECRETS) fetch android $(ENV); \
+		RC="$(RC)" $(RELEASE_SECRETS) fetch android $(ENV); \
 		[ -f "$(KEYSTORE_PROPERTIES)" ] || { echo "vault '$(ENV)/android' profile yielded no $(KEYSTORE_PROPERTIES)."; exit 1; }; \
 		[ -f "$(PROD_DEFINES)" ] || { echo "vault '$(ENV)/android' profile yielded no $(PROD_DEFINES)."; exit 1; }; \
 		[ -f "$(RAM_DIR)/google-services.json" ] || { echo "vault '$(ENV)/android' profile yielded no google-services.json ($(ENV) Firebase config)."; exit 1; }; \
@@ -221,7 +225,7 @@ build:
 		}; \
 		trap cleanup EXIT INT TERM HUP; \
 		$(RELEASE_SECRETS) wipe >/dev/null 2>&1 || true; \
-		IOS_EXPORT_METHOD="$(IOS_EXPORT_METHOD)" $(RELEASE_SECRETS) fetch apple $(ENV); \
+		RC="$(RC)" IOS_EXPORT_METHOD="$(IOS_EXPORT_METHOD)" $(RELEASE_SECRETS) fetch apple $(ENV); \
 		[ -f "$(EXPORT_OPTIONS)" ] || { echo "vault '$(ENV)/apple' profile yielded no $(EXPORT_OPTIONS)."; exit 1; }; \
 		[ -f "$(PROD_DEFINES)" ] || { echo "vault '$(ENV)/apple' profile yielded no $(PROD_DEFINES)."; exit 1; }; \
 		[ -f "$(RAM_DIR)/GoogleService-Info.plist" ] || { echo "vault '$(ENV)/apple' profile yielded no GoogleService-Info.plist ($(ENV) Firebase config)."; exit 1; }; \
@@ -609,7 +613,7 @@ publish: track-guard
 	[ -x "$(RELEASE_SECRETS)" ] || { echo "publish: needs executable $(RELEASE_SECRETS) (vault fetch/wipe)."; exit 1; }; \
 	for t in $$targets; do \
 		case "$$t" in ios) profile=apple;; android) profile=android;; esac; \
-		IOS_EXPORT_METHOD="$(IOS_EXPORT_METHOD)" $(RELEASE_SECRETS) fetch "$$profile" $(ENV); \
+		RC="$(RC)" IOS_EXPORT_METHOD="$(IOS_EXPORT_METHOD)" $(RELEASE_SECRETS) fetch "$$profile" $(ENV); \
 		eval "$$($(RELEASE_SECRETS) env "$$profile")"; \
 		for track in $$(echo "$(TRACK)" | tr ',' ' '); do \
 			[ -n "$$track" ] || continue; \
