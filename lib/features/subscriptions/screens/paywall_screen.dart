@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:samay/core/config/env_config.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/extensions/error_mapper.dart';
@@ -149,6 +150,80 @@ String formatPEN(int centimos) {
   return 'S/ $amount';
 }
 
+/// Price labels for a paid tier's card: the monthly headline, the annual
+/// monthly-equivalent (with the `/mo` suffix applied), and the computed saving
+/// percent. `prod` builds source these from `app_config` (custom prices); every
+/// other environment sources them from the resolved RevenueCat products (no
+/// app_config fallback).
+class TierPricing {
+  const TierPricing({
+    this.monthlyLabel,
+    this.annualEquivalentLabel,
+    this.discountPercent,
+  });
+
+  /// e.g. `$4.99` (RC) or `S/ 19.99` (prod).
+  final String? monthlyLabel;
+
+  /// The annual price expressed per month, e.g. `$4.17/mo` (RC) or
+  /// `S/ 16.66/mo` (prod). Null when there is no annual price.
+  final String? annualEquivalentLabel;
+
+  /// Computed saving percent (from the set prices). Null when unavailable.
+  final int? discountPercent;
+}
+
+/// Resolves a tier's [TierPricing] from the environment's price source.
+TierPricing tierPricing({
+  required PaywallTier tier,
+  required Map<String, String> config,
+  required Map<String, RcProduct> rcProducts,
+  required String perMonthSuffix,
+}) {
+  // The free tier is always S/ 0.00 (no product, no discount).
+  if (!tier.isPaid) return TierPricing(monthlyLabel: formatPEN(0));
+  if (EnvConfig.isProd) {
+    final monthly = paywallMonthlyPrice(tier.id, config);
+    final annual = paywallAnnualPrice(tier.id, config);
+    if (monthly <= 0) return const TierPricing();
+    final eq = annual / 12;
+    return TierPricing(
+      monthlyLabel: formatPEN(monthly),
+      annualEquivalentLabel: '${formatPEN(eq.round())}$perMonthSuffix',
+      discountPercent: savingPercent(monthly.toDouble(), eq),
+    );
+  }
+  final monthly = rcProducts[
+      RevenueCatProducts.idFor(tier.id, BillingPeriod.monthly) ?? ''];
+  if (monthly == null) return const TierPricing();
+  final annual = rcProducts[
+      RevenueCatProducts.idFor(tier.id, BillingPeriod.annual) ?? ''];
+  String? annualEq;
+  int? percent;
+  if (annual != null && monthly.price > 0) {
+    final currency = NumberFormat.simpleCurrency(
+      name: monthly.currencyCode,
+      decimalDigits: 2,
+    );
+    final eq = annual.price / 12;
+    annualEq = '${currency.format(eq)}$perMonthSuffix';
+    percent = savingPercent(monthly.price, eq);
+  }
+  return TierPricing(
+    monthlyLabel: monthly.priceString,
+    annualEquivalentLabel: annualEq,
+    discountPercent: percent,
+  );
+}
+
+/// The saving percent of paying annually vs monthly, computed from the set
+/// prices: `round((1 - annualMonthlyEquivalent / monthly) * 100)`, clamped at 0.
+int savingPercent(double monthly, double annualMonthlyEquivalent) {
+  if (monthly <= 0) return 0;
+  final pct = ((1 - annualMonthlyEquivalent / monthly) * 100).round();
+  return pct < 0 ? 0 : pct;
+}
+
 /// The user's explicit current tier ('free'/'pro'/'vip') from the auth state,
 /// or null when the user JSON carries no `subscription_tier` — a null resolves
 /// to NO badge, never a claim of the free tier.
@@ -170,30 +245,39 @@ String? currentTierFromAuth(AuthState authState) {
 }
 
 /// Subscription paywall (PLAN spec §6.12 + `PLAN-subscription-plans-paywall`):
-/// transparent pricing for **all** tiers (Free/PRO/VIP, monthly + annual),
-/// prices from `app_config` (`subs.*_price_pen`, seeded) — never hardcoded —
-/// the "Actual" badge on the current tier, and purchase buttons that stay
-/// disabled (with a "Próximamente" tooltip) while RevenueCat is in stub mode.
+/// transparent pricing for **all** tiers (Free/PRO/VIP), prices from
+/// `app_config` (`subs.*_price_pen`, seeded) — never hardcoded — the "Actual"
+/// badge on the current tier, and a monthly/annual toggle that selects which
+/// product a paid tier's CTA buys.
+///
+/// A tier CTA renders only when its product id is actually purchasable in this
+/// build ([availableRevenueCatProductsProvider]); otherwise it renders nothing
+/// — there is no "coming soon" placeholder. In a stub build (no RevenueCat key)
+/// the route is behind `AppFeatureFlag.subscriptions` and unreachable.
 ///
 /// Monochrome: flat tier cards and a single white display hero (one hero per
 /// screen; no AppBar title).
-class PaywallScreen extends ConsumerWidget {
+class PaywallScreen extends ConsumerStatefulWidget {
   const PaywallScreen({super.key});
 
-  Future<void> _purchase(
-    BuildContext context,
-    WidgetRef ref,
-    String tierId,
-  ) async {
+  @override
+  ConsumerState<PaywallScreen> createState() => _PaywallScreenState();
+}
+
+class _PaywallScreenState extends ConsumerState<PaywallScreen> {
+  /// Billing period selected for the paid CTAs (default monthly).
+  BillingPeriod _period = BillingPeriod.monthly;
+
+  Future<void> _purchase(String productId) async {
     final messenger = ScaffoldMessenger.of(context);
     try {
-      await ref.read(revenueCatServiceProvider).purchase(tierId);
+      await ref.read(revenueCatServiceProvider).purchase(productId);
     } catch (e, _) {
       messenger.showSnackBar(SnackBar(content: Text(e.toAppError().message)));
     }
   }
 
-  Future<void> _restore(BuildContext context, WidgetRef ref) async {
+  Future<void> _restore() async {
     final messenger = ScaffoldMessenger.of(context);
     try {
       await ref.read(revenueCatServiceProvider).restorePurchases();
@@ -203,11 +287,12 @@ class PaywallScreen extends ConsumerWidget {
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final config = ref.watch(appConfigProvider);
     final authState = ref.watch(authStateProvider);
     final stubMode = ref.watch(revenueCatServiceProvider).isStubMode;
+    final available = ref.watch(availableRevenueCatProductsProvider);
 
     return Scaffold(
       body: VHeaderBar(
@@ -221,6 +306,8 @@ class PaywallScreen extends ConsumerWidget {
             final currentTier = currentTierFromAuth(
               authState.valueOrNull ?? const AuthState(),
             );
+            final products =
+                available.valueOrNull ?? const <String, RcProduct>{};
             return ListView(
               padding: const EdgeInsets.all(AppSpacing.xl),
               children: [
@@ -232,28 +319,40 @@ class PaywallScreen extends ConsumerWidget {
                   l10n.paywallAllTiersVisible,
                   style: Theme.of(context).textTheme.bodyMedium,
                 ),
+                const SizedBox(height: AppSpacing.lg),
+                // Monthly / annual selection for the paid CTAs.
+                _PeriodToggle(
+                  period: _period,
+                  onChanged: (p) => setState(() => _period = p),
+                ),
                 const SizedBox(height: AppSpacing.xl),
                 for (final tier in paywallTiers) ...[
                   _TierCard(
                     tier: tier,
                     l10n: l10n,
-                    config: appConfig,
                     isCurrent: currentTier == tier.id,
                     stubMode: stubMode,
-                    onUpgrade: tier.isPaid
-                        ? () => _purchase(context, ref, tier.id)
-                        : null,
+                    productId: RevenueCatProducts.idFor(tier.id, _period),
+                    availableProducts: products,
+                    pricing: tierPricing(
+                      tier: tier,
+                      config: appConfig,
+                      rcProducts: products,
+                      perMonthSuffix: l10n.paywallPerMonth,
+                    ),
+                    onBuy: _purchase,
                   ),
                   const SizedBox(height: AppSpacing.lg),
                 ],
-                const SizedBox(height: AppSpacing.sm),
-                Tooltip(
-                  message: l10n.comingSoonSoon,
-                  child: VButton.outlined(
+                // Restore is offered only when a real store is configured;
+                // otherwise (or in stub mode) nothing is rendered.
+                if (!stubMode) ...[
+                  const SizedBox(height: AppSpacing.sm),
+                  VButton.outlined(
                     label: l10n.paywallRestore,
-                    onPressed: stubMode ? null : () => _restore(context, ref),
+                    onPressed: _restore,
                   ),
-                ),
+                ],
               ],
             );
           },
@@ -266,18 +365,29 @@ class PaywallScreen extends ConsumerWidget {
 class _TierCard extends StatefulWidget {
   final PaywallTier tier;
   final AppLocalizations l10n;
-  final Map<String, String> config;
   final bool isCurrent;
   final bool stubMode;
-  final VoidCallback? onUpgrade;
+
+  /// The RC product id for the selected period, or null when the tier is
+  /// unpriced.
+  final String? productId;
+
+  /// Products that are actually purchasable in this build (keyed by id).
+  final Map<String, RcProduct> availableProducts;
+
+  /// Resolved price labels for this tier (env-based price source).
+  final TierPricing pricing;
+  final ValueChanged<String> onBuy;
 
   const _TierCard({
     required this.tier,
     required this.l10n,
-    required this.config,
     required this.isCurrent,
     required this.stubMode,
-    required this.onUpgrade,
+    required this.productId,
+    required this.availableProducts,
+    required this.pricing,
+    required this.onBuy,
   });
 
   @override
@@ -293,11 +403,16 @@ class _TierCardState extends State<_TierCard> {
   Widget build(BuildContext context) {
     final tier = widget.tier;
     final l10n = widget.l10n;
-    final monthly = paywallMonthlyPrice(tier.id, widget.config);
-    final annual = paywallAnnualPrice(tier.id, widget.config);
+    final pricing = widget.pricing;
     final current = widget.isCurrent
         ? VBadge.emphasized(label: l10n.paywallCurrentBadge)
         : null;
+    final productId = widget.productId;
+    // The CTA is shown only when this build can actually buy the product;
+    // otherwise the card renders no button at all.
+    final canBuy = !widget.stubMode &&
+        productId != null &&
+        widget.availableProducts.containsKey(productId);
 
     return VCard(
       child: Column(
@@ -315,29 +430,32 @@ class _TierCardState extends State<_TierCard> {
             ],
           ),
           const SizedBox(height: AppSpacing.sm),
-          Text(
-            '${formatPEN(monthly)}${l10n.paywallPerMonth}',
-            style: Theme.of(context).textTheme.headlineSmall,
-          ),
-          if (tier.isPaid) ...[
+          // Headline: the monthly price (RC priceString, or custom app_config).
+          if (pricing.monthlyLabel != null)
+            Text(
+              '${pricing.monthlyLabel}${l10n.paywallPerMonth}',
+              style: Theme.of(context).textTheme.headlineSmall,
+            ),
+          // Subtitle: the annual monthly-equivalent + the computed saving %.
+          if (tier.isPaid &&
+              pricing.annualEquivalentLabel != null &&
+              pricing.discountPercent != null) ...[
             const SizedBox(height: AppSpacing.xs),
             Text(
               l10n.paywallAnnualEquivalent(
-                '${formatPEN((annual / 12).round())}${l10n.paywallPerMonth}',
+                pricing.annualEquivalentLabel!,
+                '${pricing.discountPercent}',
               ),
               style: Theme.of(context).textTheme.bodyMedium,
             ),
           ],
-          if (widget.onUpgrade != null) ...[
+          if (canBuy) ...[
             const SizedBox(height: AppSpacing.lg),
-            Tooltip(
-              message: l10n.comingSoonSoon,
-              child: VButton.emphasized(
-                label: tier.id == 'pro'
-                    ? l10n.paywallUpgradePro
-                    : l10n.paywallUpgradeVip,
-                onPressed: widget.stubMode ? null : widget.onUpgrade,
-              ),
+            VButton.emphasized(
+              label: tier.id == 'pro'
+                  ? l10n.paywallUpgradePro
+                  : l10n.paywallUpgradeVip,
+              onPressed: () => widget.onBuy(productId),
             ),
           ],
           Align(
@@ -408,5 +526,35 @@ class _FeatureCell extends StatelessWidget {
       return const Icon(Icons.close, size: 16, color: AppColors.mutedStrong);
     }
     return SizedBox(width: 88, child: Text(text, textAlign: TextAlign.right));
+  }
+}
+
+/// Monthly / annual selection that decides which product a paid CTA buys.
+class _PeriodToggle extends StatelessWidget {
+  final BillingPeriod period;
+  final ValueChanged<BillingPeriod> onChanged;
+
+  const _PeriodToggle({required this.period, required this.onChanged});
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return Center(
+      child: SegmentedButton<BillingPeriod>(
+        segments: [
+          ButtonSegment(
+            value: BillingPeriod.monthly,
+            label: Text(l10n.paywallBillingMonthly),
+          ),
+          ButtonSegment(
+            value: BillingPeriod.annual,
+            label: Text(l10n.paywallBillingAnnual),
+          ),
+        ],
+        selected: {period},
+        showSelectedIcon: false,
+        onSelectionChanged: (selection) => onChanged(selection.first),
+      ),
+    );
   }
 }

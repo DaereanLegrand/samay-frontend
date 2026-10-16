@@ -49,6 +49,40 @@ String revenueCatPublicSdkKey() {
   }
 }
 
+/// Billing period a paid tier's CTA purchases.
+enum BillingPeriod { monthly, annual }
+
+/// RevenueCat product identifier per (tier, period).
+///
+/// The app buys by **product id** (never by entitlement id), so the ids here
+/// must match the store/RevenueCat products configured per environment (the
+/// Test Store products `monthly_pro`/`yearly_pro` and `monthly_vip`/
+/// `yearly_vip`). A tier absent from [_byTier] has no purchase path and its
+/// CTA is not shown.
+class RevenueCatProducts {
+  const RevenueCatProducts._();
+
+  static const Map<String, Map<BillingPeriod, String>> _byTier = {
+    'pro': {
+      BillingPeriod.monthly: 'monthly_pro',
+      BillingPeriod.annual: 'yearly_pro',
+    },
+    'vip': {
+      BillingPeriod.monthly: 'monthly_vip',
+      BillingPeriod.annual: 'yearly_vip',
+    },
+  };
+
+  /// The product id for [tier] at [period], or null when the tier is unpriced.
+  static String? idFor(String tier, BillingPeriod period) =>
+      _byTier[tier]?[period];
+
+  /// Every configured product id (for the availability probe).
+  static List<String> allIds() => [
+    for (final m in _byTier.values) ...m.values,
+  ];
+}
+
 /// Minimal RevenueCat customer snapshot consumed by the app — an
 /// SDK-agnostic view-model so screens never import the plugin types.
 class PurchaserInfo {
@@ -58,6 +92,28 @@ class PurchaserInfo {
   final Set<String> activeEntitlements;
 
   bool get hasActiveEntitlement => activeEntitlements.isNotEmpty;
+}
+
+/// A purchasable RevenueCat product's display metadata (SDK-agnostic).
+class RcProduct {
+  const RcProduct({
+    required this.id,
+    required this.priceString,
+    required this.price,
+    required this.currencyCode,
+  });
+
+  /// The store/RC product identifier.
+  final String id;
+
+  /// Localized price label, e.g. `$4.99`.
+  final String priceString;
+
+  /// Numeric price (for computing the annual monthly-equivalent + discount).
+  final double price;
+
+  /// ISO currency code, e.g. `USD`.
+  final String currencyCode;
 }
 
 /// Seam over the `purchases_flutter` plugin: the RSDK wiring
@@ -70,6 +126,10 @@ abstract class RevenueCatDriver {
 
   /// The latest customer info, or null when unavailable.
   Future<PurchaserInfo?> currentInfo();
+
+  /// Resolves which of [productIds] are real (purchasable) RevenueCat products
+  /// for this configuration, keyed by product id. Unconfigured ids are omitted.
+  Future<Map<String, RcProduct>> products(List<String> productIds);
 
   /// Purchases the RevenueCat product identified by [productId].
   Future<void> purchase(String productId);
@@ -90,6 +150,20 @@ class PurchasesDriver implements RevenueCatDriver {
     return PurchaserInfo(
       activeEntitlements: info.entitlements.active.keys.toSet(),
     );
+  }
+
+  @override
+  Future<Map<String, RcProduct>> products(List<String> productIds) async {
+    final products = await rc.Purchases.getProducts(productIds);
+    return {
+      for (final p in products)
+        p.identifier: RcProduct(
+          id: p.identifier,
+          priceString: p.priceString,
+          price: p.price,
+          currencyCode: p.currencyCode,
+        ),
+    };
   }
 
   @override
@@ -162,6 +236,18 @@ class RevenueCatService {
     return _driver.currentInfo();
   }
 
+  Map<String, RcProduct>? _available;
+
+  /// The [RcProduct]s from [RevenueCatProducts.allIds] that resolve to a real
+  /// RevenueCat product for this configuration, keyed by id. Empty in stub
+  /// mode. Cached for the life of the service (the catalog does not change
+  /// mid-session).
+  Future<Map<String, RcProduct>> availableProducts() async {
+    if (_apiKey.isEmpty) return <String, RcProduct>{};
+    return _available ??=
+        await _driver.products(RevenueCatProducts.allIds());
+  }
+
   /// Purchases [productId]. Throws [NotConfiguredError] in stub mode.
   Future<void> purchase(String productId) async {
     if (_apiKey.isEmpty) throw NotConfiguredError();
@@ -185,4 +271,13 @@ class RevenueCatService {
 /// app may construct a service directly.
 final revenueCatServiceProvider = Provider<RevenueCatService>((ref) {
   return RevenueCatService();
+});
+
+/// The [RcProduct]s that are actually purchasable in this build, keyed by id
+/// (empty in stub mode). The paywall renders a tier's CTA/price only when its
+/// product id is present here, so an unavailable product renders nothing rather
+/// than a dead button.
+final availableRevenueCatProductsProvider =
+    FutureProvider<Map<String, RcProduct>>((ref) {
+  return ref.read(revenueCatServiceProvider).availableProducts();
 });

@@ -2,20 +2,27 @@
 .PHONY: help init start build dev install build-install uninstall clear clean env test \
         analyze check secrets hooks guard-local track-guard deploy publish \
         tunnel-android tunnel-waydroid signing-restore login \
-        ios-beta ios-release android-alpha android-release release bundle-install
+        release bundle-install
 
 APP_NAME := samay_app
-PROD ?= false
-# Release environment for `build PROD=true`: prod (default) or staging. Selects
-# the vault app-build profile (staging-apple/staging-android), the Android
-# product flavor, and the Firebase client config.
-ENV ?= prod
-BUILD_MODE ?= $(if $(filter true,$(PROD)),release,debug)
-# Android product flavor (build.gradle.kts flavorDimensions "env"). Dev/CI builds
-# default to "dev" (the testing environment's flavor; AGP reserves the "test"
-# prefix, so the shared testing env builds as `--flavor dev`). PROD=true builds
-# the ENV flavor (prod or staging).
-ANDROID_FLAVOR ?= $(if $(filter true,$(PROD)),$(ENV),dev)
+# Single environment selector — the ONLY environment flag. Values:
+#   local    — local Docker stack (dev signing, needs JWT_SECRET)
+#   testing  — hosted testing API (default dev target)
+#   staging  — vault-gated staging release
+#   prod     — vault-gated production release
+# Everything else is derived: release-vs-debug, the vault path, the Android
+# flavor, the PROD/TESTING aliases (kept so existing conditionals keep working),
+# and the APP_ENV compile define the app reads.
+ENV ?= testing
+RELEASE := $(filter staging prod,$(ENV))
+PROD    := $(if $(RELEASE),true,false)
+TESTING := $(if $(filter local,$(ENV)),true,false)
+BUILD_MODE     ?= $(if $(RELEASE),release,debug)
+# Android product flavor (build.gradle.kts flavorDimensions "env"): `dev` for
+# local/testing (AGP reserves the "test" prefix), else the ENV value.
+ANDROID_FLAVOR ?= $(if $(RELEASE),$(ENV),dev)
+# Compile define for the app (paywall picks RC price vs custom app_config on it).
+APP_ENV := $(if $(filter prod,$(ENV)),prod,dev)
 # iOS export method for `build PROD=true TARGET=ios`: store (App Store Connect,
 # default) or ad-hoc (an on-device ad-hoc IPA). MODE=adhoc is the shorthand.
 MODE ?= store
@@ -86,6 +93,8 @@ FLUTTER_DEFINES :=
 else
 FLUTTER_DEFINES := --dart-define-from-file=.env
 endif
+# Environment define for dev/build runs (the prod build lines add it explicitly).
+FLUTTER_DEFINES += --dart-define=APP_ENV=$(APP_ENV)
 
 # `dev` always targets the testing API (see .env). Explicit define wins over the file.
 API_TESTING_URL := $(shell sed -n 's/^API_TESTING_URL=//p' .env 2>/dev/null | head -1)
@@ -94,8 +103,7 @@ API_TESTING_URL := $(if $(API_TESTING_URL),$(API_TESTING_URL),https://samay-api-
 ANDROID_GATEWAY_HOST := $(if $(findstring Linux,$(shell uname -s)),10.0.2.2,127.0.0.1)
 OS_IS_DARWIN := $(findstring Darwin,$(shell uname -s))
 
-# TESTING=true points builds at the local stack; requires JWT_SECRET.
-TESTING ?= false
+# ENV=local points builds at the local stack (TESTING is derived above); needs JWT_SECRET.
 ifeq ($(TESTING),true)
 TESTING_JWT_SECRET := $(JWT_SECRET)
 ifneq ($(strip $(TESTING_JWT_SECRET)),)
@@ -149,10 +157,10 @@ help:
 	@echo "  TUNNELS:   tunnel-android tunnel-waydroid signing-restore"
 	@echo "  LOGIN:     login [TARGET=simulator]"
 	@echo "  GATES:     analyze check secrets hooks env"
-	@echo "  RELEASE:   ios-beta ios-release android-alpha android-release release bundle-install"
-	@echo "  TRACKS:    deploy TARGET=ios|android|all TRACK=<list>  (build PROD=true honours TRACK too)"
-	@echo "  ENV:       build PROD=true ENV=prod|staging  (staging = vault staging-apple|staging-android profile)"
-	@echo "  IOS MODE:  build PROD=true TARGET=ios MODE=store|adhoc"
+	@echo "  RELEASE:   release bundle-install"
+	@echo "  TRACKS:    deploy TARGET=ios|android|all TRACK=<list>  (build honours TRACK too)"
+	@echo "  ENV:       ENV=local|testing|staging|prod (the only env flag; staging/prod = vault-gated)"
+	@echo "  IOS MODE:  build ENV=prod|staging TARGET=ios MODE=store|adhoc"
 
 env:
 	@echo "ENV_FILE=$(ENV_FILE)"
@@ -212,7 +220,7 @@ build:
 		[ -f "$(PROD_DEFINES)" ] || { echo "vault '$(ENV)/android' profile yielded no $(PROD_DEFINES)."; exit 1; }; \
 		[ -f "$(RAM_DIR)/google-services.json" ] || { echo "vault '$(ENV)/android' profile yielded no google-services.json ($(ENV) Firebase config)."; exit 1; }; \
 		cp "$(RAM_DIR)/google-services.json" android/app/src/$(ANDROID_FLAVOR)/google-services.json; \
-		KEYSTORE_PROPERTIES="$(KEYSTORE_PROPERTIES)" flutter build appbundle --release --flavor $(ANDROID_FLAVOR) $(PUB_FLAG) --dart-define-from-file="$(PROD_DEFINES)" && \
+		KEYSTORE_PROPERTIES="$(KEYSTORE_PROPERTIES)" flutter build appbundle --release --flavor $(ANDROID_FLAVOR) $(PUB_FLAG) --dart-define-from-file="$(PROD_DEFINES)" --dart-define=APP_ENV=$(APP_ENV) && \
 		echo "AAB: build/app/outputs/bundle/$(ANDROID_FLAVOR)Release/app-$(ANDROID_FLAVOR)-release.aab"; \
 	elif [ "$(TARGET)" = "ios" ] && [ "$(PROD)" = "true" ]; then \
 		[ -x "$(RELEASE_SECRETS)" ] || { echo "PROD=true needs executable $(RELEASE_SECRETS) (vault fetch/wipe)."; exit 1; }; \
@@ -230,10 +238,10 @@ build:
 		[ -f "$(PROD_DEFINES)" ] || { echo "vault '$(ENV)/apple' profile yielded no $(PROD_DEFINES)."; exit 1; }; \
 		[ -f "$(RAM_DIR)/GoogleService-Info.plist" ] || { echo "vault '$(ENV)/apple' profile yielded no GoogleService-Info.plist ($(ENV) Firebase config)."; exit 1; }; \
 		FIREBASE_BACKUP=$$(mktemp); cp ios/Runner/GoogleService-Info.plist "$$FIREBASE_BACKUP"; cp "$(RAM_DIR)/GoogleService-Info.plist" ios/Runner/GoogleService-Info.plist; \
-		IOS_GID=$$(cat "$(RAM_DIR)/google-oauth-ios-client-id" 2>/dev/null || cat "$(RAM_DIR)/google-oauth-client-id"); \
-		[ -n "$$IOS_GID" ] || { echo "vault '$(ENV)/apple' profile yielded no iOS client id."; exit 1; }; \
+		IOS_GID=$$(cat "$(RAM_DIR)/google-oauth-ios-client-id" 2>/dev/null); \
+		[ -n "$$IOS_GID" ] || { echo "vault '$(ENV)/apple' profile yielded no google-oauth-ios-client-id."; exit 1; }; \
 		PLIST_BACKUP=$$(tools/ios_google_oauth.sh apply "$$IOS_GID"); \
-		flutter build ipa --release $(PUB_FLAG) --dart-define-from-file="$(PROD_DEFINES)" --dart-define=GOOGLE_OAUTH_IOS_CLIENT_ID="$$IOS_GID" --export-options-plist="$(EXPORT_OPTIONS)" && \
+		flutter build ipa --release $(PUB_FLAG) --dart-define-from-file="$(PROD_DEFINES)" --dart-define=GOOGLE_OAUTH_IOS_CLIENT_ID="$$IOS_GID" --dart-define=APP_ENV=$(APP_ENV) --export-options-plist="$(EXPORT_OPTIONS)" && \
 		echo "IPA: build/ios/ipa/*.ipa"; \
 	else \
 		flutter build apk --$(BUILD_MODE) --flavor $(ANDROID_FLAVOR) $(PUB_FLAG) $(FLUTTER_DEFINES) && \
@@ -555,26 +563,6 @@ track-guard:
 		case " $$allowed " in *" $$t "*) : ;; *) echo "unknown TRACK '$$t' for TARGET=$(TARGET) (allowed: $$allowed)."; exit 1;; esac; \
 	done
 
-ios-beta: guard-local
-	@[ -f fastlane/Fastfile ] || { echo "fastlane iOS not wired yet."; exit 1; }
-	@grep -q 'beta_testflight' fastlane/Fastfile || { echo "lane 'beta_testflight' missing."; exit 1; }
-	bundle exec fastlane ios beta_testflight
-
-ios-release: guard-local
-	@[ -f fastlane/Fastfile ] || { echo "fastlane iOS not wired yet."; exit 1; }
-	@grep -q 'release_appstore' fastlane/Fastfile || { echo "lane 'release_appstore' missing."; exit 1; }
-	bundle exec fastlane ios release_appstore
-
-android-alpha: guard-local
-	@[ -f fastlane/Fastfile ] || { echo "fastlane Android not wired yet."; exit 1; }
-	@grep -q 'alpha_firebase' fastlane/Fastfile || { echo "lane 'alpha_firebase' missing."; exit 1; }
-	bundle exec fastlane android alpha_firebase
-
-android-release: guard-local
-	@[ -f fastlane/Fastfile ] || { echo "fastlane Android not wired yet."; exit 1; }
-	@grep -q 'release_play' fastlane/Fastfile || { echo "lane 'release_play' missing."; exit 1; }
-	bundle exec fastlane android release_play
-
 bundle-install:
 	@[ -f Gemfile ] || { echo "No Gemfile — fastlane not wired yet."; exit 1; }
 	$(BREW_BUNDLE) install
@@ -585,8 +573,8 @@ bundle-install:
 # per-platform targets are `build PROD=true TARGET=ios|android`; this target
 # is just the two-step convenience wrapper.
 release:
-	@$(MAKE) build PROD=true TARGET=ios ENV="$(ENV)" NO_PUB=$(NO_PUB)
-	@$(MAKE) build PROD=true TARGET=android ENV="$(ENV)" NO_PUB=$(NO_PUB)
+	@$(MAKE) build TARGET=ios ENV="$(ENV)" NO_PUB=$(NO_PUB)
+	@$(MAKE) build TARGET=android ENV="$(ENV)" NO_PUB=$(NO_PUB)
 
 # ── Track-aware build + deploy ───────────────────────────────────────────────
 # build PROD=true TARGET=ios|android TRACK=<list>   → validated build only
@@ -602,7 +590,7 @@ deploy: track-guard
 	@set -e; \
 	targets="$(TARGET)"; \
 	case "$$targets" in ios|android) : ;; all) targets="ios android";; *) echo "deploy: TARGET must be ios|android|all"; exit 1;; esac; \
-	for t in $$targets; do $(MAKE) --no-print-directory build PROD=true TARGET=$$t ENV="$(ENV)" TRACK="$(TRACK)" NO_PUB=$(NO_PUB); done; \
+	for t in $$targets; do $(MAKE) --no-print-directory build TARGET=$$t ENV="$(ENV)" TRACK="$(TRACK)" NO_PUB=$(NO_PUB); done; \
 	$(MAKE) --no-print-directory publish TARGET="$(TARGET)" ENV="$(ENV)" TRACK="$(TRACK)"
 
 publish: TRACK_REQUIRED=true
@@ -620,7 +608,7 @@ publish: track-guard
 			case "$$t" in \
 				ios) \
 					case " $(IOS_TRACKS) " in *" $$track "*) ;; *) echo "publish: skip ios/$$track (not an iOS track)"; continue;; esac; \
-					case "$$track" in internal) lane=track_internal;; external) lane=track_external;; prod) lane=release_appstore;; esac; \
+					case "$$track" in internal) lane=track_internal;; external) lane=track_external;; prod) lane=track_prod;; esac; \
 					TRACK="$$track" bundle exec fastlane ios "$$lane";; \
 				android) \
 					case " $(ANDROID_TRACKS) " in *" $$track "*) ;; *) echo "publish: skip android/$$track (not an Android track)"; continue;; esac; \

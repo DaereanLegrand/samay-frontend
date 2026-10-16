@@ -8,7 +8,7 @@
 ## TODO
 - [ ] **NEXT — Staging/prod full builds.** Produce fully signed iOS + Android
       builds with **all keys wired**, run on a **Tart VM**, with signing material
-      from the **vault**. `ENV=staging|prod` is wired (`build PROD=true ENV=…
+      from the **vault**. `ENV=staging|prod` is wired (`build ENV=…
       TARGET=ios|android MODE=adhoc|store`; `ENV=staging tools/release-signing-not-in-repo.sh …`).
       Remaining: provision staging (vault/Firebase), bake `tailscale` into the
       Tart base. See `<private-ops-repo>/STAGING.md`, `<private-ops-repo>/LOCAL-BUILDS.md`,
@@ -37,8 +37,8 @@
 - [x] TODO(fastlane): iOS build uses the real iOS client id when the vault
       profile carries `google-oauth-ios-client-id` (add that entry to the prod
       `qallariy/samay/public/**` to close the prod case; staging already has it).
-- [ ] TODO(vault): android keystore + Play service account + FCM; Apple ASC keys
-      + Gitea `match` repo password. Acquisition order:
+- [ ] TODO(vault): android keystore + Play service account + FCM; Apple ASC keys.
+      Acquisition order:
       `<private-ops-repo>/KEY-ACQUISITION.md`.
 - [x] TODO(frontend): testing OAuth — **Google Sign In/Sign Up wired and verified**
       end-to-end (native id-token; `GOOGLE_OAUTH_CLIENT_ID` +

@@ -1796,11 +1796,23 @@ abstract class AppLocalizations {
   /// **'/mes'**
   String get paywallPerMonth;
 
-  /// Annual option shown as the monthly equivalent with the savings note
+  /// Billing-period toggle: monthly option
   ///
   /// In es, this message translates to:
-  /// **'{monthly} ahorrando 17%'**
-  String paywallAnnualEquivalent(String monthly);
+  /// **'Mensual'**
+  String get paywallBillingMonthly;
+
+  /// Billing-period toggle: annual option
+  ///
+  /// In es, this message translates to:
+  /// **'Anual'**
+  String get paywallBillingAnnual;
+
+  /// Annual option shown as the monthly equivalent with the computed savings percent
+  ///
+  /// In es, this message translates to:
+  /// **'{monthly} ahorrando {percent}%'**
+  String paywallAnnualEquivalent(String monthly, String percent);
 
   /// Badge marking the user's current tier
   ///

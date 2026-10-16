@@ -25,6 +25,21 @@ class EnvConfig {
     defaultValue: '',
   );
 
+  /// Raw compile-time value of `--dart-define=APP_ENV=...` (`dev` when not
+  /// provided). Values: `dev` | `staging` | `prod` (the Makefile `ENV`).
+  static const String appEnvRaw = String.fromEnvironment(
+    'APP_ENV',
+    defaultValue: 'dev',
+  );
+
+  /// The build's environment tag. `prod` is the only value that makes the
+  /// paywall show custom `app_config` prices; every other value shows the
+  /// localized RevenueCat product price.
+  static String get appEnv => appEnvRaw;
+
+  /// Whether this is a production build (custom pricing, no RC price).
+  static bool get isProd => appEnv == 'prod';
+
   /// Supabase REST API base URL (anon JWT).
   static String get supabaseUrl => validate(supabaseUrlRaw, 'SUPABASE_URL');
 

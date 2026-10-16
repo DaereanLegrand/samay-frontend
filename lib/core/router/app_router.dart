@@ -635,12 +635,12 @@ final routerProvider = Provider<GoRouter>((ref) {
         ),
       ),
       GoRoute(
-        // PLAN: gated on the subscriptions flag (dark-first — the
-        // disabled state renders the neutral FlagGate fallback while the
-        // RevenueCat SDK key is absent; purchases stay dark).
+        // Gated on the subscriptions flag (dark-first — a build without a
+        // RevenueCat key renders NOTHING here, not a placeholder).
         path: RoutePaths.subscriptions,
         builder: (context, _) => const FlagGate(
           flag: AppFeatureFlag.subscriptions,
+          fallback: SizedBox.shrink(),
           child: PaywallScreen(),
         ),
       ),

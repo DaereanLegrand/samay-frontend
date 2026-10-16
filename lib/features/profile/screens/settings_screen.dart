@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:samay/core/config/feature_flags.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/core/design_tokens/app_icon_sizes.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
@@ -113,12 +114,18 @@ class SettingsScreen extends ConsumerWidget {
                 type: MaterialType.transparency,
                 child: Column(
                   children: [
-                    _SettingsTile(
-                      icon: Icons.subscriptions,
-                      label: l10n.profileSubscription,
-                      onTap: () => context.push(RoutePaths.subscriptions),
-                    ),
-                    const Divider(height: 1, color: AppColors.hairline),
+                    // Subscriptions ship dark (prod builds carry no RevenueCat
+                    // key); when the flag is off the row is absent entirely.
+                    if (ref
+                        .watch(featureFlagsProvider)
+                        .isEnabled(AppFeatureFlag.subscriptions)) ...[
+                      _SettingsTile(
+                        icon: Icons.subscriptions,
+                        label: l10n.profileSubscription,
+                        onTap: () => context.push(RoutePaths.subscriptions),
+                      ),
+                      const Divider(height: 1, color: AppColors.hairline),
+                    ],
                     // The notifications row opens the notification-preferences
                     // screen (persisted toggles, local Hive config cache).
                     _SettingsTile(

@@ -935,8 +935,14 @@ class AppLocalizationsEs extends AppLocalizations {
   String get paywallPerMonth => '/mes';
 
   @override
-  String paywallAnnualEquivalent(String monthly) {
-    return '$monthly ahorrando 17%';
+  String get paywallBillingMonthly => 'Mensual';
+
+  @override
+  String get paywallBillingAnnual => 'Anual';
+
+  @override
+  String paywallAnnualEquivalent(String monthly, String percent) {
+    return '$monthly ahorrando $percent%';
   }
 
   @override

@@ -21,44 +21,44 @@ For _fastlane_ installation instructions, see [Installing _fastlane_](https://do
 [bundle exec] fastlane ios adhoc_local
 ```
 
-Build a signed ad-hoc IPA for on-device installs (the reference app pattern: make build TARGET=ios-adhoc → make install TARGET=ios-adhoc). No store upload. Signs with the developer's enrolled team from $IOS_DEVELOPMENT_TEAM (gitignored .env.local) and the installed provisioning profile for com.qallariy.samay; the tracked pbxproj keeps its §3.3 placeholders — team + profile specifier are patched for this build and restored crash-safely.
+Build a signed ad-hoc IPA for on-device installs (make build TARGET=ios-adhoc → make install TARGET=ios-adhoc). No store upload. Signs with the developer's enrolled team from $IOS_DEVELOPMENT_TEAM (gitignored .env.local) and the installed provisioning profile for com.qallariy.samay; the tracked pbxproj keeps its §3.3 placeholders — team + profile specifier are patched for this build and restored crash-safely.
 
-### ios beta_testflight
-
-```sh
-[bundle exec] fastlane ios beta_testflight
-```
-
-Build the IPA (export method ad-hoc per §3.3) and upload to TestFlight via App Store Connect
-
-### ios release_appstore
+### ios track_internal
 
 ```sh
-[bundle exec] fastlane ios release_appstore
+[bundle exec] fastlane ios track_internal
 ```
 
-Build the IPA (export method app-store per §3.3) and submit to App Store Connect (deliver)
+Upload the vault-built IPA to TestFlight internal testers (TRACK=internal)
+
+### ios track_external
+
+```sh
+[bundle exec] fastlane ios track_external
+```
+
+Upload the vault-built IPA to TestFlight external testers (TRACK=external; set TESTFLIGHT_EXTERNAL_GROUPS)
+
+### ios track_prod
+
+```sh
+[bundle exec] fastlane ios track_prod
+```
+
+Submit the vault-built IPA to the App Store (TRACK=prod; App Store Connect review)
 
 ----
 
 
 ## Android
 
-### android alpha_firebase
+### android track_play
 
 ```sh
-[bundle exec] fastlane android alpha_firebase
+[bundle exec] fastlane android track_play
 ```
 
-Build the release APK and distribute it to Firebase App Distribution testers (§3.3, MVP §10)
-
-### android release_play
-
-```sh
-[bundle exec] fastlane android release_play
-```
-
-Build the release app bundle and upload it to Google Play via supply (§3.3)
+Upload the vault-built AAB to a Google Play track ($TRACK: internal|alpha|beta|production)
 
 ----
 

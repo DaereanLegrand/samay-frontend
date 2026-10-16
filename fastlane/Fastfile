@@ -1,74 +1,29 @@
 # =============================================================================
-# Samay — fastlane iOS + Android lanes (agents M-17 + M-18, phase 4.3).
+# Samay — fastlane iOS + Android lanes.
+#
+# The Makefile is the ONLY fastlane entrypoint:
+#
+#   make build TARGET=ios-adhoc              → fastlane ios adhoc_local
+#   make deploy TARGET=ios   TRACK=internal  → fastlane ios track_internal
+#   make deploy TARGET=ios   TRACK=external  → fastlane ios track_external
+#   make deploy TARGET=ios   TRACK=prod      → fastlane ios track_prod
+#   make deploy TARGET=android TRACK=…        → fastlane android track_play
+#
+# iOS signing has ONE source: the vault. `tools/release-signing-not-in-repo.sh` imports the
+# distribution cert (.p12) into a throwaway keychain, installs the provisioning
+# profile, and writes ExportOptions.plist; `make build ENV=… TARGET=ios` then
+# runs `flutter build ipa --export-options-plist`. There is NO fastlane `match`.
+#
+# CREDENTIALS are read from the environment; `assert_credentials_configured!`
+# fails fast when a value is missing or still the §3.3 placeholder.
+# =============================================================================
 require "xcodeproj"
 require "shellwords"
 require "plist"
-#
-# CONTRACT: <private-ops-repo>/DEPLOYMENT-PLACEHOLDER.md §3.3. The Makefile is the ONLY
-# fastlane entrypoint, and the lane names below are pinned by
-# test/opt-008-makefile-static.sh §2 + the Makefile stub greps — do not rename:
-#
-#   make ios-beta        → bundle exec fastlane ios beta_testflight
-#   make ios-release     → bundle exec fastlane ios release_appstore
-#   make android-alpha   → bundle exec fastlane android alpha_firebase
-#   make android-release → bundle exec fastlane android release_play
-#
-# CREDENTIALS: placeholders only, never real values (AGENT-RULES §4). Every
-# credential is read from the environment; the §3.3 placeholder values below
-# are the "not configured" markers. assert_credentials_configured! FAILS FAST
-# ("credentials not configured (placeholders)") until each one is replaced by a
-# real value OUTSIDE the repo (CI secrets / developer env). Match is referenced
-# (git_url + password from the env, per §3.3) but can never execute while the
-# placeholder MATCH_* values are in place.
-#
-# SIGNING (iOS): ios/Runner.xcodeproj/project.pbxproj uses CODE_SIGN_STYLE =
-# Manual, DEVELOPMENT_TEAM = XXXXXXXXXX (placeholder), empty
-# PROVISIONING_PROFILE_SPECIFIER, PRODUCT_BUNDLE_IDENTIFIER = com.qallariy.samay.
-# Once $TEAM_ID/$MATCH_* are real, Match provisions certificates + profiles for
-# the real team and the pbxproj DEVELOPMENT_TEAM placeholder is replaced
-# (store-prep step, M-28/mvp release).
-#
-# SIGNING (Android): android/app/build.gradle.kts release buildType currently
-# signs with the DEBUG key (build.gradle.kts:37) — the §3.3 keystore env vars
-# below are the contract that M-27 (gradle owner) wires into `signingConfigs`
-# once real. android/app/keystores/ must stay ABSENT and NO .jks may ever be
-# created or committed; the lane guard FAILS FAST while any keystore env is
-# unset/CHANGE_ME, so a "release" build can never run with placeholder
-# signing. See fastlane/README.md "Signing (Android)".
-# =============================================================================
 
 default_platform(:ios)
 
 # §3.3 placeholder values — the "not configured" markers. Do NOT change.
-REQUIRED_CREDENTIAL_ENV = {
-  "APP_STORE_CONNECT_API_KEY_ID" => "AAAAAAAAAA",
-  "APP_STORE_CONNECT_API_ISSUER_ID" => "00000000-0000-0000-0000-000000000000",
-  "APP_STORE_CONNECT_API_KEY" => "fastlane/keys/AppStoreConnect_AAAAAAAAAA.p8",
-  "MATCH_GIT_URL" => "https://gitea-scm.qallariy.lat/qallariy/samay-match.git",
-  "MATCH_PASSWORD" => "CHANGE_ME",
-  "TEAM_ID" => "XXXXXXXXXX",
-  "APPLE_ID" => "CHANGE_ME",
-  "FASTLANE_USER" => "CHANGE_ME"
-}.freeze
-
-# Android §3.3 placeholder values — the "not configured" markers. Do NOT change.
-# $ANDROID_KEYSTORE_PATH is a PATH-ONLY contract: android/app/keystores/ must
-# not exist in the repo (M-27 wires the gradle signingConfigs to read it once
-# the keystore is generated and kept in a secret store at release time).
-REQUIRED_ANDROID_CREDENTIAL_ENV = {
-  "ANDROID_KEYSTORE_PATH" => "android/app/keystores/release-keystore.jks",
-  "ANDROID_KEYSTORE_ALIAS" => "samay-release",
-  "ANDROID_KEYSTORE_PASSWORD" => "CHANGE_ME",
-  "ANDROID_KEY_ALIAS_PASSWORD" => "CHANGE_ME",
-  "FIREBASE_API_TOKEN" => "CHANGE_ME",
-  "PLAY_SERVICE_ACCOUNT_JSON" => "fastlane/keys/google-play-service-account.json"
-}.freeze
-
-VALID_EXPORT_METHODS = %w[app-store ad-hoc development enterprise].freeze
-
-# Upload-only lanes (driven by `make deploy`): the artifact is built by the
-# vault-gated Makefile step, so only the store API key is required here — Match
-# provisioning and the build-time keystore/Firebase creds are not used.
 REQUIRED_ASC_UPLOAD_ENV = {
   "APP_STORE_CONNECT_API_KEY_ID" => "AAAAAAAAAA",
   "APP_STORE_CONNECT_API_ISSUER_ID" => "00000000-0000-0000-0000-000000000000",
@@ -80,14 +35,9 @@ REQUIRED_ANDROID_UPLOAD_ENV = {
 }.freeze
 
 # Abort the lane unless every credential is set AND not equal to its §3.3
-# placeholder. Parametrized by the platform credential hash (iOS
-# REQUIRED_CREDENTIAL_ENV / Android REQUIRED_ANDROID_CREDENTIAL_ENV); the
-# path-only credential FILES (.p8 for ASC, JSON key for Google Play) must
-# exist once their env value is real (never created while still a
-# placeholder — the §3.3 paths stay path-only). ANDROID_KEYSTORE_PATH is
-# deliberately NOT file-checked: the keystore is generated at release time
-# and kept in a secret store, never in the repo.
-def assert_credentials_configured!(creds = REQUIRED_CREDENTIAL_ENV)
+# placeholder; the path-only credential files (.p8 for ASC, JSON key for Google
+# Play) must exist once their env value is real.
+def assert_credentials_configured!(creds)
   missing = creds.select do |name, placeholder|
     ENV[name].to_s.empty? || ENV[name].to_s == placeholder
   end.keys
@@ -105,29 +55,8 @@ def assert_credentials_configured!(creds = REQUIRED_CREDENTIAL_ENV)
   end
 
   unless missing.empty?
-    UI.user_error!("credentials not configured (placeholders): #{missing.join(', ')} — replace the §3.3 placeholder values in your environment (CI secrets / developer env, never the repo) before running this lane. See fastlane/README.md + <private-ops-repo>/DEPLOYMENT-PLACEHOLDER.md §3.3.")
+    UI.user_error!("credentials not configured (placeholders): #{missing.join(', ')} — replace the §3.3 placeholder values in your environment (developer env, never the repo) before running this lane. See fastlane/README.md.")
   end
-end
-
-# Export method: lane default unless $IOS_EXPORT_METHOD is set; must be one of
-# the §3.3 enum (app-store / ad-hoc / development / enterprise).
-def export_method_for(default)
-  method = ENV["IOS_EXPORT_METHOD"].to_s
-  method = default if method.empty?
-  unless VALID_EXPORT_METHODS.include?(method)
-    UI.user_error!("IOS_EXPORT_METHOD='#{method}' is not valid — must be one of #{VALID_EXPORT_METHODS.join(', ')} (§3.3).")
-  end
-  method
-end
-
-# Map the export method to fastlane match's `type` vocabulary.
-def match_type_for(export_method)
-  {
-    "app-store" => "appstore",
-    "ad-hoc" => "adhoc",
-    "development" => "development",
-    "enterprise" => "enterprise"
-  }.fetch(export_method)
 end
 
 def app_store_connect_key
@@ -138,28 +67,19 @@ def app_store_connect_key
   )
 end
 
-# Compile-time dart-defines passed to every flutter release build (I-34/M-13
-# contract: SUPABASE_URL + SUPABASE_ANON_KEY via String.fromEnvironment; unset
-# vars are simply not passed — same convention as the define-free dev runs).
+# Compile-time dart-defines for the ad-hoc build (I-34/M-13 contract:
+# SUPABASE_URL + SUPABASE_ANON_KEY via String.fromEnvironment; unset vars are
+# simply not passed).
 def dart_defines
   %w[SUPABASE_URL SUPABASE_ANON_KEY].filter_map do |key|
     "--dart-define=#{key}=#{ENV[key]}" unless ENV[key].to_s.empty?
   end
 end
 
-# Build the release IPA with the export method; return the produced IPA path.
-def build_ios_ipa(export_method)
-  defines = dart_defines
-  sh("flutter build ipa --release --export-method #{export_method} #{defines.join(' ')}")
-  ipa = Dir.glob(File.join(Dir.pwd, "build", "ios", "ipa", "*.ipa")).first
-  UI.user_error!("No IPA found under build/ios/ipa — did 'flutter build ipa' succeed?") if ipa.nil?
-  ipa
-end
-
-# Build the release IPA with an explicit ExportOptions.plist (the reference app pattern:
-# method + teamID only — the archive's signing identity is matched at export).
-# Returns the produced IPA path. NOTE: fastlane runs lanes chdir'd into
-# fastlane/, so repo-root paths are `../`-relative (the reference app Fastfile pattern).
+# Build the release IPA with an explicit ExportOptions.plist (method + teamID;
+# the archive's signing identity is matched at export). Returns the IPA path.
+# NOTE: fastlane runs lanes chdir'd into fastlane/, so repo-root paths are
+# `../`-relative.
 def build_ios_ipa_with_export(plist_path)
   defines = dart_defines
   sh("flutter build ipa --release --export-options-plist #{plist_path} #{defines.join(' ')}")
@@ -168,57 +88,23 @@ def build_ios_ipa_with_export(plist_path)
   ipa
 end
 
-# Build a release Android artifact ("apk" or "appbundle") for a product flavor;
-# return its path. NOTE: flutter build apk/appbundle IS gradle
-# assembleRelease/bundleRelease (the §3.3 "gradle bundleRelease" shape) with the
-# flutter toolchain wired in. Flavors are defined in android/app/build.gradle.kts
-# ("dev" = testing env, "staging", "prod"); the flavored outputs are named
-# app-<flavor>-release.apk / bundle/<flavor>Release/app-<flavor>-release.aab.
-def build_android_artifact(artifact, flavor)
-  defines = dart_defines
-  sh("flutter build #{artifact} --release --flavor #{flavor} #{defines.join(' ')}")
-  path = case artifact
-         when "apk" then File.join(Dir.pwd, "build", "app", "outputs", "flutter-apk", "app-#{flavor}-release.apk")
-         when "appbundle" then File.join(Dir.pwd, "build", "app", "outputs", "bundle", "#{flavor}Release", "app-#{flavor}-release.aab")
-         else UI.user_error!("build_android_artifact: unknown artifact '#{artifact}' (must be apk or appbundle)")
-         end
-  UI.user_error!("No #{artifact == 'apk' ? 'APK' : 'AAB'} at #{path} — did 'flutter build #{artifact} --release --flavor #{flavor}' succeed?") unless File.exist?(path)
-  path
-end
-
-# The already-built PROD artifact from the vault-gated Makefile step (`make
-# build PROD=true TARGET=…` / the `make deploy` build phase). fastlane runs
-# chdir'd into fastlane/, so repo-root paths are `../`-relative.
+# The already-built artifact from the vault-gated Makefile step (`make build
+# ENV=… TARGET=…`). fastlane runs chdir'd into fastlane/, so repo-root paths are
+# `../`-relative.
 def prebuilt_ios_ipa
   ipa = Dir.glob(File.join(Dir.pwd, "..", "build", "ios", "ipa", "*.ipa")).first
-  UI.user_error!("No IPA under build/ios/ipa — build it first: make build PROD=true TARGET=ios TRACK=…") if ipa.nil?
+  UI.user_error!("No IPA under build/ios/ipa — build it first: make build ENV=… TARGET=ios TRACK=…") if ipa.nil?
   ipa
 end
 
 def prebuilt_android_aab
   # Flavor follows the release environment (ENV=prod|staging) set by the
-  # Makefile's `publish` step; the AAB name embeds the flavor.
+  # Makefile; the AAB name embeds the flavor.
   flavor = ENV.fetch("ENV", "prod")
   rel = "#{flavor}Release/app-#{flavor}-release.aab"
   aab = File.expand_path("../build/app/outputs/bundle/#{rel}", Dir.pwd)
-  UI.user_error!("No AAB at build/app/outputs/bundle/#{rel} — build it first: make build PROD=true TARGET=android ENV=#{flavor} TRACK=…") unless File.exist?(aab)
+  UI.user_error!("No AAB at build/app/outputs/bundle/#{rel} — build it first: make build ENV=#{flavor} TARGET=android TRACK=…") unless File.exist?(aab)
   aab
-end
-
-# Documented-not-executed while placeholders are in place (the guard above
-# fails first). Once $MATCH_GIT_URL / $MATCH_PASSWORD / $TEAM_ID are real, Match
-# provisions the certificates + profiles for the Manual-style Runner target.
-# The match repo is private on Gitea (gitea-scm.qallariy.lat); $MATCH_PASSWORD
-# is vault-gated (owner-only). Build hosts that must NOT create signing material
-# set $MATCH_READONLY=true (decrypt + install only).
-def ensure_matching_signing(export_method, api_key)
-  match(
-    git_url: ENV["MATCH_GIT_URL"],
-    type: match_type_for(export_method),
-    app_store_connect_api_key: api_key,
-    password: ENV["MATCH_PASSWORD"],
-    readonly: ENV["MATCH_READONLY"].to_s == "true"
-  )
 end
 
 platform :ios do
@@ -226,7 +112,7 @@ platform :ios do
   # DEVELOPMENT_TEAM = XXXXXXXXXX, empty PROVISIONING_PROFILE_SPECIFIER — the
   # opt-008 contract). This lane patches the REAL team + the installed
   # profile's specifier for the build and restores the placeholders
-  # crash-safely (ensure). Returns the patched target.
+  # crash-safely (ensure).
   def patch_signing_for_build(team, profile_name)
     project = Xcodeproj::Project.open("../ios/Runner.xcodeproj")
     target = project.targets.find { |t| t.name == "Runner" }
@@ -275,7 +161,7 @@ platform :ios do
     nil
   end
 
-  desc "Build a signed ad-hoc IPA for on-device installs (the reference app pattern: make build TARGET=ios-adhoc → make install TARGET=ios-adhoc). No store upload. Signs with the developer's enrolled team from $IOS_DEVELOPMENT_TEAM (gitignored .env.local) and the installed provisioning profile for com.qallariy.samay; the tracked pbxproj keeps its §3.3 placeholders — team + profile specifier are patched for this build and restored crash-safely."
+  desc "Build a signed ad-hoc IPA for on-device installs (make build TARGET=ios-adhoc → make install TARGET=ios-adhoc). No store upload. Signs with the developer's enrolled team from $IOS_DEVELOPMENT_TEAM (gitignored .env.local) and the installed provisioning profile for com.qallariy.samay; the tracked pbxproj keeps its §3.3 placeholders — team + profile specifier are patched for this build and restored crash-safely."
   lane :adhoc_local do
     team = ENV["IOS_DEVELOPMENT_TEAM"].to_s
     if team.empty? || team == "XXXXXXXXXX"
@@ -328,32 +214,6 @@ platform :ios do
     end
   end
 
-  desc "Build the IPA (export method ad-hoc per §3.3) and upload to TestFlight via App Store Connect"
-  lane :beta_testflight do
-    export_method = export_method_for("ad-hoc")
-    assert_credentials_configured!
-    api_key = app_store_connect_key
-    ensure_matching_signing(export_method, api_key)
-    ipa = build_ios_ipa(export_method)
-    upload_to_testflight(api_key: api_key, ipa: ipa)
-  end
-
-  desc "Build the IPA (export method app-store per §3.3) and submit to App Store Connect (deliver)"
-  lane :release_appstore do
-    export_method = export_method_for("app-store")
-    assert_credentials_configured!
-    api_key = app_store_connect_key
-    ensure_matching_signing(export_method, api_key)
-    ipa = build_ios_ipa(export_method)
-    deliver(
-      api_key: api_key,
-      ipa: ipa,
-      skip_metadata: true,
-      skip_screenshots: true,
-      force: true
-    )
-  end
-
   # ── `make deploy` upload lanes (upload the vault-built IPA; no rebuild) ────
   desc "Upload the vault-built IPA to TestFlight internal testers (TRACK=internal)"
   lane :track_internal do
@@ -373,44 +233,21 @@ platform :ios do
       groups: groups
     )
   end
+
+  desc "Submit the vault-built IPA to the App Store (TRACK=prod; App Store Connect review)"
+  lane :track_prod do
+    assert_credentials_configured!(REQUIRED_ASC_UPLOAD_ENV)
+    deliver(
+      api_key: app_store_connect_key,
+      ipa: prebuilt_ios_ipa,
+      skip_metadata: true,
+      skip_screenshots: true,
+      force: true
+    )
+  end
 end
 
 platform :android do
-  # Both lanes guard on the FULL Android credential set (keystore path/alias/
-  # passwords + Firebase token + Play service account): a release-shaped build
-  # must never run while any §3.3 placeholder is still set — signing lands
-  # with the real credentials only (M-27 wires gradle signingConfigs).
-  # Flavors (android/app/build.gradle.kts): alpha_firebase builds the "dev"
-  # (testing) flavor; release_play builds "prod" (needs the vault-provided
-  # android/app/src/prod/google-services.json — use `make deploy` for the
-  # vault-fetched build+upload path).
-
-  desc "Build the release APK and distribute it to Firebase App Distribution testers (§3.3, MVP §10)"
-  lane :alpha_firebase do
-    assert_credentials_configured!(REQUIRED_ANDROID_CREDENTIAL_ENV)
-    apk = build_android_artifact("apk", "dev")
-    firebase_app_distribution(
-      apk_path: apk,
-      firebase_cli_token: ENV["FIREBASE_API_TOKEN"],
-      groups: "alpha-testers"
-    )
-  end
-
-  desc "Build the release app bundle and upload it to Google Play via supply (§3.3)"
-  lane :release_play do
-    assert_credentials_configured!(REQUIRED_ANDROID_CREDENTIAL_ENV)
-    aab = build_android_artifact("appbundle", "prod")
-    supply(
-      track: "beta",
-      aab: aab,
-      json_key: ENV["PLAY_SERVICE_ACCOUNT_JSON"],
-      skip_upload_metadata: true,
-      skip_upload_screenshots: true,
-      skip_upload_images: true,
-      skip_upload_apk: true
-    )
-  end
-
   # ── `make deploy` upload lane (uploads the vault-built AAB; no rebuild) ────
   desc "Upload the vault-built AAB to a Google Play track ($TRACK: internal|alpha|beta|production)"
   lane :track_play do

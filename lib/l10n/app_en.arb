@@ -1244,11 +1244,22 @@
   "@paywallPerMonth": {
     "description": "Monthly price suffix"
   },
-  "paywallAnnualEquivalent": "{monthly} saving 17%",
+  "paywallBillingMonthly": "Monthly",
+  "@paywallBillingMonthly": {
+    "description": "Billing-period toggle: monthly option"
+  },
+  "paywallBillingAnnual": "Annual",
+  "@paywallBillingAnnual": {
+    "description": "Billing-period toggle: annual option"
+  },
+  "paywallAnnualEquivalent": "{monthly} saving {percent}%",
   "@paywallAnnualEquivalent": {
-    "description": "Annual option shown as the monthly equivalent with the savings note",
+    "description": "Annual option shown as the monthly equivalent with the computed savings percent",
     "placeholders": {
       "monthly": {
+        "type": "String"
+      },
+      "percent": {
         "type": "String"
       }
     }

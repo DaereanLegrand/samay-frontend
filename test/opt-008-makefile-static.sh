@@ -8,16 +8,13 @@
 #
 #   1. `make -n` resolves for ALL documented targets (the full .PHONY
 #      inventory, incl. override forms TARGET=/OVERRIDES=/FLUTTER_DEFINES=).
-#   2. Fastlane stub contract (DEPLOYMENT-PLACEHOLDER.md §3.2/§3.3 — the
-#      lane names M-17/M-18 must implement are fixed HERE):
-#        ios-beta       → bundle exec fastlane ios beta_testflight
-#        ios-release    → bundle exec fastlane ios release_appstore
-#        android-alpha  → bundle exec fastlane android alpha_firebase
-#        android-release→ bundle exec fastlane android release_play
-#      Each stub gates on fastlane/Fastfile + the lane literal (clear error
-#      until M-17/M-18 land). Conditional LIVE stub probe: while
-#      fastlane/Fastfile is absent, `make ios-beta` must exit 1 with the
-#      "M-17" message (the designed fail-fast stub behavior).
+#   2. Fastlane upload-lane contract: `publish` maps each ios track to its
+#      upload lane and android to `track_play`; every lane uploads the
+#      vault-built artifact (no rebuild, no `match`):
+#        TRACK=internal → fastlane ios track_internal
+#        TRACK=external → fastlane ios track_external
+#        TRACK=prod     → fastlane ios track_prod
+#        android        → fastlane android track_play
 #   3. migrate-check RED probe: tools/check_migrations.sh is run against a
 #      SCRATCH git repo — GREEN on a clean committed pair of stacks, RED on a
 #      planted untracked migration, RED on a planted future-dated migration
@@ -32,10 +29,9 @@
 # stub probe (§2) auto-skips; keep the four lane names EXACTLY as above.
 # M-17 (2026-08-10) added §2b: Fastfile lane/Appfile/Gemfile assertions + the
 # no-real-credential-shape scan over fastlane/ (placeholder policy).
-# M-18 (2026-08-10) extended §2b: platform :android + alpha_firebase /
-# release_play lanes, the §3.3 Android placeholder literals, no .jks/JSON-key
-# material in fastlane/ OR android/, and android/app/keystores/ absent
-# (path-only contract — M-27 wires the gradle signingConfigs).
+# M-18 (2026-08-10) extended §2b: platform :android + the track_play upload
+# lane, no .jks/JSON-key material in fastlane/ OR android/, and
+# android/app/keystores/ absent (the keystore lives in the vault, never the repo).
 # M-27 (2026-08-10) added §6: the android platform contract —
 #   - the gradle wrapper is COMMITTED and deterministic (gradlew / gradlew.bat
 #     / gradle-wrapper.jar exist and are NOT gitignored; flutter_tools would
@@ -60,7 +56,7 @@
 #   - signing stays placeholder-only: CODE_SIGN_STYLE = Manual,
 #     DEVELOPMENT_TEAM = XXXXXXXXXX (the §3.3 TEAM_ID placeholder), empty
 #     PROVISIONING_PROFILE_SPECIFIER, bundle id com.qallariy.samay (matches
-#     fastlane/Appfile) — Match provisions certs/profiles at release time,
+#     fastlane/Appfile) — the vault .p12 + provisioning profile sign the build,
 #   - Podfile.lock / SPM Package.resolved resolve purchases_flutter 10.8.0
 #     → PurchasesHybridCommon 18.29.0 → RevenueCat 5.83.0 (the I-71 conflict
 #     fix; stale lock pinned PurchasesHybridCommon 14.3.0 and broke pod
@@ -106,7 +102,7 @@ echo "━━━ 1. make -n resolves all documented targets ━━━"
 TARGETS="help init start build dev install build-install clean clear uninstall \
 check test analyze env secrets tunnel-android tunnel-waydroid signing-restore \
 track-guard \
-ios-beta ios-release android-alpha android-release bundle-install"
+release bundle-install"
 for t in $TARGETS; do
   if make -n "$t" >/dev/null 2>&1; then
     pass "make -n $t"
@@ -116,7 +112,6 @@ for t in $TARGETS; do
 done
 
 # Override forms (the documented seam surfaces)
-if make -n ios-beta >/dev/null 2>&1; then pass "make -n ios-beta (stub resolves dry)"; else fail "make -n ios-beta"; fi
 if make -n bundle-install >/dev/null 2>&1; then pass "make -n bundle-install (stub resolves dry)"; else fail "make -n bundle-install"; fi
 if make -n dev TARGET=ios-adhoc >/dev/null 2>&1; then pass "make -n dev TARGET=ios-adhoc (enrolled ad-hoc device branch resolves dry)"; else fail "make -n dev TARGET=ios-adhoc"; fi
 if make -n dev TARGET=ios-adhoc TESTING=true >/dev/null 2>&1; then pass "make -n dev TARGET=ios-adhoc TESTING=true (TESTING defines + register prereq resolve dry)"; else fail "make -n dev TARGET=ios-adhoc TESTING=true"; fi
@@ -167,43 +162,30 @@ else
   fail "deploy/publish targets missing"
 fi
 
-# ── 2. Fastlane stub contract (lane names fixed for M-17/M-18) ───────────────
+# ── 2. Fastlane upload-lane contract (vault-built artifacts; no match) ───────
 echo ""
-echo "━━━ 2. Fastlane stub contract ━━━"
-STUB_PAIRS="ios-beta:ios:beta_testflight
-ios-release:ios:release_appstore
-android-alpha:android:alpha_firebase
-android-release:android:release_play"
-while IFS=: read -r TGT PLAT LANE; do
-  if grep -qE "^$TGT:" "$MAKEFILE"; then
-    pass "target '$TGT:' exists"
+echo "━━━ 2. Fastlane upload-lane contract ━━━"
+# `publish` maps each ios track to its upload lane and android to track_play —
+# all upload lanes consume the vault-built artifact (no rebuild, no match).
+for pair in internal:track_internal external:track_external prod:track_prod; do
+  tk="${pair%%:*}"; ln="${pair##*:}"
+  if grep -qE "lane=$ln" "$MAKEFILE"; then
+    pass "publish: ios $tk → $ln"
   else
-    fail "target '$TGT:' missing from Makefile"
-    continue
+    fail "publish: ios $tk does not map to $ln"
   fi
-  if grep -q "bundle exec fastlane $PLAT $LANE" "$MAKEFILE"; then
-    pass "$TGT → bundle exec fastlane $PLAT $LANE"
-  else
-    fail "$TGT does not invoke 'bundle exec fastlane $PLAT $LANE'"
-  fi
-  if grep -A4 "^$TGT:" "$MAKEFILE" | grep -q "fastlane/Fastfile"; then
-    pass "$TGT gates on fastlane/Fastfile (clear fail until M-17/M-18)"
-  else
-    fail "$TGT has no fastlane/Fastfile guard"
-  fi
-done <<< "$STUB_PAIRS"
+done
+if grep -q 'fastlane android track_play' "$MAKEFILE"; then
+  pass "publish: android → track_play"
+else
+  fail "publish does not invoke fastlane android track_play"
+fi
 
 # Conditional LIVE stub probe: while fastlane/Fastfile is absent the stub must
-# fail fast with the M-17/M-18 message (make reports a failing recipe as
-# exit 2 — the recipe itself exits 1; assert message + non-zero status).
-# Auto-skips once M-17 lands.
+# fail fast with a clear message (make reports a failing recipe as exit 2 — the
+# recipe itself exits 1; assert message + non-zero status). Auto-skips once the
+# Fastfile lands.
 if [ ! -f "$REPO/fastlane/Fastfile" ]; then
-  OUT="$(make ios-beta 2>&1)"; ST=$?
-  if [ "$ST" -ne 0 ] && printf '%s' "$OUT" | grep -q "M-17"; then
-    pass "LIVE probe: make ios-beta fails fast with the M-17 message (exit $ST)"
-  else
-    fail "LIVE probe: make ios-beta did not fail with the M-17 message (exit $ST)"
-  fi
   OUT="$(make bundle-install 2>&1)"; ST=$?
   if [ "$ST" -ne 0 ] && printf '%s' "$OUT" | grep -q "Gemfile"; then
     pass "LIVE probe: make bundle-install fails fast with the Gemfile message (exit $ST)"
@@ -234,31 +216,33 @@ GF="$REPO/Gemfile"
 
 if [ -f "$FL" ]; then
   grep -q 'platform :ios' "$FL" && pass "Fastfile declares platform :ios" || fail "Fastfile missing 'platform :ios'"
-  for LANE in beta_testflight release_appstore; do
+  for LANE in adhoc_local track_internal track_external track_prod; do
     if grep -q "lane :$LANE" "$FL"; then
       pass "Fastfile defines lane :$LANE"
     else
-      fail "Fastfile missing lane :$LANE (§3.3 contract)"
+      fail "Fastfile missing lane :$LANE"
     fi
   done
+  if grep -q 'match(' "$FL"; then
+    fail "Fastfile still references fastlane match (must be vault-only signing)"
+  else
+    pass "Fastfile has no match (vault-only signalling)"
+  fi
   grep -q 'credentials not configured' "$FL" && pass "lanes fail fast on placeholder credentials" || fail "Fastfile missing the fail-fast placeholder guard"
 else
   fail "fastlane/Fastfile missing — M-17 must create it (§3.3 contract)"
 fi
 
-# Android half (M-18): platform :android + both §3.3 lanes; the Android
-# placeholder literals are pinned verbatim; the same guard message applies.
+# Android half (M-18): platform :android + the upload lane; the same guard message.
 if [ -f "$FL" ]; then
   grep -q 'platform :android' "$FL" && pass "Fastfile declares platform :android" || fail "Fastfile missing 'platform :android'"
-  for LANE in alpha_firebase release_play; do
+  for LANE in track_play; do
     if grep -q "lane :$LANE" "$FL"; then
       pass "Fastfile defines lane :$LANE"
     else
       fail "Fastfile missing lane :$LANE (§3.3 contract)"
     fi
   done
-  grep -q 'android/app/keystores/release-keystore.jks' "$FL" && pass "ANDROID_KEYSTORE_PATH placeholder pinned" || fail "ANDROID_KEYSTORE_PATH placeholder missing"
-  grep -q 'samay-release' "$FL" && pass "ANDROID_KEYSTORE_ALIAS placeholder (samay-release) pinned" || fail "ANDROID_KEYSTORE_ALIAS placeholder missing"
   grep -q 'fastlane/keys/google-play-service-account.json' "$FL" && pass "PLAY_SERVICE_ACCOUNT_JSON placeholder pinned" || fail "PLAY_SERVICE_ACCOUNT_JSON placeholder missing"
 fi
 
@@ -298,8 +282,6 @@ if [ -d "$REPO/fastlane" ]; then
     pass "fastlane/keys/google-play-service-account.json absent (path only, per §3.3)"
   fi
   grep -q 'AAAAAAAAAA' "$FL" && pass "ASC key-id placeholder (AAAAAAAAAA) present" || fail "ASC key-id placeholder missing"
-  grep -q 'https://gitea-scm.qallariy.lat/qallariy/samay-match.git' "$FL" && pass "MATCH_GIT_URL placeholder present" || fail "MATCH_GIT_URL placeholder missing"
-  grep -q 'CHANGE_ME' "$FL" && pass "CHANGE_ME placeholder present" || fail "CHANGE_ME placeholder missing"
 fi
 
 # No .jks keystores or private-key material anywhere in android/ (M-18
@@ -461,7 +443,7 @@ fi
 # Signing: placeholder team + Manual style on the Runner target; the bundle id
 # must match fastlane/Appfile. RunnerTests (test bundle) may stay Automatic.
 if [ -f "$PBX" ]; then
-  grep -q 'CODE_SIGN_STYLE = Manual' "$PBX" && pass "pbxproj CODE_SIGN_STYLE = Manual (Match-managed signing)" || fail "pbxproj CODE_SIGN_STYLE = Manual missing"
+  grep -q 'CODE_SIGN_STYLE = Manual' "$PBX" && pass "pbxproj CODE_SIGN_STYLE = Manual (vault-cert manual signing)" || fail "pbxproj CODE_SIGN_STYLE = Manual missing"
   grep -q 'DEVELOPMENT_TEAM = XXXXXXXXXX' "$PBX" && pass "pbxproj DEVELOPMENT_TEAM = XXXXXXXXXX (§3.3 placeholder)" || fail "pbxproj DEVELOPMENT_TEAM is not the placeholder"
   grep -q 'PROVISIONING_PROFILE_SPECIFIER = ""' "$PBX" && pass "pbxproj PROVISIONING_PROFILE_SPECIFIER empty" || fail "pbxproj PROVISIONING_PROFILE_SPECIFIER not empty"
   grep -q 'PRODUCT_BUNDLE_IDENTIFIER = com.qallariy.samay;' "$PBX" && pass "pbxproj bundle id com.qallariy.samay (Appfile-verified)" || fail "pbxproj bundle id mismatch"
