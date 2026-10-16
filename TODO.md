@@ -1,5 +1,8 @@
 # TODO — samay-frontend
 
+> Live cross-cutting state lives in **`<private-ops-repo>/STATUS.md`** (CURRENT STATE ·
+> WIP · BACKLOG). This file is **repo-scoped only**.
+
 ## Facts
 - Flutter app `samay` (`com.qallariy.samay`). Split from `Samay`.
 - Makefile is Flutter-only; `guard-local` gates local-only releases.
