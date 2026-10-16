@@ -6,13 +6,13 @@
 - CI: `.gitea/workflows/ci.yml`. iOS `PrivacyInfo.xcprivacy` wired into the Runner target.
 
 ## TODO
-- [ ] **NEXT — Staging/prod full builds.** Produce fully signed iOS + Android
-      builds with **all keys wired**, run on a **Tart VM**, with signing material
-      from the **vault**. `ENV=staging|prod` is wired (`build ENV=…
-      TARGET=ios|android MODE=adhoc|store`; `ENV=staging tools/release-signing-not-in-repo.sh …`).
-      Remaining: provision staging (vault/Firebase), bake `tailscale` into the
-      Tart base. See `<private-ops-repo>/STAGING.md`, `<private-ops-repo>/LOCAL-BUILDS.md`,
-      `<private-ops-repo>/PROD-READINESS.md`, `<private-ops-repo>/KEY-ACQUISITION.md`.
+- [ ] **NEXT — Staging Open Testing (host Mac build).** Produce signed iOS +
+      Android and push to **TestFlight external** + **Play `beta`** with keys from
+      the **vault**. `ENV=staging` is wired and builds on the **host Mac** now
+      (`make deploy TARGET=ios|android ENV=staging TRACK=external|beta`); IAP dark
+      (no `RC=true`). The **ephemeral Tart VM** path is deferred (gaps in
+      `<private-ops-repo>/STAGING.md` §4). See `<private-ops-repo>/STAGING.md`,
+      `<private-ops-repo>/LOCAL-BUILDS.md`, `<private-ops-repo>/PROD-READINESS.md`.
 - [x] iOS build passes the **real iOS client id** (`google-oauth-ios-client-id`)
       to `GIDClientID` + `GOOGLE_OAUTH_IOS_CLIENT_ID` (falls back to the Web id
       only for legacy profiles lacking it).
