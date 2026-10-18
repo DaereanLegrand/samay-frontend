@@ -36,6 +36,39 @@ metadata/
 
 Screenshots live in `../screenshots/<locale>/` (captured from the simulator).
 
+## Play preview assets (`android/<loc>/images/`)
+
+Format rules that Play enforces (a violated rule blocks the upload):
+
+- `icon.png` — 512×512, 32-bit PNG **with alpha**, ≤ 1 MB.
+- `featureGraphic.png` — 1024×500, 24-bit PNG **no alpha**, ≤ 15 MB.
+- `phoneScreenshots/*.png` — **no alpha**, each side 320–3840 px, and the
+  longest side **≤ 2× the shortest**; use **1080×1920 (9:16)** (also the size
+  Play needs to consider them for promotion, min 1080 px per side).
+
+The UI is Spanish-only (the app forces `Locale('es')`), so both locales carry
+the same captures. Captures are real Android app screens (device/emulator, adb
+`exec-out screencap`). A modern phone is ~9:20 (2.2:1), which Play rejects, so
+normalize each to **1080×1920 (9:16)** by scaling to full height and padding the
+sides black (the app background is black, so the pad is invisible) and strip
+alpha. Prefer a **9:16 capture profile** (Pixel 2 / Nexus 5X 1080×1920, Nexus 6P
+1440×2560) to skip the pad.
+
+```sh
+# each capture -> 1080x1920, rgb24 (strip alpha); `scale=-2:1920` keeps aspect
+for loc in en-US es-419; do
+  d=fastlane/metadata/android/$loc/images/phoneScreenshots
+  ffmpeg -y -i <capture>.png \
+    -vf "scale=-2:1920:flags=lanczos,pad=1080:1920:(ow-iw)/2:0:color=black" \
+    -pix_fmt rgb24 "$d/<n>-<name>.png"
+done
+# icon -> 512x512 RGBA (opaque alpha channel)
+for f in fastlane/metadata/android/*/images/icon.png; do
+  ffmpeg -y -i "$f" -vf "scale=512:512" -pix_fmt rgba "$f.tmp.png" \
+    && mv "$f.tmp.png" "$f"
+done
+```
+
 ## Canonical URLs (served by the Samay public site)
 
 - Privacy:   https://samay.qallariy.lat/privacy
