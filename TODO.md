@@ -21,11 +21,14 @@
         `chatBlockUser`, `legalOpenOnline`).
 - [~] **WIP — Staging Open Testing (host Mac build).** Signed iOS + Android →
       **TestFlight external** + **Play `beta`** with vault keys; IAP dark (no
-      `RC=true`). Staging backend is up. Current step: store consoles (Play app
-      content/listing + invite `play-upload`; ASC App Privacy + external group
-      `Open Beta` + public link), then:
-      `make deploy TARGET=android ENV=staging TRACK=beta` and
-      `TESTFLIGHT_EXTERNAL_GROUPS="Open Beta" make deploy TARGET=ios ENV=staging TRACK=external`.
+      `RC=true`). Staging backend up; store consoles done (age rating 18+
+      override, App Privacy, DSA trader, availability Peru, export compliance).
+      **Android**: `TRACK=beta` submitted, Google Play Open Testing **under
+      review**. **iOS**: internal upload done (build `1.0.0 (2)` → TestFlight
+      internal); remaining: add the build to external group **`External Test
+      Group`** → **Submit Review** (TestFlight App Review) → **Create Public
+      Link** (internal group **`Internal Test Group`**). Subsequent builds:
+      `TESTFLIGHT_EXTERNAL_GROUPS="External Test Group" make deploy TARGET=ios ENV=staging TRACK=external`.
       See `<private-ops-repo>/STATUS.md` (WIP) and `<private-ops-repo>/STAGING.md`.
 - [x] iOS build passes the **real iOS client id** (`google-oauth-ios-client-id`)
       to `GIDClientID` + `GOOGLE_OAUTH_IOS_CLIENT_ID` (falls back to the Web id
