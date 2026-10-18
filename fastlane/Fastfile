@@ -108,6 +108,13 @@ def prebuilt_android_aab
   aab
 end
 
+# Changelog / "What to Test" for TestFlight uploads — read from the store copy
+# so the upload lanes never block on an interactive prompt.
+def beta_changelog
+  path = File.join(Dir.pwd, "metadata", "en-US", "release_notes.txt")
+  File.exist?(path) ? File.read(path).strip : "Open beta build."
+end
+
 platform :ios do
   # The Runner target's pbxproj keeps the §3.3 placeholders (Manual signing,
   # DEVELOPMENT_TEAM = XXXXXXXXXX, empty PROVISIONING_PROFILE_SPECIFIER — the
@@ -215,7 +222,7 @@ platform :ios do
   desc "Upload the vault-built IPA to TestFlight internal testers (TRACK=internal)"
   lane :track_internal do
     assert_credentials_configured!(REQUIRED_ASC_UPLOAD_ENV)
-    upload_to_testflight(api_key: app_store_connect_key, ipa: prebuilt_ios_ipa)
+    upload_to_testflight(api_key: app_store_connect_key, ipa: prebuilt_ios_ipa, changelog: beta_changelog)
   end
 
   desc "Upload the vault-built IPA to TestFlight external testers (TRACK=external; set TESTFLIGHT_EXTERNAL_GROUPS)"
@@ -226,6 +233,7 @@ platform :ios do
     upload_to_testflight(
       api_key: app_store_connect_key,
       ipa: prebuilt_ios_ipa,
+      changelog: beta_changelog,
       distribute_external: true,
       groups: groups
     )
