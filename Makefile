@@ -249,10 +249,12 @@ build:
 	elif [ "$(TARGET)" = "ios" ] && [ "$(PROD)" = "true" ]; then \
 		[ -x "$(RELEASE_SECRETS)" ] || { echo "PROD=true needs executable $(RELEASE_SECRETS) (vault fetch/wipe)."; exit 1; }; \
 		PLIST_BACKUP=""; \
+		PBX_BACKUP=""; \
 		FIREBASE_BACKUP=""; \
 		cleanup() { \
 			[ -n "$$PLIST_BACKUP" ] && tools/ios_google_oauth.sh restore "$$PLIST_BACKUP" >/dev/null 2>&1 || true; \
 			if [ -n "$$FIREBASE_BACKUP" ]; then cp "$$FIREBASE_BACKUP" ios/Runner/GoogleService-Info.plist; rm -f "$$FIREBASE_BACKUP"; fi; \
+			if [ -n "$$PBX_BACKUP" ]; then cp "$$PBX_BACKUP" ios/Runner.xcodeproj/project.pbxproj; rm -f "$$PBX_BACKUP"; fi; \
 			$(RELEASE_SECRETS) wipe >/dev/null 2>&1 || true; \
 		}; \
 		trap cleanup EXIT INT TERM HUP; \
@@ -264,6 +266,12 @@ build:
 		FIREBASE_BACKUP=$$(mktemp); cp ios/Runner/GoogleService-Info.plist "$$FIREBASE_BACKUP"; cp "$(RAM_DIR)/GoogleService-Info.plist" ios/Runner/GoogleService-Info.plist; \
 		IOS_GID=$$(cat "$(RAM_DIR)/google-oauth-ios-client-id" 2>/dev/null); \
 		[ -n "$$IOS_GID" ] || { echo "vault '$(ENV)/apple' profile yielded no google-oauth-ios-client-id."; exit 1; }; \
+		[ -f "$(RAM_DIR)/provisioning-profile.mobileprovision" ] || { echo "vault '$(ENV)/apple' profile yielded no provisioning-profile.mobileprovision."; exit 1; }; \
+		PROF_NAME=$$(security cms -D -i "$(RAM_DIR)/provisioning-profile.mobileprovision" | plutil -extract Name raw -); \
+		PROF_TEAM=$$(security cms -D -i "$(RAM_DIR)/provisioning-profile.mobileprovision" | plutil -extract TeamIdentifier.0 raw -); \
+		PBX_BACKUP=$$(mktemp); cp ios/Runner.xcodeproj/project.pbxproj "$$PBX_BACKUP"; \
+		$(BREW_BUNDLE) exec ruby tools/ios_store_signing.rb apply "$$PROF_TEAM" "$$PROF_NAME" && \
+		grep -q "DEVELOPMENT_TEAM = $$PROF_TEAM" ios/Runner.xcodeproj/project.pbxproj || { echo "store signing patch did not stick (profile '$$PROF_NAME', team '$$PROF_TEAM')."; exit 1; }; \
 		PLIST_BACKUP=$$(tools/ios_google_oauth.sh apply "$$IOS_GID"); \
 		flutter build ipa --release $(PUB_FLAG) --dart-define-from-file="$(PROD_DEFINES)" --dart-define=GOOGLE_OAUTH_IOS_CLIENT_ID="$$IOS_GID" --dart-define=APP_ENV=$(APP_ENV) --export-options-plist="$(EXPORT_OPTIONS)" && \
 		echo "IPA: build/ios/ipa/*.ipa"; \
@@ -663,6 +671,8 @@ publish: track-guard
 	targets="$(TARGET)"; \
 	case "$$targets" in ios|android) : ;; all) targets="ios android";; *) echo "publish: TARGET must be ios|android|all"; exit 1;; esac; \
 	[ -x "$(RELEASE_SECRETS)" ] || { echo "publish: needs executable $(RELEASE_SECRETS) (vault fetch/wipe)."; exit 1; }; \
+	pub_cleanup() { $(RELEASE_SECRETS) wipe >/dev/null 2>&1 || true; true; }; \
+	trap pub_cleanup EXIT INT TERM HUP; \
 	for t in $$targets; do \
 		case "$$t" in ios) profile=apple;; android) profile=android;; esac; \
 		RC="$(RC)" IOS_EXPORT_METHOD="$(IOS_EXPORT_METHOD)" $(RELEASE_SECRETS) fetch "$$profile" $(ENV); \

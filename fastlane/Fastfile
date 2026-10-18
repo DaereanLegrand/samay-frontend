@@ -20,6 +20,7 @@
 require "xcodeproj"
 require "shellwords"
 require "plist"
+require "fileutils"
 
 default_platform(:ios)
 
@@ -130,17 +131,6 @@ platform :ios do
     target
   end
 
-  def restore_signing_placeholders(target)
-    project = Xcodeproj::Project.open("../ios/Runner.xcodeproj")
-    t = project.targets.find { |t2| t2.name == "Runner" }
-    t.build_configurations.each do |c|
-      c.build_settings["DEVELOPMENT_TEAM"] = "XXXXXXXXXX"
-      c.build_settings["PROVISIONING_PROFILE_SPECIFIER"] = ""
-      c.build_settings["CODE_SIGN_IDENTITY"] = "Apple Development"
-    end
-    project.save
-  end
-
   # [Name, UUID] of the installed profile matching team + com.qallariy.samay
   # (nil when missing — the caller raises the explicit error).
   # Xcode 16+ (Samay requires Xcode 26+) stores provisioning profiles at
@@ -185,7 +175,13 @@ platform :ios do
     end
     profile_name, profile_uuid = profile
 
-    target = patch_signing_for_build(team, profile_name)
+    # Byte-level backup so the tracked pbxproj is restored EXACTLY: the
+    # xcodeproj gem rewrites the file (objectVersion, SPM refs) on save, which
+    # would otherwise leave a spurious diff after every ad-hoc build.
+    pbx = File.expand_path("../ios/Runner.xcodeproj/project.pbxproj", Dir.pwd)
+    backup = "#{pbx}.adhoc.bak"
+    FileUtils.cp(pbx, backup)
+    patch_signing_for_build(team, profile_name)
     begin
       plist_path = File.expand_path("../ios/ExportOptions.plist", Dir.pwd)
       File.write(plist_path, <<~XML)
@@ -210,7 +206,8 @@ platform :ios do
       sh("mv #{ipa} #{File.join(Dir.pwd, "..", "build", "ios", "ipa", "samay_app-adhoc.ipa")}")
       UI.success("Ad-hoc IPA: build/ios/ipa/samay_app-adhoc.ipa (team #{team})")
     ensure
-      restore_signing_placeholders(target)
+      FileUtils.cp(backup, pbx)
+      FileUtils.rm_f(backup)
     end
   end
 
