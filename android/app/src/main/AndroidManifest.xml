@@ -1,14 +1,11 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <uses-permission android:name="android.permission.INTERNET"/>
-    <!-- Runtime permissions (SEC-07 / DEP-11, agent I-28): requested via
-         permission_handler before any camera/gallery use. On Android 13+
-         (API 33) READ_MEDIA_IMAGES replaces READ_EXTERNAL_STORAGE; the
-         legacy permission stays for API <= 32. -->
+    <!-- Runtime permission (SEC-07 / DEP-11, agent I-28): requested via
+         permission_handler before camera/QR use. Gallery images are picked
+         through the Android Photo Picker (image_picker), which needs NO media
+         permission — do NOT re-add READ_MEDIA_IMAGES / READ_EXTERNAL_STORAGE
+         (Google Play Photo and Video Permissions policy). -->
     <uses-permission android:name="android.permission.CAMERA"/>
-    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES"/>
-    <uses-permission
-        android:name="android.permission.READ_EXTERNAL_STORAGE"
-        android:maxSdkVersion="32"/>
     <!-- Event location picker + km discovery filter (2026-09-24): the device
          location is used for "use my location" and the nearby filter. -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>

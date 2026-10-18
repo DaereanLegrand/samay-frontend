@@ -5,7 +5,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:latlong2/latlong.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/core/design_tokens/app_radius.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
@@ -15,7 +14,6 @@ import 'package:samay/core/providers/config_provider.dart';
 import 'package:samay/core/providers/service_providers.dart';
 import 'package:samay/core/providers/user_provider.dart';
 import 'package:samay/core/router/route_paths.dart';
-import 'package:samay/core/services/permission_service.dart';
 import 'package:samay/features/events/logic/event_form_data.dart';
 import 'package:samay/features/events/providers/event_discovery_providers.dart';
 import 'package:samay/features/events/providers/events_providers.dart';
@@ -53,16 +51,12 @@ class CreateEventScreen extends ConsumerStatefulWidget {
   const CreateEventScreen({
     super.key,
     this.groupId,
-    this.permissions,
     this.coverPicker,
   });
 
   /// The group this event is being created for (`/group/:groupId/create-event`
   /// route); `null` for the standalone public flow.
   final String? groupId;
-
-  /// Injectable for tests; defaults to the real service.
-  final PermissionService? permissions;
 
   /// Injectable for tests; defaults to `ImagePicker.pickImage(gallery)`.
   final EventCoverPicker? coverPicker;
@@ -79,8 +73,6 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
   final _capController = TextEditingController();
   final _picker = ImagePicker();
 
-  late final PermissionService _permissions =
-      widget.permissions ?? PermissionService();
   late final EventCoverPicker _coverPicker =
       widget.coverPicker ?? ((source) => _picker.pickImage(source: source));
 
@@ -189,17 +181,6 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
   }
 
   Future<void> _pickImage() async {
-    final l10n = AppLocalizations.of(context);
-    final granted = await _permissions.ensureWithPrompt(
-      context,
-      permission: Permission.photos,
-      rationale: l10n.permissionsPhotoRationale,
-      settingsTitle: l10n.permissionsSettingsTitle,
-      settingsBody: l10n.permissionsSettingsBody,
-      settingsAction: l10n.permissionsOpenSettings,
-      cancelAction: l10n.commonCancel,
-    );
-    if (!granted) return;
     final file = await _coverPicker(ImageSource.gallery);
     if (file != null && mounted) setState(() => _coverImage = file);
   }

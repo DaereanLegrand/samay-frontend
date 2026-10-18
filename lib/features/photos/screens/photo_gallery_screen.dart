@@ -1,14 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'package:go_router/go_router.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/extensions/error_mapper.dart';
 import 'package:samay/core/models/event_photo.dart';
 import 'package:samay/core/providers/config_provider.dart';
-import 'package:samay/core/services/permission_service.dart';
 import 'package:samay/core/router/route_paths.dart';
 import 'package:samay/features/events/providers/events_providers.dart';
 import 'package:samay/features/photos/providers/photos_providers.dart';
@@ -27,7 +25,7 @@ typedef PhotoPicker = Future<XFile?> Function(ImageSource source);
 
 /// Event photo gallery: grid of thumbnails served via signed
 /// URLs, optimistic like hearts, long-press reporting, and the upload flow
-/// (permission → pick → preview-less upload through `uploadPhotoProvider`).
+/// (pick → preview-less upload through `uploadPhotoProvider`).
 ///
 /// The upload button only renders while the upload window is open (live +
 /// `events.photo_upload_window_hours` after `ends_at` from `app_config`);
@@ -36,14 +34,10 @@ class PhotoGalleryScreen extends ConsumerStatefulWidget {
   const PhotoGalleryScreen({
     super.key,
     required this.eventId,
-    this.permissions,
     this.picker,
   });
 
   final String eventId;
-
-  /// Injectable for tests; defaults to the real service.
-  final PermissionService? permissions;
 
   /// Injectable for tests; defaults to `ImagePicker.pickImage(gallery)`.
   final PhotoPicker? picker;
@@ -53,24 +47,11 @@ class PhotoGalleryScreen extends ConsumerStatefulWidget {
 }
 
 class _PhotoGalleryScreenState extends ConsumerState<PhotoGalleryScreen> {
-  late final PermissionService _permissions =
-      widget.permissions ?? PermissionService();
   late final PhotoPicker _picker =
       widget.picker ?? ((source) => ImagePicker().pickImage(source: source));
 
   Future<void> _pickAndUpload() async {
     final l10n = AppLocalizations.of(context);
-    final granted = await _permissions.ensureWithPrompt(
-      context,
-      permission: Permission.photos,
-      rationale: l10n.photosPermissionRationale,
-      settingsTitle: l10n.permissionsSettingsTitle,
-      settingsBody: l10n.permissionsSettingsBody,
-      settingsAction: l10n.permissionsOpenSettings,
-      cancelAction: l10n.commonCancel,
-    );
-    if (!granted || !mounted) return;
-
     final file = await _picker(ImageSource.gallery);
     if (file == null || !mounted) return;
 

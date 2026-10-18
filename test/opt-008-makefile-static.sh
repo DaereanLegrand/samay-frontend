@@ -39,8 +39,9 @@
 #   - gradle-wrapper.properties pins the distribution (version + -all variant
 #     verified against Flutter 3.44.1 by a real `flutter build apk --debug`),
 #   - the manifest carries allowBackup=false (E2EE R12), predictive back,
-#     and the I-28 permission set (CAMERA / READ_MEDIA_IMAGES /
-#     READ_EXTERNAL_STORAGE maxSdkVersion=32),
+#     and CAMERA; gallery uses the Android Photo Picker, so READ_MEDIA_IMAGES /
+#     READ_EXTERNAL_STORAGE must be ABSENT (Play Photo and Video Permissions
+#     policy — no broad media access),
 #   - build.gradle.kts reads the §3.3 keystore envs and NEVER debug-signs
 #     release (fail-fast guard present; the debug-signing line is gone),
 #   - no .jks/.keystore is tracked by git.
@@ -417,8 +418,8 @@ if [ -f "$MF" ]; then
   grep -q 'android:allowBackup="false"' "$MF" && pass "manifest allowBackup=false (E2EE R12)" || fail "manifest missing android:allowBackup=\"false\""
   grep -q 'android:enableOnBackInvokedCallback="true"' "$MF" && pass "manifest predictive back enabled (targetSdk 33+)" || fail "manifest missing android:enableOnBackInvokedCallback=\"true\""
   grep -q 'android.permission.CAMERA' "$MF" && pass "manifest CAMERA permission (I-28)" || fail "manifest missing CAMERA (I-28)"
-  grep -q 'android.permission.READ_MEDIA_IMAGES' "$MF" && pass "manifest READ_MEDIA_IMAGES (API 33+)" || fail "manifest missing READ_MEDIA_IMAGES"
-  grep -q 'android:maxSdkVersion="32"' "$MF" && pass "manifest READ_EXTERNAL_STORAGE capped at API 32" || fail "manifest READ_EXTERNAL_STORAGE missing maxSdkVersion=32"
+  grep -q 'android.permission.READ_MEDIA_IMAGES' "$MF" && fail "manifest must NOT declare READ_MEDIA_IMAGES (Play Photo & Video policy — gallery uses the Android Photo Picker)" || pass "manifest has no READ_MEDIA_IMAGES (photo picker, policy-compliant)"
+  grep -q 'android.permission.READ_EXTERNAL_STORAGE' "$MF" && fail "manifest must NOT declare READ_EXTERNAL_STORAGE (photo picker needs no media permission)" || pass "manifest has no READ_EXTERNAL_STORAGE"
   grep -q 'android:usesCleartextTraffic="true"' "$MF" && fail "manifest re-enables global cleartext (SEC 2026-10-04 — use networkSecurityConfig)" || pass "no global usesCleartextTraffic flag"
   grep -q 'android:networkSecurityConfig="@xml/network_security_config"' "$MF" && pass "manifest wires networkSecurityConfig" || fail "manifest missing android:networkSecurityConfig"
 else
