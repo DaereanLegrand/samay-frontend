@@ -2923,4 +2923,13 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get minigamesLeaderboardTitle => 'Clasificación';
+
+  @override
+  String get chatReportMessage => 'Reportar mensaje';
+
+  @override
+  String get chatBlockUser => 'Bloquear usuario';
+
+  @override
+  String get legalOpenOnline => 'Ver en el navegador';
 }

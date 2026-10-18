@@ -9,6 +9,16 @@
 - CI: `.gitea/workflows/ci.yml`. iOS `PrivacyInfo.xcprivacy` wired into the Runner target.
 
 ## TODO
+- [x] Chat moderation UI + legal links (store compliance):
+      - Long-press a chat message → **Reportar mensaje** (reason dialog →
+        `report_message` RPC carrying the DECRYPTED text of that one message)
+        and **Bloquear usuario** (peer messages; the block is now enforced
+        server-side for direct chats).
+      - Legal documents wired to `https://samay.qallariy.lat/privacy.html` /
+        `/terms.html` (`lib/core/config/legal_links.dart`): open-in-browser
+        action on the signup consent rows and the Settings → Privacidad screen;
+        `url_launcher` dependency; l10n es/en (`chatReportMessage`,
+        `chatBlockUser`, `legalOpenOnline`).
 - [~] **WIP — Staging Open Testing (host Mac build).** Signed iOS + Android →
       **TestFlight external** + **Play `beta`** with vault keys; IAP dark (no
       `RC=true`). Staging backend is up. Current step: store consoles (Play app

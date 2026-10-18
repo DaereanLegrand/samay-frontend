@@ -3847,5 +3847,17 @@
   "minigamesLeaderboardTitle": "Leaderboard",
   "@minigamesLeaderboardTitle": {
     "description": "Finished-game leaderboard title (201_minigame_voting)"
+  },
+  "chatReportMessage": "Report message",
+  "@chatReportMessage": {
+    "description": "Chat long-press action: report the specific message (226_chat_moderation)"
+  },
+  "chatBlockUser": "Block user",
+  "@chatBlockUser": {
+    "description": "Chat long-press action: block the message sender (226_chat_moderation)"
+  },
+  "legalOpenOnline": "View online",
+  "@legalOpenOnline": {
+    "description": "Legal screen action: open the policy in the browser"
   }
 }

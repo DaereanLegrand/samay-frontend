@@ -5335,6 +5335,24 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'Clasificación'**
   String get minigamesLeaderboardTitle;
+
+  /// Chat long-press action: report the specific message (226_chat_moderation)
+  ///
+  /// In es, this message translates to:
+  /// **'Reportar mensaje'**
+  String get chatReportMessage;
+
+  /// Chat long-press action: block the message sender (226_chat_moderation)
+  ///
+  /// In es, this message translates to:
+  /// **'Bloquear usuario'**
+  String get chatBlockUser;
+
+  /// Legal screen action: open the policy in the browser
+  ///
+  /// In es, this message translates to:
+  /// **'Ver en el navegador'**
+  String get legalOpenOnline;
 }
 
 class _AppLocalizationsDelegate

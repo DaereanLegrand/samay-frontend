@@ -2913,4 +2913,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get minigamesLeaderboardTitle => 'Leaderboard';
+
+  @override
+  String get chatReportMessage => 'Report message';
+
+  @override
+  String get chatBlockUser => 'Block user';
+
+  @override
+  String get legalOpenOnline => 'View online';
 }

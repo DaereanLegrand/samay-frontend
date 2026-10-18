@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:samay/core/config/legal_links.dart';
 import 'package:samay/core/router/route_extras.dart';
 import 'package:samay/core/router/route_paths.dart';
 import 'package:samay/l10n/app_localizations.dart';
@@ -26,6 +27,17 @@ class _PrivacyTermsScreenState extends State<PrivacyTermsScreen> {
 
   bool get _allAccepted => _privacyAccepted && _termsAccepted;
 
+  /// Opens a public legal document in the system browser (the same URL that
+  /// ships in the store listings).
+  Future<void> _openDoc(String url) async {
+    final ok = await LegalLinks.open(url);
+    if (!ok && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(AppLocalizations.of(context).errorsServer)),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
@@ -50,6 +62,7 @@ class _PrivacyTermsScreenState extends State<PrivacyTermsScreen> {
                     subtitle: l10n.authPrivacyPolicySubtitle,
                     value: _privacyAccepted,
                     onChanged: (v) => setState(() => _privacyAccepted = v),
+                    onOpen: () => _openDoc(LegalLinks.privacyUrl),
                   ),
                   const SizedBox(height: 20),
                   _ConsentRow(
@@ -57,6 +70,7 @@ class _PrivacyTermsScreenState extends State<PrivacyTermsScreen> {
                     subtitle: l10n.authServiceTermsSubtitle,
                     value: _termsAccepted,
                     onChanged: (v) => setState(() => _termsAccepted = v),
+                    onOpen: () => _openDoc(LegalLinks.termsUrl),
                   ),
                   const Spacer(),
                   // §5.1 primary CTA — emphasized white fill, black text.
@@ -95,11 +109,15 @@ class _ConsentRow extends StatelessWidget {
   final bool value;
   final ValueChanged<bool> onChanged;
 
+  /// Opens the full document in the browser (the row's trailing action).
+  final VoidCallback? onOpen;
+
   const _ConsentRow({
     required this.title,
     required this.subtitle,
     required this.value,
     required this.onChanged,
+    this.onOpen,
   });
 
   @override
@@ -129,6 +147,12 @@ class _ConsentRow extends StatelessWidget {
                 ),
               ),
             ),
+            if (onOpen != null)
+              IconButton(
+                icon: const Icon(Icons.open_in_new),
+                tooltip: title,
+                onPressed: onOpen,
+              ),
           ],
         ),
       ),

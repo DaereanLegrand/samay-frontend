@@ -18,12 +18,14 @@ import 'package:samay/core/router/route_paths.dart';
 import 'package:samay/core/services/chat_service.dart';
 import 'package:samay/core/theme/samay_durations.dart';
 import 'package:samay/features/chat/providers/chat_providers.dart';
+import 'package:samay/features/friends/providers/friends_providers.dart';
 import 'package:samay/features/groups/providers/groups_providers.dart';
 import 'package:samay/features/minigames/logic/minigame_meta.dart';
 import 'package:samay/features/minigames/providers/minigames_providers.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/error_view.dart';
 import 'package:samay/shared/widgets/profile_avatar.dart';
+import 'package:samay/shared/widgets/show_app_error.dart';
 import 'package:samay/shared/widgets/state_views.dart';
 import 'package:samay/shared/widgets/v_button.dart';
 import 'package:samay/shared/widgets/v_card.dart';
@@ -389,6 +391,18 @@ class _ChatThreadViewState extends ConsumerState<ChatThreadView> {
               title: Text(l10n.chatDeleteForMe),
               onTap: () => Navigator.pop(context, 'me'),
             ),
+            if (!pending)
+              ListTile(
+                leading: const Icon(Icons.flag_outlined),
+                title: Text(l10n.chatReportMessage),
+                onTap: () => Navigator.pop(context, 'report'),
+              ),
+            if (!isOwn)
+              ListTile(
+                leading: const Icon(Icons.block),
+                title: Text(l10n.chatBlockUser),
+                onTap: () => Navigator.pop(context, 'block'),
+              ),
           ],
         ),
       ),
@@ -412,6 +426,77 @@ class _ChatThreadViewState extends ConsumerState<ChatThreadView> {
         }
       case 'me':
         await notifier.deleteForMe(widget.chatId, id);
+      case 'report':
+        await _reportMessage(row);
+      case 'block':
+        await _blockSender(row);
+    }
+  }
+
+  /// Reports ONE message through `report_message` (226_chat_moderation). The
+  /// chat is E2EE, so the DECRYPTED text of the specific reported row is
+  /// disclosed to the moderator queue (the reported row only). Reuses the
+  /// profile report reason set; the report is a `reports` row of
+  /// target_type='message' plus a moderator-readable `message_reports`
+  /// snapshot.
+  Future<void> _reportMessage(Map<String, dynamic> row) async {
+    final l10n = AppLocalizations.of(context);
+    final id = row['id'];
+    if (id is! String) return;
+    final reason = await showDialog<String>(
+      context: context,
+      builder: (ctx) => SimpleDialog(
+        title: Text(l10n.chatReportMessage),
+        children: [
+          for (final reason in [
+            l10n.profileReportReasonHarassment,
+            l10n.profileReportReasonSpam,
+            l10n.profileReportReasonInappropriate,
+            l10n.profileReportReasonOther,
+          ])
+            SimpleDialogOption(
+              onPressed: () => Navigator.pop(ctx, reason),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: Text(reason),
+              ),
+            ),
+        ],
+      ),
+    );
+    if (reason == null || !mounted) return;
+    try {
+      await ref.read(moderationServiceProvider).reportMessage(
+            id,
+            reason,
+            plaintext: row['content'] as String?,
+          );
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.profileReportSent)));
+    } catch (e) {
+      if (mounted) showAppError(context, e);
+    }
+  }
+
+  /// Blocks the sender of a peer message (friendships.status='blocked'; the
+  /// server now also refuses new direct chats and direct messages between the
+  /// blocked pair — 226_chat_moderation). Group-chat senders can be blocked
+  /// too; the group thread itself is unaffected.
+  Future<void> _blockSender(Map<String, dynamic> row) async {
+    final l10n = AppLocalizations.of(context);
+    final senderId = row['sender_id'];
+    if (senderId is! String || senderId.isEmpty) return;
+    try {
+      await ref.read(friendsRepositoryProvider).blockUser(senderId);
+      ref.invalidate(friendsListProvider);
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.profileUserBlocked)));
+    } catch (e) {
+      if (mounted) showAppError(context, e);
     }
   }
 
