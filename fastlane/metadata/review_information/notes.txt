@@ -1,0 +1,1 @@
+TODO(owner): notes for App Review + a working demo account (demo_user/demo_password) for the staging build.

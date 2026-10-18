@@ -7,8 +7,10 @@ context and the standing development protocol **automatically**.
 
 | File | Effect |
 |---|---|
-| `opencode.json` | **Project config**: `instructions` inject AGENTS.md + `docs/process/DEVELOPMENT-WORKFLOW.md` + `docs/process/FILE-OWNERSHIP.md` into every session; `permission.bash` denies destructive git operations (commit/push allowed on human request, see below). |
+| `opencode.json` | **Project config**: `instructions` inject AGENTS.md + `docs/process/DEVELOPMENT-WORKFLOW.md` + `docs/process/FILE-OWNERSHIP.md` + the standing-rule docs (`DEV-SERVER.md`, `SIMULATORS.md`) into every session; `permission.bash` denies destructive git operations (commit/push allowed on human request, see below) and simulator spawning. |
 | `agents/*.md` | Three subagents (see table below) + `samay` primary agent. Subagents are invoked via `@mention`; `samay` is a primary agent you can switch to with Tab. |
+| `DEV-SERVER.md` | **Standing rule**: never kill/restart the human's `make dev` / `flutter run`, never trigger a reload. |
+| `SIMULATORS.md` | **Standing rule**: never spawn simulators; always ask which existing device(s) may be used. |
 | `README.md` | This file — how the config works and how the lock protocol is surfaced. |
 
 ## The lock protocol is surfaced three ways

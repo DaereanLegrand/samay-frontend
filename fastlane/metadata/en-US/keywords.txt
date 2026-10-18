@@ -1,0 +1,1 @@
+events,party,group chat,friends,rsvp,qr check-in,photo album,planner,social

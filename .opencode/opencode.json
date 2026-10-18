@@ -4,7 +4,8 @@
     "AGENTS.md",
     "docs/process/DEVELOPMENT-WORKFLOW.md",
     "docs/process/FILE-OWNERSHIP.md",
-    ".opencode/DEV-SERVER.md"
+    ".opencode/DEV-SERVER.md",
+    ".opencode/SIMULATORS.md"
   ],
   "permission": {
     "bash": {
@@ -24,6 +25,14 @@
       "*/dev/ttys*": "deny",
       "*kitten @*": "deny",
       "*osascript*System Events*": "deny",
+      "*simctl create*": "deny",
+      "*simctl boot*": "deny",
+      "*simctl bootstatus*": "deny",
+      "*simctl shutdown*": "deny",
+      "*simctl erase*": "deny",
+      "*simctl delete*": "deny",
+      "*simctl clone*": "deny",
+      "*simctl upgrade*": "deny",
       "*sudo*": "deny",
       "*do shell script*": "deny",
       "*administrator privileges*": "deny",

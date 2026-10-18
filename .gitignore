@@ -78,6 +78,10 @@ tools/<ops-tooling>/bootloader/target/
 luxe-screenshots/
 screenshots/
 
+# Store listing screenshots (fastlane convention) ARE tracked.
+!fastlane/screenshots/
+!fastlane/screenshots/**
+
 # Fastlane/CI transient artifacts
 fastlane/report.xml
 ios/Runner.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/

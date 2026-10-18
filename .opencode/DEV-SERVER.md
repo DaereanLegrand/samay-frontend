@@ -26,3 +26,8 @@ When a reload is needed to see a UI change, **ask the human to press `r`
 (hot reload) or `R` (hot restart) in the dev terminal**, then continue.
 Enforced at the config level in `.opencode/opencode.json`: TTY-writing and
 `flutter attach` patterns are denied.
+
+## See also
+
+- `.opencode/SIMULATORS.md` — never spawn simulators; ask before using the
+  current ones.

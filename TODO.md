@@ -9,13 +9,14 @@
 - CI: `.gitea/workflows/ci.yml`. iOS `PrivacyInfo.xcprivacy` wired into the Runner target.
 
 ## TODO
-- [ ] **NEXT — Staging Open Testing (host Mac build).** Produce signed iOS +
-      Android and push to **TestFlight external** + **Play `beta`** with keys from
-      the **vault**. `ENV=staging` is wired and builds on the **host Mac** now
-      (`make deploy TARGET=ios|android ENV=staging TRACK=external|beta`); IAP dark
-      (no `RC=true`). The **ephemeral Tart VM** path is deferred (gaps in
-      `<private-ops-repo>/STAGING.md` §4). See `<private-ops-repo>/STAGING.md`,
-      `<private-ops-repo>/LOCAL-BUILDS.md`, `<private-ops-repo>/PROD-READINESS.md`.
+- [~] **WIP — Staging Open Testing (host Mac build).** Signed iOS + Android →
+      **TestFlight external** + **Play `beta`** with vault keys; IAP dark (no
+      `RC=true`). Staging backend is up. Current step: store consoles (Play app
+      content/listing + invite `play-upload`; ASC App Privacy + external group
+      `Open Beta` + public link), then:
+      `make deploy TARGET=android ENV=staging TRACK=beta` and
+      `TESTFLIGHT_EXTERNAL_GROUPS="Open Beta" make deploy TARGET=ios ENV=staging TRACK=external`.
+      See `<private-ops-repo>/STATUS.md` (WIP) and `<private-ops-repo>/STAGING.md`.
 - [x] iOS build passes the **real iOS client id** (`google-oauth-ios-client-id`)
       to `GIDClientID` + `GOOGLE_OAUTH_IOS_CLIENT_ID` (falls back to the Web id
       only for legacy profiles lacking it).
@@ -35,7 +36,10 @@
 - [ ] Prune stale the reference app references (lib/ services + docs).
 - [ ] Rename stale l10n key `welcomeSamay`.
 - [ ] Trim README backend/infra sections (belong to samay-backend / <private-ops-repo>).
-- [ ] Add `fastlane/metadata/` store copy + screenshots.
+- [x] Add `fastlane/metadata/` store copy + screenshots — iOS/Android copy
+      (`en-US`, `es-419`), Play `icon.png` (512), `featureGraphic.png`
+      (1024×500), `phoneScreenshots/`, and `fastlane/screenshots/es-419/`
+      (iPhone 6.9" login/signup/forgot + iPad 13" login).
 - [ ] Comment prune (lib/, docs/).
 - [x] TODO(fastlane): iOS build uses the real iOS client id when the vault
       profile carries `google-oauth-ios-client-id` (add that entry to the prod
