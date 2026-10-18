@@ -1,6 +1,6 @@
 # Samay frontend — Flutter app.
 .PHONY: help init start build dev install build-install uninstall clear clean env test \
-        analyze check secrets hooks guard-local track-guard deploy publish \
+        analyze check secrets hooks guard-local prod-guard track-guard deploy publish \
         tunnel-android tunnel-waydroid signing-restore login \
         release bundle-install
 
@@ -31,6 +31,10 @@ IOS_EXPORT_METHOD ?= $(if $(filter adhoc,$(MODE)),ad-hoc,app-store-connect)
 # (the app-build profile emits it). Unset/false ⇒ no key ⇒ the app is in stub
 # mode (purchase UI disabled). See <private-ops-repo> docs + <private-ops-repo>.
 RC ?= false
+# ENV=prod runs against the LIVE backend. Direct dev/simulator/install runs
+# against prod require this explicit acknowledgement (store pulls go through
+# `deploy`/`release`); guard-local still applies. Set PROD_CONFIRM=1 to proceed.
+PROD_CONFIRM ?=
 APK := build/app/outputs/flutter-apk/app-$(ANDROID_FLAVOR)-$(BUILD_MODE).apk
 IPA_ADHOC := build/ios/ipa/$(APP_NAME)-adhoc.ipa
 APP_ID := com.qallariy.samay
@@ -96,10 +100,6 @@ endif
 # Environment define for dev/build runs (the prod build lines add it explicitly).
 FLUTTER_DEFINES += --dart-define=APP_ENV=$(APP_ENV)
 
-# `dev` always targets the testing API (see .env). Explicit define wins over the file.
-API_TESTING_URL := $(shell sed -n 's/^API_TESTING_URL=//p' .env 2>/dev/null | head -1)
-API_TESTING_URL := $(if $(API_TESTING_URL),$(API_TESTING_URL),https://samay-api-testing.qallariy.lat)
-
 ANDROID_GATEWAY_HOST := $(if $(findstring Linux,$(shell uname -s)),10.0.2.2,127.0.0.1)
 OS_IS_DARWIN := $(findstring Darwin,$(shell uname -s))
 
@@ -109,26 +109,29 @@ TESTING_JWT_SECRET := $(JWT_SECRET)
 ifneq ($(strip $(TESTING_JWT_SECRET)),)
 TESTING_ANON_KEY := $(shell JWT_SECRET='$(TESTING_JWT_SECRET)' python3 tools/gen_testing_anon_key.py)
 endif
-FLUTTER_DEFINES += --dart-define=SUPABASE_URL=http://$(ANDROID_GATEWAY_HOST):54386 --dart-define=SUPABASE_ANON_KEY=$(TESTING_ANON_KEY)
+LOCAL_DEFINES := --dart-define=SUPABASE_URL=http://$(ANDROID_GATEWAY_HOST):54386 --dart-define=SUPABASE_ANON_KEY=$(TESTING_ANON_KEY)
 build: | testing-kong-register
 dev: | testing-kong-register
 install: | testing-kong-register
 tunnel-android: | testing-kong-register
 endif
 
-# `dev` always points SUPABASE_URL at the testing API (explicit define wins over .env).
-ifeq ($(TESTING),true)
-DEV_DEFINES := $(FLUTTER_DEFINES)
-else
-DEV_DEFINES := $(FLUTTER_DEFINES) --dart-define=SUPABASE_URL=$(API_TESTING_URL)
-endif
+# ── Resolved env defines — ONE source per ENV, used by dev + non-store builds ─
+#   local   → local Docker stack (:54386) + the Kong anon registration
+#   testing → .env verbatim (written by `make init`)
+#   staging → vault app-build profile (staging-apple / staging-android)
+#   prod    → vault app-build profile (apple / android)
+# Recursive `=` so PROD_DEFINES (defined in the PROD block below) resolves at
+# use time. RC=true adds the vault RevenueCat public keys on any ENV.
+VAULT_PROFILE_FOR = $(if $(filter ios ios-adhoc simulator,$(1)),apple,android)
+ENV_DEFINES = $(if $(filter true,$(TESTING)),$(LOCAL_DEFINES),$(if $(RELEASE),--dart-define-from-file=$(PROD_DEFINES) --dart-define=APP_ENV=$(APP_ENV),$(FLUTTER_DEFINES)))
 
-# Single Android/Waydroid dev run command, shared by `dev` and the tunnel
-# targets. It ALWAYS pins the selected product flavor: without `--flavor`,
-# `flutter run` triggers an unflavored `assembleDebug` that builds EVERY flavor,
-# including the vault-gated `staging`/`prod` ones whose `google-services.json`
-# is absent (so it dies in `process<Flavor>DebugGoogleServices`).
-ANDROID_RUN := flutter run --flavor $(ANDROID_FLAVOR) $(PUB_FLAG) $(DEV_DEFINES)
+# Android/Waydroid dev run command, shared by `dev` and the tunnel targets. It
+# ALWAYS pins the selected product flavor: without `--flavor`, `flutter run`
+# triggers an unflavored `assembleDebug` that builds EVERY flavor, including the
+# vault-gated `staging`/`prod` ones whose `google-services.json` is absent (so
+# it dies in `process<Flavor>DebugGoogleServices`).
+ANDROID_RUN = flutter run --flavor $(ANDROID_FLAVOR) $(PUB_FLAG) $(ENV_DEFINES)
 
 ifeq ($(PROD),true)
 ifeq ($(TESTING),true)
@@ -159,12 +162,15 @@ help:
 	@echo "  GATES:     analyze check secrets hooks env"
 	@echo "  RELEASE:   release bundle-install"
 	@echo "  TRACKS:    deploy TARGET=ios|android|all TRACK=<list>  (build honours TRACK too)"
-	@echo "  ENV:       ENV=local|testing|staging|prod (the only env flag; staging/prod = vault-gated)"
+	@echo "  ENV:       ENV=local|testing|staging|prod (drives every verb; staging/prod = vault-gated)"
+	@echo "  PROD:      ENV=prod dev/build/install needs PROD_CONFIRM=1 (store pulls use deploy/release)"
 	@echo "  IOS MODE:  build ENV=prod|staging TARGET=ios MODE=store|adhoc"
 
 env:
+	@echo "ENV=$(ENV)  (PROD=$(PROD) TESTING=$(TESTING) RELEASE=$(RELEASE) APP_ENV=$(APP_ENV))"
+	@echo "config: $(if $(filter true,$(TESTING)),local stack (:54386),$(if $(RELEASE),vault profile $(call VAULT_PROFILE_FOR,$(TARGET)) ($(ENV)),.env))"
 	@echo "ENV_FILE=$(ENV_FILE)"
-	@echo "FLUTTER_DEFINES=$(FLUTTER_DEFINES)"
+	@echo "ENV_DEFINES=$(ENV_DEFINES)"
 
 # Interactive setup; then `make start` runs against the chosen backend.
 init:
@@ -192,22 +198,38 @@ build:
 	@if [ "$(TARGET)" = "all" ]; then \
 		for t in ios-adhoc simulator android; do \
 			echo "build for $$t"; \
-			make build TARGET=$$t NO_PUB=$(NO_PUB) || true; \
+			make build TARGET=$$t ENV="$(ENV)" NO_PUB=$(NO_PUB) || true; \
 		done; \
 	elif [ "$(TARGET)" = "ios" ] && [ "$(PROD)" != "true" ]; then \
-		flutter build ios --release --no-codesign $(PUB_FLAG) $(FLUTTER_DEFINES) && \
+		flutter build ios --release --no-codesign $(PUB_FLAG) $(ENV_DEFINES) && \
 		cd build/ios && rm -rf Payload && mkdir Payload && \
 		cp -R iphoneos/Runner.app Payload/ && \
 		mkdir -p ipa && zip -r -y ipa/$(APP_NAME).ipa Payload && rm -rf Payload && \
 		echo "IPA: build/ios/ipa/$(APP_NAME).ipa"; \
 	elif [ "$(TARGET)" = "ios-adhoc" ]; then \
+		[ -n "$(RELEASE)" ] && { echo "ENV=$(ENV): use 'make build ENV=$(ENV) TARGET=ios MODE=adhoc' for a vault-signed ad-hoc IPA."; exit 1; }; \
 		IOS_DEVELOPMENT_TEAM="$(IOS_DEVELOPMENT_TEAM)" \
 		SUPABASE_URL="$(LANE_SUPABASE_URL)" \
 		SUPABASE_ANON_KEY="$(LANE_SUPABASE_ANON_KEY)" \
 		./bin/fastlane ios adhoc_local && \
 		echo "IPA: $(IPA_ADHOC)"; \
 	elif [ "$(TARGET)" = "simulator" ]; then \
-		flutter build ios --simulator $(PUB_FLAG) $(FLUTTER_DEFINES) && \
+		[ "$(ENV)" = "prod" ] && [ "$(PROD_CONFIRM)" != "1" ] && { echo "ENV=prod (LIVE) simulator build — set PROD_CONFIRM=1 to proceed."; exit 1; }; \
+		PLIST_BACKUP=""; FIREBASE_BACKUP=""; \
+		sim_cleanup() { \
+			[ -n "$$PLIST_BACKUP" ] && tools/ios_google_oauth.sh restore "$$PLIST_BACKUP" >/dev/null 2>&1 || true; \
+			if [ -n "$$FIREBASE_BACKUP" ]; then cp "$$FIREBASE_BACKUP" ios/Runner/GoogleService-Info.plist; rm -f "$$FIREBASE_BACKUP"; fi; \
+			[ -n "$(RELEASE)" ] && $(RELEASE_SECRETS) wipe >/dev/null 2>&1 || true; \
+		}; \
+		trap sim_cleanup EXIT INT TERM HUP; \
+		if [ -n "$(RELEASE)" ]; then \
+			[ -x "$(RELEASE_SECRETS)" ] || { echo "ENV=$(ENV) needs executable $(RELEASE_SECRETS) (vault fetch)."; exit 1; }; \
+			RC="$(RC)" $(RELEASE_SECRETS) fetch apple $(ENV); \
+			if [ -s "$(RAM_DIR)/GoogleService-Info.plist" ]; then FIREBASE_BACKUP=$$(mktemp); cp ios/Runner/GoogleService-Info.plist "$$FIREBASE_BACKUP"; cp "$(RAM_DIR)/GoogleService-Info.plist" ios/Runner/GoogleService-Info.plist; fi; \
+			IOS_GID=$$(cat "$(RAM_DIR)/google-oauth-ios-client-id" 2>/dev/null || true); \
+			if [ -n "$$IOS_GID" ]; then PLIST_BACKUP=$$(tools/ios_google_oauth.sh apply "$$IOS_GID") || exit 1; fi; \
+		fi; \
+		flutter build ios --simulator $(PUB_FLAG) $(ENV_DEFINES) && \
 		echo "Simulator app: build/ios/iphonesimulator/Runner.app"; \
 	elif [ "$(TARGET)" = "android" ] && [ "$(PROD)" = "true" ]; then \
 		[ -x "$(RELEASE_SECRETS)" ] || { echo "PROD=true needs executable $(RELEASE_SECRETS) (vault fetch/wipe)."; exit 1; }; \
@@ -221,7 +243,9 @@ build:
 		[ -f "$(RAM_DIR)/google-services.json" ] || { echo "vault '$(ENV)/android' profile yielded no google-services.json ($(ENV) Firebase config)."; exit 1; }; \
 		cp "$(RAM_DIR)/google-services.json" android/app/src/$(ANDROID_FLAVOR)/google-services.json; \
 		KEYSTORE_PROPERTIES="$(KEYSTORE_PROPERTIES)" flutter build appbundle --release --flavor $(ANDROID_FLAVOR) $(PUB_FLAG) --dart-define-from-file="$(PROD_DEFINES)" --dart-define=APP_ENV=$(APP_ENV) && \
-		echo "AAB: build/app/outputs/bundle/$(ANDROID_FLAVOR)Release/app-$(ANDROID_FLAVOR)-release.aab"; \
+		KEYSTORE_PROPERTIES="$(KEYSTORE_PROPERTIES)" flutter build apk --release --flavor $(ANDROID_FLAVOR) $(PUB_FLAG) --dart-define-from-file="$(PROD_DEFINES)" --dart-define=APP_ENV=$(APP_ENV) && \
+		echo "AAB: build/app/outputs/bundle/$(ANDROID_FLAVOR)Release/app-$(ANDROID_FLAVOR)-release.aab" && \
+		echo "APK: $(APK)"; \
 	elif [ "$(TARGET)" = "ios" ] && [ "$(PROD)" = "true" ]; then \
 		[ -x "$(RELEASE_SECRETS)" ] || { echo "PROD=true needs executable $(RELEASE_SECRETS) (vault fetch/wipe)."; exit 1; }; \
 		PLIST_BACKUP=""; \
@@ -244,17 +268,49 @@ build:
 		flutter build ipa --release $(PUB_FLAG) --dart-define-from-file="$(PROD_DEFINES)" --dart-define=GOOGLE_OAUTH_IOS_CLIENT_ID="$$IOS_GID" --dart-define=APP_ENV=$(APP_ENV) --export-options-plist="$(EXPORT_OPTIONS)" && \
 		echo "IPA: build/ios/ipa/*.ipa"; \
 	else \
-		flutter build apk --$(BUILD_MODE) --flavor $(ANDROID_FLAVOR) $(PUB_FLAG) $(FLUTTER_DEFINES) && \
+		flutter build apk --$(BUILD_MODE) --flavor $(ANDROID_FLAVOR) $(PUB_FLAG) $(ENV_DEFINES) && \
 		echo "APK: $(APK)"; \
 	fi
 
 # `build` validates TRACK when supplied (PROD ios/android); it is not required
 # here — only `deploy` requires it (see the track-aware deploy section).
+build: guard-local
 build: track-guard
 
-dev:
+dev: guard-local prod-guard
 	$(load-env)
 	@UNAME=$$(uname); \
+	PROFILE="$(call VAULT_PROFILE_FOR,$(TARGET))"; \
+	PLIST_BACKUP=""; FIREBASE_BACKUP=""; GS_DEST=""; \
+	dev_cleanup() { \
+		[ -n "$$PLIST_BACKUP" ] && tools/ios_google_oauth.sh restore "$$PLIST_BACKUP" >/dev/null 2>&1 || true; \
+		if [ -n "$$FIREBASE_BACKUP" ]; then cp "$$FIREBASE_BACKUP" ios/Runner/GoogleService-Info.plist; rm -f "$$FIREBASE_BACKUP"; fi; \
+		if [ -n "$$GS_DEST" ]; then rm -f "$$GS_DEST"; fi; \
+		[ -n "$(RELEASE)" ] && $(RELEASE_SECRETS) wipe >/dev/null 2>&1 || true; \
+		true; \
+	}; \
+	trap dev_cleanup EXIT INT TERM HUP; \
+	if [ -n "$(RELEASE)" ]; then \
+		case "$(TARGET)" in \
+			simulator|android|waydroid) : ;; \
+			*) echo "ENV=$(ENV) dev runs are supported for TARGET=simulator|android|waydroid."; \
+			   echo "On-device iOS: make build ENV=$(ENV) TARGET=ios MODE=adhoc && make install TARGET=ios-adhoc."; \
+			   exit 1 ;; \
+		esac; \
+		[ -x "$(RELEASE_SECRETS)" ] || { echo "ENV=$(ENV) needs executable $(RELEASE_SECRETS) (vault fetch)."; exit 1; }; \
+		RC="$(RC)" IOS_EXPORT_METHOD="$(IOS_EXPORT_METHOD)" $(RELEASE_SECRETS) fetch "$$PROFILE" $(ENV) || exit 1; \
+		if [ "$(TARGET)" = "android" ] || [ "$(TARGET)" = "waydroid" ]; then \
+			[ -s "$(RAM_DIR)/google-services.json" ] || { echo "ENV=$(ENV): vault profile produced no google-services.json."; exit 1; }; \
+			mkdir -p android/app/src/$(ANDROID_FLAVOR); \
+			GS_DEST="android/app/src/$(ANDROID_FLAVOR)/google-services.json"; \
+			cp "$(RAM_DIR)/google-services.json" "$$GS_DEST"; \
+		fi; \
+		if [ "$(TARGET)" = "simulator" ]; then \
+			if [ -s "$(RAM_DIR)/GoogleService-Info.plist" ]; then FIREBASE_BACKUP=$$(mktemp); cp ios/Runner/GoogleService-Info.plist "$$FIREBASE_BACKUP"; cp "$(RAM_DIR)/GoogleService-Info.plist" ios/Runner/GoogleService-Info.plist; fi; \
+			IOS_GID=$$(cat "$(RAM_DIR)/google-oauth-ios-client-id" 2>/dev/null || true); \
+			if [ -n "$$IOS_GID" ]; then PLIST_BACKUP=$$(tools/ios_google_oauth.sh apply "$$IOS_GID") || exit 1; fi; \
+		fi; \
+	fi; \
 	if [ "$$UNAME" = "Darwin" ] && [ "$(TARGET)" = "android" ]; then \
 		$(call tunnel-android, $(ANDROID_RUN) -d localhost:$(TUNNEL_ANDROID_PORT)); \
 	elif [ "$$UNAME" = "Darwin" ] && [ "$(TARGET)" = "waydroid" ]; then \
@@ -282,7 +338,7 @@ dev:
 			echo "$$DEVS" | gum choose --header "Pick a simulator:" > /tmp/_sim_pick && \
 			DEV=$$(cat /tmp/_sim_pick); \
 		fi; \
-		flutter run $(PUB_FLAG) $(DEV_DEFINES) -d "$$DEV"; \
+		flutter run $(PUB_FLAG) $(ENV_DEFINES) -d "$$DEV"; \
 	elif [ "$(TARGET)" = "ios" ]; then \
 		DEVICE=$$(flutter devices --machine 2>/dev/null | python3 -c 'import json,sys; devs=json.load(sys.stdin); ios=[d["id"] for d in devs if d.get("targetPlatform")=="ios" and not d.get("emulator")]; print(ios[0] if ios else "")'); \
 		if [ -z "$$DEVICE" ]; then DEVICE=$$(idevice_id -l 2>/dev/null | head -1); fi; \
@@ -310,15 +366,15 @@ dev:
 		else \
 			xcrun devicectl device process terminate --device "$$DEVICE" "$(APP_ID)" 2>/dev/null || true; \
 		fi; \
-		flutter run $(PUB_FLAG) $(DEV_DEFINES) -d "$$DEVICE"; \
+		flutter run $(PUB_FLAG) $(ENV_DEFINES) -d "$$DEVICE"; \
 		RC=$$?; \
 		if [ "$$RC" -ne 0 ]; then \
 			echo "Known iOS/Xcode regression (flutter/flutter#181480); stale Xcode windows are auto-closed (NO_XCODE_RESET=1 disables)."; \
 		fi; \
 		exit $$RC; \
 	elif [ "$(TARGET)" = "ios-adhoc" ]; then \
-		make build TARGET=ios-adhoc NO_PUB=$(NO_PUB) && \
-		make install TARGET=ios-adhoc NO_PUB=$(NO_PUB) && \
+		make build TARGET=ios-adhoc ENV="$(ENV)" NO_PUB=$(NO_PUB) && \
+		make install TARGET=ios-adhoc ENV="$(ENV)" NO_PUB=$(NO_PUB) && \
 		DEVICE=$$(idevice_id -l 2>/dev/null | head -1); \
 		if [ -n "$$DEVICE" ]; then \
 			xcrun devicectl device process launch --device "$$DEVICE" "$(APP_ID)" && \
@@ -326,24 +382,24 @@ dev:
 			echo "Installed, but could not launch $(APP_ID)."; \
 		fi; \
 	elif [ -n "$(TARGET)" ]; then \
-		flutter run $(PUB_FLAG) $(DEV_DEFINES) -d "$(TARGET)"; \
+		flutter run $(PUB_FLAG) $(ENV_DEFINES) -d "$(TARGET)"; \
 	else \
-		flutter run $(PUB_FLAG) $(DEV_DEFINES); \
+		flutter run $(PUB_FLAG) $(ENV_DEFINES); \
 	fi
 
-install:
+install: guard-local prod-guard
 	$(load-env)
 	@UNAME=$$(uname); \
 	if [ "$(TARGET)" = "android" ] || [ "$(TARGET)" = "waydroid" ]; then \
 		if [ ! -f "$(APK)" ]; then \
-			echo "APK not found at $(APK) — run 'make build TARGET=android' first."; \
+			echo "APK not found at $(APK) — run 'make build ENV=$(ENV) TARGET=android' first."; \
 			exit 0; \
 		fi; \
 	fi; \
 	if [ "$(TARGET)" = "all" ]; then \
 		for t in android waydroid ios-adhoc simulator; do \
 			echo "install to $$t"; \
-			make install TARGET=$$t NO_PUB=$(NO_PUB) ALL_SIMS=1 || true; \
+			make install TARGET=$$t ENV="$(ENV)" NO_PUB=$(NO_PUB) ALL_SIMS=1 || true; \
 		done; \
 	elif [ "$$UNAME" = "Darwin" ] && [ "$(TARGET)" = "android" ]; then \
 		$(call tunnel-android, adb -s localhost:$(TUNNEL_ANDROID_PORT) install -r $(APK)); \
@@ -426,13 +482,13 @@ clear:
 		adb shell pm clear $(APP_ID); \
 	fi
 
-build-install:
+build-install: guard-local prod-guard
 	@if [ -z "$(TARGET)" ]; then \
 		echo "make build-install REQUIRES a target: TARGET=all|android|waydroid|ios|ios-adhoc|simulator"; \
 		exit 1; \
 	fi
-	@make build TARGET=$(TARGET) NO_PUB=$(NO_PUB) && \
-		make install TARGET=$(TARGET) NO_PUB=$(NO_PUB)
+	@make build TARGET=$(TARGET) ENV="$(ENV)" NO_PUB=$(NO_PUB) && \
+		make install TARGET=$(TARGET) ENV="$(ENV)" NO_PUB=$(NO_PUB)
 
 uninstall:
 	@if [ -z "$(TARGET)" ]; then \
@@ -443,7 +499,7 @@ uninstall:
 	if [ "$(TARGET)" = "all" ]; then \
 		for t in android waydroid ios-adhoc simulator; do \
 			echo "uninstall from $$t"; \
-			make uninstall TARGET=$$t || true; \
+			make uninstall TARGET=$$t ENV="$(ENV)" || true; \
 		done; \
 	elif [ "$$UNAME" = "Darwin" ] && [ "$(TARGET)" = "android" ]; then \
 		$(call tunnel-android, if adb -s localhost:$(TUNNEL_ANDROID_PORT) shell pm list packages $(APP_ID) 2>/dev/null | grep -q $(APP_ID); then adb -s localhost:$(TUNNEL_ANDROID_PORT) uninstall $(APP_ID); else echo "$(APP_ID) not installed on android."; fi); \
@@ -536,11 +592,19 @@ signing-restore:
 login:
 	@python3 tools/xcode_login.py --target "$(TARGET)" --device "$(DEVICE)" $(if $(DRY_RUN),--dry-run,)
 
-# Prod / open-testing releases are LOCAL-ONLY and vault-gated: run on the Mac
-# with the vault profile materialized on a RAM disk; never in CI.
+# Vault-gated ENVs (staging/prod) are LOCAL-ONLY: run on the Mac with the vault
+# profile materialized on a RAM disk; never in CI. No-op for local/testing.
 guard-local:
-	@if [ -n "$$CI" ] || [ -n "$$GITHUB_ACTIONS" ] || [ -n "$$GITEA_ACTIONS" ] || [ -n "$$ACT" ]; then \
-		echo "release/open-testing targets are LOCAL-ONLY (vault-gated); refusing in CI."; exit 1; \
+	@if [ -n "$(RELEASE)" ] && { [ -n "$$CI" ] || [ -n "$$GITHUB_ACTIONS" ] || [ -n "$$GITEA_ACTIONS" ] || [ -n "$$ACT" ]; }; then \
+		echo "ENV=$(ENV) is vault-gated (staging/prod); LOCAL-ONLY — refusing in CI."; exit 1; \
+	fi
+
+# ENV=prod runs against the LIVE backend: dev/simulator/install require an
+# explicit PROD_CONFIRM=1 acknowledgement. Store pulls go through deploy/release,
+# which are already deliberate; this gate is for direct local runs.
+prod-guard:
+	@if [ "$(ENV)" = "prod" ] && [ "$(PROD_CONFIRM)" != "1" ]; then \
+		echo "ENV=prod targets the LIVE backend — set PROD_CONFIRM=1 to proceed (dev/simulator/install)."; exit 1; \
 	fi
 
 # Validate TRACK against the per-TARGET store-native vocabulary. Silent no-op

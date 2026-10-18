@@ -162,6 +162,66 @@ else
   fail "deploy/publish targets missing"
 fi
 
+# ── 1c. ENV drives every run/build/install verb ──────────────────────────────
+# ENV=local|testing|staging|prod must resolve for dev/build/install, reach the
+# nested $(MAKE) sweeps, and pull the vault dart-defines for staging/prod.
+# prod is gated behind PROD_CONFIRM=1.
+echo ""
+echo "━━━ 1c. ENV honored by dev/build/install ━━━"
+env_resolves() { # label  args...
+  local label="$1"; shift
+  if make -n "$@" >/dev/null 2>&1; then pass "ENV: $label"; else fail "ENV: $label (make -n $* did not resolve)"; fi
+}
+env_resolves "dev simulator ENV=testing"       dev     TARGET=simulator ENV=testing
+env_resolves "dev simulator ENV=local"         dev     TARGET=simulator ENV=local
+env_resolves "dev simulator ENV=staging"       dev     TARGET=simulator ENV=staging
+env_resolves "dev simulator ENV=prod +ack"     dev     TARGET=simulator ENV=prod PROD_CONFIRM=1
+env_resolves "build simulator ENV=staging"     build   TARGET=simulator ENV=staging
+env_resolves "build android ENV=staging"       build   TARGET=android   ENV=staging
+env_resolves "build android ENV=prod +ack"     build   TARGET=android   ENV=prod PROD_CONFIRM=1
+env_resolves "install simulator ENV=staging"   install TARGET=simulator ENV=staging
+env_resolves "build-install simulator testing" build-install TARGET=simulator ENV=testing
+
+# Nested $(MAKE) invocations must carry ENV (TARGET=all sweeps).
+# (Capture first: `set -o pipefail` + `grep -q` can SIGPIPE the producer.)
+for pair in "build TARGET=all ENV=staging" "install TARGET=all ENV=staging"; do
+  OUT="$(make -n $pair 2>/dev/null || true)"
+  if grep -qE 'TARGET=\$t ENV="staging"' <<<"$OUT"; then
+    pass "nested ENV propagation: make -n $pair"
+  else
+    fail "nested ENV propagation missing: make -n $pair"
+  fi
+done
+OUT="$(make -n build TARGET=simulator ENV=staging 2>/dev/null || true)"
+if grep -q -- '--dart-define-from-file=' <<<"$OUT"; then
+  pass "staging simulator build pulls the vault dart-defines file"
+else
+  fail "staging simulator build does not reference the vault dart-defines file"
+fi
+OUT="$(make -s env ENV=staging 2>/dev/null || true)"
+if grep -q 'ENV=staging' <<<"$OUT"; then
+  pass "env verb reports ENV=staging"
+else
+  fail "env verb does not report ENV"
+fi
+
+# prod-guard: ENV=prod needs PROD_CONFIRM=1; staging passes through untouched.
+if make -s prod-guard ENV=prod >/dev/null 2>&1; then
+  fail "prod-guard did not reject ENV=prod without PROD_CONFIRM"
+else
+  pass "prod-guard rejects ENV=prod without PROD_CONFIRM"
+fi
+if make -s prod-guard ENV=prod PROD_CONFIRM=1 >/dev/null 2>&1; then
+  pass "prod-guard accepts ENV=prod with PROD_CONFIRM=1"
+else
+  fail "prod-guard rejected ENV=prod with PROD_CONFIRM=1"
+fi
+if make -s prod-guard ENV=staging >/dev/null 2>&1; then
+  pass "prod-guard no-ops for ENV=staging"
+else
+  fail "prod-guard tripped for ENV=staging (should no-op)"
+fi
+
 # ── 2. Fastlane upload-lane contract (vault-built artifacts; no match) ───────
 echo ""
 echo "━━━ 2. Fastlane upload-lane contract ━━━"
