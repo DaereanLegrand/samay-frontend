@@ -24,10 +24,12 @@
       `RC=true`). Staging backend up; store consoles done (age rating 18+
       override, App Privacy, DSA trader, availability Peru, export compliance).
       **Android**: `TRACK=beta` submitted, Google Play Open Testing **under
-      review**. **iOS**: internal upload done (build `1.0.0 (2)` → TestFlight
-      internal); remaining: add the build to external group **`External Test
-      Group`** → **Submit Review** (TestFlight App Review) → **Create Public
-      Link** (internal group **`Internal Test Group`**). Subsequent builds:
+      review**. **iOS**: build `1.0.0 (4)` uploaded (changelog set); external
+      submission to **`External Test Group`** = **Pending Review** (TestFlight
+      App Review); ITMS-90683 cleared
+      (`NSLocationAlwaysAndWhenInUseUsageDescription`). Remaining: approval →
+      **Create Public Link** (internal group **`Internal Test Group`**). One
+      build per version can be in review at a time. Subsequent builds:
       `TESTFLIGHT_EXTERNAL_GROUPS="External Test Group" make deploy TARGET=ios ENV=staging TRACK=external`.
       See `<private-ops-repo>/STATUS.md` (WIP) and `<private-ops-repo>/STAGING.md`.
 - [x] iOS build passes the **real iOS client id** (`google-oauth-ios-client-id`)
