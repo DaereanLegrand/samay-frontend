@@ -145,42 +145,14 @@ class ShardsService {
     final user = auth.currentUser;
     if (user == null) throw const UnauthorizedError();
 
-    final cosmetic = await client
-        .from('cosmetics')
-        .select('shard_cost, tier_requirement')
-        .eq('id', cosmeticId)
-        .single();
-    final cost = cosmetic['shard_cost'] as int;
-    final requiredTier = cosmetic['tier_requirement'] as String? ?? 'free';
+    final res = await client.rpc(
+      'purchase_cosmetic',
+      params: {'p_cosmetic_id': cosmeticId},
+    );
+    final result = res is Map ? Map<String, dynamic>.from(res) : {};
+    if (result['status'] == 'ok') return;
 
-    final userData = await client
-        .from('users')
-        .select('personal_shards, subscription_tier')
-        .eq('id', user.id)
-        .single();
-    final shards = userData['personal_shards'] as int;
-    if (shards < cost) {
-      throw InsufficientShardsException(required: cost, balance: shards);
-    }
-    final userTier = userData['subscription_tier'] as String? ?? 'free';
-    if (tierRank(requiredTier) > tierRank(userTier)) {
-      throw const TierRequirementException();
-    }
-
-    await client.from('user_cosmetics').insert({
-      'user_id': user.id,
-      'cosmetic_id': cosmeticId,
-      'equipped': false,
-      'purchased_at': DateTime.now().toIso8601String(),
-    });
-
-    await client.from('shard_ledger').insert({
-      'user_id': user.id,
-      'delta': -cost,
-      'reason': 'cosmetic_purchase',
-      'reference_id': cosmeticId,
-      'created_at': DateTime.now().toIso8601String(),
-    });
+    throw ServerError(result['message'] as String? ?? 'purchase_failed');
   }
 
   /// The public cosmetics catalog (COSM spec; `cosmetics_read_all` RLS).

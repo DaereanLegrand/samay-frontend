@@ -326,49 +326,43 @@ class MinigameService {
     }
   }
 
-  /// Settles a finished minigame via the `finish_minigame_game` SECURITY
-  /// DEFINER RPC (201_minigame_voting) — the single settlement seam that
-  /// REPLACED `finish_minigame_session` (winner-takes-all) and
-  /// `complete_minigame_game` (draw-only). The client-side UPDATE is
-  /// RLS-blocked (`minigame_sessions` has no UPDATE policy under FORCE RLS)
-  /// and the settlement MUST happen server-side.
+  /// Waits for server-side settlement and reads the result.
   ///
-  /// The RPC computes the leaderboard from the rounds history, pays the
-  /// HARMONIC prize split (1/rank over N = prize_positions places, integer-
-  /// exact) into `users.personal_shards` with `minigame_win` ledger rows,
-  /// writes `minigame_results` and flips phase + session status to finished.
-  /// Idempotent — repeat calls are a no-op. The finished screen reads the
-  /// settled leaderboard via [getMinigameResult].
+  /// `finish_minigame_game` is service-role-only (229_wave0). The play engine
+  /// settles at the round target, and async sessions settle lazily on the
+  /// next state read. This method triggers that read and then loads
+  /// [getMinigameResult]; it never attempts to settle from the client.
   Future<void> finishGame(String id) async {
+    // Settlement is server-only (229_wave0). The play engine settles at the
+    // round target and the async timer settles on the next state read.
+    await getMinigameGameState(id);
+    final result = await getMinigameResult(id);
+    if (result == null) {
+      throw const ServerError('settlement_pending');
+    }
+  }
+
+  /// Records an abandonment. Refunds happen only when every non-host
+  /// participant abandons or the host abandons (Q7).
+  Future<void> abandonGame(String id) async {
     final res = await client.rpc(
-      'finish_minigame_game',
+      'abandon_minigame_game',
       params: {'p_session_id': id},
     );
-    final result = res is Map
-        ? Map<String, dynamic>.from(res)
-        : <String, dynamic>{};
-    final status = result['status'] as String?;
-
-    switch (status) {
-      case 'finished':
+    final result = res is Map ? Map<String, dynamic>.from(res) : {};
+    switch (result['status']) {
+      case 'recorded':
+      case 'abandoned':
       case 'already_finished':
         return;
       case 'not_authenticated':
-        throw const MinigameSessionRejectedException(
-          MinigameSessionRejection.notAuthenticated,
-        );
-      case 'not_member':
-        throw const MinigameSessionRejectedException(
-          MinigameSessionRejection.notMember,
-        );
-      case 'not_allowed':
-        throw const MinigameSessionRejectedException(
-          MinigameSessionRejection.notAllowed,
-        );
+        throw const UnauthorizedError();
       case 'session_not_found':
         throw const NotFoundError('Session');
+      case 'not_allowed':
+        throw PermissionError();
       default:
-        throw const ServerError('Unexpected finish_minigame_game response');
+        throw const ServerError('Unexpected abandon_minigame_game response');
     }
   }
 

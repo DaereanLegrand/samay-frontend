@@ -161,10 +161,19 @@ class EventService {
 
   Future<void> updateEvent(String id, Map<String, dynamic> patch) async {
     final data = Map<String, dynamic>.from(patch);
-    data['updated_at'] = DateTime.now().toIso8601String();
-    if (patch.containsKey('preshards_pool')) {
-      data['dynamic_qr_enabled'] = (patch['preshards_pool'] as int) > 0;
+    // Server-managed columns are immutable after creation (229_wave0).
+    for (final key in const [
+      'preshards_pool',
+      'preshards_cap_per_user',
+      'preshards_remainder_action',
+      'preshards_distributed',
+      'featured',
+      'featured_until',
+      'invite_token',
+    ]) {
+      data.remove(key);
     }
+    data['updated_at'] = DateTime.now().toIso8601String();
     await client.from('events').update(data).eq('id', id);
   }
 
