@@ -138,24 +138,38 @@ platform :ios do
     target
   end
 
-  # [Name, UUID] of the installed profile matching team + com.qallariy.samay
-  # (nil when missing — the caller raises the explicit error).
-  # Xcode 16+ (Samay requires Xcode 26+) stores provisioning profiles at
-  # ~/Library/Developer/Xcode/UserData/Provisioning Profiles — the legacy
-  # ~/Library/MobileDevice/... path is NOT supported (no fallback).
+  # [Name, UUID] of the installed profile matching team + com.qallariy.samay.
+  # Prefer a profile that actually carries the capabilities the app requests
+  # (aps-environment, then Sign in with Apple). The first glob match is not
+  # necessarily the newest or the most capable profile.
   def installed_signing_profile(team)
     dir = File.expand_path("~/Library/Developer/Xcode/UserData/Provisioning Profiles")
     unless File.directory?(dir)
       UI.user_error!("Provisioning profile directory not found: #{dir} (Xcode 16+ location — Xcode 26 is required). Install the profile first: download it from the Developer Portal and double-click the .mobileprovision.")
     end
+    matches = []
     Dir.glob(File.join(dir, "*.mobileprovision")).each do |path|
       xml = `security cms -D -i #{Shellwords.escape(path)} 2>/dev/null`
       plist = Plist.parse_xml(xml)
       next unless plist && plist["Entitlements"]
-      next unless plist["Entitlements"]["application-identifier"] == "#{team}.com.qallariy.samay"
-      return [plist["Name"], plist["UUID"]]
+      ent = plist["Entitlements"]
+      next unless ent["application-identifier"] == "#{team}.com.qallariy.samay"
+      matches << {
+        name: plist["Name"],
+        uuid: plist["UUID"],
+        aps: ent["aps-environment"],
+        apple: ent["com.apple.developer.applesignin"]
+      }
     end
-    nil
+    return nil if matches.empty?
+    adhoc = matches.select { |m| m[:name].to_s =~ /ad.?hoc/i }
+    best = adhoc.find { |m| m[:aps] && m[:apple] } ||
+           adhoc.find { |m| m[:aps] } ||
+           adhoc.first ||
+           matches.find { |m| m[:aps] && m[:apple] } ||
+           matches.find { |m| m[:aps] } ||
+           matches.first
+    [best[:name], best[:uuid]]
   end
 
   desc "Build a signed ad-hoc IPA for on-device installs (make build TARGET=ios-adhoc → make install TARGET=ios-adhoc). No store upload. Signs with the developer's enrolled team from $IOS_DEVELOPMENT_TEAM (gitignored .env.local) and the installed provisioning profile for com.qallariy.samay; the tracked pbxproj keeps its §3.3 placeholders — team + profile specifier are patched for this build and restored crash-safely."

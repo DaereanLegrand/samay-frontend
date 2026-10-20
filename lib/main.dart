@@ -174,7 +174,11 @@ Future<void> main() async {
       // registered on the Android API key). Release without an RC key stays
       // dark (subscriptions = false).
       featureFlagsProvider.overrideWithValue(
-        AppFeatureFlags(push: kDebugMode, subscriptions: rcKey.isNotEmpty),
+        AppFeatureFlags(
+          push: kDebugMode &&
+              !const bool.fromEnvironment('SAMAY_TEST_NO_PUSH'),
+          subscriptions: rcKey.isNotEmpty,
+        ),
       ),
     ],
   );

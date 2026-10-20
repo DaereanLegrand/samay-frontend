@@ -102,6 +102,14 @@ FLUTTER_DEFINES += --dart-define=APP_ENV=$(APP_ENV)
 
 ANDROID_GATEWAY_HOST := $(if $(findstring Linux,$(shell uname -s)),10.0.2.2,127.0.0.1)
 OS_IS_DARWIN := $(findstring Darwin,$(shell uname -s))
+# Local stack wiring. Defaults read the monorepo backend env; a lane can point
+# at its own disposable stack with LOCAL_JWT_ENV and LOCAL_KONG_PORT.
+LOCAL_JWT_ENV ?= ../backend/supabase/.env
+JWT_SECRET ?= $(shell sed -n 's/^JWT_SECRET=//p' $(LOCAL_JWT_ENV) 2>/dev/null | head -1)
+LOCAL_KONG_PORT ?= $(shell sed -n 's/^KONG_HTTP_PORT=\([0-9]*\).*/\1/p' $(LOCAL_JWT_ENV) 2>/dev/null | head -1)
+ifeq ($(strip $(LOCAL_KONG_PORT)),)
+LOCAL_KONG_PORT := 54386
+endif
 
 # ENV=local points builds at the local stack (TESTING is derived above); needs JWT_SECRET.
 ifeq ($(TESTING),true)
@@ -109,7 +117,7 @@ TESTING_JWT_SECRET := $(JWT_SECRET)
 ifneq ($(strip $(TESTING_JWT_SECRET)),)
 TESTING_ANON_KEY := $(shell JWT_SECRET='$(TESTING_JWT_SECRET)' python3 tools/gen_testing_anon_key.py)
 endif
-LOCAL_DEFINES := --dart-define=SUPABASE_URL=http://$(ANDROID_GATEWAY_HOST):54386 --dart-define=SUPABASE_ANON_KEY=$(TESTING_ANON_KEY)
+LOCAL_DEFINES := --dart-define=SUPABASE_URL=http://$(ANDROID_GATEWAY_HOST):$(LOCAL_KONG_PORT) --dart-define=SUPABASE_ANON_KEY=$(TESTING_ANON_KEY)
 build: | testing-kong-register
 dev: | testing-kong-register
 install: | testing-kong-register
@@ -117,7 +125,7 @@ tunnel-android: | testing-kong-register
 endif
 
 # ── Resolved env defines — ONE source per ENV, used by dev + non-store builds ─
-#   local   → local Docker stack (:54386) + the Kong anon registration
+#   local   → local Docker stack (:$(LOCAL_KONG_PORT)) + the Kong anon registration
 #   testing → .env verbatim (written by `make init`)
 #   staging → vault app-build profile (staging-apple / staging-android)
 #   prod    → vault app-build profile (apple / android)
@@ -168,7 +176,7 @@ help:
 
 env:
 	@echo "ENV=$(ENV)  (PROD=$(PROD) TESTING=$(TESTING) RELEASE=$(RELEASE) APP_ENV=$(APP_ENV))"
-	@echo "config: $(if $(filter true,$(TESTING)),local stack (:54386),$(if $(RELEASE),vault profile $(call VAULT_PROFILE_FOR,$(TARGET)) ($(ENV)),.env))"
+	@echo "config: $(if $(filter true,$(TESTING)),local stack (:$(LOCAL_KONG_PORT)),$(if $(RELEASE),vault profile $(call VAULT_PROFILE_FOR,$(TARGET)) ($(ENV)),.env))"
 	@echo "ENV_FILE=$(ENV_FILE)"
 	@echo "ENV_DEFINES=$(ENV_DEFINES)"
 
@@ -181,9 +189,9 @@ start: dev
 testing-kong-register:
 	@[ -n "$(TESTING_JWT_SECRET)" ] || { echo "TESTING=true needs JWT_SECRET (the local stack signing secret)."; exit 1; }
 	@[ -n "$(TESTING_ANON_KEY)" ] || { echo "TESTING=true: failed to mint the anon JWT."; exit 1; }
-	@KONG=$$(docker ps --format '{{.Names}}' --filter publish=54386 | head -1); \
+	@KONG=$$(docker ps --format '{{.Names}}' --filter publish=$(LOCAL_KONG_PORT) | head -1); \
 	if [ -z "$$KONG" ]; then \
-		echo "No Kong on 127.0.0.1:54386 — temp JWT NOT registered."; \
+		echo "No Kong on 127.0.0.1:$(LOCAL_KONG_PORT) — temp JWT NOT registered."; \
 	elif docker exec "$$KONG" sh -c 'grep -qF "$(TESTING_ANON_KEY)" /usr/local/kong/kong.yml' 2>/dev/null; then \
 		echo "TESTING: anon JWT already registered in $$KONG"; \
 	elif docker exec "$$KONG" sh -c 'printf "\n  - consumer: anon\n    key: %s\n" "$(TESTING_ANON_KEY)" >> /usr/local/kong/kong.yml' 2>/dev/null && docker exec "$$KONG" kong reload >/dev/null 2>&1; then \
