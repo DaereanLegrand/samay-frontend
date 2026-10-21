@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:samay/core/providers/auth_provider.dart';
+import 'package:samay/core/providers/service_providers.dart';
 import 'package:samay/core/providers/user_provider.dart';
 import 'package:samay/features/chat/providers/chat_providers.dart';
 import 'package:samay/features/cosmetics/providers/cosmetics_providers.dart';
@@ -115,6 +118,16 @@ class AuthScopeReset extends ConsumerWidget {
       // Logout (or account switch) → flush the per-account cache.
       for (final provider in _userScoped) {
         ref.invalidate(provider);
+      }
+      // SEC-033: the on-disk caches (messages, notifications, photos,
+      // friends, feed, prefs) and network-image cache must be gone too —
+      // invalidating providers only clears memory. An initial authentication
+      // (no previous uid) is NOT a logout and must not wipe a cache warming
+      // up for the same session.
+      final switchedAccount =
+          prevUid != null && nextUid != null && prevUid != nextUid;
+      if (loggedOut || switchedAccount) {
+        unawaited(ref.read(localDataPurgerProvider).purge());
       }
     });
     return const SizedBox.shrink();

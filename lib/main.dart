@@ -16,6 +16,7 @@ import 'package:samay/core/services/crash_reporter.dart';
 import 'package:samay/core/services/push_service.dart';
 import 'package:samay/core/services/revenuecat_service.dart';
 import 'package:samay/core/services/secure_session_storage.dart';
+import 'package:samay/core/services/secure_storage_options.dart';
 import 'package:samay/core/services/storage_service.dart';
 
 /// Global Flutter error handler.
@@ -90,6 +91,12 @@ Future<void> main() async {
   if (recovered != null) {
     AppLogger.instance.warn('Recovered from a previous crash:\n$recovered');
   }
+
+  // SEC-033: one-time upgrade of existing secrets to
+  // `first_unlock_this_device` (iOS) / EncryptedSharedPreferences (Android)
+  // before anything reads them. Best-effort: failure retries next boot and
+  // never blocks startup.
+  await migrateSamaySecureStorage();
 
   // encrypted Hive caches (config, photo URLs,
   // messages, notifications). Init before Supabase so the config cache is

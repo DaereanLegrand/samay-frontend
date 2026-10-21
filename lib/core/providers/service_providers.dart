@@ -7,6 +7,7 @@ import 'package:samay/core/services/discovery_service.dart';
 import 'package:samay/core/services/event_service.dart';
 import 'package:samay/core/services/friendship_service.dart';
 import 'package:samay/core/services/group_service.dart';
+import 'package:samay/core/services/local_data_purger.dart';
 import 'package:samay/core/services/media_service.dart';
 import 'package:samay/core/services/minigame_service.dart';
 import 'package:samay/core/services/moderation_service.dart';
@@ -43,6 +44,12 @@ final configServiceProvider = Provider<ConfigService>((ref) {
 /// and the app-config offline fallback — through one wiring point.
 final hiveServiceProvider = Provider<HiveService>((ref) {
   return HiveService();
+});
+
+/// Purges account-scoped local caches on logout/account switch and for the
+/// explicit "Borrar datos locales" settings action (SEC-033).
+final localDataPurgerProvider = Provider<LocalDataPurger>((ref) {
+  return LocalDataPurger(hive: ref.watch(hiveServiceProvider));
 });
 
 final authServiceProvider = Provider<AuthService>((ref) {

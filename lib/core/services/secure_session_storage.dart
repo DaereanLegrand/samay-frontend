@@ -1,5 +1,6 @@
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:samay/core/logging/app_logger.dart';
+import 'package:samay/core/services/secure_storage_options.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' hide AuthState;
 
 /// Supabase session persistence backed by `flutter_secure_storage`
@@ -31,7 +32,7 @@ class SecureSessionStorage extends LocalStorage {
   /// Creates a storage backed by [secureStorage]; tests inject a fake, the
   /// app uses the real plugin.
   SecureSessionStorage({FlutterSecureStorage? secureStorage})
-      : _store = _FallbackAwareStore(secureStorage ?? const FlutterSecureStorage());
+      : _store = _FallbackAwareStore(secureStorage ?? samaySecureStorage());
 
   /// Secure-storage key under which the session JSON is persisted.
   static const persistSessionKey = 'samay.auth.session';
@@ -72,7 +73,7 @@ class SecureSessionStorage extends LocalStorage {
 class SecurePkceStorage extends GotrueAsyncStorage {
   /// Creates a storage backed by [secureStorage]; tests inject a fake.
   SecurePkceStorage({FlutterSecureStorage? secureStorage})
-      : _store = _FallbackAwareStore(secureStorage ?? const FlutterSecureStorage());
+      : _store = _FallbackAwareStore(secureStorage ?? samaySecureStorage());
 
   static const _keyPrefix = 'samay.auth.';
 

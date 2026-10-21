@@ -6,9 +6,10 @@ import 'dart:typed_data';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:samay/core/logging/app_logger.dart';
+import 'package:samay/core/services/secure_storage_options.dart';
 
 class SecureStorageService {
-  final _storage = const FlutterSecureStorage();
+  final _storage = samaySecureStorage();
 
   Future<void> storeToken(String key, String value) async {
     await _storage.write(key: key, value: value);
@@ -51,7 +52,7 @@ class HiveService {
   final HiveInterface _hive;
 
   HiveService({FlutterSecureStorage? secureStorage, HiveInterface? hive})
-    : _secureStorage = secureStorage ?? const FlutterSecureStorage(),
+    : _secureStorage = secureStorage ?? samaySecureStorage(),
       _hive = hive ?? Hive;
 
   Future<Uint8List> _obtainEncryptionKey() async {
@@ -365,5 +366,34 @@ class HiveService {
   Future<void> clearCachedFeed(String userId) async {
     final box = _hive.box<String>(feedBoxName);
     await box.delete(userId);
+  }
+
+  /// Boxes that contain account-scoped data and must never survive a logout
+  /// or an account switch (SEC-033).
+  static const userDataBoxNames = <String>[
+    configBoxName,
+    photoBoxName,
+    messageBoxName,
+    notificationBoxName,
+    friendsBoxName,
+    minigameSummaryBoxName,
+    feedBoxName,
+  ];
+
+  /// Empties every on-device cache. The boxes stay open (and encrypted); only
+  /// their entries are deleted. Best-effort per box: an unopened box is
+  /// skipped, never thrown — logout must not be blocked by cache state.
+  Future<void> purgeAll() async {
+    for (final name in userDataBoxNames) {
+      try {
+        final box = _hive.box<String>(name);
+        await box.clear();
+      } catch (e, st) {
+        AppLogger.instance.warn(
+          'Hive purge of "$name" failed: $e',
+          '$st',
+        );
+      }
+    }
   }
 }
