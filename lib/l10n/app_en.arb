@@ -180,6 +180,18 @@
   "@authVerify": {
     "description": "Verify button label"
   },
+  "authFieldRequired": "This field is required.",
+  "@authFieldRequired": {
+    "description": "Auth form validation: required field"
+  },
+  "authCheckFields": "Check the highlighted fields.",
+  "@authCheckFields": {
+    "description": "Auth form summary shown when validation marks one or more fields"
+  },
+  "authOtpLengthError": "Enter the 6-digit code.",
+  "@authOtpLengthError": {
+    "description": "OTP verification: submitted code is shorter than 6 digits"
+  },
   "authResendCode": "Resend code",
   "@authResendCode": {
     "description": "Resend-OTP button label once the cooldown has elapsed"

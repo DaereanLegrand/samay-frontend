@@ -344,6 +344,24 @@ abstract class AppLocalizations {
   /// **'Verificar'**
   String get authVerify;
 
+  /// Auth form validation: required field
+  ///
+  /// In es, this message translates to:
+  /// **'Este campo es obligatorio.'**
+  String get authFieldRequired;
+
+  /// Auth form summary shown when validation marks one or more fields
+  ///
+  /// In es, this message translates to:
+  /// **'Revisa los campos marcados.'**
+  String get authCheckFields;
+
+  /// OTP verification: submitted code is shorter than 6 digits
+  ///
+  /// In es, this message translates to:
+  /// **'Ingresa los 6 dígitos del código.'**
+  String get authOtpLengthError;
+
   /// Resend-OTP button label once the cooldown has elapsed
   ///
   /// In es, this message translates to:
