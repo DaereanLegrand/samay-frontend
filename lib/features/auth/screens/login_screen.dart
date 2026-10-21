@@ -29,6 +29,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _submitting = false;
+  String? _emailError;
+  String? _passwordError;
 
   @override
   void initState() {
@@ -52,16 +54,23 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     if (_submitting) return;
     final email = _emailController.text.trim();
     final password = _passwordController.text;
-    final formState = form_validators.FormState()
-      ..validate(
-        {
-          'email': form_validators.requiredValidator,
-          'password': form_validators.requiredValidator,
-        },
-        {'email': email, 'password': password},
-      );
-    if (!formState.isValid) return;
     final l10n = AppLocalizations.of(context);
+    final emailError = form_validators.compose([
+      (v) =>
+          form_validators.requiredValidator(v, message: l10n.authFieldRequired),
+      (v) =>
+          form_validators.emailValidator(v, message: l10n.errorsInvalidEmail),
+    ])(email);
+    final passwordError = form_validators.requiredValidator(
+      password,
+      message: l10n.authFieldRequired,
+    );
+    setState(() {
+      _emailError = emailError;
+      _passwordError = passwordError;
+    });
+    if (emailError != null || passwordError != null) return;
+
     final loginErrors = ref.read(loginErrorProvider.notifier)..clear();
     setState(() => _submitting = true);
     try {
@@ -74,14 +83,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       setState(() => _submitting = false);
       // Own-action scoping: capture THIS attempt's failure — the global auth
       // stream is never mirrored into the field.
-      final message =
-          ref.read(authStateProvider).errorMessage ??
-          l10n.authUnknownLoginError;
+      final authError = ref.read(authStateProvider).error;
+      final message = authError == null
+          ? l10n.authUnknownLoginError
+          : authError.toAppError().localize(l10n);
       loginErrors.set(message);
       showAppError(context, message, blocking: true);
     } catch (e, st) {
       AppLogger.instance.error('login error: $e', '$st');
-      final message = e.toAppError().message;
+      final message = e.toAppError().localize(l10n);
       loginErrors.set(message);
       if (mounted) {
         setState(() => _submitting = false);
@@ -118,14 +128,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         return;
       }
       setState(() => _submitting = false);
-      final message =
-          ref.read(authStateProvider).errorMessage ?? l10n.authUnknownLoginError;
+      final authError = ref.read(authStateProvider).error;
+      final message = authError == null
+          ? l10n.authUnknownLoginError
+          : authError.toAppError().localize(l10n);
       showAppError(context, message, blocking: true);
     } catch (e, st) {
       AppLogger.instance.error('social sign-in error: $e', '$st');
       if (mounted) {
         setState(() => _submitting = false);
-        showAppError(context, e.toAppError().message, blocking: true);
+        showAppError(context, e.toAppError().localize(l10n), blocking: true);
       }
     }
   }
@@ -189,8 +201,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       onPressed: _submitting
           ? null
           : () => _social(
-                () => ref.read(authStateProvider.notifier).signInWithGoogle(),
-              ),
+              () => ref.read(authStateProvider.notifier).signInWithGoogle(),
+            ),
       child: Container(
         width: 44,
         height: 44,
@@ -227,8 +239,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       onPressed: _submitting
           ? null
           : () => _social(
-                () => ref.read(authStateProvider.notifier).signInWithApple(),
-              ),
+              () => ref.read(authStateProvider.notifier).signInWithApple(),
+            ),
       child: Container(
         width: 44,
         height: 44,
@@ -279,6 +291,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         controller: _emailController,
                         label: l10n.commonEmail,
                         keyboardType: TextInputType.emailAddress,
+                        errorText: _emailError,
+                        onChanged: (_) {
+                          if (_emailError != null) {
+                            setState(() => _emailError = null);
+                          }
+                        },
                       ),
                       const SizedBox(height: 20),
                       VInput(
@@ -286,11 +304,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         label: l10n.commonPassword,
                         obscureText: true,
                         // §5.2: THIS attempt's error rides the password field
-                        // as `errorText` (glowPink — never raw red on black)
-                        // instead of a standalone inline Text (ledger,
-                        // handoff 4). Sourced from the login-scoped provider —
-                        // never the global auth stream.
-                        errorText: loginError,
+                        // as `errorText` (glowPink — never raw red on black).
+                        // Local validation wins over the server failure;
+                        // sourced from the login-scoped provider — never the
+                        // global auth stream.
+                        errorText: _passwordError ?? loginError,
+                        onChanged: (_) {
+                          if (_passwordError != null || loginError != null) {
+                            setState(() => _passwordError = null);
+                            ref.read(loginErrorProvider.notifier).clear();
+                          }
+                        },
                       ),
                       const SizedBox(height: 8),
                       Align(
@@ -311,6 +335,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           ),
                         ),
                       ),
+                      if (_emailError != null ||
+                          _passwordError != null ||
+                          loginError != null)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 16),
+                          child: Text(
+                            l10n.authCheckFields,
+                            style: const TextStyle(color: AppColors.error),
+                          ),
+                        ),
                       const SizedBox(height: 32),
                       // §5.1 brand moment: the primary CTA is BLACK (user
                       // directive — cyan/skyblue is banned on
@@ -330,8 +364,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             child: Divider(color: AppColors.hairline),
                           ),
                           Padding(
-                            padding:
-                                const EdgeInsets.symmetric(horizontal: 12),
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
                             child: Text(
                               l10n.authOrDivider,
                               style: const TextStyle(

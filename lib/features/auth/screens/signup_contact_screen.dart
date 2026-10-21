@@ -8,6 +8,7 @@ import 'package:samay/core/logging/app_logger.dart';
 import 'package:samay/core/providers/auth_provider.dart';
 import 'package:samay/core/router/route_extras.dart';
 import 'package:samay/core/router/route_paths.dart';
+import 'package:samay/core/utils/form_validators.dart' as form_validators;
 import 'package:samay/features/auth/logic/password_policy.dart';
 import 'package:samay/features/auth/providers/auth_form_errors.dart';
 import 'package:samay/l10n/app_localizations.dart';
@@ -29,6 +30,7 @@ class _SignupContactScreenState extends ConsumerState<SignupContactScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmController = TextEditingController();
+  String? _emailError;
   String? _passwordError;
   String? _confirmError;
   bool _submitting = false;
@@ -58,18 +60,30 @@ class _SignupContactScreenState extends ConsumerState<SignupContactScreen> {
     final password = _passwordController.text;
     final confirm = _confirmController.text;
     final l10n = AppLocalizations.of(context);
+    final emailError = form_validators.compose([
+      (v) =>
+          form_validators.requiredValidator(v, message: l10n.authFieldRequired),
+      (v) =>
+          form_validators.emailValidator(v, message: l10n.errorsInvalidEmail),
+    ])(email);
+    final passwordErrorText = password.isEmpty
+        ? l10n.authFieldRequired
+        : passwordError(password) != null
+        ? l10n.authPasswordTooWeak
+        : null;
+    final confirmErrorText = confirm.isEmpty
+        ? l10n.authFieldRequired
+        : password != confirm
+        ? l10n.authPasswordsDontMatch
+        : null;
     setState(() {
-      _passwordError = null;
-      _confirmError = null;
+      _emailError = emailError;
+      _passwordError = passwordErrorText;
+      _confirmError = confirmErrorText;
     });
-    if (email.isEmpty || password.isEmpty || confirm.isEmpty) return;
-    final passwordErrorText = passwordError(password);
-    if (passwordErrorText != null) {
-      setState(() => _passwordError = passwordErrorText);
-      return;
-    }
-    if (password != confirm) {
-      setState(() => _confirmError = l10n.authPasswordsDontMatch);
+    if (emailError != null ||
+        passwordErrorText != null ||
+        confirmErrorText != null) {
       return;
     }
     setState(() => _submitting = true);
@@ -120,7 +134,9 @@ class _SignupContactScreenState extends ConsumerState<SignupContactScreen> {
       AppLogger.instance.error('signup error: $e', '$st');
       // Own-action scoping: the failure of THIS submit rides the screen's
       // scoped error provider — the global auth stream is never mirrored.
-      ref.read(signupErrorsProvider.notifier).setServerError(appError.message);
+      ref
+          .read(signupErrorsProvider.notifier)
+          .setServerError(appError.localize(l10n));
       if (mounted) showAppError(context, e, blocking: true);
     } finally {
       if (mounted) setState(() => _submitting = false);
@@ -155,6 +171,12 @@ class _SignupContactScreenState extends ConsumerState<SignupContactScreen> {
                         controller: _emailController,
                         label: l10n.commonEmail,
                         keyboardType: TextInputType.emailAddress,
+                        errorText: _emailError,
+                        onChanged: (_) {
+                          if (_emailError != null) {
+                            setState(() => _emailError = null);
+                          }
+                        },
                       ),
                       const SizedBox(height: 16),
                       VInput(
@@ -164,6 +186,11 @@ class _SignupContactScreenState extends ConsumerState<SignupContactScreen> {
                         // §5.2: validation errors ride the fields as
                         // `errorText` (glowPink — never raw red on black).
                         errorText: _passwordError,
+                        onChanged: (_) {
+                          if (_passwordError != null) {
+                            setState(() => _passwordError = null);
+                          }
+                        },
                       ),
                       const SizedBox(height: 16),
                       VInput(
@@ -171,12 +198,20 @@ class _SignupContactScreenState extends ConsumerState<SignupContactScreen> {
                         label: l10n.commonConfirmPassword,
                         obscureText: true,
                         errorText: _confirmError,
+                        onChanged: (_) {
+                          if (_confirmError != null) {
+                            setState(() => _confirmError = null);
+                          }
+                        },
                       ),
-                      if (signupErrors.displayText != null)
+                      if (signupErrors.displayText != null ||
+                          _emailError != null ||
+                          _passwordError != null ||
+                          _confirmError != null)
                         Padding(
                           padding: const EdgeInsets.only(top: 16),
                           child: Text(
-                            signupErrors.displayText!,
+                            signupErrors.displayText ?? l10n.authCheckFields,
                             style: const TextStyle(color: AppColors.error),
                           ),
                         ),

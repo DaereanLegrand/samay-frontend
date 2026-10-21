@@ -137,6 +137,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get authVerify => 'Verify';
 
   @override
+  String get authFieldRequired => 'This field is required.';
+
+  @override
+  String get authCheckFields => 'Check the highlighted fields.';
+
+  @override
+  String get authOtpLengthError => 'Enter the 6-digit code.';
+
+  @override
   String get authResendCode => 'Resend code';
 
   @override
