@@ -137,6 +137,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get authVerify => 'Verify';
 
   @override
+  String get authFieldRequired => 'This field is required.';
+
+  @override
+  String get authCheckFields => 'Check the highlighted fields.';
+
+  @override
+  String get authOtpLengthError => 'Enter the 6-digit code.';
+
+  @override
   String get authResendCode => 'Resend code';
 
   @override
@@ -688,6 +697,25 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsSectionAccount => 'Account';
+
+  @override
+  String get settingsClearLocalData => 'Clear local data';
+
+  @override
+  String get settingsClearLocalDataQuestion => 'Clear local data?';
+
+  @override
+  String get settingsClearLocalDataBody =>
+      'Your session on this device will end and locally stored messages, notifications, photos and preferences will be deleted. Your account is not deleted.';
+
+  @override
+  String get settingsClearLocalDataDone => 'Local data cleared';
+
+  @override
+  String get pushGenericTitle => 'Samay';
+
+  @override
+  String get pushGenericBody => 'New activity in Samay';
 
   @override
   String get settingsPrivacyPolicyBody =>

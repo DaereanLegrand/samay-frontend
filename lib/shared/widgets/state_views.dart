@@ -136,11 +136,14 @@ class VStateView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     if (loading) return VLoadingView(label: loadingLabel);
     final err = error;
     if (err != null) {
+      // Never render `err.toString()`: callers pass the localized mapped
+      // message; the generic copy is the safe fallback for raw exceptions.
       return ErrorView(
-        message: errorMessage ?? err.toString(),
+        message: errorMessage ?? l10n.errorsGeneric,
         onRetry: onRetry,
       );
     }

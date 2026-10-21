@@ -6,6 +6,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:samay/core/logging/app_logger.dart';
 import 'package:samay/core/providers/auth_provider.dart';
 import 'package:samay/core/router/app_router.dart';
+import 'package:samay/core/router/route_paths.dart';
+import 'package:samay/core/services/local_notifications_service.dart';
 import 'package:samay/core/services/push_service.dart';
 import 'package:samay/features/notifications/providers/notifications_providers.dart';
 
@@ -54,7 +56,18 @@ class _PushNotificationListenerState
     if (!mounted) return;
     await ref.read(pushServiceProvider).syncRegistration();
 
+    // SEC-035 option C: background pushes render a generic LOCAL notification
+    // (no server copy). Tapping it lands on the in-app notification center so
+    // the authenticated session can load the real row.
+    await LocalNotificationsService.instance.initialize(
+      onDidReceiveNotificationResponse: (response) =>
+          _openLocalPayload(response.payload),
+    );
+
     try {
+      final launchPayload = await LocalNotificationsService.instance
+          .takeLaunchPayload();
+      if (launchPayload != null) _openLocalPayload(launchPayload);
       _foreground =
           FirebaseMessaging.onMessage.listen((message) {
         AppLogger.instance.info('FCM foreground message: ${message.messageId}');
@@ -66,6 +79,21 @@ class _PushNotificationListenerState
     } catch (e, st) {
       AppLogger.instance.error('Push listener wiring failed: $e', '$st');
     }
+  }
+
+  /// Opens the in-app notification center for a generic local notification.
+  /// The payload is a fixed route constant — never a server-provided path.
+  void _openLocalPayload(String? payload) {
+    if (!mounted || payload == null || payload.isEmpty) return;
+    if (!isRegisteredRoutePath(payload)) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      ref.read(routerProvider).push(
+        payload == LocalNotificationsService.notificationCenterPayload
+            ? RoutePaths.mainNotifications
+            : payload,
+      );
+    });
   }
 
   void _onTap(RemoteMessage message) {

@@ -4,6 +4,7 @@ import 'dart:math';
 
 import 'package:flutter/services.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:samay/core/services/secure_storage_options.dart';
 import 'package:samay/crypto/codec.dart';
 import 'package:samay/crypto/constants.dart';
 import 'package:samay/crypto/e2ee_primitives.dart';
@@ -236,7 +237,7 @@ class SecureE2eeKeyStore implements E2eeKeyStore {
     FlutterSecureStorage? secureStorage,
     DateTime Function()? clock,
   }) : _storage = _ResilientSecureStorage(
-         secureStorage ?? const FlutterSecureStorage(),
+         secureStorage ?? samaySecureStorage(),
        ),
        _clock = clock ?? DateTime.now;
 
@@ -527,7 +528,7 @@ class SecureE2eeSessionStore implements E2eeSessionStore {
     FlutterSecureStorage? secureStorage,
     DateTime Function()? clock,
   }) : _storage = _ResilientSecureStorage(
-         secureStorage ?? const FlutterSecureStorage(),
+         secureStorage ?? samaySecureStorage(),
        ),
        _clock = clock ?? DateTime.now;
 

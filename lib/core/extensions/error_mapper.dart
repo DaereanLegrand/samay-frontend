@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:samay/core/errors/app_error.dart';
+import 'package:samay/core/logging/app_logger.dart';
 
 extension ObjectX on Object {
   AppError toAppError() {
@@ -96,17 +97,24 @@ extension ObjectX on Object {
         case 'user_not_found':
           return const UnauthorizedError();
         case 'unexpected_failure':
-          return ServerError(authErr.message);
+          AppLogger.instance.error(
+            'auth error [${authErr.code}]: ${authErr.message}',
+          );
+          return const ServerError();
         default:
           // No server code (client-side AuthException) or an unmapped code:
-          // last-resort message heuristics, then the faithful server message.
+          // last-resort message heuristics, then a localized generic error.
+          // The raw server message is diagnostic-only.
           final msg = authErr.message.toLowerCase();
           if (msg.contains('jwt') ||
               msg.contains('token') ||
               msg.contains('session')) {
             return const UnauthorizedError();
           }
-          return ServerError(authErr.message);
+          AppLogger.instance.error(
+            'unmapped auth error [${authErr.code}]: ${authErr.message}',
+          );
+          return const ServerError();
       }
     }
 
@@ -121,11 +129,7 @@ extension ObjectX on Object {
       // SR002 = the query failed the 2..50 server-side length cap;
       // SR003 = the RPC rejected an unauthenticated caller.
       if (code == 'SR002') {
-        return ValidationError(
-          'query',
-          '',
-          localizer: (l) => l.searchTooShort,
-        );
+        return ValidationError('query', '', localizer: (l) => l.searchTooShort);
       }
       if (code == 'SR003') return const UnauthorizedError();
       if (code == '23503') {
@@ -186,9 +190,12 @@ extension ObjectX on Object {
           msg.contains('timeout')) {
         return const ServerError();
       }
-      // Anything else keeps the storage message (already user-safe), never
-      // the generic fallback.
-      return ServerError(e.message);
+      // Anything else is diagnostic-only: never surface the raw storage
+      // message to the user.
+      AppLogger.instance.error(
+        'storage error [${status ?? 'no-status'}]: ${e.message}',
+      );
+      return const ServerError();
     }
 
     if (this is FormatException) {
@@ -208,9 +215,11 @@ extension ObjectX on Object {
     }
 
     if (this is String && (this as String).isNotEmpty) {
-      return ServerError(this as String);
+      AppLogger.instance.error('untyped error: ${this as String}');
+      return const ServerError();
     }
 
+    AppLogger.instance.error('unhandled error: $this');
     return ServerError('', this);
   }
 }

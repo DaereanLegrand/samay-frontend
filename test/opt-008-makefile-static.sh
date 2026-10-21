@@ -471,8 +471,13 @@ echo ""
 echo "━━━ 7. iOS platform contract (M-28) ━━━"
 INFOPLIST="$REPO/ios/Runner/Info.plist"
 if [ -f "$INFOPLIST" ]; then
-  for KEY in NSCameraUsageDescription NSPhotoLibraryUsageDescription NSPhotoLibraryAddUsageDescription; do
+  for KEY in NSCameraUsageDescription NSPhotoLibraryUsageDescription; do
     grep -q "<key>$KEY</key>" "$INFOPLIST" && pass "Info.plist declares $KEY (I-28/M-28)" || fail "Info.plist missing $KEY"
+  done
+  # SEC-054: unused Always-location and photo-add purpose strings must stay
+  # removed (the app only requests when-in-use location and the Photo Picker).
+  for KEY in NSLocationAlwaysAndWhenInUseUsageDescription NSPhotoLibraryAddUsageDescription; do
+    grep -q "<key>$KEY</key>" "$INFOPLIST" && fail "Info.plist still declares unused $KEY (SEC-054)" || pass "Info.plist no unused $KEY (SEC-054)"
   done
 else
   fail "ios/Runner/Info.plist missing"

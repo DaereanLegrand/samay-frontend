@@ -180,6 +180,18 @@
   "@authVerify": {
     "description": "Verify button label"
   },
+  "authFieldRequired": "Este campo es obligatorio.",
+  "@authFieldRequired": {
+    "description": "Auth form validation: required field"
+  },
+  "authCheckFields": "Revisa los campos marcados.",
+  "@authCheckFields": {
+    "description": "Auth form summary shown when validation marks one or more fields"
+  },
+  "authOtpLengthError": "Ingresa los 6 dígitos del código.",
+  "@authOtpLengthError": {
+    "description": "OTP verification: submitted code is shorter than 6 digits"
+  },
   "authResendCode": "Reenviar código",
   "@authResendCode": {
     "description": "Resend-OTP button label once the cooldown has elapsed"
@@ -929,6 +941,30 @@
   "settingsSectionAccount": "Cuenta",
   "@settingsSectionAccount": {
     "description": "Settings section header for the account rows group (R6)"
+  },
+  "settingsClearLocalData": "Borrar datos locales",
+  "@settingsClearLocalData": {
+    "description": "Settings row that wipes all local caches and signs out"
+  },
+  "settingsClearLocalDataQuestion": "¿Borrar datos locales?",
+  "@settingsClearLocalDataQuestion": {
+    "description": "Confirmation dialog title for clearing local data"
+  },
+  "settingsClearLocalDataBody": "Se cerrará tu sesión en este dispositivo y se borrarán los mensajes, notificaciones, fotos y preferencias guardados localmente. Tu cuenta no se elimina.",
+  "@settingsClearLocalDataBody": {
+    "description": "Confirmation dialog body for clearing local data"
+  },
+  "settingsClearLocalDataDone": "Datos locales borrados",
+  "@settingsClearLocalDataDone": {
+    "description": "Snackbar after local data has been cleared"
+  },
+  "pushGenericTitle": "Samay",
+  "@pushGenericTitle": {
+    "description": "Generic local-notification title (no server content)"
+  },
+  "pushGenericBody": "Nueva actividad en Samay",
+  "@pushGenericBody": {
+    "description": "Generic local-notification body (no server content)"
   },
   "settingsPrivacyPolicyBody": "Tus datos personales se usan solo para operar Samay: autenticarte, mantener tus grupos y eventos y proteger a la comunidad. Nunca se venden ni se comparten con terceros con fines publicitarios.",
   "@settingsPrivacyPolicyBody": {

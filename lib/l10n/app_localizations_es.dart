@@ -137,6 +137,15 @@ class AppLocalizationsEs extends AppLocalizations {
   String get authVerify => 'Verificar';
 
   @override
+  String get authFieldRequired => 'Este campo es obligatorio.';
+
+  @override
+  String get authCheckFields => 'Revisa los campos marcados.';
+
+  @override
+  String get authOtpLengthError => 'Ingresa los 6 dígitos del código.';
+
+  @override
   String get authResendCode => 'Reenviar código';
 
   @override
@@ -687,6 +696,25 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get settingsSectionAccount => 'Cuenta';
+
+  @override
+  String get settingsClearLocalData => 'Borrar datos locales';
+
+  @override
+  String get settingsClearLocalDataQuestion => '¿Borrar datos locales?';
+
+  @override
+  String get settingsClearLocalDataBody =>
+      'Se cerrará tu sesión en este dispositivo y se borrarán los mensajes, notificaciones, fotos y preferencias guardados localmente. Tu cuenta no se elimina.';
+
+  @override
+  String get settingsClearLocalDataDone => 'Datos locales borrados';
+
+  @override
+  String get pushGenericTitle => 'Samay';
+
+  @override
+  String get pushGenericBody => 'Nueva actividad en Samay';
 
   @override
   String get settingsPrivacyPolicyBody =>

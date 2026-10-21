@@ -181,12 +181,14 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
     if (_verified) return;
     final auth = ref.read(authStateProvider);
     final code = cleanOtpDigits(_codeController.text);
-    if (auth.isLoading ||
-        code.length != OtpVerificationScreen.otpCodeLength ||
-        _attemptBlocked) {
+    if (auth.isLoading || _attemptBlocked) return;
+    final l10n = AppLocalizations.of(context);
+    if (code.length != OtpVerificationScreen.otpCodeLength) {
+      // Manual submit with fewer than 6 digits: explain it on the field
+      // instead of silently doing nothing.
+      setState(() => _verifyError = l10n.authOtpLengthError);
       return;
     }
-    final l10n = AppLocalizations.of(context);
     await ref
         .read(authStateProvider.notifier)
         .verifyOtp(widget.email, code, widget.password);

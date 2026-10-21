@@ -93,6 +93,7 @@ dependencies:
   # not 44x44 pt). Flutter Favorite; the SVG is bundled unmodified so the logo
   # is Apple's download, never a hand-drawn mark.
   flutter_svg: ^2.3.0
+  flutter_local_notifications: ^22.3.2
 
 dev_dependencies:
   # Testing is backend-only (directive 2026-08-31): Go `*_test.go`, pgTAP
