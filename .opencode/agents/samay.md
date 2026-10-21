@@ -20,6 +20,7 @@ permission:
     "git switch*": deny
     "git clean*": deny
     "git stash*": deny
+    "*opencode*": deny
 ---
 
 # Samay Working Agent

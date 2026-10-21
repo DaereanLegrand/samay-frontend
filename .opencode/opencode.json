@@ -36,7 +36,8 @@
       "*sudo*": "deny",
       "*do shell script*": "deny",
       "*administrator privileges*": "deny",
-      "*Authorization Services*": "deny"
+      "*Authorization Services*": "deny",
+      "*opencode*": "deny"
     }
   }
 }
