@@ -489,12 +489,12 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
   Future<void> signOut() async {
     // Push: drop the device token BEFORE the session ends (the RPC is
     // authenticated-only), so a signed-out device stops receiving pushes.
-    try {
-      await ref.read(pushServiceProvider).unregister();
-    } catch (e, st) {
-      AppLogger.instance.warn('push unregister on signOut failed: $e', '$st');
-    }
+    // SEC-031: unregister never throws and always clears local token state.
+    await _unregisterPush();
     await _service.signOut();
+    // SEC-033: no prior account plaintext/notification/photo cache may remain
+    // readable after logout.
+    await _purgeLocalData();
     // E2EE §7.6: the identity + prekeys + chat
     // sessions SURSAMAY a sign-out — the key material is bound to the
     // ACCOUNT, not the session. Only an account switch (ownership guard in
@@ -502,20 +502,51 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
     state = const AsyncData(AuthState());
   }
 
+  /// Explicit "Borrar datos locales" (Settings): signs out, revokes the push
+  /// token, wipes E2EE key/session material and purges every local cache.
+  /// The account itself is untouched.
+  Future<void> clearLocalData() async {
+    await _unregisterPush();
+    await _service.signOut();
+    await _wipeE2eeMaterial();
+    await _purgeLocalData();
+    state = const AsyncData(AuthState());
+  }
+
   /// Mode A — schedule deletion (30-day grace, restorable).
   Future<void> deleteAccount() async {
+    await _unregisterPush();
     await _service.requestAccountDeletion();
     await _service.signOut();
     await _wipeE2eeMaterial();
+    await _purgeLocalData();
     state = const AsyncData(AuthState());
   }
 
   /// Mode B — erase immediately and irreversibly.
   Future<void> deleteAccountNow() async {
+    await _unregisterPush();
     await _service.purgeAccountNow();
     await _service.signOut();
     await _wipeE2eeMaterial();
+    await _purgeLocalData();
     state = const AsyncData(AuthState());
+  }
+
+  Future<void> _unregisterPush() async {
+    try {
+      await ref.read(pushServiceProvider).unregister();
+    } catch (e, st) {
+      AppLogger.instance.warn('push unregister failed: $e', '$st');
+    }
+  }
+
+  Future<void> _purgeLocalData() async {
+    try {
+      await ref.read(localDataPurgerProvider).purge();
+    } catch (e, st) {
+      AppLogger.instance.warn('local data purge failed: $e', '$st');
+    }
   }
 
   /// E2EE §12.2 step 4: guarantees

@@ -698,6 +698,25 @@ class AppLocalizationsEs extends AppLocalizations {
   String get settingsSectionAccount => 'Cuenta';
 
   @override
+  String get settingsClearLocalData => 'Borrar datos locales';
+
+  @override
+  String get settingsClearLocalDataQuestion => '¿Borrar datos locales?';
+
+  @override
+  String get settingsClearLocalDataBody =>
+      'Se cerrará tu sesión en este dispositivo y se borrarán los mensajes, notificaciones, fotos y preferencias guardados localmente. Tu cuenta no se elimina.';
+
+  @override
+  String get settingsClearLocalDataDone => 'Datos locales borrados';
+
+  @override
+  String get pushGenericTitle => 'Samay';
+
+  @override
+  String get pushGenericBody => 'Nueva actividad en Samay';
+
+  @override
   String get settingsPrivacyPolicyBody =>
       'Tus datos personales se usan solo para operar Samay: autenticarte, mantener tus grupos y eventos y proteger a la comunidad. Nunca se venden ni se comparten con terceros con fines publicitarios.';
 

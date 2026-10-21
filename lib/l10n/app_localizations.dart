@@ -1358,6 +1358,42 @@ abstract class AppLocalizations {
   /// **'Cuenta'**
   String get settingsSectionAccount;
 
+  /// Settings row that wipes all local caches and signs out
+  ///
+  /// In es, this message translates to:
+  /// **'Borrar datos locales'**
+  String get settingsClearLocalData;
+
+  /// Confirmation dialog title for clearing local data
+  ///
+  /// In es, this message translates to:
+  /// **'¿Borrar datos locales?'**
+  String get settingsClearLocalDataQuestion;
+
+  /// Confirmation dialog body for clearing local data
+  ///
+  /// In es, this message translates to:
+  /// **'Se cerrará tu sesión en este dispositivo y se borrarán los mensajes, notificaciones, fotos y preferencias guardados localmente. Tu cuenta no se elimina.'**
+  String get settingsClearLocalDataBody;
+
+  /// Snackbar after local data has been cleared
+  ///
+  /// In es, this message translates to:
+  /// **'Datos locales borrados'**
+  String get settingsClearLocalDataDone;
+
+  /// Generic local-notification title (no server content)
+  ///
+  /// In es, this message translates to:
+  /// **'Samay'**
+  String get pushGenericTitle;
+
+  /// Generic local-notification body (no server content)
+  ///
+  /// In es, this message translates to:
+  /// **'Nueva actividad en Samay'**
+  String get pushGenericBody;
+
   /// Static privacy-policy body on the privacy info screen
   ///
   /// In es, this message translates to:

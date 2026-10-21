@@ -55,6 +55,42 @@ class SettingsScreen extends ConsumerWidget {
     }
   }
 
+  /// SEC-033: explicit local wipe. Signs out, revokes the push token and
+  /// removes every cache/E2EE secret on this device; the account is kept.
+  Future<void> _confirmClearLocalData(
+    BuildContext context,
+    WidgetRef ref,
+  ) async {
+    final l10n = AppLocalizations.of(context);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l10n.settingsClearLocalDataQuestion),
+        content: Text(l10n.settingsClearLocalDataBody),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(l10n.commonCancel),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(
+              l10n.settingsClearLocalData,
+              style: const TextStyle(color: AppColors.error),
+            ),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    await ref.read(authStateProvider.notifier).clearLocalData();
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(l10n.settingsClearLocalDataDone)),
+    );
+    context.go(RoutePaths.login);
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
@@ -175,6 +211,15 @@ class SettingsScreen extends ConsumerWidget {
                       icon: Icons.block,
                       label: l10n.profileBlockedUsers,
                       onTap: () => context.push(RoutePaths.blockedUsers),
+                    ),
+                    const Divider(height: 1, color: AppColors.hairline),
+                    // SEC-033: wipe messages/notifications/photos/prefs and
+                    // local key material without touching the account.
+                    _SettingsTile(
+                      icon: Icons.cleaning_services,
+                      label: l10n.settingsClearLocalData,
+                      destructive: true,
+                      onTap: () => _confirmClearLocalData(context, ref),
                     ),
                     const Divider(height: 1, color: AppColors.hairline),
                     // The danger pair closes the account section — delete +

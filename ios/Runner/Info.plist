@@ -41,12 +41,8 @@
 	<true/>
 	<key>NSCameraUsageDescription</key>
 	<string>Samay usa la cámara para escanear códigos QR de asistencia a eventos.</string>
-	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-	<string>Samay usa tu ubicación para fijar el punto exacto de un evento y mostrar eventos cercanos a ti.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Samay usa tu ubicación para fijar el punto exacto de un evento y filtrar eventos cercanos a ti.</string>
-	<key>NSPhotoLibraryAddUsageDescription</key>
-	<string>Samay necesita permiso para guardar imágenes en tu galería (collages y portadas exportadas).</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Samay necesita acceso a tus fotos para que puedas elegir la portada de tus grupos.</string>
 	<key>UIApplicationSceneManifest</key>

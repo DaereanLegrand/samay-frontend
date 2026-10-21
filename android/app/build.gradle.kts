@@ -50,6 +50,9 @@ android {
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
+        // flutter_local_notifications 10+ requires Java 8+ API desugaring on
+        // Android even when only immediate notifications are used.
+        isCoreLibraryDesugaringEnabled = true
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
@@ -156,4 +159,5 @@ flutter {
 // today; add unversioned native artifacts (e.g. firebase-messaging) if needed.
 dependencies {
     implementation(platform("com.google.firebase:firebase-bom:34.19.0"))
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
 }

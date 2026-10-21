@@ -942,6 +942,30 @@
   "@settingsSectionAccount": {
     "description": "Settings section header for the account rows group (R6)"
   },
+  "settingsClearLocalData": "Clear local data",
+  "@settingsClearLocalData": {
+    "description": "Settings row that wipes all local caches and signs out"
+  },
+  "settingsClearLocalDataQuestion": "Clear local data?",
+  "@settingsClearLocalDataQuestion": {
+    "description": "Confirmation dialog title for clearing local data"
+  },
+  "settingsClearLocalDataBody": "Your session on this device will end and locally stored messages, notifications, photos and preferences will be deleted. Your account is not deleted.",
+  "@settingsClearLocalDataBody": {
+    "description": "Confirmation dialog body for clearing local data"
+  },
+  "settingsClearLocalDataDone": "Local data cleared",
+  "@settingsClearLocalDataDone": {
+    "description": "Snackbar after local data has been cleared"
+  },
+  "pushGenericTitle": "Samay",
+  "@pushGenericTitle": {
+    "description": "Generic local-notification title (no server content)"
+  },
+  "pushGenericBody": "New activity in Samay",
+  "@pushGenericBody": {
+    "description": "Generic local-notification body (no server content)"
+  },
   "settingsPrivacyPolicyBody": "Your personal data is used only to operate Samay: sign you in, keep your groups and events running, and protect the community. It is never sold or shared with third parties for advertising.",
   "@settingsPrivacyPolicyBody": {
     "description": "Static privacy-policy body on the privacy info screen"
