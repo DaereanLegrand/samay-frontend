@@ -114,8 +114,15 @@ endif
 # ENV=local points builds at the local stack (TESTING is derived above); needs JWT_SECRET.
 ifeq ($(TESTING),true)
 TESTING_JWT_SECRET := $(JWT_SECRET)
+# Prefer the stack's registered anon key. A freshly minted JWT has a different
+# signature/iat and Kong's REST key-auth does not accept it unless it is added
+# to keyauth_credentials (the old register target appended it under
+# jwt_secrets, so /auth worked but /rest returned 401).
+TESTING_ANON_KEY := $(shell sed -n 's/^SUPABASE_ANON_KEY=//p' $(LOCAL_JWT_ENV) 2>/dev/null | head -1 | tr -d '"')
+ifeq ($(strip $(TESTING_ANON_KEY)),)
 ifneq ($(strip $(TESTING_JWT_SECRET)),)
 TESTING_ANON_KEY := $(shell JWT_SECRET='$(TESTING_JWT_SECRET)' python3 tools/gen_testing_anon_key.py)
+endif
 endif
 LOCAL_DEFINES := --dart-define=SUPABASE_URL=http://$(ANDROID_GATEWAY_HOST):$(LOCAL_KONG_PORT) --dart-define=SUPABASE_ANON_KEY=$(TESTING_ANON_KEY)
 build: | testing-kong-register
