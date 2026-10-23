@@ -3800,5 +3800,26 @@
   "legalOpenOnline": "Ver en el navegador",
   "@legalOpenOnline": {
     "description": "Legal screen action: open the policy in the browser"
-  }
+  },
+  "eventsVenueLabel": "Lugar exacto",
+  "eventsCityLabel": "Ciudad",
+  "eventsShareLink": "Compartir enlace",
+  "eventsShareLinkRotate": "Rotar enlace",
+  "eventsShareLinkRevoke": "Revocar enlace",
+  "eventsShareLinkCopied": "Enlace copiado",
+  "eventsShareLinkCopiedBody": "Comparte este enlace: {url}",
+  "@eventsShareLinkCopiedBody": {"placeholders": {"url": {"type": "String"}}},
+  "eventsShareLinkRevoked": "Enlace revocado",
+  "linkConsentTitle": "Invitación",
+  "linkJoinEvent": "Unirme al evento",
+  "linkRequestJoin": "Solicitar unirme",
+  "linkJoinGroup": "Unirme al grupo",
+  "linkAddFriend": "Enviar solicitud",
+  "linkRequestSent": "Solicitud enviada",
+  "linkEventJoined": "Te uniste al evento",
+  "linkInvalid": "Enlace inválido o vencido",
+  "linkDistance": "a {km} km",
+  "@linkDistance": {"placeholders": {"km": {"type": "String"}}},
+  "linkAlreadyMember": "Ya eres miembro",
+  "linkOwnProfile": "Este es tu perfil"
 }

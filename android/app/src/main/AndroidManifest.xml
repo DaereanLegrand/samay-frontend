@@ -51,6 +51,26 @@
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
+            <!-- Q9 canonical link routes. autoVerify binds this app to
+                 https://samay.qallariy.lat via /.well-known/assetlinks.json. -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="https" android:host="samay.qallariy.lat" android:pathPrefix="/e/"/>
+                <data android:scheme="https" android:host="samay.qallariy.lat" android:pathPrefix="/g/"/>
+                <data android:scheme="https" android:host="samay.qallariy.lat" android:pathPrefix="/u/"/>
+            </intent-filter>
+            <!-- Dev/in-app scheme (never used by the public website links). -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="samay" android:host="e"/>
+                <data android:scheme="samay" android:host="g"/>
+                <data android:scheme="samay" android:host="u"/>
+                <data android:scheme="samay" android:host="event"/>
+            </intent-filter>
         </activity>
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->

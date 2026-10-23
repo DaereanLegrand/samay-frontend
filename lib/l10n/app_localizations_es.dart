@@ -2960,4 +2960,65 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get legalOpenOnline => 'Ver en el navegador';
+
+  @override
+  String get eventsVenueLabel => 'Lugar exacto';
+
+  @override
+  String get eventsCityLabel => 'Ciudad';
+
+  @override
+  String get eventsShareLink => 'Compartir enlace';
+
+  @override
+  String get eventsShareLinkRotate => 'Rotar enlace';
+
+  @override
+  String get eventsShareLinkRevoke => 'Revocar enlace';
+
+  @override
+  String get eventsShareLinkCopied => 'Enlace copiado';
+
+  @override
+  String eventsShareLinkCopiedBody(String url) {
+    return 'Comparte este enlace: $url';
+  }
+
+  @override
+  String get eventsShareLinkRevoked => 'Enlace revocado';
+
+  @override
+  String get linkConsentTitle => 'Invitación';
+
+  @override
+  String get linkJoinEvent => 'Unirme al evento';
+
+  @override
+  String get linkRequestJoin => 'Solicitar unirme';
+
+  @override
+  String get linkJoinGroup => 'Unirme al grupo';
+
+  @override
+  String get linkAddFriend => 'Enviar solicitud';
+
+  @override
+  String get linkRequestSent => 'Solicitud enviada';
+
+  @override
+  String get linkEventJoined => 'Te uniste al evento';
+
+  @override
+  String get linkInvalid => 'Enlace inválido o vencido';
+
+  @override
+  String linkDistance(String km) {
+    return 'a $km km';
+  }
+
+  @override
+  String get linkAlreadyMember => 'Ya eres miembro';
+
+  @override
+  String get linkOwnProfile => 'Este es tu perfil';
 }

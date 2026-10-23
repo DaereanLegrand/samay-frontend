@@ -3895,5 +3895,26 @@
   "legalOpenOnline": "View online",
   "@legalOpenOnline": {
     "description": "Legal screen action: open the policy in the browser"
-  }
+  },
+  "eventsVenueLabel": "Exact venue",
+  "eventsCityLabel": "City",
+  "eventsShareLink": "Share link",
+  "eventsShareLinkRotate": "Rotate link",
+  "eventsShareLinkRevoke": "Revoke link",
+  "eventsShareLinkCopied": "Link copied",
+  "eventsShareLinkCopiedBody": "Share this link: {url}",
+  "@eventsShareLinkCopiedBody": {"placeholders": {"url": {"type": "String"}}},
+  "eventsShareLinkRevoked": "Link revoked",
+  "linkConsentTitle": "Invitation",
+  "linkJoinEvent": "Join event",
+  "linkRequestJoin": "Request to join",
+  "linkJoinGroup": "Join group",
+  "linkAddFriend": "Send request",
+  "linkRequestSent": "Request sent",
+  "linkEventJoined": "You joined the event",
+  "linkInvalid": "Invalid or expired link",
+  "linkDistance": "{km} km away",
+  "@linkDistance": {"placeholders": {"km": {"type": "String"}}},
+  "linkAlreadyMember": "You are already a member",
+  "linkOwnProfile": "This is your profile"
 }

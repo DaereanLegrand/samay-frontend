@@ -29,6 +29,7 @@ import 'package:samay/features/events/screens/event_collage_screen.dart';
 import 'package:samay/features/events/screens/event_detail_screen.dart';
 import 'package:samay/features/events/screens/event_edit_screen.dart';
 import 'package:samay/features/events/screens/my_events_screen.dart';
+import 'package:samay/features/events/screens/invite_link_screen.dart';
 import 'package:samay/features/events/widgets/event_invite_route.dart';
 import 'package:samay/features/feed/screens/feed_screen.dart';
 import 'package:samay/features/photos/screens/photo_gallery_screen.dart';
@@ -268,6 +269,45 @@ final routerProvider = Provider<GoRouter>((ref) {
                 _tabPage(state, const ProfileScreen()),
           ),
         ],
+      ),
+      // Fallback routes for engines that deliver the universal-link path as
+      // an app route (instead of through app_links). Same consent screen,
+      // still requires auth (the router guard handles it).
+      GoRoute(
+        path: '/e/:token',
+        builder: (context, state) => InviteLinkScreen(
+          kind: 'e',
+          token: RouteParams.fromState(state, 'token') ?? '',
+        ),
+      ),
+      GoRoute(
+        path: '/g/:token',
+        builder: (context, state) => InviteLinkScreen(
+          kind: 'g',
+          token: RouteParams.fromState(state, 'token') ?? '',
+        ),
+      ),
+      GoRoute(
+        path: '/u/:token',
+        builder: (context, state) => InviteLinkScreen(
+          kind: 'u',
+          token: RouteParams.fromState(state, 'token') ?? '',
+        ),
+      ),
+      GoRoute(
+        // Q9 consent screen for /e/, /g/ and /u/ links. The token alone is
+        // never enough to join; the screen requires an explicit action.
+        path: RoutePaths.inviteLink(':kind', ':token'),
+        builder: (context, state) {
+          final kind = RouteParams.fromState(state, 'kind');
+          final token = RouteParams.fromState(state, 'token');
+          if (kind == null || token == null) {
+            return RouteErrorScreen(
+              message: AppLocalizations.of(context).linkInvalid,
+            );
+          }
+          return InviteLinkScreen(kind: kind, token: token);
+        },
       ),
       GoRoute(
         // EINV: `/event/create` must be declared BEFORE

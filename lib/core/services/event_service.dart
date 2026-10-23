@@ -34,6 +34,7 @@ class EventService {
       'p_cover_url': data['cover_url'],
       'p_group_id': data['group_id'],
       'p_location_name': data['location_name'],
+      'p_location_city': data['location_city'],
       'p_location_lat': data['location_lat'],
       'p_location_lng': data['location_lng'],
       'p_starts_at': data['starts_at'],
@@ -91,9 +92,22 @@ class EventService {
         .toList();
   }
 
-  Future<Event> getEvent(String id) async {
-    final res = await client.from('events').select().eq('id', id).single();
-    return Event.fromJson(Map<String, dynamic>.from(res));
+  /// Stage-aware event detail (Q2): goes through `get_event_for_viewer`, so a
+  /// pending invitee/public viewer receives the city projection and only
+  /// host/staff/accepted attendees receive the exact venue. Direct `events`
+  /// reads are host/staff + accepted only (SEC-005), so this RPC is the single
+  /// detail path for every standing.
+  Future<Event> getEvent(String id, {double? lat, double? lng}) async {
+    final res = await client.rpc('get_event_for_viewer', params: {
+      'p_event_id': id,
+      'p_lat': lat,
+      'p_lng': lng,
+    });
+    final map = res is Map ? Map<String, dynamic>.from(res) : <String, dynamic>{};
+    if (map['id'] == null) {
+      throw const NotFoundError('Evento');
+    }
+    return Event.fromJson(map);
   }
 
   /// Resolves an invite token to its event (EINV deep links —
@@ -102,12 +116,90 @@ class EventService {
   /// matches no event. Typed [Event] — the router only consumes `id`; the
   /// detail screen re-fetches the full row via [getEvent].
   Future<Event?> getEventByInviteToken(String token) async {
-    final res = await client
-        .from('events')
-        .select()
-        .eq('invite_token', token)
-        .maybeSingle();
-    return res == null ? null : Event.fromJson(Map<String, dynamic>.from(res));
+    final resolved = await resolveShareLink(token);
+    if (resolved == null || resolved['kind'] != 'event') return null;
+    final id = resolved['subject_id'] as String?;
+    if (id == null) return null;
+    try {
+      return await getEvent(id);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Q9 bearer links (235_events_links). The API host is never used for links;
+  // the client only resolves/consumes tokens and the website serves
+  // https://samay.qallariy.lat/{e,g,u}/<token>.
+  // ---------------------------------------------------------------------------
+
+  Future<Map<String, dynamic>?> resolveShareLink(
+    String token, {
+    double? lat,
+    double? lng,
+  }) async {
+    final user = auth.currentUser;
+    if (user == null) throw const UnauthorizedError();
+    final res = await client.rpc('resolve_share_link', params: {
+      'p_token': token,
+      'p_lat': lat,
+      'p_lng': lng,
+    });
+    final map = res is Map ? Map<String, dynamic>.from(res) : <String, dynamic>{};
+    if (map['status'] != 'ok') return null;
+    return map;
+  }
+
+  Future<Map<String, dynamic>> createShareLink({
+    required String kind,
+    required String subjectId,
+    bool? singleUse,
+    DateTime? expiresAt,
+  }) async {
+    final user = auth.currentUser;
+    if (user == null) throw const UnauthorizedError();
+    final res = await client.rpc('create_share_link', params: {
+      'p_kind': kind,
+      'p_subject_id': subjectId,
+      'p_single_use': singleUse,
+      'p_expires_at': expiresAt?.toUtc().toIso8601String(),
+    });
+    return Map<String, dynamic>.from(res as Map);
+  }
+
+  Future<void> revokeShareLink(String kind, String subjectId) async {
+    final user = auth.currentUser;
+    if (user == null) throw const UnauthorizedError();
+    await client.rpc('revoke_share_link', params: {
+      'p_kind': kind,
+      'p_subject_id': subjectId,
+    });
+  }
+
+  Future<Map<String, dynamic>> joinEventByLink(String token, {String? note}) async {
+    final user = auth.currentUser;
+    if (user == null) throw const UnauthorizedError();
+    final res = await client.rpc('join_event_by_link', params: {
+      'p_token': token,
+      'p_note': note,
+    });
+    return Map<String, dynamic>.from(res as Map);
+  }
+
+  Future<Map<String, dynamic>> joinGroupByLink(String token) async {
+    final user = auth.currentUser;
+    if (user == null) throw const UnauthorizedError();
+    final res = await client.rpc('join_group_by_link', params: {'p_token': token});
+    return Map<String, dynamic>.from(res as Map);
+  }
+
+  Future<Map<String, dynamic>> requestFriendByProfileLink(String token) async {
+    final user = auth.currentUser;
+    if (user == null) throw const UnauthorizedError();
+    final res = await client.rpc('request_friend_by_profile_link', params: {
+      'p_token': token,
+    });
+    return Map<String, dynamic>.from(res as Map);
   }
 
   /// Hosts of an event, enriched with `users.username` for display.

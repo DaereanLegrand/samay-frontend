@@ -111,8 +111,9 @@ class _EventRow extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(dateText),
-                if (event.locationName != null && event.locationName!.isNotEmpty)
-                  Text(event.locationName!),
+                if ((event.locationCity ?? event.locationName) != null &&
+                    (event.locationCity ?? event.locationName)!.isNotEmpty)
+                  Text(event.locationCity ?? event.locationName!),
               ],
             ),
             trailing: const Icon(Icons.chevron_right, size: 20),
