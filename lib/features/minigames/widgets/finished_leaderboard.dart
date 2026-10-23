@@ -17,6 +17,7 @@ import 'package:samay/features/minigames/widgets/reaction_rise.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/error_view.dart';
 import 'package:samay/shared/widgets/full_screen_image.dart';
+import 'package:samay/shared/widgets/report_sheet.dart';
 import 'package:samay/shared/widgets/state_views.dart';
 import 'package:samay/shared/widgets/v_display_text.dart';
 import 'package:samay/shared/widgets/v_header_bar.dart';
@@ -529,10 +530,7 @@ class _RankCardState extends State<_RankCard> {
                     children: [
                       if (_current != null)
                         IgnorePointer(
-                          child: _PromptHeader(
-                            answer: _current!,
-                            l10n: l10n,
-                          ),
+                          child: _PromptHeader(answer: _current!, l10n: l10n),
                         ),
                       const Spacer(),
                       if (_current?.reactions.isNotEmpty ?? false)
@@ -901,11 +899,7 @@ class _SwipeHint extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(
-                Icons.swipe,
-                size: 16,
-                color: AppColors.mutedStrong,
-              ),
+              const Icon(Icons.swipe, size: 16, color: AppColors.mutedStrong),
               const SizedBox(width: AppSpacing.xs),
               Text(
                 message,
@@ -985,7 +979,7 @@ class _PromptHeader extends StatelessWidget {
 /// It lives inside the vertical [PageView], so the picture moves with the
 /// finger exactly like a text answer. [onImageLoaded] fires when the picture's
 /// first frame is ready (null for non-current pages).
-class _AnswerPage extends StatelessWidget {
+class _AnswerPage extends ConsumerWidget {
   const _AnswerPage({
     required this.answer,
     required this.l10n,
@@ -1002,14 +996,14 @@ class _AnswerPage extends StatelessWidget {
   final VoidCallback? onImageTap;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final image = answer.hasImage
         ? MinigameBleedImage(
             image: MemoryImage(answer.imageBytes!),
             onImageLoaded: onImageLoaded,
           )
         : null;
-    return Stack(
+    final body = Stack(
       fit: StackFit.expand,
       children: [
         if (image != null)
@@ -1048,6 +1042,20 @@ class _AnswerPage extends StatelessWidget {
             ),
           ),
       ],
+    );
+
+    final answerId = answer.id;
+    if (answerId == null || answerId.isEmpty) return body;
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onLongPress: () => showReportSheet(
+        context,
+        ref,
+        targetType: answer.hasImage ? 'minigame_image' : 'minigame_answer',
+        targetId: answerId,
+        title: l10n.reportMinigameAnswer,
+      ),
+      child: body,
     );
   }
 

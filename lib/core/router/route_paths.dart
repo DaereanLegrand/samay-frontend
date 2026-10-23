@@ -20,6 +20,11 @@ abstract final class RoutePaths {
   static const friendsRequests = '/friends/requests';
   static const friendsList = '/friends/list';
   static const blockedUsers = '/settings/blocked';
+  static const mutedUsers = '/settings/muted';
+  static const appeals = '/appeals';
+
+  static String appeal({bool banAppeal = false}) =>
+      banAppeal ? '/appeals?ban=1' : '/appeals';
   static const subscriptions = '/subscriptions';
   static const cosmetics = '/cosmetics';
   static const shardsLedger = '/shards/ledger';

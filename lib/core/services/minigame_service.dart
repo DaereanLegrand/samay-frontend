@@ -269,7 +269,9 @@ class MinigameService {
       'invalid_async_ends_at' => throw const MinigameSessionRejectedException(
         MinigameSessionRejection.invalidAsyncEndsAt,
       ),
-      _ => throw const ServerError('Unexpected create_minigame_session response'),
+      _ => throw const ServerError(
+        'Unexpected create_minigame_session response',
+      ),
     };
   }
 
@@ -320,7 +322,10 @@ class MinigameService {
       case 'session_not_found':
         throw const NotFoundError('Session');
       case 'session_not_active':
-        throw ConflictError('Session is not active', code: 'session_not_active');
+        throw ConflictError(
+          'Session is not active',
+          code: 'session_not_active',
+        );
       default:
         throw const ServerError('Unexpected join_minigame_session response');
     }
@@ -385,15 +390,13 @@ class MinigameService {
   /// round ascending — the finished-leaderboard content source. RLS
   /// `mgs_answers_read` bounds the read to participants/invitees/group
   /// members; the app decrypts each `answer_ciphertext` locally.
-  Future<List<Map<String, dynamic>>> getSessionAnswers(
-    String sessionId,
-  ) async {
+  Future<List<Map<String, dynamic>>> getSessionAnswers(String sessionId) async {
     final user = auth.currentUser;
     if (user == null) throw const UnauthorizedError();
     final res = await client
         .from('minigame_answers')
         .select(
-          'round, subject_id, prompt_type, prompt_id, '
+          'id, round, subject_id, prompt_type, prompt_id, '
           'answer_ciphertext, image_storage_path, passed',
         )
         .eq('session_id', sessionId)
@@ -734,7 +737,9 @@ class MinigameService {
       'not_authenticated' => throw const UnauthorizedError(),
       'session_not_found' => throw const NotFoundError('Partida'),
       'not_allowed' => throw PermissionError(),
-      _ => throw const ServerError('Unexpected get_minigame_game_state response'),
+      _ => throw const ServerError(
+        'Unexpected get_minigame_game_state response',
+      ),
     };
   }
 
@@ -815,7 +820,9 @@ class MinigameService {
         code: 'not_everyone_ready',
       ),
       'no_participants' => throw const ServerError('No participants'),
-      _ => throw const ServerError('Unexpected init_minigame_game_state response'),
+      _ => throw const ServerError(
+        'Unexpected init_minigame_game_state response',
+      ),
     };
   }
 
@@ -885,7 +892,9 @@ class MinigameService {
         'Tipo de prompt no válido',
       ),
       'no_prompts_available' => throw const NotFoundError('Prompt'),
-      _ => throw const ServerError('Unexpected reveal_minigame_prompt response'),
+      _ => throw const ServerError(
+        'Unexpected reveal_minigame_prompt response',
+      ),
     };
   }
 
@@ -947,7 +956,7 @@ class MinigameService {
       case 'submitted':
         return;
       case 'advanced':
-        // The caller's was the LAST required reaction: `submit_minigame_reaction`
+      // The caller's was the LAST required reaction: `submit_minigame_reaction`
       // recorded it AND closed the round by delegating to
       // `_minigame_advance_round` (207), which returns `advanced` (or the
       // `finished` / `already_finished` variants at the round target). The
@@ -975,10 +984,7 @@ class MinigameService {
           code: 'session_not_active',
         );
       case 'not_started':
-        throw ConflictError(
-          'La partida aún no empieza',
-          code: 'not_started',
-        );
+        throw ConflictError('La partida aún no empieza', code: 'not_started');
       case 'own_round':
         throw PermissionError();
       case 'answer_pending':
@@ -1049,15 +1055,9 @@ class MinigameService {
           code: 'session_not_active',
         );
       case 'not_started':
-        throw ConflictError(
-          'La partida aún no empieza',
-          code: 'not_started',
-        );
+        throw ConflictError('La partida aún no empieza', code: 'not_started');
       case 'wrong_mode':
-        throw ConflictError(
-          'No es el modo por turnos',
-          code: 'wrong_mode',
-        );
+        throw ConflictError('No es el modo por turnos', code: 'wrong_mode');
       case 'not_subject':
         throw PermissionError();
       case 'already_answered':
@@ -1066,10 +1066,7 @@ class MinigameService {
           code: 'already_answered',
         );
       case 'no_prompt':
-        throw ConflictError(
-          'El reto aún no se ha revelado',
-          code: 'no_prompt',
-        );
+        throw ConflictError('El reto aún no se ha revelado', code: 'no_prompt');
       default:
         throw const ServerError('Unexpected submit_minigame_answer response');
     }
@@ -1112,15 +1109,9 @@ class MinigameService {
           code: 'session_not_active',
         );
       case 'not_started':
-        throw ConflictError(
-          'La partida aún no empieza',
-          code: 'not_started',
-        );
+        throw ConflictError('La partida aún no empieza', code: 'not_started');
       case 'wrong_mode':
-        throw ConflictError(
-          'No es el modo por turnos',
-          code: 'wrong_mode',
-        );
+        throw ConflictError('No es el modo por turnos', code: 'wrong_mode');
       case 'not_subject':
         throw PermissionError();
       case 'already_answered':
@@ -1183,20 +1174,11 @@ class MinigameService {
           code: 'session_not_active',
         );
       case 'not_started':
-        throw ConflictError(
-          'La partida aún no empieza',
-          code: 'not_started',
-        );
+        throw ConflictError('La partida aún no empieza', code: 'not_started');
       case 'wrong_mode':
-        throw ConflictError(
-          'No es el modo asíncrono',
-          code: 'wrong_mode',
-        );
+        throw ConflictError('No es el modo asíncrono', code: 'wrong_mode');
       case 'invalid_prompt_type':
-        throw ValidationError(
-          'prompt_type',
-          'Tipo de prompt no válido',
-        );
+        throw ValidationError('prompt_type', 'Tipo de prompt no válido');
       case 'no_prompts_available':
         throw const NotFoundError('Prompt');
       case 'rounds_exhausted':
@@ -1205,7 +1187,9 @@ class MinigameService {
           code: 'rounds_exhausted',
         );
       default:
-        throw const ServerError('Unexpected submit_minigame_async_answer response');
+        throw const ServerError(
+          'Unexpected submit_minigame_async_answer response',
+        );
     }
   }
 
@@ -1222,8 +1206,7 @@ class MinigameService {
     if (user == null) throw const UnauthorizedError();
     final path = '$sessionId/$round/${const Uuid().v4()}.bin';
     await resilient(
-      () => client
-          .storage
+      () => client.storage
           .from('minigame_images')
           .uploadBinary(path, ciphertextBytes),
       timeout: AppConstants.minigameImageUploadTimeout,
@@ -1237,7 +1220,9 @@ class MinigameService {
   /// Signed URL (1h) for a participant to download the ENCRYPTED image blob —
   /// the private bucket has no public URL.
   Future<String> getSignedMinigameImageUrl(String storagePath) async {
-    return client.storage.from('minigame_images').createSignedUrl(storagePath, 3600);
+    return client.storage
+        .from('minigame_images')
+        .createSignedUrl(storagePath, 3600);
   }
 
   /// Downloads the ENCRYPTED image blob at [storagePath] from the private
@@ -1395,15 +1380,12 @@ class MinigameService {
     final user = auth.currentUser;
     if (user == null) throw const UnauthorizedError();
 
-    await client.from('minigame_e2ee_bundles').upsert(
-      {
-        'session_id': sessionId,
-        'sender_id': senderId,
-        'recipient_id': recipientId,
-        'bundle_ciphertext': bundleCiphertext,
-      },
-      onConflict: 'session_id,sender_id,recipient_id',
-    );
+    await client.from('minigame_e2ee_bundles').upsert({
+      'session_id': sessionId,
+      'sender_id': senderId,
+      'recipient_id': recipientId,
+      'bundle_ciphertext': bundleCiphertext,
+    }, onConflict: 'session_id,sender_id,recipient_id');
   }
 
   /// Reads the sender-key distribution bundles addressed to the caller
@@ -1447,14 +1429,16 @@ class MinigameService {
       case 'not_allowed':
         throw PermissionError();
       case 'session_not_active':
-        throw ConflictError('La partida ya terminó', code: 'session_not_active');
-      case 'not_started':
         throw ConflictError(
-          'La partida no está en juego',
-          code: 'not_started',
+          'La partida ya terminó',
+          code: 'session_not_active',
         );
+      case 'not_started':
+        throw ConflictError('La partida no está en juego', code: 'not_started');
       default:
-        throw const ServerError('Unexpected request_minigame_round_keys response');
+        throw const ServerError(
+          'Unexpected request_minigame_round_keys response',
+        );
     }
   }
 
@@ -1468,10 +1452,7 @@ class MinigameService {
   }) async {
     final res = await client.rpc(
       'resolve_minigame_key_request',
-      params: {
-        'p_session_id': sessionId,
-        'p_requester': requesterId,
-      },
+      params: {'p_session_id': sessionId, 'p_requester': requesterId},
     );
     final result = res is Map
         ? Map<String, dynamic>.from(res)
@@ -1489,9 +1470,14 @@ class MinigameService {
       case 'self_resolve':
         throw PermissionError();
       case 'session_not_active':
-        throw ConflictError('La partida ya terminó', code: 'session_not_active');
+        throw ConflictError(
+          'La partida ya terminó',
+          code: 'session_not_active',
+        );
       default:
-        throw const ServerError('Unexpected resolve_minigame_key_request response');
+        throw const ServerError(
+          'Unexpected resolve_minigame_key_request response',
+        );
     }
   }
 
@@ -1561,7 +1547,10 @@ class MinigameService {
           code: 'group_session',
         );
       case 'session_not_active':
-        throw ConflictError('La partida ya terminó', code: 'session_not_active');
+        throw ConflictError(
+          'La partida ya terminó',
+          code: 'session_not_active',
+        );
       default:
         throw const ServerError('Unexpected set_minigame_public response');
     }
@@ -1689,12 +1678,12 @@ class MinigameService {
       case 'not_allowed':
         throw PermissionError();
       case 'session_not_active':
-        throw ConflictError('La partida ya terminó', code: 'session_not_active');
-      case 'not_your_turn':
         throw ConflictError(
-          'Le toca a otro jugador',
-          code: 'not_your_turn',
+          'La partida ya terminó',
+          code: 'session_not_active',
         );
+      case 'not_your_turn':
+        throw ConflictError('Le toca a otro jugador', code: 'not_your_turn');
       case 'no_words':
         throw ConflictError(
           'No hay palabras en esa categoría',
@@ -1725,7 +1714,10 @@ class MinigameService {
       case 'not_allowed':
         throw PermissionError();
       case 'session_not_active':
-        throw ConflictError('La partida ya terminó', code: 'session_not_active');
+        throw ConflictError(
+          'La partida ya terminó',
+          code: 'session_not_active',
+        );
       case 'not_enough_players':
         throw ConflictError(
           'La botella necesita al menos 3 jugadores',
@@ -1773,7 +1765,9 @@ class MinigameService {
       case 'not_allowed':
         throw PermissionError();
       default:
-        throw const ServerError('Unexpected get_minigame_participants response');
+        throw const ServerError(
+          'Unexpected get_minigame_participants response',
+        );
     }
   }
 

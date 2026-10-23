@@ -85,9 +85,9 @@ class SettingsScreen extends ConsumerWidget {
     if (confirmed != true) return;
     await ref.read(authStateProvider.notifier).clearLocalData();
     if (!context.mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(l10n.settingsClearLocalDataDone)),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(l10n.settingsClearLocalDataDone)));
     context.go(RoutePaths.login);
   }
 
@@ -162,8 +162,8 @@ class SettingsScreen extends ConsumerWidget {
                       ),
                       const Divider(height: 1, color: AppColors.hairline),
                     ],
-                    // The notifications row opens the notification-preferences
-                    // screen (persisted toggles, local Hive config cache).
+                    // The notifications row opens the server-backed category screen
+                    // (Q4a: users.notification_preferences).
                     _SettingsTile(
                       icon: Icons.notifications,
                       label: l10n.profileNotifications,
@@ -211,6 +211,18 @@ class SettingsScreen extends ConsumerWidget {
                       icon: Icons.block,
                       label: l10n.profileBlockedUsers,
                       onTap: () => context.push(RoutePaths.blockedUsers),
+                    ),
+                    const Divider(height: 1, color: AppColors.hairline),
+                    _SettingsTile(
+                      icon: Icons.volume_off,
+                      label: l10n.profileMutedUsers,
+                      onTap: () => context.push(RoutePaths.mutedUsers),
+                    ),
+                    const Divider(height: 1, color: AppColors.hairline),
+                    _SettingsTile(
+                      icon: Icons.gavel_outlined,
+                      label: l10n.appealsTitle,
+                      onTap: () => context.push(RoutePaths.appeals),
                     ),
                     const Divider(height: 1, color: AppColors.hairline),
                     // SEC-033: wipe messages/notifications/photos/prefs and

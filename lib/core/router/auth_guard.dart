@@ -21,7 +21,11 @@ class AuthGuard {
     // Banned users are confined to the ban screen — no route (public or
     // authenticated) may render for them.
     if (data != null && data.banned) {
-      return location == RoutePaths.banned ? null : RoutePaths.banned;
+      // The ban screen and the appeal form are the only routes available to a
+      // suspended account (Q6: ban appeals must ship).
+      final allowedWhileBanned =
+          location == RoutePaths.banned || location == RoutePaths.appeals;
+      return allowedWhileBanned ? null : RoutePaths.banned;
     }
 
     final isPreAuthRoute =

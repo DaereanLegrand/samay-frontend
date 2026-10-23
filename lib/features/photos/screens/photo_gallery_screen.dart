@@ -14,6 +14,7 @@ import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/error_view.dart';
 import 'package:samay/shared/widgets/show_app_error.dart';
 import 'package:samay/shared/widgets/v_spinner.dart';
+import 'package:samay/shared/widgets/report_sheet.dart';
 import 'package:samay/shared/widgets/v_header_bar.dart';
 import 'package:samay/shared/widgets/state_views.dart';
 import 'package:samay/shared/widgets/v_network_image.dart';
@@ -31,11 +32,7 @@ typedef PhotoPicker = Future<XFile?> Function(ImageSource source);
 /// `events.photo_upload_window_hours` after `ends_at` from `app_config`);
 /// the closed window renders a notice instead.
 class PhotoGalleryScreen extends ConsumerStatefulWidget {
-  const PhotoGalleryScreen({
-    super.key,
-    required this.eventId,
-    this.picker,
-  });
+  const PhotoGalleryScreen({super.key, required this.eventId, this.picker});
 
   final String eventId;
 
@@ -77,24 +74,13 @@ class _PhotoGalleryScreenState extends ConsumerState<PhotoGalleryScreen> {
   }
 
   Future<void> _report(EventPhoto photo) async {
-    final l10n = AppLocalizations.of(context);
-    final reason = await showDialog<String>(
-      context: context,
-      builder: (dialogContext) => _ReportDialog(l10n: l10n),
+    await showReportSheet(
+      context,
+      ref,
+      targetType: 'photo',
+      targetId: photo.id,
+      title: AppLocalizations.of(context).photosReportTitle,
     );
-    if (reason == null || reason.isEmpty || !mounted) return;
-
-    try {
-      await ref
-          .read(eventPhotosProvider(widget.eventId).notifier)
-          .report(photo.id, reason);
-      if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(l10n.photosReportSent)));
-    } catch (e, _) {
-      if (mounted) showAppError(context, e);
-    }
   }
 
   bool _uploadWindowOpen(DateTime? endsAt, int windowHours) {
@@ -189,80 +175,6 @@ class _PhotoGalleryScreenState extends ConsumerState<PhotoGalleryScreen> {
           ],
         ),
       ),
-    );
-  }
-}
-
-/// Long-press report dialog: owns its [TextEditingController] so the field is
-/// never used after disposal (the dialog stays mounted during the route exit
-/// animation — disposing in `_report` after `showDialog` returned crashed
-/// with "TextEditingController was used after being disposed", found by the
-/// photo_gallery widget tests). Disposal in `State.dispose` runs only after
-/// the dialog subtree has unmounted, so the listener removal is safe.
-class _ReportDialog extends StatefulWidget {
-  const _ReportDialog({required this.l10n});
-
-  final AppLocalizations l10n;
-
-  @override
-  State<_ReportDialog> createState() => _ReportDialogState();
-}
-
-class _ReportDialogState extends State<_ReportDialog> {
-  final TextEditingController _controller = TextEditingController();
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = widget.l10n;
-    return AlertDialog(
-      backgroundColor: AppColors.discoBlack,
-      title: Text(
-        l10n.photosReportTitle,
-        style: const TextStyle(color: AppColors.white),
-      ),
-      content: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              l10n.photosReportBody,
-              style: const TextStyle(color: AppColors.mutedStrong),
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            TextField(
-              controller: _controller,
-              autofocus: true,
-              maxLength: 500,
-              style: const TextStyle(color: AppColors.white),
-              // No border, no background — a bare borderless field.
-              decoration: InputDecoration(
-                hintText: l10n.photosReportHint,
-                hintStyle: const TextStyle(color: AppColors.muted),
-                border: InputBorder.none,
-                filled: false,
-                floatingLabelBehavior: FloatingLabelBehavior.never,
-              ),
-            ),
-          ],
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: Text(l10n.commonCancel),
-        ),
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(_controller.text.trim()),
-          child: Text(l10n.photosReportSubmit),
-        ),
-      ],
     );
   }
 }

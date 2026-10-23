@@ -39,6 +39,8 @@ import 'package:samay/features/friends/screens/search_screen.dart';
 import 'package:samay/features/friends/screens/requests_screen.dart';
 import 'package:samay/features/friends/screens/friends_list_screen.dart';
 import 'package:samay/features/friends/screens/blocked_users_screen.dart';
+import 'package:samay/features/friends/screens/muted_users_screen.dart';
+import 'package:samay/features/moderation/screens/appeals_screen.dart';
 import 'package:samay/features/groups/screens/create_group_screen.dart';
 import 'package:samay/features/groups/screens/donate_shards_screen.dart';
 import 'package:samay/features/groups/screens/group_detail_screen.dart';
@@ -575,10 +577,8 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         // Chat inbox: the feed's chat button lands here.
         path: RoutePaths.chatList,
-        builder: (context, state) => const FlagGate(
-          flag: AppFeatureFlag.chat,
-          child: ChatListScreen(),
-        ),
+        builder: (context, state) =>
+            const FlagGate(flag: AppFeatureFlag.chat, child: ChatListScreen()),
       ),
       GoRoute(
         path: RoutePaths.userSearch,
@@ -604,6 +604,15 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: RoutePaths.blockedUsers,
         builder: (_, _) => const BlockedUsersScreen(),
+      ),
+      GoRoute(
+        path: RoutePaths.mutedUsers,
+        builder: (_, _) => const MutedUsersScreen(),
+      ),
+      GoRoute(
+        path: RoutePaths.appeals,
+        builder: (_, state) =>
+            AppealsScreen(banAppeal: state.uri.queryParameters['ban'] == '1'),
       ),
       GoRoute(
         // QRAT/QRSC, Stage-5 rotating-QR attendee surface: gated on the

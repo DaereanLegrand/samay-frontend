@@ -3,6 +3,7 @@ import 'package:samay/core/errors/app_error.dart';
 import 'package:samay/core/models/friend_request_summary.dart';
 import 'package:samay/core/models/user_profile.dart';
 import 'package:samay/core/models/user_search_result.dart';
+import 'package:samay/core/providers/service_providers.dart';
 import 'package:samay/core/repositories/repository_providers.dart';
 import 'package:samay/core/utils/throttled_refresh.dart';
 
@@ -31,9 +32,7 @@ class FriendsListNotifier extends AsyncNotifier<List<UserProfile>>
     // Resolve every friend in ONE `get_friend_profiles` RPC round trip: the
     // client-side `user_search_view` read is not queryable on every deployment
     // (Kong strips the route path → PostgREST returns the OpenAPI doc).
-    final rows = await repo.getUserSearchRows([
-      for (final f in res) f.userId,
-    ]);
+    final rows = await repo.getUserSearchRows([for (final f in res) f.userId]);
     final byId = {for (final r in rows) r['id'] as String: r};
     final profiles = <UserProfile>[];
     for (final f in res) {
@@ -58,8 +57,10 @@ class FriendsListNotifier extends AsyncNotifier<List<UserProfile>>
 }
 
 /// Friends of the current user, as full user profiles.
-final friendsListProvider = AsyncNotifierProvider<FriendsListNotifier,
-    List<UserProfile>>(FriendsListNotifier.new);
+final friendsListProvider =
+    AsyncNotifierProvider<FriendsListNotifier, List<UserProfile>>(
+      FriendsListNotifier.new,
+    );
 
 class FriendRequestsNotifier extends AsyncNotifier<FriendRequestsData>
     with ThrottledRefresh {
@@ -93,28 +94,29 @@ class FriendRequestsNotifier extends AsyncNotifier<FriendRequestsData>
 }
 
 /// Received + sent friend requests with resolved display names.
-final friendRequestsProvider = AsyncNotifierProvider<FriendRequestsNotifier,
-    FriendRequestsData>(FriendRequestsNotifier.new);
+final friendRequestsProvider =
+    AsyncNotifierProvider<FriendRequestsNotifier, FriendRequestsData>(
+      FriendRequestsNotifier.new,
+    );
 
 class BlockedUsersNotifier extends AsyncNotifier<List<UserProfile>>
     with ThrottledRefresh {
   @override
   Future<List<UserProfile>> build() async {
     final repo = ref.read(friendsRepositoryProvider);
-    final res = await repo.getBlockedUsers();
-    final ids = [for (final b in res) b['blocked_user_id'] as String];
-    final rows = await repo.getUserProfiles(ids);
-    final byId = {for (final row in rows) row['id'] as String: row};
-    final profiles = <UserProfile>[];
-    for (final uid in ids) {
-      // No-fallback: an unresolvable blocked-user profile is an
-      // ERROR — never a truncated-uid placeholder.
-      final row = byId[uid];
-      if (row == null) throw ProfileResolutionError(uid);
-      profiles.add(UserProfile.fromJson(row));
-    }
+    // get_blocked_users() is SECURITY DEFINER: the public views intentionally
+    // hide blocked users, so resolving them through user_search_view would
+    // always fail.
+    final rows = await repo.getBlockedUsers();
     markFetched();
-    return profiles;
+    return [
+      for (final row in rows)
+        UserProfile.fromJson({
+          'id': row['blocked_user_id'],
+          'username': row['username'],
+          'avatar_url': row['avatar_url'],
+        }),
+    ];
   }
 
   /// Re-runs [build] after unblocking a user.  skipped
@@ -126,8 +128,39 @@ class BlockedUsersNotifier extends AsyncNotifier<List<UserProfile>>
 }
 
 /// Users blocked by the current user (profiles with username fallback).
-final blockedUsersProvider = AsyncNotifierProvider<BlockedUsersNotifier,
-    List<UserProfile>>(BlockedUsersNotifier.new);
+final blockedUsersProvider =
+    AsyncNotifierProvider<BlockedUsersNotifier, List<UserProfile>>(
+      BlockedUsersNotifier.new,
+    );
+
+class MutedUsersNotifier extends AsyncNotifier<List<UserProfile>>
+    with ThrottledRefresh {
+  @override
+  Future<List<UserProfile>> build() async {
+    final service = ref.read(friendshipServiceProvider);
+    final rows = await service.getMutedUsers();
+    markFetched();
+    return [
+      for (final row in rows)
+        UserProfile.fromJson({
+          'id': row['id'],
+          'username': row['username'],
+          'avatar_url': row['avatar_url'],
+        }),
+    ];
+  }
+
+  Future<void> refresh() async {
+    if (!shouldRefetch()) return;
+    ref.invalidateSelf();
+  }
+}
+
+/// Users muted by the current user (one-way, weaker than block).
+final mutedUsersProvider =
+    AsyncNotifierProvider<MutedUsersNotifier, List<UserProfile>>(
+      MutedUsersNotifier.new,
+    );
 
 class SearchResultsNotifier
     extends FamilyAsyncNotifier<List<UserSearchResult>, String>
@@ -139,7 +172,7 @@ class SearchResultsNotifier
     return results;
   }
 
-  /// Re-runs [build] after a friend request changes a result's status. 
+  /// Re-runs [build] after a friend request changes a result's status.
   /// skipped while the last fetch is younger than [refreshThrottle].
   Future<void> refresh() async {
     if (!shouldRefetch()) return;
@@ -151,5 +184,9 @@ class SearchResultsNotifier
 ///
 /// Consumers must not watch this provider with an empty query — the search
 /// service would query with an empty prefix.
-final searchResultsProvider = AsyncNotifierProvider.family<SearchResultsNotifier,
-    List<UserSearchResult>, String>(SearchResultsNotifier.new);
+final searchResultsProvider =
+    AsyncNotifierProvider.family<
+      SearchResultsNotifier,
+      List<UserSearchResult>,
+      String
+    >(SearchResultsNotifier.new);
