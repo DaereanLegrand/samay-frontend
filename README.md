@@ -24,3 +24,11 @@ QR check-in and E2EE chat.
 ## Deployment
 
 ![Deployment](docs/diagrams/deployment.svg)
+
+## License
+
+Samay is released under the **GNU Affero General Public License, version 3**
+(AGPL-3.0). The full text is in [`LICENSE`](LICENSE); third-party components and
+disclosures are listed in [`NOTICE`](NOTICE). AGPL-3.0 requires that anyone who
+runs a modified version of this software as a network service offers its
+corresponding source to the users of that service.
