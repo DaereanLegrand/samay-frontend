@@ -201,38 +201,12 @@ class AuthService {
     );
   }
 
-  Future<void> softDeleteUser() async {
-    final user = auth.currentUser;
-    if (user == null) throw const UnauthorizedError();
-    // Profile-RPC lockdown: clients hold NO table write
-    // privilege — deletion goes through the SECURITY DEFINER RPC, which
-    // tombstones the row server-side (deleted_at + deleted_user_ rename +
-    // PII nulling).
-    await client.rpc('delete_my_account');
-  }
-
-  /// Mode A — request deletion: tombstone + revoke sessions; the account is
-  /// fully erased by the cron after the grace window, and is restorable by
-  /// signing in and calling [restoreAccount] within that window.
-  Future<void> requestAccountDeletion() async {
-    final user = auth.currentUser;
-    if (user == null) throw const UnauthorizedError();
-    await client.rpc('request_account_deletion');
-  }
-
-  /// Mode B — immediate, irreversible full erasure (public rows, auth.users,
-  /// and queued storage objects). No recovery.
+  /// Q1 — immediate, irreversible full erasure (public rows, auth.users, and
+  /// the storage-deletion outbox). There is no grace window or restore RPC.
   Future<void> purgeAccountNow() async {
     final user = auth.currentUser;
     if (user == null) throw const UnauthorizedError();
     await client.rpc('purge_my_account_now');
-  }
-
-  /// Undo a scheduled deletion within the grace window.
-  Future<void> restoreAccount() async {
-    final user = auth.currentUser;
-    if (user == null) throw const UnauthorizedError();
-    await client.rpc('restore_my_account');
   }
 
   /// Returns the caller's own data as a JSON string (`export_my_data`).
@@ -269,7 +243,7 @@ class AuthService {
   /// the funnel's existing contract.
   Future<void> createUserProfile({
     required String username,
-    String? dateOfBirth,
+    required String dateOfBirth,
   }) async {
     final user = auth.currentUser;
     if (user == null) throw const UnauthorizedError();

@@ -840,31 +840,21 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get profileDeleteBody =>
-      'Esta acción no se puede deshacer. Tus datos serán anonimizados y tu cuenta será eliminada permanentemente después de 30 días.';
+      'Esta acción es inmediata e irreversible. Se eliminan tu cuenta, perfil, credenciales, contenido y tokens. Solo se conservan los registros pseudonimizados de shards y asistencia (5 años) y la evidencia restringida de reportes (2 años; CSAM según ley). No hay periodo de recuperación.';
 
   @override
   String get profileDeleteExplanation =>
-      'Al eliminar tu cuenta, tus datos serán anonimizados. Tus mensajes y contribuciones al ranking de grupos se mantendrán pero no serán vinculados a ti. Podrás recuperar tu cuenta dentro de 30 días.';
+      'Al eliminar tu cuenta se borran de inmediato tu perfil, credenciales, contenido, amistades, membresías y tokens. Se conservan únicamente los registros pseudonimizados de shards/asistencia (5 años) y la evidencia restringida de reportes (2 años; CSAM según ley). No existe una ventana de recuperación.';
 
   @override
-  String get profileDeleteModeTitle => 'Cómo quieres eliminar tu cuenta';
-
-  @override
-  String get profileDeleteGraceLabel => 'Eliminar en 30 días';
-
-  @override
-  String get profileDeleteGraceBody =>
-      'Programa la eliminación. Podrás recuperar tu cuenta iniciando sesión dentro de 30 días; al vencer el plazo se borra por completo.';
-
-  @override
-  String get profileDeleteNowLabel => 'Eliminar ahora';
+  String get profileDeleteNowLabel => 'Eliminar mi cuenta definitivamente';
 
   @override
   String get profileDeleteNowBody =>
-      'Eliminación inmediata e irreversible: se borran tu perfil, tus credenciales y los datos asociados. No se puede deshacer.';
+      'Se borran tu perfil, credenciales, contenido y tokens. Solo quedan registros pseudonimizados de shards/asistencia (5 años) y evidencia restringida de reportes (2 años; CSAM según ley). No se puede deshacer.';
 
   @override
-  String get profileDeleteNowQuestion => '¿Eliminar ahora y borrar todo?';
+  String get profileDeleteNowQuestion => '¿Eliminar tu cuenta definitivamente?';
 
   @override
   String get profileExportData => 'Exportar mis datos';
@@ -874,21 +864,21 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get profileExportBody =>
-      'Descarga una copia de tu perfil, amistades, grupos, eventos, shards y datos de la app.';
+      'Guarda una copia de tu perfil, amistades, grupos, eventos, shards, mensajes recibidos (texto cifrado), respuestas de minijuegos, tokens de dispositivo y reportes.';
 
   @override
   String get profileExportChatNote =>
-      'El chat está cifrado de extremo a extremo: el servidor solo puede exportar texto cifrado. El historial legible vive solo en este dispositivo.';
+      'El chat está cifrado de extremo a extremo: el servidor solo puede exportar texto cifrado. Las llaves E2EE y la evidencia de moderación no se exportan; el documento incluye la lista de exclusiones y la matriz de retención.';
 
   @override
-  String get profileExportCta => 'Exportar';
+  String get profileExportCta => 'Generar archivo';
 
   @override
   String get profileExportCopy => 'Copiar al portapapeles';
 
   @override
   String get profileExportSuccess =>
-      'Exportación lista. Se copió al portapapeles.';
+      'Exportación guardada en el dispositivo y copiada al portapapeles.';
 
   @override
   String get profileExportError => 'No se pudo exportar. Inténtalo de nuevo.';
@@ -2960,4 +2950,14 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get legalOpenOnline => 'Ver en el navegador';
+
+  @override
+  String get authDobRequired => 'La fecha de nacimiento es obligatoria.';
+
+  @override
+  String get authDobInvalid => 'La fecha de nacimiento no es válida.';
+
+  @override
+  String get profileExportSaved =>
+      'Copia guardada en el almacenamiento de la app:';
 }

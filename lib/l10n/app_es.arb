@@ -1128,35 +1128,23 @@
   "@profileDeleteQuestion": {
     "description": "Delete-account confirmation dialog title"
   },
-  "profileDeleteBody": "Esta acción no se puede deshacer. Tus datos serán anonimizados y tu cuenta será eliminada permanentemente después de 30 días.",
+  "profileDeleteBody": "Esta acción es inmediata e irreversible. Se eliminan tu cuenta, perfil, credenciales, contenido y tokens. Solo se conservan los registros pseudonimizados de shards y asistencia (5 años) y la evidencia restringida de reportes (2 años; CSAM según ley). No hay periodo de recuperación.",
   "@profileDeleteBody": {
     "description": "Delete-account confirmation dialog body"
   },
-  "profileDeleteExplanation": "Al eliminar tu cuenta, tus datos serán anonimizados. Tus mensajes y contribuciones al ranking de grupos se mantendrán pero no serán vinculados a ti. Podrás recuperar tu cuenta dentro de 30 días.",
+  "profileDeleteExplanation": "Al eliminar tu cuenta se borran de inmediato tu perfil, credenciales, contenido, amistades, membresías y tokens. Se conservan únicamente los registros pseudonimizados de shards/asistencia (5 años) y la evidencia restringida de reportes (2 años; CSAM según ley). No existe una ventana de recuperación.",
   "@profileDeleteExplanation": {
     "description": "Explanation of what happens when the account is deleted"
   },
-  "profileDeleteModeTitle": "Cómo quieres eliminar tu cuenta",
-  "@profileDeleteModeTitle": {
-    "description": "Heading offering the two deletion modes"
-  },
-  "profileDeleteGraceLabel": "Eliminar en 30 días",
-  "@profileDeleteGraceLabel": {
-    "description": "Scheduled deletion (grace window) button label"
-  },
-  "profileDeleteGraceBody": "Programa la eliminación. Podrás recuperar tu cuenta iniciando sesión dentro de 30 días; al vencer el plazo se borra por completo.",
-  "@profileDeleteGraceBody": {
-    "description": "Scheduled deletion explanation"
-  },
-  "profileDeleteNowLabel": "Eliminar ahora",
+  "profileDeleteNowLabel": "Eliminar mi cuenta definitivamente",
   "@profileDeleteNowLabel": {
     "description": "Immediate erasure button label"
   },
-  "profileDeleteNowBody": "Eliminación inmediata e irreversible: se borran tu perfil, tus credenciales y los datos asociados. No se puede deshacer.",
+  "profileDeleteNowBody": "Se borran tu perfil, credenciales, contenido y tokens. Solo quedan registros pseudonimizados de shards/asistencia (5 años) y evidencia restringida de reportes (2 años; CSAM según ley). No se puede deshacer.",
   "@profileDeleteNowBody": {
     "description": "Immediate erasure explanation"
   },
-  "profileDeleteNowQuestion": "¿Eliminar ahora y borrar todo?",
+  "profileDeleteNowQuestion": "¿Eliminar tu cuenta definitivamente?",
   "@profileDeleteNowQuestion": {
     "description": "Immediate erasure confirmation dialog title"
   },
@@ -1168,15 +1156,15 @@
   "@profileExportTitle": {
     "description": "Export screen app bar title"
   },
-  "profileExportBody": "Descarga una copia de tu perfil, amistades, grupos, eventos, shards y datos de la app.",
+  "profileExportBody": "Guarda una copia de tu perfil, amistades, grupos, eventos, shards, mensajes recibidos (texto cifrado), respuestas de minijuegos, tokens de dispositivo y reportes.",
   "@profileExportBody": {
     "description": "Export screen explanation"
   },
-  "profileExportChatNote": "El chat está cifrado de extremo a extremo: el servidor solo puede exportar texto cifrado. El historial legible vive solo en este dispositivo.",
+  "profileExportChatNote": "El chat está cifrado de extremo a extremo: el servidor solo puede exportar texto cifrado. Las llaves E2EE y la evidencia de moderación no se exportan; el documento incluye la lista de exclusiones y la matriz de retención.",
   "@profileExportChatNote": {
     "description": "E2EE caveat on the export screen"
   },
-  "profileExportCta": "Exportar",
+  "profileExportCta": "Generar archivo",
   "@profileExportCta": {
     "description": "Export action button"
   },
@@ -1184,7 +1172,7 @@
   "@profileExportCopy": {
     "description": "Copy export JSON to clipboard"
   },
-  "profileExportSuccess": "Exportación lista. Se copió al portapapeles.",
+  "profileExportSuccess": "Exportación guardada en el dispositivo y copiada al portapapeles.",
   "@profileExportSuccess": {
     "description": "Export success message"
   },
@@ -2530,72 +2518,136 @@
     "description": "Drunk bottle: button that stops the spin"
   },
   "minigamesGameCharades": "Charadas",
-  "@minigamesGameCharades": {"description": "Game #6 name (Charades)"},
+  "@minigamesGameCharades": {
+    "description": "Game #6 name (Charades)"
+  },
   "minigamesGameCharadesTagline": "Celular en la frente y que adivinen",
-  "@minigamesGameCharadesTagline": {"description": "Game #6 one-line tagline"},
+  "@minigamesGameCharadesTagline": {
+    "description": "Game #6 one-line tagline"
+  },
   "minigamesGameCharadesExplanation": "Te pones el celular en la frente sin mirar la pantalla. El grupo actúa la palabra que aparece y tú adivinas. Cada acierto suma un punto y, cuando se acaba el tiempo, le toca al siguiente.",
-  "@minigamesGameCharadesExplanation": {"description": "Game #6 explanation on the dedicated game page"},
+  "@minigamesGameCharadesExplanation": {
+    "description": "Game #6 explanation on the dedicated game page"
+  },
   "charadesRulesTitle": "Cómo se juega",
-  "@charadesRulesTitle": {"description": "Charades: rules card heading"},
+  "@charadesRulesTitle": {
+    "description": "Charades: rules card heading"
+  },
   "charadesRule1": "Pon el celular en tu frente, con la pantalla hacia el grupo. No mires.",
-  "@charadesRule1": {"description": "Charades rule 1"},
+  "@charadesRule1": {
+    "description": "Charades rule 1"
+  },
   "charadesRule2": "El grupo actúa la palabra sin decirla ni deletrearla.",
-  "@charadesRule2": {"description": "Charades rule 2"},
+  "@charadesRule2": {
+    "description": "Charades rule 2"
+  },
   "charadesRule3": "Si adivinas, toca Acerté. Si se complica, toca Paso.",
-  "@charadesRule3": {"description": "Charades rule 3"},
+  "@charadesRule3": {
+    "description": "Charades rule 3"
+  },
   "charadesRule4": "Al terminar el tiempo se cuentan tus aciertos y pasa el turno.",
-  "@charadesRule4": {"description": "Charades rule 4"},
+  "@charadesRule4": {
+    "description": "Charades rule 4"
+  },
   "charadesPickCategory": "Elige una categoría",
-  "@charadesPickCategory": {"description": "Charades: category picker heading"},
+  "@charadesPickCategory": {
+    "description": "Charades: category picker heading"
+  },
   "charadesDuration": "Duración",
-  "@charadesDuration": {"description": "Charades: turn duration label"},
+  "@charadesDuration": {
+    "description": "Charades: turn duration label"
+  },
   "charadesSeconds": "{count} s",
   "@charadesSeconds": {
     "description": "Charades: a duration in seconds",
-    "placeholders": {"count": {"type": "int"}}
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   },
   "charadesStartTurn": "Empezar mi turno",
-  "@charadesStartTurn": {"description": "Charades: start button"},
+  "@charadesStartTurn": {
+    "description": "Charades: start button"
+  },
   "charadesHit": "Acerté",
-  "@charadesHit": {"description": "Charades: correct button"},
+  "@charadesHit": {
+    "description": "Charades: correct button"
+  },
   "charadesPass": "Paso",
-  "@charadesPass": {"description": "Charades: skip button"},
+  "@charadesPass": {
+    "description": "Charades: skip button"
+  },
   "charadesFinish": "Terminar turno",
-  "@charadesFinish": {"description": "Charades: end turn early"},
+  "@charadesFinish": {
+    "description": "Charades: end turn early"
+  },
   "charadesPlayingBy": "Está jugando {name}",
   "@charadesPlayingBy": {
     "description": "Charades: spectator banner naming the active player",
-    "placeholders": {"name": {"type": "String"}}
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
   },
   "charadesActNow": "¡Actúen la palabra!",
-  "@charadesActNow": {"description": "Charades: spectator instruction while a turn runs"},
+  "@charadesActNow": {
+    "description": "Charades: spectator instruction while a turn runs"
+  },
   "charadesTimeUp": "¡Se acabó el tiempo!",
-  "@charadesTimeUp": {"description": "Charades: time over heading"},
+  "@charadesTimeUp": {
+    "description": "Charades: time over heading"
+  },
   "charadesTurnScore": "{count, plural, =0{Sin aciertos} =1{1 acierto} other{{count} aciertos}}",
   "@charadesTurnScore": {
     "description": "Charades: hits in the closed turn",
-    "placeholders": {"count": {"type": "int"}}
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   },
   "charadesScoreboard": "Marcador",
-  "@charadesScoreboard": {"description": "Charades: scoreboard heading"},
+  "@charadesScoreboard": {
+    "description": "Charades: scoreboard heading"
+  },
   "charadesNextPlayer": "Que juegue otro",
-  "@charadesNextPlayer": {"description": "Charades: hand the turn over"},
+  "@charadesNextPlayer": {
+    "description": "Charades: hand the turn over"
+  },
   "charadesWaitingTurn": "Nadie está jugando todavía",
-  "@charadesWaitingTurn": {"description": "Charades: idle heading"},
+  "@charadesWaitingTurn": {
+    "description": "Charades: idle heading"
+  },
   "charadesCategoryAll": "Todas",
-  "@charadesCategoryAll": {"description": "Charades category: every category"},
+  "@charadesCategoryAll": {
+    "description": "Charades category: every category"
+  },
   "charadesCategoryPeliculas": "Películas",
-  "@charadesCategoryPeliculas": {"description": "Charades category: movies"},
+  "@charadesCategoryPeliculas": {
+    "description": "Charades category: movies"
+  },
   "charadesCategoryAnimales": "Animales",
-  "@charadesCategoryAnimales": {"description": "Charades category: animals"},
+  "@charadesCategoryAnimales": {
+    "description": "Charades category: animals"
+  },
   "charadesCategoryAcciones": "Acciones",
-  "@charadesCategoryAcciones": {"description": "Charades category: actions"},
+  "@charadesCategoryAcciones": {
+    "description": "Charades category: actions"
+  },
   "charadesCategoryObjetos": "Objetos",
-  "@charadesCategoryObjetos": {"description": "Charades category: objects"},
+  "@charadesCategoryObjetos": {
+    "description": "Charades category: objects"
+  },
   "charadesCategoryFamosos": "Famosos",
-  "@charadesCategoryFamosos": {"description": "Charades category: celebrities"},
+  "@charadesCategoryFamosos": {
+    "description": "Charades category: celebrities"
+  },
   "charadesCategoryFiesta": "Fiesta",
-  "@charadesCategoryFiesta": {"description": "Charades category: party"},
+  "@charadesCategoryFiesta": {
+    "description": "Charades category: party"
+  },
   "minigamesPublishTitle": "Partida abierta",
   "@minigamesPublishTitle": {
     "description": "Lobby: label of the host-only publish switch"
@@ -2627,12 +2679,23 @@
   "minigamesPublicHostedBy": "de {name}",
   "@minigamesPublicHostedBy": {
     "description": "Open lobby: who hosts the partida",
-    "placeholders": {"name": {"type": "String"}}
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
   },
   "minigamesPublicPlayers": "{count}/{limit} jugadores",
   "@minigamesPublicPlayers": {
     "description": "Open lobby: roster size against the cap",
-    "placeholders": {"count": {"type": "int"}, "limit": {"type": "int"}}
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "limit": {
+        "type": "int"
+      }
+    }
   },
   "minigamesPublicFull": "Llena",
   "@minigamesPublicFull": {
@@ -2649,7 +2712,11 @@
   "minigamesBottleLandedOn": "Le tocó a {name}",
   "@minigamesBottleLandedOn": {
     "description": "Drunk bottle: status line naming the player the bottle landed on",
-    "placeholders": {"name": {"type": "String"}}
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
   },
   "minigamesBottleYourTurn": "¡Te tocó a ti!",
   "@minigamesBottleYourTurn": {
@@ -2662,22 +2729,38 @@
   "minigamesBottleSpunBy": "Giró {name}",
   "@minigamesBottleSpunBy": {
     "description": "Drunk bottle: who launched the current spin",
-    "placeholders": {"name": {"type": "String"}}
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
   },
   "minigamesBottleCategorySuave": "suave",
-  "@minigamesBottleCategorySuave": {"description": "Drunk bottle dare category: mild"},
+  "@minigamesBottleCategorySuave": {
+    "description": "Drunk bottle dare category: mild"
+  },
   "minigamesBottleCategoryMedio": "medio",
-  "@minigamesBottleCategoryMedio": {"description": "Drunk bottle dare category: medium"},
+  "@minigamesBottleCategoryMedio": {
+    "description": "Drunk bottle dare category: medium"
+  },
   "minigamesBottleCategoryPicante": "picante",
-  "@minigamesBottleCategoryPicante": {"description": "Drunk bottle dare category: spicy"},
+  "@minigamesBottleCategoryPicante": {
+    "description": "Drunk bottle dare category: spicy"
+  },
   "minigamesBottleCategoryCastigo": "castigo",
-  "@minigamesBottleCategoryCastigo": {"description": "Drunk bottle dare category: penalty"},
+  "@minigamesBottleCategoryCastigo": {
+    "description": "Drunk bottle dare category: penalty"
+  },
   "minigamesBottleMinPlayers": "La botella necesita al menos {min} jugadores (tienes {count})",
   "@minigamesBottleMinPlayers": {
     "description": "Drunk bottle: minimum-player gate message on the lobby's Start button",
     "placeholders": {
-      "min": {"type": "int"},
-      "count": {"type": "int"}
+      "min": {
+        "type": "int"
+      },
+      "count": {
+        "type": "int"
+      }
     }
   },
   "minigamesGameTwoLiesOneTruth": "2 Mentiras, 1 Verdad",
@@ -2982,8 +3065,12 @@
   "@minigamesAnswerWaitingReactions": {
     "description": "Shown to the subject after submitting: how many of the other participants have reacted so far",
     "placeholders": {
-      "reacted": { "type": "int" },
-      "required": { "type": "int" }
+      "reacted": {
+        "type": "int"
+      },
+      "required": {
+        "type": "int"
+      }
     }
   },
   "minigamesKeyRequesting": "Esperando a que otro participante se conecte para descifrar…",
@@ -3042,8 +3129,12 @@
   "@minigamesAsyncProgress": {
     "description": "Per-player async progress",
     "placeholders": {
-      "done": { "type": "int" },
-      "target": { "type": "int" }
+      "done": {
+        "type": "int"
+      },
+      "target": {
+        "type": "int"
+      }
     }
   },
   "minigamesAsyncAvailable": "Rondas para reaccionar",
@@ -3054,7 +3145,9 @@
   "@minigamesAsyncTimerEnds": {
     "description": "Shows the async settable deadline",
     "placeholders": {
-      "date": { "type": "String" }
+      "date": {
+        "type": "String"
+      }
     }
   },
   "minigamesAnswerPasarLine": "puedes pasar si no quieres responder",
@@ -3119,8 +3212,12 @@
   "@minigamesRoundCounter": {
     "description": "Play screen round counter: the current turn out of the total-turn target (201_minigame_voting)",
     "placeholders": {
-      "current": { "type": "int" },
-      "total": { "type": "int" }
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
     }
   },
   "minigamesAnonymousPlayer": "Jugador",
@@ -3131,14 +3228,18 @@
   "@minigamesPrizeAmount": {
     "description": "Leaderboard prize per ranked winner (201_minigame_voting)",
     "placeholders": {
-      "amount": { "type": "int" }
+      "amount": {
+        "type": "int"
+      }
     }
   },
   "minigamesPointsAmount": "{count} puntos",
   "@minigamesPointsAmount": {
     "description": "Leaderboard score label per ranked player",
     "placeholders": {
-      "count": { "type": "int" }
+      "count": {
+        "type": "int"
+      }
     }
   },
   "minigamesAnswersLoadError": "Ups, no pudimos cargar las respuestas de la partida. Inténtalo más tarde.",
@@ -3549,37 +3650,79 @@
     "description": "Partida lobby: error when a non-creator tries to start"
   },
   "minigamesWaitingReady": "Falta que {names} marquen Listo",
-  "@minigamesWaitingReady": {"description": "Lobby: host's Start is blocked until every other player is ready (2+ names)", "placeholders": {"names": {"type": "String"}}},
+  "@minigamesWaitingReady": {
+    "description": "Lobby: host's Start is blocked until every other player is ready (2+ names)",
+    "placeholders": {
+      "names": {
+        "type": "String"
+      }
+    }
+  },
   "minigamesWaitingReadyOne": "Falta que {name} marque Listo",
-  "@minigamesWaitingReadyOne": {"description": "Lobby: host's Start is blocked until every other player is ready (one name)", "placeholders": {"name": {"type": "String"}}},
+  "@minigamesWaitingReadyOne": {
+    "description": "Lobby: host's Start is blocked until every other player is ready (one name)",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "minigamesRulesTitle": "Cómo se juega",
-  "@minigamesRulesTitle": {"description": "Rules sheet heading, shared by every game"},
+  "@minigamesRulesTitle": {
+    "description": "Rules sheet heading, shared by every game"
+  },
   "minigamesRulesAction": "Cómo se juega",
-  "@minigamesRulesAction": {"description": "Play-screen action that opens the rules sheet"},
+  "@minigamesRulesAction": {
+    "description": "Play-screen action that opens the rules sheet"
+  },
   "truthDareRule1": "Cada ronda le toca a una persona: elige Verdad o Reto.",
-  "@truthDareRule1": {"description": "Rules step for the truthDare sheet"},
+  "@truthDareRule1": {
+    "description": "Rules step for the truthDare sheet"
+  },
   "truthDareRule2": "La app saca al azar una pregunta o un reto.",
-  "@truthDareRule2": {"description": "Rules step for the truthDare sheet"},
+  "@truthDareRule2": {
+    "description": "Rules step for the truthDare sheet"
+  },
   "truthDareRule3": "Responde o cúmplelo y envía tu respuesta al grupo.",
-  "@truthDareRule3": {"description": "Rules step for the truthDare sheet"},
+  "@truthDareRule3": {
+    "description": "Rules step for the truthDare sheet"
+  },
   "truthDareRule4": "Los demás reaccionan y el turno pasa al siguiente.",
-  "@truthDareRule4": {"description": "Rules step for the truthDare sheet"},
+  "@truthDareRule4": {
+    "description": "Rules step for the truthDare sheet"
+  },
   "bottleRule1": "La mesa se reparte en porciones: una por jugador.",
-  "@bottleRule1": {"description": "Rules step for the bottle sheet"},
+  "@bottleRule1": {
+    "description": "Rules step for the bottle sheet"
+  },
   "bottleRule2": "Toca Girar y, cuando quieras, toca Parar.",
-  "@bottleRule2": {"description": "Rules step for the bottle sheet"},
+  "@bottleRule2": {
+    "description": "Rules step for the bottle sheet"
+  },
   "bottleRule3": "La botella frena sola: la porción que señala es la elegida.",
-  "@bottleRule3": {"description": "Rules step for the bottle sheet"},
+  "@bottleRule3": {
+    "description": "Rules step for the bottle sheet"
+  },
   "bottleRule4": "Esa persona cumple el reto que aparece y se vuelve a girar.",
-  "@bottleRule4": {"description": "Rules step for the bottle sheet"},
+  "@bottleRule4": {
+    "description": "Rules step for the bottle sheet"
+  },
   "twoLiesRule1": "Cada ronda le toca a una persona: escribe 3 afirmaciones sobre sí misma.",
-  "@twoLiesRule1": {"description": "Rules step for the twoLies sheet"},
+  "@twoLiesRule1": {
+    "description": "Rules step for the twoLies sheet"
+  },
   "twoLiesRule2": "Dos son mentira y una es verdad. Nadie más las ve mientras las escribe.",
-  "@twoLiesRule2": {"description": "Rules step for the twoLies sheet"},
+  "@twoLiesRule2": {
+    "description": "Rules step for the twoLies sheet"
+  },
   "twoLiesRule3": "Los demás votan cuál creen que es la verdadera.",
-  "@twoLiesRule3": {"description": "Rules step for the twoLies sheet"},
+  "@twoLiesRule3": {
+    "description": "Rules step for the twoLies sheet"
+  },
   "twoLiesRule4": "Se revela la respuesta, se reparten puntos y pasa el turno.",
-  "@twoLiesRule4": {"description": "Rules step for the twoLies sheet"},
+  "@twoLiesRule4": {
+    "description": "Rules step for the twoLies sheet"
+  },
   "minigamesWaitingForPlayers": "Esperando jugadores...",
   "@minigamesWaitingForPlayers": {
     "description": "Partida lobby: shown before the creator starts the game"
@@ -3731,7 +3874,9 @@
   "@minigamesTwoLiesStatementNumber": {
     "description": "Header for each statement input",
     "placeholders": {
-      "number": { "type": "int" }
+      "number": {
+        "type": "int"
+      }
     }
   },
   "minigamesTwoLiesMarkTruthPrompt": "Marca cuál es la verdad",
@@ -3766,15 +3911,21 @@
   "@minigamesTwoLiesWaitingSubject": {
     "description": "Waiting message shown to non-subjects while subject is writing",
     "placeholders": {
-      "name": { "type": "String" }
+      "name": {
+        "type": "String"
+      }
     }
   },
   "minigamesTwoLiesWaitingVotes": "Esperando los votos de los demás... ({voted}/{total})",
   "@minigamesTwoLiesWaitingVotes": {
     "description": "Tally shown to the subject after submitting",
     "placeholders": {
-      "voted": { "type": "int" },
-      "total": { "type": "int" }
+      "voted": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
     }
   },
   "minigamesTwoLiesFillAllError": "Debes completar las 3 afirmaciones",
@@ -3800,5 +3951,17 @@
   "legalOpenOnline": "Ver en el navegador",
   "@legalOpenOnline": {
     "description": "Legal screen action: open the policy in the browser"
+  },
+  "authDobRequired": "La fecha de nacimiento es obligatoria.",
+  "@authDobRequired": {
+    "description": "Q17: missing DOB blocked before create_my_profile"
+  },
+  "authDobInvalid": "La fecha de nacimiento no es válida.",
+  "@authDobInvalid": {
+    "description": "Q17: unparsable DOB blocked before create_my_profile"
+  },
+  "profileExportSaved": "Copia guardada en el almacenamiento de la app:",
+  "@profileExportSaved": {
+    "description": "SEC-050: export file path shown to the user"
   }
 }

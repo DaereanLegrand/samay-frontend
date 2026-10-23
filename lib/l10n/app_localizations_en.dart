@@ -841,32 +841,21 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get profileDeleteBody =>
-      'This action cannot be undone. Your data will be anonymized and your account will be permanently deleted after 30 days.';
+      'This action is immediate and irreversible. Your account, profile, credentials, content, and tokens are deleted. Only pseudonymized shard/attendance records (5 years) and restricted report evidence (2 years; CSAM per law) are kept. There is no recovery window.';
 
   @override
   String get profileDeleteExplanation =>
-      'When you delete your account, your data will be anonymized. Your messages and group ranking contributions will remain but will not be linked to you. You can recover your account within 30 days.';
+      'Deleting your account immediately removes your profile, credentials, content, friendships, memberships, and tokens. Only pseudonymized shard/attendance records (5 years) and restricted report evidence (2 years; CSAM per law) are kept. There is no recovery window.';
 
   @override
-  String get profileDeleteModeTitle =>
-      'How do you want to delete your account?';
-
-  @override
-  String get profileDeleteGraceLabel => 'Delete in 30 days';
-
-  @override
-  String get profileDeleteGraceBody =>
-      'Schedule deletion. You can recover your account by signing in within 30 days; it is fully erased when the window ends.';
-
-  @override
-  String get profileDeleteNowLabel => 'Delete now';
+  String get profileDeleteNowLabel => 'Delete my account permanently';
 
   @override
   String get profileDeleteNowBody =>
-      'Immediate, irreversible deletion: your profile, credentials, and associated data are erased. It cannot be undone.';
+      'Your profile, credentials, content, and tokens are deleted. Only pseudonymized shard/attendance records (5 years) and restricted report evidence (2 years; CSAM per law) remain. This cannot be undone.';
 
   @override
-  String get profileDeleteNowQuestion => 'Delete now and erase everything?';
+  String get profileDeleteNowQuestion => 'Delete your account permanently?';
 
   @override
   String get profileExportData => 'Export my data';
@@ -876,20 +865,21 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get profileExportBody =>
-      'Download a copy of your profile, friendships, groups, events, shards, and app data.';
+      'Save a copy of your profile, friendships, groups, events, shards, received messages (ciphertext), minigame answers, device tokens, and reports.';
 
   @override
   String get profileExportChatNote =>
-      'Chat is end-to-end encrypted: the server can only export ciphertext. Readable history lives only on this device.';
+      'Chat is end-to-end encrypted: the server can only export ciphertext. E2EE keys and moderation evidence are not exported; the document lists its exclusions and the retention matrix.';
 
   @override
-  String get profileExportCta => 'Export';
+  String get profileExportCta => 'Generate file';
 
   @override
   String get profileExportCopy => 'Copy to clipboard';
 
   @override
-  String get profileExportSuccess => 'Export ready. Copied to clipboard.';
+  String get profileExportSuccess =>
+      'Export saved on this device and copied to the clipboard.';
 
   @override
   String get profileExportError => 'Export failed. Please try again.';
@@ -2950,4 +2940,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get legalOpenOnline => 'View online';
+
+  @override
+  String get authDobRequired => 'Date of birth is required.';
+
+  @override
+  String get authDobInvalid => 'Date of birth is not valid.';
+
+  @override
+  String get profileExportSaved => 'Copy saved in the app storage:';
 }

@@ -1625,49 +1625,31 @@ abstract class AppLocalizations {
   /// Delete-account confirmation dialog body
   ///
   /// In es, this message translates to:
-  /// **'Esta acción no se puede deshacer. Tus datos serán anonimizados y tu cuenta será eliminada permanentemente después de 30 días.'**
+  /// **'Esta acción es inmediata e irreversible. Se eliminan tu cuenta, perfil, credenciales, contenido y tokens. Solo se conservan los registros pseudonimizados de shards y asistencia (5 años) y la evidencia restringida de reportes (2 años; CSAM según ley). No hay periodo de recuperación.'**
   String get profileDeleteBody;
 
   /// Explanation of what happens when the account is deleted
   ///
   /// In es, this message translates to:
-  /// **'Al eliminar tu cuenta, tus datos serán anonimizados. Tus mensajes y contribuciones al ranking de grupos se mantendrán pero no serán vinculados a ti. Podrás recuperar tu cuenta dentro de 30 días.'**
+  /// **'Al eliminar tu cuenta se borran de inmediato tu perfil, credenciales, contenido, amistades, membresías y tokens. Se conservan únicamente los registros pseudonimizados de shards/asistencia (5 años) y la evidencia restringida de reportes (2 años; CSAM según ley). No existe una ventana de recuperación.'**
   String get profileDeleteExplanation;
-
-  /// Heading offering the two deletion modes
-  ///
-  /// In es, this message translates to:
-  /// **'Cómo quieres eliminar tu cuenta'**
-  String get profileDeleteModeTitle;
-
-  /// Scheduled deletion (grace window) button label
-  ///
-  /// In es, this message translates to:
-  /// **'Eliminar en 30 días'**
-  String get profileDeleteGraceLabel;
-
-  /// Scheduled deletion explanation
-  ///
-  /// In es, this message translates to:
-  /// **'Programa la eliminación. Podrás recuperar tu cuenta iniciando sesión dentro de 30 días; al vencer el plazo se borra por completo.'**
-  String get profileDeleteGraceBody;
 
   /// Immediate erasure button label
   ///
   /// In es, this message translates to:
-  /// **'Eliminar ahora'**
+  /// **'Eliminar mi cuenta definitivamente'**
   String get profileDeleteNowLabel;
 
   /// Immediate erasure explanation
   ///
   /// In es, this message translates to:
-  /// **'Eliminación inmediata e irreversible: se borran tu perfil, tus credenciales y los datos asociados. No se puede deshacer.'**
+  /// **'Se borran tu perfil, credenciales, contenido y tokens. Solo quedan registros pseudonimizados de shards/asistencia (5 años) y evidencia restringida de reportes (2 años; CSAM según ley). No se puede deshacer.'**
   String get profileDeleteNowBody;
 
   /// Immediate erasure confirmation dialog title
   ///
   /// In es, this message translates to:
-  /// **'¿Eliminar ahora y borrar todo?'**
+  /// **'¿Eliminar tu cuenta definitivamente?'**
   String get profileDeleteNowQuestion;
 
   /// Settings row to export the user's data
@@ -1685,19 +1667,19 @@ abstract class AppLocalizations {
   /// Export screen explanation
   ///
   /// In es, this message translates to:
-  /// **'Descarga una copia de tu perfil, amistades, grupos, eventos, shards y datos de la app.'**
+  /// **'Guarda una copia de tu perfil, amistades, grupos, eventos, shards, mensajes recibidos (texto cifrado), respuestas de minijuegos, tokens de dispositivo y reportes.'**
   String get profileExportBody;
 
   /// E2EE caveat on the export screen
   ///
   /// In es, this message translates to:
-  /// **'El chat está cifrado de extremo a extremo: el servidor solo puede exportar texto cifrado. El historial legible vive solo en este dispositivo.'**
+  /// **'El chat está cifrado de extremo a extremo: el servidor solo puede exportar texto cifrado. Las llaves E2EE y la evidencia de moderación no se exportan; el documento incluye la lista de exclusiones y la matriz de retención.'**
   String get profileExportChatNote;
 
   /// Export action button
   ///
   /// In es, this message translates to:
-  /// **'Exportar'**
+  /// **'Generar archivo'**
   String get profileExportCta;
 
   /// Copy export JSON to clipboard
@@ -1709,7 +1691,7 @@ abstract class AppLocalizations {
   /// Export success message
   ///
   /// In es, this message translates to:
-  /// **'Exportación lista. Se copió al portapapeles.'**
+  /// **'Exportación guardada en el dispositivo y copiada al portapapeles.'**
   String get profileExportSuccess;
 
   /// Export failure message
@@ -5407,6 +5389,24 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'Ver en el navegador'**
   String get legalOpenOnline;
+
+  /// Q17: missing DOB blocked before create_my_profile
+  ///
+  /// In es, this message translates to:
+  /// **'La fecha de nacimiento es obligatoria.'**
+  String get authDobRequired;
+
+  /// Q17: unparsable DOB blocked before create_my_profile
+  ///
+  /// In es, this message translates to:
+  /// **'La fecha de nacimiento no es válida.'**
+  String get authDobInvalid;
+
+  /// SEC-050: export file path shown to the user
+  ///
+  /// In es, this message translates to:
+  /// **'Copia guardada en el almacenamiento de la app:'**
+  String get profileExportSaved;
 }
 
 class _AppLocalizationsDelegate

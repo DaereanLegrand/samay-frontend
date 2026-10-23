@@ -6,6 +6,7 @@ import 'package:samay/core/design_tokens/app_typography.dart';
 import 'package:samay/core/providers/auth_provider.dart';
 import 'package:samay/core/router/route_paths.dart';
 import 'package:samay/core/utils/input_sanitizer.dart';
+import 'package:samay/features/auth/logic/age_policy.dart';
 import 'package:samay/features/auth/logic/username_policy.dart';
 import 'package:samay/features/auth/providers/auth_form_errors.dart';
 import 'package:samay/l10n/app_localizations.dart';
@@ -50,10 +51,26 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
   }
 
   Future<void> _save() async {
+    final l10n = AppLocalizations.of(context);
     final String username = InputSanitizer.sanitizeUsername(
       _usernameController.text,
     );
     final errors = ref.read(signupErrorsProvider.notifier)..clear();
+
+    // Q17: never call create_my_profile without an adult DOB. The server
+    // rejects it too; this keeps a stale/deep-linked route from producing a
+    // raw server error in the field.
+    final dobError = signupDobError(widget.dateOfBirth);
+    if (dobError != null) {
+      errors.setServerError(
+        dobError == 'underage'
+            ? l10n.authUnderageMessage
+            : dobError == 'invalid'
+                ? l10n.authDobInvalid
+                : l10n.authDobRequired,
+      );
+      return;
+    }
 
     // Specific, multiple field errors from the username requirements — the
     // request is never sent while any rule is violated.

@@ -1128,35 +1128,23 @@
   "@profileDeleteQuestion": {
     "description": "Delete-account confirmation dialog title"
   },
-  "profileDeleteBody": "This action cannot be undone. Your data will be anonymized and your account will be permanently deleted after 30 days.",
+  "profileDeleteBody": "This action is immediate and irreversible. Your account, profile, credentials, content, and tokens are deleted. Only pseudonymized shard/attendance records (5 years) and restricted report evidence (2 years; CSAM per law) are kept. There is no recovery window.",
   "@profileDeleteBody": {
     "description": "Delete-account confirmation dialog body"
   },
-  "profileDeleteExplanation": "When you delete your account, your data will be anonymized. Your messages and group ranking contributions will remain but will not be linked to you. You can recover your account within 30 days.",
+  "profileDeleteExplanation": "Deleting your account immediately removes your profile, credentials, content, friendships, memberships, and tokens. Only pseudonymized shard/attendance records (5 years) and restricted report evidence (2 years; CSAM per law) are kept. There is no recovery window.",
   "@profileDeleteExplanation": {
     "description": "Explanation of what happens when the account is deleted"
   },
-  "profileDeleteModeTitle": "How do you want to delete your account?",
-  "@profileDeleteModeTitle": {
-    "description": "Heading offering the two deletion modes"
-  },
-  "profileDeleteGraceLabel": "Delete in 30 days",
-  "@profileDeleteGraceLabel": {
-    "description": "Scheduled deletion (grace window) button label"
-  },
-  "profileDeleteGraceBody": "Schedule deletion. You can recover your account by signing in within 30 days; it is fully erased when the window ends.",
-  "@profileDeleteGraceBody": {
-    "description": "Scheduled deletion explanation"
-  },
-  "profileDeleteNowLabel": "Delete now",
+  "profileDeleteNowLabel": "Delete my account permanently",
   "@profileDeleteNowLabel": {
     "description": "Immediate erasure button label"
   },
-  "profileDeleteNowBody": "Immediate, irreversible deletion: your profile, credentials, and associated data are erased. It cannot be undone.",
+  "profileDeleteNowBody": "Your profile, credentials, content, and tokens are deleted. Only pseudonymized shard/attendance records (5 years) and restricted report evidence (2 years; CSAM per law) remain. This cannot be undone.",
   "@profileDeleteNowBody": {
     "description": "Immediate erasure explanation"
   },
-  "profileDeleteNowQuestion": "Delete now and erase everything?",
+  "profileDeleteNowQuestion": "Delete your account permanently?",
   "@profileDeleteNowQuestion": {
     "description": "Immediate erasure confirmation dialog title"
   },
@@ -1168,15 +1156,15 @@
   "@profileExportTitle": {
     "description": "Export screen app bar title"
   },
-  "profileExportBody": "Download a copy of your profile, friendships, groups, events, shards, and app data.",
+  "profileExportBody": "Save a copy of your profile, friendships, groups, events, shards, received messages (ciphertext), minigame answers, device tokens, and reports.",
   "@profileExportBody": {
     "description": "Export screen explanation"
   },
-  "profileExportChatNote": "Chat is end-to-end encrypted: the server can only export ciphertext. Readable history lives only on this device.",
+  "profileExportChatNote": "Chat is end-to-end encrypted: the server can only export ciphertext. E2EE keys and moderation evidence are not exported; the document lists its exclusions and the retention matrix.",
   "@profileExportChatNote": {
     "description": "E2EE caveat on the export screen"
   },
-  "profileExportCta": "Export",
+  "profileExportCta": "Generate file",
   "@profileExportCta": {
     "description": "Export action button"
   },
@@ -1184,7 +1172,7 @@
   "@profileExportCopy": {
     "description": "Copy export JSON to clipboard"
   },
-  "profileExportSuccess": "Export ready. Copied to clipboard.",
+  "profileExportSuccess": "Export saved on this device and copied to the clipboard.",
   "@profileExportSuccess": {
     "description": "Export success message"
   },
@@ -2823,8 +2811,12 @@
   "@minigamesAnswerWaitingReactions": {
     "description": "Shown to the subject after submitting: how many of the other participants have reacted so far",
     "placeholders": {
-      "reacted": { "type": "int" },
-      "required": { "type": "int" }
+      "reacted": {
+        "type": "int"
+      },
+      "required": {
+        "type": "int"
+      }
     }
   },
   "minigamesKeyRequesting": "Waiting for another participant to connect to decrypt…",
@@ -2883,8 +2875,12 @@
   "@minigamesAsyncProgress": {
     "description": "Per-player async progress",
     "placeholders": {
-      "done": { "type": "int" },
-      "target": { "type": "int" }
+      "done": {
+        "type": "int"
+      },
+      "target": {
+        "type": "int"
+      }
     }
   },
   "minigamesAsyncAvailable": "Rounds to react",
@@ -2895,7 +2891,9 @@
   "@minigamesAsyncTimerEnds": {
     "description": "Shows the async settable deadline",
     "placeholders": {
-      "date": { "type": "String" }
+      "date": {
+        "type": "String"
+      }
     }
   },
   "minigamesAnswerPasarLine": "you can skip if you'd rather not answer",
@@ -2960,8 +2958,12 @@
   "@minigamesRoundCounter": {
     "description": "Play screen round counter: the current turn out of the total-turn target (201_minigame_voting)",
     "placeholders": {
-      "current": { "type": "int" },
-      "total": { "type": "int" }
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
     }
   },
   "minigamesAnonymousPlayer": "Player",
@@ -2972,14 +2974,18 @@
   "@minigamesPrizeAmount": {
     "description": "Leaderboard prize per ranked winner (201_minigame_voting)",
     "placeholders": {
-      "amount": { "type": "int" }
+      "amount": {
+        "type": "int"
+      }
     }
   },
   "minigamesPointsAmount": "{count} points",
   "@minigamesPointsAmount": {
     "description": "Leaderboard score label per ranked player",
     "placeholders": {
-      "count": { "type": "int" }
+      "count": {
+        "type": "int"
+      }
     }
   },
   "minigamesAnswersLoadError": "Oops, we couldn't load the match answers. Try again later.",
@@ -3390,37 +3396,79 @@
     "description": "Partida lobby: error when a non-creator tries to start"
   },
   "minigamesWaitingReady": "Waiting for {names} to tap Ready",
-  "@minigamesWaitingReady": {"description": "Lobby: host's Start is blocked until every other player is ready (2+ names)", "placeholders": {"names": {"type": "String"}}},
+  "@minigamesWaitingReady": {
+    "description": "Lobby: host's Start is blocked until every other player is ready (2+ names)",
+    "placeholders": {
+      "names": {
+        "type": "String"
+      }
+    }
+  },
   "minigamesWaitingReadyOne": "Waiting for {name} to tap Ready",
-  "@minigamesWaitingReadyOne": {"description": "Lobby: host's Start is blocked until every other player is ready (one name)", "placeholders": {"name": {"type": "String"}}},
+  "@minigamesWaitingReadyOne": {
+    "description": "Lobby: host's Start is blocked until every other player is ready (one name)",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "minigamesRulesTitle": "How to play",
-  "@minigamesRulesTitle": {"description": "Rules sheet heading, shared by every game"},
+  "@minigamesRulesTitle": {
+    "description": "Rules sheet heading, shared by every game"
+  },
   "minigamesRulesAction": "How to play",
-  "@minigamesRulesAction": {"description": "Play-screen action that opens the rules sheet"},
+  "@minigamesRulesAction": {
+    "description": "Play-screen action that opens the rules sheet"
+  },
   "truthDareRule1": "Each round belongs to one player: they pick Truth or Dare.",
-  "@truthDareRule1": {"description": "Rules step for the truthDare sheet"},
+  "@truthDareRule1": {
+    "description": "Rules step for the truthDare sheet"
+  },
   "truthDareRule2": "The app draws a random question or dare.",
-  "@truthDareRule2": {"description": "Rules step for the truthDare sheet"},
+  "@truthDareRule2": {
+    "description": "Rules step for the truthDare sheet"
+  },
   "truthDareRule3": "Answer it or do it, then send your reply to the table.",
-  "@truthDareRule3": {"description": "Rules step for the truthDare sheet"},
+  "@truthDareRule3": {
+    "description": "Rules step for the truthDare sheet"
+  },
   "truthDareRule4": "The others react and the turn moves on.",
-  "@truthDareRule4": {"description": "Rules step for the truthDare sheet"},
+  "@truthDareRule4": {
+    "description": "Rules step for the truthDare sheet"
+  },
   "bottleRule1": "The table is split into slices — one per player.",
-  "@bottleRule1": {"description": "Rules step for the bottle sheet"},
+  "@bottleRule1": {
+    "description": "Rules step for the bottle sheet"
+  },
   "bottleRule2": "Tap Spin, then tap Stop whenever you like.",
-  "@bottleRule2": {"description": "Rules step for the bottle sheet"},
+  "@bottleRule2": {
+    "description": "Rules step for the bottle sheet"
+  },
   "bottleRule3": "The bottle slows to a halt: the slice it points at is the pick.",
-  "@bottleRule3": {"description": "Rules step for the bottle sheet"},
+  "@bottleRule3": {
+    "description": "Rules step for the bottle sheet"
+  },
   "bottleRule4": "That player does the dare that appears, then you spin again.",
-  "@bottleRule4": {"description": "Rules step for the bottle sheet"},
+  "@bottleRule4": {
+    "description": "Rules step for the bottle sheet"
+  },
   "twoLiesRule1": "Each round belongs to one player: they write 3 statements about themselves.",
-  "@twoLiesRule1": {"description": "Rules step for the twoLies sheet"},
+  "@twoLiesRule1": {
+    "description": "Rules step for the twoLies sheet"
+  },
   "twoLiesRule2": "Two are lies and one is true. Nobody else sees them while they type.",
-  "@twoLiesRule2": {"description": "Rules step for the twoLies sheet"},
+  "@twoLiesRule2": {
+    "description": "Rules step for the twoLies sheet"
+  },
   "twoLiesRule3": "Everyone else votes for the one they think is true.",
-  "@twoLiesRule3": {"description": "Rules step for the twoLies sheet"},
+  "@twoLiesRule3": {
+    "description": "Rules step for the twoLies sheet"
+  },
   "twoLiesRule4": "The answer is revealed, points are shared out and the turn moves on.",
-  "@twoLiesRule4": {"description": "Rules step for the twoLies sheet"},
+  "@twoLiesRule4": {
+    "description": "Rules step for the twoLies sheet"
+  },
   "minigamesWaitingForPlayers": "Waiting for players...",
   "@minigamesWaitingForPlayers": {
     "description": "Partida lobby: shown before the creator starts the game"
@@ -3572,7 +3620,9 @@
   "@minigamesTwoLiesStatementNumber": {
     "description": "Header for each statement input",
     "placeholders": {
-      "number": { "type": "int" }
+      "number": {
+        "type": "int"
+      }
     }
   },
   "minigamesTwoLiesMarkTruthPrompt": "Mark which one is the truth",
@@ -3607,15 +3657,21 @@
   "@minigamesTwoLiesWaitingSubject": {
     "description": "Waiting message shown to non-subjects while subject is writing",
     "placeholders": {
-      "name": { "type": "String" }
+      "name": {
+        "type": "String"
+      }
     }
   },
   "minigamesTwoLiesWaitingVotes": "Waiting for everyone to vote... ({voted}/{total})",
   "@minigamesTwoLiesWaitingVotes": {
     "description": "Tally shown to the subject after submitting",
     "placeholders": {
-      "voted": { "type": "int" },
-      "total": { "type": "int" }
+      "voted": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
     }
   },
   "minigamesTwoLiesFillAllError": "You must complete all 3 statements",
@@ -3895,5 +3951,17 @@
   "legalOpenOnline": "View online",
   "@legalOpenOnline": {
     "description": "Legal screen action: open the policy in the browser"
+  },
+  "authDobRequired": "Date of birth is required.",
+  "@authDobRequired": {
+    "description": "Q17: missing DOB blocked before create_my_profile"
+  },
+  "authDobInvalid": "Date of birth is not valid.",
+  "@authDobInvalid": {
+    "description": "Q17: unparsable DOB blocked before create_my_profile"
+  },
+  "profileExportSaved": "Copy saved in the app storage:",
+  "@profileExportSaved": {
+    "description": "SEC-050: export file path shown to the user"
   }
 }

@@ -96,10 +96,11 @@ dependencies:
   flutter_local_notifications: ^22.3.2
 
 dev_dependencies:
-  # Testing is backend-only (directive 2026-08-31): Go `*_test.go`, pgTAP
-  # supabase/tests/schema_test.sql, curl opt-tests test/opt-*.sh. The Flutter
-  # test trees (test/*.dart, integration_test/) were deleted, so flutter_test
-  # and integration_test are gone.
+  # Q16 (owner decision): the no-Dart-tests rule is rescinded for critical
+  # flows. Pure logic tests live in test/*.dart; the backend remains the
+  # integration authority (Go, pgTAP, curl opt-tests).
+  flutter_test:
+    sdk: flutter
   flutter_lints: ^6.0.0
   build_runner: ^2.15.1
   freezed: ^4.0.0-dev.3

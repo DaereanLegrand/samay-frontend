@@ -99,7 +99,7 @@ abstract class E2eeKeyStore {
   Future<void> setOwnerUid(String uid);
 
   /// Wipes ALL key material (identity, SPKs, OPKs) — called by
-  /// `deleteAccount()` and by the ownership guard on account switch
+  /// `deleteAccountNow()` and by the ownership guard on account switch
   /// (E2EE §7.6 — the identity survives a plain sign-out).
   Future<void> wipeAll();
 }
@@ -128,7 +128,7 @@ abstract class E2eeSessionStore {
   Future<void> sweepExpiredSessions({int maxAgeDays = 90});
 
   /// Wipes ALL persisted sessions for this account — called by
-  /// `deleteAccount()` / `signOut()` together with `E2eeKeyStore.wipeAll`
+  /// `deleteAccountNow()` / `signOut()` together with `E2eeKeyStore.wipeAll`
   /// (E2EE §7.6: key material must not survive logout/account deletion).
   Future<void> wipeAll();
 }

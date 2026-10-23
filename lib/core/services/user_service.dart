@@ -24,21 +24,20 @@ class UserService {
   Future<Map<String, dynamic>?> getUserProfile(String userId) async {
     final user = auth.currentUser;
     final isOwn = user != null && user.id == userId;
-    final res = await (isOwn
-        ? client
-              .from('users')
-              .select(
-                'id, username, avatar_url, bio, personal_shards, preshards, subscription_tier',
-              )
-              .eq('id', userId)
-              .maybeSingle()
-        : client
-              .from('user_search_view')
-              .select('id, username, avatar_url, bio')
-              .eq('id', userId)
-              .maybeSingle());
-    if (res == null) return null;
-    return Map<String, dynamic>.from(res);
+    if (isOwn) {
+      final res = await client
+          .from('users')
+          .select(
+            'id, username, avatar_url, bio, personal_shards, preshards, subscription_tier',
+          )
+          .eq('id', userId)
+          .maybeSingle();
+      if (res == null) return null;
+      return Map<String, dynamic>.from(res);
+    }
+    final rows = await getUserProfiles([userId]);
+    if (rows.isEmpty) return null;
+    return rows.first;
   }
 
   /// The profiles of [userIds] in ONE `user_search_view` read (id/username/
@@ -48,11 +47,17 @@ class UserService {
     List<String> userIds,
   ) async {
     if (userIds.isEmpty) return const [];
-    final res = await client
-        .from('user_search_view')
-        .select('id, username, avatar_url, bio')
-        .inFilter('id', userIds);
-    return [for (final r in res) Map<String, dynamic>.from(r)];
+    // Q8: direct client SELECT on user_search_view is revoked. This RPC keeps
+    // the same projection (bio/avatar NULL for a private non-friend) without
+    // reopening directory enumeration.
+    final res = await client.rpc(
+      'get_public_profiles',
+      params: {'p_ids': userIds},
+    );
+    return [
+      for (final r in (res as List))
+        Map<String, dynamic>.from(r as Map),
+    ];
   }
 
   /// Persists the public avatar URL via the set_avatar_url RPC (clients hold

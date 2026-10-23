@@ -466,7 +466,7 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
     }
   }
 
-  Future<void> createProfile(String username, {String? dateOfBirth}) async {
+  Future<void> createProfile(String username, {required String dateOfBirth}) async {
     state = const AsyncLoading<AuthState>().copyWithPrevious(state);
     try {
       await resilient(
@@ -513,17 +513,7 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
     state = const AsyncData(AuthState());
   }
 
-  /// Mode A — schedule deletion (30-day grace, restorable).
-  Future<void> deleteAccount() async {
-    await _unregisterPush();
-    await _service.requestAccountDeletion();
-    await _service.signOut();
-    await _wipeE2eeMaterial();
-    await _purgeLocalData();
-    state = const AsyncData(AuthState());
-  }
-
-  /// Mode B — erase immediately and irreversibly.
+  /// Q1 — erase immediately and irreversibly. There is no restore path.
   Future<void> deleteAccountNow() async {
     await _unregisterPush();
     await _service.purgeAccountNow();

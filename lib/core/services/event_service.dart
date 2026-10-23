@@ -114,15 +114,19 @@ class EventService {
   Future<List<Map<String, dynamic>>> getEventHosts(String eventId) async {
     final res = await client
         .from('event_hosts')
-        // Join through the security-barrier user_search_view — the
-        // raw `users` join is own-row-only under RLS (staff' rows
-        // silently vanished).
-        .select(
-          'id, event_id, user_id, role, preshards_contributed, added_at, '
-          'users:user_search_view!inner(username)',
-        )
+        // Q8: direct user_search_view SELECT is revoked; resolve names via
+        // get_public_profiles (private non-friends still show a username).
+        .select('id, event_id, user_id, role, preshards_contributed, added_at')
         .eq('event_id', eventId);
-    return res.map((e) => Map<String, dynamic>.from(e)).toList();
+    final rows = res.map((e) => Map<String, dynamic>.from(e)).toList();
+    final byId = await _profilesByIds([
+      for (final row in rows)
+        if (row['user_id'] is String) row['user_id'] as String,
+    ]);
+    for (final row in rows) {
+      row['users'] = byId[row['user_id']];
+    }
+    return rows;
   }
 
   /// The current user's invite row for [eventId] (null when not invited).
@@ -395,15 +399,29 @@ class EventService {
   Future<List<Map<String, dynamic>>> getEventGuests(String eventId) async {
     final res = await client
         .from('event_invites')
-        .select(
-          'id, event_id, user_id, invited_by_user_id, status, invited_at, '
-          // `user_id` is the invitee — disambiguate from the two FKs to users
-          // (user_id + invited_by_user_id) by naming the relationship.
-          'users:user_search_view!event_invites_user_id_fkey(username)',
-        )
+        .select('id, event_id, user_id, invited_by_user_id, status, invited_at')
         .eq('event_id', eventId)
         .order('invited_at', ascending: true);
-    return res.map((e) => Map<String, dynamic>.from(e)).toList();
+    final rows = res.map((e) => Map<String, dynamic>.from(e)).toList();
+    final byId = await _profilesByIds([
+      for (final row in rows)
+        if (row['user_id'] is String) row['user_id'] as String,
+    ]);
+    for (final row in rows) {
+      row['users'] = byId[row['user_id']];
+    }
+    return rows;
+  }
+
+  Future<Map<String, Map<String, dynamic>>> _profilesByIds(
+    List<String> ids,
+  ) async {
+    if (ids.isEmpty) return const {};
+    final res = await client.rpc('get_public_profiles', params: {'p_ids': ids});
+    return {
+      for (final r in (res as List))
+        (r as Map)['id'] as String: Map<String, dynamic>.from(r),
+    };
   }
 
   // Stage-3 host/staff management (060_events/06_staff.sql) — the HOST

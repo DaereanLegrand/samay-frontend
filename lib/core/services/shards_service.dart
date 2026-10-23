@@ -78,19 +78,33 @@ class ShardsService {
   ) async {
     final res = await client
         .from('group_shard_contributions')
-        // Join through the security-barrier user_search_view — the
-        // raw `users` join is own-row-only under RLS, so contributor rows of
-        // co-members silently vanished from the leaderboard/contributors.
-        // `avatar_url` rides along (20260815000001) so the contributors
-        // section renders the co-member's photo.
-        .select(
-          'id, user_id, shards_contributed, '
-          'users:user_search_view!inner(username, avatar_url)',
-        )
+        // Q8: resolve contributor profiles through get_public_profiles (the
+        // direct user_search_view SELECT is revoked).
+        .select('id, user_id, shards_contributed')
         .eq('group_id', groupId)
         .gt('expires_at', DateTime.now().toIso8601String())
         .order('shards_contributed', ascending: false);
-    return res.map((e) => Map<String, dynamic>.from(e)).toList();
+    final rows = res.map((e) => Map<String, dynamic>.from(e)).toList();
+    final ids = [
+      for (final row in rows)
+        if (row['user_id'] is String) row['user_id'] as String,
+    ];
+    final byId = await _profilesByIds(ids);
+    for (final row in rows) {
+      row['users'] = byId[row['user_id']];
+    }
+    return rows;
+  }
+
+  Future<Map<String, Map<String, dynamic>>> _profilesByIds(
+    List<String> ids,
+  ) async {
+    if (ids.isEmpty) return const {};
+    final res = await client.rpc('get_public_profiles', params: {'p_ids': ids});
+    return {
+      for (final r in (res as List))
+        (r as Map)['id'] as String: Map<String, dynamic>.from(r),
+    };
   }
 
   /// The current user's shard movement history (SLED spec — `sl_read_own`
