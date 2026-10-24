@@ -4,129 +4,135 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:samay/core/logging/app_logger.dart';
+import 'package:samay/core/providers/auth_provider.dart';
 import 'package:samay/core/providers/service_providers.dart';
 import 'package:samay/core/router/app_router.dart';
 import 'package:samay/core/router/route_paths.dart';
 import 'package:samay/l10n/app_localizations.dart';
 
-/// Samay deep-link handling (EINV — `samay://event/{invite_token}`, MVP §6.3).
+/// Q9 canonical link host. The API host is never used for share links.
+const String kSamayLinkHost = 'samay.qallariy.lat';
+
+enum InviteLinkKind { event, group, profile }
+
+/// A parsed bearer link (`/e/`, `/g/`, `/u/`). The token is opaque.
+class InviteLink {
+  const InviteLink({required this.kind, required this.token});
+
+  final InviteLinkKind kind;
+  final String token;
+
+  String get kindSegment => switch (kind) {
+    InviteLinkKind.event => 'e',
+    InviteLinkKind.group => 'g',
+    InviteLinkKind.profile => 'u',
+  };
+}
+
+/// Samay link handling (Q9).
 ///
-/// Two-layer parsing:
-/// * [parseDeepLink] is the **scheme gate** — "does the app own this link?"
-///   (`samay://` any shape, plus the https universal-link fallback restricted
-///   to event-shaped paths). Future link types (profiles, groups…) extend
-///   here without touching [handleDeepLink].
-/// * [extractEventToken] is the **event-shape gate** — "is this an event
-///   invite link?" (`event/<token>` path), returning the token or null.
+/// Accepted shapes:
+///   `https://samay.qallariy.lat/e/<token>`   event invite
+///   `https://samay.qallariy.lat/g/<token>`   group invite
+///   `https://samay.qallariy.lat/u/<token>`   profile friend link
+///   `samay://e|g|u/<token>`                  in-app/dev scheme
+///   `samay://event/<token>`                  legacy event scheme
 ///
-/// [handleDeepLink] composes both, resolves the token to an event id through
-/// an injectable callback, and navigates with `router.go` to
-/// `RoutePaths.eventDetail(eventId)` — the single `/event/:eventId` route
-/// then renders the detail. On failure a snackbar is shown through the
-/// router's navigator context (localized via [AppLocalizations], falling back
-/// to [failureMessage] when provided — injectable for tests).
-final class DeepLinkHandler {
+/// `http` is rejected, as is every host other than [kSamayLinkHost]. Parsing
+/// never follows a redirect/`next` parameter, so there is no open redirect.
+class DeepLinkHandler {
   const DeepLinkHandler();
 
-  /// Returns the parsed URI when [raw] is a Samay deep link (scheme gate);
-  /// null for everything else.
-  Uri? parseDeepLink(String raw) {
+  InviteLink? parseInviteLink(String raw) {
     final uri = Uri.tryParse(raw.trim());
-    if (uri == null || uri.scheme.isEmpty) return null;
-    if (uri.scheme == 'samay') return uri;
-    if (uri.scheme == 'https' || uri.scheme == 'http') {
-      return extractEventToken(uri) == null ? null : uri;
+    if (uri == null || uri.scheme.isEmpty || uri.userInfo.isNotEmpty) {
+      return null;
     }
-    return null;
-  }
+    final segments = List<String>.of(uri.pathSegments)
+      ..removeWhere((s) => s.isEmpty);
 
-  /// Extracts the invite token from an event deep link; null for any other
-  /// shape. Trailing slashes are tolerated (common when links are copied).
-  String? extractEventToken(Uri uri) {
-    final segments = List<String>.of(uri.pathSegments);
-    while (segments.isNotEmpty && segments.last.isEmpty) {
-      segments.removeLast();
-    }
     if (uri.scheme == 'samay') {
-      if (uri.host != 'event' || segments.length != 1) return null;
-      return segments.single.isEmpty ? null : segments.single;
+      if (uri.host == 'event' && segments.length == 1) {
+        return InviteLink(kind: InviteLinkKind.event, token: segments[0]);
+      }
+      final kind = _kindFromSegment(uri.host);
+      if (kind != null && segments.length == 1 && segments[0].isNotEmpty) {
+        return InviteLink(kind: kind, token: segments[0]);
+      }
+      return null;
     }
-    if (uri.scheme == 'https' || uri.scheme == 'http') {
-      if (segments.length != 2 || segments[0] != 'event') return null;
-      return segments[1].isEmpty ? null : segments[1];
+
+    // Only HTTPS on the canonical host. HTTP and unknown hosts are rejected.
+    if (uri.scheme != 'https' || uri.host.toLowerCase() != kSamayLinkHost) {
+      return null;
     }
-    return null;
+    if (segments.length != 2 || segments[1].isEmpty) return null;
+    final kind = _kindFromSegment(segments[0]);
+    if (kind == null) return null;
+    return InviteLink(kind: kind, token: segments[1]);
   }
 
-  /// Handles [raw]: parses it, resolves the invite token via
-  /// [resolveEventId], and navigates to the event detail route. Returns true
-  /// when navigation happened. Unknown tokens, non-Samay links, and resolver
-  /// failures return false (with a snackbar for the failure cases, using
-  /// [failureMessage] when provided, else the localized invalid-invite copy).
+  InviteLinkKind? _kindFromSegment(String segment) => switch (segment) {
+    'e' || 'event' => InviteLinkKind.event,
+    'g' || 'group' => InviteLinkKind.group,
+    'u' || 'user' || 'profile' => InviteLinkKind.profile,
+    _ => null,
+  };
+
+  /// Validates the token and opens the consent screen. No join happens here.
   Future<bool> handleDeepLink(
     String raw, {
     required GoRouter router,
-    required Future<String?> Function(String token) resolveEventId,
+    required bool isAuthenticated,
+    required Future<bool> Function(InviteLink link) resolveLink,
     String? failureMessage,
   }) async {
-    final uri = parseDeepLink(raw);
-    final token = uri == null ? null : extractEventToken(uri);
-    if (token == null) return false;
+    final link = parseInviteLink(raw);
+    if (link == null) return false;
 
-    String? eventId;
-    try {
-      eventId = await resolveEventId(token);
-    } catch (e, st) {
-      // The failure is surfaced to the user below; it is also logged so the
-      // token-resolution error is never silent.
-      AppLogger.instance.error('invite token resolution failed: $e', '$st');
-      eventId = null;
-    }
-    if (eventId == null) {
-      _showFailure(router, failureMessage);
+    // Authentication is mandatory: never render a preview to anon users.
+    if (!isAuthenticated) {
+      router.go(RoutePaths.login);
       return false;
     }
 
-    router.go(RoutePaths.eventDetail(eventId));
+    bool valid = false;
+    try {
+      valid = await resolveLink(link);
+    } catch (e, st) {
+      AppLogger.instance.error('invite link resolution failed: $e', '$st');
+      valid = false;
+    }
+    if (!valid) {
+      // Still open the consent screen: it renders the localized invalid/expired
+      // state for the token (replacing any engine-level "route not found").
+      _showFailure(router, failureMessage);
+      router.go(RoutePaths.inviteLink(link.kindSegment, link.token));
+      return false;
+    }
+
+    router.go(RoutePaths.inviteLink(link.kindSegment, link.token));
     return true;
   }
 
   void _showFailure(GoRouter router, String? failureMessage) {
-    // go_router 14.x keeps the root navigator key on the delegate (the
-    // `navigatorKey` constructor param is not exposed as a router getter).
-    // The navigator context can be absent (cold start, mocked routers in
-    // tests) — the failure is still reported through handleDeepLink's return
-    // value, so the snackbar degrades gracefully.
     try {
       final context = router.routerDelegate.navigatorKey.currentContext;
       if (context == null) return;
-      final message = failureMessage ??
-          AppLocalizations.of(context).routerInvalidInvite;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(message)));
+      final message =
+          failureMessage ?? AppLocalizations.of(context).routerInvalidInvite;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(message)));
     } catch (_) {
-      // No usable navigator context — nothing to attach the snackbar to.
+      // No navigator context — the false return is still authoritative.
     }
   }
 }
 
 /// Raw deep-link stream (String URIs) feeding [DeepLinkListener].
-///
-/// **Null until the app_links wiring lands** — `main.dart` overrides this
-/// provider with `AppLinks().uriLinkStream` (the package resolves transitively
-/// via supabase_flutter and is a registered native
-/// plugin on every platform). A controlled
-/// [StreamController] can override it. The seam keeps the handler and listener
-/// platform-free; `app_links` is only imported by `main.dart`.
 final deepLinkStreamProvider = Provider<Stream<String>?>((ref) => null);
 
-/// App-root subscription widget: forwards every raw link from
-/// [deepLinkStreamProvider] to [DeepLinkHandler]. Inert — a zero-size
-/// [SizedBox.shrink] — when the provider is null.
-///
-/// Mounted inside `SamayApp`'s `MaterialApp.router` `builder:` (below
-/// `Localizations`, so the localized failure snackbar resolves) — see
-/// `lib/app.dart`.
 class DeepLinkListener extends ConsumerStatefulWidget {
   const DeepLinkListener({super.key});
 
@@ -152,12 +158,16 @@ class _DeepLinkListenerState extends ConsumerState<DeepLinkListener> {
   Future<void> _handle(String raw) async {
     final router = ref.read(routerProvider);
     final service = ref.read(eventServiceProvider);
+    final auth = ref.read(authStateProvider).valueOrNull;
     await const DeepLinkHandler().handleDeepLink(
       raw,
       router: router,
+      isAuthenticated: auth?.authenticated ?? false,
       failureMessage: AppLocalizations.of(context).routerInvalidInvite,
-      resolveEventId: (token) async =>
-          (await service.getEventByInviteToken(token))?.id,
+      resolveLink: (link) async {
+        final resolved = await service.resolveShareLink(link.token);
+        return resolved != null;
+      },
     );
   }
 

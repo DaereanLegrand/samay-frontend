@@ -69,6 +69,7 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
   final _nameController = TextEditingController();
   final _descriptionController = TextEditingController();
   final _locationController = TextEditingController();
+  final _cityController = TextEditingController();
   final _poolController = TextEditingController();
   final _capController = TextEditingController();
   final _picker = ImagePicker();
@@ -127,6 +128,7 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
     _nameController.dispose();
     _descriptionController.dispose();
     _locationController.dispose();
+    _cityController.dispose();
     _poolController.dispose();
     _capController.dispose();
     super.dispose();
@@ -321,6 +323,7 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
           name: _nameController.text,
           description: _descriptionController.text,
           locationName: _locationController.text,
+          locationCity: _cityController.text,
           preshardsPool: _form.preshardsEnabled
               ? int.tryParse(_poolController.text) ?? 0
               : 0,
@@ -480,7 +483,12 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
             const SizedBox(height: AppSpacing.lg),
             VInput(
               controller: _locationController,
-              label: l10n.eventsLocationLabel,
+              label: l10n.eventsVenueLabel,
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            VInput(
+              controller: _cityController,
+              label: l10n.eventsCityLabel,
             ),
             const SizedBox(height: AppSpacing.sm),
             Row(

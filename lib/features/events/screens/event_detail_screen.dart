@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:samay/core/config/feature_flags.dart';
@@ -88,6 +89,76 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
   void dispose() {
     _unsubscribeRosterChannels();
     super.dispose();
+  }
+
+  Future<void> _openShareLink() async {
+    final l10n = AppLocalizations.of(context);
+    final service = ref.read(eventServiceProvider);
+    setState(() => _cancelling = true);
+    try {
+      final created = await service.createShareLink(
+        kind: 'event',
+        subjectId: widget.eventId,
+      );
+      final token = created['token'] as String?;
+      if (token == null || !mounted) return;
+      final url = 'https://samay.qallariy.lat/e/$token';
+      await showDialog<void>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          backgroundColor: AppColors.discoBlack,
+          title: Text(
+            l10n.eventsShareLink,
+            style: const TextStyle(color: AppColors.white),
+          ),
+          content: SelectableText(
+            url,
+            style: const TextStyle(color: AppColors.mutedStrong),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(dialogContext).pop();
+                _openShareLink();
+              },
+              child: Text(l10n.eventsShareLinkRotate),
+            ),
+            TextButton(
+              onPressed: () async {
+                await Clipboard.setData(ClipboardData(text: url));
+                if (!dialogContext.mounted) return;
+                Navigator.of(dialogContext).pop();
+                if (!mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text(l10n.eventsShareLinkCopied)),
+                );
+              },
+              child: Text(l10n.eventsShareLinkCopied),
+            ),
+            TextButton(
+              onPressed: () async {
+                await service.revokeShareLink('event', widget.eventId);
+                if (dialogContext.mounted) Navigator.of(dialogContext).pop();
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(l10n.eventsShareLinkRevoked)),
+                  );
+                }
+              },
+              child: Text(l10n.eventsShareLinkRevoke),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: Text(l10n.commonClose),
+            ),
+          ],
+        ),
+      );
+    } catch (e) {
+      if (mounted) showAppError(context, e);
+    } finally {
+      if (mounted) setState(() => _cancelling = false);
+    }
   }
 
   Future<void> _cancelEvent() async {
@@ -414,7 +485,13 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
             const SizedBox(height: AppSpacing.sm),
             _InfoRow(
               icon: Icons.place_outlined,
-              text: event.locationName ?? l10n.eventNoLocation,
+              text: event.viewerHasExactLocation
+                  ? (event.locationName ??
+                        event.locationCity ??
+                        l10n.eventNoLocation)
+                  : (event.locationCity ??
+                        event.locationName ??
+                        l10n.eventNoLocation),
             ),
             if (event.groupId != null) ...[
               const SizedBox(height: AppSpacing.sm),
@@ -454,6 +531,11 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
       ],
       if (_canEdit(uid, event.status, hostsAsync.valueOrNull)) ...[
         const SizedBox(height: AppSpacing.lg),
+        VButton.outlined(
+          label: l10n.eventsShareLink,
+          onPressed: _openShareLink,
+        ),
+        const SizedBox(height: AppSpacing.sm),
         VButton.dark(
           label: l10n.eventEditButton,
           onPressed: () => context.push(RoutePaths.eventEdit(widget.eventId)),

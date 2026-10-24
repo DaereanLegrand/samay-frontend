@@ -396,7 +396,7 @@ class _MyEventCard extends StatelessWidget {
                   const SizedBox(width: AppSpacing.xs),
                   Expanded(
                     child: Text(
-                      event.locationName ?? l10n.eventNoLocation,
+                      event.locationCity ?? event.locationName ?? l10n.eventNoLocation,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: AppTypography.bodySmall.copyWith(

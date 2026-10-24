@@ -35,6 +35,7 @@ class _EventEditScreenState extends ConsumerState<EventEditScreen> {
   final _nameController = TextEditingController();
   final _descriptionController = TextEditingController();
   final _locationController = TextEditingController();
+  final _cityController = TextEditingController();
   final _poolController = TextEditingController();
   final _capController = TextEditingController();
 
@@ -52,6 +53,7 @@ class _EventEditScreenState extends ConsumerState<EventEditScreen> {
     _nameController.dispose();
     _descriptionController.dispose();
     _locationController.dispose();
+    _cityController.dispose();
     _poolController.dispose();
     _capController.dispose();
     super.dispose();
@@ -63,6 +65,7 @@ class _EventEditScreenState extends ConsumerState<EventEditScreen> {
     _nameController.text = event.name;
     _descriptionController.text = event.description ?? '';
     _locationController.text = event.locationName ?? '';
+    _cityController.text = event.locationCity ?? '';
     _lat = event.locationLat;
     _lng = event.locationLng;
     final pool = event.preshardsPool;
@@ -128,10 +131,12 @@ class _EventEditScreenState extends ConsumerState<EventEditScreen> {
 
     final description = _descriptionController.text.trim();
     final location = _locationController.text.trim();
+    final city = _cityController.text.trim();
     final patch = <String, dynamic>{
       'name': name,
       'description': description.isEmpty ? null : description,
       'location_name': location.isEmpty ? null : location,
+      'location_city': city.isEmpty ? null : city,
       'starts_at': _startsAt.toIso8601String(),
       'ends_at': _endsAt.toIso8601String(),
     };
@@ -213,8 +218,13 @@ class _EventEditScreenState extends ConsumerState<EventEditScreen> {
           ),
           const SizedBox(height: AppSpacing.md),
           VInput(
-            label: l10n.eventsLocationLabel,
+            label: l10n.eventsVenueLabel,
             controller: _locationController,
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          VInput(
+            label: l10n.eventsCityLabel,
+            controller: _cityController,
           ),
           const SizedBox(height: AppSpacing.sm),
           Align(

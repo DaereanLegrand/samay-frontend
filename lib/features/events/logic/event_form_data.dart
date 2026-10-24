@@ -66,6 +66,7 @@ class EventFormData {
     required this.startsAt,
     required this.endsAt,
     this.locationName = '',
+    this.locationCity = '',
     this.locationLat,
     this.locationLng,
     this.visibility = EventVisibility.public,
@@ -88,6 +89,9 @@ class EventFormData {
   final DateTime startsAt;
   final DateTime endsAt;
   final String locationName;
+
+  /// Coarse city/neighborhood shown before acceptance (Q2).
+  final String locationCity;
 
   /// Optional map coordinates captured via the location picker. When set, the
   /// event participates in the server-side km discovery filter.
@@ -121,6 +125,7 @@ class EventFormData {
     DateTime? startsAt,
     DateTime? endsAt,
     String? locationName,
+    String? locationCity,
     Object? locationLat = _unset,
     Object? locationLng = _unset,
     EventVisibility? visibility,
@@ -139,6 +144,7 @@ class EventFormData {
       startsAt: startsAt ?? this.startsAt,
       endsAt: endsAt ?? this.endsAt,
       locationName: locationName ?? this.locationName,
+      locationCity: locationCity ?? this.locationCity,
       locationLat: identical(locationLat, _unset)
           ? this.locationLat
           : locationLat as double?,
@@ -174,6 +180,10 @@ class EventFormData {
       ),
       locationName: InputSanitizer.sanitize(
         locationName,
+        maxLength: locationMaxLength,
+      ),
+      locationCity: InputSanitizer.sanitize(
+        locationCity,
         maxLength: locationMaxLength,
       ),
     );
@@ -222,6 +232,7 @@ class EventFormData {
       'starts_at': startsAt.toUtc().toIso8601String(),
       'ends_at': endsAt.toUtc().toIso8601String(),
       'location_name': locationName.trim().isEmpty ? null : locationName.trim(),
+      'location_city': locationCity.trim().isEmpty ? null : locationCity.trim(),
       'location_lat': locationLat,
       'location_lng': locationLng,
       'group_id': groupScoped ? groupId : null,

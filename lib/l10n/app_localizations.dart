@@ -5677,6 +5677,120 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'Apelación de suspensión enviada.'**
   String get bannedAppealSubmitted;
+
+  /// No description provided for @eventsVenueLabel.
+  ///
+  /// In es, this message translates to:
+  /// **'Lugar exacto'**
+  String get eventsVenueLabel;
+
+  /// No description provided for @eventsCityLabel.
+  ///
+  /// In es, this message translates to:
+  /// **'Ciudad'**
+  String get eventsCityLabel;
+
+  /// No description provided for @eventsShareLink.
+  ///
+  /// In es, this message translates to:
+  /// **'Compartir enlace'**
+  String get eventsShareLink;
+
+  /// No description provided for @eventsShareLinkRotate.
+  ///
+  /// In es, this message translates to:
+  /// **'Rotar enlace'**
+  String get eventsShareLinkRotate;
+
+  /// No description provided for @eventsShareLinkRevoke.
+  ///
+  /// In es, this message translates to:
+  /// **'Revocar enlace'**
+  String get eventsShareLinkRevoke;
+
+  /// No description provided for @eventsShareLinkCopied.
+  ///
+  /// In es, this message translates to:
+  /// **'Enlace copiado'**
+  String get eventsShareLinkCopied;
+
+  /// No description provided for @eventsShareLinkCopiedBody.
+  ///
+  /// In es, this message translates to:
+  /// **'Comparte este enlace: {url}'**
+  String eventsShareLinkCopiedBody(String url);
+
+  /// No description provided for @eventsShareLinkRevoked.
+  ///
+  /// In es, this message translates to:
+  /// **'Enlace revocado'**
+  String get eventsShareLinkRevoked;
+
+  /// No description provided for @linkConsentTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Invitación'**
+  String get linkConsentTitle;
+
+  /// No description provided for @linkJoinEvent.
+  ///
+  /// In es, this message translates to:
+  /// **'Unirme al evento'**
+  String get linkJoinEvent;
+
+  /// No description provided for @linkRequestJoin.
+  ///
+  /// In es, this message translates to:
+  /// **'Solicitar unirme'**
+  String get linkRequestJoin;
+
+  /// No description provided for @linkJoinGroup.
+  ///
+  /// In es, this message translates to:
+  /// **'Unirme al grupo'**
+  String get linkJoinGroup;
+
+  /// No description provided for @linkAddFriend.
+  ///
+  /// In es, this message translates to:
+  /// **'Enviar solicitud'**
+  String get linkAddFriend;
+
+  /// No description provided for @linkRequestSent.
+  ///
+  /// In es, this message translates to:
+  /// **'Solicitud enviada'**
+  String get linkRequestSent;
+
+  /// No description provided for @linkEventJoined.
+  ///
+  /// In es, this message translates to:
+  /// **'Te uniste al evento'**
+  String get linkEventJoined;
+
+  /// No description provided for @linkInvalid.
+  ///
+  /// In es, this message translates to:
+  /// **'Enlace inválido o vencido'**
+  String get linkInvalid;
+
+  /// No description provided for @linkDistance.
+  ///
+  /// In es, this message translates to:
+  /// **'a {km} km'**
+  String linkDistance(String km);
+
+  /// No description provided for @linkAlreadyMember.
+  ///
+  /// In es, this message translates to:
+  /// **'Ya eres miembro'**
+  String get linkAlreadyMember;
+
+  /// No description provided for @linkOwnProfile.
+  ///
+  /// In es, this message translates to:
+  /// **'Este es tu perfil'**
+  String get linkOwnProfile;
 }
 
 class _AppLocalizationsDelegate

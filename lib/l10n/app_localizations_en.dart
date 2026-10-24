@@ -3086,4 +3086,65 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get bannedAppealSubmitted => 'Ban appeal submitted.';
+
+  @override
+  String get eventsVenueLabel => 'Exact venue';
+
+  @override
+  String get eventsCityLabel => 'City';
+
+  @override
+  String get eventsShareLink => 'Share link';
+
+  @override
+  String get eventsShareLinkRotate => 'Rotate link';
+
+  @override
+  String get eventsShareLinkRevoke => 'Revoke link';
+
+  @override
+  String get eventsShareLinkCopied => 'Link copied';
+
+  @override
+  String eventsShareLinkCopiedBody(String url) {
+    return 'Share this link: $url';
+  }
+
+  @override
+  String get eventsShareLinkRevoked => 'Link revoked';
+
+  @override
+  String get linkConsentTitle => 'Invitation';
+
+  @override
+  String get linkJoinEvent => 'Join event';
+
+  @override
+  String get linkRequestJoin => 'Request to join';
+
+  @override
+  String get linkJoinGroup => 'Join group';
+
+  @override
+  String get linkAddFriend => 'Send request';
+
+  @override
+  String get linkRequestSent => 'Request sent';
+
+  @override
+  String get linkEventJoined => 'You joined the event';
+
+  @override
+  String get linkInvalid => 'Invalid or expired link';
+
+  @override
+  String linkDistance(String km) {
+    return '$km km away';
+  }
+
+  @override
+  String get linkAlreadyMember => 'You are already a member';
+
+  @override
+  String get linkOwnProfile => 'This is your profile';
 }
