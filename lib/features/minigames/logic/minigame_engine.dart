@@ -1072,6 +1072,7 @@ class MinigameResult {
 /// kind.
 class MinigamePlayerAnswer {
   const MinigamePlayerAnswer({
+    this.id,
     required this.round,
     required this.subjectId,
     this.promptType,
@@ -1084,6 +1085,8 @@ class MinigamePlayerAnswer {
     this.reactions = const {},
   });
 
+  /// The `minigame_answers.id` (report target for the answer/image).
+  final String? id;
   final int round;
   final String subjectId;
   final String? promptType;
@@ -1148,6 +1151,7 @@ class MinigamePlayerContent {
           entry.key: [
             for (final a in entry.value)
               MinigamePlayerAnswer(
+                id: a.id,
                 round: a.round,
                 subjectId: a.subjectId,
                 promptType: a.promptType,

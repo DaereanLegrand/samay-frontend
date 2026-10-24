@@ -2949,4 +2949,141 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get profileExportSaved => 'Copy saved in the app storage:';
+
+  @override
+  String get notificationCategoryMinigames => 'Minigames';
+
+  @override
+  String get notificationCategoryMarketing => 'Promotions';
+
+  @override
+  String get notificationCategorySecurity => 'Security';
+
+  @override
+  String get notificationCategoryModeration => 'Moderation';
+
+  @override
+  String get notificationCategoryLegal => 'Legal';
+
+  @override
+  String get notificationCategoryAlwaysOnTitle => 'Always delivered';
+
+  @override
+  String get notificationCategoryAlwaysOn => 'Always on';
+
+  @override
+  String get notificationSettingsServerNote =>
+      'These preferences are saved to your account.';
+
+  @override
+  String get notificationSettingsSaveError => 'Could not save the preference.';
+
+  @override
+  String get profileMutedUsers => 'Muted users';
+
+  @override
+  String get friendsNoneMuted => 'No muted users';
+
+  @override
+  String get friendsUnmute => 'Unmute';
+
+  @override
+  String get profileMute => 'Mute';
+
+  @override
+  String get profileUnmute => 'Unmute';
+
+  @override
+  String get profileUserMuted => 'User muted';
+
+  @override
+  String get profileMuteError => 'Error muting the user';
+
+  @override
+  String get reportTitle => 'Report content';
+
+  @override
+  String get reportSent => 'Thanks for reporting. We will review it.';
+
+  @override
+  String get reportCategoryHarassment => 'Harassment or abuse';
+
+  @override
+  String get reportCategoryHate => 'Hate speech';
+
+  @override
+  String get reportCategorySpam => 'Spam';
+
+  @override
+  String get reportCategoryImpersonation => 'Impersonation';
+
+  @override
+  String get reportCategoryNcii => 'Non-consensual intimate images';
+
+  @override
+  String get reportCategoryThreat => 'Credible threat';
+
+  @override
+  String get reportCategoryCsam => 'Child sexual abuse material';
+
+  @override
+  String get reportCategoryOther => 'Other';
+
+  @override
+  String get reportAvatar => 'Report avatar';
+
+  @override
+  String get reportGroupCover => 'Report group cover';
+
+  @override
+  String get reportEventDescription => 'Report event description';
+
+  @override
+  String get reportMinigameAnswer => 'Report answer';
+
+  @override
+  String get appealsTitle => 'Appeals';
+
+  @override
+  String get appealsEmpty => 'You have no appeals';
+
+  @override
+  String get appealsSubmit => 'Submit appeal';
+
+  @override
+  String get appealsMessageHint =>
+      'Explain why this decision should be reviewed (minimum 10 characters).';
+
+  @override
+  String get appealsSubmitted => 'Appeal submitted. We will review it.';
+
+  @override
+  String get appealStatusOpen => 'Open';
+
+  @override
+  String get appealStatusReviewing => 'Under review';
+
+  @override
+  String get appealStatusUpheld => 'Upheld';
+
+  @override
+  String get appealStatusOverturned => 'Overturned';
+
+  @override
+  String get appealStatusClosed => 'Closed';
+
+  @override
+  String get reportOutcomesTitle => 'Your reports';
+
+  @override
+  String get reportOutcomeEmpty => 'No report outcomes yet';
+
+  @override
+  String get bannedAppealCta => 'Appeal this decision';
+
+  @override
+  String get bannedAppealTitle => 'Submit a ban appeal';
+
+  @override
+  String get bannedAppealSubmitted => 'Ban appeal submitted.';
 }

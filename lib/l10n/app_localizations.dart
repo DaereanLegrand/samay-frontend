@@ -5407,6 +5407,276 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'Copia guardada en el almacenamiento de la app:'**
   String get profileExportSaved;
+
+  /// No description provided for @notificationCategoryMinigames.
+  ///
+  /// In es, this message translates to:
+  /// **'Minijuegos'**
+  String get notificationCategoryMinigames;
+
+  /// No description provided for @notificationCategoryMarketing.
+  ///
+  /// In es, this message translates to:
+  /// **'Promociones'**
+  String get notificationCategoryMarketing;
+
+  /// No description provided for @notificationCategorySecurity.
+  ///
+  /// In es, this message translates to:
+  /// **'Seguridad'**
+  String get notificationCategorySecurity;
+
+  /// No description provided for @notificationCategoryModeration.
+  ///
+  /// In es, this message translates to:
+  /// **'Moderación'**
+  String get notificationCategoryModeration;
+
+  /// No description provided for @notificationCategoryLegal.
+  ///
+  /// In es, this message translates to:
+  /// **'Legal'**
+  String get notificationCategoryLegal;
+
+  /// No description provided for @notificationCategoryAlwaysOnTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Siempre se entregan'**
+  String get notificationCategoryAlwaysOnTitle;
+
+  /// No description provided for @notificationCategoryAlwaysOn.
+  ///
+  /// In es, this message translates to:
+  /// **'Siempre activo'**
+  String get notificationCategoryAlwaysOn;
+
+  /// No description provided for @notificationSettingsServerNote.
+  ///
+  /// In es, this message translates to:
+  /// **'Estas preferencias se guardan en tu cuenta.'**
+  String get notificationSettingsServerNote;
+
+  /// No description provided for @notificationSettingsSaveError.
+  ///
+  /// In es, this message translates to:
+  /// **'No se pudo guardar la preferencia.'**
+  String get notificationSettingsSaveError;
+
+  /// No description provided for @profileMutedUsers.
+  ///
+  /// In es, this message translates to:
+  /// **'Usuarios silenciados'**
+  String get profileMutedUsers;
+
+  /// No description provided for @friendsNoneMuted.
+  ///
+  /// In es, this message translates to:
+  /// **'No hay usuarios silenciados'**
+  String get friendsNoneMuted;
+
+  /// No description provided for @friendsUnmute.
+  ///
+  /// In es, this message translates to:
+  /// **'Reactivar'**
+  String get friendsUnmute;
+
+  /// No description provided for @profileMute.
+  ///
+  /// In es, this message translates to:
+  /// **'Silenciar'**
+  String get profileMute;
+
+  /// No description provided for @profileUnmute.
+  ///
+  /// In es, this message translates to:
+  /// **'Reactivar'**
+  String get profileUnmute;
+
+  /// No description provided for @profileUserMuted.
+  ///
+  /// In es, this message translates to:
+  /// **'Usuario silenciado'**
+  String get profileUserMuted;
+
+  /// No description provided for @profileMuteError.
+  ///
+  /// In es, this message translates to:
+  /// **'Error al silenciar'**
+  String get profileMuteError;
+
+  /// No description provided for @reportTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Reportar contenido'**
+  String get reportTitle;
+
+  /// No description provided for @reportSent.
+  ///
+  /// In es, this message translates to:
+  /// **'Gracias por reportar. Lo revisaremos.'**
+  String get reportSent;
+
+  /// No description provided for @reportCategoryHarassment.
+  ///
+  /// In es, this message translates to:
+  /// **'Acoso o abuso'**
+  String get reportCategoryHarassment;
+
+  /// No description provided for @reportCategoryHate.
+  ///
+  /// In es, this message translates to:
+  /// **'Discurso de odio'**
+  String get reportCategoryHate;
+
+  /// No description provided for @reportCategorySpam.
+  ///
+  /// In es, this message translates to:
+  /// **'Spam'**
+  String get reportCategorySpam;
+
+  /// No description provided for @reportCategoryImpersonation.
+  ///
+  /// In es, this message translates to:
+  /// **'Suplantación de identidad'**
+  String get reportCategoryImpersonation;
+
+  /// No description provided for @reportCategoryNcii.
+  ///
+  /// In es, this message translates to:
+  /// **'Imágenes íntimas sin consentimiento'**
+  String get reportCategoryNcii;
+
+  /// No description provided for @reportCategoryThreat.
+  ///
+  /// In es, this message translates to:
+  /// **'Amenaza creíble'**
+  String get reportCategoryThreat;
+
+  /// No description provided for @reportCategoryCsam.
+  ///
+  /// In es, this message translates to:
+  /// **'Material de abuso sexual infantil'**
+  String get reportCategoryCsam;
+
+  /// No description provided for @reportCategoryOther.
+  ///
+  /// In es, this message translates to:
+  /// **'Otro'**
+  String get reportCategoryOther;
+
+  /// No description provided for @reportAvatar.
+  ///
+  /// In es, this message translates to:
+  /// **'Reportar avatar'**
+  String get reportAvatar;
+
+  /// No description provided for @reportGroupCover.
+  ///
+  /// In es, this message translates to:
+  /// **'Reportar portada del grupo'**
+  String get reportGroupCover;
+
+  /// No description provided for @reportEventDescription.
+  ///
+  /// In es, this message translates to:
+  /// **'Reportar descripción del evento'**
+  String get reportEventDescription;
+
+  /// No description provided for @reportMinigameAnswer.
+  ///
+  /// In es, this message translates to:
+  /// **'Reportar respuesta'**
+  String get reportMinigameAnswer;
+
+  /// No description provided for @appealsTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Apelaciones'**
+  String get appealsTitle;
+
+  /// No description provided for @appealsEmpty.
+  ///
+  /// In es, this message translates to:
+  /// **'No tienes apelaciones'**
+  String get appealsEmpty;
+
+  /// No description provided for @appealsSubmit.
+  ///
+  /// In es, this message translates to:
+  /// **'Enviar apelación'**
+  String get appealsSubmit;
+
+  /// No description provided for @appealsMessageHint.
+  ///
+  /// In es, this message translates to:
+  /// **'Explica por qué esta decisión debe revisarse (mínimo 10 caracteres).'**
+  String get appealsMessageHint;
+
+  /// No description provided for @appealsSubmitted.
+  ///
+  /// In es, this message translates to:
+  /// **'Apelación enviada. La revisaremos.'**
+  String get appealsSubmitted;
+
+  /// No description provided for @appealStatusOpen.
+  ///
+  /// In es, this message translates to:
+  /// **'Abierta'**
+  String get appealStatusOpen;
+
+  /// No description provided for @appealStatusReviewing.
+  ///
+  /// In es, this message translates to:
+  /// **'En revisión'**
+  String get appealStatusReviewing;
+
+  /// No description provided for @appealStatusUpheld.
+  ///
+  /// In es, this message translates to:
+  /// **'Rechazada'**
+  String get appealStatusUpheld;
+
+  /// No description provided for @appealStatusOverturned.
+  ///
+  /// In es, this message translates to:
+  /// **'Aceptada'**
+  String get appealStatusOverturned;
+
+  /// No description provided for @appealStatusClosed.
+  ///
+  /// In es, this message translates to:
+  /// **'Cerrada'**
+  String get appealStatusClosed;
+
+  /// No description provided for @reportOutcomesTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Tus reportes'**
+  String get reportOutcomesTitle;
+
+  /// No description provided for @reportOutcomeEmpty.
+  ///
+  /// In es, this message translates to:
+  /// **'Aún no hay resultados de reportes'**
+  String get reportOutcomeEmpty;
+
+  /// No description provided for @bannedAppealCta.
+  ///
+  /// In es, this message translates to:
+  /// **'Apelar esta decisión'**
+  String get bannedAppealCta;
+
+  /// No description provided for @bannedAppealTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Enviar apelación de suspensión'**
+  String get bannedAppealTitle;
+
+  /// No description provided for @bannedAppealSubmitted.
+  ///
+  /// In es, this message translates to:
+  /// **'Apelación de suspensión enviada.'**
+  String get bannedAppealSubmitted;
 }
 
 class _AppLocalizationsDelegate

@@ -8,12 +8,10 @@ import 'package:samay/shared/widgets/state_views.dart';
 import 'package:samay/shared/widgets/v_card.dart';
 import 'package:samay/shared/widgets/v_header_bar.dart';
 
-/// Notification preferences — wires the settings Notificaciones row.
+/// Notification preferences — Q4a server-backed categories.
 ///
-/// Each toggle maps to a persisted key in the encrypted local config cache
-/// (see [NotificationPrefsNotifier]); the screen shows the current state and
-/// flips it optimistically. There is no server-side preference table yet —
-/// the footer says so honestly instead of pretending otherwise.
+/// Every toggle is persisted through `set_notification_preferences`; the
+/// server also enforces the defaults and the always-delivered categories.
 class NotificationSettingsScreen extends ConsumerWidget {
   const NotificationSettingsScreen({super.key});
 
@@ -22,27 +20,28 @@ class NotificationSettingsScreen extends ConsumerWidget {
     final l10n = AppLocalizations.of(context);
     final prefs = ref.watch(notificationPrefsProvider);
 
-    final tiles = [
-      (
-        Icons.event,
-        l10n.notificationSettingsEventReminders,
-        'notifications.event_reminders',
-      ),
+    final toggleTiles = [
+      (Icons.chat_bubble, l10n.notificationSettingsChatMessages, 'chat', true),
+      (Icons.event, l10n.notificationSettingsEventReminders, 'events', true),
       (
         Icons.person_add,
         l10n.notificationSettingsFriendRequests,
-        'notifications.friend_requests',
+        'friends',
+        true,
       ),
+      (Icons.casino, l10n.notificationCategoryMinigames, 'minigames', true),
       (
-        Icons.chat_bubble,
-        l10n.notificationSettingsChatMessages,
-        'notifications.chat_messages',
+        Icons.campaign_outlined,
+        l10n.notificationCategoryMarketing,
+        'marketing',
+        false,
       ),
-      (
-        Icons.diamond,
-        l10n.notificationSettingsShardsRank,
-        'notifications.shards_rank',
-      ),
+    ];
+
+    final lockedTiles = [
+      (Icons.shield_outlined, l10n.notificationCategorySecurity, 'security'),
+      (Icons.gavel_outlined, l10n.notificationCategoryModeration, 'moderation'),
+      (Icons.description_outlined, l10n.notificationCategoryLegal, 'legal'),
     ];
 
     return Scaffold(
@@ -62,16 +61,57 @@ class NotificationSettingsScreen extends ConsumerWidget {
                   type: MaterialType.transparency,
                   child: Column(
                     children: [
-                      for (var i = 0; i < tiles.length; i++) ...[
+                      for (var i = 0; i < toggleTiles.length; i++) ...[
                         if (i > 0) const Divider(height: 1),
                         SwitchListTile(
                           contentPadding: EdgeInsets.zero,
-                          secondary: Icon(tiles[i].$1),
-                          title: Text(tiles[i].$2),
-                          value: values[tiles[i].$3] ?? true,
-                          onChanged: (value) => ref
-                              .read(notificationPrefsProvider.notifier)
-                              .set(tiles[i].$3, value),
+                          secondary: Icon(toggleTiles[i].$1),
+                          title: Text(toggleTiles[i].$2),
+                          value: values[toggleTiles[i].$3] ?? toggleTiles[i].$4,
+                          onChanged: (value) async {
+                            try {
+                              await ref
+                                  .read(notificationPrefsProvider.notifier)
+                                  .set(toggleTiles[i].$3, value);
+                            } catch (_) {
+                              if (!context.mounted) return;
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    l10n.notificationSettingsSaveError,
+                                  ),
+                                ),
+                              );
+                            }
+                          },
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              Text(
+                l10n.notificationCategoryAlwaysOnTitle,
+                style: Theme.of(context).textTheme.titleSmall,
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              VCard(
+                child: Material(
+                  type: MaterialType.transparency,
+                  child: Column(
+                    children: [
+                      for (var i = 0; i < lockedTiles.length; i++) ...[
+                        if (i > 0) const Divider(height: 1),
+                        ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          leading: Icon(lockedTiles[i].$1),
+                          title: Text(lockedTiles[i].$2),
+                          trailing: Text(
+                            l10n.notificationCategoryAlwaysOn,
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(color: AppColors.mutedStrong),
+                          ),
                         ),
                       ],
                     ],
@@ -79,10 +119,8 @@ class NotificationSettingsScreen extends ConsumerWidget {
                 ),
               ),
               const SizedBox(height: AppSpacing.md),
-              // honest copy — the prefs live on-device only; the
-              // remote push pipeline is a later step.
               Text(
-                l10n.notificationSettingsLocalNote,
+                l10n.notificationSettingsServerNote,
                 textAlign: TextAlign.center,
                 style: Theme.of(
                   context,

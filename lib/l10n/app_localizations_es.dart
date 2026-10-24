@@ -2960,4 +2960,142 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get profileExportSaved =>
       'Copia guardada en el almacenamiento de la app:';
+
+  @override
+  String get notificationCategoryMinigames => 'Minijuegos';
+
+  @override
+  String get notificationCategoryMarketing => 'Promociones';
+
+  @override
+  String get notificationCategorySecurity => 'Seguridad';
+
+  @override
+  String get notificationCategoryModeration => 'Moderación';
+
+  @override
+  String get notificationCategoryLegal => 'Legal';
+
+  @override
+  String get notificationCategoryAlwaysOnTitle => 'Siempre se entregan';
+
+  @override
+  String get notificationCategoryAlwaysOn => 'Siempre activo';
+
+  @override
+  String get notificationSettingsServerNote =>
+      'Estas preferencias se guardan en tu cuenta.';
+
+  @override
+  String get notificationSettingsSaveError =>
+      'No se pudo guardar la preferencia.';
+
+  @override
+  String get profileMutedUsers => 'Usuarios silenciados';
+
+  @override
+  String get friendsNoneMuted => 'No hay usuarios silenciados';
+
+  @override
+  String get friendsUnmute => 'Reactivar';
+
+  @override
+  String get profileMute => 'Silenciar';
+
+  @override
+  String get profileUnmute => 'Reactivar';
+
+  @override
+  String get profileUserMuted => 'Usuario silenciado';
+
+  @override
+  String get profileMuteError => 'Error al silenciar';
+
+  @override
+  String get reportTitle => 'Reportar contenido';
+
+  @override
+  String get reportSent => 'Gracias por reportar. Lo revisaremos.';
+
+  @override
+  String get reportCategoryHarassment => 'Acoso o abuso';
+
+  @override
+  String get reportCategoryHate => 'Discurso de odio';
+
+  @override
+  String get reportCategorySpam => 'Spam';
+
+  @override
+  String get reportCategoryImpersonation => 'Suplantación de identidad';
+
+  @override
+  String get reportCategoryNcii => 'Imágenes íntimas sin consentimiento';
+
+  @override
+  String get reportCategoryThreat => 'Amenaza creíble';
+
+  @override
+  String get reportCategoryCsam => 'Material de abuso sexual infantil';
+
+  @override
+  String get reportCategoryOther => 'Otro';
+
+  @override
+  String get reportAvatar => 'Reportar avatar';
+
+  @override
+  String get reportGroupCover => 'Reportar portada del grupo';
+
+  @override
+  String get reportEventDescription => 'Reportar descripción del evento';
+
+  @override
+  String get reportMinigameAnswer => 'Reportar respuesta';
+
+  @override
+  String get appealsTitle => 'Apelaciones';
+
+  @override
+  String get appealsEmpty => 'No tienes apelaciones';
+
+  @override
+  String get appealsSubmit => 'Enviar apelación';
+
+  @override
+  String get appealsMessageHint =>
+      'Explica por qué esta decisión debe revisarse (mínimo 10 caracteres).';
+
+  @override
+  String get appealsSubmitted => 'Apelación enviada. La revisaremos.';
+
+  @override
+  String get appealStatusOpen => 'Abierta';
+
+  @override
+  String get appealStatusReviewing => 'En revisión';
+
+  @override
+  String get appealStatusUpheld => 'Rechazada';
+
+  @override
+  String get appealStatusOverturned => 'Aceptada';
+
+  @override
+  String get appealStatusClosed => 'Cerrada';
+
+  @override
+  String get reportOutcomesTitle => 'Tus reportes';
+
+  @override
+  String get reportOutcomeEmpty => 'Aún no hay resultados de reportes';
+
+  @override
+  String get bannedAppealCta => 'Apelar esta decisión';
+
+  @override
+  String get bannedAppealTitle => 'Enviar apelación de suspensión';
+
+  @override
+  String get bannedAppealSubmitted => 'Apelación de suspensión enviada.';
 }

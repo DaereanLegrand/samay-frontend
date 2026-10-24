@@ -18,6 +18,7 @@ import 'package:samay/shared/widgets/full_screen_image.dart';
 import 'package:samay/shared/widgets/rank_badge.dart';
 import 'package:samay/shared/widgets/state_views.dart';
 import 'package:samay/shared/widgets/v_button.dart';
+import 'package:samay/shared/widgets/report_sheet.dart';
 import 'package:samay/shared/widgets/v_header_bar.dart';
 import 'package:samay/shared/widgets/v_network_image.dart';
 import 'package:samay/shared/widgets/v_shard_icon.dart';
@@ -239,7 +240,10 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen> {
                   AppSpacing.sm,
                   0,
                 ),
-                child: VHeaderTitleRow(title: g.name, actions: [_menu(l10n)]),
+                child: VHeaderTitleRow(
+                  title: g.name,
+                  actions: [_menu(l10n, g)],
+                ),
               ),
             ),
           ),
@@ -317,7 +321,7 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen> {
   }
 
   /// The header three-dot menu: Invitar · Crear evento · Abandonar.
-  Widget _menu(AppLocalizations l10n) {
+  Widget _menu(AppLocalizations l10n, Group g) {
     return PopupMenuButton<String>(
       tooltip: l10n.commonMoreOptions,
       iconColor: AppColors.white,
@@ -328,6 +332,11 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen> {
           value: 'create_event',
           child: Text(l10n.groupsCreateEvent),
         ),
+        if (g.coverUrl != null && g.coverUrl!.isNotEmpty)
+          PopupMenuItem(
+            value: 'report_cover',
+            child: Text(l10n.reportGroupCover),
+          ),
         PopupMenuItem(value: 'leave', child: Text(l10n.groupsAbandon)),
       ],
     );
@@ -339,6 +348,14 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen> {
         context.push(RoutePaths.inviteToGroup(widget.groupId));
       case 'create_event':
         context.push(RoutePaths.createGroupEvent(widget.groupId));
+      case 'report_cover':
+        showReportSheet(
+          context,
+          ref,
+          targetType: 'group_cover',
+          targetId: widget.groupId,
+          title: AppLocalizations.of(context).reportGroupCover,
+        );
       case 'leave':
         _leaveGroup();
     }

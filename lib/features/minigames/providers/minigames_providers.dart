@@ -1436,6 +1436,7 @@ class MinigamePlayerContentNotifier
 
       (answersByPlayer[subjectId] ??= <MinigamePlayerAnswer>[]).add(
         MinigamePlayerAnswer(
+          id: row['id'] as String?,
           round: round,
           subjectId: subjectId,
           promptType: row['prompt_type'] as String?,

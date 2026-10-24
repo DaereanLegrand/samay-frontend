@@ -19,19 +19,18 @@
         action on the signup consent rows and the Settings → Privacidad screen;
         `url_launcher` dependency; l10n es/en (`chatReportMessage`,
         `chatBlockUser`, `legalOpenOnline`).
-- [~] **WIP — Staging Open Testing (host Mac build).** Signed iOS + Android →
+- [x] **Staging Open Testing (host Mac build).** Signed iOS + Android →
       **TestFlight external** + **Play `beta`** with vault keys; IAP dark (no
       `RC=true`). Staging backend up; store consoles done (age rating 18+
       override, App Privacy, DSA trader, availability Peru, export compliance).
-      **Android**: `TRACK=beta` submitted, Google Play Open Testing **under
-      review**. **iOS**: build `1.0.0 (4)` uploaded (changelog set); external
-      submission to **`External Test Group`** = **Pending Review** (TestFlight
-      App Review); ITMS-90683 cleared
-      (`NSLocationAlwaysAndWhenInUseUsageDescription`). Remaining: approval →
-      **Create Public Link** (internal group **`Internal Test Group`**). One
-      build per version can be in review at a time. Subsequent builds:
+      **Android**: `TRACK=beta` **approved — Play Open Testing live**.
+      **iOS**: build `1.0.0 (4)` **approved — TestFlight external + public URL
+      live** (`External Test Group`; internal group **`Internal Test Group`**).
+      One build per version can be in review at a time. Subsequent builds:
       `TESTFLIGHT_EXTERNAL_GROUPS="External Test Group" make deploy TARGET=ios ENV=staging TRACK=external`.
-      See `<private-ops-repo>/STATUS.md` (WIP) and `<private-ops-repo>/STAGING.md`.
+      Remaining store items: Play developer name (H10) and Play App Signing
+      SHA-1 copy (H8). See `<private-ops-repo>/STATUS.md` (WIP) and
+      `<private-ops-repo>/STAGING.md`.
 - [x] iOS build passes the **real iOS client id** (`google-oauth-ios-client-id`)
       to `GIDClientID` + `GOOGLE_OAUTH_IOS_CLIENT_ID` (falls back to the Web id
       only for legacy profiles lacking it).

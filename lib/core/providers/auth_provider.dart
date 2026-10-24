@@ -243,10 +243,12 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
 
   /// Builds the authenticated [AuthState] for [user], enforcing the ban gate.
   ///
-  /// When `users.banned_at` is set the session is signed out and the returned
-  /// state carries `banned: true` + the stored reason, so [AuthGuard] can
-  /// redirect every route to the ban screen. The check is fail-open: if it
-  /// cannot run, authentication proceeds (the authoritative enforcement is
+  /// When `users.banned_at` is set the returned state carries `banned: true`
+  /// + the stored reason, so [AuthGuard] redirects every route to the ban
+  /// screen. The SESSION IS KEPT so the user can open the appeals screen and
+  /// submit a ban appeal (Q6); every other data path is still blocked by the
+  /// server's active-user RLS/trigger. The check is fail-open: if it cannot
+  /// run, authentication proceeds (the authoritative enforcement is
   /// server-side).
   ///
   /// The profile probe (`users` row) PROPAGATES errors (no-fallback policy):
@@ -268,14 +270,16 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
     }
     if (status.isBanned) {
       AppLogger.instance.warn(
-        'Banned user attempted to authenticate (${user['id']}), signing out',
+        'Banned user attempted to authenticate (${user['id']}); '
+        'keeping the session for the appeal flow',
       );
-      try {
-        await _service.signOut();
-      } catch (e, st) {
-        AppLogger.instance.error('signOut after ban error: $e', '$st');
-      }
-      return AuthState(banned: true, banReason: status.reason);
+      return AuthState(
+        authenticated: true,
+        hasProfile: true,
+        banned: true,
+        banReason: status.reason,
+        user: user,
+      );
     }
     // crash-reporter user context — scrubbed (SHA-256) by the reporter,
     // never PII. One line covering every authenticated transition: initial

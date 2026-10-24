@@ -149,9 +149,10 @@ class FriendshipService {
   /// (friendships_update_own covers requester OR addressee, so the requester
   /// could accept their own outbound request).
   Future<void> acceptFriendRequest(String friendshipId) async {
-    await client.rpc('accept_friend_request', params: {
-      'p_friendship_id': friendshipId,
-    });
+    await client.rpc(
+      'accept_friend_request',
+      params: {'p_friendship_id': friendshipId},
+    );
   }
 
   /// Declines the incoming friend request [friendshipId] by deleting the row.
@@ -166,58 +167,90 @@ class FriendshipService {
         .eq('status', 'pending');
   }
 
+  /// Blocks [userId] through the server RPC (234_safety_moderation). The
+  /// server owns the ownership rules: a peer's existing block cannot be
+  /// altered by the blocked party, and blocking cascades to feed/discovery/
+  /// rankings/notifications/invites.
   Future<void> blockUser(String userId) async {
     final user = auth.currentUser;
     if (user == null) throw const UnauthorizedError();
 
-    var existing = await client
-        .from('friendships')
-        .select('id, requester_id')
-        .eq('requester_id', user.id)
-        .eq('addressee_id', userId)
-        .maybeSingle();
-    existing ??= await client
-        .from('friendships')
-        .select('id, requester_id')
-        .eq('requester_id', userId)
-        .eq('addressee_id', user.id)
-        .maybeSingle();
-    if (existing != null) {
-      await client
-          .from('friendships')
-          .delete()
-          .eq('id', existing['id'] as String);
+    final res = await client.rpc('block_user', params: {'p_user_id': userId});
+    final status = res is Map ? res['status'] : null;
+    switch (status) {
+      case 'ok':
+        return;
+      case 'blocked_by_peer':
+        throw ConflictError(
+          'No puedes modificar un bloqueo existente.',
+          code: 'blocked_by_peer',
+        );
+      case 'invalid_target':
+        throw ValidationError('user', 'No puedes bloquearte a ti mismo.');
+      case 'not_authenticated':
+        throw const UnauthorizedError();
+      default:
+        throw const ServerError();
     }
-    await client.from('friendships').insert({
-      'requester_id': user.id,
-      'addressee_id': userId,
-      'status': 'blocked',
-    });
   }
 
   Future<void> unblockUser(String userId) async {
     final user = auth.currentUser;
     if (user == null) throw const UnauthorizedError();
 
-    var existing = await client
-        .from('friendships')
-        .select('id')
-        .eq('requester_id', user.id)
-        .eq('addressee_id', userId)
-        .maybeSingle();
-    existing ??= await client
-        .from('friendships')
-        .select('id')
-        .eq('requester_id', userId)
-        .eq('addressee_id', user.id)
-        .maybeSingle();
-    if (existing != null) {
-      await client
-          .from('friendships')
-          .delete()
-          .eq('id', existing['id'] as String);
+    final res = await client.rpc('unblock_user', params: {'p_user_id': userId});
+    final status = res is Map ? res['status'] : null;
+    switch (status) {
+      case 'ok':
+        return;
+      case 'blocked_by_peer':
+        throw ConflictError(
+          'Solo quien bloqueó puede desbloquear.',
+          code: 'blocked_by_peer',
+        );
+      case 'not_authenticated':
+        throw const UnauthorizedError();
+      default:
+        throw const ServerError();
     }
   }
+
+  /// Mutes [userId]. Mute is one-way and weaker than block: DMs and invites
+  /// stay available, but the muted user's activity leaves the caller's feed,
+  /// rankings and notifications.
+  Future<void> muteUser(String userId) async {
+    final user = auth.currentUser;
+    if (user == null) throw const UnauthorizedError();
+    final res = await client.rpc('mute_user', params: {'p_user_id': userId});
+    final status = res is Map ? res['status'] : null;
+    if (status == 'ok') return;
+    if (status == 'invalid_target') {
+      throw ValidationError('user', 'No puedes silenciarte a ti mismo.');
+    }
+    if (status == 'not_authenticated') throw const UnauthorizedError();
+    throw const ServerError();
+  }
+
+  Future<void> unmuteUser(String userId) async {
+    final user = auth.currentUser;
+    if (user == null) throw const UnauthorizedError();
+    await client.rpc('unmute_user', params: {'p_user_id': userId});
+  }
+
+  Future<List<Map<String, dynamic>>> _profileRowsFromRpc(
+    String function,
+  ) async {
+    final user = auth.currentUser;
+    if (user == null) throw const UnauthorizedError();
+    final res = await client.rpc(function);
+    return (res as List)
+        .whereType<Map>()
+        .map((e) => Map<String, dynamic>.from(e))
+        .toList();
+  }
+
+  Future<List<Map<String, dynamic>>> getMutedUsers() =>
+      _profileRowsFromRpc('get_muted_users');
 
   Future<List<Map<String, dynamic>>> getFriends() async {
     final user = auth.currentUser;
@@ -254,9 +287,10 @@ class FriendshipService {
     List<String> userIds,
   ) async {
     if (userIds.isEmpty) return const [];
-    final res = await client.rpc('get_friend_profiles', params: {
-      'p_user_ids': userIds,
-    });
+    final res = await client.rpc(
+      'get_friend_profiles',
+      params: {'p_user_ids': userIds},
+    );
     return (res as List)
         .whereType<Map>()
         .map((e) => Map<String, dynamic>.from(e))
@@ -299,15 +333,15 @@ class FriendshipService {
   }
 
   Future<List<Map<String, dynamic>>> getBlockedUsers() async {
-    final user = auth.currentUser;
-    if (user == null) throw const UnauthorizedError();
-    final res = await client
-        .from('friendships')
-        .select('id, requester_id, addressee_id, status');
-    return res
-        .where((e) => e['status'] == 'blocked' && e['requester_id'] == user.id)
-        .map((e) => {'blocked_user_id': e['addressee_id']})
-        .toList();
+    final rows = await _profileRowsFromRpc('get_blocked_users');
+    return [
+      for (final row in rows)
+        {
+          'blocked_user_id': row['id'],
+          'username': row['username'],
+          'avatar_url': row['avatar_url'],
+        },
+    ];
   }
 
   Future<bool> getBlockStatus(String userId) async {

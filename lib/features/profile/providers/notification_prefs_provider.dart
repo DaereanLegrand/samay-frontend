@@ -1,68 +1,68 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:samay/core/logging/app_logger.dart';
 import 'package:samay/core/providers/service_providers.dart';
-import 'package:samay/core/services/storage_service.dart';
 
-/// A single user-toggleable notification preference.
-class NotificationPref {
-  final String key;
-  final bool defaultEnabled;
-
-  const NotificationPref(this.key, {this.defaultEnabled = true});
-}
-
-/// Notification-preference store: the in-app notification prefs the
-/// settings screen exposes. Persisted in the encrypted `config_cache` Hive
-/// box; failures degrade to the
-/// defaults and are logged — a preference must never block the screen.
+/// Q4a — server-persisted notification categories.
+///
+/// The category contract lives on `users.notification_preferences` and is
+/// read/written through `get_notification_preferences` /
+/// `set_notification_preferences`. chat/events/friends/minigames default ON,
+/// marketing defaults OFF, and security/moderation/legal are always delivered
+/// (the server ignores attempts to disable them).
 final notificationPrefsProvider =
     AsyncNotifierProvider<NotificationPrefsNotifier, Map<String, bool>>(
       NotificationPrefsNotifier.new,
     );
 
 class NotificationPrefsNotifier extends AsyncNotifier<Map<String, bool>> {
-  /// The toggleable preferences, in display order. The push/remote side of
-  /// each channel is a later step; these keys are the local user-facing
-  /// contract.
-  static const prefs = [
-    NotificationPref('notifications.event_reminders'),
-    NotificationPref('notifications.friend_requests'),
-    NotificationPref('notifications.chat_messages'),
-    NotificationPref('notifications.shards_rank'),
+  /// User-toggleable categories, in display order.
+  static const toggleable = <String>[
+    'chat',
+    'events',
+    'friends',
+    'minigames',
+    'marketing',
   ];
 
-  HiveService get _hive => ref.read(hiveServiceProvider);
+  /// Always-delivered categories (rendered as locked rows).
+  static const locked = <String>['security', 'moderation', 'legal'];
 
   @override
   Future<Map<String, bool>> build() async {
     try {
-      final cached = _hive.getCachedConfig() ?? const {};
-      return {
-        for (final pref in prefs)
-          pref.key: cached[pref.key] != 'false' && pref.defaultEnabled,
-      };
+      return await ref.read(notificationServiceProvider).getPreferences();
     } catch (e, st) {
-      // Uninitialized/re-created Hive: treat the
-      // cache as a miss — every preference falls back to its default.
+      // A failed read must not blank the screen: fall back to the documented
+      // defaults and log; the next refresh re-syncs.
       AppLogger.instance.warn(
-        'Notification prefs cache unreadable ($e); using defaults.',
+        'Notification preferences could not be read ($e); using defaults.',
         '$st',
       );
-      return {for (final pref in prefs) pref.key: pref.defaultEnabled};
+      return {
+        for (final key in toggleable) key: key != 'marketing',
+        for (final key in locked) key: true,
+      };
     }
   }
 
-  /// Persists [value] for [key]. The UI updates optimistically; a
-  /// persistence failure is logged, never surfaced.
+  /// Persists [value] for [key] server-side. The UI updates optimistically and
+  /// is reconciled with the server response (locked categories stay true).
   Future<void> set(String key, bool value) async {
-    state = AsyncData({...state.valueOrNull ?? await build(), key: value});
+    final previous = state.valueOrNull ?? await build();
+    state = AsyncData({...previous, key: value});
     try {
-      await _hive.cacheConfig({key: value.toString()});
+      final saved = await ref.read(notificationServiceProvider).setPreferences({
+        ...previous,
+        key: value,
+      });
+      state = AsyncData(saved);
     } catch (e, st) {
       AppLogger.instance.warn(
-        'Notification pref "$key" persistence failed: $e',
+        'Notification preference "$key" could not be saved: $e',
         '$st',
       );
+      state = AsyncData(previous);
+      rethrow;
     }
   }
 }

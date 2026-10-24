@@ -12,8 +12,8 @@ import 'package:samay/core/repositories/repository_providers.dart';
 import 'package:samay/core/router/route_paths.dart';
 import 'package:samay/features/friends/providers/friends_providers.dart';
 import 'package:samay/shared/widgets/profile_avatar.dart';
+import 'package:samay/shared/widgets/report_sheet.dart';
 import 'package:samay/l10n/app_localizations.dart';
-import 'package:samay/shared/widgets/show_app_error.dart';
 import 'package:samay/shared/widgets/state_views.dart';
 import 'package:samay/shared/widgets/v_button.dart';
 import 'package:samay/shared/widgets/v_display_text.dart';
@@ -34,6 +34,7 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
   String? _friendshipId;
   bool _isIncoming = false;
   bool _isBlocked = false;
+  bool _isMuted = false;
   bool _loading = true;
   bool _sending = false;
 
@@ -81,6 +82,14 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
       if (mounted) setState(() => _isBlocked = blocked);
     } catch (e, st) {
       AppLogger.instance.error('loadBlockStatus error: $e', '$st');
+    }
+
+    try {
+      final muted = await ref.read(friendshipServiceProvider).getMutedUsers();
+      final isMuted = muted.any((row) => row['id'] == widget.userId);
+      if (mounted) setState(() => _isMuted = isMuted);
+    } catch (e, st) {
+      AppLogger.instance.error('loadMuteStatus error: $e', '$st');
     }
 
     if (mounted) setState(() => _loading = false);
@@ -189,7 +198,16 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
                 )
               else
                 PopupMenuItem(value: 'block', child: Text(l10n.profileBlock)),
+              if (_isMuted)
+                PopupMenuItem(value: 'unmute', child: Text(l10n.profileUnmute))
+              else
+                PopupMenuItem(value: 'mute', child: Text(l10n.profileMute)),
               PopupMenuItem(value: 'report', child: Text(l10n.profileReport)),
+              if (p?['avatar_url'] != null)
+                PopupMenuItem(
+                  value: 'report_avatar',
+                  child: Text(l10n.reportAvatar),
+                ),
             ],
           ),
         ],
@@ -333,48 +351,54 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
         _unblockUser();
       case 'report':
         _reportUser();
+      case 'report_avatar':
+        showReportSheet(
+          context,
+          ref,
+          targetType: 'avatar',
+          targetId: widget.userId,
+          title: AppLocalizations.of(context).reportAvatar,
+        );
+      case 'mute':
+        _setMuted(true);
+      case 'unmute':
+        _setMuted(false);
     }
   }
 
-  /// The report menu item opens the reason dialog, then submits a real report
-  /// through [ModerationService.reportContent] ('user' target).
-  Future<void> _reportUser() async {
+  Future<void> _setMuted(bool muted) async {
     final l10n = AppLocalizations.of(context);
-    final reason = await showDialog<String>(
-      context: context,
-      builder: (ctx) => SimpleDialog(
-        title: Text(l10n.profileReportTitle),
-        children: [
-          for (final reason in [
-            l10n.profileReportReasonHarassment,
-            l10n.profileReportReasonSpam,
-            l10n.profileReportReasonInappropriate,
-            l10n.profileReportReasonOther,
-          ])
-            SimpleDialogOption(
-              onPressed: () => Navigator.pop(ctx, reason),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 4),
-                child: Text(reason),
-              ),
-            ),
-        ],
-      ),
-    );
-    if (reason == null || !mounted) return;
-
     try {
-      await ref
-          .read(moderationServiceProvider)
-          .reportContent('user', widget.userId, reason);
+      final service = ref.read(friendshipServiceProvider);
+      if (muted) {
+        await service.muteUser(widget.userId);
+      } else {
+        await service.unmuteUser(widget.userId);
+      }
+      if (muted) ref.invalidate(mutedUsersProvider);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(muted ? l10n.profileUserMuted : l10n.friendsUnmute),
+        ),
+      );
+      _load();
+    } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text(l10n.profileReportSent)));
-    } catch (e) {
-      if (mounted) showAppError(context, e);
+      ).showSnackBar(SnackBar(content: Text(l10n.profileMuteError)));
     }
   }
+
+  /// Reports the user profile through the shared category sheet.
+  Future<void> _reportUser() => showReportSheet(
+    context,
+    ref,
+    targetType: 'user',
+    targetId: widget.userId,
+    title: AppLocalizations.of(context).profileReportTitle,
+  );
 
   Future<void> _blockUser() async {
     final l10n = AppLocalizations.of(context);

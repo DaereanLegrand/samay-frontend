@@ -24,6 +24,7 @@ import 'package:samay/shared/widgets/v_button.dart';
 import 'package:samay/shared/widgets/v_chip.dart';
 import 'package:samay/shared/widgets/v_display_text.dart';
 import 'package:samay/shared/widgets/v_header_bar.dart';
+import 'package:samay/shared/widgets/report_sheet.dart';
 import 'package:samay/shared/widgets/v_network_image.dart';
 import 'package:samay/shared/widgets/v_shard_icon.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' show RealtimeChannel;
@@ -288,6 +289,25 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
     return Scaffold(
       body: VHeaderBar(
         title: event.name,
+        actions: [
+          if (event.description != null && event.description!.isNotEmpty)
+            PopupMenuButton<String>(
+              tooltip: l10n.commonMoreOptions,
+              onSelected: (_) => showReportSheet(
+                context,
+                ref,
+                targetType: 'event_description',
+                targetId: widget.eventId,
+                title: l10n.reportEventDescription,
+              ),
+              itemBuilder: (_) => [
+                PopupMenuItem(
+                  value: 'report',
+                  child: Text(l10n.reportEventDescription),
+                ),
+              ],
+            ),
+        ],
         child: RefreshIndicator(
           onRefresh: _refresh,
           child: Column(
