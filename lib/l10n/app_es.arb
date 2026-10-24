@@ -2688,6 +2688,63 @@
   "@minigamesPublishSubtitle": {
     "description": "Lobby: helper text under the publish switch"
   },
+  "minigamesErrorInvalidCode": "Ese código no es válido o venció.",
+  "@minigamesErrorInvalidCode": {
+    "description": "E4 code-only matches"
+  },
+  "minigamesJoinCodeTitle": "Unirme con código",
+  "@minigamesJoinCodeTitle": {
+    "description": "E4 code-only matches"
+  },
+  "minigamesJoinCodeHint": "Pídele al anfitrión el código de 6 caracteres de una partida directa.",
+  "@minigamesJoinCodeHint": {
+    "description": "E4 code-only matches"
+  },
+  "minigamesJoinCodeButton": "Unirme con código",
+  "@minigamesJoinCodeButton": {
+    "description": "E4 code-only matches"
+  },
+  "minigamesJoinCodePlaceholder": "ABC234",
+  "@minigamesJoinCodePlaceholder": {
+    "description": "E4 code-only matches"
+  },
+  "minigamesJoinCodeShareTitle": "Código de la partida",
+  "@minigamesJoinCodeShareTitle": {
+    "description": "E4 code-only matches"
+  },
+  "minigamesJoinCodeShareBody": "Comparte este código: {code}",
+  "@minigamesJoinCodeShareBody": {
+    "description": "Join-code share body",
+    "placeholders": {
+      "code": {
+        "type": "String"
+      }
+    }
+  },
+  "minigamesJoinCodeShareHint": "Genera un código y compártelo. Solo se guarda un hash; se muestra una vez.",
+  "@minigamesJoinCodeShareHint": {
+    "description": "E4 code-only matches"
+  },
+  "minigamesJoinCodeCopy": "Copiar",
+  "@minigamesJoinCodeCopy": {
+    "description": "E4 code-only matches"
+  },
+  "minigamesJoinCodeDone": "Listo",
+  "@minigamesJoinCodeDone": {
+    "description": "E4 code-only matches"
+  },
+  "minigamesJoinCodeGenerate": "Generar código",
+  "@minigamesJoinCodeGenerate": {
+    "description": "E4 code-only matches"
+  },
+  "minigamesJoinCodeRevoke": "Revocar",
+  "@minigamesJoinCodeRevoke": {
+    "description": "E4 code-only matches"
+  },
+  "minigamesJoinCodeRevoked": "El código fue revocado.",
+  "@minigamesJoinCodeRevoked": {
+    "description": "E4 code-only matches"
+  },
   "minigamesPublicLobbyTitle": "Partidas abiertas",
   "@minigamesPublicLobbyTitle": {
     "description": "Open lobby section heading"

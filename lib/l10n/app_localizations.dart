@@ -3788,6 +3788,84 @@ abstract class AppLocalizations {
   /// **'Cualquiera en la app puede verla y unirse sin invitación'**
   String get minigamesPublishSubtitle;
 
+  /// E4 code-only matches
+  ///
+  /// In es, this message translates to:
+  /// **'Ese código no es válido o venció.'**
+  String get minigamesErrorInvalidCode;
+
+  /// E4 code-only matches
+  ///
+  /// In es, this message translates to:
+  /// **'Unirme con código'**
+  String get minigamesJoinCodeTitle;
+
+  /// E4 code-only matches
+  ///
+  /// In es, this message translates to:
+  /// **'Pídele al anfitrión el código de 6 caracteres de una partida directa.'**
+  String get minigamesJoinCodeHint;
+
+  /// E4 code-only matches
+  ///
+  /// In es, this message translates to:
+  /// **'Unirme con código'**
+  String get minigamesJoinCodeButton;
+
+  /// E4 code-only matches
+  ///
+  /// In es, this message translates to:
+  /// **'ABC234'**
+  String get minigamesJoinCodePlaceholder;
+
+  /// E4 code-only matches
+  ///
+  /// In es, this message translates to:
+  /// **'Código de la partida'**
+  String get minigamesJoinCodeShareTitle;
+
+  /// Join-code share body
+  ///
+  /// In es, this message translates to:
+  /// **'Comparte este código: {code}'**
+  String minigamesJoinCodeShareBody(String code);
+
+  /// E4 code-only matches
+  ///
+  /// In es, this message translates to:
+  /// **'Genera un código y compártelo. Solo se guarda un hash; se muestra una vez.'**
+  String get minigamesJoinCodeShareHint;
+
+  /// E4 code-only matches
+  ///
+  /// In es, this message translates to:
+  /// **'Copiar'**
+  String get minigamesJoinCodeCopy;
+
+  /// E4 code-only matches
+  ///
+  /// In es, this message translates to:
+  /// **'Listo'**
+  String get minigamesJoinCodeDone;
+
+  /// E4 code-only matches
+  ///
+  /// In es, this message translates to:
+  /// **'Generar código'**
+  String get minigamesJoinCodeGenerate;
+
+  /// E4 code-only matches
+  ///
+  /// In es, this message translates to:
+  /// **'Revocar'**
+  String get minigamesJoinCodeRevoke;
+
+  /// E4 code-only matches
+  ///
+  /// In es, this message translates to:
+  /// **'El código fue revocado.'**
+  String get minigamesJoinCodeRevoked;
+
   /// Open lobby section heading
   ///
   /// In es, this message translates to:

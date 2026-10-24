@@ -3857,6 +3857,63 @@
   "@minigamesPublishSubtitle": {
     "description": "Lobby: helper text under the publish switch"
   },
+  "minigamesErrorInvalidCode": "That code is not valid or has expired.",
+  "@minigamesErrorInvalidCode": {
+    "description": "E4 code-only matches"
+  },
+  "minigamesJoinCodeTitle": "Join with a code",
+  "@minigamesJoinCodeTitle": {
+    "description": "E4 code-only matches"
+  },
+  "minigamesJoinCodeHint": "Ask the host for the 6-character code of a direct partida.",
+  "@minigamesJoinCodeHint": {
+    "description": "E4 code-only matches"
+  },
+  "minigamesJoinCodeButton": "Join with code",
+  "@minigamesJoinCodeButton": {
+    "description": "E4 code-only matches"
+  },
+  "minigamesJoinCodePlaceholder": "ABC234",
+  "@minigamesJoinCodePlaceholder": {
+    "description": "E4 code-only matches"
+  },
+  "minigamesJoinCodeShareTitle": "Partida code",
+  "@minigamesJoinCodeShareTitle": {
+    "description": "E4 code-only matches"
+  },
+  "minigamesJoinCodeShareBody": "Share this code: {code}",
+  "@minigamesJoinCodeShareBody": {
+    "description": "Join-code share body",
+    "placeholders": {
+      "code": {
+        "type": "String"
+      }
+    }
+  },
+  "minigamesJoinCodeShareHint": "Generate a code and share it. Only a hash is stored; it is shown once.",
+  "@minigamesJoinCodeShareHint": {
+    "description": "E4 code-only matches"
+  },
+  "minigamesJoinCodeCopy": "Copy",
+  "@minigamesJoinCodeCopy": {
+    "description": "E4 code-only matches"
+  },
+  "minigamesJoinCodeDone": "Done",
+  "@minigamesJoinCodeDone": {
+    "description": "E4 code-only matches"
+  },
+  "minigamesJoinCodeGenerate": "Generate code",
+  "@minigamesJoinCodeGenerate": {
+    "description": "E4 code-only matches"
+  },
+  "minigamesJoinCodeRevoke": "Revoke",
+  "@minigamesJoinCodeRevoke": {
+    "description": "E4 code-only matches"
+  },
+  "minigamesJoinCodeRevoked": "The join code was revoked.",
+  "@minigamesJoinCodeRevoked": {
+    "description": "E4 code-only matches"
+  },
   "minigamesPublicLobbyTitle": "Open games",
   "@minigamesPublicLobbyTitle": {
     "description": "Open lobby section heading"

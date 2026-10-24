@@ -2038,6 +2038,49 @@ class AppLocalizationsEs extends AppLocalizations {
       'Cualquiera en la app puede verla y unirse sin invitación';
 
   @override
+  String get minigamesErrorInvalidCode => 'Ese código no es válido o venció.';
+
+  @override
+  String get minigamesJoinCodeTitle => 'Unirme con código';
+
+  @override
+  String get minigamesJoinCodeHint =>
+      'Pídele al anfitrión el código de 6 caracteres de una partida directa.';
+
+  @override
+  String get minigamesJoinCodeButton => 'Unirme con código';
+
+  @override
+  String get minigamesJoinCodePlaceholder => 'ABC234';
+
+  @override
+  String get minigamesJoinCodeShareTitle => 'Código de la partida';
+
+  @override
+  String minigamesJoinCodeShareBody(String code) {
+    return 'Comparte este código: $code';
+  }
+
+  @override
+  String get minigamesJoinCodeShareHint =>
+      'Genera un código y compártelo. Solo se guarda un hash; se muestra una vez.';
+
+  @override
+  String get minigamesJoinCodeCopy => 'Copiar';
+
+  @override
+  String get minigamesJoinCodeDone => 'Listo';
+
+  @override
+  String get minigamesJoinCodeGenerate => 'Generar código';
+
+  @override
+  String get minigamesJoinCodeRevoke => 'Revocar';
+
+  @override
+  String get minigamesJoinCodeRevoked => 'El código fue revocado.';
+
+  @override
   String get minigamesPublicLobbyTitle => 'Partidas abiertas';
 
   @override

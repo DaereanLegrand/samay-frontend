@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
@@ -718,13 +719,10 @@ class _LobbySection extends ConsumerWidget {
           _AliasButton(sessionId: sessionId),
         ],
         const SizedBox(height: AppSpacing.lg),
-        // 210_minigame_public: the host publishes the partida to the open
-        // lobby so anyone in the app can find it and join without an invite.
+        // E4: code-only matches. The host generates/rotates a 6-character
+        // code; only its hash is stored server-side.
         if (isCreator && !finished && session?['group_id'] == null)
-          _PublishSwitch(
-            sessionId: sessionId,
-            isPublic: session?['is_public'] == true,
-          ),
+          _JoinCodeCard(sessionId: sessionId),
         if (finished)
           // Finished-match entry point to the leaderboard.
           VButton.emphasized(
@@ -894,29 +892,74 @@ class _LobbySection extends ConsumerWidget {
   }
 }
 
-/// The host's open-lobby switch (210_minigame_public): flipping it on makes
-/// the partida visible to every signed-in user, who can then join without an
-/// invite. Backend-enforced host-only (`not_creator`).
-class _PublishSwitch extends ConsumerStatefulWidget {
-  const _PublishSwitch({required this.sessionId, required this.isPublic});
+/// The host's join-code card (E4): generate/rotate or revoke the 6-character
+/// code. The plaintext code is shown once and never retrievable from the DB.
+class _JoinCodeCard extends ConsumerStatefulWidget {
+  const _JoinCodeCard({required this.sessionId});
 
   final String sessionId;
-  final bool isPublic;
 
   @override
-  ConsumerState<_PublishSwitch> createState() => _PublishSwitchState();
+  ConsumerState<_JoinCodeCard> createState() => _JoinCodeCardState();
 }
 
-class _PublishSwitchState extends ConsumerState<_PublishSwitch> {
+class _JoinCodeCardState extends ConsumerState<_JoinCodeCard> {
   bool _busy = false;
 
-  Future<void> _toggle(bool next) async {
+  Future<void> _generate() async {
     if (_busy) return;
     setState(() => _busy = true);
+    final l10n = AppLocalizations.of(context);
+    try {
+      final code = await ref
+          .read(sessionStatusProvider(widget.sessionId).notifier)
+          .setJoinCode();
+      if (!mounted) return;
+      await showDialog<void>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: Text(l10n.minigamesJoinCodeShareTitle),
+          content: SelectableText(
+            l10n.minigamesJoinCodeShareBody(code),
+            style: AppTypography.displaySmall,
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Clipboard.setData(ClipboardData(text: code));
+                Navigator.of(dialogContext).pop();
+              },
+              child: Text(l10n.minigamesJoinCodeCopy),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: Text(l10n.minigamesJoinCodeDone),
+            ),
+          ],
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e.toAppError().message)));
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _revoke() async {
+    if (_busy) return;
+    setState(() => _busy = true);
+    final l10n = AppLocalizations.of(context);
     try {
       await ref
           .read(sessionStatusProvider(widget.sessionId).notifier)
-          .setPublic(next);
+          .revokeJoinCode();
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.minigamesJoinCodeRevoked)));
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(
@@ -933,36 +976,51 @@ class _PublishSwitchState extends ConsumerState<_PublishSwitch> {
     return Padding(
       padding: const EdgeInsets.only(bottom: AppSpacing.lg),
       child: VCard(
-        child: Row(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(
-              widget.isPublic ? Icons.public : Icons.lock_outline,
-              size: 20,
-              color: widget.isPublic ? AppColors.white : AppColors.mutedStrong,
-            ),
-            const SizedBox(width: AppSpacing.md),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    l10n.minigamesPublishTitle,
-                    style: Theme.of(context).textTheme.titleMedium,
+            Row(
+              children: [
+                const Icon(Icons.tag, size: 20, color: AppColors.white),
+                const SizedBox(width: AppSpacing.md),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        l10n.minigamesJoinCodeTitle,
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        l10n.minigamesJoinCodeShareHint,
+                        style: AppTypography.bodySmall.copyWith(
+                          color: AppColors.mutedStrong,
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 2),
-                  Text(
-                    l10n.minigamesPublishSubtitle,
-                    style: AppTypography.bodySmall.copyWith(
-                      color: AppColors.mutedStrong,
-                    ),
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
-            Switch(
-              value: widget.isPublic,
-              onChanged: _busy ? null : _toggle,
-              activeThumbColor: AppColors.white,
+            const SizedBox(height: AppSpacing.md),
+            Row(
+              children: [
+                Expanded(
+                  child: VButton(
+                    label: l10n.minigamesJoinCodeGenerate,
+                    loading: _busy,
+                    onPressed: _busy ? null : _generate,
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.sm),
+                Expanded(
+                  child: VButton.outlined(
+                    label: l10n.minigamesJoinCodeRevoke,
+                    onPressed: _busy ? null : _revoke,
+                  ),
+                ),
+              ],
             ),
           ],
         ),

@@ -58,6 +58,7 @@ String minigameRejectionMessage(
     MinigameSessionRejection.invalidAsyncEndsAt =>
       l10n.minigamesErrorInvalidAsyncEndsAt,
     MinigameSessionRejection.notAllowed => l10n.minigamesErrorNotAllowed,
+    MinigameSessionRejection.invalidCode => l10n.minigamesErrorInvalidCode,
     MinigameSessionRejection.notAuthenticated ||
     MinigameSessionRejection.invalidWager => l10n.minigamesErrorCreate,
   };

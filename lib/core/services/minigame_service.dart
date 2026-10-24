@@ -88,6 +88,9 @@ enum MinigameSessionRejection {
   /// sessions still reject with [notMember]). Bystanders can never join or
   /// settle a direct game they are not in.
   notAllowed,
+
+  /// E4: the 6-character join code is unknown, expired, or revoked.
+  invalidCode,
 }
 
 /// Typed rejection thrown by [MinigameService.createSession] when the RPC
@@ -1517,24 +1520,22 @@ class MinigameService {
     }
   }
 
-  /// `set_minigame_public` SECURITY DEFINER RPC (210_minigame_public) — the
-  /// HOST publishes the partida to the open lobby (or takes it back down).
-  /// A published partida is readable and joinable by ANY signed-in user; the
-  /// player cap, the active gate and the wager escrow still apply.
-  Future<void> setMinigamePublic(String sessionId, bool isPublic) async {
+  /// E4: the HOST creates/rotates the 6-character join code. The plaintext
+  /// code is returned exactly once; only its hash is stored server-side.
+  Future<String> setJoinCode(String sessionId) async {
     final user = auth.currentUser;
     if (user == null) throw const UnauthorizedError();
 
     final res = await client.rpc(
-      'set_minigame_public',
-      params: {'p_session_id': sessionId, 'p_is_public': isPublic},
+      'set_minigame_join_code',
+      params: {'p_session_id': sessionId},
     );
     final result = res is Map
         ? Map<String, dynamic>.from(res)
         : <String, dynamic>{};
     switch (result['status']) {
       case 'ok':
-        return;
+        return result['code'] as String;
       case 'not_authenticated':
         throw const UnauthorizedError();
       case 'session_not_found':
@@ -1543,7 +1544,7 @@ class MinigameService {
         throw PermissionError();
       case 'group_session':
         throw ConflictError(
-          'Las partidas de grupo no se publican',
+          'Las partidas de grupo no comparten código',
           code: 'group_session',
         );
       case 'session_not_active':
@@ -1552,35 +1553,55 @@ class MinigameService {
           code: 'session_not_active',
         );
       default:
-        throw const ServerError('Unexpected set_minigame_public response');
+        throw const ServerError('Unexpected set_minigame_join_code response');
     }
   }
 
-  /// `list_public_minigames` SECURITY DEFINER RPC (210_minigame_public) — the
-  /// open lobby feed: published, still-open direct partidas (newest first,
-  /// host username resolved server-side). [gameType] narrows it to one game.
-  Future<List<Map<String, dynamic>>> listPublicMinigames({
-    String? gameType,
-  }) async {
+  /// Revokes the join code (host-only).
+  Future<void> revokeJoinCode(String sessionId) async {
     final user = auth.currentUser;
     if (user == null) throw const UnauthorizedError();
-
     final res = await client.rpc(
-      'list_public_minigames',
-      params: {'p_game_type': gameType},
+      'revoke_minigame_join_code',
+      params: {'p_session_id': sessionId},
     );
     final result = res is Map
         ? Map<String, dynamic>.from(res)
         : <String, dynamic>{};
     if (result['status'] != 'ok') {
-      throw const ServerError('Unexpected list_public_minigames response');
+      throw const ServerError('Unexpected revoke_minigame_join_code response');
     }
-    final rows = result['sessions'];
-    if (rows is! List) return const [];
-    return [
-      for (final r in rows)
-        if (r is Map) Map<String, dynamic>.from(r),
-    ];
+  }
+
+  /// Joins a direct partida with its 6-character code. Returns the session id
+  /// on success; rejects invalid/expired codes and limit/wager failures with a
+  /// typed [MinigameSessionRejectedException].
+  Future<String> joinByCode(String code) async {
+    final user = auth.currentUser;
+    if (user == null) throw const UnauthorizedError();
+    final res = await client.rpc(
+      'join_minigame_by_code',
+      params: {'p_code': code.trim().toUpperCase()},
+    );
+    final result = res is Map
+        ? Map<String, dynamic>.from(res)
+        : <String, dynamic>{};
+    final status = result['status'] as String? ?? '';
+    if (status == 'joined') {
+      final id = result['session_id'];
+      if (id is! String) {
+        throw const ServerError('join_minigame_by_code returned no session');
+      }
+      return id;
+    }
+    final rejection = switch (status) {
+      'invalid_code' => MinigameSessionRejection.invalidCode,
+      'player_limit_reached' => MinigameSessionRejection.playerLimitReached,
+      'insufficient_shards' => MinigameSessionRejection.insufficientShards,
+      'not_authenticated' => MinigameSessionRejection.notAuthenticated,
+      _ => MinigameSessionRejection.notAllowed,
+    };
+    throw MinigameSessionRejectedException(rejection);
   }
 
   /// `spin_drunk_bottle` SECURITY DEFINER RPC (209_minigame_bottle_pizza) —

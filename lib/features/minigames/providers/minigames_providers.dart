@@ -394,95 +394,6 @@ DateTime _createdAtOf(Map<String, dynamic> row) {
       DateTime.fromMillisecondsSinceEpoch(0);
 }
 
-/// The OPEN LOBBY (210_minigame_public): published partidas anyone can see
-/// and join, keyed by game_type wire value (empty string = every game).
-class PublicMinigamesNotifier
-    extends FamilyAsyncNotifier<List<Map<String, dynamic>>, String> {
-  MinigameService get _service => ref.read(minigameServiceProvider);
-
-  /// Guard so a burst of row changes collapses into one reload instead of
-  /// stacking requests.
-  bool _reloading = false;
-
-  /// Set when the provider is disposed: a reload already in flight must not
-  /// write to `state` afterwards.
-  bool _disposed = false;
-
-  @override
-  Future<List<Map<String, dynamic>>> build(String gameType) {
-    // The open lobby has to be LIVE. It used to load once and never change:
-    // when a host flipped "Partida abierta", `setPublic` invalidated this
-    // provider on the HOST's device only, so anyone already sitting on the
-    // list never saw the partida appear — they had to leave the screen and
-    // come back. Same for a partida that fills up, gets unpublished or
-    // finishes: the row stayed on screen and joining it failed.
-    //
-    // Listening to `minigame_sessions` fixes all of those with one
-    // subscription: RLS decides which rows reach this client, so a publish
-    // arrives as an UPDATE the moment `is_public` flips and a brand-new open
-    // partida arrives as an INSERT — hence `.all` rather than `.update`.
-    ref.listen<AsyncValue<Map<String, dynamic>>>(
-      realtimeChannelProvider((
-        channelName: 'minigame-public-lobby',
-        table: 'minigame_sessions',
-        event: PostgresChangeEvent.all,
-      )),
-      (_, next) {
-        if (next.valueOrNull == null) return;
-        // Mutating state while the notifier is still building trips
-        // Riverpod's cycle assertion.
-        if (!state.hasValue) return;
-        unawaited(_reload());
-      },
-    );
-
-    ref.onDispose(() => _disposed = true);
-
-    return _service.listPublicMinigames(
-      gameType: gameType.isEmpty ? null : gameType,
-    );
-  }
-
-  /// Silent reload: refreshes the rows WITHOUT an [AsyncLoading] hop, so a
-  /// realtime nudge never blanks the list the user is reading.
-  Future<void> _reload() async {
-    if (_reloading) return;
-    _reloading = true;
-    try {
-      final rows = await _service.listPublicMinigames(
-        gameType: arg.isEmpty ? null : arg,
-      );
-      if (!_disposed) state = AsyncData(rows);
-    } catch (_) {
-      // A failed background refresh keeps the last good list on screen.
-    } finally {
-      _reloading = false;
-    }
-  }
-
-  Future<void> refresh() async {
-    state = const AsyncLoading();
-    state = await AsyncValue.guard(
-      () => _service.listPublicMinigames(gameType: arg.isEmpty ? null : arg),
-    );
-  }
-
-  /// Joins a published partida (no invite needed) and refreshes the feed.
-  Future<void> join(String sessionId) async {
-    await _service.joinSession(sessionId);
-    ref.invalidate(myMinigameSessionsProvider);
-    await refresh();
-  }
-}
-
-/// Open-lobby feed for [gameType] (the wire value, or '' for all games).
-final publicMinigamesProvider =
-    AsyncNotifierProvider.family<
-      PublicMinigamesNotifier,
-      List<Map<String, dynamic>>,
-      String
-    >(PublicMinigamesNotifier.new);
-
 /// Live status of one session: the initial row from [MinigameService.getSession]
 /// merged with realtime row changes on the session's channel
 /// (`realtimeChannelProvider` lifecycle — the realtime sync contract).
@@ -526,15 +437,12 @@ class MinigameSessionStatusNotifier
     return row;
   }
 
-  /// Publishes / unpublishes the partida to the open lobby
-  /// (210_minigame_public, host-only — backend-enforced via `not_creator`)
-  /// and reloads the row so the lobby switch reflects the server truth.
-  Future<void> setPublic(bool isPublic) async {
-    await _service.setMinigamePublic(arg, isPublic);
-    final row = await _service.getSession(arg);
-    if (row != null) state = AsyncData(row);
-    ref.invalidate(publicMinigamesProvider);
-  }
+  /// E4: creates/rotates the 6-character join code (host-only). The code is
+  /// returned once; only its hash is stored.
+  Future<String> setJoinCode() => _service.setJoinCode(arg);
+
+  /// E4: revokes the join code (host-only).
+  Future<void> revokeJoinCode() => _service.revokeJoinCode(arg);
 }
 
 /// One session's live row by id (family).
