@@ -772,6 +772,11 @@ class ChatService {
       'p_peer_id': peerUserId,
     });
     final data = Map<String, dynamic>.from(res as Map);
+    if (data['status'] == 'blocked') {
+      // D2: no thread for a blocked pair. The blocked side gets a generic
+      // message in the UI (never a block disclosure).
+      throw ConflictError('blocked', code: 'blocked');
+    }
     final chatId = data['chatId'];
     if (chatId is! String) {
       throw const ServerError('create_direct_chat returned no chatId');

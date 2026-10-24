@@ -716,6 +716,18 @@ abstract class AppLocalizations {
   /// **'No has bloqueado a nadie'**
   String get friendsNoneBlocked;
 
+  /// Shadow block (E3/E4)
+  ///
+  /// In es, this message translates to:
+  /// **'Usuario bloqueado. ¿Desbloquear?'**
+  String get profileBlockedUnblockPrompt;
+
+  /// Shadow block (E3/E4)
+  ///
+  /// In es, this message translates to:
+  /// **'No se pudo abrir el chat.'**
+  String get profileChatUnavailable;
+
   /// Unblock button label
   ///
   /// In es, this message translates to:

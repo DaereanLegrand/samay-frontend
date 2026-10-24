@@ -5,6 +5,7 @@ import 'package:samay/core/config/feature_flags.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/design_tokens/app_typography.dart';
+import 'package:samay/core/errors/app_error.dart';
 import 'package:samay/core/extensions/error_mapper.dart';
 import 'package:samay/core/logging/app_logger.dart';
 import 'package:samay/core/providers/service_providers.dart';
@@ -34,6 +35,7 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
   String? _friendshipId;
   bool _isIncoming = false;
   bool _isBlocked = false;
+  bool _blockedMe = false;
   bool _isMuted = false;
   bool _loading = true;
   bool _sending = false;
@@ -49,7 +51,13 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
       final profile = await ref
           .read(friendsRepositoryProvider)
           .getUserProfile(widget.userId);
-      if (mounted) setState(() => _profile = profile?.toJson());
+      if (mounted) {
+        setState(() {
+          _profile = profile?.toJson();
+          _isBlocked = profile?.toJson()['blocked_by_me'] == true;
+          _blockedMe = profile?.toJson()['blocked_me'] == true;
+        });
+      }
     } catch (e, st) {
       AppLogger.instance.error('loadPublicProfile error: $e', '$st');
     }
@@ -73,15 +81,6 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
       }
     } catch (e, st) {
       AppLogger.instance.error('loadFriendshipDetail error: $e', '$st');
-    }
-
-    try {
-      final blocked = await ref
-          .read(friendsRepositoryProvider)
-          .getBlockStatus(widget.userId);
-      if (mounted) setState(() => _isBlocked = blocked);
-    } catch (e, st) {
-      AppLogger.instance.error('loadBlockStatus error: $e', '$st');
     }
 
     try {
@@ -186,8 +185,8 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
         title: username ?? l10n.commonUser,
         actions: [
           // The overflow menu is icon-only — the tooltip is its accessibility
-          // name for screen readers.
-          PopupMenuButton<String>(
+          // name for screen readers. The blocked side sees no interactions.
+          if (!_blockedMe) PopupMenuButton<String>(
             tooltip: l10n.commonMoreOptions,
             onSelected: _handleMenuAction,
             itemBuilder: (_) => [
@@ -299,23 +298,31 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
       if (!mounted) return;
       await context.push(RoutePaths.chat(chatId));
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(e.toAppError().message)));
-      }
+      if (!mounted) return;
+      final blocked = e is ConflictError && e.code == 'blocked';
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            blocked
+                ? AppLocalizations.of(context).profileChatUnavailable
+                : e.toAppError().message,
+          ),
+        ),
+      );
     }
   }
 
   Widget _buildActionButton() {
     final l10n = AppLocalizations.of(context);
+    if (_blockedMe) {
+      // Shadow block: the blocked side gets a minimal profile and no actions.
+      return const SizedBox.shrink();
+    }
     if (_isBlocked) {
-      // The status readouts (Bloqueado/Amigos/Solicitado) are NOT actions —
-      // a no-op handler would render them enabled; disabled drops them to
-      // `muted` per §5.1.
+      // The blocker sees the full profile plus the unblock prompt.
       return VButton.emphasized(
-        label: l10n.friendsStatusBlocked,
-        onPressed: null,
+        label: l10n.profileBlockedUnblockPrompt,
+        onPressed: () => _handleMenuAction('unblock'),
       );
     }
     if (_friendshipStatus == 'accepted') {

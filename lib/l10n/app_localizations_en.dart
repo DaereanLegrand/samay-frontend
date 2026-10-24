@@ -349,6 +349,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get friendsNoneBlocked => 'You haven\'t blocked anyone';
 
   @override
+  String get profileBlockedUnblockPrompt => 'User is blocked. Unblock?';
+
+  @override
+  String get profileChatUnavailable => 'Could not open the chat.';
+
+  @override
   String get friendsUnblock => 'Unblock';
 
   @override

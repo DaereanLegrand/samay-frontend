@@ -35,9 +35,17 @@ class UserService {
       if (res == null) return null;
       return Map<String, dynamic>.from(res);
     }
-    final rows = await getUserProfiles([userId]);
-    if (rows.isEmpty) return null;
-    return rows.first;
+    // E3/E4 shadow block: the RPC returns the privacy projection AND the
+    // block relation (blocked_by_me / blocked_me). The blocked side gets
+    // username + avatar only; no lobby/lists can enumerate them.
+    final res = await client.rpc(
+      'get_profile_for_viewer',
+      params: {'p_id': userId},
+    );
+    if (res is List && res.isNotEmpty) {
+      return Map<String, dynamic>.from(res.first as Map);
+    }
+    return null;
   }
 
   /// The profiles of [userIds] in ONE `user_search_view` read (id/username/

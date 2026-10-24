@@ -453,6 +453,14 @@
   "@friendsNoneBlocked": {
     "description": "Empty state when the user has not blocked anyone"
   },
+  "profileBlockedUnblockPrompt": "Usuario bloqueado. ¿Desbloquear?",
+  "@profileBlockedUnblockPrompt": {
+    "description": "Shadow block (E3/E4)"
+  },
+  "profileChatUnavailable": "No se pudo abrir el chat.",
+  "@profileChatUnavailable": {
+    "description": "Shadow block (E3/E4)"
+  },
   "friendsUnblock": "Desbloquear",
   "@friendsUnblock": {
     "description": "Unblock button label"
