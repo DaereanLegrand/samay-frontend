@@ -246,6 +246,46 @@
   "@authForgotPasswordSend": {
     "description": "Forgot-password submit button label"
   },
+  "resetPasswordTitle": "Define una nueva contraseña",
+  "@resetPasswordTitle": {
+    "description": "Password recovery reset screen (D4/E3)"
+  },
+  "resetPasswordBody": "Ingresa y confirma tu nueva contraseña. Usa al menos 8 caracteres.",
+  "@resetPasswordBody": {
+    "description": "Password recovery reset screen (D4/E3)"
+  },
+  "resetPasswordNew": "Nueva contraseña",
+  "@resetPasswordNew": {
+    "description": "Password recovery reset screen (D4/E3)"
+  },
+  "resetPasswordConfirm": "Confirmar contraseña",
+  "@resetPasswordConfirm": {
+    "description": "Password recovery reset screen (D4/E3)"
+  },
+  "resetPasswordSubmit": "Guardar contraseña",
+  "@resetPasswordSubmit": {
+    "description": "Password recovery reset screen (D4/E3)"
+  },
+  "resetPasswordMismatch": "Las contraseñas no coinciden.",
+  "@resetPasswordMismatch": {
+    "description": "Password recovery reset screen (D4/E3)"
+  },
+  "resetPasswordTooShort": "Usa al menos 8 caracteres.",
+  "@resetPasswordTooShort": {
+    "description": "Password recovery reset screen (D4/E3)"
+  },
+  "resetPasswordError": "No se pudo guardar la contraseña. Vuelve a abrir el enlace de recuperación.",
+  "@resetPasswordError": {
+    "description": "Password recovery reset screen (D4/E3)"
+  },
+  "resetPasswordSuccess": "Tu contraseña fue actualizada.",
+  "@resetPasswordSuccess": {
+    "description": "Password recovery reset screen (D4/E3)"
+  },
+  "resetPasswordContinue": "Continuar",
+  "@resetPasswordContinue": {
+    "description": "Password recovery reset screen (D4/E3)"
+  },
   "authForgotPasswordSuccessTitle": "Revisa tu correo",
   "@authForgotPasswordSuccessTitle": {
     "description": "Forgot-password success state heading"
@@ -1128,11 +1168,11 @@
   "@profileDeleteQuestion": {
     "description": "Delete-account confirmation dialog title"
   },
-  "profileDeleteBody": "Esta acción es inmediata e irreversible. Se eliminan tu cuenta, perfil, credenciales, contenido y tokens. Solo se conservan los registros pseudonimizados de shards y asistencia (5 años) y la evidencia restringida de reportes (2 años; CSAM según ley). No hay periodo de recuperación.",
+  "profileDeleteBody": "Esta acción es inmediata e irreversible. Se eliminan tu cuenta, perfil, credenciales, contenido y tokens. Solo se conservan los registros pseudonimizados de shards y asistencia (5 años) y la evidencia restringida de reportes (2 años; contenido ilegal según ley). No hay periodo de recuperación.",
   "@profileDeleteBody": {
     "description": "Delete-account confirmation dialog body"
   },
-  "profileDeleteExplanation": "Al eliminar tu cuenta se borran de inmediato tu perfil, credenciales, contenido, amistades, membresías y tokens. Se conservan únicamente los registros pseudonimizados de shards/asistencia (5 años) y la evidencia restringida de reportes (2 años; CSAM según ley). No existe una ventana de recuperación.",
+  "profileDeleteExplanation": "Al eliminar tu cuenta se borran de inmediato tu perfil, credenciales, contenido, amistades, membresías y tokens. Se conservan únicamente los registros pseudonimizados de shards/asistencia (5 años) y la evidencia restringida de reportes (2 años; contenido ilegal según ley). No existe una ventana de recuperación.",
   "@profileDeleteExplanation": {
     "description": "Explanation of what happens when the account is deleted"
   },
@@ -1140,7 +1180,7 @@
   "@profileDeleteNowLabel": {
     "description": "Immediate erasure button label"
   },
-  "profileDeleteNowBody": "Se borran tu perfil, credenciales, contenido y tokens. Solo quedan registros pseudonimizados de shards/asistencia (5 años) y evidencia restringida de reportes (2 años; CSAM según ley). No se puede deshacer.",
+  "profileDeleteNowBody": "Se borran tu perfil, credenciales, contenido y tokens. Solo quedan registros pseudonimizados de shards/asistencia (5 años) y evidencia restringida de reportes (2 años; contenido ilegal según ley). No se puede deshacer.",
   "@profileDeleteNowBody": {
     "description": "Immediate erasure explanation"
   },
@@ -3988,7 +4028,7 @@
   "reportCategoryImpersonation": "Suplantación de identidad",
   "reportCategoryNcii": "Imágenes íntimas sin consentimiento",
   "reportCategoryThreat": "Amenaza creíble",
-  "reportCategoryCsam": "Material de abuso sexual infantil",
+  "reportCategoryCsam": "Contenido ilegal",
   "reportCategoryOther": "Otro",
   "reportAvatar": "Reportar avatar",
   "reportGroupCover": "Reportar portada del grupo",
@@ -4016,7 +4056,13 @@
   "eventsShareLinkRevoke": "Revocar enlace",
   "eventsShareLinkCopied": "Enlace copiado",
   "eventsShareLinkCopiedBody": "Comparte este enlace: {url}",
-  "@eventsShareLinkCopiedBody": {"placeholders": {"url": {"type": "String"}}},
+  "@eventsShareLinkCopiedBody": {
+    "placeholders": {
+      "url": {
+        "type": "String"
+      }
+    }
+  },
   "eventsShareLinkRevoked": "Enlace revocado",
   "linkConsentTitle": "Invitación",
   "linkJoinEvent": "Unirme al evento",
@@ -4027,7 +4073,13 @@
   "linkEventJoined": "Te uniste al evento",
   "linkInvalid": "Enlace inválido o vencido",
   "linkDistance": "a {km} km",
-  "@linkDistance": {"placeholders": {"km": {"type": "String"}}},
+  "@linkDistance": {
+    "placeholders": {
+      "km": {
+        "type": "String"
+      }
+    }
+  },
   "linkAlreadyMember": "Ya eres miembro",
   "linkOwnProfile": "Este es tu perfil"
 }

@@ -5,6 +5,7 @@ abstract final class RoutePaths {
   static const signup = '/auth/signup';
   static const verify = '/auth/verify';
   static const forgotPassword = '/forgot-password';
+  static const resetPassword = '/auth/reset-password';
   static const ageGate = '/auth/age-gate';
   static const privacyTerms = '/auth/privacy-terms';
   static const profileSetup = '/auth/profile-setup';

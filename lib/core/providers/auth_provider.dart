@@ -20,6 +20,9 @@ class AuthState {
   final bool banned;
   final String? banReason;
   final Map<String, dynamic>? user;
+  /// True after GoTrue emits [AuthChangeEvent.passwordRecovery]; the guard
+  /// confines the app to the reset screen until the new password is set.
+  final bool passwordRecovery;
 
   const AuthState({
     this.authenticated = false,
@@ -27,6 +30,7 @@ class AuthState {
     this.banned = false,
     this.banReason,
     this.user,
+    this.passwordRecovery = false,
   });
 
   AuthState copyWith({
@@ -35,6 +39,7 @@ class AuthState {
     bool? banned,
     String? banReason,
     Map<String, dynamic>? user,
+    bool? passwordRecovery,
   }) {
     return AuthState(
       authenticated: authenticated ?? this.authenticated,
@@ -42,6 +47,7 @@ class AuthState {
       banned: banned ?? this.banned,
       banReason: banReason ?? this.banReason,
       user: user ?? this.user,
+      passwordRecovery: passwordRecovery ?? this.passwordRecovery,
     );
   }
 }
@@ -237,6 +243,8 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
         }
         break;
       case AuthChangeEvent.passwordRecovery:
+        final prevRecovery = state.valueOrNull ?? const AuthState();
+        state = AsyncData(prevRecovery.copyWith(passwordRecovery: true));
         break;
     }
   }
@@ -421,6 +429,20 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
       state = AsyncData(state.valueOrNull ?? const AuthState());
     } catch (e, st) {
       state = AsyncError(e.toAppError(), st);
+    }
+  }
+
+  /// Sets a new password from the in-app recovery screen (the session was
+  /// established by the recovery link). Clears the recovery flag on success.
+  Future<void> updatePassword(String password) async {
+    state = const AsyncLoading<AuthState>().copyWithPrevious(state);
+    try {
+      await _service.updateUser({'password': password});
+      final prev = state.valueOrNull ?? const AuthState();
+      state = AsyncData(prev.copyWith(passwordRecovery: false));
+    } catch (e, st) {
+      state = AsyncError(e.toAppError(), st);
+      rethrow;
     }
   }
 

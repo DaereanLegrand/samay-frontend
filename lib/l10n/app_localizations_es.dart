@@ -192,6 +192,38 @@ class AppLocalizationsEs extends AppLocalizations {
   String get authForgotPasswordSend => 'Enviar enlace';
 
   @override
+  String get resetPasswordTitle => 'Define una nueva contraseña';
+
+  @override
+  String get resetPasswordBody =>
+      'Ingresa y confirma tu nueva contraseña. Usa al menos 8 caracteres.';
+
+  @override
+  String get resetPasswordNew => 'Nueva contraseña';
+
+  @override
+  String get resetPasswordConfirm => 'Confirmar contraseña';
+
+  @override
+  String get resetPasswordSubmit => 'Guardar contraseña';
+
+  @override
+  String get resetPasswordMismatch => 'Las contraseñas no coinciden.';
+
+  @override
+  String get resetPasswordTooShort => 'Usa al menos 8 caracteres.';
+
+  @override
+  String get resetPasswordError =>
+      'No se pudo guardar la contraseña. Vuelve a abrir el enlace de recuperación.';
+
+  @override
+  String get resetPasswordSuccess => 'Tu contraseña fue actualizada.';
+
+  @override
+  String get resetPasswordContinue => 'Continuar';
+
+  @override
   String get authForgotPasswordSuccessTitle => 'Revisa tu correo';
 
   @override
@@ -840,18 +872,18 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get profileDeleteBody =>
-      'Esta acción es inmediata e irreversible. Se eliminan tu cuenta, perfil, credenciales, contenido y tokens. Solo se conservan los registros pseudonimizados de shards y asistencia (5 años) y la evidencia restringida de reportes (2 años; CSAM según ley). No hay periodo de recuperación.';
+      'Esta acción es inmediata e irreversible. Se eliminan tu cuenta, perfil, credenciales, contenido y tokens. Solo se conservan los registros pseudonimizados de shards y asistencia (5 años) y la evidencia restringida de reportes (2 años; contenido ilegal según ley). No hay periodo de recuperación.';
 
   @override
   String get profileDeleteExplanation =>
-      'Al eliminar tu cuenta se borran de inmediato tu perfil, credenciales, contenido, amistades, membresías y tokens. Se conservan únicamente los registros pseudonimizados de shards/asistencia (5 años) y la evidencia restringida de reportes (2 años; CSAM según ley). No existe una ventana de recuperación.';
+      'Al eliminar tu cuenta se borran de inmediato tu perfil, credenciales, contenido, amistades, membresías y tokens. Se conservan únicamente los registros pseudonimizados de shards/asistencia (5 años) y la evidencia restringida de reportes (2 años; contenido ilegal según ley). No existe una ventana de recuperación.';
 
   @override
   String get profileDeleteNowLabel => 'Eliminar mi cuenta definitivamente';
 
   @override
   String get profileDeleteNowBody =>
-      'Se borran tu perfil, credenciales, contenido y tokens. Solo quedan registros pseudonimizados de shards/asistencia (5 años) y evidencia restringida de reportes (2 años; CSAM según ley). No se puede deshacer.';
+      'Se borran tu perfil, credenciales, contenido y tokens. Solo quedan registros pseudonimizados de shards/asistencia (5 años) y evidencia restringida de reportes (2 años; contenido ilegal según ley). No se puede deshacer.';
 
   @override
   String get profileDeleteNowQuestion => '¿Eliminar tu cuenta definitivamente?';
@@ -3036,7 +3068,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get reportCategoryThreat => 'Amenaza creíble';
 
   @override
-  String get reportCategoryCsam => 'Material de abuso sexual infantil';
+  String get reportCategoryCsam => 'Contenido ilegal';
 
   @override
   String get reportCategoryOther => 'Otro';

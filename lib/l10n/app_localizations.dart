@@ -428,6 +428,66 @@ abstract class AppLocalizations {
   /// **'Enviar enlace'**
   String get authForgotPasswordSend;
 
+  /// Password recovery reset screen (D4/E3)
+  ///
+  /// In es, this message translates to:
+  /// **'Define una nueva contraseña'**
+  String get resetPasswordTitle;
+
+  /// Password recovery reset screen (D4/E3)
+  ///
+  /// In es, this message translates to:
+  /// **'Ingresa y confirma tu nueva contraseña. Usa al menos 8 caracteres.'**
+  String get resetPasswordBody;
+
+  /// Password recovery reset screen (D4/E3)
+  ///
+  /// In es, this message translates to:
+  /// **'Nueva contraseña'**
+  String get resetPasswordNew;
+
+  /// Password recovery reset screen (D4/E3)
+  ///
+  /// In es, this message translates to:
+  /// **'Confirmar contraseña'**
+  String get resetPasswordConfirm;
+
+  /// Password recovery reset screen (D4/E3)
+  ///
+  /// In es, this message translates to:
+  /// **'Guardar contraseña'**
+  String get resetPasswordSubmit;
+
+  /// Password recovery reset screen (D4/E3)
+  ///
+  /// In es, this message translates to:
+  /// **'Las contraseñas no coinciden.'**
+  String get resetPasswordMismatch;
+
+  /// Password recovery reset screen (D4/E3)
+  ///
+  /// In es, this message translates to:
+  /// **'Usa al menos 8 caracteres.'**
+  String get resetPasswordTooShort;
+
+  /// Password recovery reset screen (D4/E3)
+  ///
+  /// In es, this message translates to:
+  /// **'No se pudo guardar la contraseña. Vuelve a abrir el enlace de recuperación.'**
+  String get resetPasswordError;
+
+  /// Password recovery reset screen (D4/E3)
+  ///
+  /// In es, this message translates to:
+  /// **'Tu contraseña fue actualizada.'**
+  String get resetPasswordSuccess;
+
+  /// Password recovery reset screen (D4/E3)
+  ///
+  /// In es, this message translates to:
+  /// **'Continuar'**
+  String get resetPasswordContinue;
+
   /// Forgot-password success state heading
   ///
   /// In es, this message translates to:
@@ -1625,13 +1685,13 @@ abstract class AppLocalizations {
   /// Delete-account confirmation dialog body
   ///
   /// In es, this message translates to:
-  /// **'Esta acción es inmediata e irreversible. Se eliminan tu cuenta, perfil, credenciales, contenido y tokens. Solo se conservan los registros pseudonimizados de shards y asistencia (5 años) y la evidencia restringida de reportes (2 años; CSAM según ley). No hay periodo de recuperación.'**
+  /// **'Esta acción es inmediata e irreversible. Se eliminan tu cuenta, perfil, credenciales, contenido y tokens. Solo se conservan los registros pseudonimizados de shards y asistencia (5 años) y la evidencia restringida de reportes (2 años; contenido ilegal según ley). No hay periodo de recuperación.'**
   String get profileDeleteBody;
 
   /// Explanation of what happens when the account is deleted
   ///
   /// In es, this message translates to:
-  /// **'Al eliminar tu cuenta se borran de inmediato tu perfil, credenciales, contenido, amistades, membresías y tokens. Se conservan únicamente los registros pseudonimizados de shards/asistencia (5 años) y la evidencia restringida de reportes (2 años; CSAM según ley). No existe una ventana de recuperación.'**
+  /// **'Al eliminar tu cuenta se borran de inmediato tu perfil, credenciales, contenido, amistades, membresías y tokens. Se conservan únicamente los registros pseudonimizados de shards/asistencia (5 años) y la evidencia restringida de reportes (2 años; contenido ilegal según ley). No existe una ventana de recuperación.'**
   String get profileDeleteExplanation;
 
   /// Immediate erasure button label
@@ -1643,7 +1703,7 @@ abstract class AppLocalizations {
   /// Immediate erasure explanation
   ///
   /// In es, this message translates to:
-  /// **'Se borran tu perfil, credenciales, contenido y tokens. Solo quedan registros pseudonimizados de shards/asistencia (5 años) y evidencia restringida de reportes (2 años; CSAM según ley). No se puede deshacer.'**
+  /// **'Se borran tu perfil, credenciales, contenido y tokens. Solo quedan registros pseudonimizados de shards/asistencia (5 años) y evidencia restringida de reportes (2 años; contenido ilegal según ley). No se puede deshacer.'**
   String get profileDeleteNowBody;
 
   /// Immediate erasure confirmation dialog title
@@ -5555,7 +5615,7 @@ abstract class AppLocalizations {
   /// No description provided for @reportCategoryCsam.
   ///
   /// In es, this message translates to:
-  /// **'Material de abuso sexual infantil'**
+  /// **'Contenido ilegal'**
   String get reportCategoryCsam;
 
   /// No description provided for @reportCategoryOther.

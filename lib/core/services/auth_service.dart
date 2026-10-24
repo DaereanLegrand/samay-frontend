@@ -150,7 +150,12 @@ class AuthService {
   /// success for a valid request shape — even when no account exists — so the
   /// screen never reveals which emails are registered.
   Future<void> resetPasswordForEmail(String email) async {
-    await auth.resetPasswordForEmail(email);
+    // The recovery link must return to the app's reset screen (D4/E3). The
+    // scheme is allow-listed by GoTrue (site_url redirect list).
+    await auth.resetPasswordForEmail(
+      email,
+      redirectTo: 'samay://reset-password',
+    );
   }
 
   Future<void> verifyOtp(String email, String token) async {

@@ -12,6 +12,7 @@ import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/features/auth/screens/banned_screen.dart';
 import 'package:samay/features/auth/screens/login_screen.dart';
 import 'package:samay/features/auth/screens/forgot_password_screen.dart';
+import 'package:samay/features/auth/screens/reset_password_screen.dart';
 import 'package:samay/features/auth/screens/welcome_screen.dart';
 import 'package:samay/features/auth/screens/signup_contact_screen.dart';
 import 'package:samay/features/auth/screens/otp_verification_screen.dart';
@@ -154,6 +155,10 @@ final routerProvider = Provider<GoRouter>((ref) {
         // pattern can shadow its static path; the guard treats it as public.
         path: RoutePaths.forgotPassword,
         builder: (_, _) => const ForgotPasswordScreen(),
+      ),
+      GoRoute(
+        path: RoutePaths.resetPassword,
+        builder: (_, _) => const ResetPasswordScreen(),
       ),
       GoRoute(
         path: RoutePaths.signup,

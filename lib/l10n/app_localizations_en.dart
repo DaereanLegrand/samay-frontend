@@ -192,6 +192,38 @@ class AppLocalizationsEn extends AppLocalizations {
   String get authForgotPasswordSend => 'Send link';
 
   @override
+  String get resetPasswordTitle => 'Set a new password';
+
+  @override
+  String get resetPasswordBody =>
+      'Enter and confirm your new password. Use at least 8 characters.';
+
+  @override
+  String get resetPasswordNew => 'New password';
+
+  @override
+  String get resetPasswordConfirm => 'Confirm password';
+
+  @override
+  String get resetPasswordSubmit => 'Save password';
+
+  @override
+  String get resetPasswordMismatch => 'The passwords do not match.';
+
+  @override
+  String get resetPasswordTooShort => 'Use at least 8 characters.';
+
+  @override
+  String get resetPasswordError =>
+      'Could not save the password. Try the recovery link again.';
+
+  @override
+  String get resetPasswordSuccess => 'Your password has been updated.';
+
+  @override
+  String get resetPasswordContinue => 'Continue';
+
+  @override
   String get authForgotPasswordSuccessTitle => 'Check your email';
 
   @override
@@ -841,18 +873,18 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get profileDeleteBody =>
-      'This action is immediate and irreversible. Your account, profile, credentials, content, and tokens are deleted. Only pseudonymized shard/attendance records (5 years) and restricted report evidence (2 years; CSAM per law) are kept. There is no recovery window.';
+      'This action is immediate and irreversible. Your account, profile, credentials, content, and tokens are deleted. Only pseudonymized shard/attendance records (5 years) and restricted report evidence (2 years; illegal content per law) are kept. There is no recovery window.';
 
   @override
   String get profileDeleteExplanation =>
-      'Deleting your account immediately removes your profile, credentials, content, friendships, memberships, and tokens. Only pseudonymized shard/attendance records (5 years) and restricted report evidence (2 years; CSAM per law) are kept. There is no recovery window.';
+      'Deleting your account immediately removes your profile, credentials, content, friendships, memberships, and tokens. Only pseudonymized shard/attendance records (5 years) and restricted report evidence (2 years; illegal content per law) are kept. There is no recovery window.';
 
   @override
   String get profileDeleteNowLabel => 'Delete my account permanently';
 
   @override
   String get profileDeleteNowBody =>
-      'Your profile, credentials, content, and tokens are deleted. Only pseudonymized shard/attendance records (5 years) and restricted report evidence (2 years; CSAM per law) remain. This cannot be undone.';
+      'Your profile, credentials, content, and tokens are deleted. Only pseudonymized shard/attendance records (5 years) and restricted report evidence (2 years; illegal content per law) remain. This cannot be undone.';
 
   @override
   String get profileDeleteNowQuestion => 'Delete your account permanently?';
@@ -3024,7 +3056,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get reportCategoryThreat => 'Credible threat';
 
   @override
-  String get reportCategoryCsam => 'Child sexual abuse material';
+  String get reportCategoryCsam => 'Illegal content';
 
   @override
   String get reportCategoryOther => 'Other';

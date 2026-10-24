@@ -28,10 +28,19 @@ class AuthGuard {
       return allowedWhileBanned ? null : RoutePaths.banned;
     }
 
+    // Password recovery confines the session to the reset screen until the
+    // new password is set.
+    if (data != null && data.passwordRecovery) {
+      return location == RoutePaths.resetPassword
+          ? null
+          : RoutePaths.resetPassword;
+    }
+
     final isPreAuthRoute =
         location == RoutePaths.welcome ||
         location == RoutePaths.login ||
-        location == RoutePaths.forgotPassword;
+        location == RoutePaths.forgotPassword ||
+        location == RoutePaths.resetPassword;
 
     if (data == null || !data.authenticated) {
       // Unauthenticated: only the pre-auth screens, the signup ENTRY (contact)
