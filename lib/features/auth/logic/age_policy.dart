@@ -18,3 +18,14 @@ bool isAdult(DateTime? birthDate, {DateTime? now}) {
 /// Formats a date of birth as `day/month/year` — the same shape the ARB
 /// `authSelectedDate` template renders (l10n-agnostic pure function).
 String formatDob(DateTime date) => '${date.day}/${date.month}/${date.year}';
+
+/// Q17 funnel guard: the profile-creation call must never receive a missing or
+/// underage DOB, even if a stale/deep-linked route skipped the picker. Returns
+/// null when the ISO date is acceptable; otherwise a stable reason the screen
+/// can localize.
+String? signupDobError(String? isoDate, {DateTime? now}) {
+  if (isoDate == null || isoDate.trim().isEmpty) return 'required';
+  final parsed = DateTime.tryParse(isoDate);
+  if (parsed == null) return 'invalid';
+  return isAdult(parsed, now: now) ? null : 'underage';
+}

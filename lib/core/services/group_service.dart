@@ -118,18 +118,34 @@ class GroupService {
         .from('group_members')
         // `group_id` is required by the freezed GroupMember model
         // (its absence TypeError'd group-detail into "Error del servidor").
-        // The join aliases the security-barrier user_search_view as `users` —
-        // the raw `users` join is own-row-only under RLS, which dropped every
-        // co-member's username (member lists showed a single row). The join
-        // carries `avatar_url` too (20260815000001): the member-list screens
-        // render the co-member's photo through that barrier.
-        .select(
-          'id, group_id, user_id, role, joined_at, status, '
-          'users:user_search_view!inner(username, avatar_url)',
-        )
+        // Q8: direct SELECT on user_search_view is revoked; resolve the
+        // co-member profiles through get_public_profiles (private non-friends
+        // keep username but get a null avatar/bio).
+        .select('id, group_id, user_id, role, joined_at, status')
         .eq('group_id', groupId)
         .eq('status', 'active');
-    return res.map((e) => Map<String, dynamic>.from(e)).toList();
+    final rows = res.map((e) => Map<String, dynamic>.from(e)).toList();
+    final ids = [
+      for (final row in rows)
+        if (row['user_id'] is String) row['user_id'] as String,
+    ];
+    final byId = await _profilesByIds(ids);
+    for (final row in rows) {
+      final id = row['user_id'];
+      row['users'] = byId[id];
+    }
+    return rows;
+  }
+
+  Future<Map<String, Map<String, dynamic>>> _profilesByIds(
+    List<String> ids,
+  ) async {
+    if (ids.isEmpty) return const {};
+    final res = await client.rpc('get_public_profiles', params: {'p_ids': ids});
+    return {
+      for (final r in (res as List))
+        (r as Map)['id'] as String: Map<String, dynamic>.from(r),
+    };
   }
 
   Future<List<Map<String, dynamic>>> getGroupInvites() async {
