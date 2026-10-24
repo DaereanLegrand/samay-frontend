@@ -140,7 +140,7 @@ Future<void> main() async {
   // blocks boot.
   final rcKey = revenueCatPublicSdkKey();
   try {
-    if (rcKey.isNotEmpty) {
+    if (rcKey.isNotEmpty && EnvConfig.iapEnabled) {
       await rc.Purchases.configure(rc.PurchasesConfiguration(rcKey));
       final auth = Supabase.instance.client.auth;
       Future<void> syncRevenueCatUser(Session? session) async {

@@ -1020,12 +1020,6 @@ class AppLocalizationsEs extends AppLocalizations {
   String get paywallRowPreshards => 'Preshards mensuales';
 
   @override
-  String get paywallRowFeed => 'Publicar en feed';
-
-  @override
-  String get paywallRowVideo => 'Video souvenir';
-
-  @override
   String get paywallRowCosmetics => 'Cosméticos de grupo';
 
   @override

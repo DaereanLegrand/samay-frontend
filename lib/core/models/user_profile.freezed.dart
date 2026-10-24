@@ -16,7 +16,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$UserProfile {
 
- String get id; String get username; String? get avatarUrl; String? get bio; int get personalShards; int get preshards; String get subscriptionTier; String get entitlementTier; DateTime? get deletedAt; DateTime? get dateOfBirth;
+ String get id; String get username; String? get avatarUrl; String? get bio; int get personalShards; int get preshards; String get subscriptionTier; DateTime? get deletedAt; DateTime? get dateOfBirth;
 /// Create a copy of UserProfile
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -29,16 +29,16 @@ $UserProfileCopyWith<UserProfile> get copyWith => _$UserProfileCopyWithImpl<User
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is UserProfile&&(identical(other.id, id) || other.id == id)&&(identical(other.username, username) || other.username == username)&&(identical(other.avatarUrl, avatarUrl) || other.avatarUrl == avatarUrl)&&(identical(other.bio, bio) || other.bio == bio)&&(identical(other.personalShards, personalShards) || other.personalShards == personalShards)&&(identical(other.preshards, preshards) || other.preshards == preshards)&&(identical(other.subscriptionTier, subscriptionTier) || other.subscriptionTier == subscriptionTier)&&(identical(other.entitlementTier, entitlementTier) || other.entitlementTier == entitlementTier)&&(identical(other.deletedAt, deletedAt) || other.deletedAt == deletedAt)&&(identical(other.dateOfBirth, dateOfBirth) || other.dateOfBirth == dateOfBirth));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is UserProfile&&(identical(other.id, id) || other.id == id)&&(identical(other.username, username) || other.username == username)&&(identical(other.avatarUrl, avatarUrl) || other.avatarUrl == avatarUrl)&&(identical(other.bio, bio) || other.bio == bio)&&(identical(other.personalShards, personalShards) || other.personalShards == personalShards)&&(identical(other.preshards, preshards) || other.preshards == preshards)&&(identical(other.subscriptionTier, subscriptionTier) || other.subscriptionTier == subscriptionTier)&&(identical(other.deletedAt, deletedAt) || other.deletedAt == deletedAt)&&(identical(other.dateOfBirth, dateOfBirth) || other.dateOfBirth == dateOfBirth));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,username,avatarUrl,bio,personalShards,preshards,subscriptionTier,entitlementTier,deletedAt,dateOfBirth);
+int get hashCode => Object.hash(runtimeType,id,username,avatarUrl,bio,personalShards,preshards,subscriptionTier,deletedAt,dateOfBirth);
 
 @override
 String toString() {
-  return 'UserProfile(id: $id, username: $username, avatarUrl: $avatarUrl, bio: $bio, personalShards: $personalShards, preshards: $preshards, subscriptionTier: $subscriptionTier, entitlementTier: $entitlementTier, deletedAt: $deletedAt, dateOfBirth: $dateOfBirth)';
+  return 'UserProfile(id: $id, username: $username, avatarUrl: $avatarUrl, bio: $bio, personalShards: $personalShards, preshards: $preshards, subscriptionTier: $subscriptionTier, deletedAt: $deletedAt, dateOfBirth: $dateOfBirth)';
 }
 
 
@@ -49,7 +49,7 @@ abstract mixin class $UserProfileCopyWith<$Res>  {
   factory $UserProfileCopyWith(UserProfile value, $Res Function(UserProfile) _then) = _$UserProfileCopyWithImpl;
 @useResult
 $Res call({
- String id, String username, String? avatarUrl, String? bio, int personalShards, int preshards, String subscriptionTier, String entitlementTier, DateTime? deletedAt, DateTime? dateOfBirth
+ String id, String username, String? avatarUrl, String? bio, int personalShards, int preshards, String subscriptionTier, DateTime? deletedAt, DateTime? dateOfBirth
 });
 
 
@@ -66,7 +66,7 @@ class _$UserProfileCopyWithImpl<$Res>
 
 /// Create a copy of UserProfile
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? username = null,Object? avatarUrl = freezed,Object? bio = freezed,Object? personalShards = null,Object? preshards = null,Object? subscriptionTier = null,Object? entitlementTier = null,Object? deletedAt = freezed,Object? dateOfBirth = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? username = null,Object? avatarUrl = freezed,Object? bio = freezed,Object? personalShards = null,Object? preshards = null,Object? subscriptionTier = null,Object? deletedAt = freezed,Object? dateOfBirth = freezed,}) {
   return _then(UserProfile(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,username: null == username ? _self.username : username // ignore: cast_nullable_to_non_nullable
@@ -75,7 +75,6 @@ as String?,bio: freezed == bio ? _self.bio : bio // ignore: cast_nullable_to_non
 as String?,personalShards: null == personalShards ? _self.personalShards : personalShards // ignore: cast_nullable_to_non_nullable
 as int,preshards: null == preshards ? _self.preshards : preshards // ignore: cast_nullable_to_non_nullable
 as int,subscriptionTier: null == subscriptionTier ? _self.subscriptionTier : subscriptionTier // ignore: cast_nullable_to_non_nullable
-as String,entitlementTier: null == entitlementTier ? _self.entitlementTier : entitlementTier // ignore: cast_nullable_to_non_nullable
 as String,deletedAt: freezed == deletedAt ? _self.deletedAt : deletedAt // ignore: cast_nullable_to_non_nullable
 as DateTime?,dateOfBirth: freezed == dateOfBirth ? _self.dateOfBirth : dateOfBirth // ignore: cast_nullable_to_non_nullable
 as DateTime?,
@@ -163,10 +162,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String username,  String? avatarUrl,  String? bio,  int personalShards,  int preshards,  String subscriptionTier,  String entitlementTier,  DateTime? deletedAt,  DateTime? dateOfBirth)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String username,  String? avatarUrl,  String? bio,  int personalShards,  int preshards,  String subscriptionTier,  DateTime? deletedAt,  DateTime? dateOfBirth)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _UserProfile() when $default != null:
-return $default(_that.id,_that.username,_that.avatarUrl,_that.bio,_that.personalShards,_that.preshards,_that.subscriptionTier,_that.entitlementTier,_that.deletedAt,_that.dateOfBirth);case _:
+return $default(_that.id,_that.username,_that.avatarUrl,_that.bio,_that.personalShards,_that.preshards,_that.subscriptionTier,_that.deletedAt,_that.dateOfBirth);case _:
   return orElse();
 
 }
@@ -184,10 +183,10 @@ return $default(_that.id,_that.username,_that.avatarUrl,_that.bio,_that.personal
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String username,  String? avatarUrl,  String? bio,  int personalShards,  int preshards,  String subscriptionTier,  String entitlementTier,  DateTime? deletedAt,  DateTime? dateOfBirth)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String username,  String? avatarUrl,  String? bio,  int personalShards,  int preshards,  String subscriptionTier,  DateTime? deletedAt,  DateTime? dateOfBirth)  $default,) {final _that = this;
 switch (_that) {
 case _UserProfile():
-return $default(_that.id,_that.username,_that.avatarUrl,_that.bio,_that.personalShards,_that.preshards,_that.subscriptionTier,_that.entitlementTier,_that.deletedAt,_that.dateOfBirth);case _:
+return $default(_that.id,_that.username,_that.avatarUrl,_that.bio,_that.personalShards,_that.preshards,_that.subscriptionTier,_that.deletedAt,_that.dateOfBirth);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -204,10 +203,10 @@ return $default(_that.id,_that.username,_that.avatarUrl,_that.bio,_that.personal
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String username,  String? avatarUrl,  String? bio,  int personalShards,  int preshards,  String subscriptionTier,  String entitlementTier,  DateTime? deletedAt,  DateTime? dateOfBirth)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String username,  String? avatarUrl,  String? bio,  int personalShards,  int preshards,  String subscriptionTier,  DateTime? deletedAt,  DateTime? dateOfBirth)?  $default,) {final _that = this;
 switch (_that) {
 case _UserProfile() when $default != null:
-return $default(_that.id,_that.username,_that.avatarUrl,_that.bio,_that.personalShards,_that.preshards,_that.subscriptionTier,_that.entitlementTier,_that.deletedAt,_that.dateOfBirth);case _:
+return $default(_that.id,_that.username,_that.avatarUrl,_that.bio,_that.personalShards,_that.preshards,_that.subscriptionTier,_that.deletedAt,_that.dateOfBirth);case _:
   return null;
 
 }
@@ -219,7 +218,7 @@ return $default(_that.id,_that.username,_that.avatarUrl,_that.bio,_that.personal
 
 @JsonSerializable(fieldRename: FieldRename.snake)
 class _UserProfile implements UserProfile {
-  const _UserProfile({required this.id, required this.username, this.avatarUrl, this.bio, this.personalShards = 0, this.preshards = 0, this.subscriptionTier = 'free', this.entitlementTier = 'free', this.deletedAt, this.dateOfBirth});
+  const _UserProfile({required this.id, required this.username, this.avatarUrl, this.bio, this.personalShards = 0, this.preshards = 0, this.subscriptionTier = 'free', this.deletedAt, this.dateOfBirth});
   factory _UserProfile.fromJson(Map<String, dynamic> json) => _$UserProfileFromJson(json);
 
 @override final  String id;
@@ -229,7 +228,6 @@ class _UserProfile implements UserProfile {
 @override@JsonKey() final  int personalShards;
 @override@JsonKey() final  int preshards;
 @override@JsonKey() final  String subscriptionTier;
-@override@JsonKey() final  String entitlementTier;
 @override final  DateTime? deletedAt;
 @override final  DateTime? dateOfBirth;
 
@@ -246,16 +244,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _UserProfile&&(identical(other.id, id) || other.id == id)&&(identical(other.username, username) || other.username == username)&&(identical(other.avatarUrl, avatarUrl) || other.avatarUrl == avatarUrl)&&(identical(other.bio, bio) || other.bio == bio)&&(identical(other.personalShards, personalShards) || other.personalShards == personalShards)&&(identical(other.preshards, preshards) || other.preshards == preshards)&&(identical(other.subscriptionTier, subscriptionTier) || other.subscriptionTier == subscriptionTier)&&(identical(other.entitlementTier, entitlementTier) || other.entitlementTier == entitlementTier)&&(identical(other.deletedAt, deletedAt) || other.deletedAt == deletedAt)&&(identical(other.dateOfBirth, dateOfBirth) || other.dateOfBirth == dateOfBirth));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _UserProfile&&(identical(other.id, id) || other.id == id)&&(identical(other.username, username) || other.username == username)&&(identical(other.avatarUrl, avatarUrl) || other.avatarUrl == avatarUrl)&&(identical(other.bio, bio) || other.bio == bio)&&(identical(other.personalShards, personalShards) || other.personalShards == personalShards)&&(identical(other.preshards, preshards) || other.preshards == preshards)&&(identical(other.subscriptionTier, subscriptionTier) || other.subscriptionTier == subscriptionTier)&&(identical(other.deletedAt, deletedAt) || other.deletedAt == deletedAt)&&(identical(other.dateOfBirth, dateOfBirth) || other.dateOfBirth == dateOfBirth));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,username,avatarUrl,bio,personalShards,preshards,subscriptionTier,entitlementTier,deletedAt,dateOfBirth);
+int get hashCode => Object.hash(runtimeType,id,username,avatarUrl,bio,personalShards,preshards,subscriptionTier,deletedAt,dateOfBirth);
 
 @override
 String toString() {
-  return 'UserProfile(id: $id, username: $username, avatarUrl: $avatarUrl, bio: $bio, personalShards: $personalShards, preshards: $preshards, subscriptionTier: $subscriptionTier, entitlementTier: $entitlementTier, deletedAt: $deletedAt, dateOfBirth: $dateOfBirth)';
+  return 'UserProfile(id: $id, username: $username, avatarUrl: $avatarUrl, bio: $bio, personalShards: $personalShards, preshards: $preshards, subscriptionTier: $subscriptionTier, deletedAt: $deletedAt, dateOfBirth: $dateOfBirth)';
 }
 
 
@@ -266,7 +264,7 @@ abstract mixin class _$UserProfileCopyWith<$Res> implements $UserProfileCopyWith
   factory _$UserProfileCopyWith(_UserProfile value, $Res Function(_UserProfile) _then) = __$UserProfileCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String username, String? avatarUrl, String? bio, int personalShards, int preshards, String subscriptionTier, String entitlementTier, DateTime? deletedAt, DateTime? dateOfBirth
+ String id, String username, String? avatarUrl, String? bio, int personalShards, int preshards, String subscriptionTier, DateTime? deletedAt, DateTime? dateOfBirth
 });
 
 
@@ -283,7 +281,7 @@ class __$UserProfileCopyWithImpl<$Res>
 
 /// Create a copy of UserProfile
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? username = null,Object? avatarUrl = freezed,Object? bio = freezed,Object? personalShards = null,Object? preshards = null,Object? subscriptionTier = null,Object? entitlementTier = null,Object? deletedAt = freezed,Object? dateOfBirth = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? username = null,Object? avatarUrl = freezed,Object? bio = freezed,Object? personalShards = null,Object? preshards = null,Object? subscriptionTier = null,Object? deletedAt = freezed,Object? dateOfBirth = freezed,}) {
   return _then(_UserProfile(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,username: null == username ? _self.username : username // ignore: cast_nullable_to_non_nullable
@@ -292,7 +290,6 @@ as String?,bio: freezed == bio ? _self.bio : bio // ignore: cast_nullable_to_non
 as String?,personalShards: null == personalShards ? _self.personalShards : personalShards // ignore: cast_nullable_to_non_nullable
 as int,preshards: null == preshards ? _self.preshards : preshards // ignore: cast_nullable_to_non_nullable
 as int,subscriptionTier: null == subscriptionTier ? _self.subscriptionTier : subscriptionTier // ignore: cast_nullable_to_non_nullable
-as String,entitlementTier: null == entitlementTier ? _self.entitlementTier : entitlementTier // ignore: cast_nullable_to_non_nullable
 as String,deletedAt: freezed == deletedAt ? _self.deletedAt : deletedAt // ignore: cast_nullable_to_non_nullable
 as DateTime?,dateOfBirth: freezed == dateOfBirth ? _self.dateOfBirth : dateOfBirth // ignore: cast_nullable_to_non_nullable
 as DateTime?,

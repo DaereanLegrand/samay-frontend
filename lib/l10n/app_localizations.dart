@@ -1958,18 +1958,6 @@ abstract class AppLocalizations {
   /// **'Preshards mensuales'**
   String get paywallRowPreshards;
 
-  /// Tier comparison feature row: posting to the feed
-  ///
-  /// In es, this message translates to:
-  /// **'Publicar en feed'**
-  String get paywallRowFeed;
-
-  /// Tier comparison feature row: video souvenir
-  ///
-  /// In es, this message translates to:
-  /// **'Video souvenir'**
-  String get paywallRowVideo;
-
   /// Tier comparison feature row: group cosmetics
   ///
   /// In es, this message translates to:

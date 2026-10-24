@@ -6,6 +6,7 @@ import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/design_tokens/app_typography.dart';
 import 'package:samay/core/extensions/error_mapper.dart';
 import 'package:samay/core/models/event_photo.dart';
+import 'package:samay/core/providers/config_provider.dart';
 import 'package:samay/features/events/providers/events_providers.dart';
 import 'package:samay/features/photos/providers/photos_providers.dart';
 import 'package:samay/l10n/app_localizations.dart';
@@ -31,6 +32,12 @@ class EventCollageScreen extends ConsumerWidget {
     final l10n = AppLocalizations.of(context);
     final photosAsync = ref.watch(eventPhotosProvider(eventId));
     final title = ref.watch(eventDetailProvider(eventId)).valueOrNull?.name;
+    final topN =
+        int.tryParse(
+          ref.watch(appConfigProvider).valueOrNull?['events.collage_top_n_photos'] ??
+              '',
+        ) ??
+        9;
 
     return Scaffold(
       body: VHeaderBar(
@@ -41,13 +48,21 @@ class EventCollageScreen extends ConsumerWidget {
             message: e.toAppError().message,
             onRetry: () => ref.invalidate(eventPhotosProvider(eventId)),
           ),
-          data: (photos) => photos.isEmpty
-              ? VEmptyView(
-                  icon: Icons.photo_library_outlined,
-                  title: l10n.collageEmpty,
-                  description: l10n.collageEmptyBody,
-                )
-              : _CollageWall(photos: photos, title: title ?? l10n.collageTitle),
+          data: (photos) {
+            final top = [...photos]
+              ..sort((a, b) => b.likesCount.compareTo(a.likesCount));
+            final selected = top.take(topN).toList();
+            return selected.isEmpty
+                ? VEmptyView(
+                    icon: Icons.photo_library_outlined,
+                    title: l10n.collageEmpty,
+                    description: l10n.collageEmptyBody,
+                  )
+                : _CollageWall(
+                    photos: selected,
+                    title: title ?? l10n.collageTitle,
+                  );
+          },
         ),
       ),
     );

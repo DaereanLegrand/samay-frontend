@@ -5,8 +5,8 @@ import 'package:samay/core/config/env_config.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/extensions/error_mapper.dart';
-import 'package:samay/core/providers/auth_provider.dart';
 import 'package:samay/core/providers/config_provider.dart';
+import 'package:samay/features/profile/providers/profile_providers.dart';
 import 'package:samay/core/services/revenuecat_service.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/error_view.dart';
@@ -78,8 +78,6 @@ const paywallRows = <PaywallRow>[
     vip: 'paywallUnlimited',
   ),
   PaywallRow('paywallRowPreshards', free: '10', pro: '1000', vip: '10000'),
-  PaywallRow('paywallRowFeed', free: 'cross', pro: 'check', vip: 'check'),
-  PaywallRow('paywallRowVideo', free: 'cross', pro: 'check', vip: 'check'),
   PaywallRow(
     'paywallRowCosmetics',
     free: 'paywallLimited',
@@ -105,8 +103,6 @@ String paywallRowLabel(AppLocalizations l10n, String key) => switch (key) {
   'paywallRowGroups' => l10n.paywallRowGroups,
   'paywallRowMembers' => l10n.paywallRowMembers,
   'paywallRowPreshards' => l10n.paywallRowPreshards,
-  'paywallRowFeed' => l10n.paywallRowFeed,
-  'paywallRowVideo' => l10n.paywallRowVideo,
   'paywallRowCosmetics' => l10n.paywallRowCosmetics,
   'paywallRowRank' => l10n.paywallRowRank,
   'paywallUnlimited' => l10n.paywallUnlimited,
@@ -230,18 +226,22 @@ int savingPercent(double monthly, double annualMonthlyEquivalent) {
 ///
 /// Reads `user['subscription_tier']` (or the `user_metadata` fallback) when
 /// present, otherwise returns null.
-String? currentTierFromAuth(AuthState authState) {
-  final user = authState.user;
-  if (user == null) return null;
-  final raw =
-      user['subscription_tier'] ??
-      (user['user_metadata'] is Map<String, dynamic>
-          ? (user['user_metadata'] as Map<String, dynamic>)['subscription_tier']
-          : null);
-  if (raw is String && (raw == 'free' || raw == 'pro' || raw == 'vip')) {
-    return raw;
+String? currentTierFromProfile(Map<String, dynamic>? profile) {
+  if (profile == null) return null;
+  final raw = profile['subscription_tier'];
+  if (raw is! String || (raw != 'free' && raw != 'pro' && raw != 'vip')) {
+    return null;
   }
-  return null;
+  if (raw == 'free') return raw;
+  final expires = DateTime.tryParse(
+    profile['subscription_expires_at']?.toString() ?? '',
+  );
+  // D6/Q21: paid requires a future expiry; 24h action grace included.
+  if (expires == null ||
+      !expires.add(const Duration(hours: 24)).isAfter(DateTime.now())) {
+    return null;
+  }
+  return raw;
 }
 
 /// Subscription paywall (PLAN spec §6.12 + `PLAN-subscription-plans-paywall`):
@@ -290,8 +290,10 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final config = ref.watch(appConfigProvider);
-    final authState = ref.watch(authStateProvider);
-    final stubMode = ref.watch(revenueCatServiceProvider).isStubMode;
+    final profile = ref.watch(myProfileProvider).valueOrNull;
+    final iapEnabled = EnvConfig.iapEnabled;
+    final stubMode =
+        !iapEnabled || ref.watch(revenueCatServiceProvider).isStubMode;
     final available = ref.watch(availableRevenueCatProductsProvider);
 
     return Scaffold(
@@ -303,9 +305,7 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
             onRetry: () => ref.invalidate(appConfigProvider),
           ),
           data: (appConfig) {
-            final currentTier = currentTierFromAuth(
-              authState.valueOrNull ?? const AuthState(),
-            );
+            final currentTier = currentTierFromProfile(profile);
             final products =
                 available.valueOrNull ?? const <String, RcProduct>{};
             return ListView(

@@ -14,10 +14,6 @@ abstract class UserProfile with _$UserProfile {
     @Default(0) int personalShards,
     @Default(0) int preshards,
     @Default('free') String subscriptionTier,
-    // Deprecated: the `entitlement_tier` column was dropped in migration
-    // 225_subscription_refactor (event capacity now follows subscriptionTier).
-    // Kept on the wire for compatibility; always resolves to 'free'.
-    @Default('free') String entitlementTier,
     DateTime? deletedAt,
     DateTime? dateOfBirth,
   }) = _UserProfile;

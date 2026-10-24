@@ -40,6 +40,10 @@ class EnvConfig {
   /// Whether this is a production build (custom pricing, no RC price).
   static bool get isProd => appEnv == 'prod';
 
+  /// E2/Q19: IAP is testing-only. The dev/testing flavor may use RevenueCat;
+  /// staging and prod never initialize it and show no purchase/restore CTA.
+  static bool get iapEnabled => appEnv == 'dev';
+
   /// Supabase REST API base URL (anon JWT).
   static String get supabaseUrl => validate(supabaseUrlRaw, 'SUPABASE_URL');
 

@@ -1360,14 +1360,6 @@
   "@paywallRowPreshards": {
     "description": "Tier comparison feature row: monthly preshards"
   },
-  "paywallRowFeed": "Publicar en feed",
-  "@paywallRowFeed": {
-    "description": "Tier comparison feature row: posting to the feed"
-  },
-  "paywallRowVideo": "Video souvenir",
-  "@paywallRowVideo": {
-    "description": "Tier comparison feature row: video souvenir"
-  },
   "paywallRowCosmetics": "Cosméticos de grupo",
   "@paywallRowCosmetics": {
     "description": "Tier comparison feature row: group cosmetics"
