@@ -9,6 +9,14 @@
 - CI: `.gitea/workflows/ci.yml`. iOS `PrivacyInfo.xcprivacy` wired into the Runner target.
 
 ## TODO
+- [x] **Wave 1B consolidated** (tag `wave1b-base`): l10n key union + regenerate,
+      identity/moderation/event-link screens; analyze/tests green.
+- [x] **Wave 2 E4 client:** server-tier paywall (IAP only in dev), collage
+      top-N, `entitlementTier` removed, in-app password reset screen/route,
+      code-only match join UI, shadow-block profile + generic blocked-chat
+      error. `flutter analyze` clean, `flutter test` 7/7.
+- [ ] Group theme client (E4 remainder): palette/control mode UI for group
+      chat, members and group minigames.
 - [x] Chat moderation UI + legal links (store compliance):
       - Long-press a chat message → **Reportar mensaje** (reason dialog →
         `report_message` RPC carrying the DECRYPTED text of that one message)
