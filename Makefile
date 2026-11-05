@@ -1,29 +1,33 @@
 # Samay frontend — Flutter app.
 .PHONY: help init start build dev install build-install uninstall clear clean env test \
-        analyze check secrets hooks guard-local prod-guard track-guard deploy publish \
+        analyze check secrets hooks guard-local guard-env guard-release track-guard deploy publish \
         tunnel-android tunnel-waydroid signing-restore login \
         release bundle-install
 
+ifneq ($(filter command line environment,$(origin PROD)),)
+$(error PROD is not an input; use ENV=testing-local|testing|staging|prod)
+endif
+ifneq ($(filter command line environment,$(origin TESTING)),)
+$(error TESTING is not an input; use ENV=testing-local)
+endif
+
 APP_NAME := samay_app
 # Single environment selector — the ONLY environment flag. Values:
-#   local    — local Docker stack (dev signing, needs JWT_SECRET)
-#   testing  — hosted testing API (default dev target)
-#   staging  — vault-gated staging release
-#   prod     — vault-gated production release
-# Everything else is derived: release-vs-debug, the vault path, the Android
-# flavor, the PROD/TESTING aliases (kept so existing conditionals keep working),
-# and the APP_ENV compile define the app reads.
-ENV ?= testing
+#   testing-local — local Docker stack (dev signing, needs JWT_SECRET)
+#   testing       — hosted testing API behind the free Cloudflare tunnel
+#   staging       — vault-gated staging release
+#   prod          — vault-gated production release
+# ENV is explicit: there is no default. Internal aliases below are derived.
 RELEASE := $(filter staging prod,$(ENV))
 PROD    := $(if $(RELEASE),true,false)
-TESTING := $(if $(filter local,$(ENV)),true,false)
+TESTING := $(if $(filter testing-local,$(ENV)),true,false)
 BUILD_MODE     ?= $(if $(RELEASE),release,debug)
 # Android product flavor (build.gradle.kts flavorDimensions "env"): `dev` for
-# local/testing (AGP reserves the "test" prefix), else the ENV value.
+# testing-local/testing (AGP reserves the "test" prefix), else the ENV value.
 ANDROID_FLAVOR ?= $(if $(RELEASE),$(ENV),dev)
 # Compile define for the app (paywall picks RC price vs custom app_config on it).
 APP_ENV := $(if $(filter prod,$(ENV)),prod,dev)
-# iOS export method for `build PROD=true TARGET=ios`: store (App Store Connect,
+# iOS export method for `build ENV=staging|prod TARGET=ios`: store (App Store Connect,
 # default) or ad-hoc (an on-device ad-hoc IPA). MODE=adhoc is the shorthand.
 MODE ?= store
 IOS_EXPORT_METHOD ?= $(if $(filter adhoc,$(MODE)),ad-hoc,app-store-connect)
@@ -31,14 +35,10 @@ IOS_EXPORT_METHOD ?= $(if $(filter adhoc,$(MODE)),ad-hoc,app-store-connect)
 # (the app-build profile emits it). Unset/false ⇒ no key ⇒ the app is in stub
 # mode (purchase UI disabled). See <private-ops-repo> docs + <private-ops-repo>.
 RC ?= false
-# ENV=prod runs against the LIVE backend. Direct dev/simulator/install runs
-# against prod require this explicit acknowledgement (store pulls go through
-# `deploy`/`release`); guard-local still applies. Set PROD_CONFIRM=1 to proceed.
-PROD_CONFIRM ?=
 APK := build/app/outputs/flutter-apk/app-$(ANDROID_FLAVOR)-$(BUILD_MODE).apk
 IPA_ADHOC := build/ios/ipa/$(APP_NAME)-adhoc.ipa
 APP_ID := com.qallariy.samay
-# Vault fetch/wipe helper for PROD builds. No fallback: PROD stops if it is
+# Vault fetch/wipe helper for staging/prod builds. No fallback: it stops if it is
 # absent (all-or-nothing).
 RELEASE_SECRETS ?= tools/release-signing-not-in-repo.sh
 
@@ -75,7 +75,7 @@ endef
 NO_PUB ?= true
 TARGET ?=
 
-# Store-native release tracks (for `build PROD=true` + `deploy`). TRACK is a
+# Store-native release tracks (for `build ENV=staging|prod` + `deploy`). TRACK is a
 # comma-separated list; there is NO TRACK=all. Vocabularies are per-TARGET and
 # are NOT interchangeable:
 #   ios:     internal external prod
@@ -111,7 +111,7 @@ ifeq ($(strip $(LOCAL_KONG_PORT)),)
 LOCAL_KONG_PORT := 54386
 endif
 
-# ENV=local points builds at the local stack (TESTING is derived above); needs JWT_SECRET.
+# ENV=testing-local points builds at the local stack (TESTING is derived above); needs JWT_SECRET.
 ifeq ($(TESTING),true)
 TESTING_JWT_SECRET := $(JWT_SECRET)
 # Prefer the stack's registered anon key. A freshly minted JWT has a different
@@ -150,7 +150,7 @@ ANDROID_RUN = flutter run --flavor $(ANDROID_FLAVOR) $(PUB_FLAG) $(ENV_DEFINES)
 
 ifeq ($(PROD),true)
 ifeq ($(TESTING),true)
-$(error PROD=true and TESTING=true are mutually exclusive)
+$(error internal: RELEASE and TESTING are mutually exclusive)
 endif
 RAM_DIR             ?= /Volumes/SamayRAM
 KEYSTORE_PROPERTIES ?= $(RAM_DIR)/keystore.properties
@@ -169,21 +169,30 @@ define load-env
 set -a; [ -r ./.env.local ] && . ./.env.local || true; [ -r ./.env ] && . ./.env || true; set +a
 endef
 
+ENV_TARGETS := init dev start build build-install install testing-kong-register env deploy publish release
+$(ENV_TARGETS): guard-env
+guard-env:
+	@case "$(ENV)" in testing-local|testing|staging|prod) ;; *) echo "ENV is required: testing-local|testing|staging|prod"; exit 2;; esac
+
+guard-release:
+	@case "$(ENV)" in staging|prod) ;; *) echo "ENV=staging|prod required"; exit 2;; esac
+deploy publish release: guard-release
+
 help:
-	@echo "Samay frontend — make targets (TARGET=all|android|waydroid|ios|ios-adhoc|simulator)"
+	@echo "Samay frontend — APP implicit; ENV=<testing-local|testing|staging|prod> required"
 	@echo "  BUILD/RUN: build dev install build-install uninstall clear clean"
 	@echo "  TUNNELS:   tunnel-android tunnel-waydroid signing-restore"
 	@echo "  LOGIN:     login [TARGET=simulator]"
 	@echo "  GATES:     analyze check secrets hooks env"
 	@echo "  RELEASE:   release bundle-install"
 	@echo "  TRACKS:    deploy TARGET=ios|android|all TRACK=<list>  (build honours TRACK too)"
-	@echo "  ENV:       ENV=local|testing|staging|prod (drives every verb; staging/prod = vault-gated)"
-	@echo "  PROD:      ENV=prod dev/build/install needs PROD_CONFIRM=1 (store pulls use deploy/release)"
+	@echo "  ENV:       testing-local (Docker) | testing (tunnel) | staging|prod (vault)"
 	@echo "  IOS MODE:  build ENV=prod|staging TARGET=ios MODE=store|adhoc"
 
 env:
-	@echo "ENV=$(ENV)  (PROD=$(PROD) TESTING=$(TESTING) RELEASE=$(RELEASE) APP_ENV=$(APP_ENV))"
+	@echo "ENV=$(ENV)"
 	@echo "config: $(if $(filter true,$(TESTING)),local stack (:$(LOCAL_KONG_PORT)),$(if $(RELEASE),vault profile $(call VAULT_PROFILE_FOR,$(TARGET)) ($(ENV)),.env))"
+	@echo "APP_ENV=$(APP_ENV) ANDROID_FLAVOR=$(ANDROID_FLAVOR) BUILD_MODE=$(BUILD_MODE)"
 	@echo "ENV_FILE=$(ENV_FILE)"
 	@echo "ENV_DEFINES=$(ENV_DEFINES)"
 
@@ -194,8 +203,8 @@ init:
 start: dev
 
 testing-kong-register:
-	@[ -n "$(TESTING_JWT_SECRET)" ] || { echo "TESTING=true needs JWT_SECRET (the local stack signing secret)."; exit 1; }
-	@[ -n "$(TESTING_ANON_KEY)" ] || { echo "TESTING=true: failed to mint the anon JWT."; exit 1; }
+	@[ -n "$(TESTING_JWT_SECRET)" ] || { echo "testing-local needs JWT_SECRET (the local stack signing secret)."; exit 1; }
+	@[ -n "$(TESTING_ANON_KEY)" ] || { echo "testing-local: failed to mint the anon JWT."; exit 1; }
 	@KONG=$$(docker ps --format '{{.Names}}' --filter publish=$(LOCAL_KONG_PORT) | head -1); \
 	if [ -z "$$KONG" ]; then \
 		echo "No Kong on 127.0.0.1:$(LOCAL_KONG_PORT) — temp JWT NOT registered."; \
@@ -229,7 +238,6 @@ build:
 		./bin/fastlane ios adhoc_local && \
 		echo "IPA: $(IPA_ADHOC)"; \
 	elif [ "$(TARGET)" = "simulator" ]; then \
-		[ "$(ENV)" = "prod" ] && [ "$(PROD_CONFIRM)" != "1" ] && { echo "ENV=prod (LIVE) simulator build — set PROD_CONFIRM=1 to proceed."; exit 1; }; \
 		PLIST_BACKUP=""; FIREBASE_BACKUP=""; \
 		sim_cleanup() { \
 			[ -n "$$PLIST_BACKUP" ] && tools/ios_google_oauth.sh restore "$$PLIST_BACKUP" >/dev/null 2>&1 || true; \
@@ -247,7 +255,7 @@ build:
 		flutter build ios --simulator $(PUB_FLAG) $(ENV_DEFINES) && \
 		echo "Simulator app: build/ios/iphonesimulator/Runner.app"; \
 	elif [ "$(TARGET)" = "android" ] && [ "$(PROD)" = "true" ]; then \
-		[ -x "$(RELEASE_SECRETS)" ] || { echo "PROD=true needs executable $(RELEASE_SECRETS) (vault fetch/wipe)."; exit 1; }; \
+		[ -x "$(RELEASE_SECRETS)" ] || { echo "ENV=staging|prod needs executable $(RELEASE_SECRETS) (vault fetch/wipe)."; exit 1; }; \
 		mkdir -p android/app/src/$(ANDROID_FLAVOR); \
 		android_cleanup() { rm -f android/app/src/$(ANDROID_FLAVOR)/google-services.json; $(RELEASE_SECRETS) wipe >/dev/null 2>&1 || true; }; \
 		trap android_cleanup EXIT INT TERM HUP; \
@@ -262,7 +270,7 @@ build:
 		echo "AAB: build/app/outputs/bundle/$(ANDROID_FLAVOR)Release/app-$(ANDROID_FLAVOR)-release.aab" && \
 		echo "APK: $(APK)"; \
 	elif [ "$(TARGET)" = "ios" ] && [ "$(PROD)" = "true" ]; then \
-		[ -x "$(RELEASE_SECRETS)" ] || { echo "PROD=true needs executable $(RELEASE_SECRETS) (vault fetch/wipe)."; exit 1; }; \
+		[ -x "$(RELEASE_SECRETS)" ] || { echo "ENV=staging|prod needs executable $(RELEASE_SECRETS) (vault fetch/wipe)."; exit 1; }; \
 		PLIST_BACKUP=""; \
 		PBX_BACKUP=""; \
 		FIREBASE_BACKUP=""; \
@@ -300,7 +308,7 @@ build:
 build: guard-local
 build: track-guard
 
-dev: guard-local prod-guard
+dev: guard-local
 	$(load-env)
 	@UNAME=$$(uname); \
 	PROFILE="$(call VAULT_PROFILE_FOR,$(TARGET))"; \
@@ -410,7 +418,7 @@ dev: guard-local prod-guard
 		flutter run $(PUB_FLAG) $(ENV_DEFINES); \
 	fi
 
-install: guard-local prod-guard
+install: guard-local
 	$(load-env)
 	@UNAME=$$(uname); \
 	if [ "$(TARGET)" = "android" ] || [ "$(TARGET)" = "waydroid" ]; then \
@@ -505,7 +513,7 @@ clear:
 		adb shell pm clear $(APP_ID); \
 	fi
 
-build-install: guard-local prod-guard
+build-install: guard-local
 	@if [ -z "$(TARGET)" ]; then \
 		echo "make build-install REQUIRES a target: TARGET=all|android|waydroid|ios|ios-adhoc|simulator"; \
 		exit 1; \
@@ -616,18 +624,10 @@ login:
 	@python3 tools/xcode_login.py --target "$(TARGET)" --device "$(DEVICE)" $(if $(DRY_RUN),--dry-run,)
 
 # Vault-gated ENVs (staging/prod) are LOCAL-ONLY: run on the Mac with the vault
-# profile materialized on a RAM disk; never in CI. No-op for local/testing.
+# profile materialized on a RAM disk; never in CI. No-op for testing-local/testing.
 guard-local:
 	@if [ -n "$(RELEASE)" ] && { [ -n "$$CI" ] || [ -n "$$GITHUB_ACTIONS" ] || [ -n "$$GITEA_ACTIONS" ] || [ -n "$$ACT" ]; }; then \
 		echo "ENV=$(ENV) is vault-gated (staging/prod); LOCAL-ONLY — refusing in CI."; exit 1; \
-	fi
-
-# ENV=prod runs against the LIVE backend: dev/simulator/install require an
-# explicit PROD_CONFIRM=1 acknowledgement. Store pulls go through deploy/release,
-# which are already deliberate; this gate is for direct local runs.
-prod-guard:
-	@if [ "$(ENV)" = "prod" ] && [ "$(PROD_CONFIRM)" != "1" ]; then \
-		echo "ENV=prod targets the LIVE backend — set PROD_CONFIRM=1 to proceed (dev/simulator/install)."; exit 1; \
 	fi
 
 # Validate TRACK against the per-TARGET store-native vocabulary. Silent no-op
@@ -657,14 +657,14 @@ bundle-install:
 # Signed PROD artifacts for BOTH platforms in one command (local-only,
 # vault-gated). Each platform fetches its vault profile into the RAM disk,
 # builds, then wipes — so each prompts for the vault passphrase once. The
-# per-platform targets are `build PROD=true TARGET=ios|android`; this target
+# per-platform targets are `build ENV=staging|prod TARGET=ios|android`; this target
 # is just the two-step convenience wrapper.
 release:
 	@$(MAKE) build TARGET=ios ENV="$(ENV)" NO_PUB=$(NO_PUB)
 	@$(MAKE) build TARGET=android ENV="$(ENV)" NO_PUB=$(NO_PUB)
 
 # ── Track-aware build + deploy ───────────────────────────────────────────────
-# build PROD=true TARGET=ios|android TRACK=<list>   → validated build only
+# build ENV=staging|prod TARGET=ios|android TRACK=<list>   → validated build only
 # deploy TARGET=ios|android|all TRACK=<list>        → build every platform in
 #   scope (vault-gated), then publish the built artifact to each requested
 #   store track via fastlane. TRACK is required, store-native, comma-separated;

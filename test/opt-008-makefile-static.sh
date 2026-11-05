@@ -115,7 +115,7 @@ done
 # Override forms (the documented seam surfaces)
 if make -n bundle-install >/dev/null 2>&1; then pass "make -n bundle-install (stub resolves dry)"; else fail "make -n bundle-install"; fi
 if make -n dev TARGET=ios-adhoc >/dev/null 2>&1; then pass "make -n dev TARGET=ios-adhoc (enrolled ad-hoc device branch resolves dry)"; else fail "make -n dev TARGET=ios-adhoc"; fi
-if make -n dev TARGET=ios-adhoc TESTING=true >/dev/null 2>&1; then pass "make -n dev TARGET=ios-adhoc TESTING=true (TESTING defines + register prereq resolve dry)"; else fail "make -n dev TARGET=ios-adhoc TESTING=true"; fi
+if make -n dev TARGET=ios-adhoc ENV=testing-local >/dev/null 2>&1; then pass "make -n dev TARGET=ios-adhoc ENV=testing-local (TESTING defines + register prereq resolve dry)"; else fail "make -n dev TARGET=ios-adhoc ENV=testing-local"; fi
 if make -n build TARGET=ios-adhoc >/dev/null 2>&1; then pass "make -n build TARGET=ios-adhoc (fastlane adhoc_local branch resolves dry)"; else fail "make -n build TARGET=ios-adhoc"; fi
 if make -n install TARGET=ios-adhoc >/dev/null 2>&1; then pass "make -n install TARGET=ios-adhoc (devicectl device-install branch resolves dry)"; else fail "make -n install TARGET=ios-adhoc"; fi
 if make -n dev TARGET=waydroid >/dev/null 2>&1; then pass "make -n dev TARGET=waydroid (Darwin tunnel-waydroid + direct branches resolve dry)"; else fail "make -n dev TARGET=waydroid"; fi
@@ -132,7 +132,7 @@ if make -n help >/dev/null 2>&1; then pass "make -n help (target cheatsheet reso
 if make -n build-install TARGET=all >/dev/null 2>&1; then pass "make -n build-install TARGET=all (build+install sweep resolves dry)"; else fail "make -n build-install TARGET=all"; fi
 if make -n uninstall TARGET=simulator >/dev/null 2>&1; then pass "make -n uninstall TARGET=simulator (simctl branch resolves dry)"; else fail "make -n uninstall TARGET=simulator"; fi
 
-# ── 1b. TRACK vocabulary contract (`build PROD=true` + `deploy`) ─────────────
+# ── 1b. TRACK vocabulary contract (`build ENV=staging|prod` + `deploy`) ─────────────
 # Store-native, per-TARGET vocabularies; comma lists allowed; no TRACK=all.
 echo ""
 echo "━━━ 1b. TRACK contract ━━━"
@@ -164,9 +164,9 @@ else
 fi
 
 # ── 1c. ENV drives every run/build/install verb ──────────────────────────────
-# ENV=local|testing|staging|prod must resolve for dev/build/install, reach the
+# ENV=testing-local|testing|staging|prod must resolve for dev/build/install, reach the
 # nested $(MAKE) sweeps, and pull the vault dart-defines for staging/prod.
-# prod is gated behind PROD_CONFIRM=1.
+# ENV is required; prod is not gated by a separate confirmation.
 echo ""
 echo "━━━ 1c. ENV honored by dev/build/install ━━━"
 env_resolves() { # label  args...
@@ -174,12 +174,12 @@ env_resolves() { # label  args...
   if make -n "$@" >/dev/null 2>&1; then pass "ENV: $label"; else fail "ENV: $label (make -n $* did not resolve)"; fi
 }
 env_resolves "dev simulator ENV=testing"       dev     TARGET=simulator ENV=testing
-env_resolves "dev simulator ENV=local"         dev     TARGET=simulator ENV=local
+env_resolves "dev simulator ENV=testing-local" dev     TARGET=simulator ENV=testing-local
 env_resolves "dev simulator ENV=staging"       dev     TARGET=simulator ENV=staging
-env_resolves "dev simulator ENV=prod +ack"     dev     TARGET=simulator ENV=prod PROD_CONFIRM=1
+env_resolves "dev simulator ENV=prod"           dev     TARGET=simulator ENV=prod
 env_resolves "build simulator ENV=staging"     build   TARGET=simulator ENV=staging
 env_resolves "build android ENV=staging"       build   TARGET=android   ENV=staging
-env_resolves "build android ENV=prod +ack"     build   TARGET=android   ENV=prod PROD_CONFIRM=1
+env_resolves "build android ENV=prod"           build   TARGET=android   ENV=prod
 env_resolves "install simulator ENV=staging"   install TARGET=simulator ENV=staging
 env_resolves "build-install simulator testing" build-install TARGET=simulator ENV=testing
 
@@ -206,21 +206,28 @@ else
   fail "env verb does not report ENV"
 fi
 
-# prod-guard: ENV=prod needs PROD_CONFIRM=1; staging passes through untouched.
-if make -s prod-guard ENV=prod >/dev/null 2>&1; then
-  fail "prod-guard did not reject ENV=prod without PROD_CONFIRM"
+# guard-env: ENV is required and must be one of the four values.
+if make -s guard-env >/dev/null 2>&1; then
+  fail "guard-env accepted an unset ENV"
 else
-  pass "prod-guard rejects ENV=prod without PROD_CONFIRM"
+  pass "guard-env rejects an unset ENV"
 fi
-if make -s prod-guard ENV=prod PROD_CONFIRM=1 >/dev/null 2>&1; then
-  pass "prod-guard accepts ENV=prod with PROD_CONFIRM=1"
+for e in testing-local testing staging prod; do
+  if make -s guard-env ENV="$e" >/dev/null 2>&1; then
+    pass "guard-env accepts ENV=$e"
+  else
+    fail "guard-env rejected ENV=$e"
+  fi
+done
+if make -s guard-env ENV=local >/dev/null 2>&1; then
+  fail "guard-env accepted the removed ENV=local"
 else
-  fail "prod-guard rejected ENV=prod with PROD_CONFIRM=1"
+  pass "guard-env rejects the removed ENV=local"
 fi
-if make -s prod-guard ENV=staging >/dev/null 2>&1; then
-  pass "prod-guard no-ops for ENV=staging"
+if make -s guard-release ENV=testing >/dev/null 2>&1; then
+  fail "guard-release accepted ENV=testing"
 else
-  fail "prod-guard tripped for ENV=staging (should no-op)"
+  pass "guard-release rejects ENV=testing"
 fi
 
 # ── 2. Fastlane upload-lane contract (vault-built artifacts; no match) ───────
