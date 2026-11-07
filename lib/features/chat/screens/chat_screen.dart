@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:samay/features/chat/providers/chat_providers.dart';
 import 'package:samay/features/chat/widgets/chat_thread_view.dart';
+import 'package:samay/features/groups/providers/groups_providers.dart';
+import 'package:samay/features/groups/theme/group_theme_colors.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/v_header_bar.dart';
 
@@ -41,7 +43,13 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       }
     }
 
+    final theme = groupId == null
+        ? null
+        : ref.watch(groupThemeProvider(groupId)).valueOrNull;
+
     return Scaffold(
+      backgroundColor:
+          theme == null ? null : groupThemeColor(theme.backgroundColor),
       body: VHeaderBar(
         title: peerUsername ?? l10n.chatTitle,
         child: ChatThreadView(chatId: widget.chatId, groupId: groupId),

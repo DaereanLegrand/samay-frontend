@@ -48,6 +48,7 @@ import 'package:samay/features/groups/screens/donate_shards_screen.dart';
 import 'package:samay/features/groups/screens/group_detail_screen.dart';
 import 'package:samay/features/groups/screens/invite_screen.dart';
 import 'package:samay/features/groups/screens/group_members_screen.dart';
+import 'package:samay/features/groups/screens/group_theme_screen.dart';
 import 'package:samay/features/social/screens/rankings_screen.dart';
 import 'package:samay/features/social/screens/social_screen.dart';
 import 'package:samay/features/minigames/logic/minigame_meta.dart';
@@ -396,6 +397,15 @@ final routerProvider = Provider<GoRouter>((ref) {
           state,
           'groupId',
           (groupId) => GroupMembersScreen(groupId: groupId),
+          errorMessage: AppLocalizations.of(context).routerGroupNotFound,
+        ),
+      ),
+      GoRoute(
+        path: RoutePaths.groupTheme(':groupId'),
+        builder: (context, state) => _screenForId(
+          state,
+          'groupId',
+          (groupId) => GroupThemeScreen(groupId: groupId),
           errorMessage: AppLocalizations.of(context).routerGroupNotFound,
         ),
       ),

@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:samay/core/models/group.dart';
 import 'package:samay/core/models/group_member.dart';
+import 'package:samay/core/models/group_theme.dart';
 import 'package:samay/core/repositories/repository_providers.dart';
 import 'package:samay/core/utils/shard_math.dart';
 import 'package:samay/core/utils/throttled_refresh.dart';
@@ -272,3 +273,11 @@ class LeaderboardNotifier
 /// enriched with group details.
 final leaderboardProvider = AsyncNotifierProvider.family<LeaderboardNotifier,
     List<LeaderboardEntry>, String>(LeaderboardNotifier.new);
+
+/// The host-owned group theme (E4): palette, control mode and the caller's
+/// `can_change_*` flags. Group chat, the member list and group minigames read
+/// the resulting colours.
+final groupThemeProvider =
+    FutureProvider.family<GroupTheme, String>((ref, groupId) {
+  return ref.read(groupsRepositoryProvider).getGroupTheme(groupId);
+});

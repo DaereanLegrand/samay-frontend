@@ -43,6 +43,7 @@ abstract final class RoutePaths {
   static String inviteLink(String kind, String token) => '/link/$kind/$token';
   static String groupDetail(String groupId) => '/group/$groupId';
   static String groupMembers(String groupId) => '/group/$groupId/members';
+  static String groupTheme(String groupId) => '/group/$groupId/theme';
   static String donateToGroup(String groupId) => '/group/$groupId/donate';
   static String createGroupEvent(String groupId) =>
       '/group/$groupId/create-event';

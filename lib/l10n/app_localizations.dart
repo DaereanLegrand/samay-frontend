@@ -1226,6 +1226,24 @@ abstract class AppLocalizations {
   /// **'Hacer staff'**
   String get groupsPromoteStaff;
 
+  /// No description provided for @groupsRoleHost.
+  ///
+  /// In es, this message translates to:
+  /// **'Anfitrión'**
+  String get groupsRoleHost;
+
+  /// No description provided for @groupsRoleStaff.
+  ///
+  /// In es, this message translates to:
+  /// **'Staff'**
+  String get groupsRoleStaff;
+
+  /// No description provided for @groupsRoleMember.
+  ///
+  /// In es, this message translates to:
+  /// **'Miembro'**
+  String get groupsRoleMember;
+
   /// Member-actions sheet option that demotes a staff to member (R17)
   ///
   /// In es, this message translates to:
@@ -5929,6 +5947,66 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'Este es tu perfil'**
   String get linkOwnProfile;
+
+  /// No description provided for @groupThemeTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Tema del grupo'**
+  String get groupThemeTitle;
+
+  /// No description provided for @groupThemePreview.
+  ///
+  /// In es, this message translates to:
+  /// **'Vista previa'**
+  String get groupThemePreview;
+
+  /// No description provided for @groupThemeControl.
+  ///
+  /// In es, this message translates to:
+  /// **'Quién puede cambiarlo'**
+  String get groupThemeControl;
+
+  /// No description provided for @groupThemeControlEveryone.
+  ///
+  /// In es, this message translates to:
+  /// **'Todos'**
+  String get groupThemeControlEveryone;
+
+  /// No description provided for @groupThemeControlHostOnly.
+  ///
+  /// In es, this message translates to:
+  /// **'Solo el host'**
+  String get groupThemeControlHostOnly;
+
+  /// No description provided for @groupThemeControlLocked.
+  ///
+  /// In es, this message translates to:
+  /// **'Bloqueado'**
+  String get groupThemeControlLocked;
+
+  /// No description provided for @groupThemePalette.
+  ///
+  /// In es, this message translates to:
+  /// **'Paleta'**
+  String get groupThemePalette;
+
+  /// No description provided for @groupThemePaletteFree.
+  ///
+  /// In es, this message translates to:
+  /// **'El plan gratuito usa negro fijo. Hazte PRO o VIP para elegir colores.'**
+  String get groupThemePaletteFree;
+
+  /// No description provided for @groupThemeLockedHint.
+  ///
+  /// In es, this message translates to:
+  /// **'El host bloqueó el tema.'**
+  String get groupThemeLockedHint;
+
+  /// No description provided for @groupThemeSaved.
+  ///
+  /// In es, this message translates to:
+  /// **'Tema actualizado'**
+  String get groupThemeSaved;
 }
 
 class _AppLocalizationsDelegate

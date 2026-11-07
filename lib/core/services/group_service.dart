@@ -275,4 +275,36 @@ class GroupService {
       });
     }
   }
+
+  /// E4 group theme + what the caller may do with it (`get_group_theme`).
+  /// Members only; the server derives the palette, foregrounds and the
+  /// `can_change_*` flags from the host's tier and the control mode.
+  Future<Map<String, dynamic>> getGroupTheme(String groupId) async {
+    final user = auth.currentUser;
+    if (user == null) throw const UnauthorizedError();
+    final res = await client.rpc(
+      'get_group_theme',
+      params: {'p_group_id': groupId},
+    );
+    return Map<String, dynamic>.from(res as Map);
+  }
+
+  /// Changes the group theme. Any omitted argument is left untouched.
+  /// The server enforces tier palette, control mode, rate limits and audit;
+  /// failures surface as [AppError] via the RPC error code.
+  Future<void> setGroupTheme(
+    String groupId, {
+    String? backgroundColor,
+    String? accentColor,
+    String? controlMode,
+  }) async {
+    final user = auth.currentUser;
+    if (user == null) throw const UnauthorizedError();
+    await client.rpc('set_group_theme', params: {
+      'p_group_id': groupId,
+      'p_background_color': backgroundColor,
+      'p_accent_color': accentColor,
+      'p_control_mode': controlMode,
+    });
+  }
 }

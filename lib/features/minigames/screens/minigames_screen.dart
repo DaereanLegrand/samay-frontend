@@ -10,6 +10,7 @@ import 'package:samay/core/models/group.dart';
 import 'package:samay/core/router/route_paths.dart';
 import 'package:samay/core/services/minigame_service.dart';
 import 'package:samay/features/groups/providers/groups_providers.dart';
+import 'package:samay/features/groups/theme/group_theme_colors.dart';
 import 'package:samay/features/minigames/logic/minigame_engine.dart';
 import 'package:samay/features/minigames/logic/minigame_meta.dart';
 import 'package:samay/features/minigames/providers/minigames_providers.dart';
@@ -174,8 +175,14 @@ class _MinigamesScreenState extends ConsumerState<MinigamesScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final groupId = _scope == MinigameScope.group ? _selectedGroupId : null;
+    final theme = groupId == null
+        ? null
+        : ref.watch(groupThemeProvider(groupId)).valueOrNull;
 
     return Scaffold(
+      backgroundColor:
+          theme == null ? null : groupThemeColor(theme.backgroundColor),
       body: VHeaderBar(
         // Two-row header: "juegos" over the "Te atreves" tagline.
         titleWidget: MinigameHeaderTitle(
@@ -436,6 +443,9 @@ class _MinigamesScreenState extends ConsumerState<MinigamesScreen> {
         final all = [...uniquePending, ...rows];
 
         if (all.isEmpty) {
+          final themed = _scope == MinigameScope.group && _selectedGroupId != null
+              ? ref.watch(groupThemeProvider(_selectedGroupId!)).valueOrNull
+              : null;
           return _fillState(
             VEmptyView(
               icon: Icons.sports_esports,
@@ -443,6 +453,10 @@ class _MinigamesScreenState extends ConsumerState<MinigamesScreen> {
               description: direct
                   ? l10n.minigamesDirectEmptyBody
                   : l10n.minigamesEmptyBody,
+              iconColor: themed == null
+                  ? null
+                  : groupThemeColor(themed.foregroundColor)
+                      .withValues(alpha: 0.55),
             ),
           );
         }

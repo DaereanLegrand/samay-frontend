@@ -626,6 +626,15 @@ class AppLocalizationsEs extends AppLocalizations {
   String get groupsPromoteStaff => 'Hacer staff';
 
   @override
+  String get groupsRoleHost => 'Anfitrión';
+
+  @override
+  String get groupsRoleStaff => 'Staff';
+
+  @override
+  String get groupsRoleMember => 'Miembro';
+
+  @override
   String get groupsDemoteMember => 'Hacer miembro';
 
   @override
@@ -3234,4 +3243,35 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get linkOwnProfile => 'Este es tu perfil';
+
+  @override
+  String get groupThemeTitle => 'Tema del grupo';
+
+  @override
+  String get groupThemePreview => 'Vista previa';
+
+  @override
+  String get groupThemeControl => 'Quién puede cambiarlo';
+
+  @override
+  String get groupThemeControlEveryone => 'Todos';
+
+  @override
+  String get groupThemeControlHostOnly => 'Solo el host';
+
+  @override
+  String get groupThemeControlLocked => 'Bloqueado';
+
+  @override
+  String get groupThemePalette => 'Paleta';
+
+  @override
+  String get groupThemePaletteFree =>
+      'El plan gratuito usa negro fijo. Hazte PRO o VIP para elegir colores.';
+
+  @override
+  String get groupThemeLockedHint => 'El host bloqueó el tema.';
+
+  @override
+  String get groupThemeSaved => 'Tema actualizado';
 }

@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:samay/core/models/event.dart';
 import 'package:samay/core/models/group.dart';
+import 'package:samay/core/models/group_theme.dart';
 import 'package:samay/core/models/user_profile.dart';
 
 /// Validates the shared E0 fixtures in `../backend/test/contracts` against the
@@ -77,6 +78,10 @@ void main() {
     expect(UserProfile.fromJson(sample('user_profile')).id, isNotEmpty);
     expect(Event.fromJson(sample('event')).id, isNotEmpty);
     expect(Group.fromJson(sample('group')).id, isNotEmpty);
+    final theme = GroupTheme.fromJson(sample('group_theme'));
+    expect(theme.groupId, isNotEmpty);
+    expect(theme.palette, isNotEmpty);
+    expect(theme.controlMode, 'everyone');
 
     final blocked = sample('direct_chat_blocked');
     expect(blocked['status'], 'blocked');

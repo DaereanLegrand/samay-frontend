@@ -236,13 +236,16 @@ class VHeaderTitleRow extends StatelessWidget {
     final labelShift = _opticalShift(context, _actionLabelStyle(context));
     final hasTitle = title != null || titleWidget != null;
 
-    // Same platform icon as [BackButtonIcon], plus the shared legibility
-    // shadow so the arrow reads over imagery.
+    // Same platform icon as [BackButtonIcon]. The shared legibility shadow
+    // keeps the arrow readable over imagery in the bare state; in the pill
+    // state the glyph sits on its own glass bubble over a solid surface, so
+    // the soft dark halo reads as a SECOND faint chevron (seen on the group
+    // theme colours) — drop it there.
     final backIcon = Icon(switch (Theme.of(context).platform) {
       TargetPlatform.iOS ||
       TargetPlatform.macOS => Icons.arrow_back_ios_new_rounded,
       _ => Icons.arrow_back,
-    }, shadows: AppTypography.legibilityShadows);
+    }, shadows: p >= 0.99 ? null : AppTypography.legibilityShadows);
 
     final Widget? titleInner =
         titleWidget ??

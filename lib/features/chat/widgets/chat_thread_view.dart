@@ -20,6 +20,7 @@ import 'package:samay/core/theme/samay_durations.dart';
 import 'package:samay/features/chat/providers/chat_providers.dart';
 import 'package:samay/features/friends/providers/friends_providers.dart';
 import 'package:samay/features/groups/providers/groups_providers.dart';
+import 'package:samay/features/groups/theme/group_theme_colors.dart';
 import 'package:samay/features/minigames/logic/minigame_meta.dart';
 import 'package:samay/features/minigames/providers/minigames_providers.dart';
 import 'package:samay/l10n/app_localizations.dart';
@@ -753,9 +754,19 @@ class _ChatThreadViewState extends ConsumerState<ChatThreadView> {
             ),
             data: (state) {
               if (state.messages.isEmpty && notices.isEmpty) {
+                // On a themed group chat the default dark empty-state icon
+                // disappears against the coloured background; tint it with
+                // the server-derived foreground.
+                final themed = groupId == null
+                    ? null
+                    : ref.watch(groupThemeProvider(groupId)).valueOrNull;
                 return VEmptyView(
                   icon: Icons.chat_bubble_outline,
                   title: l10n.chatEmpty,
+                  iconColor: themed == null
+                      ? null
+                      : groupThemeColor(themed.foregroundColor)
+                          .withValues(alpha: 0.55),
                 );
               }
               final showHeader = state.hasMore || state.loadingOlder;

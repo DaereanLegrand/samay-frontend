@@ -52,6 +52,11 @@ class VEmptyView extends StatelessWidget {
   final String? actionLabel;
   final VoidCallback? onAction;
 
+  /// Optional icon colour for empty states rendered on a non-black surface
+  /// (e.g. a group chat themed background). Defaults to the standard
+  /// `AppColors.border` token.
+  final Color? iconColor;
+
   const VEmptyView({
     super.key,
     this.icon = Icons.inbox_outlined,
@@ -59,6 +64,7 @@ class VEmptyView extends StatelessWidget {
     this.description,
     this.actionLabel,
     this.onAction,
+    this.iconColor,
   });
 
   @override
@@ -70,7 +76,7 @@ class VEmptyView extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: AppIconSizes.xxl, color: AppColors.border),
+            Icon(icon, size: AppIconSizes.xxl, color: iconColor ?? AppColors.border),
             const SizedBox(height: AppSpacing.sectionGap),
             Text(
               title,

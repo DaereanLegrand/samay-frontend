@@ -235,14 +235,15 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen> {
                 // The same gap every other header reserves keeps the title
                 // whole.
                 padding: EdgeInsets.fromLTRB(
-                  AppSpacing.sm,
+                  VHeaderMetrics.titleInset.left,
                   VHeaderMetrics.heroTopPad(MediaQuery.paddingOf(context).top),
-                  AppSpacing.sm,
+                  VHeaderMetrics.titleInset.right,
                   0,
                 ),
                 child: VHeaderTitleRow(
                   title: g.name,
                   actions: [_menu(l10n, g)],
+                  pillProgress: 1,
                 ),
               ),
             ),
@@ -263,7 +264,7 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen> {
         if (hasCover)
           VNetworkImage(imageUrl: g.coverUrl!, fit: BoxFit.cover)
         else
-          const ColoredBox(color: AppColors.surfaceAlt),
+          const ColoredBox(color: AppColors.discoBlack),
         // Flat black identity strip at the banner floor (no gradient): it
         // keeps the shards/members/rank legible over any cover.
         Positioned(
@@ -329,6 +330,10 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen> {
       itemBuilder: (_) => [
         PopupMenuItem(value: 'invite', child: Text(l10n.commonInvite)),
         PopupMenuItem(
+          value: 'theme',
+          child: Text(l10n.groupThemeTitle),
+        ),
+        PopupMenuItem(
           value: 'create_event',
           child: Text(l10n.groupsCreateEvent),
         ),
@@ -346,6 +351,8 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen> {
     switch (value) {
       case 'invite':
         context.push(RoutePaths.inviteToGroup(widget.groupId));
+      case 'theme':
+        context.push(RoutePaths.groupTheme(widget.groupId));
       case 'create_event':
         context.push(RoutePaths.createGroupEvent(widget.groupId));
       case 'report_cover':

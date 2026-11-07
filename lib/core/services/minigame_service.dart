@@ -115,9 +115,11 @@ class MinigameService {
 
   GoTrueClient get auth => client.auth;
 
+  // 239 (E4) dropped the open-lobby `is_public` column; matches are
+  // discoverable only by the 6-character code now.
   static const _columns =
       'id, group_id, game_type, status, shard_wager, player_limit, '
-      'participants, winner_id, created_at, name, auto_name, is_public, '
+      'participants, winner_id, created_at, name, auto_name, '
       'prize_positions';
 
   /// All sessions of [groupId], newest first (RLS `ms_read_group_member` —

@@ -626,6 +626,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get groupsPromoteStaff => 'Make staff';
 
   @override
+  String get groupsRoleHost => 'Host';
+
+  @override
+  String get groupsRoleStaff => 'Staff';
+
+  @override
+  String get groupsRoleMember => 'Member';
+
+  @override
   String get groupsDemoteMember => 'Make member';
 
   @override
@@ -3223,4 +3232,35 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get linkOwnProfile => 'This is your profile';
+
+  @override
+  String get groupThemeTitle => 'Group theme';
+
+  @override
+  String get groupThemePreview => 'Preview';
+
+  @override
+  String get groupThemeControl => 'Who can change it';
+
+  @override
+  String get groupThemeControlEveryone => 'Everyone';
+
+  @override
+  String get groupThemeControlHostOnly => 'Host only';
+
+  @override
+  String get groupThemeControlLocked => 'Locked';
+
+  @override
+  String get groupThemePalette => 'Palette';
+
+  @override
+  String get groupThemePaletteFree =>
+      'The free plan uses fixed black. Upgrade to PRO or VIP to pick colours.';
+
+  @override
+  String get groupThemeLockedHint => 'The host locked the theme.';
+
+  @override
+  String get groupThemeSaved => 'Theme updated';
 }

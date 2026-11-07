@@ -19,11 +19,7 @@
 #      SCRATCH git repo — GREEN on a clean committed pair of stacks, RED on a
 #      planted untracked migration, RED on a planted future-dated migration
 #      (real repo is never touched).
-#   4. Deploy targets are placeholders: deploy-api / deploy-dashboard /
-#      deploy-venue exist, their block references DEPLOYMENT-PLACEHOLDER.md,
-#      and contains NO scheme:// URL at all (real URLs are banned from the
-#      Makefile by the repo placeholder policy).
-#   5. bash -n on tools/check_migrations.sh and this file.
+#   4. bash -n on tools/check_migrations.sh and this file.
 #
 # NOTE for M-17/M-18: when fastlane/Fastfile + Gemfile land, the conditional
 # stub probe (§2) auto-skips; keep the four lane names EXACTLY as above.
@@ -207,7 +203,7 @@ else
 fi
 
 # guard-env: ENV is required and must be one of the four values.
-if make -s guard-env >/dev/null 2>&1; then
+if make -s guard-env ENV= >/dev/null 2>&1; then
   fail "guard-env accepted an unset ENV"
 else
   pass "guard-env rejects an unset ENV"

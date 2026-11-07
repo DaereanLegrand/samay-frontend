@@ -831,6 +831,9 @@
   "@groupsPromoteStaff": {
     "description": "Member-actions sheet option that promotes a member to staff (R17)"
   },
+  "groupsRoleHost": "Anfitrión",
+  "groupsRoleStaff": "Staff",
+  "groupsRoleMember": "Miembro",
   "groupsDemoteMember": "Hacer miembro",
   "@groupsDemoteMember": {
     "description": "Member-actions sheet option that demotes a staff to member (R17)"
@@ -4138,5 +4141,15 @@
     }
   },
   "linkAlreadyMember": "Ya eres miembro",
-  "linkOwnProfile": "Este es tu perfil"
+  "linkOwnProfile": "Este es tu perfil",
+  "groupThemeTitle": "Tema del grupo",
+  "groupThemePreview": "Vista previa",
+  "groupThemeControl": "Quién puede cambiarlo",
+  "groupThemeControlEveryone": "Todos",
+  "groupThemeControlHostOnly": "Solo el host",
+  "groupThemeControlLocked": "Bloqueado",
+  "groupThemePalette": "Paleta",
+  "groupThemePaletteFree": "El plan gratuito usa negro fijo. Hazte PRO o VIP para elegir colores.",
+  "groupThemeLockedHint": "El host bloqueó el tema.",
+  "groupThemeSaved": "Tema actualizado"
 }

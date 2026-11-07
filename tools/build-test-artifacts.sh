@@ -32,7 +32,7 @@ TEAM="${IOS_DEVELOPMENT_TEAM:-$(sed -n 's/^IOS_DEVELOPMENT_TEAM=//p' .env.local 
 mkdir -p "$OUT_DIR/$LANE"
 rm -rf build/ios/ipa build/ios/archive
 
-make build ENV=local TARGET=android \
+make build ENV=testing-local TARGET=android \
   LOCAL_JWT_ENV="$STACK_ENV" \
   LOCAL_KONG_PORT="$KONG_PORT"
 
@@ -59,7 +59,7 @@ cat > "$ENTITLEMENTS" <<'EOF'
 EOF
 
 IPA="build/ios/ipa/samay_app-adhoc.ipa"
-make build ENV=local TARGET=ios-adhoc \
+make build ENV=testing-local TARGET=ios-adhoc \
   LOCAL_JWT_ENV="$STACK_ENV" \
   LOCAL_KONG_PORT="$KONG_PORT" \
   LANE_SUPABASE_URL="http://$HOST:$KONG_PORT" \

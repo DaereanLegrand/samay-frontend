@@ -7,6 +7,8 @@ import 'package:samay/core/logging/app_logger.dart';
 import 'package:samay/core/providers/service_providers.dart';
 import 'package:samay/core/repositories/repository_providers.dart';
 import 'package:samay/core/router/route_paths.dart';
+import 'package:samay/features/groups/providers/groups_providers.dart';
+import 'package:samay/features/groups/theme/group_theme_colors.dart';
 import 'package:samay/features/groups/widgets/member_actions_sheet.dart';
 import 'package:samay/shared/widgets/profile_avatar.dart';
 import 'package:samay/l10n/app_localizations.dart';
@@ -82,7 +84,10 @@ class _GroupMembersScreenState extends ConsumerState<GroupMembersScreen> {
         : _members.where((m) => m['user_id'] == myId).firstOrNull;
     final myRole = myRow?['role'] as String? ?? 'member';
     final error = _error;
+    final theme = ref.watch(groupThemeProvider(widget.groupId)).valueOrNull;
     return Scaffold(
+      backgroundColor:
+          theme == null ? null : groupThemeColor(theme.backgroundColor),
       body: VHeaderBar(
         title: l10n.groupsMembersTitle,
         child: VStateView(
@@ -116,6 +121,11 @@ class _GroupMembersScreenState extends ConsumerState<GroupMembersScreen> {
                         : rawUsername;
                     final initials = username.substring(0, 1).toUpperCase();
                     final role = m['role'] as String? ?? 'member';
+                    final roleLabel = switch (role) {
+                      'host' => l10n.groupsRoleHost,
+                      'staff' => l10n.groupsRoleStaff,
+                      _ => l10n.groupsRoleMember,
+                    };
                     final tappable = _canAct(myRole, userId, role);
                     // The row itself is the navigation affordance — every
                     // member tile opens the member's public profile. The
@@ -136,7 +146,7 @@ class _GroupMembersScreenState extends ConsumerState<GroupMembersScreen> {
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
-                          VBadge(label: role),
+                          VBadge(label: roleLabel),
                         ],
                       ),
                       trailing: tappable

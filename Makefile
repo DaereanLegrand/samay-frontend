@@ -1,6 +1,7 @@
 # Samay frontend — Flutter app.
 .PHONY: help init start build dev install build-install uninstall clear clean env test \
         analyze check secrets hooks guard-local guard-env guard-release track-guard deploy publish \
+        testing-kong-register \
         tunnel-android tunnel-waydroid signing-restore login \
         release bundle-install
 

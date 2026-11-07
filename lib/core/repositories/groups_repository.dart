@@ -1,5 +1,6 @@
 import 'package:samay/core/models/group.dart';
 import 'package:samay/core/models/group_member.dart';
+import 'package:samay/core/models/group_theme.dart';
 import 'package:samay/core/services/group_service.dart';
 import 'package:samay/core/services/shards_service.dart';
 
@@ -118,4 +119,24 @@ class GroupsRepository {
   /// Donates [amount] shards to [groupId] (RPC with boost window).
   Future<void> donateToGroup(String groupId, int amount) =>
       _shards.donateToGroup(groupId, amount);
+
+  /// The host-owned group theme plus the caller's permissions (E4).
+  Future<GroupTheme> getGroupTheme(String groupId) async {
+    final res = await _groups.getGroupTheme(groupId);
+    return GroupTheme.fromJson(res);
+  }
+
+  /// Changes the group theme; omitted arguments are left untouched.
+  Future<void> setGroupTheme(
+    String groupId, {
+    String? backgroundColor,
+    String? accentColor,
+    String? controlMode,
+  }) =>
+      _groups.setGroupTheme(
+        groupId,
+        backgroundColor: backgroundColor,
+        accentColor: accentColor,
+        controlMode: controlMode,
+      );
 }
