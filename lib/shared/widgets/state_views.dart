@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
+import 'package:samay/features/groups/theme/group_theme_scope.dart';
 import 'package:samay/core/design_tokens/app_icon_sizes.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/l10n/app_localizations.dart';
@@ -70,18 +71,28 @@ class VEmptyView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    // Inside a themed group surface every ink here comes from the derived
+    // palette; [iconColor] remains an explicit override for callers.
+    final palette = GroupThemeScope.paletteOf(context);
+    final themed = !identical(palette, GroupThemeScope.standardPalette);
+    final resolvedIcon = iconColor ??
+        (themed ? palette.mutedForeground : AppColors.border);
+    final titleColor = themed ? palette.foreground : null;
+    final bodyColor = themed ? palette.mutedForeground : AppColors.mutedStrong;
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(AppSpacing.xl),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: AppIconSizes.xxl, color: iconColor ?? AppColors.border),
+            Icon(icon, size: AppIconSizes.xxl, color: resolvedIcon),
             const SizedBox(height: AppSpacing.sectionGap),
             Text(
               title,
               textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.headlineSmall,
+              style: Theme.of(
+                context,
+              ).textTheme.headlineSmall?.copyWith(color: titleColor),
             ),
             if (description != null) ...[
               const SizedBox(height: AppSpacing.sm),
@@ -90,7 +101,7 @@ class VEmptyView extends StatelessWidget {
                 textAlign: TextAlign.center,
                 style: Theme.of(
                   context,
-                ).textTheme.bodyMedium?.copyWith(color: AppColors.mutedStrong),
+                ).textTheme.bodyMedium?.copyWith(color: bodyColor),
               ),
             ],
             if (onAction != null) ...[

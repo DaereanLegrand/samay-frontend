@@ -21,18 +21,32 @@ contrast. Both foregrounds are derived with `theme_best_foreground` = whichever
 of black/white contrasts more — for any background one of the two is always
 ≥ 4.58:1.
 
+## The dark rendition
+
+A themed group is painted **75% darker** than the host's pick, with the white
+ink replaced by the background's **opposite hue**:
+
+| Server value | Painted as |
+|---|---|
+| `background_color` | the pick × 0.25 (75% darker) — `darkenAmount` |
+| `accent_color` | the pick × 0.25 |
+| `foreground_color` (white-ish) | `complement(background_color)` — a blue page gets warm sand text — brightened only as far as AA needs |
+| `accent_foreground_color` | `complement(accent_color)`, same clamping |
+
+Example — `#1E3A8A` (blue) becomes `#080F23` with `#E1C575` text (11.3:1).
+
 ## What the client derives (and why)
 
 A themed screen cannot only paint the page: cards, bubbles, chips and dividers
 need their own tones, and hardcoding the app's `#0A0A0A`/`#111` turns them into
 black boxes on a coloured page. So the client derives the rest mathematically
-from the four server values
+from those darkened values
 (`lib/features/groups/theme/group_theme_palette.dart`):
 
 | Role | Rule | AA requirement |
 |---|---|---|
-| `surface` | background lifted 6% toward the foreground | primary text ≥ 4.5:1 |
-| `surfaceAlt` | background lifted 13% toward the foreground | primary text ≥ 4.5:1 |
+| `surface` | darkened background lifted 6% toward the final foreground | primary text ≥ 4.5:1 |
+| `surfaceAlt` | darkened background lifted 13% toward the final foreground | primary text ≥ 4.5:1 |
 | `mutedForeground` | largest blend of the foreground toward `surfaceAlt` that still reaches 4.5:1 | secondary text ≥ 4.5:1 on **both** steps |
 | `hairline` | foreground blended to 1.25:1 against `surfaceAlt` | decorative only |
 | `border` | foreground blended to 3.0:1 against `surfaceAlt` | non-text control indicator ≥ 3:1 |
@@ -69,6 +83,14 @@ minigame game/session cards, scope row and group banner avatar.
 
 `test/group_theme_widgets_test.dart` pins each of these in both states (inside
 and outside a scope).
+
+## Known open defect
+
+Unselected `FilterChip`s (editor "Solo el host"/"Bloqueado", minigames
+"Directa") still paint pure `#000000` instead of transparent on the themed
+page. `ChipThemeData.color` and `FilterChip.color` were both set to resolve to
+`transparent`, yet the fill stays black — see the WIP block in `TODO.md` for the
+investigation order. Everything else in this document is verified on device.
 
 ## Adding a new surface
 

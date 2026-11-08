@@ -58,6 +58,15 @@ class VChip extends StatelessWidget {
           ? MaterialTapTargetSize.shrinkWrap
           : MaterialTapTargetSize.padded,
       visualDensity: compact ? VisualDensity.compact : VisualDensity.standard,
+      // `color` is the HIGHEST-precedence fill in Material 3 (`widget.color ??
+      // chipTheme.color` beats `backgroundColor`), so an unselected chip that
+      // only sets `backgroundColor: transparent` still falls back to the M3
+      // `surfaceContainerLow` default and paints a black box on a coloured page.
+      color: WidgetStateProperty.resolveWith(
+        (states) => states.contains(WidgetState.selected)
+            ? ink
+            : AppColors.transparent,
+      ),
       selectedColor: ink,
       backgroundColor: AppColors.transparent,
       side: BorderSide(color: ink),

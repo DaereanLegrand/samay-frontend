@@ -9,6 +9,49 @@
 - iOS `PrivacyInfo.xcprivacy` wired into the Runner target. CI files were
   deleted by owner decision (14-wave2-decisions §13).
 
+## WIP — group theme dark rendition (next session: `CONTINUE TODO.md`)
+
+Owner request: *"Make all colors darker like a 75% darker, and the 'white' would
+become its color opposite."* Confirmed interpretation: **75% darkening**
+(each channel x0.25) of background + accent, and the white ink becomes the
+**complement** of the background, then clamped to WCAG AA.
+
+Done and verified on device:
+- `GroupThemePalette` gained `darkenAmount = 0.75`, `darken()`, `complement()`
+  and `_ensureContrast()`. `derive()` now returns the darkened page
+  (`#1E3A8A` -> `#080F23`) with complementary ink (`#E1C575`, 11.28:1), and the
+  accent pair is the complement of the *darkened* accent (`#C0CCFA` on `#3F3305`,
+  7.86:1).
+- Theme editor preview + swatches now show the **painted** result (darkened),
+  not the raw server hexes.
+- `VDisplayText`, `VEmptyView`, member usernames and the minigames headings now
+  use the themed foreground (were cool white); chat date chip and bubble
+  timestamps were lifted to >= 5:1 (`mutedForeground` target raised to 5.0).
+- Still green: `flutter analyze` clean, 36 tests, `make check`, `make test`.
+
+**OPEN DEFECT (must fix first next session):** unselected `FilterChip`s still
+paint **pure `#000000`** instead of transparent on the themed page — the editor's
+"Solo el host" / "Bloqueado" and minigames' "Directa" (87-92% of each chip is
+0,0,0; 1.10:1 vs the page, i.e. an edgeless black box). Setting both
+`ChipThemeData.color` and `chip.color` via `WidgetStateProperty` (transparent
+when unselected) did **not** take effect on device, so the black is coming from
+somewhere else — next candidates, in order:
+1. `Material`/`Chip` `surfaceTintColor`/`elevation` interaction on the
+   `FilterChip` still resolving the M3 `surfaceContainerLow` default
+   (check `FilterChip.surfaceTintColor` + a `Material` ancestor's
+   `color`/`surfaceTintColor`);
+2. `FilterChip`'s `selectedColor`/`backgroundColor` vs a `ChipTheme` inherited
+   from `NavigationBar`/`SegmentedButton` overrides in `app_theme.dart`;
+3. the wrapping `Material`/`Ink` under `ListTile`/`Wrap` painting its own
+   surface.
+Repro: `make dev TARGET=simulator ENV=testing-local`, sign in as a Pro host,
+group -> Tema del grupo / Nueva partida; sample chip interiors with
+`NSBitmapImageRep` (expect page `#080F23`, currently `#000000`).
+
+Also unverified after the last build: the editor's first palette swatch is
+`#000000` — that is the legitimate `#000000` palette entry (darkened black),
+**not** a bug.
+
 ## TODO
 - [x] **Wave 1B consolidated** (tag `wave1b-base`): l10n key union + regenerate,
       identity/moderation/event-link screens; analyze/tests green.

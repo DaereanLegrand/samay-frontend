@@ -9,16 +9,18 @@ import 'package:samay/shared/widgets/v_badge.dart';
 import 'package:samay/shared/widgets/v_button.dart';
 import 'package:samay/shared/widgets/v_card.dart';
 import 'package:samay/shared/widgets/v_chip.dart';
+import 'package:samay/shared/widgets/v_display_text.dart';
 
 /// Guards the "no black boxes on a themed group surface" rule: every shared
 /// widget that paints a fill must switch to the derived scale inside a
 /// [GroupThemeScope], and must be untouched outside one.
 void main() {
-  // A pale background forces a BLACK foreground, so the assertions below can
-  // prove the widgets stop using the hardcoded white token.
+  // A blue group: the derived foreground is the pale warm COMPLEMENT of the
+  // darkened blue, never the hardcoded white token — so the assertions below
+  // prove the widgets consume the palette rather than AppColors constants.
   final palette = GroupThemePalette.derive(
-    background: groupThemeColor('#E8D5A3'),
-    foreground: Colors.black,
+    background: groupThemeColor('#1E3A8A'),
+    foreground: Colors.white,
     accent: groupThemeColor('#FACC15'),
     accentForeground: Colors.black,
   );
@@ -94,6 +96,25 @@ void main() {
       expect((box.decoration! as BoxDecoration).color, AppColors.border);
     });
 
+    testWidgets('themed display text uses the complement, not white', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        host(const VDisplayText(text: 'miembros', size: 28)),
+      );
+      final text = tester.widget<Text>(find.text('miembros'));
+      expect(text.style!.color, palette.foreground);
+      expect(text.style!.color, isNot(AppColors.white));
+    });
+
+    testWidgets('un-themed display text stays white', (tester) async {
+      await tester.pumpWidget(
+        host(const VDisplayText(text: 'miembros', size: 28), themed: false),
+      );
+      final text = tester.widget<Text>(find.text('miembros'));
+      expect(text.style!.color, AppColors.white);
+    });
+
     testWidgets('badge text meets AA on its themed fill', (tester) async {
       await tester.pumpWidget(host(const VBadge(label: 'member')));
       final text = tester.widget<Text>(find.text('MEMBER'));
@@ -121,6 +142,22 @@ void main() {
       expect(chip.elevation, 0);
       expect(chip.surfaceTintColor, AppColors.transparent);
       expect(chip.shadowColor, AppColors.transparent);
+    });
+
+    testWidgets('an unselected chip paints transparent, not black', (
+      tester,
+    ) async {
+      // Regression: `color` outranks `backgroundColor` in Material 3, so an
+      // unselected chip that only set `backgroundColor: transparent` still
+      // resolved the M3 default and painted a pure-black box on the page.
+      await tester.pumpWidget(host(const VChip(label: 'Directa')));
+      final chip = tester.widget<FilterChip>(find.byType(FilterChip));
+      expect(chip.color, isNotNull);
+      expect(chip.color!.resolve({}), AppColors.transparent);
+      expect(
+        chip.color!.resolve({WidgetState.selected}),
+        palette.foreground,
+      );
     });
 
     testWidgets('un-themed chip keeps white ink', (tester) async {

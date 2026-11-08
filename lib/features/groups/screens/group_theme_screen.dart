@@ -88,6 +88,12 @@ class GroupThemeScreen extends ConsumerWidget {
     final chip = base.chipTheme;
     return base.copyWith(
       chipTheme: chip.copyWith(
+        // Same precedence rule as VCHip: `color` wins over `backgroundColor`.
+        color: WidgetStateProperty.resolveWith(
+          (states) => states.contains(WidgetState.selected)
+              ? palette.foreground
+              : AppColors.transparent,
+        ),
         backgroundColor: AppColors.transparent,
         selectedColor: palette.foreground,
         labelStyle: TextStyle(color: palette.foreground),
@@ -162,15 +168,18 @@ class GroupThemeScreen extends ConsumerWidget {
     AppLocalizations l10n,
     GroupTheme theme,
   ) {
-    final bg = groupThemeColor(theme.backgroundColor);
-    final fg = groupThemeColor(theme.foregroundColor);
-    final accent = groupThemeColor(theme.accentColor);
-    final accentFg = groupThemeColor(theme.accentForegroundColor);
+    // Preview what the app actually paints (75% darker + complementary ink),
+    // not the raw server hexes.
+    final painted = groupThemePaletteOf(theme);
+    final bg = painted.background;
+    final fg = painted.foreground;
+    final accent = painted.accent;
+    final accentFg = painted.accentForeground;
     return Container(
       decoration: BoxDecoration(
         color: bg,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.hairline),
+        border: Border.all(color: painted.border),
       ),
       padding: const EdgeInsets.all(AppSpacing.lg),
       child: Column(
@@ -210,14 +219,14 @@ class GroupThemeScreen extends ConsumerWidget {
     String hex,
   ) {
     final selected = theme.backgroundColor.toUpperCase() == hex.toUpperCase();
-    // The checkmark must read on the swatch itself, so it uses the derived
-    // foreground of THAT colour, not the currently-applied theme's.
-    final swatchBg = groupThemeColor(hex);
-    final checkColor =
-        GroupThemePalette.contrastRatio(swatchBg, Colors.black) >=
-            GroupThemePalette.contrastRatio(swatchBg, Colors.white)
-        ? Colors.black
-        : Colors.white;
+    // Each swatch shows what the app will PAINT for that pick: the colour
+    // darkened 75%, with its complementary ink as the checkmark.
+    final swatchBg = GroupThemePalette.darken(
+      groupThemeColor(hex),
+      GroupThemePalette.darkenAmount,
+    );
+    final checkColor = GroupThemePalette.complement(swatchBg);
+    final palette = groupThemePaletteOf(theme);
     return InkWell(
       onTap: selected ? null : () => _apply(context, ref, background: hex),
       borderRadius: BorderRadius.circular(12),
@@ -228,7 +237,7 @@ class GroupThemeScreen extends ConsumerWidget {
           color: swatchBg,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: selected ? AppColors.white : AppColors.hairline,
+            color: selected ? palette.foreground : palette.border,
             width: selected ? 2 : 1,
           ),
         ),

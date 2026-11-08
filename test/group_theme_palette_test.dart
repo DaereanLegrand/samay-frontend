@@ -165,6 +165,55 @@ void main() {
       expect(a.hashCode, b.hashCode);
     });
 
+    test('every themed colour is 75% darker than the host pick', () {
+      for (final bg in _palette) {
+        final p = _derive(bg);
+        final raw = groupThemeColor(bg);
+        // 75% darker == each channel x 0.25 (rounded).
+        expect(p.background.r * 255, closeTo(raw.r * 255 * 0.25, 1.0),
+            reason: 'bg=$bg red channel darkened');
+        expect(p.background.g * 255, closeTo(raw.g * 255 * 0.25, 1.0),
+            reason: 'bg=$bg green channel darkened');
+        expect(p.background.b * 255, closeTo(raw.b * 255 * 0.25, 1.0),
+            reason: 'bg=$bg blue channel darkened');
+        // The accent is darkened too.
+        final rawAccent = groupThemeColor('#FACC15');
+        expect(p.accent.r * 255, closeTo(rawAccent.r * 255 * 0.25, 1.0));
+        expect(p.accent.g * 255, closeTo(rawAccent.g * 255 * 0.25, 1.0));
+        expect(p.accent.b * 255, closeTo(rawAccent.b * 255 * 0.25, 1.0));
+      }
+    });
+
+    test('a white foreground becomes the opposite hue of the background', () {
+      // Blue page -> complement is a warm/orange hue.
+      final blue = _derive('#1E3A8A');
+      expect(blue.foreground.r * 255, greaterThan(blue.foreground.b * 255),
+          reason: 'complement of blue is warm (red > blue)');
+      // Green page -> complement is magenta-ish (red and blue > green).
+      final green = _derive('#14532D');
+      expect(green.foreground.r * 255,
+          greaterThan(green.foreground.g * 255));
+      expect(green.foreground.b * 255,
+          greaterThan(green.foreground.g * 255));
+      // It is never plain white any more.
+      for (final bg in _palette) {
+        if (bg == '#000000') continue; // complement of black is white
+        final p = _derive(bg);
+        expect(p.foreground, isNot(Colors.white), reason: 'bg=$bg foreground');
+      }
+    });
+
+    test('darken and complement behave as documented', () {
+      expect(GroupThemePalette.darken(Colors.white, 0.75),
+          const Color(0xFF404040));
+      expect(GroupThemePalette.darken(const Color(0xFF000000), 0.75),
+          const Color(0xFF000000));
+      expect(GroupThemePalette.complement(const Color(0xFF1E3A8A)),
+          const Color(0xFFE1C575));
+      expect(GroupThemePalette.complement(Colors.white), Colors.black);
+      expect(GroupThemePalette.complement(Colors.black), Colors.white);
+    });
+
     test('distinct backgrounds produce distinct palettes', () {
       final a = _derive('#1E3A8A');
       final b = _derive('#7C2D12');
@@ -212,7 +261,7 @@ void main() {
         ),
       );
       expect(seen, palette);
-      expect(seen.background, const Color(0xFF1E3A8A));
+      expect(seen.background, isNot(const Color(0xFF1E3A8A)));
     });
   });
 

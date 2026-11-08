@@ -147,6 +147,14 @@ class _GroupMembersScreenState extends ConsumerState<GroupMembersScreen> {
                               username,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodyLarge
+                                  ?.copyWith(
+                                    color:
+                                        palette?.foreground ??
+                                        AppColors.white,
+                                  ),
                             ),
                           ),
                           VBadge(label: roleLabel),

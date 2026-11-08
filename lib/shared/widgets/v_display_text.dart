@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/core/design_tokens/app_typography.dart';
+import 'package:samay/features/groups/theme/group_theme_scope.dart';
 
 /// The display voice (DESIGN.md §1 rule 4) — the ONLY sanctioned way to
 /// render a display role.
@@ -35,12 +36,18 @@ class VDisplayText extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // On a themed group surface the display voice uses the derived foreground
+    // (the background's complement), never the fixed white token.
+    final palette = GroupThemeScope.paletteOf(context);
+    final themed = !identical(palette, GroupThemeScope.standardPalette);
     return Text(
       text,
       textAlign: textAlign,
       maxLines: maxLines,
       overflow: maxLines == null ? null : TextOverflow.ellipsis,
-      style: _displayStyle(),
+      style: _displayStyle().copyWith(
+        color: themed ? palette.foreground : AppColors.white,
+      ),
     );
   }
 

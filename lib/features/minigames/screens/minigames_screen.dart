@@ -463,9 +463,7 @@ class _MinigamesScreenState extends ConsumerState<MinigamesScreen> {
         final all = [...uniquePending, ...rows];
 
         if (all.isEmpty) {
-          final themed = _scope == MinigameScope.group && _selectedGroupId != null
-              ? ref.watch(groupThemeProvider(_selectedGroupId!)).valueOrNull
-              : null;
+          // VEmptyView resolves the themed inks itself.
           return _fillState(
             VEmptyView(
               icon: Icons.sports_esports,
@@ -473,10 +471,6 @@ class _MinigamesScreenState extends ConsumerState<MinigamesScreen> {
               description: direct
                   ? l10n.minigamesDirectEmptyBody
                   : l10n.minigamesEmptyBody,
-              iconColor: themed == null
-                  ? null
-                  : groupThemeColor(themed.foregroundColor)
-                      .withValues(alpha: 0.55),
             ),
           );
         }
