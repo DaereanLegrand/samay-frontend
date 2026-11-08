@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
+import 'package:samay/features/groups/theme/group_theme_scope.dart';
 import 'package:samay/core/design_tokens/app_radius.dart';
 import 'package:samay/shared/widgets/v_spinner.dart';
 
@@ -136,6 +137,13 @@ class VButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = GroupThemeScope.paletteOf(context);
+    final themed = !identical(palette, GroupThemeScope.standardPalette);
+    // Inside a themed group surface the button ink/fill come from the derived
+    // scale, so a "dark" button is a shade of the theme instead of black.
+    final themedInk = palette.foreground;
+    final themedFill = palette.surfaceAlt;
+
     final Color fill;
     final Color text;
     final Color? borderColor;
@@ -143,27 +151,29 @@ class VButton extends StatelessWidget {
     switch (variant) {
       case VButtonVariant.outlined:
         fill = AppColors.transparent;
-        text = AppColors.white;
-        borderColor = AppColors.white;
-        overlayBase = AppColors.white;
+        text = themed ? themedInk : AppColors.white;
+        borderColor = themed ? themedInk : AppColors.white;
+        overlayBase = themed ? themedInk : AppColors.white;
       case VButtonVariant.emphasized:
-        fill = AppColors.white;
-        text = AppColors.discoBlack;
+        fill = themed ? themedInk : AppColors.white;
+        text = themed ? palette.background : AppColors.discoBlack;
         borderColor = null;
-        overlayBase = AppColors.discoBlack;
+        overlayBase = themed ? palette.background : AppColors.discoBlack;
       case VButtonVariant.dark:
         // BLACK button: black fill, white text,
-        // 1px white hairline.
-        fill = AppColors.surfaceAlt;
-        text = AppColors.white;
-        borderColor = AppColors.white;
-        overlayBase = AppColors.white;
+        // 1px white hairline. On a themed surface: raised tone + foreground.
+        fill = themed ? themedFill : AppColors.surfaceAlt;
+        text = themed ? themedInk : AppColors.white;
+        borderColor = themed ? themedInk : AppColors.white;
+        overlayBase = themed ? themedInk : AppColors.white;
     }
 
     // Disabled (and loading) drop outline/text to `muted` (§5.1).
     final WidgetStateProperty<Color?> foregroundColor =
         WidgetStateProperty.resolveWith((states) {
-          if (states.contains(WidgetState.disabled)) return AppColors.muted;
+          if (states.contains(WidgetState.disabled)) {
+            return themed ? palette.mutedForeground : AppColors.muted;
+          }
           return text;
         });
     final WidgetStateProperty<BorderSide?> side = borderless
@@ -172,7 +182,7 @@ class VButton extends StatelessWidget {
           )
         : WidgetStateProperty.resolveWith((states) {
             final color = states.contains(WidgetState.disabled)
-                ? AppColors.muted
+                ? (themed ? palette.mutedForeground : AppColors.muted)
                 : (borderColor ?? AppColors.transparent);
             return BorderSide(color: color);
           });

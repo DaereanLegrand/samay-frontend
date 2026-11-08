@@ -7,6 +7,8 @@ import 'package:samay/core/models/group_theme.dart';
 import 'package:samay/core/repositories/repository_providers.dart';
 import 'package:samay/features/groups/providers/groups_providers.dart';
 import 'package:samay/features/groups/theme/group_theme_colors.dart';
+import 'package:samay/features/groups/theme/group_theme_palette.dart';
+import 'package:samay/features/groups/theme/group_theme_scope.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/error_view.dart';
 import 'package:samay/shared/widgets/state_views.dart';
@@ -48,24 +50,58 @@ class GroupThemeScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
-    final themeAsync = ref.watch(groupThemeProvider(groupId));
-    return Scaffold(
-      body: VHeaderBar(
-        title: l10n.groupThemeTitle,
-        child: themeAsync.when(
-          loading: () => const VLoadingView(),
-          error: (error, _) => ErrorView(
-            message: error.toAppError().localize(l10n),
-            onRetry: () => ref.invalidate(groupThemeProvider(groupId)),
-          ),
-          data: (theme) => _body(context, ref, theme),
+    final theme = ref.watch(groupThemeProvider(groupId)).valueOrNull;
+    // The editor itself is part of the group surface: it paints the same
+    // derived scale so the Swatches/Control chips are readable on the theme
+    // (a black page made every unselected chip and divider vanish).
+    final palette = theme == null ? null : groupThemePaletteOf(theme);
+    final body = VHeaderBar(
+      title: l10n.groupThemeTitle,
+      child: ref.watch(groupThemeProvider(groupId)).when(
+        loading: () => const VLoadingView(),
+        error: (error, _) => ErrorView(
+          message: error.toAppError().localize(l10n),
+          onRetry: () => ref.invalidate(groupThemeProvider(groupId)),
         ),
+        data: (theme) => _body(context, ref, theme),
+      ),
+    );
+    if (palette == null) {
+      return Scaffold(body: body);
+    }
+    return GroupThemeScope(
+      palette: palette,
+      child: Theme(
+        data: _themedChipTheme(Theme.of(context), palette),
+        child: Scaffold(
+          backgroundColor: palette.background,
+          body: body,
+        ),
+      ),
+    );
+  }
+
+  /// ChoiceChip reads its fill/border from the ambient ChipTheme, so the
+  /// editor overrides it with the derived pair instead of the app-wide
+  /// white/black default.
+  ThemeData _themedChipTheme(ThemeData base, GroupThemePalette palette) {
+    final chip = base.chipTheme;
+    return base.copyWith(
+      chipTheme: chip.copyWith(
+        backgroundColor: AppColors.transparent,
+        selectedColor: palette.foreground,
+        labelStyle: TextStyle(color: palette.foreground),
+        secondaryLabelStyle: TextStyle(color: palette.background),
+        side: BorderSide(color: palette.border),
+        shape: chip.shape,
+        showCheckmark: false,
       ),
     );
   }
 
   Widget _body(BuildContext context, WidgetRef ref, GroupTheme theme) {
     final l10n = AppLocalizations.of(context);
+    final palette = groupThemePaletteOf(theme);
     return ListView(
       padding: const EdgeInsets.all(AppSpacing.lg),
       children: [
@@ -73,7 +109,9 @@ class GroupThemeScreen extends ConsumerWidget {
         const SizedBox(height: AppSpacing.xl),
         if (theme.canChangeControl) ...[
           Text(l10n.groupThemeControl,
-              style: Theme.of(context).textTheme.titleMedium),
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    color: palette.foreground,
+                  )),
           const SizedBox(height: AppSpacing.sm),
           Wrap(
             spacing: AppSpacing.sm,
@@ -93,14 +131,18 @@ class GroupThemeScreen extends ConsumerWidget {
           const SizedBox(height: AppSpacing.xl),
         ],
         Text(l10n.groupThemePalette,
-            style: Theme.of(context).textTheme.titleMedium),
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  color: palette.foreground,
+                )),
         const SizedBox(height: AppSpacing.sm),
         if (!theme.canChangeColor)
           Text(
             theme.controlMode == 'locked'
                 ? l10n.groupThemeLockedHint
                 : l10n.groupThemePaletteFree,
-            style: Theme.of(context).textTheme.bodyMedium,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: palette.mutedForeground,
+                ),
           )
         else
           Wrap(
@@ -168,6 +210,14 @@ class GroupThemeScreen extends ConsumerWidget {
     String hex,
   ) {
     final selected = theme.backgroundColor.toUpperCase() == hex.toUpperCase();
+    // The checkmark must read on the swatch itself, so it uses the derived
+    // foreground of THAT colour, not the currently-applied theme's.
+    final swatchBg = groupThemeColor(hex);
+    final checkColor =
+        GroupThemePalette.contrastRatio(swatchBg, Colors.black) >=
+            GroupThemePalette.contrastRatio(swatchBg, Colors.white)
+        ? Colors.black
+        : Colors.white;
     return InkWell(
       onTap: selected ? null : () => _apply(context, ref, background: hex),
       borderRadius: BorderRadius.circular(12),
@@ -175,16 +225,14 @@ class GroupThemeScreen extends ConsumerWidget {
         width: 48,
         height: 48,
         decoration: BoxDecoration(
-          color: groupThemeColor(hex),
+          color: swatchBg,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: selected ? AppColors.white : AppColors.hairline,
             width: selected ? 2 : 1,
           ),
         ),
-        child: selected
-            ? Icon(Icons.check, color: groupThemeColor(theme.foregroundColor))
-            : null,
+        child: selected ? Icon(Icons.check, color: checkColor) : null,
       ),
     );
   }

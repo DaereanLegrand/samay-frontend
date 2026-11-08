@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/core/design_tokens/app_radius.dart';
+import 'package:samay/features/groups/theme/group_theme_scope.dart';
 
 /// Samay chip — DESIGN.md §5.4, monochrome
 ///
@@ -29,11 +30,24 @@ class VChip extends StatelessWidget {
     final textStyle = compact
         ? Theme.of(context).textTheme.labelSmall
         : Theme.of(context).textTheme.labelMedium;
+    final palette = GroupThemeScope.paletteOf(context);
+    final themed = !identical(palette, GroupThemeScope.standardPalette);
+    // Inside a themed group surface the chip's "ink" is the group foreground,
+    // so unselected chips stay legible and selected chips invert correctly.
+    final ink = themed ? palette.foreground : AppColors.white;
+    final selectedInk = themed ? palette.background : AppColors.discoBlack;
     return FilterChip(
       label: Text(label),
       selected: selected,
       onSelected: (value) => onSelected?.call(),
-      labelStyle: textStyle?.copyWith(color: labelColor),
+      // Material 3 would paint a `surfaceContainerLow` fill + elevation tint;
+      // both read as a BLACK box on a coloured group page.
+      elevation: 0,
+      surfaceTintColor: AppColors.transparent,
+      shadowColor: AppColors.transparent,
+      labelStyle: textStyle?.copyWith(
+        color: selected ? selectedInk : ink,
+      ),
       labelPadding: compact
           ? const EdgeInsets.symmetric(horizontal: 2)
           : null,
@@ -44,13 +58,15 @@ class VChip extends StatelessWidget {
           ? MaterialTapTargetSize.shrinkWrap
           : MaterialTapTargetSize.padded,
       visualDensity: compact ? VisualDensity.compact : VisualDensity.standard,
-      selectedColor: AppColors.white,
+      selectedColor: ink,
       backgroundColor: AppColors.transparent,
-      side: const BorderSide(color: AppColors.white),
+      side: BorderSide(color: ink),
       shape: const RoundedRectangleBorder(borderRadius: AppRadius.sharp),
       showCheckmark: false,
     );
   }
 
+  /// Bare (non-theme) label colour — kept for callers/tests; the widget itself
+  /// resolves the themed pair in [build].
   Color get labelColor => selected ? AppColors.discoBlack : AppColors.white;
 }

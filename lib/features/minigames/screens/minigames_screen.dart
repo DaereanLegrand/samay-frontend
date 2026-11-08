@@ -11,6 +11,7 @@ import 'package:samay/core/router/route_paths.dart';
 import 'package:samay/core/services/minigame_service.dart';
 import 'package:samay/features/groups/providers/groups_providers.dart';
 import 'package:samay/features/groups/theme/group_theme_colors.dart';
+import 'package:samay/features/groups/theme/group_theme_scope.dart';
 import 'package:samay/features/minigames/logic/minigame_engine.dart';
 import 'package:samay/features/minigames/logic/minigame_meta.dart';
 import 'package:samay/features/minigames/providers/minigames_providers.dart';
@@ -179,11 +180,9 @@ class _MinigamesScreenState extends ConsumerState<MinigamesScreen> {
     final theme = groupId == null
         ? null
         : ref.watch(groupThemeProvider(groupId)).valueOrNull;
+    final palette = theme == null ? null : groupThemePaletteOf(theme);
 
-    return Scaffold(
-      backgroundColor:
-          theme == null ? null : groupThemeColor(theme.backgroundColor),
-      body: VHeaderBar(
+    final body = VHeaderBar(
         // Two-row header: "juegos" over the "Te atreves" tagline.
         titleWidget: MinigameHeaderTitle(
           word: l10n.minigamesTitle,
@@ -206,17 +205,21 @@ class _MinigamesScreenState extends ConsumerState<MinigamesScreen> {
               ),
             ),
             _buildScopeSwitch(l10n),
-            const Divider(height: 1, thickness: 1, color: AppColors.hairline),
+            Divider(
+              height: 1,
+              thickness: 1,
+              color: palette?.hairline ?? AppColors.hairline,
+            ),
             Expanded(
               child: _scope == MinigameScope.group && _selectedGroupId == null
                   ? _buildGroupPicker(l10n)
                   : Column(
                       children: [
                         _buildGamePicker(l10n),
-                        const Divider(
+                        Divider(
                           height: 1,
                           thickness: 1,
-                          color: AppColors.hairline,
+                          color: palette?.hairline ?? AppColors.hairline,
                         ),
                         Expanded(child: _buildSessions(l10n)),
                       ],
@@ -224,6 +227,16 @@ class _MinigamesScreenState extends ConsumerState<MinigamesScreen> {
             ),
           ],
         ),
+    );
+
+    if (palette == null) {
+      return Scaffold(body: body);
+    }
+    return GroupThemeScope(
+      palette: palette,
+      child: Scaffold(
+        backgroundColor: palette.background,
+        body: body,
       ),
     );
   }
@@ -304,14 +317,21 @@ class _MinigamesScreenState extends ConsumerState<MinigamesScreen> {
                 _GroupBannerAvatar(group: group, size: 20),
                 const SizedBox(width: AppSpacing.sm),
                 Flexible(
-                  child: Text(
-                    group.name,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: AppColors.white,
-                      fontWeight: FontWeight.w600,
-                    ),
+                  child: Builder(
+                    builder: (context) {
+                      final p = GroupThemeScope.paletteOf(context);
+                      final tinted =
+                          !identical(p, GroupThemeScope.standardPalette);
+                      return Text(
+                        group.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: tinted ? p.foreground : AppColors.white,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      );
+                    },
                   ),
                 ),
               ],
@@ -546,8 +566,13 @@ class _GameCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final (icon, name, tagline) = _meta;
-    // Monochrome: selection emphasis is white vs muted grey.
-    final accent = selected ? AppColors.white : AppColors.mutedStrong;
+    final palette = GroupThemeScope.paletteOf(context);
+    final themed = !identical(palette, GroupThemeScope.standardPalette);
+    // Monochrome: selection emphasis is the primary text colour vs the muted
+    // step (derived from the group theme when one is in scope).
+    final primary = themed ? palette.foreground : AppColors.white;
+    final secondary = themed ? palette.mutedForeground : AppColors.mutedStrong;
+    final accent = selected ? primary : secondary;
 
     return InkWell(
       onTap: onTap,
@@ -564,7 +589,7 @@ class _GameCard extends StatelessWidget {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                  color: selected ? AppColors.white : AppColors.mutedStrong,
+                  color: selected ? primary : secondary,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -574,9 +599,7 @@ class _GameCard extends StatelessWidget {
                   tagline(l10n),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: AppTypography.bodySmall.copyWith(
-                    color: AppColors.mutedStrong,
-                  ),
+                  style: AppTypography.bodySmall.copyWith(color: secondary),
                 ),
               ),
             ],
@@ -601,6 +624,9 @@ class _SessionCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
+    final palette = GroupThemeScope.paletteOf(context);
+    final themed = !identical(palette, GroupThemeScope.standardPalette);
+    final muted = themed ? palette.mutedForeground : AppColors.mutedStrong;
     final status = session['status'] as String?;
     final wager = (session['shard_wager'] as num?)?.toInt() ?? 0;
     final participants = (session['participants'] as List?)?.length ?? 0;
@@ -643,7 +669,7 @@ class _SessionCard extends ConsumerWidget {
                         inviterName != null
                             ? l10n.minigamesInviteFromDirect(inviterName)
                             : l10n.minigamesInvitePendingBody,
-                        style: const TextStyle(color: AppColors.mutedStrong),
+                        style: TextStyle(color: muted),
                       ),
                     if (isPending) const SizedBox(height: AppSpacing.xs),
                     // Pool + live player count, no
@@ -668,7 +694,7 @@ class _SessionCard extends ConsumerWidget {
                           '${l10n.minigamesParticipantsTitle.toUpperCase()} '
                           '$participants',
                           style: AppTypography.bodySmall.copyWith(
-                            color: AppColors.mutedStrong,
+                            color: muted,
                           ),
                         ),
                       ],
@@ -678,7 +704,7 @@ class _SessionCard extends ConsumerWidget {
                       Text(
                         l10n.minigamesInviteFromGroup(groupName),
                         style: AppTypography.bodySmall.copyWith(
-                          color: AppColors.mutedStrong,
+                          color: muted,
                         ),
                       ),
                     ],
@@ -716,13 +742,15 @@ class _GroupBannerAvatar extends StatelessWidget {
   Widget build(BuildContext context) {
     final hasCover = group.coverUrl != null && group.coverUrl!.isNotEmpty;
     final initials = group.name.isEmpty ? null : group.name.substring(0, 1);
+    final palette = GroupThemeScope.paletteOf(context);
+    final themed = !identical(palette, GroupThemeScope.standardPalette);
     return Container(
       width: size,
       height: size,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: AppColors.surfaceAlt,
-        border: Border.all(color: AppColors.border),
+        color: themed ? palette.surfaceAlt : AppColors.surfaceAlt,
+        border: Border.all(color: themed ? palette.border : AppColors.border),
       ),
       padding: const EdgeInsets.all(1),
       child: ClipOval(
@@ -734,7 +762,7 @@ class _GroupBannerAvatar extends StatelessWidget {
                     initials ?? '',
                     style: TextStyle(
                       fontSize: size * 0.35,
-                      color: AppColors.white,
+                      color: themed ? palette.foreground : AppColors.white,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -767,12 +795,19 @@ class _SwitchGroupButton extends StatelessWidget {
         SizedBox(
           width: 32,
           height: 32,
-          child: IconButton(
-            icon: const Icon(Icons.swap_horiz, size: 20),
-            tooltip: tooltip,
-            color: AppColors.white,
-            padding: EdgeInsets.zero,
-            onPressed: onPressed,
+          child: Builder(
+            builder: (context) {
+              final p = GroupThemeScope.paletteOf(context);
+              return IconButton(
+                icon: const Icon(Icons.swap_horiz, size: 20),
+                tooltip: tooltip,
+                color: !identical(p, GroupThemeScope.standardPalette)
+                    ? p.foreground
+                    : AppColors.white,
+                padding: EdgeInsets.zero,
+                onPressed: onPressed,
+              );
+            },
           ),
         ),
         if (pendingCount > 0)

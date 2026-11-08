@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
+import 'package:samay/features/groups/theme/group_theme_scope.dart';
 import 'package:samay/core/design_tokens/app_icon_sizes.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/design_tokens/app_typography.dart';
@@ -25,7 +26,7 @@ class MinigamePoolAmount extends StatelessWidget {
     this.onTap,
     this.iconSize = AppIconSizes.sm,
     this.style,
-    this.color = AppColors.white,
+    this.color,
     this.fontWeight = FontWeight.w700,
   });
 
@@ -43,7 +44,7 @@ class MinigamePoolAmount extends StatelessWidget {
 
   final double iconSize;
   final TextStyle? style;
-  final Color color;
+  final Color? color;
   final FontWeight fontWeight;
 
   /// The pool: wager × players (0 for a free partida).
@@ -51,6 +52,11 @@ class MinigamePoolAmount extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = GroupThemeScope.paletteOf(context);
+    final tint = color ??
+        (!identical(palette, GroupThemeScope.standardPalette)
+            ? palette.foreground
+            : AppColors.white);
     final row = Row(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -59,7 +65,7 @@ class MinigamePoolAmount extends StatelessWidget {
         Text(
           '$pot',
           style: (style ?? AppTypography.titleMedium).copyWith(
-            color: color,
+            color: tint,
             fontWeight: fontWeight,
           ),
         ),

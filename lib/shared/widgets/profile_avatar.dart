@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
+import 'package:samay/features/groups/theme/group_theme_scope.dart';
 import 'package:samay/shared/widgets/v_network_image.dart';
 
 /// Profile-header avatar — DESIGN.md §2.1/§4.2.
@@ -32,13 +33,15 @@ class ProfileAvatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = GroupThemeScope.paletteOf(context);
+    final themed = !identical(palette, GroupThemeScope.standardPalette);
     return Container(
       width: size,
       height: size,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: AppColors.surfaceAlt,
-        border: Border.all(color: AppColors.border),
+        color: themed ? palette.surfaceAlt : AppColors.surfaceAlt,
+        border: Border.all(color: themed ? palette.border : AppColors.border),
       ),
       padding: const EdgeInsets.all(1),
       child: ClipOval(
@@ -52,7 +55,7 @@ class ProfileAvatar extends StatelessWidget {
                       // profile-header 96px avatar keeps 24px; list-tile
                       // 40px avatars render 10px.
                       fontSize: size * 0.25,
-                      color: AppColors.white,
+                      color: themed ? palette.foreground : AppColors.white,
                       fontWeight: FontWeight.w600,
                     ),
                   ),

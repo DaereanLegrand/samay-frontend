@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
+import 'package:samay/features/groups/theme/group_theme_scope.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/design_tokens/app_typography.dart';
 
@@ -48,6 +49,10 @@ class VInput extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = GroupThemeScope.paletteOf(context);
+    final themed = !identical(palette, GroupThemeScope.standardPalette);
+    final ink = themed ? palette.foreground : AppColors.white;
+    final hintInk = themed ? palette.mutedForeground : AppColors.mutedStrong;
     final hasError = errorText != null;
     return TextField(
       controller: controller,
@@ -59,12 +64,12 @@ class VInput extends StatelessWidget {
       maxLines: maxLines,
       textAlign: textAlign ?? TextAlign.start,
       textAlignVertical: textAlignVertical,
-      cursorColor: AppColors.white,
+      cursorColor: ink,
       // `bodyLarge` input voice — clean, never styled like display copy.
       // [fontFamily] lets a caller opt into a custom family (e.g. the
       // Quicksand minigame answer voice); null keeps the role's Inter.
       style: AppTypography.bodyLarge.copyWith(
-        color: AppColors.white,
+        color: ink,
         fontFamily: fontFamily,
         shadows: AppTypography.legibilityShadows,
       ),
@@ -82,7 +87,7 @@ class VInput extends StatelessWidget {
         filled: false,
         floatingLabelBehavior: FloatingLabelBehavior.never,
         hintStyle: AppTypography.bodyLarge.copyWith(
-          color: hasError ? AppColors.glowPink : AppColors.mutedStrong,
+          color: hasError ? AppColors.glowPink : hintInk,
           fontFamily: fontFamily,
           shadows: AppTypography.legibilityShadows,
         ),

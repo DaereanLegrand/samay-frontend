@@ -16,6 +16,12 @@
       top-N, `entitlementTier` removed, in-app password reset screen/route,
       code-only match join UI, shadow-block profile + generic blocked-chat
       error. `flutter analyze` clean, `flutter test` 7/7.
+- [x] Group theme colour scheme: derived `GroupThemePalette` (surface/
+      surfaceAlt/muted/hairline/border solved to WCAG AA from the server's four
+      colours) + `GroupThemeScope`; applied to chat bubbles/date band/composer,
+      member rows, minigame cards/chips/buttons and the theme editor. Contract:
+      `docs/GROUP-THEME-COLORS.md`; 21 new tests in
+      `test/group_theme_palette_test.dart` + `test/group_theme_widgets_test.dart`.
 - [x] Group theme client (E4 remainder): `GroupTheme` model + repository/
       service/provider, theme editor (preview, control mode for the host,
       tier palette, localized errors) reachable from the group menu; the

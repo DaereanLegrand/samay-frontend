@@ -21,6 +21,7 @@ import 'package:samay/features/chat/providers/chat_providers.dart';
 import 'package:samay/features/friends/providers/friends_providers.dart';
 import 'package:samay/features/groups/providers/groups_providers.dart';
 import 'package:samay/features/groups/theme/group_theme_colors.dart';
+import 'package:samay/features/groups/theme/group_theme_scope.dart';
 import 'package:samay/features/minigames/logic/minigame_meta.dart';
 import 'package:samay/features/minigames/providers/minigames_providers.dart';
 import 'package:samay/l10n/app_localizations.dart';
@@ -961,10 +962,14 @@ class _ChatThreadViewState extends ConsumerState<ChatThreadView> {
     // The input is borderless/backgroundless, so the composer docks as a bar
     // — surface fill + hairline top edge divide it from the thread. The send
     // control is a circular white up-arrow button.
+    final palette = GroupThemeScope.paletteOf(context);
+    final themed = !identical(palette, GroupThemeScope.standardPalette);
     return Container(
-      decoration: const BoxDecoration(
-        color: AppColors.surface,
-        border: Border(top: BorderSide(color: AppColors.hairline)),
+      decoration: BoxDecoration(
+        color: themed ? palette.surface : AppColors.surface,
+        border: Border(
+          top: BorderSide(color: themed ? palette.hairline : AppColors.hairline),
+        ),
       ),
       child: SafeArea(
         top: false,
@@ -1188,8 +1193,11 @@ class _DateHeaderDelegate extends SliverPersistentHeaderDelegate {
     double shrinkOffset,
     bool overlapsContent,
   ) {
+    // The pinned band must match the actual page background — on a themed
+    // group chat a black band cut a hole across the thread.
+    final palette = GroupThemeScope.paletteOf(context);
     return ColoredBox(
-      color: AppColors.discoBlack,
+      color: palette.background,
       child: Center(child: _DateChip(label: label)),
     );
   }
@@ -1208,20 +1216,24 @@ class _DateChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = GroupThemeScope.paletteOf(context);
+    final themed = !identical(palette, GroupThemeScope.standardPalette);
     return Container(
       padding: const EdgeInsets.symmetric(
         horizontal: AppSpacing.md,
         vertical: AppSpacing.xs,
       ),
-      decoration: const BoxDecoration(
-        color: AppColors.surfaceAlt,
-        border: Border.fromBorderSide(BorderSide(color: AppColors.hairline)),
+      decoration: BoxDecoration(
+        color: themed ? palette.surfaceAlt : AppColors.surfaceAlt,
+        border: Border.fromBorderSide(
+          BorderSide(color: themed ? palette.hairline : AppColors.hairline),
+        ),
       ),
       child: Text(
         label,
-        style: Theme.of(
-          context,
-        ).textTheme.labelSmall?.copyWith(color: AppColors.mutedStrong),
+        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+          color: themed ? palette.mutedForeground : AppColors.mutedStrong,
+        ),
       ),
     );
   }
@@ -1305,7 +1317,7 @@ class _MessageBubble extends StatelessWidget {
     final name = senderName;
     final showAvatar = !isOwn && name != null && name.isNotEmpty;
     final bubble = isOwn
-        ? _ownBubble(id, text, decryptFailed, pending, l10n)
+        ? _ownBubble(context, id, text, decryptFailed, pending, l10n)
         : _peerBubble(context, id, text, decryptFailed, l10n);
 
     return Align(
@@ -1359,6 +1371,7 @@ class _MessageBubble extends StatelessWidget {
   /// ✓✓ received / blue ✓✓ read). In GROUP mode the blue ticks require every
   /// other member's read.
   Widget _ownBubble(
+    BuildContext context,
     Object? id,
     String text,
     bool decryptFailed,
@@ -1367,14 +1380,18 @@ class _MessageBubble extends StatelessWidget {
   ) {
     final readAt = _readAtOf(row);
     final time = _timeLabel(row);
+    final palette = GroupThemeScope.paletteOf(context);
+    final themed = !identical(palette, GroupThemeScope.standardPalette);
     final timeStyle = AppTypography.bodySmall.copyWith(
-      color: AppColors.statusGrey,
+      color: themed ? palette.mutedForeground : AppColors.statusGrey,
     );
     return DecoratedBox(
       key: ValueKey('chatBubbleOwn-$id'),
-      decoration: const BoxDecoration(
-        color: AppColors.surfaceAlt,
-        border: Border.fromBorderSide(BorderSide(color: AppColors.hairline)),
+      decoration: BoxDecoration(
+        color: themed ? palette.surfaceAlt : AppColors.surfaceAlt,
+        border: Border.fromBorderSide(
+          BorderSide(color: themed ? palette.hairline : AppColors.hairline),
+        ),
         borderRadius: _bubbleRadius,
       ),
       child: Padding(
@@ -1386,7 +1403,9 @@ class _MessageBubble extends StatelessWidget {
             Text(
               text,
               style: TextStyle(
-                color: decryptFailed ? AppColors.mutedStrong : AppColors.white,
+                color: decryptFailed
+                    ? (themed ? palette.mutedForeground : AppColors.mutedStrong)
+                    : (themed ? palette.foreground : AppColors.white),
                 fontStyle: decryptFailed ? FontStyle.italic : FontStyle.normal,
               ),
             ),
@@ -1429,18 +1448,24 @@ class _MessageBubble extends StatelessWidget {
   ) {
     final time = _timeLabel(row);
     final senderName = this.senderName;
+    final palette = GroupThemeScope.paletteOf(context);
+    final themed = !identical(palette, GroupThemeScope.standardPalette);
     final msgStyle = TextStyle(
-      color: decryptFailed ? AppColors.mutedStrong : AppColors.white,
+      color: decryptFailed
+          ? (themed ? palette.mutedForeground : AppColors.mutedStrong)
+          : (themed ? palette.foreground : AppColors.white),
       fontStyle: decryptFailed ? FontStyle.italic : FontStyle.normal,
     );
     final timeStyle = AppTypography.bodySmall.copyWith(
-      color: AppColors.mutedStrong,
+      color: themed ? palette.mutedForeground : AppColors.mutedStrong,
     );
     return DecoratedBox(
       key: ValueKey('chatBubblePeer-$id'),
-      decoration: const BoxDecoration(
-        color: AppColors.surface,
-        border: Border.fromBorderSide(BorderSide(color: AppColors.hairline)),
+      decoration: BoxDecoration(
+        color: themed ? palette.surface : AppColors.surface,
+        border: Border.fromBorderSide(
+          BorderSide(color: themed ? palette.hairline : AppColors.hairline),
+        ),
         borderRadius: _bubbleRadius,
       ),
       child: Padding(
@@ -1459,9 +1484,9 @@ class _MessageBubble extends StatelessWidget {
                   senderName,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: Theme.of(
-                    context,
-                  ).textTheme.labelMedium?.copyWith(color: AppColors.white),
+                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                    color: themed ? palette.foreground : AppColors.white,
+                  ),
                 ),
               ),
               const SizedBox(height: AppSpacing.xs),
@@ -1517,11 +1542,18 @@ class _MessageStatus extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // On a themed group bubble the fixed grey/blue ticks are unreadable against
+    // the coloured surface, so the neutral tick uses the derived muted tone and
+    // the "read" tick uses the group's own accent (its semantic highlight).
+    final palette = GroupThemeScope.paletteOf(context);
+    final themed = !identical(palette, GroupThemeScope.standardPalette);
+    final neutral = themed ? palette.mutedForeground : AppColors.statusGrey;
+    final read = themed ? palette.accent : AppColors.statusRead;
     final Color color;
     final IconData icon;
     final String label;
     if (pending) {
-      color = AppColors.statusGrey;
+      color = neutral;
       icon = Icons.check;
       label = l10n.chatSent;
     } else if (isGroup
@@ -1529,11 +1561,11 @@ class _MessageStatus extends StatelessWidget {
             'message_reads': readers,
           }, otherMemberIds)
         : readAt != null) {
-      color = AppColors.statusRead;
+      color = read;
       icon = Icons.done_all;
       label = l10n.chatRead;
     } else {
-      color = AppColors.statusGrey;
+      color = neutral;
       icon = Icons.done_all;
       label = l10n.chatReceived;
     }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/extensions/error_mapper.dart';
 import 'package:samay/core/logging/app_logger.dart';
@@ -9,6 +10,7 @@ import 'package:samay/core/repositories/repository_providers.dart';
 import 'package:samay/core/router/route_paths.dart';
 import 'package:samay/features/groups/providers/groups_providers.dart';
 import 'package:samay/features/groups/theme/group_theme_colors.dart';
+import 'package:samay/features/groups/theme/group_theme_scope.dart';
 import 'package:samay/features/groups/widgets/member_actions_sheet.dart';
 import 'package:samay/shared/widgets/profile_avatar.dart';
 import 'package:samay/l10n/app_localizations.dart';
@@ -85,10 +87,8 @@ class _GroupMembersScreenState extends ConsumerState<GroupMembersScreen> {
     final myRole = myRow?['role'] as String? ?? 'member';
     final error = _error;
     final theme = ref.watch(groupThemeProvider(widget.groupId)).valueOrNull;
-    return Scaffold(
-      backgroundColor:
-          theme == null ? null : groupThemeColor(theme.backgroundColor),
-      body: VHeaderBar(
+    final palette = theme == null ? null : groupThemePaletteOf(theme);
+    final body = VHeaderBar(
         title: l10n.groupsMembersTitle,
         child: VStateView(
           loading: _loading,
@@ -104,7 +104,10 @@ class _GroupMembersScreenState extends ConsumerState<GroupMembersScreen> {
               : ListView.separated(
                   padding: const EdgeInsets.all(16),
                   itemCount: _members.length,
-                  separatorBuilder: (_, _) => const Divider(height: 1),
+                  separatorBuilder: (_, _) => Divider(
+                    height: 1,
+                    color: palette?.hairline ?? AppColors.hairline,
+                  ),
                   itemBuilder: (context, index) {
                     final m = _members[index];
                     final user = m['users'] as Map<String, dynamic>?;
@@ -162,6 +165,15 @@ class _GroupMembersScreenState extends ConsumerState<GroupMembersScreen> {
                   },
                 ),
         ),
+    );
+    if (palette == null) {
+      return Scaffold(body: body);
+    }
+    return GroupThemeScope(
+      palette: palette,
+      child: Scaffold(
+        backgroundColor: palette.background,
+        body: body,
       ),
     );
   }

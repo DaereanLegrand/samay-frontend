@@ -3,6 +3,7 @@ import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/core/design_tokens/app_radius.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/design_tokens/app_typography.dart';
+import 'package:samay/features/groups/theme/group_theme_scope.dart';
 
 /// Samay badge — DESIGN.md §5.5, monochrome
 ///
@@ -42,6 +43,8 @@ class VBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = GroupThemeScope.paletteOf(context);
+    final themed = !identical(palette, GroupThemeScope.standardPalette);
     final Color fill;
     final Color textColor;
     final Color borderColor;
@@ -50,13 +53,18 @@ class VBadge extends StatelessWidget {
       textColor = accent!;
       borderColor = accent!;
     } else if (emphasized) {
-      fill = AppColors.white;
-      textColor = AppColors.discoBlack;
-      borderColor = AppColors.white;
+      fill = themed ? palette.foreground : AppColors.white;
+      textColor = themed ? palette.background : AppColors.discoBlack;
+      borderColor = fill;
     } else {
-      fill = color ?? AppColors.border;
-      textColor = color != null ? AppColors.discoBlack : AppColors.white;
-      borderColor = color ?? AppColors.border;
+      // The default (monochrome #333) badge is a shade of the group theme when
+      // one is in scope, so role badges never sit as neutral grey boxes on a
+      // coloured page.
+      fill = color ?? (themed ? palette.surfaceAlt : AppColors.border);
+      textColor = color != null
+          ? AppColors.discoBlack
+          : (themed ? palette.foreground : AppColors.white);
+      borderColor = color ?? (themed ? palette.border : AppColors.border);
     }
     return Container(
       padding: const EdgeInsets.symmetric(
