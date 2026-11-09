@@ -8,6 +8,8 @@ import 'package:samay/core/models/event.dart';
 import 'package:samay/core/providers/service_providers.dart';
 import 'package:samay/core/router/route_paths.dart';
 import 'package:samay/features/events/logic/event_formatters.dart';
+import 'package:samay/features/groups/theme/group_theme_palette.dart';
+import 'package:samay/features/groups/theme/group_theme_scope.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/error_view.dart';
 import 'package:samay/shared/widgets/state_views.dart';
@@ -71,15 +73,20 @@ class _GroupEventsSectionState extends ConsumerState<GroupEventsSection> {
       return ErrorView(message: _error!.toAppError().message, onRetry: _load);
     }
     if (_events.isEmpty) return const SizedBox.shrink();
+    final palette = GroupThemeScope.paletteOf(context);
+    final themed = !identical(palette, GroupThemeScope.standardPalette);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           l10n.groupsTabEvents.toUpperCase(),
-          style: Theme.of(context).textTheme.titleSmall,
+          style: Theme.of(context).textTheme.titleSmall?.copyWith(
+            color: themed ? palette.foreground : AppColors.mutedStrong,
+          ),
         ),
         const SizedBox(height: AppSpacing.md),
-        for (final event in _events) _EventRow(event: event),
+        for (final event in _events)
+          _EventRow(event: event, palette: themed ? palette : null),
       ],
     );
   }
@@ -87,9 +94,10 @@ class _GroupEventsSectionState extends ConsumerState<GroupEventsSection> {
 
 /// One group-event row: name, date range and location; tap → event detail.
 class _EventRow extends StatelessWidget {
-  const _EventRow({required this.event});
+  const _EventRow({required this.event, this.palette});
 
   final Event event;
+  final GroupThemePalette? palette;
 
   @override
   Widget build(BuildContext context) {
@@ -98,6 +106,8 @@ class _EventRow extends StatelessWidget {
       event.endsAt,
       Localizations.localeOf(context).languageCode,
     );
+    final muted = palette?.mutedForeground ?? AppColors.mutedStrong;
+    final ink = palette?.foreground ?? AppColors.white;
 
     return InkWell(
       onTap: () => context.push(RoutePaths.eventDetail(event.id)),
@@ -105,20 +115,30 @@ class _EventRow extends StatelessWidget {
         children: [
           ListTile(
             contentPadding: EdgeInsets.zero,
-            leading: const Icon(Icons.event, color: AppColors.mutedStrong),
-            title: Text(event.name, maxLines: 1, overflow: TextOverflow.ellipsis),
+            iconColor: ink,
+            textColor: ink,
+            leading: Icon(Icons.event, color: muted),
+            title: Text(
+              event.name,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(color: ink),
+            ),
             subtitle: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(dateText),
+                Text(dateText, style: TextStyle(color: muted)),
                 if ((event.locationCity ?? event.locationName) != null &&
                     (event.locationCity ?? event.locationName)!.isNotEmpty)
-                  Text(event.locationCity ?? event.locationName!),
+                  Text(
+                    event.locationCity ?? event.locationName!,
+                    style: TextStyle(color: muted),
+                  ),
               ],
             ),
-            trailing: const Icon(Icons.chevron_right, size: 20),
+            trailing: Icon(Icons.chevron_right, size: 20, color: muted),
           ),
-          const Divider(height: 1),
+          Divider(height: 1, color: palette?.hairline ?? AppColors.hairline),
         ],
       ),
     );

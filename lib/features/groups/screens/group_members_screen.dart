@@ -10,7 +10,7 @@ import 'package:samay/core/repositories/repository_providers.dart';
 import 'package:samay/core/router/route_paths.dart';
 import 'package:samay/features/groups/providers/groups_providers.dart';
 import 'package:samay/features/groups/theme/group_theme_colors.dart';
-import 'package:samay/features/groups/theme/group_theme_scope.dart';
+import 'package:samay/features/groups/theme/group_theme_theme.dart';
 import 'package:samay/features/groups/widgets/member_actions_sheet.dart';
 import 'package:samay/shared/widgets/profile_avatar.dart';
 import 'package:samay/l10n/app_localizations.dart';
@@ -177,7 +177,7 @@ class _GroupMembersScreenState extends ConsumerState<GroupMembersScreen> {
     if (palette == null) {
       return Scaffold(body: body);
     }
-    return GroupThemeScope(
+    return GroupThemeSurface(
       palette: palette,
       child: Scaffold(
         backgroundColor: palette.background,

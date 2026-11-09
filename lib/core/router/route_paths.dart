@@ -44,7 +44,6 @@ abstract final class RoutePaths {
   static String groupDetail(String groupId) => '/group/$groupId';
   static String groupMembers(String groupId) => '/group/$groupId/members';
   static String groupTheme(String groupId) => '/group/$groupId/theme';
-  static String donateToGroup(String groupId) => '/group/$groupId/donate';
   static String createGroupEvent(String groupId) =>
       '/group/$groupId/create-event';
   static String inviteToGroup(String groupId) => '/group/$groupId/invite';

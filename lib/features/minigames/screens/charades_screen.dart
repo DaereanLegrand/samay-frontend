@@ -11,6 +11,7 @@ import 'package:samay/features/minigames/logic/minigame_engine.dart';
 import 'package:samay/features/minigames/logic/minigame_meta.dart';
 import 'package:samay/features/minigames/providers/minigames_providers.dart';
 import 'package:samay/features/minigames/widgets/minigame_play_header.dart';
+import 'package:samay/features/minigames/widgets/minigame_session_surface.dart';
 import 'package:samay/features/minigames/widgets/minigame_rules_sheet.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/state_views.dart';
@@ -36,14 +37,14 @@ const List<({String? wire, String labelKey})> kCharadesCategories = [
 const List<int> kCharadesDurations = [30, 60, 90];
 
 String _categoryLabel(AppLocalizations l10n, String key) => switch (key) {
-      'peliculas' => l10n.charadesCategoryPeliculas,
-      'animales' => l10n.charadesCategoryAnimales,
-      'acciones' => l10n.charadesCategoryAcciones,
-      'objetos' => l10n.charadesCategoryObjetos,
-      'famosos' => l10n.charadesCategoryFamosos,
-      'fiesta' => l10n.charadesCategoryFiesta,
-      _ => l10n.charadesCategoryAll,
-    };
+  'peliculas' => l10n.charadesCategoryPeliculas,
+  'animales' => l10n.charadesCategoryAnimales,
+  'acciones' => l10n.charadesCategoryAcciones,
+  'objetos' => l10n.charadesCategoryObjetos,
+  'famosos' => l10n.charadesCategoryFamosos,
+  'fiesta' => l10n.charadesCategoryFiesta,
+  _ => l10n.charadesCategoryAll,
+};
 
 /// Charadas play screen (211_minigame_charades).
 ///
@@ -61,7 +62,8 @@ class CharadesScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final gameState = ref.watch(minigameGameStateProvider(sessionId));
-    final myId = ref.watch(authStateProvider).valueOrNull?.user?['id'] as String?;
+    final myId =
+        ref.watch(authStateProvider).valueOrNull?.user?['id'] as String?;
     final roster =
         ref.watch(minigameParticipantsProvider(sessionId)).valueOrNull ??
         const <MinigameParticipant>[];
@@ -107,17 +109,21 @@ class CharadesScreen extends ConsumerWidget {
       },
     );
 
-    return Scaffold(
-      backgroundColor: AppColors.discoBlack,
-      body: VHeaderBar(
-        titleWidget: headerTitle,
-        title: headerTitle == null ? gameNameLower : null,
-        // "Cómo se juega": the same rules sheet on every game.
-        actions: const [MinigameRulesButton(type: MinigameType.charades)],
-        child: gameState.when(
-          loading: () => const VLoadingView(),
-          error: (e, _) => Center(child: Text(e.toAppError().message)),
-          data: (state) => _CharadesBody(sessionId: sessionId, state: state),
+    final inks = MinigameInks.of(context);
+    return MinigameSessionSurface(
+      sessionId: sessionId,
+      child: Scaffold(
+        backgroundColor: inks.themed ? inks.surface : AppColors.discoBlack,
+        body: VHeaderBar(
+          titleWidget: headerTitle,
+          title: headerTitle == null ? gameNameLower : null,
+          // "Cómo se juega": the same rules sheet on every game.
+          actions: const [MinigameRulesButton(type: MinigameType.charades)],
+          child: gameState.when(
+            loading: () => const VLoadingView(),
+            error: (e, _) => Center(child: Text(e.toAppError().message)),
+            data: (state) => _CharadesBody(sessionId: sessionId, state: state),
+          ),
         ),
       ),
     );
@@ -209,7 +215,8 @@ class _CharadesBodyState extends ConsumerState<_CharadesBody> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final myId = ref.watch(authStateProvider).valueOrNull?.user?['id'] as String?;
+    final myId =
+        ref.watch(authStateProvider).valueOrNull?.user?['id'] as String?;
     final roster =
         ref.watch(minigameParticipantsProvider(widget.sessionId)).valueOrNull ??
         const <MinigameParticipant>[];
@@ -305,10 +312,10 @@ class _StarterView extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  const Icon(
+                  Icon(
                     Icons.theater_comedy,
                     size: 18,
-                    color: AppColors.white,
+                    color: MinigameInks.of(context).primary,
                   ),
                   const SizedBox(width: AppSpacing.sm),
                   Text(
@@ -395,25 +402,25 @@ class _Rule extends StatelessWidget {
             width: 20,
             height: 20,
             alignment: Alignment.center,
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: AppColors.surfaceAlt,
+              color: MinigameInks.of(context).surfaceAlt,
             ),
             child: Text(
               '$number',
               style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                    color: AppColors.white,
-                    fontWeight: FontWeight.w700,
-                  ),
+                color: MinigameInks.of(context).primary,
+                fontWeight: FontWeight.w700,
+              ),
             ),
           ),
           const SizedBox(width: AppSpacing.sm),
           Expanded(
             child: Text(
               text,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: AppColors.softGray,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(color: AppColors.softGray),
             ),
           ),
         ],
@@ -463,8 +470,10 @@ class _PlayingView extends StatelessWidget {
               Text(
                 '$seconds',
                 style: Theme.of(context).textTheme.displayMedium?.copyWith(
-                      color: urgent ? AppColors.glowPink : AppColors.white,
-                    ),
+                  color: urgent
+                      ? AppColors.glowPink
+                      : MinigameInks.of(context).primary,
+                ),
               ),
               const SizedBox(height: AppSpacing.sm),
               ClipRRect(
@@ -472,9 +481,11 @@ class _PlayingView extends StatelessWidget {
                 child: LinearProgressIndicator(
                   value: fraction,
                   minHeight: 5,
-                  backgroundColor: AppColors.hairline,
+                  backgroundColor: MinigameInks.of(context).hairline,
                   valueColor: AlwaysStoppedAnimation<Color>(
-                    urgent ? AppColors.glowPink : AppColors.white,
+                    urgent
+                        ? AppColors.glowPink
+                        : MinigameInks.of(context).primary,
                   ),
                 ),
               ),
@@ -491,8 +502,8 @@ class _PlayingView extends StatelessWidget {
                   skeleton.charadesWord ?? '',
                   textAlign: TextAlign.center,
                   style: Theme.of(context).textTheme.displayLarge?.copyWith(
-                        color: AppColors.white,
-                      ),
+                    color: MinigameInks.of(context).primary,
+                  ),
                 ),
               ),
             ),
@@ -512,7 +523,7 @@ class _PlayingView extends StatelessWidget {
               _Tally(
                 label: l10n.charadesPass,
                 value: skeleton.charadesMisses,
-                color: AppColors.mutedStrong,
+                color: MinigameInks.of(context).muted,
               ),
             ],
           ),
@@ -555,7 +566,7 @@ class _PlayingView extends StatelessWidget {
                   onPressed: busy ? null : onFinish,
                   child: Text(
                     l10n.charadesFinish,
-                    style: const TextStyle(color: AppColors.mutedStrong),
+                    style: TextStyle(color: MinigameInks.of(context).muted),
                   ),
                 ),
               ],
@@ -569,11 +580,7 @@ class _PlayingView extends StatelessWidget {
 }
 
 class _Tally extends StatelessWidget {
-  const _Tally({
-    required this.label,
-    required this.value,
-    required this.color,
-  });
+  const _Tally({required this.label, required this.value, required this.color});
 
   final String label;
   final int value;
@@ -585,15 +592,15 @@ class _Tally extends StatelessWidget {
       children: [
         Text(
           '$value',
-          style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                color: color,
-              ),
+          style: Theme.of(
+            context,
+          ).textTheme.headlineMedium?.copyWith(color: color),
         ),
         Text(
           label,
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: AppColors.mutedStrong,
-              ),
+            color: MinigameInks.of(context).muted,
+          ),
         ),
       ],
     );
@@ -624,16 +631,16 @@ class _SummaryView extends StatelessWidget {
           l10n.charadesTimeUp,
           textAlign: TextAlign.center,
           style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                color: AppColors.white,
-              ),
+            color: MinigameInks.of(context).primary,
+          ),
         ),
         const SizedBox(height: AppSpacing.xs),
         Text(
           l10n.charadesTurnScore(skeleton.charadesHits),
           textAlign: TextAlign.center,
           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: AppColors.mutedStrong,
-              ),
+            color: MinigameInks.of(context).muted,
+          ),
         ),
         const SizedBox(height: AppSpacing.lg),
         if (skeleton.charadesLog.isNotEmpty)
@@ -656,13 +663,11 @@ class _SummaryView extends StatelessWidget {
                         Expanded(
                           child: Text(
                             entry.word,
-                            style: Theme.of(context)
-                                .textTheme
-                                .bodyMedium
+                            style: Theme.of(context).textTheme.bodyMedium
                                 ?.copyWith(
                                   color: entry.correct
-                                      ? AppColors.white
-                                      : AppColors.mutedStrong,
+                                      ? MinigameInks.of(context).primary
+                                      : MinigameInks.of(context).muted,
                                   decoration: entry.correct
                                       ? null
                                       : TextDecoration.lineThrough,
@@ -720,7 +725,7 @@ class _Scoreboard extends StatelessWidget {
                         child: Text(
                           '${i + 1}',
                           style: Theme.of(context).textTheme.bodySmall
-                              ?.copyWith(color: AppColors.mutedStrong),
+                              ?.copyWith(color: MinigameInks.of(context).muted),
                         ),
                       ),
                       Expanded(
@@ -731,16 +736,17 @@ class _Scoreboard extends StatelessWidget {
                                   .firstOrNull ??
                               '—',
                           style: Theme.of(context).textTheme.bodyMedium
-                              ?.copyWith(color: AppColors.white),
+                              ?.copyWith(
+                                color: MinigameInks.of(context).primary,
+                              ),
                         ),
                       ),
                       Text(
                         '${rows[i].value}',
-                        style: Theme.of(context).textTheme.bodyLarge
-                            ?.copyWith(
-                              color: AppColors.white,
-                              fontWeight: FontWeight.w800,
-                            ),
+                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                          color: MinigameInks.of(context).primary,
+                          fontWeight: FontWeight.w800,
+                        ),
                       ),
                     ],
                   ),

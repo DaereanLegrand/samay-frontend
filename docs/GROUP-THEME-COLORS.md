@@ -67,36 +67,56 @@ server palette (`#000000` … `#164E63`) and several accents.
 
 ## Where it is applied
 
-`GroupThemeScope` (an `InheritedWidget`) is mounted by the three surfaces the
-owner decision names: **group chat**, the **member list** and **group
-minigames** (plus the theme editor, which is part of that surface). Shared
-widgets read `GroupThemeScope.paletteOf(context)`, which returns
-`GroupThemePalette.standard` — the exact design tokens — when no scope exists,
-so every other screen is byte-identical to before.
+`GroupThemeSurface` (`lib/features/groups/theme/group_theme_theme.dart`) is the
+single entry point. It mounts two things:
+
+1. `GroupThemeScope` (an `InheritedWidget`) — shared widgets read
+   `GroupThemeScope.paletteOf(context)`, which returns
+   `GroupThemePalette.standard` (the exact design tokens) when no scope exists,
+   so every other screen is byte-identical to before.
+2. A re-mapped `ThemeData` (`groupThemeTheme`) — because `GroupThemeScope` only
+   serves widgets that ask for it, while Material itself keeps resolving the
+   app-wide black defaults: `Chip` wraps itself in a colourless `Material` that
+   falls back to `Theme.canvasColor` (black), which is why unselected chips used
+   to paint a black box on a coloured page. The themed `ThemeData` sets
+   `canvasColor: transparent` (chips reveal the page), plus the scaffold,
+   divider, colour-scheme, text/icon, chip, dialog, popup, snackbar, text-button,
+   input and tooltip roles.
+
+Surfaces that mount it:
+
+- **Group detail** — banner identity strip, description, action row, events
+  section, header menu; loading/error/invited states too.
+- **Group chat**.
+- **Member list**.
+- **Group theme editor**.
+- **Group minigames** — hub (`/minigames/:groupId`), the partida lobby and every
+  play screen (truth/dare, 2 lies, charades, bottle) and the finished
+  leaderboard, via `MinigameSessionSurface` (resolves the session's `group_id`;
+  a DIRECT partida stays on the standard theme).
 
 Widgets that are theme-aware:
 
 `VCard` · `VChip` · `VButton` · `VBadge` · `VInput` · `ProfileAvatar` ·
-`VEmptyView` (icon tint) · chat bubbles (own/peer), date chip, day-divider band,
-composer bar, timestamps and delivery ticks · `MinigamePoolAmount` ·
-minigame game/session cards, scope row and group banner avatar.
+`VEmptyView` · `RankBadge` · `MinigameHeaderTitle` (display voice) ·
+chat bubbles (own/peer), date chip, day-divider band, composer bar, timestamps
+and delivery ticks · `MinigamePoolAmount` · minigame game/session cards, scope
+row and group banner avatar · the group surfaces' own inks.
 
-`test/group_theme_widgets_test.dart` pins each of these in both states (inside
-and outside a scope).
+The donate action is an **overlay** on group detail
+(`showDonateToGroupDialog` in `lib/features/groups/widgets/donate_shards_dialog.dart`):
+a centered themed `Dialog` over a dimmed barrier — it is not a route.
 
-## Known open defect
-
-Unselected `FilterChip`s (editor "Solo el host"/"Bloqueado", minigames
-"Directa") still paint pure `#000000` instead of transparent on the themed
-page. `ChipThemeData.color` and `FilterChip.color` were both set to resolve to
-`transparent`, yet the fill stays black — see the WIP block in `TODO.md` for the
-investigation order. Everything else in this document is verified on device.
+`test/group_theme_palette_test.dart` pins the derivation math and the themed
+`ThemeData` (canvas transparency, chip fills, palette roles). UI-level widget
+tests are intentionally not kept (see `frontend/AGENTS.md`: testing is
+backend-only apart from these light math/theme assertions).
 
 ## Adding a new surface
 
-1. Mount `GroupThemeScope` around the screen body (and set
-   `Scaffold.backgroundColor: palette.background`).
+1. Wrap the screen in `GroupThemeSurface(groupId: …, child: Scaffold(
+   backgroundColor: palette.background, …))` — or, for a minigame,
+   `MinigameSessionSurface(sessionId: …)`.
 2. Use the palette for fills/borders/text instead of `AppColors` constants; add
-   a themed branch to the shared widget if it paints its own fill.
-3. Add a widget test asserting the themed fill is `palette.*` and that the
-   un-themed fallback is still the design token.
+   a themed branch to a shared widget if it paints its own fill
+   (`MinigameInks.of(context)` is the minigame-side helper).

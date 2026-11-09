@@ -160,7 +160,7 @@ class AgeGateExtra extends RouteExtra {
 /// With the codec AND the extras' value equality, the re-parsed configuration
 /// equals the current one and go_router's `setNewRoutePath` early-returns: no
 /// rebuild, the pushed screens keep their state (counter, consents, form).
-/// JSON-able extras (null, plain maps, the donate-shards group name) pass
+/// JSON-able extras (null, plain maps, primitive values) pass
 /// through untouched.
 class RouteExtraCodec extends Codec<Object?, Object?> {
   const RouteExtraCodec();

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/core/design_tokens/app_typography.dart';
+import 'package:samay/features/groups/theme/group_theme_scope.dart';
 import 'package:samay/shared/widgets/v_display_text.dart';
 import 'package:samay/shared/widgets/v_header_bar.dart';
 
@@ -58,9 +59,22 @@ class MinigameHeaderTitle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Inside a themed group surface the display voice is the group foreground
+    // (the page's complement), exactly like VDisplayText — never the fixed
+    // white token, which vanished on a light-ish themed page.
+    final palette = GroupThemeScope.paletteOf(context);
+    final themed = !identical(palette, GroupThemeScope.standardPalette);
+    final ink = themed ? palette.foreground : AppColors.white;
+    final mutedInk = themed ? palette.mutedForeground : AppColors.mutedStrong;
+
     final Widget line1 = _hasName
-        ? _PhraseLine(prefix: prefix, name: name!, suffix: suffix)
-        : _WordLine(word: word ?? '');
+        ? _PhraseLine(
+            prefix: prefix,
+            name: name!,
+            suffix: suffix,
+            color: ink,
+          )
+        : _WordLine(word: word ?? '', color: ink);
 
     final sub = secondary;
     final line1Style = VDisplayText.styleFor(
@@ -84,13 +98,13 @@ class MinigameHeaderTitle extends StatelessWidget {
               sub,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
+              style: TextStyle(
                 fontFamily: AppTypography.inter,
                 fontSize: 12,
                 fontWeight: FontWeight.w500,
                 letterSpacing: 0.2,
                 height: 1.0,
-                color: AppColors.mutedStrong,
+                color: mutedInk,
                 shadows: AppTypography.legibilityShadows,
               ),
             ),
@@ -110,11 +124,17 @@ const double _lineSize = 24;
 /// `_WordLine`), with the shared legibility shadow. Scale-down-fitted so it
 /// never overflows the bar's Expanded title slot.
 class _PhraseLine extends StatelessWidget {
-  const _PhraseLine({required this.prefix, required this.name, this.suffix});
+  const _PhraseLine({
+    required this.prefix,
+    required this.name,
+    this.suffix,
+    this.color = AppColors.white,
+  });
 
   final String? prefix;
   final String name;
   final String? suffix;
+  final Color color;
 
   @override
   Widget build(BuildContext context) {
@@ -126,13 +146,13 @@ class _PhraseLine extends StatelessWidget {
         maxLines: 1,
         softWrap: false,
         TextSpan(
-          style: const TextStyle(
+          style: TextStyle(
             fontFamily: AppTypography.playfair,
             fontSize: _lineSize,
             fontWeight: FontWeight.w700,
             letterSpacing: 0,
             height: 1.0,
-            color: AppColors.white,
+            color: color,
             shadows: AppTypography.legibilityShadows,
           ),
           children: [
@@ -149,9 +169,10 @@ class _PhraseLine extends StatelessWidget {
 /// A standalone display word (Playfair white) — used for the status lines and
 /// the minigame-name fallback.
 class _WordLine extends StatelessWidget {
-  const _WordLine({required this.word});
+  const _WordLine({required this.word, this.color = AppColors.white});
 
   final String word;
+  final Color color;
 
   @override
   Widget build(BuildContext context) {
@@ -161,13 +182,13 @@ class _WordLine extends StatelessWidget {
         word,
         maxLines: 1,
         softWrap: false,
-        style: const TextStyle(
+        style: TextStyle(
           fontFamily: AppTypography.playfair,
           fontSize: _lineSize,
           fontWeight: FontWeight.w700,
           letterSpacing: 0,
           height: 1.0,
-          color: AppColors.white,
+          color: color,
           shadows: AppTypography.legibilityShadows,
         ),
       ),

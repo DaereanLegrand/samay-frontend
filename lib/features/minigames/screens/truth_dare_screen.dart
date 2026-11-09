@@ -24,6 +24,7 @@ import 'package:samay/features/minigames/widgets/finished_leaderboard.dart';
 import 'package:samay/features/minigames/widgets/minigame_answer_text.dart';
 import 'package:samay/features/minigames/widgets/minigame_bleed_image.dart';
 import 'package:samay/features/minigames/widgets/minigame_header_title.dart';
+import 'package:samay/features/minigames/widgets/minigame_session_surface.dart';
 import 'package:samay/features/minigames/widgets/reaction_rise.dart';
 import 'package:samay/features/minigames/widgets/truth_dare_choice_button.dart';
 import 'package:samay/l10n/app_localizations.dart';
@@ -219,14 +220,16 @@ class _PickedImageBackgroundState extends State<_PickedImageBackground> {
                     width: 28,
                     height: 28,
                     decoration: BoxDecoration(
-                      color: AppColors.surface,
+                      color: MinigameInks.of(context).surface,
                       shape: BoxShape.circle,
-                      border: Border.all(color: AppColors.border),
+                      border: Border.all(
+                        color: MinigameInks.of(context).border,
+                      ),
                     ),
-                    child: const Icon(
+                    child: Icon(
                       Icons.close,
                       size: 15,
-                      color: AppColors.white,
+                      color: MinigameInks.of(context).primary,
                     ),
                   ),
                 ),
@@ -360,367 +363,376 @@ class TruthDareScreen extends ConsumerWidget {
     // The creator's "complete" action is pointless once the match is already
     // settled, so it is dropped here — the back arrow exits.
     if (game.valueOrNull?.isFinished ?? false) {
-      return Scaffold(
-        body: Stack(
-          fit: StackFit.expand,
-          children: [
-            FinishedLeaderboard(sessionId: sessionId),
-            Align(
-              alignment: Alignment.topLeft,
-              child: SafeArea(
-                bottom: false,
-                child: Padding(
-                  padding: EdgeInsets.only(
-                    top:
-                        VHeaderMetrics.headerOuterPad +
-                        VHeaderMetrics.heroTopPad(
-                          MediaQuery.paddingOf(context).top,
-                        ),
-                    left: AppSpacing.screenHorizontal,
-                  ),
-                  child: const SizedBox(
-                    height: VHeaderMetrics.titleRowHeight,
-                    width: double.infinity,
-                    child: VHeaderTitleRow(),
+      return MinigameSessionSurface(
+        sessionId: sessionId,
+        child: Scaffold(
+          body: Stack(
+            fit: StackFit.expand,
+            children: [
+              FinishedLeaderboard(sessionId: sessionId),
+              Align(
+                alignment: Alignment.topLeft,
+                child: SafeArea(
+                  bottom: false,
+                  child: Padding(
+                    padding: EdgeInsets.only(
+                      top:
+                          VHeaderMetrics.headerOuterPad +
+                          VHeaderMetrics.heroTopPad(
+                            MediaQuery.paddingOf(context).top,
+                          ),
+                      left: AppSpacing.screenHorizontal,
+                    ),
+                    child: const SizedBox(
+                      height: VHeaderMetrics.titleRowHeight,
+                      width: double.infinity,
+                      child: VHeaderTitleRow(),
+                    ),
                   ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       );
     }
 
-    return Scaffold(
-      body: Stack(
-        fit: StackFit.expand,
-        children: [
-          // The subject's picked picture as a full-viewport background BEHIND
-          // the transparent header — edge to edge, blurred fill
-          // fully under the bar, with the remove (×) riding ON the image's own
-          // rect (never the letterbox).
-          if (showImageBackground)
-            Positioned.fill(
-              child: _PickedImageBackground(
-                path: pickedImage.path,
-                removeTooltip: l10n.minigamesAnswerRemoveImage,
-                onRemove: () {
-                  final notifier = ref.read(
-                    _pickedAnswerImageProvider(sessionId).notifier,
-                  );
-                  notifier.state = null;
-                },
-              ),
-            ),
-          // The reaction window's answer picture, full-viewport behind the
-          // transparent header — the same backdrop as the editor/leaderboard.
-          if (showAnswerBackground)
-            Positioned.fill(
-              child: IgnorePointer(
-                child: _BleedImageBackdrop(
-                  image: MemoryImage(answerImageBytes),
+    return MinigameSessionSurface(
+      sessionId: sessionId,
+      child: Scaffold(
+        body: Stack(
+          fit: StackFit.expand,
+          children: [
+            // The subject's picked picture as a full-viewport background BEHIND
+            // the transparent header — edge to edge, blurred fill
+            // fully under the bar, with the remove (×) riding ON the image's own
+            // rect (never the letterbox).
+            if (showImageBackground)
+              Positioned.fill(
+                child: _PickedImageBackground(
+                  path: pickedImage.path,
+                  removeTooltip: l10n.minigamesAnswerRemoveImage,
+                  onRemove: () {
+                    final notifier = ref.read(
+                      _pickedAnswerImageProvider(sessionId).notifier,
+                    );
+                    notifier.state = null;
+                  },
                 ),
               ),
-            ),
-          // The answer TEXT, full-viewport over the picture and anchored to its
-          // displayed rect, so the author's placement is identical on every
-          // device. Clipped BELOW the header (the header must stay
-          // on top) and to the viewport.
-          if (showAnswerText)
-            Positioned.fill(
-              child: IgnorePointer(
-                child: ClipRect(
-                  clipper: _BelowHeaderClipper(screenHeaderBottom),
-                  child: MinigameAnswerText(
-                    text: answerText!,
-                    layout: answerPayload!.layout,
-                    image: answerHasImage
-                        ? MemoryImage(answerImageBytes!)
-                        : null,
+            // The reaction window's answer picture, full-viewport behind the
+            // transparent header — the same backdrop as the editor/leaderboard.
+            if (showAnswerBackground)
+              Positioned.fill(
+                child: IgnorePointer(
+                  child: _BleedImageBackdrop(
+                    image: MemoryImage(answerImageBytes),
                   ),
                 ),
               ),
-            ),
-          VHeaderBar(
-            titleWidget: headerTitle,
-            title: headerTitle == null ? gameNameLower : null,
-            actions: [
-              if (isCreator)
-                IconButton(
-                  icon: const Icon(
-                    Icons.close,
+            // The answer TEXT, full-viewport over the picture and anchored to its
+            // displayed rect, so the author's placement is identical on every
+            // device. Clipped BELOW the header (the header must stay
+            // on top) and to the viewport.
+            if (showAnswerText)
+              Positioned.fill(
+                child: IgnorePointer(
+                  child: ClipRect(
+                    clipper: _BelowHeaderClipper(screenHeaderBottom),
+                    child: MinigameAnswerText(
+                      text: answerText!,
+                      layout: answerPayload!.layout,
+                      image: answerHasImage
+                          ? MemoryImage(answerImageBytes!)
+                          : null,
+                    ),
+                  ),
+                ),
+              ),
+            VHeaderBar(
+              titleWidget: headerTitle,
+              title: headerTitle == null ? gameNameLower : null,
+              actions: [
+                if (isCreator)
+                  IconButton(
+                    icon: const Icon(
+                      Icons.close,
+                      shadows: AppTypography.legibilityShadows,
+                    ),
+                    tooltip: l10n.minigamesComplete,
+                    onPressed: () => _confirmComplete(context, ref, l10n),
+                  ),
+              ],
+              child: game.when(
+                loading: () => const VLoadingView(),
+                error: (error, _) => ErrorView(
+                  message: l10n.minigamesErrorLoadGame,
+                  onRetry: () =>
+                      ref.invalidate(minigameGameStateProvider(sessionId)),
+                ),
+                data: (state) {
+                  final skeleton = state.skeleton;
+                  final subjectId = skeleton.subjectId;
+                  final isMyTurn = subjectId != null && subjectId == myId;
+
+                  // The async deadline caption, fully capitalized at a smaller size
+                  // than the body copy, centered above the async panel. (The
+                  // by-turns round counter lives in the header's second line.)
+                  final captionStyle = AppTypography.bodySmall.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: MinigameInks.of(context).muted,
                     shadows: AppTypography.legibilityShadows,
-                  ),
-                  tooltip: l10n.minigamesComplete,
-                  onPressed: () => _confirmComplete(context, ref, l10n),
-                ),
-            ],
-            child: game.when(
-              loading: () => const VLoadingView(),
-              error: (error, _) => ErrorView(
-                message: l10n.minigamesErrorLoadGame,
-                onRetry: () =>
-                    ref.invalidate(minigameGameStateProvider(sessionId)),
-              ),
-              data: (state) {
-                final skeleton = state.skeleton;
-                final subjectId = skeleton.subjectId;
-                final isMyTurn = subjectId != null && subjectId == myId;
+                  );
+                  final isByTurns =
+                      skeleton.playMode == MinigamePlayMode.byTurns;
+                  final showAsyncDeadline =
+                      !isByTurns && skeleton.asyncEndsAt != null;
 
-                // The async deadline caption, fully capitalized at a smaller size
-                // than the body copy, centered above the async panel. (The
-                // by-turns round counter lives in the header's second line.)
-                final captionStyle = AppTypography.bodySmall.copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.mutedStrong,
-                  shadows: AppTypography.legibilityShadows,
-                );
-                final isByTurns = skeleton.playMode == MinigamePlayMode.byTurns;
-                final showAsyncDeadline =
-                    !isByTurns && skeleton.asyncEndsAt != null;
+                  Widget buildAnswerCard({bool fillHeight = false}) {
+                    final body = isMyTurn
+                        ? (skeleton.answer == null
+                              ? _AnswerCard(
+                                  sessionId: sessionId,
+                                  state: state,
+                                  l10n: l10n,
+                                )
+                              // The subject answered: their device must NOT stay
+                              // stuck on the editor — show the read-only
+                              // waiting card instead.
+                              : _SubjectWaitingCard(
+                                  sessionId: sessionId,
+                                  state: state,
+                                  l10n: l10n,
+                                  roster: roster,
+                                  aliases: aliases,
+                                ))
+                        : _WaitingCard(
+                            sessionId: sessionId,
+                            state: state,
+                            l10n: l10n,
+                            roster: roster,
+                            aliases: aliases,
+                          );
 
-                Widget buildAnswerCard({bool fillHeight = false}) {
-                  final body = isMyTurn
-                      ? (skeleton.answer == null
-                            ? _AnswerCard(
-                                sessionId: sessionId,
-                                state: state,
-                                l10n: l10n,
-                              )
-                            // The subject answered: their device must NOT stay
-                            // stuck on the editor — show the read-only
-                            // waiting card instead.
-                            : _SubjectWaitingCard(
-                                sessionId: sessionId,
-                                state: state,
-                                l10n: l10n,
-                                roster: roster,
-                                aliases: aliases,
-                              ))
-                      : _WaitingCard(
-                          sessionId: sessionId,
-                          state: state,
-                          l10n: l10n,
-                          roster: roster,
-                          aliases: aliases,
-                        );
+                    // Full-height (the by-turns SUBJECT editor): the body fills the
+                    // card so its answer/pass bar can pin to the screen floor,
+                    // keyboard-aware via the Scaffold's resize inset. Same card
+                    // chrome (surface + horizontal hairlines).
+                    if (fillHeight) {
+                      // Transparent over a picked full-bleed picture (the image
+                      // IS the backdrop) AND while choosing Verdad/Reto — no
+                      // surface chrome behind the two CTAs. Opaque surface chrome
+                      // only for the editor.
+                      final choosingTruthDare =
+                          truthDarePromptBody(skeleton.prompt) == null;
 
-                  // Full-height (the by-turns SUBJECT editor): the body fills the
-                  // card so its answer/pass bar can pin to the screen floor,
-                  // keyboard-aware via the Scaffold's resize inset. Same card
-                  // chrome (surface + horizontal hairlines).
-                  if (fillHeight) {
-                    // Transparent over a picked full-bleed picture (the image
-                    // IS the backdrop) AND while choosing Verdad/Reto — no
-                    // surface chrome behind the two CTAs. Opaque surface chrome
-                    // only for the editor.
-                    final choosingTruthDare =
-                        truthDarePromptBody(skeleton.prompt) == null;
+                      // While choosing Verdad/Reto the CTA container spans the
+                      // FULL region between the header's bottom edge and the
+                      // device bottom, so the pair centers on that whole area.
+                      if (choosingTruthDare) {
+                        return Stack(fit: StackFit.expand, children: [body]);
+                      }
 
-                    // While choosing Verdad/Reto the CTA container spans the
-                    // FULL region between the header's bottom edge and the
-                    // device bottom, so the pair centers on that whole area.
-                    if (choosingTruthDare) {
-                      return Stack(fit: StackFit.expand, children: [body]);
+                      // The SUBJECT editor is chrome-less too: transparent
+                      // surface, no hairlines — matching the choice state and the
+                      // full-bleed leaderboard voice.
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Expanded(
+                            child: Padding(
+                              padding: const EdgeInsets.only(
+                                top: AppSpacing.md,
+                              ),
+                              child: body,
+                            ),
+                          ),
+                        ],
+                      );
                     }
 
-                    // The SUBJECT editor is chrome-less too: transparent
-                    // surface, no hairlines — matching the choice state and the
-                    // full-bleed leaderboard voice.
+                    // The by-turns answer/waiting card is transparent AND fills
+                    // the whole region between the header and the pinned bottom
+                    // line/row, with the answer body CENTERED. The revealed
+                    // QUESTION is rendered by the SCREEN, behind the header and
+                    // over the picture — never by the card, so it can never paint
+                    // in front of the header.
                     return Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         Expanded(
-                          child: Padding(
-                            padding: const EdgeInsets.only(top: AppSpacing.md),
-                            child: body,
+                          child: Center(
+                            child: SingleChildScrollView(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: AppSpacing.cardPadding,
+                              ),
+                              child: body,
+                            ),
                           ),
                         ),
                       ],
                     );
                   }
 
-                  // The by-turns answer/waiting card is transparent AND fills
-                  // the whole region between the header and the pinned bottom
-                  // line/row, with the answer body CENTERED. The revealed
-                  // QUESTION is rendered by the SCREEN, behind the header and
-                  // over the picture — never by the card, so it can never paint
-                  // in front of the header.
+                  // The by-turns SUBJECT editor fills the body so its answer/pass bar
+                  // stays pinned to the screen floor (keyboard-aware).
+                  if (isByTurns && isMyTurn && skeleton.answer == null) {
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.lg,
+                      ),
+                      child: buildAnswerCard(fillHeight: true),
+                    );
+                  }
+
+                  // Async mode keeps its scrollable panel stack. The reactable
+                  // tiles are FULL-WIDTH (edge to edge) so their answer pictures
+                  // bleed like the rest; the proxy
+                  // card / captions pad themselves.
+                  if (skeleton.playMode == MinigamePlayMode.async) {
+                    return ListView(
+                      padding: EdgeInsets.zero,
+                      children: [
+                        if (showAsyncDeadline) ...[
+                          Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: AppSpacing.lg,
+                            ),
+                            child: Text(
+                              l10n
+                                  .minigamesAsyncTimerEnds(
+                                    _formatDate(skeleton.asyncEndsAt!),
+                                  )
+                                  .toUpperCase(),
+                              textAlign: TextAlign.center,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: captionStyle,
+                            ),
+                          ),
+                          const SizedBox(height: AppSpacing.xs),
+                        ],
+                        _AsyncPanel(sessionId: sessionId, state: state),
+                        const SizedBox(height: AppSpacing.lg),
+                      ],
+                    );
+                  }
+
+                  // by_turns: the answer card fills the body and the reaction
+                  // deck is pinned to the floor exactly like the subject's
+                  // Responder/Pasar bar. The "esperando X/Y reacciones…" line
+                  // rides at the bottom, directly ABOVE the reaction row.
+                  final canReact = canReactToCurrentRound(
+                    skeleton,
+                    callerId: myId,
+                  );
+                  final answer = skeleton.answer;
+                  final showWaitingLine = answer != null && !answer.passed;
+                  // Tap-to-expand:
+                  // while the answer picture is up, tapping the content region
+                  // opens the shared full-screen viewer. The reaction deck below
+                  // is a SIBLING, so its buttons keep their own taps.
                   return Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       Expanded(
-                        child: Center(
-                          child: SingleChildScrollView(
+                        child: GestureDetector(
+                          behavior: HitTestBehavior.opaque,
+                          onTap: answerImageBytes == null
+                              ? null
+                              : () => _showFullAnswerImage(
+                                  context,
+                                  answerImageBytes,
+                                ),
+                          child: Padding(
                             padding: const EdgeInsets.symmetric(
-                              horizontal: AppSpacing.cardPadding,
+                              horizontal: AppSpacing.lg,
                             ),
-                            child: body,
+                            child: _ReactionRiseCanvas(
+                              sessionId: sessionId,
+                              child: buildAnswerCard(),
+                            ),
                           ),
                         ),
                       ),
-                    ],
-                  );
-                }
-
-                // The by-turns SUBJECT editor fills the body so its answer/pass bar
-                // stays pinned to the screen floor (keyboard-aware).
-                if (isByTurns && isMyTurn && skeleton.answer == null) {
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: AppSpacing.lg,
-                    ),
-                    child: buildAnswerCard(fillHeight: true),
-                  );
-                }
-
-                // Async mode keeps its scrollable panel stack. The reactable
-                // tiles are FULL-WIDTH (edge to edge) so their answer pictures
-                // bleed like the rest; the proxy
-                // card / captions pad themselves.
-                if (skeleton.playMode == MinigamePlayMode.async) {
-                  return ListView(
-                    padding: EdgeInsets.zero,
-                    children: [
-                      if (showAsyncDeadline) ...[
+                      if (showWaitingLine)
                         Padding(
                           padding: const EdgeInsets.symmetric(
                             horizontal: AppSpacing.lg,
                           ),
-                          child: Text(
-                            l10n
-                                .minigamesAsyncTimerEnds(
-                                  _formatDate(skeleton.asyncEndsAt!),
-                                )
-                                .toUpperCase(),
-                            textAlign: TextAlign.center,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: captionStyle,
+                          child: _ReactionsWaitingLine(
+                            skeleton: skeleton,
+                            roster: roster,
+                            l10n: l10n,
                           ),
                         ),
-                        const SizedBox(height: AppSpacing.xs),
-                      ],
-                      _AsyncPanel(sessionId: sessionId, state: state),
-                      const SizedBox(height: AppSpacing.lg),
+                      if (canReact) ...[
+                        const SizedBox(height: AppSpacing.sm),
+                        _ReactionRow(sessionId: sessionId),
+                      ] else
+                        // No reaction row (subject's own post-answer view): keep
+                        // the waiting line clear of the home indicator.
+                        const SafeArea(top: false, child: SizedBox.shrink()),
                     ],
                   );
-                }
-
-                // by_turns: the answer card fills the body and the reaction
-                // deck is pinned to the floor exactly like the subject's
-                // Responder/Pasar bar. The "esperando X/Y reacciones…" line
-                // rides at the bottom, directly ABOVE the reaction row.
-                final canReact = canReactToCurrentRound(
-                  skeleton,
-                  callerId: myId,
-                );
-                final answer = skeleton.answer;
-                final showWaitingLine = answer != null && !answer.passed;
-                // Tap-to-expand:
-                // while the answer picture is up, tapping the content region
-                // opens the shared full-screen viewer. The reaction deck below
-                // is a SIBLING, so its buttons keep their own taps.
-                return Column(
-                  children: [
-                    Expanded(
-                      child: GestureDetector(
-                        behavior: HitTestBehavior.opaque,
-                        onTap: answerImageBytes == null
-                            ? null
-                            : () => _showFullAnswerImage(
-                                context,
-                                answerImageBytes,
-                              ),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: AppSpacing.lg,
-                          ),
-                          child: _ReactionRiseCanvas(
-                            sessionId: sessionId,
-                            child: buildAnswerCard(),
-                          ),
-                        ),
-                      ),
-                    ),
-                    if (showWaitingLine)
-                      Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: AppSpacing.lg,
-                        ),
-                        child: _ReactionsWaitingLine(
-                          skeleton: skeleton,
-                          roster: roster,
-                          l10n: l10n,
-                        ),
-                      ),
-                    if (canReact) ...[
-                      const SizedBox(height: AppSpacing.sm),
-                      _ReactionRow(sessionId: sessionId),
-                    ] else
-                      // No reaction row (subject's own post-answer view): keep
-                      // the waiting line clear of the home indicator.
-                      const SafeArea(top: false, child: SizedBox.shrink()),
-                  ],
-                );
-              },
+                },
+              ),
             ),
-          ),
-          // The revealed prompt: rendered by the SCREEN directly below the
-          // header, with the reto picture picker ("Añadir imagen") DIRECTLY
-          // BELOW it. Painted LAST so the picker stays tappable
-          // above the editor canvas (whose full-canvas gesture surface would
-          // otherwise swallow the tap).
-          //
-          // NOT clipped at the header bottom: the pill's diffusion
-          // must run continuously across the header edge, so the header's
-          // blurred backdrop is the same darkened field as the rest of the
-          // bleed — a `ClipRect` here cut the diffusion into a hard seam.
-          if (screenPrompt != null)
-            Positioned(
-              top: screenHeaderBottom,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              // Column gives the pill an unbounded height, so it sits at the
-              // TOP of the region instead of centering in it.
-              child: Column(
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(
-                      AppSpacing.lg,
-                      AppSpacing.md,
-                      AppSpacing.lg,
-                      0,
-                    ),
-                    child: IgnorePointer(
-                      child: _PromptBanner(text: screenPrompt),
-                    ),
-                  ),
-                  if (showPickImageButton)
+            // The revealed prompt: rendered by the SCREEN directly below the
+            // header, with the reto picture picker ("Añadir imagen") DIRECTLY
+            // BELOW it. Painted LAST so the picker stays tappable
+            // above the editor canvas (whose full-canvas gesture surface would
+            // otherwise swallow the tap).
+            //
+            // NOT clipped at the header bottom: the pill's diffusion
+            // must run continuously across the header edge, so the header's
+            // blurred backdrop is the same darkened field as the rest of the
+            // bleed — a `ClipRect` here cut the diffusion into a hard seam.
+            if (screenPrompt != null)
+              Positioned(
+                top: screenHeaderBottom,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                // Column gives the pill an unbounded height, so it sits at the
+                // TOP of the region instead of centering in it.
+                child: Column(
+                  children: [
                     Padding(
                       padding: const EdgeInsets.fromLTRB(
                         AppSpacing.lg,
-                        AppSpacing.sm,
+                        AppSpacing.md,
                         AppSpacing.lg,
                         0,
                       ),
-                      child: VButton.outlined(
-                        onPressed: () => _pickAnswerImage(context, ref),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Icon(Icons.image_outlined, size: 18),
-                            const SizedBox(width: AppSpacing.sm),
-                            Text(l10n.minigamesAnswerImageLabel),
-                          ],
-                        ),
+                      child: IgnorePointer(
+                        child: _PromptBanner(text: screenPrompt),
                       ),
                     ),
-                ],
+                    if (showPickImageButton)
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(
+                          AppSpacing.lg,
+                          AppSpacing.sm,
+                          AppSpacing.lg,
+                          0,
+                        ),
+                        child: VButton.outlined(
+                          onPressed: () => _pickAnswerImage(context, ref),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(Icons.image_outlined, size: 18),
+                              const SizedBox(width: AppSpacing.sm),
+                              Text(l10n.minigamesAnswerImageLabel),
+                            ],
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
               ),
-            ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -1169,7 +1181,7 @@ class _AnswerCardState extends ConsumerState<_AnswerCard> {
             widget.l10n.minigamesAnswerPasarLine,
             textAlign: TextAlign.center,
             style: AppTypography.bodySmall.copyWith(
-              color: AppColors.mutedStrong,
+              color: MinigameInks.of(context).muted,
             ),
           ),
         ),
@@ -1427,12 +1439,14 @@ class _FloatingAnswerLabelState extends State<_FloatingAnswerLabel> {
           maxLines: null,
           keyboardType: TextInputType.multiline,
           textInputAction: TextInputAction.newline,
-          cursorColor: AppColors.white,
+          cursorColor: MinigameInks.of(context).primary,
           style: _baseStyle,
           onTapOutside: (_) => widget.focusNode.unfocus(),
           decoration: InputDecoration.collapsed(
             hintText: widget.placeholder,
-            hintStyle: _baseStyle.copyWith(color: AppColors.mutedStrong),
+            hintStyle: _baseStyle.copyWith(
+              color: MinigameInks.of(context).muted,
+            ),
           ),
         ),
       );
@@ -1453,7 +1467,7 @@ class _FloatingAnswerLabelState extends State<_FloatingAnswerLabel> {
             textAlign: TextAlign.center,
             style: hasText
                 ? _baseStyle
-                : _baseStyle.copyWith(color: AppColors.mutedStrong),
+                : _baseStyle.copyWith(color: MinigameInks.of(context).muted),
           ),
         ),
       );
@@ -1495,9 +1509,7 @@ const double _promptBannerRadius = 5 * _promptBannerFontSize;
 ///
 /// The outer alphas are deliberately HIGH (darker tint) so the pill keeps the
 /// prompt legible even over a LIGHT picked picture.
-const List<(double sigma, double alpha)> _promptBannerLayers = [
-  (36, 0.85),
-];
+const List<(double sigma, double alpha)> _promptBannerLayers = [(36, 0.85)];
 
 /// The current prompt — a Verdad question or a Reto challenge, prefixed by its
 /// kind label on its own line (`Reto:\n…`) — on a soft black pill so it stays
@@ -1613,7 +1625,7 @@ class _WaitingCardState extends ConsumerState<_WaitingCard> {
           Text(
             widget.l10n.minigamesPasarSkipped,
             textAlign: TextAlign.center,
-            style: const TextStyle(color: AppColors.mutedStrong),
+            style: TextStyle(color: MinigameInks.of(context).muted),
           )
         else
           // The live "esperando X/Y reacciones…" tally now lives at the BOTTOM
@@ -1678,7 +1690,7 @@ class _ReactionsWaitingLine extends StatelessWidget {
       l10n.minigamesAnswerWaitingReactions(reacted, required),
       textAlign: TextAlign.center,
       style: AppTypography.bodySmall.copyWith(
-        color: AppColors.mutedStrong,
+        color: MinigameInks.of(context).muted,
       ),
     );
   }
@@ -1735,7 +1747,7 @@ class _SubjectWaitingCardState extends ConsumerState<_SubjectWaitingCard> {
           Text(
             widget.l10n.minigamesPasarSkipped,
             textAlign: TextAlign.center,
-            style: const TextStyle(color: AppColors.mutedStrong),
+            style: TextStyle(color: MinigameInks.of(context).muted),
           )
         else
           _AnswerPreview(
@@ -1907,7 +1919,7 @@ class _AnswerPreviewState extends ConsumerState<_AnswerPreview> {
             l10n.minigamesKeyRequesting,
             textAlign: TextAlign.center,
             style: AppTypography.bodySmall.copyWith(
-              color: AppColors.mutedStrong,
+              color: MinigameInks.of(context).muted,
             ),
           ),
         ],
@@ -2619,7 +2631,11 @@ class _ReactionPassButtonState extends State<_ReactionPassButton>
             padding: const EdgeInsets.all(4),
             child: ScaleTransition(
               scale: _pressScale,
-              child: const Icon(Icons.close, size: 34, color: AppColors.white),
+              child: Icon(
+                Icons.close,
+                size: 34,
+                color: MinigameInks.of(context).primary,
+              ),
             ),
           ),
         ),
@@ -2712,7 +2728,7 @@ class _AsyncReactableTileState extends ConsumerState<_AsyncReactableTile> {
                     widget.answer.round,
                   ),
                   style: AppTypography.bodySmall.copyWith(
-                    color: AppColors.mutedStrong,
+                    color: MinigameInks.of(context).muted,
                   ),
                 ),
                 if (_decrypted != null && _decrypted!.isNotEmpty) ...[

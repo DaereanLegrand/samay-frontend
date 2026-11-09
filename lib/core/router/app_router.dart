@@ -44,7 +44,6 @@ import 'package:samay/features/friends/screens/blocked_users_screen.dart';
 import 'package:samay/features/friends/screens/muted_users_screen.dart';
 import 'package:samay/features/moderation/screens/appeals_screen.dart';
 import 'package:samay/features/groups/screens/create_group_screen.dart';
-import 'package:samay/features/groups/screens/donate_shards_screen.dart';
 import 'package:samay/features/groups/screens/group_detail_screen.dart';
 import 'package:samay/features/groups/screens/invite_screen.dart';
 import 'package:samay/features/groups/screens/group_members_screen.dart';
@@ -409,20 +408,8 @@ final routerProvider = Provider<GoRouter>((ref) {
           errorMessage: AppLocalizations.of(context).routerGroupNotFound,
         ),
       ),
-      GoRoute(
-        path: RoutePaths.donateToGroup(':groupId'),
-        builder: (context, state) => _screenForId(
-          state,
-          'groupId',
-          (groupId) => DonateShardsScreen(
-            groupId: groupId,
-            groupName: state.extra is String
-                ? state.extra as String
-                : AppLocalizations.of(context).commonGroup,
-          ),
-          errorMessage: AppLocalizations.of(context).routerGroupNotFound,
-        ),
-      ),
+      // The donate-to-group action is an in-place overlay on the group detail
+      // (`showDonateToGroupDialog`), so there is no `/group/:id/donate` route.
       // The events-tab "Crear evento" entry: a standalone public
       // flow reachable straight from `/main/events`. `/events/create` is
       // intentionally plural — `/event/:eventId` (registered above) must keep

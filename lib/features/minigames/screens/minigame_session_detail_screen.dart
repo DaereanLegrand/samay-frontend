@@ -25,6 +25,7 @@ import 'package:samay/features/minigames/screens/minigames_screen.dart'
     show minigameRejectionMessage;
 import 'package:samay/features/minigames/widgets/minigame_header_title.dart';
 import 'package:samay/features/minigames/widgets/minigame_pool.dart';
+import 'package:samay/features/minigames/widgets/minigame_session_surface.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/error_view.dart';
 import 'package:samay/shared/widgets/profile_avatar.dart';
@@ -36,7 +37,6 @@ import 'package:samay/shared/widgets/v_display_text.dart';
 import 'package:samay/shared/widgets/v_header_bar.dart';
 import 'package:samay/shared/widgets/v_input.dart';
 import 'package:samay/shared/widgets/v_shard_icon.dart';
-
 
 /// The play-screen route for [gameType] — the single lobby → game dispatch
 /// point: Two Lies (208), Botella (209/210) and Charadas (212) join truth_dare
@@ -105,7 +105,10 @@ class _MinigameSessionDetailScreenState
     // (RLS) and realtime stops delivering to them, so the kicked user's UI
     // would otherwise sit stale forever. Poll the authoritative session state
     // and surface the "Oops!" popup once the user stops being a participant.
-    _kickPoller = Timer.periodic(const Duration(seconds: 3), (_) => _checkKicked());
+    _kickPoller = Timer.periodic(
+      const Duration(seconds: 3),
+      (_) => _checkKicked(),
+    );
   }
 
   @override
@@ -127,20 +130,22 @@ class _MinigameSessionDetailScreenState
         .read(minigameServiceProvider)
         .getSession(_sessionId)
         .then((row) {
-      if (!mounted || _kickedShown) return;
-      if (row == null) {
-        if (_wasParticipant) _showKicked();
-        return;
-      }
-      final ids = (row['participants'] as List?)?.cast<String?>() ?? const [];
-      if (ids.contains(myId)) {
-        _wasParticipant = true;
-        return;
-      }
-      if (_wasParticipant) _showKicked();
-    }).catchError((Object _) {
-      // Transient network/server error — skip this tick, never a false kick.
-    });
+          if (!mounted || _kickedShown) return;
+          if (row == null) {
+            if (_wasParticipant) _showKicked();
+            return;
+          }
+          final ids =
+              (row['participants'] as List?)?.cast<String?>() ?? const [];
+          if (ids.contains(myId)) {
+            _wasParticipant = true;
+            return;
+          }
+          if (_wasParticipant) _showKicked();
+        })
+        .catchError((Object _) {
+          // Transient network/server error — skip this tick, never a false kick.
+        });
   }
 
   Future<void> _showKicked() async {
@@ -182,7 +187,7 @@ class _MinigameSessionDetailScreenState
     final myId = ref.watch(authStateProvider).valueOrNull?.user?['id'];
     final participantIds =
         (session.valueOrNull?['participants'] as List?)?.cast<String?>() ??
-            const [];
+        const [];
     final isCreator = participantIds.isNotEmpty && participantIds.first == myId;
     final gameState = ref.watch(minigameGameStateProvider(_sessionId));
     // The session status also gates the AppBar Invite button (host-only, while
@@ -197,9 +202,10 @@ class _MinigameSessionDetailScreenState
     final headerPlayers = (sessionRow?['participants'] as List?)?.length ?? 0;
     final headerPositions =
         (sessionRow?['prize_positions'] as num?)?.toInt() ??
-            kDefaultPrizePositions;
-    final headerPartidaName =
-        sessionRow == null ? null : minigameSessionName(l10n, sessionRow);
+        kDefaultPrizePositions;
+    final headerPartidaName = sessionRow == null
+        ? null
+        : minigameSessionName(l10n, sessionRow);
 
     // 215_minigame_invite_context: the authoritative "am I in
     // this session" switch. A non-participant is a pending invitee or a
@@ -221,14 +227,16 @@ class _MinigameSessionDetailScreenState
     ref.listen<AsyncValue<MinigameGameState>>(
       minigameGameStateProvider(_sessionId),
       (previous, next) {
-        final wasCountdown = previous?.valueOrNull?.skeleton.isCountdown ??
-            false;
+        final wasCountdown =
+            previous?.valueOrNull?.skeleton.isCountdown ?? false;
         final phase = next.valueOrNull?.skeleton.phase;
         final currentIds =
-            (ref.read(sessionStatusProvider(_sessionId)).valueOrNull
-                    ?['participants'] as List?)
+            (ref
+                        .read(sessionStatusProvider(_sessionId))
+                        .valueOrNull?['participants']
+                    as List?)
                 ?.cast<String?>() ??
-                const [];
+            const [];
         final isParticipant =
             currentIds.isNotEmpty && currentIds.contains(myId);
         if (isParticipant &&
@@ -241,8 +249,11 @@ class _MinigameSessionDetailScreenState
           // then push the opaque play route. The cover holds until that route
           // has committed, so only the match screen is ever visible.
           setState(() => _startingNavigation = true);
-          final gameType = ref.read(sessionStatusProvider(_sessionId))
-              .valueOrNull?['game_type'] as String?;
+          final gameType =
+              ref
+                      .read(sessionStatusProvider(_sessionId))
+                      .valueOrNull?['game_type']
+                  as String?;
           context.push(_playRoute(gameType, _sessionId));
           Future<void>.delayed(const Duration(milliseconds: 400), () {
             if (mounted) setState(() => _startingNavigation = false);
@@ -251,122 +262,127 @@ class _MinigameSessionDetailScreenState
       },
     );
 
-    return Scaffold(
-      body: VHeaderBar(
-        // Double-row header: row 1 is the minigame name in
-        // LOWERCASE ("partida" → "verdad o reto"), row 2 the partida name.
-        titleWidget: MinigameHeaderTitle(
-          word: sessionRow == null
-              ? l10n.minigamesDetailTitle
-              : minigameGameNameLower(
-                  l10n,
-                  sessionRow['game_type'] as String?,
-                ),
-          secondary: headerPartidaName,
-        ),
-        // Actions: the live pool (icon + total, tap → payout breakdown), then
-        // the host's Invite button (205_minigame_invite_lobby). The match
-        // status lives on the JUGADORES row.
-        actions: [
-          if (sessionRow != null) ...[
-            MinigamePoolAmount(
-              wager: headerWager,
-              players: headerPlayers,
-              positions: headerPositions,
-              onTap: () => showMinigamePoolBreakdown(
-                context,
+    return MinigameSessionSurface(
+      sessionId: _sessionId,
+      child: Scaffold(
+        body: VHeaderBar(
+          // Double-row header: row 1 is the minigame name in
+          // LOWERCASE ("partida" → "verdad o reto"), row 2 the partida name.
+          titleWidget: MinigameHeaderTitle(
+            word: sessionRow == null
+                ? l10n.minigamesDetailTitle
+                : minigameGameNameLower(
+                    l10n,
+                    sessionRow['game_type'] as String?,
+                  ),
+            secondary: headerPartidaName,
+          ),
+          // Actions: the live pool (icon + total, tap → payout breakdown), then
+          // the host's Invite button (205_minigame_invite_lobby). The match
+          // status lives on the JUGADORES row.
+          actions: [
+            if (sessionRow != null) ...[
+              MinigamePoolAmount(
                 wager: headerWager,
                 players: headerPlayers,
                 positions: headerPositions,
-              ),
-            ),
-            const SizedBox(width: AppSpacing.sm),
-          ],
-          if (isCreator && !isFinished)
-            IconButton(
-              icon: const Icon(Icons.person_add_alt),
-              tooltip: l10n.minigamesInviteTitle,
-              color: AppColors.white,
-              onPressed: () => _invite(context, ref, l10n),
-            ),
-        ],
-        child: session.when(
-          loading: () => const VLoadingView(),
-          error: (e, _) => ErrorView(
-            message: l10n.minigamesErrorLoad,
-            onRetry: () => ref.invalidate(sessionStatusProvider(_sessionId)),
-          ),
-          data: (row) {
-            final status = row['status'] as String?;
-            final finished = status == 'finished';
-            final inviteStatus = invite.valueOrNull?['status'] as String?;
-            final isPending = inviteStatus == 'pending' && !finished;
-
-            final countdown = gameState.valueOrNull?.skeleton.isCountdown ??
-                false;
-
-            // 215_minigame_invite_context: a not-yet-accepted
-            // invitee must never see the roster. `isParticipant` gates the
-            // lobby; a non-participant waits on the invite/context load and
-            // then renders ONLY the inviter ("INVITADO POR").
-            final Widget inviteOrLobby;
-            if (isParticipant) {
-              inviteOrLobby = _LobbySection(
-                sessionId: _sessionId,
-                finished: finished,
-              );
-            } else if (invite.isLoading ||
-                (isPending && inviteContext.isLoading)) {
-              inviteOrLobby = const Padding(
-                padding: EdgeInsets.all(AppSpacing.xl),
-                child: VLoadingView(),
-              );
-            } else if (isPending) {
-              inviteOrLobby = _InviteCard(
-                inviter: inviteContext.valueOrNull?['inviter']
-                    as Map<String, dynamic>?,
-                groupName: inviteContext.valueOrNull?['groupName'] as String?,
-                onAccept: () => _accept(context, ref, l10n),
-                onDecline: () => _decline(context, ref, l10n),
-              );
-            } else {
-              // No invite and not a participant (stranger), or a pending
-              // invite on a finished session: nothing may be revealed.
-              inviteOrLobby = VCard(child: Text(l10n.minigamesInviteClosed));
-            }
-
-            return Stack(
-              children: [
-                ListView(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-                  children: [
-                    const SizedBox(height: AppSpacing.md),
-                    inviteOrLobby,
-                  ],
+                onTap: () => showMinigamePoolBreakdown(
+                  context,
+                  wager: headerWager,
+                  players: headerPlayers,
+                  positions: headerPositions,
                 ),
-                // 190: the full-screen pre-play countdown overlay (all
-                // participants see it; only the host can cancel).
-                if (countdown)
-                  Positioned.fill(
-                    child: _CountdownOverlay(
-                      sessionId: _sessionId,
-                      isCreator: isCreator,
+              ),
+              const SizedBox(width: AppSpacing.sm),
+            ],
+            if (isCreator && !isFinished)
+              IconButton(
+                icon: const Icon(Icons.person_add_alt),
+                tooltip: l10n.minigamesInviteTitle,
+                color: MinigameInks.of(context).primary,
+                onPressed: () => _invite(context, ref, l10n),
+              ),
+          ],
+          child: session.when(
+            loading: () => const VLoadingView(),
+            error: (e, _) => ErrorView(
+              message: l10n.minigamesErrorLoad,
+              onRetry: () => ref.invalidate(sessionStatusProvider(_sessionId)),
+            ),
+            data: (row) {
+              final status = row['status'] as String?;
+              final finished = status == 'finished';
+              final inviteStatus = invite.valueOrNull?['status'] as String?;
+              final isPending = inviteStatus == 'pending' && !finished;
+
+              final countdown =
+                  gameState.valueOrNull?.skeleton.isCountdown ?? false;
+
+              // 215_minigame_invite_context: a not-yet-accepted
+              // invitee must never see the roster. `isParticipant` gates the
+              // lobby; a non-participant waits on the invite/context load and
+              // then renders ONLY the inviter ("INVITADO POR").
+              final Widget inviteOrLobby;
+              if (isParticipant) {
+                inviteOrLobby = _LobbySection(
+                  sessionId: _sessionId,
+                  finished: finished,
+                );
+              } else if (invite.isLoading ||
+                  (isPending && inviteContext.isLoading)) {
+                inviteOrLobby = const Padding(
+                  padding: EdgeInsets.all(AppSpacing.xl),
+                  child: VLoadingView(),
+                );
+              } else if (isPending) {
+                inviteOrLobby = _InviteCard(
+                  inviter:
+                      inviteContext.valueOrNull?['inviter']
+                          as Map<String, dynamic>?,
+                  groupName: inviteContext.valueOrNull?['groupName'] as String?,
+                  onAccept: () => _accept(context, ref, l10n),
+                  onDecline: () => _decline(context, ref, l10n),
+                );
+              } else {
+                // No invite and not a participant (stranger), or a pending
+                // invite on a finished session: nothing may be revealed.
+                inviteOrLobby = VCard(child: Text(l10n.minigamesInviteClosed));
+              }
+
+              return Stack(
+                children: [
+                  ListView(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.lg,
                     ),
-                  )
-                else if (_startingNavigation)
-                  // The countdown just ended and the opaque play route is
-                  // being pushed — hold a full-screen cover so the lobby is
-                  // never exposed during the handoff.
-                  const Positioned.fill(
-                    child: ColoredBox(
-                      color: AppColors.surface,
-                      child: VLoadingView(),
-                    ),
+                    children: [
+                      const SizedBox(height: AppSpacing.md),
+                      inviteOrLobby,
+                    ],
                   ),
-              ],
-            );
-          },
+                  // 190: the full-screen pre-play countdown overlay (all
+                  // participants see it; only the host can cancel).
+                  if (countdown)
+                    Positioned.fill(
+                      child: _CountdownOverlay(
+                        sessionId: _sessionId,
+                        isCreator: isCreator,
+                      ),
+                    )
+                  else if (_startingNavigation)
+                    // The countdown just ended and the opaque play route is
+                    // being pushed — hold a full-screen cover so the lobby is
+                    // never exposed during the handoff.
+                    Positioned.fill(
+                      child: ColoredBox(
+                        color: MinigameInks.of(context).surface,
+                        child: const VLoadingView(),
+                      ),
+                    ),
+                ],
+              );
+            },
+          ),
         ),
       ),
     );
@@ -388,9 +404,9 @@ class _MinigameSessionDetailScreenState
       // player without the funds, session_finished for a closed game…) — map
       // it through the friendly localized message, never the raw error text.
       if (!context.mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(minigameRejectionMessage(l10n, e.rejection))));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(minigameRejectionMessage(l10n, e.rejection))),
+      );
     } catch (e) {
       if (!context.mounted) return;
       ScaffoldMessenger.of(
@@ -414,9 +430,9 @@ class _MinigameSessionDetailScreenState
       // Typed rejection → friendly localized message, never
       // the raw exception text.
       if (!context.mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(minigameRejectionMessage(l10n, e.rejection))));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(minigameRejectionMessage(l10n, e.rejection))),
+      );
     } catch (e) {
       if (!context.mounted) return;
       ScaffoldMessenger.of(
@@ -436,7 +452,9 @@ class _MinigameSessionDetailScreenState
     AppLocalizations l10n,
   ) async {
     final participantIds =
-        (ref.read(sessionStatusProvider(_sessionId)).valueOrNull?['participants']
+        (ref
+                    .read(sessionStatusProvider(_sessionId))
+                    .valueOrNull?['participants']
                 as List?)
             ?.whereType<String>()
             .toSet() ??
@@ -460,9 +478,9 @@ class _MinigameSessionDetailScreenState
       ).showSnackBar(SnackBar(content: Text(l10n.minigamesInviteSent)));
     } on MinigameSessionRejectedException catch (e) {
       if (!context.mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(minigameRejectionMessage(l10n, e.rejection))));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(minigameRejectionMessage(l10n, e.rejection))),
+      );
     } catch (e) {
       if (!context.mounted) return;
       ScaffoldMessenger.of(
@@ -515,11 +533,7 @@ class _InviteCard extends StatelessWidget {
           // INVITADO POR — the inviter alone, styled like a participant row.
           Row(
             children: [
-              ProfileAvatar(
-                size: 36,
-                initials: initials,
-                imageUrl: avatarUrl,
-              ),
+              ProfileAvatar(size: 36, initials: initials, imageUrl: avatarUrl),
               const SizedBox(width: AppSpacing.md),
               Expanded(
                 child: Column(
@@ -599,7 +613,8 @@ class _LobbySection extends ConsumerWidget {
     final isCountdown = skeleton?.isCountdown ?? false;
     final gameType = session?['game_type'] as String?;
     final tooFewForBottle =
-        gameType == 'drunk_bottle' && participantIds.length < kDrunkBottleMinPlayers;
+        gameType == 'drunk_bottle' &&
+        participantIds.length < kDrunkBottleMinPlayers;
 
     // Who still has to tap "Listo". The host is ready by definition (they are
     // the one pressing Empezar), so only participants[1..] count. The server
@@ -685,7 +700,8 @@ class _LobbySection extends ConsumerWidget {
                       if (i > 0) const Divider(height: 1),
                       _ParticipantRow(
                         participant: ordered[i],
-                        isCreator: participantIds.isNotEmpty &&
+                        isCreator:
+                            participantIds.isNotEmpty &&
                             ordered[i].id == participantIds.first,
                         canRemove:
                             isCreator && ordered[i].id != myId && !finished,
@@ -763,8 +779,8 @@ class _LobbySection extends ConsumerWidget {
                       : l10n.minigamesWaitingReady(pendingReady.join(', ')),
                   textAlign: TextAlign.center,
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: AppColors.mutedStrong,
-                      ),
+                    color: AppColors.mutedStrong,
+                  ),
                 ),
               ),
             VButton.emphasized(
@@ -774,13 +790,12 @@ class _LobbySection extends ConsumerWidget {
               // cancels instead (190_minigame_countdown) — while a
               // drunk_bottle roster is under kDrunkBottleMinPlayers, or while
               // anyone still has to tap "Listo" (219_minigame_ready_gate).
-              onPressed: isCountdown || tooFewForBottle ||
-                      pendingReady.isNotEmpty
+              onPressed:
+                  isCountdown || tooFewForBottle || pendingReady.isNotEmpty
                   ? null
                   : () => _start(context, ref),
             ),
-          ]
-          else if (!isCountdown)
+          ] else if (!isCountdown)
             _ReadyToggle(
               isReady: gameState.valueOrNull?.isReady(myId ?? '') ?? false,
               onPressed: () => _toggleReady(context, ref),
@@ -796,8 +811,9 @@ class _LobbySection extends ConsumerWidget {
   /// holds the current round, so the play screen picks up the right
   /// subject/prompt/reactions.
   void _rejoin(BuildContext context, WidgetRef ref) {
-    final gameType = ref.read(sessionStatusProvider(sessionId))
-        .valueOrNull?['game_type'] as String?;
+    final gameType =
+        ref.read(sessionStatusProvider(sessionId)).valueOrNull?['game_type']
+            as String?;
     context.push(_playRoute(gameType, sessionId));
   }
 
@@ -819,9 +835,9 @@ class _LobbySection extends ConsumerWidget {
     final type = minigameTypeFromString(session?['game_type'] as String?);
     final isMultiplayerOnly = type?.audience == MinigameAudience.friends;
     if (isMultiplayerOnly && participantIds.length < 2) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.minigamesWaitingForPlayers)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.minigamesWaitingForPlayers)));
       return;
     }
     try {
@@ -1250,10 +1266,7 @@ class _ReadyToggle extends StatelessWidget {
 ///     whether the match actually starts). A 10s watchdog from that moment
 ///     surfaces a host-error if neither start nor cancel arrives.
 class _CountdownOverlay extends ConsumerStatefulWidget {
-  const _CountdownOverlay({
-    required this.sessionId,
-    required this.isCreator,
-  });
+  const _CountdownOverlay({required this.sessionId, required this.isCreator});
 
   final String sessionId;
   final bool isCreator;
@@ -1420,10 +1433,7 @@ class _CountdownOverlayState extends ConsumerState<_CountdownOverlay> {
               size: 64,
             ),
             const SizedBox(height: AppSpacing.md),
-            Text(
-              title,
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
+            Text(title, style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: AppSpacing.lg),
             if (showCancel)
               VButton.outlined(
@@ -1483,7 +1493,8 @@ class _AliasButton extends ConsumerWidget {
             label: l10n.minigamesAliasUpdate,
             onPressed: () => showDialog<void>(
               context: context,
-              builder: (_) => _AliasDialog(sessionId: sessionId, current: display),
+              builder: (_) =>
+                  _AliasDialog(sessionId: sessionId, current: display),
             ),
           ),
         ],
@@ -1507,8 +1518,9 @@ class _AliasDialog extends ConsumerStatefulWidget {
 }
 
 class _AliasDialogState extends ConsumerState<_AliasDialog> {
-  late final TextEditingController _controller =
-      TextEditingController(text: widget.current);
+  late final TextEditingController _controller = TextEditingController(
+    text: widget.current,
+  );
   bool _saving = false;
   String? _error;
 

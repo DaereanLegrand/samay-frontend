@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/extensions/error_mapper.dart';
 import 'package:samay/core/models/group_theme.dart';
@@ -8,7 +7,7 @@ import 'package:samay/core/repositories/repository_providers.dart';
 import 'package:samay/features/groups/providers/groups_providers.dart';
 import 'package:samay/features/groups/theme/group_theme_colors.dart';
 import 'package:samay/features/groups/theme/group_theme_palette.dart';
-import 'package:samay/features/groups/theme/group_theme_scope.dart';
+import 'package:samay/features/groups/theme/group_theme_theme.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/error_view.dart';
 import 'package:samay/shared/widgets/state_views.dart';
@@ -69,38 +68,13 @@ class GroupThemeScreen extends ConsumerWidget {
     if (palette == null) {
       return Scaffold(body: body);
     }
-    return GroupThemeScope(
+    // The editor is part of the group surface: GroupThemeSurface also remaps
+    // canvas/chip/dialog defaults, so the chips and dividers follow the theme.
+    return GroupThemeSurface(
       palette: palette,
-      child: Theme(
-        data: _themedChipTheme(Theme.of(context), palette),
-        child: Scaffold(
-          backgroundColor: palette.background,
-          body: body,
-        ),
-      ),
-    );
-  }
-
-  /// ChoiceChip reads its fill/border from the ambient ChipTheme, so the
-  /// editor overrides it with the derived pair instead of the app-wide
-  /// white/black default.
-  ThemeData _themedChipTheme(ThemeData base, GroupThemePalette palette) {
-    final chip = base.chipTheme;
-    return base.copyWith(
-      chipTheme: chip.copyWith(
-        // Same precedence rule as VCHip: `color` wins over `backgroundColor`.
-        color: WidgetStateProperty.resolveWith(
-          (states) => states.contains(WidgetState.selected)
-              ? palette.foreground
-              : AppColors.transparent,
-        ),
-        backgroundColor: AppColors.transparent,
-        selectedColor: palette.foreground,
-        labelStyle: TextStyle(color: palette.foreground),
-        secondaryLabelStyle: TextStyle(color: palette.background),
-        side: BorderSide(color: palette.border),
-        shape: chip.shape,
-        showCheckmark: false,
+      child: Scaffold(
+        backgroundColor: palette.background,
+        body: body,
       ),
     );
   }

@@ -12,6 +12,7 @@ import 'package:samay/features/minigames/logic/minigame_engine.dart';
 import 'package:samay/features/minigames/logic/minigame_meta.dart';
 import 'package:samay/features/minigames/providers/minigames_providers.dart';
 import 'package:samay/features/minigames/widgets/minigame_play_header.dart';
+import 'package:samay/features/minigames/widgets/minigame_session_surface.dart';
 import 'package:samay/features/minigames/widgets/minigame_rules_sheet.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/profile_avatar.dart';
@@ -90,9 +91,7 @@ class _DrunkBottleScreenState extends ConsumerState<DrunkBottleScreen> {
         }
         final winner = (s.bottleSelectedId == null || !_revealed)
             ? null
-            : participants
-                  .where((p) => p.id == s.bottleSelectedId)
-                  .firstOrNull;
+            : participants.where((p) => p.id == s.bottleSelectedId).firstOrNull;
         if (winner != null) {
           return minigameStatusTitle(
             word: winner.id == myId
@@ -110,28 +109,32 @@ class _DrunkBottleScreenState extends ConsumerState<DrunkBottleScreen> {
       },
     );
 
-    return Scaffold(
-      backgroundColor: AppColors.discoBlack,
-      body: VHeaderBar(
-        titleWidget: headerTitle,
-        title: headerTitle == null ? gameNameLower : null,
-        // "Cómo se juega": the same rules sheet on every game.
-        actions: const [MinigameRulesButton(type: MinigameType.drunkBottle)],
-        child: gameState.when(
-          loading: () => const VLoadingView(),
-          error: (e, _) => Center(child: Text(e.toAppError().message)),
-          data: (state) => participants.isEmpty
-              ? const VLoadingView()
-              : _BottleTable(
-                  sessionId: sessionId,
-                  participants: participants,
-                  state: state,
-                  revealed: _revealed,
-                  onRevealChanged: (value) {
-                    if (_revealed == value || !mounted) return;
-                    setState(() => _revealed = value);
-                  },
-                ),
+    final inks = MinigameInks.of(context);
+    return MinigameSessionSurface(
+      sessionId: sessionId,
+      child: Scaffold(
+        backgroundColor: inks.themed ? inks.surface : AppColors.discoBlack,
+        body: VHeaderBar(
+          titleWidget: headerTitle,
+          title: headerTitle == null ? gameNameLower : null,
+          // "Cómo se juega": the same rules sheet on every game.
+          actions: const [MinigameRulesButton(type: MinigameType.drunkBottle)],
+          child: gameState.when(
+            loading: () => const VLoadingView(),
+            error: (e, _) => Center(child: Text(e.toAppError().message)),
+            data: (state) => participants.isEmpty
+                ? const VLoadingView()
+                : _BottleTable(
+                    sessionId: sessionId,
+                    participants: participants,
+                    state: state,
+                    revealed: _revealed,
+                    onRevealChanged: (value) {
+                      if (_revealed == value || !mounted) return;
+                      setState(() => _revealed = value);
+                    },
+                  ),
+          ),
         ),
       ),
     );
@@ -177,12 +180,13 @@ class _BottleTableState extends ConsumerState<_BottleTable>
   @override
   void initState() {
     super.initState();
-    _spin = AnimationController(
-      duration: const Duration(milliseconds: 700),
-      vsync: this,
-    )..addListener(() {
-        if (mounted) setState(() {});
-      });
+    _spin =
+        AnimationController(
+          duration: const Duration(milliseconds: 700),
+          vsync: this,
+        )..addListener(() {
+          if (mounted) setState(() {});
+        });
     _settle = AnimationController(
       duration: const Duration(milliseconds: 2600),
       vsync: this,
@@ -220,7 +224,8 @@ class _BottleTableState extends ConsumerState<_BottleTable>
   void _notifyReveal(bool value) {
     if (widget.revealed == value) return;
     final phase = SchedulerBinding.instance.schedulerPhase;
-    final midBuild = phase == SchedulerPhase.persistentCallbacks ||
+    final midBuild =
+        phase == SchedulerPhase.persistentCallbacks ||
         phase == SchedulerPhase.midFrameMicrotasks;
     if (!midBuild) {
       if (mounted) widget.onRevealChanged(value);
@@ -272,11 +277,12 @@ class _BottleTableState extends ConsumerState<_BottleTable>
     while (to <= from) {
       to += 2 * pi;
     }
-    _settleTween = Tween<double>(begin: from, end: to).animate(
-      CurvedAnimation(parent: _settle, curve: Curves.easeOutCubic),
-    )..addListener(() {
-        if (mounted) setState(() => _angle = _settleTween!.value);
-      });
+    _settleTween =
+        Tween<double>(begin: from, end: to).animate(
+          CurvedAnimation(parent: _settle, curve: Curves.easeOutCubic),
+        )..addListener(() {
+          if (mounted) setState(() => _angle = _settleTween!.value);
+        });
     _settle.forward(from: 0).then((_) {
       _notifyReveal(true);
     });
@@ -350,8 +356,8 @@ class _BottleTableState extends ConsumerState<_BottleTable>
               ),
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: AppColors.mutedStrong,
-                  ),
+                color: MinigameInks.of(context).muted,
+              ),
             ),
           ),
         Expanded(
@@ -396,7 +402,9 @@ class _BottleTableState extends ConsumerState<_BottleTable>
                     onPressed: () => _run(
                       ref
                           .read(
-                            minigameGameStateProvider(widget.sessionId).notifier,
+                            minigameGameStateProvider(
+                              widget.sessionId,
+                            ).notifier,
                           )
                           .stopBottle,
                     ),
@@ -407,13 +415,14 @@ class _BottleTableState extends ConsumerState<_BottleTable>
                     onPressed: !enoughPlayers
                         ? null
                         : () => _run(
-                              ref
-                                  .read(
-                                    minigameGameStateProvider(widget.sessionId)
-                                        .notifier,
-                                  )
-                                  .spinBottle,
-                            ),
+                            ref
+                                .read(
+                                  minigameGameStateProvider(
+                                    widget.sessionId,
+                                  ).notifier,
+                                )
+                                .spinBottle,
+                          ),
                   ),
           ),
         ),
@@ -474,7 +483,9 @@ class _Pizza extends StatelessWidget {
         // or forced them to ellipsize into "jugador5d…". Pulling the ring in
         // buys the tag its full width while the table still fills the view.
         final radius =
-            min(constraints.maxWidth, constraints.maxHeight / squash) / 2 * 0.88;
+            min(constraints.maxWidth, constraints.maxHeight / squash) /
+            2 *
+            0.88;
         final avatarRadius = radius * 0.62;
         return Stack(
           alignment: Alignment.center,
@@ -507,7 +518,8 @@ class _Pizza extends StatelessWidget {
             // rotated to the server's angle.
             Transform(
               alignment: Alignment.center,
-              transform: Matrix4.identity()..scaleByDouble(1.0, squash, 1.0, 1.0),
+              transform: Matrix4.identity()
+                ..scaleByDouble(1.0, squash, 1.0, 1.0),
               child: Transform.rotate(
                 angle: angle,
                 child: CustomPaint(
@@ -724,8 +736,9 @@ class _Seat extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final initials =
-        participant.username.isEmpty ? '?' : participant.username[0];
+    final initials = participant.username.isEmpty
+        ? '?'
+        : participant.username[0];
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -737,16 +750,18 @@ class _Seat extends StatelessWidget {
             color: AppColors.discoBlack,
             border: Border.all(
               color: isWinner
-                  ? AppColors.white
+                  ? MinigameInks.of(context).primary
                   : isMe
-                      ? AppColors.white.withValues(alpha: 0.45)
-                      : Colors.transparent,
+                  ? MinigameInks.of(context).primary.withValues(alpha: 0.45)
+                  : Colors.transparent,
               width: isWinner ? 3 : 2,
             ),
             boxShadow: isWinner
                 ? [
                     BoxShadow(
-                      color: AppColors.white.withValues(alpha: 0.5),
+                      color: MinigameInks.of(
+                        context,
+                      ).primary.withValues(alpha: 0.5),
                       blurRadius: 16,
                     ),
                   ]
@@ -771,9 +786,11 @@ class _Seat extends StatelessWidget {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                  color: isWinner ? AppColors.white : AppColors.softGray,
-                  fontWeight: isWinner ? FontWeight.w700 : FontWeight.w500,
-                ),
+              color: isWinner
+                  ? MinigameInks.of(context).primary
+                  : AppColors.softGray,
+              fontWeight: isWinner ? FontWeight.w700 : FontWeight.w500,
+            ),
           ),
         ),
       ],
@@ -796,18 +813,18 @@ class _DareCard extends StatelessWidget {
   final bool isMine;
 
   Color get _categoryColor => switch (category) {
-        'picante' => AppColors.glowPink,
-        'castigo' => AppColors.discoGold,
-        'medio' => AppColors.discoViolet,
-        _ => AppColors.mint,
-      };
+    'picante' => AppColors.glowPink,
+    'castigo' => AppColors.discoGold,
+    'medio' => AppColors.discoViolet,
+    _ => AppColors.mint,
+  };
 
   String _categoryLabel(AppLocalizations l10n) => switch (category) {
-        'picante' => l10n.minigamesBottleCategoryPicante,
-        'castigo' => l10n.minigamesBottleCategoryCastigo,
-        'medio' => l10n.minigamesBottleCategoryMedio,
-        _ => l10n.minigamesBottleCategorySuave,
-      };
+    'picante' => l10n.minigamesBottleCategoryPicante,
+    'castigo' => l10n.minigamesBottleCategoryCastigo,
+    'medio' => l10n.minigamesBottleCategoryMedio,
+    _ => l10n.minigamesBottleCategorySuave,
+  };
 
   @override
   Widget build(BuildContext context) {
@@ -816,12 +833,12 @@ class _DareCard extends StatelessWidget {
       margin: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
       padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
-        color: AppColors.surfaceAlt,
+        color: MinigameInks.of(context).surfaceAlt,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
           color: isMine
               ? _categoryColor.withValues(alpha: 0.9)
-              : AppColors.border,
+              : MinigameInks.of(context).border,
           width: isMine ? 2 : 1,
         ),
       ),
@@ -833,14 +850,13 @@ class _DareCard extends StatelessWidget {
               Text(
                 isMine ? l10n.minigamesBottleDareTitle : winner.username,
                 style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                      color: AppColors.mutedStrong,
-                      letterSpacing: 0.6,
-                    ),
+                  color: MinigameInks.of(context).muted,
+                  letterSpacing: 0.6,
+                ),
               ),
               const Spacer(),
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                 decoration: BoxDecoration(
                   color: _categoryColor.withValues(alpha: 0.18),
                   borderRadius: BorderRadius.circular(20),
@@ -851,9 +867,9 @@ class _DareCard extends StatelessWidget {
                 child: Text(
                   _categoryLabel(l10n),
                   style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                        color: _categoryColor,
-                        fontWeight: FontWeight.w700,
-                      ),
+                    color: _categoryColor,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ),
             ],
@@ -862,9 +878,9 @@ class _DareCard extends StatelessWidget {
           Text(
             dare,
             style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  color: AppColors.white,
-                  fontWeight: FontWeight.w600,
-                ),
+              color: MinigameInks.of(context).primary,
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ],
       ),

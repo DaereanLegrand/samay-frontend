@@ -11,6 +11,10 @@ import 'package:samay/core/repositories/repository_providers.dart';
 import 'package:samay/core/router/route_paths.dart';
 import 'package:samay/features/chat/providers/chat_providers.dart';
 import 'package:samay/features/groups/providers/groups_providers.dart';
+import 'package:samay/features/groups/theme/group_theme_colors.dart';
+import 'package:samay/features/groups/theme/group_theme_palette.dart';
+import 'package:samay/features/groups/theme/group_theme_theme.dart';
+import 'package:samay/features/groups/widgets/donate_shards_dialog.dart';
 import 'package:samay/features/groups/widgets/group_events_section.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/error_view.dart';
@@ -28,6 +32,10 @@ import 'package:samay/shared/widgets/v_shard_icon.dart';
 /// group description and an action row (Chat · Donar · Miembros · Crear
 /// partida), then the inline events section. Invite/create-event/leave live in
 /// the header menu. Chat opens the shared [ChatScreen].
+///
+/// The whole screen is part of the group surface: it paints the host's derived
+/// theme (page, banner strip, inks) exactly like chat, the member list and the
+/// group minigames do.
 class GroupDetailScreen extends ConsumerStatefulWidget {
   const GroupDetailScreen({super.key, required this.groupId});
 
@@ -74,8 +82,13 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final detailAsync = ref.watch(groupDetailCombinedProvider(widget.groupId));
+    // The detail IS a group surface: loading/error/invited/detail all paint the
+    // host's derived theme (a null palette while the theme loads renders the
+    // standard tokens unchanged).
+    final theme = ref.watch(groupThemeProvider(widget.groupId)).valueOrNull;
+    final palette = theme == null ? null : groupThemePaletteOf(theme);
 
-    return detailAsync.when(
+    final body = detailAsync.when(
       loading: () => _scaffold(const VLoadingView()),
       error: (e, _) => _scaffold(
         ErrorView(
@@ -97,15 +110,25 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen> {
         // An invited user has not joined — a single Aceptar/Rechazar
         // panel, nothing else. A missing membership row (null) is active.
         if (data.membership?['status'] == 'invited') {
-          return _buildInvitedPanel(data.group!, data.membership!);
+          return _buildInvitedPanel(data.group!, data.membership!, palette);
         }
-        return _buildDetail(data.group!, data.members, data.contributions);
+        return _buildDetail(
+          data.group!,
+          data.members,
+          data.contributions,
+          palette,
+        );
       },
     );
+    return GroupThemeSurface(palette: palette, child: body);
   }
 
   /// The invited (pending) state — explanation + Aceptar/Rechazar.
-  Widget _buildInvitedPanel(Group g, Map<String, dynamic> membership) {
+  Widget _buildInvitedPanel(
+    Group g,
+    Map<String, dynamic> membership,
+    GroupThemePalette? palette,
+  ) {
     final l10n = AppLocalizations.of(context);
     final membershipId = membership['id'] as String;
     return _scaffold(
@@ -118,7 +141,9 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen> {
               Text(
                 l10n.groupsInvitePendingBody,
                 textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.bodyLarge,
+                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                  color: palette?.foreground ?? AppColors.white,
+                ),
               ),
               const SizedBox(height: AppSpacing.xl),
               VButton.dark(
@@ -155,6 +180,7 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen> {
     Group g,
     List<GroupMember> members,
     GroupContributionsData contributions,
+    GroupThemePalette? palette,
   ) {
     final l10n = AppLocalizations.of(context);
     final isFrozen = g.frozenAt != null;
@@ -164,6 +190,7 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen> {
     // sliver (not the app bar's flexibleSpace) so it stays reliably tappable.
     final statusBar = MediaQuery.paddingOf(context).top;
     return Scaffold(
+      backgroundColor: palette?.background,
       body: Stack(
         children: [
           CustomScrollView(
@@ -171,7 +198,7 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen> {
               SliverToBoxAdapter(
                 child: SizedBox(
                   height: statusBar + _kBannerHeight,
-                  child: _banner(l10n, g, members),
+                  child: _banner(l10n, g, members, palette),
                 ),
               ),
               SliverToBoxAdapter(
@@ -198,7 +225,11 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen> {
                           g.description!.isNotEmpty) ...[
                         Text(
                           g.description!,
-                          style: Theme.of(context).textTheme.bodyMedium,
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(
+                                color:
+                                    palette?.foreground ?? AppColors.white,
+                              ),
                         ),
                         const SizedBox(height: AppSpacing.md),
                       ],
@@ -207,11 +238,15 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen> {
                           l10n.groupsMyContribution(
                             contributions.myContribution,
                           ),
-                          style: Theme.of(context).textTheme.bodyMedium,
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(
+                                color: palette?.mutedForeground ??
+                                    AppColors.mutedStrong,
+                              ),
                         ),
                         const SizedBox(height: AppSpacing.md),
                       ],
-                      _actionRow(l10n),
+                      _actionRow(l10n, g, palette),
                       const SizedBox(height: AppSpacing.lg),
                       GroupEventsSection(groupId: widget.groupId),
                     ],
@@ -256,23 +291,32 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen> {
   /// The full-bleed banner: cover image (or a flat surface when absent), a
   /// legibility scrim, and the shards + members rows with the rank letter
   /// right-aligned and vertically centered against them.
-  Widget _banner(AppLocalizations l10n, Group g, List<GroupMember> members) {
+  Widget _banner(
+    AppLocalizations l10n,
+    Group g,
+    List<GroupMember> members,
+    GroupThemePalette? palette,
+  ) {
     final hasCover = g.coverUrl != null && g.coverUrl!.isNotEmpty;
+    final strip = palette?.surface ?? AppColors.discoBlack;
+    final primaryInk = palette?.foreground ?? AppColors.white;
+    final secondaryInk = palette?.mutedForeground ?? AppColors.mutedStrong;
     final content = Stack(
       fit: StackFit.expand,
       children: [
         if (hasCover)
           VNetworkImage(imageUrl: g.coverUrl!, fit: BoxFit.cover)
         else
-          const ColoredBox(color: AppColors.discoBlack),
-        // Flat black identity strip at the banner floor (no gradient): it
-        // keeps the shards/members/rank legible over any cover.
+          ColoredBox(color: palette?.background ?? AppColors.discoBlack),
+        // Flat identity strip at the banner floor (no gradient): it keeps the
+        // shards/members/rank legible over any cover and now carries the
+        // group's themed surface instead of a black box.
         Positioned(
           left: 0,
           right: 0,
           bottom: 0,
           child: Container(
-            color: AppColors.discoBlack,
+            color: strip,
             padding: const EdgeInsets.all(AppSpacing.lg),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.center,
@@ -283,12 +327,13 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen> {
                     children: [
                       Row(
                         children: [
-                          const VShardIcon(color: AppColors.statusVip),
+                          VShardIcon(color: primaryInk),
                           const SizedBox(width: AppSpacing.sm),
                           Flexible(
                             child: Text(
                               l10n.groupsShardsCountShort(g.groupShards),
-                              style: Theme.of(context).textTheme.bodyLarge,
+                              style: Theme.of(context).textTheme.bodyLarge
+                                  ?.copyWith(color: primaryInk),
                             ),
                           ),
                         ],
@@ -296,7 +341,8 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen> {
                       const SizedBox(height: AppSpacing.xs),
                       Text(
                         l10n.groupsMembersCountShort(members.length),
-                        style: Theme.of(context).textTheme.bodyMedium,
+                        style: Theme.of(context).textTheme.bodyMedium
+                            ?.copyWith(color: secondaryInk),
                       ),
                     ],
                   ),
@@ -325,7 +371,6 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen> {
   Widget _menu(AppLocalizations l10n, Group g) {
     return PopupMenuButton<String>(
       tooltip: l10n.commonMoreOptions,
-      iconColor: AppColors.white,
       onSelected: _onMenu,
       itemBuilder: (_) => [
         PopupMenuItem(value: 'invite', child: Text(l10n.commonInvite)),
@@ -369,38 +414,60 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen> {
   }
 
   /// The group action row: Chat · Donar · Miembros · Crear partida, each an
-  /// icon over its label.
-  Widget _actionRow(AppLocalizations l10n) {
+  /// icon over its label. The top pad keeps it clear of the description.
+  Widget _actionRow(
+    AppLocalizations l10n,
+    Group g,
+    GroupThemePalette? palette,
+  ) {
     final showGames = ref.isEnabled(AppFeatureFlag.minigames);
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _ActionIcon(
-          icon: Icons.chat_bubble_outline,
-          label: l10n.chatTitle,
-          onTap: _openChat,
-        ),
-        _ActionIcon(
-          icon: Icons.volunteer_activism_outlined,
-          label: l10n.groupsDonateTitle,
-          onTap: () async {
-            await context.push(RoutePaths.donateToGroup(widget.groupId));
-            _invalidateData();
-          },
-        ),
-        _ActionIcon(
-          icon: Icons.people_outline,
-          label: l10n.groupsTabMembers,
-          onTap: () => context.push(RoutePaths.groupMembers(widget.groupId)),
-        ),
-        if (showGames)
+    final iconInk = palette?.foreground ?? AppColors.white;
+    final labelInk = palette?.mutedForeground ?? AppColors.mutedStrong;
+    return Padding(
+      padding: const EdgeInsets.only(top: AppSpacing.lg),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
           _ActionIcon(
-            icon: Icons.sports_esports_outlined,
-            label: l10n.minigamesNewPartida,
-            onTap: () => context.push(RoutePaths.minigames(widget.groupId)),
+            icon: Icons.chat_bubble_outline,
+            label: l10n.chatTitle,
+            ink: iconInk,
+            labelInk: labelInk,
+            onTap: _openChat,
           ),
-      ],
+          _ActionIcon(
+            icon: Icons.volunteer_activism_outlined,
+            label: l10n.groupsDonateTitle,
+            ink: iconInk,
+            labelInk: labelInk,
+            onTap: () async {
+              await showDonateToGroupDialog(
+                context,
+                groupId: widget.groupId,
+                groupName: g.name,
+                palette: palette,
+              );
+              _invalidateData();
+            },
+          ),
+          _ActionIcon(
+            icon: Icons.people_outline,
+            label: l10n.groupsTabMembers,
+            ink: iconInk,
+            labelInk: labelInk,
+            onTap: () => context.push(RoutePaths.groupMembers(widget.groupId)),
+          ),
+          if (showGames)
+            _ActionIcon(
+              icon: Icons.sports_esports_outlined,
+              label: l10n.minigamesNewPartida,
+              ink: iconInk,
+              labelInk: labelInk,
+              onTap: () => context.push(RoutePaths.minigames(widget.groupId)),
+            ),
+        ],
+      ),
     );
   }
 
@@ -445,11 +512,15 @@ class _ActionIcon extends StatelessWidget {
   const _ActionIcon({
     required this.icon,
     required this.label,
+    required this.ink,
+    required this.labelInk,
     required this.onTap,
   });
 
   final IconData icon;
   final String label;
+  final Color ink;
+  final Color labelInk;
   final VoidCallback onTap;
 
   @override
@@ -464,7 +535,7 @@ class _ActionIcon extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 26, color: AppColors.white),
+            Icon(icon, size: 26, color: ink),
             const SizedBox(height: AppSpacing.xs),
             Text(
               label,
@@ -472,7 +543,7 @@ class _ActionIcon extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
               style: Theme.of(
                 context,
-              ).textTheme.labelSmall?.copyWith(color: AppColors.mutedStrong),
+              ).textTheme.labelSmall?.copyWith(color: labelInk),
             ),
           ],
         ),

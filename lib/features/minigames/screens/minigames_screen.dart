@@ -12,6 +12,7 @@ import 'package:samay/core/services/minigame_service.dart';
 import 'package:samay/features/groups/providers/groups_providers.dart';
 import 'package:samay/features/groups/theme/group_theme_colors.dart';
 import 'package:samay/features/groups/theme/group_theme_scope.dart';
+import 'package:samay/features/groups/theme/group_theme_theme.dart';
 import 'package:samay/features/minigames/logic/minigame_engine.dart';
 import 'package:samay/features/minigames/logic/minigame_meta.dart';
 import 'package:samay/features/minigames/providers/minigames_providers.dart';
@@ -49,8 +50,7 @@ String minigameRejectionMessage(
       l10n.minigamesErrorTooManyInvitees,
     MinigameSessionRejection.playerLimitReached =>
       l10n.minigamesErrorPlayerLimitReached,
-    MinigameSessionRejection.invalidRounds =>
-      l10n.minigamesErrorInvalidRounds,
+    MinigameSessionRejection.invalidRounds => l10n.minigamesErrorInvalidRounds,
     MinigameSessionRejection.invalidPrizePositions =>
       l10n.minigamesErrorInvalidPrizePositions,
     MinigameSessionRejection.invalidPlayMode =>
@@ -183,61 +183,58 @@ class _MinigamesScreenState extends ConsumerState<MinigamesScreen> {
     final palette = theme == null ? null : groupThemePaletteOf(theme);
 
     final body = VHeaderBar(
-        // Two-row header: "juegos" over the "Te atreves" tagline.
-        titleWidget: MinigameHeaderTitle(
-          word: l10n.minigamesTitle,
-          secondary: l10n.minigamesTagline,
-        ),
-        child: Column(
-          children: [
-            // "Elige un juego" sits IMMEDIATELY below the AppBar — the
-            // Directa/Grupo scope row and the game picker follow underneath.
-            Padding(
-              padding: const EdgeInsets.fromLTRB(
-                AppSpacing.lg,
-                AppSpacing.lg,
-                AppSpacing.lg,
-                AppSpacing.xs,
-              ),
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: VDisplayText(text: l10n.minigamesPickGame, size: 28),
-              ),
+      // Two-row header: "juegos" over the "Te atreves" tagline.
+      titleWidget: MinigameHeaderTitle(
+        word: l10n.minigamesTitle,
+        secondary: l10n.minigamesTagline,
+      ),
+      child: Column(
+        children: [
+          // "Elige un juego" sits IMMEDIATELY below the AppBar — the
+          // Directa/Grupo scope row and the game picker follow underneath.
+          Padding(
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.lg,
+              AppSpacing.lg,
+              AppSpacing.lg,
+              AppSpacing.xs,
             ),
-            _buildScopeSwitch(l10n),
-            Divider(
-              height: 1,
-              thickness: 1,
-              color: palette?.hairline ?? AppColors.hairline,
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: VDisplayText(text: l10n.minigamesPickGame, size: 28),
             ),
-            Expanded(
-              child: _scope == MinigameScope.group && _selectedGroupId == null
-                  ? _buildGroupPicker(l10n)
-                  : Column(
-                      children: [
-                        _buildGamePicker(l10n),
-                        Divider(
-                          height: 1,
-                          thickness: 1,
-                          color: palette?.hairline ?? AppColors.hairline,
-                        ),
-                        Expanded(child: _buildSessions(l10n)),
-                      ],
-                    ),
-            ),
-          ],
-        ),
+          ),
+          _buildScopeSwitch(l10n),
+          Divider(
+            height: 1,
+            thickness: 1,
+            color: palette?.hairline ?? AppColors.hairline,
+          ),
+          Expanded(
+            child: _scope == MinigameScope.group && _selectedGroupId == null
+                ? _buildGroupPicker(l10n)
+                : Column(
+                    children: [
+                      _buildGamePicker(l10n),
+                      Divider(
+                        height: 1,
+                        thickness: 1,
+                        color: palette?.hairline ?? AppColors.hairline,
+                      ),
+                      Expanded(child: _buildSessions(l10n)),
+                    ],
+                  ),
+          ),
+        ],
+      ),
     );
 
     if (palette == null) {
       return Scaffold(body: body);
     }
-    return GroupThemeScope(
+    return GroupThemeSurface(
       palette: palette,
-      child: Scaffold(
-        backgroundColor: palette.background,
-        body: body,
-      ),
+      child: Scaffold(backgroundColor: palette.background, body: body),
     );
   }
 
@@ -320,8 +317,10 @@ class _MinigamesScreenState extends ConsumerState<MinigamesScreen> {
                   child: Builder(
                     builder: (context) {
                       final p = GroupThemeScope.paletteOf(context);
-                      final tinted =
-                          !identical(p, GroupThemeScope.standardPalette);
+                      final tinted = !identical(
+                        p,
+                        GroupThemeScope.standardPalette,
+                      );
                       return Text(
                         group.name,
                         maxLines: 1,
@@ -452,14 +451,15 @@ class _MinigamesScreenState extends ConsumerState<MinigamesScreen> {
       data: (rows) {
         final pending = direct
             ? (ref.watch(myPendingInvitesProvider).valueOrNull ??
-                const <Map<String, dynamic>>[])
+                  const <Map<String, dynamic>>[])
             : const <Map<String, dynamic>>[];
         final rowIds = rows
             .map((r) => r['id'] as String?)
             .whereType<String>()
             .toSet();
-        final uniquePending =
-            pending.where((p) => !rowIds.contains(p['id'])).toList();
+        final uniquePending = pending
+            .where((p) => !rowIds.contains(p['id']))
+            .toList();
         final all = [...uniquePending, ...rows];
 
         if (all.isEmpty) {
@@ -687,9 +687,7 @@ class _SessionCard extends ConsumerWidget {
                         Text(
                           '${l10n.minigamesParticipantsTitle.toUpperCase()} '
                           '$participants',
-                          style: AppTypography.bodySmall.copyWith(
-                            color: muted,
-                          ),
+                          style: AppTypography.bodySmall.copyWith(color: muted),
                         ),
                       ],
                     ),
@@ -697,9 +695,7 @@ class _SessionCard extends ConsumerWidget {
                       const SizedBox(height: AppSpacing.xs),
                       Text(
                         l10n.minigamesInviteFromGroup(groupName),
-                        style: AppTypography.bodySmall.copyWith(
-                          color: muted,
-                        ),
+                        style: AppTypography.bodySmall.copyWith(color: muted),
                       ),
                     ],
                   ],
@@ -710,8 +706,8 @@ class _SessionCard extends ConsumerWidget {
                 label: isPending
                     ? l10n.groupsInvitePending
                     : (status == 'finished'
-                        ? l10n.minigamesStatusFinished
-                        : l10n.minigamesStatusActive),
+                          ? l10n.minigamesStatusFinished
+                          : l10n.minigamesStatusActive),
                 selected: isPending || status != 'finished',
               ),
             ],

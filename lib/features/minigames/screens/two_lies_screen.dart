@@ -3,7 +3,6 @@ import 'dart:math' as math;
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/core/design_tokens/app_radius.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/design_tokens/app_typography.dart';
@@ -16,6 +15,7 @@ import 'package:samay/features/minigames/logic/minigame_meta.dart';
 import 'package:samay/features/minigames/logic/two_lies_one_truth.dart';
 import 'package:samay/features/minigames/providers/minigames_providers.dart';
 import 'package:samay/features/minigames/widgets/minigame_play_header.dart';
+import 'package:samay/features/minigames/widgets/minigame_session_surface.dart';
 import 'package:samay/features/minigames/widgets/minigame_rules_sheet.dart';
 import 'package:samay/features/minigames/widgets/minigame_shared_widgets.dart';
 import 'package:samay/l10n/app_localizations.dart';
@@ -51,11 +51,11 @@ class TwoLiesScreen extends ConsumerWidget {
     final myId = ref.watch(authStateProvider).valueOrNull?.user?['id'];
     final participantIds =
         (session.valueOrNull?['participants'] as List?)?.cast<String?>() ??
-            const [];
+        const [];
     final isCreator = participantIds.isNotEmpty && participantIds.first == myId;
     final roster =
         ref.watch(minigameParticipantsProvider(sessionId)).valueOrNull ??
-            const <MinigameParticipant>[];
+        const <MinigameParticipant>[];
     final aliases = ref.watch(minigameAliasesProvider(sessionId)).valueOrNull;
     final gameNameLower = session.valueOrNull == null
         ? l10n.minigamesGameTwoLiesOneTruth.toLowerCase()
@@ -69,33 +69,36 @@ class TwoLiesScreen extends ConsumerWidget {
     // eats into the vertical centering. The creator's "complete" action is
     // pointless once the match is already settled, so it is dropped here.
     if (game.valueOrNull?.isFinished ?? false) {
-      return Scaffold(
-        body: Stack(
-          fit: StackFit.expand,
-          children: [
-            _TwoLiesFinishedBody(sessionId: sessionId),
-            Align(
-              alignment: Alignment.topLeft,
-              child: SafeArea(
-                bottom: false,
-                child: Padding(
-                  padding: EdgeInsets.only(
-                    top:
-                        VHeaderMetrics.headerOuterPad +
-                        VHeaderMetrics.heroTopPad(
-                          MediaQuery.paddingOf(context).top,
-                        ),
-                    left: AppSpacing.screenHorizontal,
-                  ),
-                  child: const SizedBox(
-                    height: VHeaderMetrics.titleRowHeight,
-                    width: double.infinity,
-                    child: VHeaderTitleRow(),
+      return MinigameSessionSurface(
+        sessionId: sessionId,
+        child: Scaffold(
+          body: Stack(
+            fit: StackFit.expand,
+            children: [
+              _TwoLiesFinishedBody(sessionId: sessionId),
+              Align(
+                alignment: Alignment.topLeft,
+                child: SafeArea(
+                  bottom: false,
+                  child: Padding(
+                    padding: EdgeInsets.only(
+                      top:
+                          VHeaderMetrics.headerOuterPad +
+                          VHeaderMetrics.heroTopPad(
+                            MediaQuery.paddingOf(context).top,
+                          ),
+                      left: AppSpacing.screenHorizontal,
+                    ),
+                    child: const SizedBox(
+                      height: VHeaderMetrics.titleRowHeight,
+                      width: double.infinity,
+                      child: VHeaderTitleRow(),
+                    ),
                   ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       );
     }
@@ -138,62 +141,66 @@ class TwoLiesScreen extends ConsumerWidget {
       },
     );
 
-    return Scaffold(
-      body: VHeaderBar(
-        titleWidget: headerTitle,
-        title: headerTitle == null ? gameNameLower : null,
-        actions: [
-          const MinigameRulesButton(type: MinigameType.twoLiesOneTruth),
-          if (isCreator)
-            IconButton(
-              icon: const Icon(Icons.close),
-              tooltip: l10n.minigamesComplete,
-              onPressed: () => _confirmComplete(context, ref, l10n),
+    return MinigameSessionSurface(
+      sessionId: sessionId,
+      child: Scaffold(
+        body: VHeaderBar(
+          titleWidget: headerTitle,
+          title: headerTitle == null ? gameNameLower : null,
+          actions: [
+            const MinigameRulesButton(type: MinigameType.twoLiesOneTruth),
+            if (isCreator)
+              IconButton(
+                icon: const Icon(Icons.close),
+                tooltip: l10n.minigamesComplete,
+                onPressed: () => _confirmComplete(context, ref, l10n),
+              ),
+          ],
+          child: game.when(
+            loading: () => const VLoadingView(),
+            error: (error, _) => ErrorView(
+              message: l10n.minigamesErrorLoadGame,
+              onRetry: () =>
+                  ref.invalidate(minigameGameStateProvider(sessionId)),
             ),
-        ],
-        child: game.when(
-          loading: () => const VLoadingView(),
-          error: (error, _) => ErrorView(
-            message: l10n.minigamesErrorLoadGame,
-            onRetry: () => ref.invalidate(minigameGameStateProvider(sessionId)),
-          ),
-          data: (state) {
-            final skeleton = state.skeleton;
-            final subjectId = skeleton.subjectId;
-            final isMyTurn = subjectId != null && subjectId == myId;
+            data: (state) {
+              final skeleton = state.skeleton;
+              final subjectId = skeleton.subjectId;
+              final isMyTurn = subjectId != null && subjectId == myId;
 
-            if (isMyTurn) {
+              if (isMyTurn) {
+                return skeleton.answer == null
+                    ? _SubjectEditorCard(
+                        sessionId: sessionId,
+                        state: state,
+                        l10n: l10n,
+                      )
+                    : _SubjectWaitingVotesCard(
+                        sessionId: sessionId,
+                        state: state,
+                        l10n: l10n,
+                      );
+              }
               return skeleton.answer == null
-                  ? _SubjectEditorCard(
+                  ? _WaitingForSubjectCard(
                       sessionId: sessionId,
-                      state: state,
+                      subjectName: minigameResolveDisplayName(
+                        subjectId,
+                        roster,
+                        aliases,
+                        skeleton,
+                        l10n,
+                      ),
                       l10n: l10n,
                     )
-                  : _SubjectWaitingVotesCard(
+                  : _VoterGuessCard(
                       sessionId: sessionId,
                       state: state,
                       l10n: l10n,
+                      myId: myId,
                     );
-            }
-            return skeleton.answer == null
-                ? _WaitingForSubjectCard(
-                    sessionId: sessionId,
-                    subjectName: minigameResolveDisplayName(
-                      subjectId,
-                      roster,
-                      aliases,
-                      skeleton,
-                      l10n,
-                    ),
-                    l10n: l10n,
-                  )
-                : _VoterGuessCard(
-                    sessionId: sessionId,
-                    state: state,
-                    l10n: l10n,
-                    myId: myId,
-                  );
-          },
+            },
+          ),
         ),
       ),
     );
@@ -339,7 +346,7 @@ class _SubjectEditorCardState extends ConsumerState<_SubjectEditorCard> {
                             widget.l10n.minigamesTwoLiesHoldHint,
                             textAlign: TextAlign.center,
                             style: AppTypography.bodyMedium.copyWith(
-                              color: AppColors.mutedStrong,
+                              color: MinigameInks.of(context).muted,
                             ),
                           ),
                           const SizedBox(height: AppSpacing.md),
@@ -414,12 +421,13 @@ class _SubjectEditorCardState extends ConsumerState<_SubjectEditorCard> {
       gestures: {
         LongPressGestureRecognizer:
             GestureRecognizerFactoryWithHandlers<LongPressGestureRecognizer>(
-          () => LongPressGestureRecognizer(
-            duration: const Duration(milliseconds: 350),
-          ),
-          (instance) =>
-              instance.onLongPress = () => setState(() => _truthIndex = index),
-        ),
+              () => LongPressGestureRecognizer(
+                duration: const Duration(milliseconds: 350),
+              ),
+              (instance) =>
+                  instance.onLongPress = () =>
+                      setState(() => _truthIndex = index),
+            ),
       },
       child: _TwoLiesCardShell(
         highlighted: _truthIndex == index,
@@ -433,7 +441,7 @@ class _SubjectEditorCardState extends ConsumerState<_SubjectEditorCard> {
               child: Text(
                 widget.l10n.minigamesTwoLiesStatementNumber(index + 1),
                 style: AppTypography.labelMedium.copyWith(
-                  color: AppColors.mutedStrong,
+                  color: MinigameInks.of(context).muted,
                 ),
               ),
             ),
@@ -490,13 +498,19 @@ class _SubjectEditorCardState extends ConsumerState<_SubjectEditorCard> {
       );
 
       final cipher = ref.read(minigameCipherProvider(widget.sessionId));
-      final textCipher = await cipher.encryptAnswerText(payload.encode(), round);
+      final textCipher = await cipher.encryptAnswerText(
+        payload.encode(),
+        round,
+      );
 
       await ref
           .read(minigameGameStateProvider(widget.sessionId).notifier)
           .submitAnswer(answerCiphertext: textCipher);
     } catch (e, st) {
-      AppLogger.instance.warn('TwoLiesScreen: error submitting statements: $e', '$st');
+      AppLogger.instance.warn(
+        'TwoLiesScreen: error submitting statements: $e',
+        '$st',
+      );
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
@@ -572,7 +586,10 @@ class _SubjectWaitingVotesCardState
         setState(() => _decryptedPayload = TwoLiesPayload.tryDecode(raw));
       }
     } catch (e, st) {
-      AppLogger.instance.warn('TwoLiesScreen: error decrypting own statements: $e', '$st');
+      AppLogger.instance.warn(
+        'TwoLiesScreen: error decrypting own statements: $e',
+        '$st',
+      );
     }
   }
 
@@ -584,10 +601,12 @@ class _SubjectWaitingVotesCardState
     final passCount = skeleton.reactionPassCount(subjectId);
     final totalReacted = voteCount + passCount;
     final totalParticipants =
-        (ref.watch(sessionStatusProvider(widget.sessionId)).valueOrNull
-                    ?['participants'] as List?)
-                ?.length ??
-            1;
+        (ref
+                    .watch(sessionStatusProvider(widget.sessionId))
+                    .valueOrNull?['participants']
+                as List?)
+            ?.length ??
+        1;
     final requiredVotes = (totalParticipants - 1).clamp(1, 999);
 
     return VCard(
@@ -597,7 +616,10 @@ class _SubjectWaitingVotesCardState
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
-              widget.l10n.minigamesTwoLiesWaitingVotes(totalReacted, requiredVotes),
+              widget.l10n.minigamesTwoLiesWaitingVotes(
+                totalReacted,
+                requiredVotes,
+              ),
               style: Theme.of(context).textTheme.titleSmall,
             ),
             const SizedBox(height: AppSpacing.md),
@@ -608,11 +630,13 @@ class _SubjectWaitingVotesCardState
                   padding: const EdgeInsets.all(AppSpacing.sm),
                   decoration: BoxDecoration(
                     color: s.isTruth
-                        ? AppColors.surfaceAlt
-                        : AppColors.surface,
+                        ? MinigameInks.of(context).surfaceAlt
+                        : MinigameInks.of(context).surface,
                     borderRadius: BorderRadius.circular(AppRadius.sm),
                     border: Border.all(
-                      color: s.isTruth ? AppColors.white : AppColors.border,
+                      color: s.isTruth
+                          ? MinigameInks.of(context).primary
+                          : MinigameInks.of(context).border,
                     ),
                   ),
                   child: Row(
@@ -741,11 +765,7 @@ class _VoterGuessCardState extends ConsumerState<_VoterGuessCard> {
     final order = [0, 1, 2];
     order.shuffle(
       math.Random(
-        _stableSeed(
-          widget.sessionId,
-          widget.state.skeleton.round,
-          widget.myId,
-        ),
+        _stableSeed(widget.sessionId, widget.state.skeleton.round, widget.myId),
       ),
     );
     return order;
@@ -764,7 +784,10 @@ class _VoterGuessCardState extends ConsumerState<_VoterGuessCard> {
         setState(() => _payload = TwoLiesPayload.tryDecode(raw));
       }
     } catch (e, st) {
-      AppLogger.instance.warn('TwoLiesScreen: error decrypting statements: $e', '$st');
+      AppLogger.instance.warn(
+        'TwoLiesScreen: error decrypting statements: $e',
+        '$st',
+      );
     }
   }
 
@@ -807,7 +830,7 @@ class _VoterGuessCardState extends ConsumerState<_VoterGuessCard> {
                           padding: const EdgeInsets.all(AppSpacing.sm),
                           alignment: Alignment.center,
                           decoration: BoxDecoration(
-                            color: AppColors.surfaceAlt,
+                            color: MinigameInks.of(context).surfaceAlt,
                             borderRadius: BorderRadius.circular(AppRadius.sm),
                           ),
                           child: Text(
@@ -862,11 +885,7 @@ class _VoterGuessCardState extends ConsumerState<_VoterGuessCard> {
 
   /// One statement card, rendered at display [position] and holding ORIGINAL
   /// statement [originalIndex]. Voters never see the truth highlight.
-  Widget _buildStatementOption(
-    int position,
-    int originalIndex,
-    bool hasVoted,
-  ) {
+  Widget _buildStatementOption(int position, int originalIndex, bool hasVoted) {
     if (originalIndex >= _payload!.statements.length) {
       return const SizedBox.shrink();
     }
@@ -960,16 +979,20 @@ class _TwoLiesCardShell extends StatelessWidget {
         vertical: AppSpacing.xs,
       ),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: MinigameInks.of(context).surface,
         borderRadius: BorderRadius.circular(AppRadius.card),
         border: Border.all(
-          color: highlighted ? AppColors.white : AppColors.border,
+          color: highlighted
+              ? MinigameInks.of(context).primary
+              : MinigameInks.of(context).border,
           width: highlighted ? 1.5 : 1,
         ),
         boxShadow: highlighted
             ? [
                 BoxShadow(
-                  color: AppColors.white.withValues(alpha: 0.28),
+                  color: MinigameInks.of(
+                    context,
+                  ).primary.withValues(alpha: 0.28),
                   blurRadius: 16,
                   spreadRadius: 1,
                 ),
@@ -996,7 +1019,7 @@ class _TwoLiesFinishedBody extends ConsumerWidget {
     final contentAsync = ref.watch(minigamePlayerContentProvider(sessionId));
     final roster =
         ref.watch(minigameParticipantsProvider(sessionId)).valueOrNull ??
-            const <MinigameParticipant>[];
+        const <MinigameParticipant>[];
 
     return result.when(
       loading: () => const VLoadingView(),
@@ -1063,7 +1086,7 @@ class _TwoLiesFinishedBody extends ConsumerWidget {
               row.prize > 0
                   ? l10n.minigamesPrizeAmount(row.prize)
                   : '${row.score}',
-              style: const TextStyle(color: AppColors.mutedStrong),
+              style: TextStyle(color: MinigameInks.of(context).muted),
             ),
           ],
         ),

@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/core/design_tokens/app_radius.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
+import 'package:samay/features/minigames/widgets/minigame_session_surface.dart';
 import 'package:samay/core/design_tokens/app_typography.dart';
 import 'package:samay/core/extensions/error_mapper.dart';
 import 'package:samay/core/theme/samay_durations.dart';
@@ -456,7 +457,11 @@ class _RankCardState extends State<_RankCard> {
         width: double.infinity,
         // Full-bleed, frameless page: no margin, radius or border.
         clipBehavior: Clip.hardEdge,
-        decoration: const BoxDecoration(color: AppColors.discoBlack),
+        decoration: BoxDecoration(
+          color: MinigameInks.of(context).themed
+              ? MinigameInks.of(context).surface
+              : AppColors.discoBlack,
+        ),
         child: _LeaderboardEmojiRise(
           active: widget.selected && _imageReady,
           trigger: '$_answerIndex:${widget.replayToken}',
@@ -658,7 +663,7 @@ class _RankCardState extends State<_RankCard> {
         textAlign: TextAlign.center,
         style: Theme.of(
           context,
-        ).textTheme.bodySmall?.copyWith(color: AppColors.mutedStrong),
+        ).textTheme.bodySmall?.copyWith(color: MinigameInks.of(context).muted),
       ),
     );
   }
@@ -689,7 +694,7 @@ class _CardFooter extends StatelessWidget {
   Widget build(BuildContext context) {
     final metaStyle = Theme.of(
       context,
-    ).textTheme.bodySmall?.copyWith(color: AppColors.mutedStrong);
+    ).textTheme.bodySmall?.copyWith(color: MinigameInks.of(context).muted);
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
@@ -807,7 +812,7 @@ class _RankPager extends StatelessWidget {
                   '${index + 1} / $count',
                   style: AppTypography.labelMedium.copyWith(
                     color: hasPrev || hasNext
-                        ? AppColors.mutedStrong
+                        ? MinigameInks.of(context).muted
                         : AppColors.muted,
                   ),
                 ),
@@ -822,13 +827,13 @@ class _RankPager extends StatelessWidget {
               width: 96,
               height: 2,
               child: ColoredBox(
-                color: AppColors.hairline,
+                color: MinigameInks.of(context).hairline,
                 child: Align(
                   alignment: Alignment.centerLeft,
                   child: FractionallySizedBox(
                     widthFactor: (index + 1) / count,
                     heightFactor: 1,
-                    child: const ColoredBox(color: AppColors.white),
+                    child: ColoredBox(color: MinigameInks.of(context).primary),
                   ),
                 ),
               ),
@@ -867,7 +872,7 @@ class _RankChevron extends StatelessWidget {
           child: Icon(
             icon,
             size: 20,
-            color: enabled ? AppColors.white : AppColors.muted,
+            color: enabled ? MinigameInks.of(context).primary : AppColors.muted,
           ),
         ),
       ),
@@ -899,13 +904,17 @@ class _SwipeHint extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.swipe, size: 16, color: AppColors.mutedStrong),
+              Icon(
+                Icons.swipe,
+                size: 16,
+                color: MinigameInks.of(context).muted,
+              ),
               const SizedBox(width: AppSpacing.xs),
               Text(
                 message,
                 textAlign: TextAlign.center,
                 style: AppTypography.labelSmall.copyWith(
-                  color: AppColors.mutedStrong,
+                  color: MinigameInks.of(context).muted,
                 ),
               ),
             ],
@@ -1038,7 +1047,7 @@ class _AnswerPage extends ConsumerWidget {
                 AppSpacing.cardPadding,
                 AppSpacing.cardPadding,
               ),
-              child: Center(child: _buildBody()),
+              child: Center(child: _buildBody(context)),
             ),
           ),
       ],
@@ -1059,7 +1068,7 @@ class _AnswerPage extends ConsumerWidget {
     );
   }
 
-  Widget _buildBody() {
+  Widget _buildBody(BuildContext context) {
     if (answer.passed) {
       return Text(
         l10n.minigamesPasarSkipped,
@@ -1068,7 +1077,7 @@ class _AnswerPage extends ConsumerWidget {
           fontFamily: AppTypography.quicksand,
           fontStyle: FontStyle.italic,
           letterSpacing: 2,
-          color: AppColors.mutedStrong,
+          color: MinigameInks.of(context).muted,
         ),
       );
     }
@@ -1102,7 +1111,7 @@ class _AnswersRetry extends StatelessWidget {
           IconButton(
             onPressed: onRetry,
             iconSize: 22,
-            color: AppColors.white,
+            color: MinigameInks.of(context).primary,
             tooltip: AppLocalizations.of(context).commonRetry,
             icon: const Icon(Icons.refresh),
           ),
@@ -1115,7 +1124,7 @@ class _AnswersRetry extends StatelessWidget {
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: AppColors.mutedStrong,
+                color: MinigameInks.of(context).muted,
                 height: 1.3,
               ),
             ),
@@ -1153,7 +1162,9 @@ class _AnswerRail extends StatelessWidget {
             height: i == index ? 20 : 6,
             margin: const EdgeInsets.symmetric(vertical: 3),
             decoration: BoxDecoration(
-              color: i == index ? AppColors.white : AppColors.mutedStrong,
+              color: i == index
+                  ? MinigameInks.of(context).primary
+                  : MinigameInks.of(context).muted,
               borderRadius: BorderRadius.circular(AppRadius.xs),
             ),
           ),
@@ -1190,7 +1201,7 @@ class _ReactionTally extends StatelessWidget {
               Text(
                 '${e.value}',
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: AppColors.mutedStrong,
+                  color: MinigameInks.of(context).muted,
                   fontWeight: FontWeight.w600,
                 ),
               ),
