@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/core/providers/auth_provider.dart';
 import 'package:samay/core/router/route_paths.dart';
 import 'package:samay/core/utils/form_validators.dart' as form_validators;
@@ -10,6 +9,7 @@ import 'package:samay/shared/widgets/v_button.dart';
 import 'package:samay/shared/widgets/v_display_text.dart';
 import 'package:samay/shared/widgets/v_header_bar.dart';
 import 'package:samay/shared/widgets/v_input.dart';
+import 'package:samay/core/theme/app_palette_context.dart';
 
 /// Password recovery — the reference app's dedicated `/forgot-password` screen
 /// with the disco treatment: `displayMedium` header (§3.2 auth site), the
@@ -118,7 +118,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
         onPressed: _backToLogin,
         child: Text(
           l10n.authBackToLogin,
-          style: const TextStyle(color: AppColors.mutedStrong),
+          style: TextStyle(color: context.palette.mutedForeground),
         ),
       ),
       const SizedBox(height: 32),
@@ -142,7 +142,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
         onPressed: _backToLogin,
         child: Text(
           l10n.authBackToLogin,
-          style: const TextStyle(color: AppColors.mutedStrong),
+          style: TextStyle(color: context.palette.mutedForeground),
         ),
       ),
       const SizedBox(height: 32),

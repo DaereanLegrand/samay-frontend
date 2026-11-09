@@ -24,6 +24,7 @@ import 'package:samay/shared/widgets/v_button.dart';
 import 'package:samay/shared/widgets/v_chip.dart';
 import 'package:samay/shared/widgets/v_header_bar.dart';
 import 'package:samay/shared/widgets/v_input.dart';
+import 'package:samay/core/theme/app_palette_context.dart';
 
 /// Gallery-picking seam for tests: `image_picker` is a platform plugin that
 /// cannot run in widget tests, so the screen accepts an injectable function
@@ -195,14 +196,14 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
       final confirmed = await showDialog<bool>(
         context: context,
         builder: (dialogContext) => AlertDialog(
-          backgroundColor: AppColors.discoBlack,
+          backgroundColor: context.palette.background,
           title: Text(
             l10n.eventsJuergaWarningTitle,
-            style: const TextStyle(color: AppColors.white),
+            style: TextStyle(color: context.palette.foreground),
           ),
           content: Text(
             l10n.eventsJuergaWarningBody,
-            style: const TextStyle(color: AppColors.mutedStrong),
+            style: TextStyle(color: context.palette.mutedForeground),
           ),
           actions: [
             TextButton(
@@ -213,7 +214,7 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
               onPressed: () => Navigator.of(dialogContext).pop(true),
               child: Text(
                 l10n.eventsJuergaWarningConfirm,
-                style: const TextStyle(color: AppColors.white),
+                style: TextStyle(color: context.palette.foreground),
               ),
             ),
           ],
@@ -411,8 +412,8 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
                   // §5.8 skeleton-base surface for the empty cover slot + the
                   // §2.1 interactive-outline token (never raw greys —
                   // create_group precedent).
-                  color: AppColors.surfaceAlt,
-                  border: Border.all(color: AppColors.border),
+                  color: context.palette.surfaceAlt,
+                  border: Border.all(color: context.palette.border),
                 ),
                 child: _coverImage != null
                     ? ClipRect(
@@ -427,16 +428,16 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Icon(
+                            Icon(
                               Icons.camera_alt,
                               size: 40,
-                              color: AppColors.muted,
+                              color: context.palette.mutedForeground,
                             ),
                             const SizedBox(height: AppSpacing.sm),
                             Text(
                               l10n.groupsAddCover,
-                              style: const TextStyle(
-                                color: AppColors.mutedStrong,
+                              style: TextStyle(
+                                color: context.palette.mutedForeground,
                               ),
                             ),
                           ],
@@ -474,7 +475,7 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
             const SizedBox(height: AppSpacing.sm),
             Text(
               _typeDescription(l10n),
-              style: const TextStyle(color: AppColors.mutedStrong),
+              style: TextStyle(color: context.palette.mutedForeground),
             ),
             const SizedBox(height: AppSpacing.xl),
             _dateRow(context, starts: true),
@@ -495,10 +496,10 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
               children: [
                 TextButton.icon(
                   onPressed: _pickCoordinates,
-                  icon: const Icon(
+                  icon: Icon(
                     Icons.place_outlined,
                     size: 18,
-                    color: AppColors.white,
+                    color: context.palette.foreground,
                   ),
                   label: Text(
                     _form.locationLat == null || _form.locationLng == null
@@ -507,7 +508,7 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
                             '${_form.locationLat!.toStringAsFixed(5)}, '
                             '${_form.locationLng!.toStringAsFixed(5)}',
                           ),
-                    style: const TextStyle(color: AppColors.white),
+                    style: TextStyle(color: context.palette.foreground),
                   ),
                 ),
               ],
@@ -521,7 +522,7 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
               l10n.eventsCapacityHint,
               style: Theme.of(
                 context,
-              ).textTheme.bodySmall?.copyWith(color: AppColors.mutedStrong),
+              ).textTheme.bodySmall?.copyWith(color: context.palette.mutedForeground),
             ),
             if (_capacity >= _tierCap) ...[
               const SizedBox(height: AppSpacing.xs),
@@ -593,7 +594,7 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
                 _form.joinMode == EventJoinMode.approval
                     ? l10n.eventsJoinModeApprovalDescription
                     : l10n.eventsJoinModeOpenDescription,
-                style: const TextStyle(color: AppColors.mutedStrong),
+                style: TextStyle(color: context.palette.mutedForeground),
               ),
               const SizedBox(height: AppSpacing.lg),
             ],
@@ -645,7 +646,7 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
               const SizedBox(height: AppSpacing.sm),
               Text(
                 l10n.eventsDynamicQrHint,
-                style: const TextStyle(color: AppColors.mutedStrong),
+                style: TextStyle(color: context.palette.mutedForeground),
               ),
               const SizedBox(height: AppSpacing.lg),
             ],
@@ -687,8 +688,8 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
       decoration: BoxDecoration(
-        color: AppColors.surfaceAlt,
-        border: Border.all(color: AppColors.border),
+        color: context.palette.surfaceAlt,
+        border: Border.all(color: context.palette.border),
         borderRadius: BorderRadius.circular(AppRadius.none),
       ),
       child: Row(
@@ -696,19 +697,19 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
         children: [
           IconButton(
             onPressed: _capacity > 1 ? () => _setCapacity(_capacity - 1) : null,
-            icon: const Icon(Icons.remove, color: AppColors.mutedStrong),
+            icon: Icon(Icons.remove, color: context.palette.mutedForeground),
           ),
           Text(
             '$_capacity',
             style: Theme.of(
               context,
-            ).textTheme.headlineSmall?.copyWith(color: AppColors.white),
+            ).textTheme.headlineSmall?.copyWith(color: context.palette.foreground),
           ),
           IconButton(
             onPressed: _capacity < _tierCap
                 ? () => _setCapacity(_capacity + 1)
                 : null,
-            icon: const Icon(Icons.add, color: AppColors.mutedStrong),
+            icon: Icon(Icons.add, color: context.palette.mutedForeground),
           ),
         ],
       ),
@@ -722,20 +723,20 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
       child: InputDecorator(
         decoration: InputDecoration(
           labelText: starts ? l10n.eventsStartsLabel : l10n.eventsEndsLabel,
-          labelStyle: const TextStyle(color: AppColors.mutedStrong),
+          labelStyle: TextStyle(color: context.palette.mutedForeground),
           floatingLabelBehavior: FloatingLabelBehavior.always,
-          enabledBorder: const OutlineInputBorder(
+          enabledBorder: OutlineInputBorder(
             borderRadius: AppRadius.sharp,
-            borderSide: BorderSide(color: AppColors.border),
+            borderSide: BorderSide(color: context.palette.border),
           ),
-          border: const OutlineInputBorder(
+          border: OutlineInputBorder(
             borderRadius: AppRadius.sharp,
-            borderSide: BorderSide(color: AppColors.border),
+            borderSide: BorderSide(color: context.palette.border),
           ),
         ),
         child: Text(
           _formatDateTime(context, starts ? _form.startsAt : _form.endsAt),
-          style: const TextStyle(color: AppColors.white),
+          style: TextStyle(color: context.palette.foreground),
         ),
       ),
     );
@@ -768,19 +769,19 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
         InputDecorator(
           decoration: InputDecoration(
             labelText: l10n.eventsGroupSelectorLabel,
-            labelStyle: const TextStyle(color: AppColors.mutedStrong),
+            labelStyle: TextStyle(color: context.palette.mutedForeground),
             floatingLabelBehavior: FloatingLabelBehavior.always,
-            enabledBorder: const OutlineInputBorder(
+            enabledBorder: OutlineInputBorder(
               borderRadius: AppRadius.sharp,
-              borderSide: BorderSide(color: AppColors.border),
+              borderSide: BorderSide(color: context.palette.border),
             ),
-            focusedBorder: const OutlineInputBorder(
+            focusedBorder: OutlineInputBorder(
               borderRadius: AppRadius.sharp,
-              borderSide: BorderSide(color: AppColors.white),
+              borderSide: BorderSide(color: context.palette.foreground),
             ),
-            border: const OutlineInputBorder(
+            border: OutlineInputBorder(
               borderRadius: AppRadius.sharp,
-              borderSide: BorderSide(color: AppColors.border),
+              borderSide: BorderSide(color: context.palette.border),
             ),
           ),
           isEmpty: current == null,
@@ -788,12 +789,12 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
             value: current,
             isExpanded: true,
             underline: const SizedBox.shrink(),
-            dropdownColor: AppColors.surfaceAlt,
-            iconEnabledColor: AppColors.white,
-            style: const TextStyle(color: AppColors.white),
+            dropdownColor: context.palette.surfaceAlt,
+            iconEnabledColor: context.palette.foreground,
+            style: TextStyle(color: context.palette.foreground),
             hint: Text(
               l10n.eventsGroupSelectorHint,
-              style: const TextStyle(color: AppColors.muted),
+              style: TextStyle(color: context.palette.mutedForeground),
             ),
             items: items,
             onChanged: (value) =>
@@ -809,7 +810,7 @@ class _CreateEventScreenState extends ConsumerState<CreateEventScreen> {
         else if (_myGroups.isEmpty && current == null)
           Text(
             l10n.groupsNoneYet,
-            style: const TextStyle(color: AppColors.mutedStrong),
+            style: TextStyle(color: context.palette.mutedForeground),
           ),
       ],
     );

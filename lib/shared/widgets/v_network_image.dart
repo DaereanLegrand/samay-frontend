@@ -2,9 +2,9 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:samay/core/config/env_config.dart';
-import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/core/design_tokens/app_icon_sizes.dart';
 import 'package:samay/core/theme/samay_durations.dart';
+import 'package:samay/core/theme/app_palette_context.dart';
 
 /// Branded network image with disk caching, a loading placeholder, a safe
 /// error fallback and a fade-in on load. Future features should use this
@@ -92,12 +92,12 @@ class VNetworkImage extends StatelessWidget {
             resolvedUrl,
             EnvConfig.supabaseAnonKeyRaw,
           ),
-      placeholder: (_, _) => const _Surface(
-        color: AppColors.surfaceAlt,
+      placeholder: (_, _) => _Surface(
+        color: context.palette.surfaceAlt,
         icon: Icons.photo_outlined,
       ),
-      errorWidget: (_, _, _) => const _Surface(
-        color: AppColors.border,
+      errorWidget: (_, _, _) => _Surface(
+        color: context.palette.border,
         icon: Icons.broken_image_outlined,
       ),
     );
@@ -121,7 +121,7 @@ class _Surface extends StatelessWidget {
     return ColoredBox(
       color: color,
       child: Center(
-        child: Icon(icon, color: AppColors.muted, size: AppIconSizes.md),
+        child: Icon(icon, color: context.palette.mutedForeground, size: AppIconSizes.md),
       ),
     );
   }

@@ -1,12 +1,12 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
-import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/core/design_tokens/app_icon_sizes.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/services/minigame_service.dart';
 import 'package:samay/features/minigames/logic/minigame_meta.dart';
 import 'package:samay/shared/widgets/v_display_text.dart';
+import 'package:samay/core/theme/app_palette_context.dart';
 
 /// One circulating text band for a Games-tab card: a single-line row of
 /// `icon + game name` units repeated past the band width, translated one unit
@@ -146,7 +146,7 @@ class _GameNameBandState extends State<GameNameBand>
         children: [
           Icon(
             minigameIcon(widget.type),
-            color: AppColors.white,
+            color: context.palette.foreground,
             size: AppIconSizes.sm,
           ),
           const SizedBox(width: AppSpacing.sm),

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
-import 'package:samay/features/groups/theme/group_theme_scope.dart';
+import 'package:samay/core/theme/app_theme_scope.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/design_tokens/app_typography.dart';
 
@@ -49,8 +49,8 @@ class VInput extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final palette = GroupThemeScope.paletteOf(context);
-    final themed = !identical(palette, GroupThemeScope.standardPalette);
+    final palette = AppThemeScope.paletteOf(context);
+    final themed = AppThemeScope.isThemed(context);
     final ink = themed ? palette.foreground : AppColors.white;
     final hintInk = themed ? palette.mutedForeground : AppColors.mutedStrong;
     final hasError = errorText != null;

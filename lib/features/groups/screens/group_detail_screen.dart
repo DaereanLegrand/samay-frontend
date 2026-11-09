@@ -11,8 +11,8 @@ import 'package:samay/core/repositories/repository_providers.dart';
 import 'package:samay/core/router/route_paths.dart';
 import 'package:samay/features/chat/providers/chat_providers.dart';
 import 'package:samay/features/groups/providers/groups_providers.dart';
-import 'package:samay/features/groups/theme/group_theme_colors.dart';
-import 'package:samay/features/groups/theme/group_theme_palette.dart';
+import 'package:samay/core/theme/app_palette.dart';
+import 'package:samay/core/theme/app_theme_provider.dart';
 import 'package:samay/features/groups/theme/group_theme_theme.dart';
 import 'package:samay/features/groups/widgets/donate_shards_dialog.dart';
 import 'package:samay/features/groups/widgets/group_events_section.dart';
@@ -26,6 +26,7 @@ import 'package:samay/shared/widgets/report_sheet.dart';
 import 'package:samay/shared/widgets/v_header_bar.dart';
 import 'package:samay/shared/widgets/v_network_image.dart';
 import 'package:samay/shared/widgets/v_shard_icon.dart';
+import 'package:samay/core/theme/app_palette_context.dart';
 
 /// Group detail: a full-bleed cover banner with the group name and menu in a
 /// transparent header, a flat identity strip (shards / members / rank), the
@@ -86,7 +87,9 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen> {
     // host's derived theme (a null palette while the theme loads renders the
     // standard tokens unchanged).
     final theme = ref.watch(groupThemeProvider(widget.groupId)).valueOrNull;
-    final palette = theme == null ? null : groupThemePaletteOf(theme);
+    final palette = theme == null
+        ? null
+        : groupSurfacePalette(theme, appPalette: ref.watch(appPaletteProvider));
 
     final body = detailAsync.when(
       loading: () => _scaffold(const VLoadingView()),
@@ -127,7 +130,7 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen> {
   Widget _buildInvitedPanel(
     Group g,
     Map<String, dynamic> membership,
-    GroupThemePalette? palette,
+    AppPalette? palette,
   ) {
     final l10n = AppLocalizations.of(context);
     final membershipId = membership['id'] as String;
@@ -142,7 +145,7 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen> {
                 l10n.groupsInvitePendingBody,
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  color: palette?.foreground ?? AppColors.white,
+                  color: palette?.foreground ?? context.palette.foreground,
                 ),
               ),
               const SizedBox(height: AppSpacing.xl),
@@ -180,7 +183,7 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen> {
     Group g,
     List<GroupMember> members,
     GroupContributionsData contributions,
-    GroupThemePalette? palette,
+    AppPalette? palette,
   ) {
     final l10n = AppLocalizations.of(context);
     final isFrozen = g.frozenAt != null;
@@ -215,7 +218,7 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen> {
                           child: Text(
                             l10n.groupsFrozenBanner,
                             style: Theme.of(context).textTheme.bodySmall
-                                ?.copyWith(color: AppColors.white),
+                                ?.copyWith(color: context.palette.foreground),
                             textAlign: TextAlign.center,
                           ),
                         ),
@@ -228,7 +231,7 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen> {
                           style: Theme.of(context).textTheme.bodyMedium
                               ?.copyWith(
                                 color:
-                                    palette?.foreground ?? AppColors.white,
+                                    palette?.foreground ?? context.palette.foreground,
                               ),
                         ),
                         const SizedBox(height: AppSpacing.md),
@@ -241,7 +244,7 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen> {
                           style: Theme.of(context).textTheme.bodyMedium
                               ?.copyWith(
                                 color: palette?.mutedForeground ??
-                                    AppColors.mutedStrong,
+                                    context.palette.mutedForeground,
                               ),
                         ),
                         const SizedBox(height: AppSpacing.md),
@@ -295,19 +298,19 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen> {
     AppLocalizations l10n,
     Group g,
     List<GroupMember> members,
-    GroupThemePalette? palette,
+    AppPalette? palette,
   ) {
     final hasCover = g.coverUrl != null && g.coverUrl!.isNotEmpty;
-    final strip = palette?.surface ?? AppColors.discoBlack;
-    final primaryInk = palette?.foreground ?? AppColors.white;
-    final secondaryInk = palette?.mutedForeground ?? AppColors.mutedStrong;
+    final strip = palette?.surface ?? context.palette.background;
+    final primaryInk = palette?.foreground ?? context.palette.foreground;
+    final secondaryInk = palette?.mutedForeground ?? context.palette.mutedForeground;
     final content = Stack(
       fit: StackFit.expand,
       children: [
         if (hasCover)
           VNetworkImage(imageUrl: g.coverUrl!, fit: BoxFit.cover)
         else
-          ColoredBox(color: palette?.background ?? AppColors.discoBlack),
+          ColoredBox(color: palette?.background ?? context.palette.background),
         // Flat identity strip at the banner floor (no gradient): it keeps the
         // shards/members/rank legible over any cover and now carries the
         // group's themed surface instead of a black box.
@@ -418,11 +421,11 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen> {
   Widget _actionRow(
     AppLocalizations l10n,
     Group g,
-    GroupThemePalette? palette,
+    AppPalette? palette,
   ) {
     final showGames = ref.isEnabled(AppFeatureFlag.minigames);
-    final iconInk = palette?.foreground ?? AppColors.white;
-    final labelInk = palette?.mutedForeground ?? AppColors.mutedStrong;
+    final iconInk = palette?.foreground ?? context.palette.foreground;
+    final labelInk = palette?.mutedForeground ?? context.palette.mutedForeground;
     return Padding(
       padding: const EdgeInsets.only(top: AppSpacing.lg),
       child: Row(

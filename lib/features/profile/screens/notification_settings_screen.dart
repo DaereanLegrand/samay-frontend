@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/features/profile/providers/notification_prefs_provider.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/state_views.dart';
 import 'package:samay/shared/widgets/v_card.dart';
 import 'package:samay/shared/widgets/v_header_bar.dart';
+import 'package:samay/core/theme/app_palette_context.dart';
 
 /// Notification preferences — Q4a server-backed categories.
 ///
@@ -110,7 +110,7 @@ class NotificationSettingsScreen extends ConsumerWidget {
                           trailing: Text(
                             l10n.notificationCategoryAlwaysOn,
                             style: Theme.of(context).textTheme.bodySmall
-                                ?.copyWith(color: AppColors.mutedStrong),
+                                ?.copyWith(color: context.palette.mutedForeground),
                           ),
                         ),
                       ],
@@ -124,7 +124,7 @@ class NotificationSettingsScreen extends ConsumerWidget {
                 textAlign: TextAlign.center,
                 style: Theme.of(
                   context,
-                ).textTheme.bodySmall?.copyWith(color: AppColors.mutedStrong),
+                ).textTheme.bodySmall?.copyWith(color: context.palette.mutedForeground),
               ),
             ],
           ),

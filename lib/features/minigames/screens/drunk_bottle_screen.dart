@@ -19,6 +19,7 @@ import 'package:samay/shared/widgets/profile_avatar.dart';
 import 'package:samay/shared/widgets/state_views.dart';
 import 'package:samay/shared/widgets/v_button.dart';
 import 'package:samay/shared/widgets/v_header_bar.dart';
+import 'package:samay/core/theme/app_palette_context.dart';
 
 /// The minimum roster the bottle needs — with fewer than three slices the
 /// pizza stops being a game (209: lowered from 6 on product feedback).
@@ -113,7 +114,7 @@ class _DrunkBottleScreenState extends ConsumerState<DrunkBottleScreen> {
     return MinigameSessionSurface(
       sessionId: sessionId,
       child: Scaffold(
-        backgroundColor: inks.themed ? inks.surface : AppColors.discoBlack,
+        backgroundColor: inks.themed ? inks.surface : context.palette.background,
         body: VHeaderBar(
           titleWidget: headerTitle,
           title: headerTitle == null ? gameNameLower : null,
@@ -747,7 +748,7 @@ class _Seat extends StatelessWidget {
           padding: const EdgeInsets.all(3),
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: AppColors.discoBlack,
+            color: context.palette.background,
             border: Border.all(
               color: isWinner
                   ? MinigameInks.of(context).primary
@@ -778,7 +779,7 @@ class _Seat extends StatelessWidget {
           constraints: BoxConstraints(maxWidth: maxLabelWidth),
           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
           decoration: BoxDecoration(
-            color: AppColors.discoBlack.withValues(alpha: 0.72),
+            color: context.palette.background.withValues(alpha: 0.72),
             borderRadius: BorderRadius.circular(6),
           ),
           child: Text(

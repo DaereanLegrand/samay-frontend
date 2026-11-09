@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:latlong2/latlong.dart';
-import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/core/design_tokens/app_icon_sizes.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/design_tokens/app_typography.dart';
@@ -25,6 +24,7 @@ import 'package:samay/shared/widgets/v_card.dart';
 import 'package:samay/shared/widgets/v_header_bar.dart';
 import 'package:samay/shared/widgets/v_input.dart';
 import 'package:samay/shared/widgets/v_network_image.dart';
+import 'package:samay/core/theme/app_palette_context.dart';
 
 /// The events tab: server-side discovery (text search + server-side km filter
 /// with the 100 km hard cap + accepted-friend activity), with header actions
@@ -125,7 +125,7 @@ class _MyEventsScreenState extends ConsumerState<MyEventsScreen> {
     final l10n = AppLocalizations.of(context);
 
     return Scaffold(
-      backgroundColor: AppColors.discoBlack,
+      backgroundColor: context.palette.background,
       body: RefreshIndicator(
         onRefresh: _refresh,
         child: CustomScrollView(
@@ -137,7 +137,7 @@ class _MyEventsScreenState extends ConsumerState<MyEventsScreen> {
                 IconButton(
                   icon: Icon(
                     _searchOpen ? Icons.search_off : Icons.search,
-                    color: AppColors.white,
+                    color: context.palette.foreground,
                   ),
                   tooltip: l10n.eventsSearchTooltip,
                   onPressed: _toggleSearch,
@@ -147,13 +147,13 @@ class _MyEventsScreenState extends ConsumerState<MyEventsScreen> {
                     _filterOpen
                         ? Icons.location_on
                         : Icons.location_on_outlined,
-                    color: AppColors.white,
+                    color: context.palette.foreground,
                   ),
                   tooltip: l10n.eventsFilterTooltip,
                   onPressed: _toggleFilter,
                 ),
                 IconButton(
-                  icon: const Icon(Icons.add, color: AppColors.white),
+                  icon: Icon(Icons.add, color: context.palette.foreground),
                   tooltip: l10n.eventsCreateCta,
                   onPressed: _openCreateEvent,
                 ),
@@ -270,7 +270,7 @@ class _LocationControls extends ConsumerWidget {
     final l10n = AppLocalizations.of(context);
     final point = ref.watch(eventReferencePointProvider);
     final labelStyle = AppTypography.labelMedium.copyWith(
-      color: AppColors.white,
+      color: context.palette.foreground,
     );
 
     return Row(
@@ -363,10 +363,10 @@ class _MyEventCard extends StatelessWidget {
               const SizedBox(height: AppSpacing.sm),
               Row(
                 children: [
-                  const Icon(
+                  Icon(
                     Icons.schedule,
                     size: AppIconSizes.sm,
-                    color: AppColors.mutedStrong,
+                    color: context.palette.mutedForeground,
                   ),
                   const SizedBox(width: AppSpacing.xs),
                   Expanded(
@@ -379,7 +379,7 @@ class _MyEventCard extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: AppTypography.bodySmall.copyWith(
-                        color: AppColors.mutedStrong,
+                        color: context.palette.mutedForeground,
                       ),
                     ),
                   ),
@@ -388,10 +388,10 @@ class _MyEventCard extends StatelessWidget {
               const SizedBox(height: AppSpacing.xs),
               Row(
                 children: [
-                  const Icon(
+                  Icon(
                     Icons.place_outlined,
                     size: AppIconSizes.sm,
-                    color: AppColors.mutedStrong,
+                    color: context.palette.mutedForeground,
                   ),
                   const SizedBox(width: AppSpacing.xs),
                   Expanded(
@@ -400,7 +400,7 @@ class _MyEventCard extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: AppTypography.bodySmall.copyWith(
-                        color: AppColors.mutedStrong,
+                        color: context.palette.mutedForeground,
                       ),
                     ),
                   ),

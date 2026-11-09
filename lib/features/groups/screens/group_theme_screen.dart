@@ -6,7 +6,7 @@ import 'package:samay/core/models/group_theme.dart';
 import 'package:samay/core/repositories/repository_providers.dart';
 import 'package:samay/features/groups/providers/groups_providers.dart';
 import 'package:samay/features/groups/theme/group_theme_colors.dart';
-import 'package:samay/features/groups/theme/group_theme_palette.dart';
+import 'package:samay/core/theme/app_palette.dart';
 import 'package:samay/features/groups/theme/group_theme_theme.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/error_view.dart';
@@ -195,11 +195,11 @@ class GroupThemeScreen extends ConsumerWidget {
     final selected = theme.backgroundColor.toUpperCase() == hex.toUpperCase();
     // Each swatch shows what the app will PAINT for that pick: the colour
     // darkened 75%, with its complementary ink as the checkmark.
-    final swatchBg = GroupThemePalette.darken(
+    final swatchBg = AppPalette.darken(
       groupThemeColor(hex),
-      GroupThemePalette.darkenAmount,
+      AppPalette.darkenAmount,
     );
-    final checkColor = GroupThemePalette.complement(swatchBg);
+    final checkColor = AppPalette.complement(swatchBg);
     final palette = groupThemePaletteOf(theme);
     return InkWell(
       onTap: selected ? null : () => _apply(context, ref, background: hex),

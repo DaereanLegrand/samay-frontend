@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
-import 'package:samay/features/groups/theme/group_theme_scope.dart';
+import 'package:samay/core/theme/app_theme_scope.dart';
 
 /// Samay card — DESIGN.md §5.3.
 ///
@@ -9,7 +9,7 @@ import 'package:samay/features/groups/theme/group_theme_scope.dart';
 /// sharp corners, `cardPadding` 16. The hairline is depth decoration (§7.2
 /// boundary rule) — a card is never the only indicator of interactivity.
 ///
-/// Inside a [GroupThemeScope] the fill/borders switch to the theme's derived
+/// Inside a [AppThemeScope] the fill/borders switch to the theme's derived
 /// tonal steps, so a card on a coloured group page is a shade of that colour
 /// rather than a black box.
 class VCard extends StatelessWidget {
@@ -20,8 +20,8 @@ class VCard extends StatelessWidget {
   /// full-bleed picture inside a card).
   final EdgeInsetsGeometry padding;
 
-  /// Use the raised tonal step ([GroupThemePalette.surfaceAlt]) instead of the
-  /// base [GroupThemePalette.surface]. Defaults to the base step.
+  /// Use the raised tonal step ([AppPalette.surfaceAlt]) instead of the
+  /// base [AppPalette.surface]. Defaults to the base step.
   final bool raised;
 
   const VCard({
@@ -33,8 +33,8 @@ class VCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final palette = GroupThemeScope.paletteOf(context);
-    final themed = !identical(palette, GroupThemeScope.standardPalette);
+    final palette = AppThemeScope.paletteOf(context);
+    final themed = AppThemeScope.isThemed(context);
     return Container(
       decoration: BoxDecoration(
         color: themed

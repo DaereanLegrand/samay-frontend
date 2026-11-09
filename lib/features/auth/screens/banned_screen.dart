@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/core/design_tokens/app_icon_sizes.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/providers/auth_provider.dart';
@@ -10,6 +9,7 @@ import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/v_button.dart';
 import 'package:samay/shared/widgets/v_card.dart';
 import 'package:samay/shared/widgets/v_display_text.dart';
+import 'package:samay/core/theme/app_palette_context.dart';
 
 /// Terminal screen for suspended accounts (ban enforcement).
 ///
@@ -38,10 +38,10 @@ class BannedScreen extends ConsumerWidget {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Icon(
+                      Icon(
                         Icons.block,
                         size: AppIconSizes.xxl,
-                        color: AppColors.white,
+                        color: context.palette.foreground,
                       ),
                       const SizedBox(height: AppSpacing.xl),
                       // Monochrome: the suspension title is the
@@ -57,7 +57,7 @@ class BannedScreen extends ConsumerWidget {
                             : l10n.bannedDefaultBody,
                         textAlign: TextAlign.center,
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: AppColors.mutedStrong,
+                          color: context.palette.mutedForeground,
                         ),
                       ),
                       const SizedBox(height: AppSpacing.xxl),

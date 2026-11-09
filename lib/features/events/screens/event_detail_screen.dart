@@ -3,7 +3,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:samay/core/config/feature_flags.dart';
-import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/extensions/error_mapper.dart';
 import 'package:samay/core/logging/app_logger.dart';
@@ -29,6 +28,7 @@ import 'package:samay/shared/widgets/report_sheet.dart';
 import 'package:samay/shared/widgets/v_network_image.dart';
 import 'package:samay/shared/widgets/v_shard_icon.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' show RealtimeChannel;
+import 'package:samay/core/theme/app_palette_context.dart';
 
 /// Event detail: header, date/location, preshard pool status, hosts, own
 /// invite status and role-based actions (edit/cancel for hosts). Invitee
@@ -106,14 +106,14 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
       await showDialog<void>(
         context: context,
         builder: (dialogContext) => AlertDialog(
-          backgroundColor: AppColors.discoBlack,
+          backgroundColor: context.palette.background,
           title: Text(
             l10n.eventsShareLink,
-            style: const TextStyle(color: AppColors.white),
+            style: TextStyle(color: context.palette.foreground),
           ),
           content: SelectableText(
             url,
-            style: const TextStyle(color: AppColors.mutedStrong),
+            style: TextStyle(color: context.palette.mutedForeground),
           ),
           actions: [
             TextButton(
@@ -166,14 +166,14 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        backgroundColor: AppColors.discoBlack,
+        backgroundColor: context.palette.background,
         title: Text(
           l10n.eventCancelDialogTitle,
-          style: const TextStyle(color: AppColors.white),
+          style: TextStyle(color: context.palette.foreground),
         ),
         content: Text(
           l10n.eventCancelDialogBody,
-          style: const TextStyle(color: AppColors.mutedStrong),
+          style: TextStyle(color: context.palette.mutedForeground),
         ),
         actions: [
           TextButton(
@@ -606,16 +606,16 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
             fit: BoxFit.cover,
           )
         else
-          const SizedBox(
+          SizedBox(
             height: 220,
-            child: ColoredBox(color: AppColors.surfaceAlt),
+            child: ColoredBox(color: context.palette.surfaceAlt),
           ),
         Positioned(
           left: 0,
           right: 0,
           bottom: 0,
           child: Container(
-            color: AppColors.discoBlack,
+            color: context.palette.background,
             padding: const EdgeInsets.all(AppSpacing.lg),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1147,14 +1147,14 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        backgroundColor: AppColors.discoBlack,
+        backgroundColor: context.palette.background,
         title: Text(
           l10n.eventStaffRemoveDialogTitle(username),
-          style: const TextStyle(color: AppColors.white),
+          style: TextStyle(color: context.palette.foreground),
         ),
         content: Text(
           l10n.eventStaffRemoveDialogBody,
-          style: const TextStyle(color: AppColors.mutedStrong),
+          style: TextStyle(color: context.palette.mutedForeground),
         ),
         actions: [
           TextButton(
@@ -1225,7 +1225,7 @@ class _InfoRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Icon(icon, size: 18, color: AppColors.mutedStrong),
+        Icon(icon, size: 18, color: context.palette.mutedForeground),
         const SizedBox(width: AppSpacing.sm),
         Expanded(
           child: Text(text, style: Theme.of(context).textTheme.bodyMedium),
@@ -1262,14 +1262,14 @@ class _HostMemberRow extends StatelessWidget {
       children: [
         CircleAvatar(
           radius: 16,
-          backgroundColor: AppColors.surfaceAlt,
+          backgroundColor: context.palette.surfaceAlt,
           child: Text(
             // An empty (non-null) username would RangeError on substring —
             // the '?' initial fallback.
             username.isEmpty ? '?' : username.substring(0, 1).toUpperCase(),
             style: Theme.of(
               context,
-            ).textTheme.labelMedium?.copyWith(color: AppColors.white),
+            ).textTheme.labelMedium?.copyWith(color: context.palette.foreground),
           ),
         ),
         const SizedBox(width: AppSpacing.sm),
@@ -1287,7 +1287,7 @@ class _HostMemberRow extends StatelessWidget {
             tooltip: l10n.eventStaffRemove,
             onPressed: busy ? null : onRemove,
             icon: const Icon(Icons.person_remove_outlined, size: 20),
-            color: AppColors.mutedStrong,
+            color: context.palette.mutedForeground,
           ),
       ],
     );
@@ -1316,12 +1316,12 @@ class _GuestRow extends StatelessWidget {
       children: [
         CircleAvatar(
           radius: 12,
-          backgroundColor: AppColors.surfaceAlt,
+          backgroundColor: context.palette.surfaceAlt,
           child: Text(
             username.isEmpty ? '?' : username.substring(0, 1).toUpperCase(),
             style: Theme.of(
               context,
-            ).textTheme.labelSmall?.copyWith(color: AppColors.white),
+            ).textTheme.labelSmall?.copyWith(color: context.palette.foreground),
           ),
         ),
         const SizedBox(width: AppSpacing.sm),

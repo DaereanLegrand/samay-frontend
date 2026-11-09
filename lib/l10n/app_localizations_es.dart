@@ -733,6 +733,43 @@ class AppLocalizationsEs extends AppLocalizations {
   String get settingsThemeSystem => 'Sistema';
 
   @override
+  String get appThemeTitle => 'Color de la app';
+
+  @override
+  String get appThemeSubtitle => 'Elige el color de toda la app';
+
+  @override
+  String get appThemeClassic => 'Clásico';
+
+  @override
+  String get appThemeMidnight => 'Medianoche';
+
+  @override
+  String get appThemeForest => 'Bosque';
+
+  @override
+  String get appThemeViolet => 'Violeta';
+
+  @override
+  String get appThemeEmber => 'Brasa';
+
+  @override
+  String get appThemeTeal => 'Turquesa';
+
+  @override
+  String get appThemeRose => 'Rosa';
+
+  @override
+  String get appThemeLockedPro => 'Requiere Pro';
+
+  @override
+  String get appThemeLockedVip => 'Requiere VIP';
+
+  @override
+  String get appThemeGroupFollowsApp =>
+      'Los grupos sin tema propio usan el color de la app.';
+
+  @override
   String get settingsSectionAppearance => 'Apariencia';
 
   @override

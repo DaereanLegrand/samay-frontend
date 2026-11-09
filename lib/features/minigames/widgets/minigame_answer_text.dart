@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/core/design_tokens/app_typography.dart';
 import 'package:samay/features/minigames/logic/minigame_engine.dart';
+import 'package:samay/core/theme/app_palette_context.dart';
 
 /// The centered `BoxFit.contain` rect an image of [imageSize] occupies inside
 /// [box] — the SHARED reference space for an on-canvas [MinigameAnswerLayout].
@@ -136,7 +136,7 @@ class _MinigameAnswerTextState extends State<MinigameAnswerText> {
                             fontWeight: FontWeight.w600,
                             height: 1.4,
                             letterSpacing: 1.1,
-                            color: AppColors.white,
+                            color: context.palette.foreground,
                             shadows: AppTypography.legibilityShadows,
                           ),
                         ),

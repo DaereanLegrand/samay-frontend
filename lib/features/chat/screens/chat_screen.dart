@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:samay/features/chat/providers/chat_providers.dart';
 import 'package:samay/features/chat/widgets/chat_thread_view.dart';
 import 'package:samay/features/groups/providers/groups_providers.dart';
-import 'package:samay/features/groups/theme/group_theme_colors.dart';
+import 'package:samay/core/theme/app_theme_provider.dart';
 import 'package:samay/features/groups/theme/group_theme_theme.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/v_header_bar.dart';
@@ -56,7 +56,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     if (theme == null) {
       return Scaffold(body: body);
     }
-    final palette = groupThemePaletteOf(theme);
+    final palette = groupSurfacePalette(theme, appPalette: ref.watch(appPaletteProvider));
     return GroupThemeSurface(
       palette: palette,
       child: Scaffold(

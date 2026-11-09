@@ -19,6 +19,7 @@ import 'package:samay/shared/widgets/v_header_bar.dart';
 import 'package:samay/shared/widgets/state_views.dart';
 import 'package:samay/shared/widgets/v_button.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' show RealtimeChannel;
+import 'package:samay/core/theme/app_palette_context.dart';
 
 /// Activation-window minutes (`qr.activation_minutes_before`, seed 30) — the
 /// contract used to render the pre-activation countdown.
@@ -667,8 +668,8 @@ class _MessageState extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.all(AppSpacing.xl),
           decoration: BoxDecoration(
-            color: AppColors.surface,
-            border: Border.all(color: AppColors.hairline),
+            color: context.palette.surface,
+            border: Border.all(color: context.palette.hairline),
             borderRadius: BorderRadius.circular(16),
           ),
           child: ConstrainedBox(
@@ -676,7 +677,7 @@ class _MessageState extends StatelessWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(icon, size: 48, color: AppColors.white),
+                Icon(icon, size: 48, color: context.palette.foreground),
                 const SizedBox(height: AppSpacing.lg),
                 Text(
                   message,
@@ -688,7 +689,7 @@ class _MessageState extends StatelessWidget {
                   Text(
                     caption!,
                     textAlign: TextAlign.center,
-                    style: const TextStyle(color: AppColors.mutedStrong),
+                    style: TextStyle(color: context.palette.mutedForeground),
                   ),
                 ],
                 if (action != null) ...[

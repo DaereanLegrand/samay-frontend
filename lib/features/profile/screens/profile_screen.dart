@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:samay/core/config/feature_flags.dart';
-import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/core/design_tokens/app_icon_sizes.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/design_tokens/app_typography.dart';
@@ -16,6 +15,7 @@ import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/error_view.dart';
 import 'package:samay/shared/widgets/state_views.dart';
 import 'package:samay/shared/widgets/v_header_bar.dart';
+import 'package:samay/core/theme/app_palette_context.dart';
 
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
@@ -145,7 +145,7 @@ class ProfileScreen extends ConsumerWidget {
                     displayName,
                     style: Theme.of(
                       context,
-                    ).textTheme.titleMedium?.copyWith(color: AppColors.white),
+                    ).textTheme.titleMedium?.copyWith(color: context.palette.foreground),
                   ),
                 ),
               ),
@@ -155,7 +155,7 @@ class ProfileScreen extends ConsumerWidget {
                   bio,
                   textAlign: TextAlign.center,
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: AppColors.mutedStrong,
+                    color: context.palette.mutedForeground,
                   ),
                 ),
               ],
@@ -241,9 +241,9 @@ class _CoverHero extends StatelessWidget {
     return Container(
       height: _height,
       alignment: Alignment.center,
-      decoration: const BoxDecoration(
-        color: AppColors.surfaceAlt,
-        border: Border(bottom: BorderSide(color: AppColors.hairline)),
+      decoration: BoxDecoration(
+        color: context.palette.surfaceAlt,
+        border: Border(bottom: BorderSide(color: context.palette.hairline)),
       ),
       child: Tooltip(
         message: tooltip,
@@ -283,9 +283,9 @@ class _StatStrip extends StatelessWidget {
     return InkWell(
       onTap: onTap,
       child: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           border: Border.symmetric(
-            horizontal: BorderSide(color: AppColors.hairline),
+            horizontal: BorderSide(color: context.palette.hairline),
           ),
         ),
         padding: const EdgeInsets.symmetric(vertical: AppSpacing.lg),
@@ -326,7 +326,7 @@ class _StatCell extends StatelessWidget {
           label.toUpperCase(),
           textAlign: TextAlign.center,
           style: AppTypography.labelSmall.copyWith(
-            color: AppColors.mutedStrong,
+            color: context.palette.mutedForeground,
           ),
         ),
       ],
@@ -342,7 +342,7 @@ class _StatDivider extends StatelessWidget {
     return Container(
       width: 1,
       height: AppSpacing.xxl,
-      color: AppColors.hairline,
+      color: context.palette.hairline,
     );
   }
 }
@@ -363,17 +363,17 @@ class _GroupTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        if (showDivider) const Divider(height: 1, color: AppColors.hairline),
+        if (showDivider) Divider(height: 1, color: context.palette.hairline),
         Padding(
           padding: const EdgeInsets.symmetric(
             vertical: AppSpacing.listRowVertical,
           ),
           child: Row(
             children: [
-              const Icon(
+              Icon(
                 Icons.group,
                 size: AppIconSizes.md,
-                color: AppColors.mutedStrong,
+                color: context.palette.mutedForeground,
               ),
               const SizedBox(width: AppSpacing.md),
               Expanded(
@@ -389,7 +389,7 @@ class _GroupTile extends StatelessWidget {
                 shards,
                 style: Theme.of(
                   context,
-                ).textTheme.bodySmall?.copyWith(color: AppColors.mutedStrong),
+                ).textTheme.bodySmall?.copyWith(color: context.palette.mutedForeground),
               ),
             ],
           ),
@@ -411,18 +411,18 @@ class _CosmeticsRow extends StatelessWidget {
     return InkWell(
       onTap: onTap,
       child: Container(
-        decoration: const BoxDecoration(
-          border: Border(top: BorderSide(color: AppColors.hairline)),
+        decoration: BoxDecoration(
+          border: Border(top: BorderSide(color: context.palette.hairline)),
         ),
         padding: const EdgeInsets.symmetric(
           vertical: AppSpacing.listRowVertical,
         ),
         child: Row(
           children: [
-            const Icon(
+            Icon(
               Icons.style,
               size: AppIconSizes.md,
-              color: AppColors.mutedStrong,
+              color: context.palette.mutedForeground,
             ),
             const SizedBox(width: AppSpacing.md),
             Expanded(

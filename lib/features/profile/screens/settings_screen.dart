@@ -18,6 +18,7 @@ import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/v_card.dart';
 import 'package:samay/shared/widgets/v_chip.dart';
 import 'package:samay/shared/widgets/v_header_bar.dart';
+import 'package:samay/core/theme/app_palette_context.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -120,6 +121,15 @@ class SettingsScreen extends ConsumerWidget {
                           .read(themeModeProvider.notifier)
                           .setThemeMode(mode),
                     ),
+                    Divider(height: 1, color: context.palette.hairline),
+                    // The app-wide colour (paywalled). Opened as its own screen
+                    // so the preview cards get room to be honest about the
+                    // painted result.
+                    _SettingsTile(
+                      icon: Icons.palette_outlined,
+                      label: l10n.appThemeTitle,
+                      onTap: () => context.push(RoutePaths.appTheme),
+                    ),
                   ],
                 ),
               ),
@@ -160,7 +170,7 @@ class SettingsScreen extends ConsumerWidget {
                         label: l10n.profileSubscription,
                         onTap: () => context.push(RoutePaths.subscriptions),
                       ),
-                      const Divider(height: 1, color: AppColors.hairline),
+                      Divider(height: 1, color: context.palette.hairline),
                     ],
                     // The notifications row opens the server-backed category screen
                     // (Q4a: users.notification_preferences).
@@ -173,19 +183,19 @@ class SettingsScreen extends ConsumerWidget {
                         ),
                       ),
                     ),
-                    const Divider(height: 1, color: AppColors.hairline),
+                    Divider(height: 1, color: context.palette.hairline),
                     _SettingsTile(
                       icon: Icons.person,
                       label: l10n.profileEditTitle,
                       onTap: () => context.push(RoutePaths.profileEdit),
                     ),
-                    const Divider(height: 1, color: AppColors.hairline),
+                    Divider(height: 1, color: context.palette.hairline),
                     // The public-profile privacy
                     // switch — when ON the name/photo appear on the global
                     // user ranking (Social tab). Bound to users.profile_public
                     // via profilePublicProvider.
                     _PublicProfileTile(),
-                    const Divider(height: 1, color: AppColors.hairline),
+                    Divider(height: 1, color: context.palette.hairline),
                     // The privacy row opens the static privacy/terms info
                     // screen (the signup-funnel consent gate cannot render
                     // standalone — it requires email/dateOfBirth extras).
@@ -198,7 +208,7 @@ class SettingsScreen extends ConsumerWidget {
                         ),
                       ),
                     ),
-                    const Divider(height: 1, color: AppColors.hairline),
+                    Divider(height: 1, color: context.palette.hairline),
                     // Data portability (Ley N° 29733): download a copy of the
                     // account's own data.
                     _SettingsTile(
@@ -206,25 +216,25 @@ class SettingsScreen extends ConsumerWidget {
                       label: l10n.profileExportData,
                       onTap: () => context.push(RoutePaths.exportData),
                     ),
-                    const Divider(height: 1, color: AppColors.hairline),
+                    Divider(height: 1, color: context.palette.hairline),
                     _SettingsTile(
                       icon: Icons.block,
                       label: l10n.profileBlockedUsers,
                       onTap: () => context.push(RoutePaths.blockedUsers),
                     ),
-                    const Divider(height: 1, color: AppColors.hairline),
+                    Divider(height: 1, color: context.palette.hairline),
                     _SettingsTile(
                       icon: Icons.volume_off,
                       label: l10n.profileMutedUsers,
                       onTap: () => context.push(RoutePaths.mutedUsers),
                     ),
-                    const Divider(height: 1, color: AppColors.hairline),
+                    Divider(height: 1, color: context.palette.hairline),
                     _SettingsTile(
                       icon: Icons.gavel_outlined,
                       label: l10n.appealsTitle,
                       onTap: () => context.push(RoutePaths.appeals),
                     ),
-                    const Divider(height: 1, color: AppColors.hairline),
+                    Divider(height: 1, color: context.palette.hairline),
                     // SEC-033: wipe messages/notifications/photos/prefs and
                     // local key material without touching the account.
                     _SettingsTile(
@@ -233,7 +243,7 @@ class SettingsScreen extends ConsumerWidget {
                       destructive: true,
                       onTap: () => _confirmClearLocalData(context, ref),
                     ),
-                    const Divider(height: 1, color: AppColors.hairline),
+                    Divider(height: 1, color: context.palette.hairline),
                     // The danger pair closes the account section — delete +
                     // sign out, both in the danger semantic.
                     _SettingsTile(
@@ -242,7 +252,7 @@ class SettingsScreen extends ConsumerWidget {
                       destructive: true,
                       onTap: () => context.push(RoutePaths.deleteAccount),
                     ),
-                    const Divider(height: 1, color: AppColors.hairline),
+                    Divider(height: 1, color: context.palette.hairline),
                     _SettingsTile(
                       icon: Icons.logout,
                       label: l10n.profileSignOut,
@@ -261,7 +271,7 @@ class SettingsScreen extends ConsumerWidget {
                 // muted threshold — mutedStrong (7.37:1 AA).
                 style: Theme.of(
                   context,
-                ).textTheme.bodyMedium?.copyWith(color: AppColors.mutedStrong),
+                ).textTheme.bodyMedium?.copyWith(color: context.palette.mutedForeground),
                 textAlign: TextAlign.center,
               ),
             ),
@@ -309,7 +319,7 @@ class _PublicProfileTile extends ConsumerWidget {
         l10n.socialPublicProfileBody,
         style: Theme.of(
           context,
-        ).textTheme.bodySmall?.copyWith(color: AppColors.mutedStrong),
+        ).textTheme.bodySmall?.copyWith(color: context.palette.mutedForeground),
       ),
       value: enabled,
       onChanged: (value) async {
@@ -351,7 +361,7 @@ class _SettingsTile extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
         child: Row(
           children: [
-            Icon(icon, size: AppIconSizes.md, color: color ?? AppColors.white),
+            Icon(icon, size: AppIconSizes.md, color: color ?? context.palette.foreground),
             const SizedBox(width: AppSpacing.md),
             Expanded(
               child: Text(
@@ -362,10 +372,10 @@ class _SettingsTile extends StatelessWidget {
               ),
             ),
             if (onTap != null)
-              const Icon(
+              Icon(
                 Icons.chevron_right,
                 size: AppIconSizes.md,
-                color: AppColors.mutedStrong,
+                color: context.palette.mutedForeground,
               ),
           ],
         ),
@@ -437,7 +447,7 @@ class _ReadReceiptsTile extends ConsumerWidget {
         l10n.chatReadReceiptsBody,
         style: Theme.of(
           context,
-        ).textTheme.bodySmall?.copyWith(color: AppColors.mutedStrong),
+        ).textTheme.bodySmall?.copyWith(color: context.palette.mutedForeground),
       ),
       value: enabled,
       onChanged: (value) async {
@@ -477,7 +487,7 @@ class _MinigameInvitePrivacyTile extends ConsumerWidget {
         l10n.minigamesInviteFriendsOnlyBody,
         style: Theme.of(
           context,
-        ).textTheme.bodySmall?.copyWith(color: AppColors.mutedStrong),
+        ).textTheme.bodySmall?.copyWith(color: context.palette.mutedForeground),
       ),
       value: enabled,
       onChanged: (value) async {

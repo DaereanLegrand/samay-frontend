@@ -33,6 +33,7 @@ import 'package:samay/shared/widgets/v_header_bar.dart';
 import 'package:samay/shared/widgets/v_input.dart';
 import 'package:samay/shared/widgets/v_shard_icon.dart';
 import 'package:samay/shared/widgets/v_spinner.dart';
+import 'package:samay/core/theme/app_palette_context.dart';
 
 /// Dedicated per-game landing page: the reusable shell every
 /// minigame owns — game title + icon, explanation, audience ("con amigos /
@@ -289,7 +290,7 @@ class _MinigameDetailScreenState extends ConsumerState<MinigameDetailScreen> {
           Text(
             l10n.minigamesJoinCodeHint,
             style: AppTypography.bodyMedium.copyWith(
-              color: AppColors.mutedStrong,
+              color: context.palette.mutedForeground,
               height: 1.35,
             ),
           ),
@@ -429,12 +430,12 @@ class _AudienceTag extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: 6),
       decoration: BoxDecoration(
         color: AppColors.transparent,
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: context.palette.border),
         borderRadius: AppRadius.sharp,
       ),
       child: Text(
         label,
-        style: AppTypography.labelMedium.copyWith(color: AppColors.white),
+        style: AppTypography.labelMedium.copyWith(color: context.palette.foreground),
       ),
     );
   }
@@ -548,7 +549,7 @@ class _SessionRow extends ConsumerWidget {
                           '${l10n.minigamesParticipantsTitle.toUpperCase()} '
                           '$participants',
                           style: AppTypography.bodySmall.copyWith(
-                            color: AppColors.mutedStrong,
+                            color: context.palette.mutedForeground,
                           ),
                         ),
                       ],
@@ -558,7 +559,7 @@ class _SessionRow extends ConsumerWidget {
                       Text(
                         fromLabel,
                         style: AppTypography.bodySmall.copyWith(
-                          color: AppColors.mutedStrong,
+                          color: context.palette.mutedForeground,
                         ),
                       ),
                     ],
@@ -625,12 +626,12 @@ class _PendingInviteActions extends StatelessWidget {
             onPressed: onAccept,
             tooltip: l10n.minigamesInviteAccept,
             style: IconButton.styleFrom(
-              backgroundColor: AppColors.white,
+              backgroundColor: context.palette.foreground,
               shape: const RoundedRectangleBorder(),
               padding: EdgeInsets.zero,
-              disabledBackgroundColor: AppColors.muted,
+              disabledBackgroundColor: context.palette.mutedForeground,
             ),
-            icon: const Icon(Icons.check, size: 20, color: AppColors.discoBlack),
+            icon: Icon(Icons.check, size: 20, color: context.palette.background),
           ),
         ),
         const SizedBox(width: AppSpacing.sm),
@@ -642,11 +643,11 @@ class _PendingInviteActions extends StatelessWidget {
             tooltip: l10n.minigamesInviteDecline,
             style: IconButton.styleFrom(
               backgroundColor: AppColors.transparent,
-              side: const BorderSide(color: AppColors.white),
+              side: BorderSide(color: context.palette.foreground),
               shape: const RoundedRectangleBorder(),
               padding: EdgeInsets.zero,
             ),
-            icon: const Icon(Icons.close, size: 20, color: AppColors.white),
+            icon: Icon(Icons.close, size: 20, color: context.palette.foreground),
           ),
         ),
       ],
@@ -819,7 +820,7 @@ class _NewPartidaScreenState extends ConsumerState<_NewPartidaScreen> {
                   // Just the number — the shard icon already conveys the unit.
                   '$balance',
                   style: AppTypography.bodyMedium.copyWith(
-                    color: AppColors.white,
+                    color: context.palette.foreground,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -1056,17 +1057,17 @@ class _SelectedGroupButton extends ConsumerWidget {
               overflow: TextOverflow.ellipsis,
               style: AppTypography.bodyMedium.copyWith(
                 color: selectedName != null
-                    ? AppColors.white
-                    : AppColors.mutedStrong,
+                    ? context.palette.foreground
+                    : context.palette.mutedForeground,
                 fontWeight: FontWeight.w600,
               ),
             ),
           ),
           const SizedBox(width: AppSpacing.xs),
-          const Icon(
+          Icon(
             Icons.expand_more,
             size: 18,
-            color: AppColors.mutedStrong,
+            color: context.palette.mutedForeground,
           ),
         ],
       ),
@@ -1084,16 +1085,16 @@ Future<String?> showGroupPickerSheet(
 }) {
   return showModalBottomSheet<String>(
     context: context,
-    backgroundColor: AppColors.discoBlack,
+    backgroundColor: context.palette.background,
     shape: const RoundedRectangleBorder(),
     builder: (sheetContext) {
       final l10n = AppLocalizations.of(sheetContext);
       return SafeArea(
         child: Container(
-          decoration: const BoxDecoration(
-            color: AppColors.surface,
+          decoration: BoxDecoration(
+            color: context.palette.surface,
             border: Border(
-              top: BorderSide(color: AppColors.hairline),
+              top: BorderSide(color: context.palette.hairline),
             ),
           ),
           child: Column(
@@ -1129,8 +1130,8 @@ Future<String?> showGroupPickerSheet(
                                   : Icons.radio_button_off,
                               size: 20,
                               color: selected
-                                  ? AppColors.white
-                                  : AppColors.mutedStrong,
+                                  ? context.palette.foreground
+                                  : context.palette.mutedForeground,
                             ),
                             const SizedBox(width: AppSpacing.md),
                             Expanded(
@@ -1138,8 +1139,8 @@ Future<String?> showGroupPickerSheet(
                                 group.name,
                                 style: TextStyle(
                                   color: selected
-                                      ? AppColors.white
-                                      : AppColors.mutedStrong,
+                                      ? context.palette.foreground
+                                      : context.palette.mutedForeground,
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
@@ -1329,7 +1330,7 @@ class _NumberField extends StatelessWidget {
         showCursor: false,
         textAlign: textAlign,
         style: AppTypography.bodyLarge.copyWith(
-          color: AppColors.white,
+          color: context.palette.foreground,
           height: 1.35,
         ),
         decoration: InputDecoration(
@@ -1340,7 +1341,7 @@ class _NumberField extends StatelessWidget {
           filled: false,
           floatingLabelBehavior: FloatingLabelBehavior.never,
           hintStyle: AppTypography.bodyLarge.copyWith(
-            color: AppColors.mutedStrong,
+            color: context.palette.mutedForeground,
             height: 1.35,
           ),
           contentPadding: const EdgeInsets.symmetric(
@@ -1364,7 +1365,7 @@ Future<int?> showNumberWheelSheet(
 }) {
   return showModalBottomSheet<int>(
     context: context,
-    backgroundColor: AppColors.discoBlack,
+    backgroundColor: context.palette.background,
     shape: const RoundedRectangleBorder(),
     builder: (sheetContext) {
       final values = [for (var v = min; v <= max; v++) v];
@@ -1372,10 +1373,10 @@ Future<int?> showNumberWheelSheet(
       final l10n = AppLocalizations.of(sheetContext);
       return SafeArea(
         child: Container(
-          decoration: const BoxDecoration(
-            color: AppColors.surface,
+          decoration: BoxDecoration(
+            color: context.palette.surface,
             border: Border(
-              top: BorderSide(color: AppColors.hairline),
+              top: BorderSide(color: context.palette.hairline),
             ),
           ),
           child: Column(
@@ -1404,10 +1405,10 @@ Future<int?> showNumberWheelSheet(
                   scrollController: FixedExtentScrollController(initialItem: index),
                   itemExtent: 44,
                   onSelectedItemChanged: (i) => index = i,
-                  selectionOverlay: const DecoratedBox(
+                  selectionOverlay: DecoratedBox(
                     decoration: BoxDecoration(
                       border: Border.symmetric(
-                        horizontal: BorderSide(color: AppColors.border),
+                        horizontal: BorderSide(color: context.palette.border),
                       ),
                     ),
                   ),
@@ -1417,7 +1418,7 @@ Future<int?> showNumberWheelSheet(
                         child: Text(
                           '$v',
                           style: AppTypography.headlineSmall.copyWith(
-                            color: AppColors.white,
+                            color: context.palette.foreground,
                           ),
                         ),
                       ),

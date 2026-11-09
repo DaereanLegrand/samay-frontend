@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:samay/core/design_tokens/app_colors.dart';
+
 import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/features/groups/providers/groups_providers.dart';
-import 'package:samay/features/groups/theme/group_theme_colors.dart';
 import 'package:samay/features/minigames/providers/minigames_providers.dart';
 import 'package:samay/features/minigames/widgets/finished_leaderboard.dart';
+import 'package:samay/core/theme/app_palette_context.dart';
+import 'package:samay/core/theme/app_theme_provider.dart';
+import 'package:samay/features/groups/theme/group_theme_theme.dart';
 import 'package:samay/features/minigames/widgets/minigame_session_surface.dart';
 import 'package:samay/shared/widgets/v_header_bar.dart';
 
@@ -35,11 +37,13 @@ class MinigameLeaderboardScreen extends ConsumerWidget {
     final theme = groupId == null
         ? null
         : ref.watch(groupThemeProvider(groupId)).valueOrNull;
-    final palette = theme == null ? null : groupThemePaletteOf(theme);
+    final palette = theme == null
+        ? null
+        : groupSurfacePalette(theme, appPalette: ref.watch(appPaletteProvider));
     return MinigameSessionSurface(
       sessionId: sessionId,
       child: Scaffold(
-        backgroundColor: palette?.background ?? AppColors.discoBlack,
+        backgroundColor: palette?.background ?? context.palette.background,
         body: Stack(
           fit: StackFit.expand,
           children: [

@@ -2,7 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:samay/core/deep_links/deep_link_handler.dart';
 import 'package:samay/core/providers/theme_provider.dart';
+import 'package:samay/core/theme/app_palette.dart';
 import 'package:samay/core/theme/app_theme.dart';
+import 'package:samay/core/theme/app_theme_provider.dart';
+import 'package:samay/core/theme/app_theme_scope.dart';
+import 'package:samay/core/theme/themed_data.dart';
 import 'package:samay/core/router/app_router.dart';
 import 'package:samay/features/auth/providers/auth_scope_reset.dart';
 import 'package:samay/features/friends/providers/friends_cache_provider.dart';
@@ -27,10 +31,17 @@ class SamayApp extends ConsumerWidget {
     // future-proof seam, not a light mode.
     final themeMode =
         ref.watch(themeModeProvider).valueOrNull ?? ThemeMode.dark;
+    // The app-wide theme (Settings → Apariencia, paywalled). `classic` is the
+    // design tokens verbatim, so an app with no choice paints byte-identically
+    // to before; any other preset re-maps Material defaults onto its scale.
+    final palette = ref.watch(appPaletteProvider);
+    final theme = palette == AppPalette.standard
+        ? SamayTheme.dark
+        : themedData(SamayTheme.dark, palette);
     return MaterialApp.router(
       title: 'Samay',
-      theme: SamayTheme.dark,
-      darkTheme: SamayTheme.dark,
+      theme: theme,
+      darkTheme: theme,
       themeMode: themeMode,
       locale: const Locale('es'),
       supportedLocales: AppLocalizations.supportedLocales,
@@ -48,41 +59,48 @@ class SamayApp extends ConsumerWidget {
       // per widget.
       builder: (context, child) {
         final mediaQuery = MediaQuery.of(context);
-        return Stack(
-          children: [
-            // Main content fills the screen — no margin push from banners.
-            Positioned.fill(
-              child: Stack(children: [?child, const DeepLinkListener()]),
-            ),
-            // LOGOUT FLUSH: mounted above the Navigator so
-            // the auth screens are covered too — on logout every
-            // user-scoped provider is invalidated (no stale data survives
-            // an account switch in the same session).
-            const AuthScopeReset(),
-            // FRIENDS CACHE: fetches the friend list in the
-            // background on auth and persists it to the device DB so the
-            // invite/buscar pickers render friends for empty + <5-char
-            // queries with zero network I/O.
-            const FriendsCacheWarmer(),
-            // the connectivity banner overlays the top of the screen.
-            const Positioned(
-              top: 0,
-              left: 0,
-              right: 0,
-              child: ConnectivityBanner(),
-            ),
-            // The recovery banner sits above the bottom nav bar,
-            // fully reachable regardless of the OS status bar or Dynamic
-            // Island. Positioned with safe-area inset so it never hides
-            // behind the gesture bar on iOS/home-indicator devices.
-            if (recoveredFromCrash)
-              Positioned(
-                bottom: kBottomNavigationBarHeight + mediaQuery.padding.bottom,
+        // The ambient palette for EVERY route. A group screen mounts its own
+        // [GroupThemeSurface] inside and overrides this when the group has a
+        // real (non-default) theme.
+        return AppThemeScope(
+          palette: palette,
+          child: Stack(
+            children: [
+              // Main content fills the screen — no margin push from banners.
+              Positioned.fill(
+                child: Stack(children: [?child, const DeepLinkListener()]),
+              ),
+              // LOGOUT FLUSH: mounted above the Navigator so
+              // the auth screens are covered too — on logout every
+              // user-scoped provider is invalidated (no stale data survives
+              // an account switch in the same session).
+              const AuthScopeReset(),
+              // FRIENDS CACHE: fetches the friend list in the
+              // background on auth and persists it to the device DB so the
+              // invite/buscar pickers render friends for empty + <5-char
+              // queries with zero network I/O.
+              const FriendsCacheWarmer(),
+              // the connectivity banner overlays the top of the screen.
+              const Positioned(
+                top: 0,
                 left: 0,
                 right: 0,
-                child: const CrashRecoveryBanner(visible: true),
+                child: ConnectivityBanner(),
               ),
-          ],
+              // The recovery banner sits above the bottom nav bar,
+              // fully reachable regardless of the OS status bar or Dynamic
+              // Island. Positioned with safe-area inset so it never hides
+              // behind the gesture bar on iOS/home-indicator devices.
+              if (recoveredFromCrash)
+                Positioned(
+                  bottom:
+                      kBottomNavigationBarHeight + mediaQuery.padding.bottom,
+                  left: 0,
+                  right: 0,
+                  child: const CrashRecoveryBanner(visible: true),
+                ),
+            ],
+          ),
         );
       },
       routerConfig: router,

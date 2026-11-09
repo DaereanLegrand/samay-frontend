@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/logging/app_logger.dart';
 import 'package:samay/core/providers/auth_provider.dart';
@@ -19,6 +18,7 @@ import 'package:samay/shared/widgets/state_views.dart';
 import 'package:samay/shared/widgets/v_count_badge.dart';
 import 'package:samay/shared/widgets/v_header_bar.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' show RealtimeChannel;
+import 'package:samay/core/theme/app_palette_context.dart';
 
 /// Chat inbox: every chat the user participates in, most-recent-first, with
 /// the peer identity, a best-effort last-message preview (E2EE envelopes
@@ -115,7 +115,7 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
                 physics: const AlwaysScrollableScrollPhysics(),
                 itemCount: items.length,
                 separatorBuilder: (_, _) =>
-                    const Divider(height: 1, color: AppColors.hairline),
+                    Divider(height: 1, color: context.palette.hairline),
                 itemBuilder: (context, index) =>
                     _ChatListTile(item: items[index], me: me, onTap: _openChat),
               ),
@@ -206,7 +206,7 @@ class _ChatListTile extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: unread ? AppColors.white : AppColors.mutedStrong,
+                      color: unread ? context.palette.foreground : context.palette.mutedForeground,
                       fontWeight: unread ? FontWeight.w600 : FontWeight.w300,
                     ),
                   ),
@@ -220,7 +220,7 @@ class _ChatListTile extends StatelessWidget {
                 Text(
                   timeLabel,
                   style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    color: AppColors.mutedStrong,
+                    color: context.palette.mutedForeground,
                   ),
                 ),
                 const SizedBox(height: AppSpacing.xs),

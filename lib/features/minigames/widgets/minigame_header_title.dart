@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/core/design_tokens/app_typography.dart';
-import 'package:samay/features/groups/theme/group_theme_scope.dart';
+import 'package:samay/core/theme/app_theme_scope.dart';
 import 'package:samay/shared/widgets/v_display_text.dart';
 import 'package:samay/shared/widgets/v_header_bar.dart';
 
@@ -62,8 +62,8 @@ class MinigameHeaderTitle extends StatelessWidget {
     // Inside a themed group surface the display voice is the group foreground
     // (the page's complement), exactly like VDisplayText — never the fixed
     // white token, which vanished on a light-ish themed page.
-    final palette = GroupThemeScope.paletteOf(context);
-    final themed = !identical(palette, GroupThemeScope.standardPalette);
+    final palette = AppThemeScope.paletteOf(context);
+    final themed = AppThemeScope.isThemed(context);
     final ink = themed ? palette.foreground : AppColors.white;
     final mutedInk = themed ? palette.mutedForeground : AppColors.mutedStrong;
 

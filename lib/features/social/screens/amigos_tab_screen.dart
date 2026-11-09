@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/extensions/error_mapper.dart';
 import 'package:samay/core/models/user_profile.dart';
@@ -12,6 +11,7 @@ import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/error_view.dart';
 import 'package:samay/shared/widgets/profile_avatar.dart';
 import 'package:samay/shared/widgets/state_views.dart';
+import 'package:samay/core/theme/app_palette_context.dart';
 
 /// The Amigos segment of the Social tab.
 ///
@@ -76,7 +76,7 @@ class AmigosTab extends ConsumerWidget {
                     SliverList.separated(
                       itemCount: friends.length,
                       separatorBuilder: (_, _) =>
-                          const Divider(height: 1, color: AppColors.hairline),
+                          Divider(height: 1, color: context.palette.hairline),
                       itemBuilder: (_, i) => _FriendRow(user: friends[i]),
                     ),
                   ];

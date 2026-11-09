@@ -3,7 +3,6 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/router/route_paths.dart';
 import 'package:samay/core/theme/samay_durations.dart';
@@ -19,6 +18,7 @@ import 'package:samay/features/notifications/providers/push_notification_listene
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/v_count_badge.dart';
 import 'package:samay/shared/widgets/v_tab_fade.dart';
+import 'package:samay/core/theme/app_palette_context.dart';
 
 class TabItem {
   final String label;
@@ -199,10 +199,10 @@ class _FloatingNavBar extends ConsumerWidget {
                 // blur with a nearly-transparent `surface` fill (alpha 0.1)
                 // and a faint 0.15 white sheen. The earlier 0.85 alpha was a
                 // mis-port and read as a solid black bar.
-                color: AppColors.surface.withValues(alpha: 0.1),
+                color: context.palette.surface.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(_radius),
                 border: Border.all(
-                  color: AppColors.white.withValues(alpha: 0.15),
+                  color: context.palette.foreground.withValues(alpha: 0.15),
                 ),
               ),
               child: Row(
@@ -250,7 +250,7 @@ class _FloatingNavBar extends ConsumerWidget {
                       selected
                           ? mainShellTabs[index].selectedIcon
                           : mainShellTabs[index].icon,
-                      color: selected ? AppColors.white : AppColors.muted,
+                      color: selected ? context.palette.foreground : context.palette.mutedForeground,
                       size: 22,
                     ),
                     if (badge > 0 && selectedIndex != index)
@@ -267,8 +267,8 @@ class _FloatingNavBar extends ConsumerWidget {
                     margin: const EdgeInsets.only(top: 3),
                     width: 4,
                     height: 4,
-                    decoration: const BoxDecoration(
-                      color: AppColors.white,
+                    decoration: BoxDecoration(
+                      color: context.palette.foreground,
                       shape: BoxShape.circle,
                     ),
                   ),

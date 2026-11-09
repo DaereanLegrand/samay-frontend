@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:go_router/go_router.dart';
-import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/extensions/error_mapper.dart';
 import 'package:samay/core/models/event_photo.dart';
@@ -18,6 +17,7 @@ import 'package:samay/shared/widgets/report_sheet.dart';
 import 'package:samay/shared/widgets/v_header_bar.dart';
 import 'package:samay/shared/widgets/state_views.dart';
 import 'package:samay/shared/widgets/v_network_image.dart';
+import 'package:samay/core/theme/app_palette_context.dart';
 
 /// Gallery-picking seam for tests: `image_picker` is a platform plugin that
 /// cannot run in widget tests, so the screen accepts an injectable function
@@ -137,14 +137,14 @@ class _PhotoGalleryScreenState extends ConsumerState<PhotoGalleryScreen> {
                     vertical: AppSpacing.sm,
                   ),
                   decoration: BoxDecoration(
-                    color: AppColors.surface,
-                    border: Border.all(color: AppColors.hairline),
+                    color: context.palette.surface,
+                    border: Border.all(color: context.palette.hairline),
                   ),
                   child: Text(
                     l10n.photosUploadWindowClosed,
                     textAlign: TextAlign.center,
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: AppColors.mutedStrong,
+                      color: context.palette.mutedForeground,
                     ),
                   ),
                 ),
@@ -234,12 +234,12 @@ class _PhotoTile extends StatelessWidget {
         fit: StackFit.expand,
         children: [
           if (url == null || url.isEmpty)
-            const ColoredBox(
-              color: AppColors.surfaceAlt,
+            ColoredBox(
+              color: context.palette.surfaceAlt,
               child: Center(
                 child: Icon(
                   Icons.photo_outlined,
-                  color: AppColors.mutedStrong,
+                  color: context.palette.mutedForeground,
                   size: 24,
                 ),
               ),
@@ -251,7 +251,7 @@ class _PhotoTile extends StatelessWidget {
             right: 0,
             bottom: 0,
             child: Container(
-              color: AppColors.discoBlack.withValues(alpha: 0.45),
+              color: context.palette.background.withValues(alpha: 0.45),
               padding: const EdgeInsets.symmetric(
                 horizontal: AppSpacing.xs,
                 vertical: 2,
@@ -274,14 +274,14 @@ class _PhotoTile extends StatelessWidget {
                       photo.likedByMe ? Icons.favorite : Icons.favorite_border,
                       // Monochrome: the like accent is white — the filled
                       // heart carries the liked state.
-                      color: AppColors.white,
+                      color: context.palette.foreground,
                     ),
                   ),
                   Text(
                     l10n.photosLikesCount(photo.likesCount),
                     style: Theme.of(
                       context,
-                    ).textTheme.bodySmall?.copyWith(color: AppColors.white),
+                    ).textTheme.bodySmall?.copyWith(color: context.palette.foreground),
                   ),
                 ],
               ),

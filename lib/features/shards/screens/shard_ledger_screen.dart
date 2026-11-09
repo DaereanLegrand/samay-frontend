@@ -14,6 +14,7 @@ import 'package:samay/shared/widgets/v_card.dart';
 import 'package:samay/shared/widgets/v_header_bar.dart';
 import 'package:samay/shared/widgets/state_views.dart';
 import 'package:samay/shared/widgets/v_shard_icon.dart';
+import 'package:samay/core/theme/app_palette_context.dart';
 
 /// Localized label for a `shard_reason` enum value (SLED display mapping
 /// table — 9 reasons). Unknown values fall back to the raw data string so a
@@ -131,11 +132,11 @@ class _ShardLedgerScreenState extends ConsumerState<ShardLedgerScreen>
             ),
             TabBar(
               controller: _tabController,
-              labelColor: AppColors.white,
+              labelColor: context.palette.foreground,
               // §2.4: unselected tab labels are informational text at normal
               // size — muted #666666 fails 1.4.3 (3.66:1); mutedStrong is AA.
-              unselectedLabelColor: AppColors.mutedStrong,
-              indicatorColor: AppColors.white,
+              unselectedLabelColor: context.palette.mutedForeground,
+              indicatorColor: context.palette.foreground,
               tabs: [
                 Tab(text: l10n.shardsLedgerTabShards),
                 Tab(text: l10n.shardsLedgerTabPreshards),
@@ -237,7 +238,7 @@ class _BalanceHeader extends StatelessWidget {
                     l10n.shardsLedgerEarned,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(color: AppColors.mutedStrong),
+                    style: TextStyle(color: context.palette.mutedForeground),
                   ),
                 ),
                 const VShardIcon(size: AppIconSizes.sm),
@@ -256,7 +257,7 @@ class _BalanceHeader extends StatelessWidget {
                     l10n.shardsLedgerBought,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(color: AppColors.mutedStrong),
+                    style: TextStyle(color: context.palette.mutedForeground),
                   ),
                 ),
                 Text(
@@ -269,7 +270,7 @@ class _BalanceHeader extends StatelessWidget {
             Text(
               '${l10n.shardsLedgerEarnedNote} ${l10n.shardsLedgerPreshardsNote}',
               style: AppTypography.bodySmall.copyWith(
-                color: AppColors.mutedStrong,
+                color: context.palette.mutedForeground,
               ),
             ),
           ],
@@ -302,7 +303,7 @@ class _NetHeader extends StatelessWidget {
         children: [
           Text(
             l10n.shardsLedgerNet,
-            style: const TextStyle(color: AppColors.mutedStrong),
+            style: TextStyle(color: context.palette.mutedForeground),
           ),
           const SizedBox(width: AppSpacing.sm),
           _GradientDelta(
@@ -337,7 +338,7 @@ class _GradientDelta extends StatelessWidget {
       return Text(
         text,
         style: base.copyWith(
-          color: AppColors.mutedStrong,
+          color: context.palette.mutedForeground,
           decoration: TextDecoration.lineThrough,
         ),
       );
@@ -375,7 +376,7 @@ class _LedgerTile extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, size: AppIconSizes.md, color: AppColors.white),
+          Icon(icon, size: AppIconSizes.md, color: context.palette.foreground),
           const SizedBox(width: AppSpacing.md),
           Expanded(
             child: Column(
@@ -386,7 +387,7 @@ class _LedgerTile extends StatelessWidget {
                 Text(
                   formatLedgerTimestamp(entry.createdAt, l10n.localeName),
                   style: AppTypography.bodySmall.copyWith(
-                    color: AppColors.mutedStrong,
+                    color: context.palette.mutedForeground,
                   ),
                 ),
                 if (reference.isNotEmpty) ...[
@@ -394,7 +395,7 @@ class _LedgerTile extends StatelessWidget {
                   Text(
                     l10n.shardsLedgerReference(reference),
                     style: AppTypography.bodySmall.copyWith(
-                      color: AppColors.mutedStrong,
+                      color: context.palette.mutedForeground,
                     ),
                   ),
                 ],

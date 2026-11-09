@@ -4,6 +4,7 @@ import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/providers/connectivity_provider.dart';
 import 'package:samay/l10n/app_localizations.dart';
+import 'package:samay/core/theme/app_palette_context.dart';
 
 /// Global offline indicator: a slim black banner with the red
 /// `wifi_off` icon and the localized copy, mounted by [SamayApp] inside
@@ -26,7 +27,7 @@ class ConnectivityBanner extends ConsumerWidget {
     final l10n = AppLocalizations.of(context);
     return Container(
       width: double.infinity,
-      color: AppColors.discoBlack,
+      color: context.palette.background,
       padding: const EdgeInsets.symmetric(
         horizontal: AppSpacing.md,
         vertical: 6,

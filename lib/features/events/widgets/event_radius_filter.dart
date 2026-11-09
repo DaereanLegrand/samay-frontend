@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/design_tokens/app_typography.dart';
 import 'package:samay/features/events/providers/event_discovery_providers.dart';
 import 'package:samay/features/events/providers/event_radius_providers.dart';
 import 'package:samay/l10n/app_localizations.dart';
+import 'package:samay/core/theme/app_palette_context.dart';
 
 /// The Events-tab distance filter: a single radius [Slider] (0..100 km in 5 km
 /// steps) with its value to the right. 0 is the deactivated position — the
@@ -53,7 +53,7 @@ class RadiusSlider extends ConsumerWidget {
             l10n.feedRadiusKm(value.round()),
             textAlign: TextAlign.right,
             style: AppTypography.labelMedium.copyWith(
-              color: hasLocation ? AppColors.white : AppColors.muted,
+              color: hasLocation ? context.palette.foreground : context.palette.mutedForeground,
             ),
           ),
         ),

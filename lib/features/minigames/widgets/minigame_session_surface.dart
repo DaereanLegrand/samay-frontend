@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:samay/features/groups/theme/group_theme_scope.dart';
+import 'package:samay/core/theme/app_theme_scope.dart';
 import 'package:samay/features/groups/theme/group_theme_theme.dart';
 import 'package:samay/features/minigames/providers/minigames_providers.dart';
 
@@ -46,8 +46,8 @@ class MinigameInks {
   });
 
   factory MinigameInks.of(BuildContext context) {
-    final palette = GroupThemeScope.paletteOf(context);
-    final themed = !identical(palette, GroupThemeScope.standardPalette);
+    final palette = AppThemeScope.paletteOf(context);
+    final themed = AppThemeScope.isThemed(context);
     return MinigameInks._(
       primary: palette.foreground,
       muted: palette.mutedForeground,

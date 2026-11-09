@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/l10n/app_localizations.dart';
+import 'package:samay/core/theme/app_palette_context.dart';
 
 /// User-facing crash-recovery banner (LOG-03): shown once after the app
 /// recovered from a previous crash (a `.samay_crash_marker` existed at
@@ -36,11 +37,11 @@ class _CrashRecoveryBannerState extends State<CrashRecoveryBanner> {
       ),
       child: Row(
         children: [
-          const Icon(
+          Icon(
             Icons.healing,
             size: 14,
             // Error semantics — white on the glowPinkDeep fill (5.87:1 AA).
-            color: AppColors.white,
+            color: context.palette.foreground,
           ),
           const SizedBox(width: AppSpacing.sm),
           Expanded(
@@ -50,7 +51,7 @@ class _CrashRecoveryBannerState extends State<CrashRecoveryBanner> {
               overflow: TextOverflow.ellipsis,
               style: Theme.of(
                 context,
-              ).textTheme.bodySmall?.copyWith(color: AppColors.white),
+              ).textTheme.bodySmall?.copyWith(color: context.palette.foreground),
             ),
           ),
           const SizedBox(width: AppSpacing.sm),
@@ -58,7 +59,7 @@ class _CrashRecoveryBannerState extends State<CrashRecoveryBanner> {
             // The dismiss label reuses the common affirmative (commonOk).
             onPressed: () => setState(() => _dismissed = true),
             style: TextButton.styleFrom(
-              foregroundColor: AppColors.white,
+              foregroundColor: context.palette.foreground,
               visualDensity: VisualDensity.compact,
             ),
             child: Text(l10n.commonOk),

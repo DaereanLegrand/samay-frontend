@@ -14,6 +14,7 @@ import 'package:samay/shared/widgets/v_chip.dart';
 import 'package:samay/shared/widgets/v_input.dart';
 import 'package:vector_map_tiles/vector_map_tiles.dart';
 import 'package:vector_map_tiles_pmtiles/vector_map_tiles_pmtiles.dart';
+import 'package:samay/core/theme/app_palette_context.dart';
 
 /// Default map center (Arequipa) and zoom when no initial point is supplied.
 const double kDefaultLocationLat = -16.3988;
@@ -123,9 +124,9 @@ class _LocationPickerSheetState extends State<LocationPickerSheet> {
       child: ConstrainedBox(
         constraints: BoxConstraints(maxHeight: maxHeight),
         child: Container(
-          decoration: const BoxDecoration(
-            color: AppColors.surface,
-            borderRadius: BorderRadius.vertical(
+          decoration: BoxDecoration(
+            color: context.palette.surface,
+            borderRadius: const BorderRadius.vertical(
               top: Radius.circular(AppRadius.card),
             ),
           ),
@@ -142,7 +143,7 @@ class _LocationPickerSheetState extends State<LocationPickerSheet> {
                       width: 40,
                       height: 4,
                       decoration: BoxDecoration(
-                        color: AppColors.mutedStrong.withValues(alpha: 0.3),
+                        color: context.palette.mutedForeground.withValues(alpha: 0.3),
                         borderRadius: BorderRadius.circular(AppRadius.full),
                       ),
                     ),
@@ -157,7 +158,7 @@ class _LocationPickerSheetState extends State<LocationPickerSheet> {
                         ),
                       ),
                       IconButton(
-                        icon: const Icon(Icons.close, color: AppColors.mutedStrong),
+                        icon: Icon(Icons.close, color: context.palette.mutedForeground),
                         onPressed: () => Navigator.of(context).pop(),
                       ),
                     ],
@@ -208,7 +209,7 @@ class _LocationPickerSheetState extends State<LocationPickerSheet> {
       children: [
         Text(
           isLink ? l10n.locationPickerLinkHint : l10n.locationPickerCoordsHint,
-          style: AppTypography.bodySmall.copyWith(color: AppColors.mutedStrong),
+          style: AppTypography.bodySmall.copyWith(color: context.palette.mutedForeground),
         ),
         const SizedBox(height: AppSpacing.sm),
         VInput(
@@ -300,8 +301,8 @@ class _LocationPickerSheetState extends State<LocationPickerSheet> {
                   bottom: AppSpacing.sm,
                   child: FloatingActionButton.small(
                     heroTag: 'location_picker_my_location',
-                    backgroundColor: AppColors.surfaceAlt,
-                    foregroundColor: AppColors.white,
+                    backgroundColor: context.palette.surfaceAlt,
+                    foregroundColor: context.palette.foreground,
                     onPressed: _locating ? null : _useMyLocation,
                     child: _locating
                         ? const SizedBox(
@@ -346,12 +347,12 @@ class _Crosshair extends StatelessWidget {
             height: 44,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              border: Border.all(color: AppColors.white, width: 1.5),
-              color: AppColors.white.withValues(alpha: 0.08),
+              border: Border.all(color: context.palette.foreground, width: 1.5),
+              color: context.palette.foreground.withValues(alpha: 0.08),
             ),
           ),
-          Container(width: 2, height: 16, color: AppColors.white),
-          Container(width: 16, height: 2, color: AppColors.white),
+          Container(width: 2, height: 16, color: context.palette.foreground),
+          Container(width: 16, height: 2, color: context.palette.foreground),
         ],
       ),
     );

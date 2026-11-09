@@ -7,11 +7,12 @@ import 'package:samay/core/extensions/error_mapper.dart';
 import 'package:samay/core/repositories/repository_providers.dart';
 import 'package:samay/core/utils/form_validators.dart';
 import 'package:samay/core/utils/input_sanitizer.dart';
-import 'package:samay/features/groups/theme/group_theme_palette.dart';
+import 'package:samay/core/theme/app_palette.dart';
 import 'package:samay/features/groups/theme/group_theme_theme.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/v_button.dart';
 import 'package:samay/shared/widgets/v_input.dart';
+import 'package:samay/core/theme/app_palette_context.dart';
 
 /// The donate-shards overlay: a centered box over the group detail screen.
 ///
@@ -23,11 +24,11 @@ Future<void> showDonateToGroupDialog(
   BuildContext context, {
   required String groupId,
   required String groupName,
-  GroupThemePalette? palette,
+  AppPalette? palette,
 }) {
   return showDialog<void>(
     context: context,
-    barrierColor: (palette?.background ?? AppColors.discoBlack).withValues(
+    barrierColor: (palette?.background ?? context.palette.background).withValues(
       alpha: 0.72,
     ),
     builder: (_) => _DonateToGroupDialog(
@@ -47,7 +48,7 @@ class _DonateToGroupDialog extends ConsumerStatefulWidget {
 
   final String groupId;
   final String groupName;
-  final GroupThemePalette? palette;
+  final AppPalette? palette;
 
   @override
   ConsumerState<_DonateToGroupDialog> createState() =>
@@ -102,7 +103,7 @@ class _DonateToGroupDialogState extends ConsumerState<_DonateToGroupDialog> {
     return GroupThemeSurface(
       palette: palette,
       child: Dialog(
-        backgroundColor: palette?.surface ?? AppColors.discoBlack,
+        backgroundColor: palette?.surface ?? context.palette.background,
         surfaceTintColor: AppColors.transparent,
         insetPadding: const EdgeInsets.symmetric(
           horizontal: AppSpacing.xl,
@@ -110,7 +111,7 @@ class _DonateToGroupDialogState extends ConsumerState<_DonateToGroupDialog> {
         ),
         shape: RoundedRectangleBorder(
           borderRadius: AppRadius.sharp,
-          side: BorderSide(color: palette?.border ?? AppColors.border),
+          side: BorderSide(color: palette?.border ?? context.palette.border),
         ),
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 420),

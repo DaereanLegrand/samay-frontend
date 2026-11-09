@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/extensions/error_mapper.dart';
 import 'package:samay/core/logging/app_logger.dart';
@@ -17,6 +16,7 @@ import 'package:samay/shared/widgets/v_button.dart';
 import 'package:samay/shared/widgets/v_header_bar.dart';
 import 'package:samay/shared/widgets/v_input.dart';
 import 'package:samay/shared/widgets/v_spinner.dart';
+import 'package:samay/core/theme/app_palette_context.dart';
 
 /// Gallery-picking seam for tests: `image_picker` is a platform plugin that
 /// cannot run in widget tests, so the screen accepts an injectable function.
@@ -189,17 +189,17 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                           right: 0,
                           child: CircleAvatar(
                             radius: 16,
-                            backgroundColor: AppColors.white,
+                            backgroundColor: context.palette.foreground,
                             child: _uploadingAvatar
-                                ? const VSpinner(
+                                ? VSpinner(
                                     size: 16,
-                                    color: AppColors.discoBlack,
+                                    color: context.palette.background,
                                   )
                                 : IconButton(
-                                    icon: const Icon(
+                                    icon: Icon(
                                       Icons.camera_alt,
                                       size: 14,
-                                      color: AppColors.discoBlack,
+                                      color: context.palette.background,
                                     ),
                                     tooltip: l10n.profileAvatarChange,
                                     onPressed: _uploadAvatar,

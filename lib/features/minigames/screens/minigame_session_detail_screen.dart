@@ -37,6 +37,7 @@ import 'package:samay/shared/widgets/v_display_text.dart';
 import 'package:samay/shared/widgets/v_header_bar.dart';
 import 'package:samay/shared/widgets/v_input.dart';
 import 'package:samay/shared/widgets/v_shard_icon.dart';
+import 'package:samay/core/theme/app_palette_context.dart';
 
 /// The play-screen route for [gameType] — the single lobby → game dispatch
 /// point: Two Lies (208), Botella (209/210) and Charadas (212) join truth_dare
@@ -549,7 +550,7 @@ class _InviteCard extends StatelessWidget {
                       Text(
                         l10n.minigamesInvitedBy,
                         style: AppTypography.bodySmall.copyWith(
-                          color: AppColors.mutedStrong,
+                          color: context.palette.mutedForeground,
                         ),
                       ),
                   ],
@@ -562,7 +563,7 @@ class _InviteCard extends StatelessWidget {
             Text(
               l10n.minigamesInviteFromGroup(groupName!),
               style: AppTypography.bodySmall.copyWith(
-                color: AppColors.mutedStrong,
+                color: context.palette.mutedForeground,
               ),
             ),
           ],
@@ -767,7 +768,7 @@ class _LobbySection extends ConsumerWidget {
                     kDrunkBottleMinPlayers,
                     participantIds.length,
                   ),
-                  style: const TextStyle(color: AppColors.mutedStrong),
+                  style: TextStyle(color: context.palette.mutedForeground),
                 ),
               ),
             if (pendingReady.isNotEmpty && !isCountdown)
@@ -779,7 +780,7 @@ class _LobbySection extends ConsumerWidget {
                       : l10n.minigamesWaitingReady(pendingReady.join(', ')),
                   textAlign: TextAlign.center,
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: AppColors.mutedStrong,
+                    color: context.palette.mutedForeground,
                   ),
                 ),
               ),
@@ -997,7 +998,7 @@ class _JoinCodeCardState extends ConsumerState<_JoinCodeCard> {
           children: [
             Row(
               children: [
-                const Icon(Icons.tag, size: 20, color: AppColors.white),
+                Icon(Icons.tag, size: 20, color: context.palette.foreground),
                 const SizedBox(width: AppSpacing.md),
                 Expanded(
                   child: Column(
@@ -1011,7 +1012,7 @@ class _JoinCodeCardState extends ConsumerState<_JoinCodeCard> {
                       Text(
                         l10n.minigamesJoinCodeShareHint,
                         style: AppTypography.bodySmall.copyWith(
-                          color: AppColors.mutedStrong,
+                          color: context.palette.mutedForeground,
                         ),
                       ),
                     ],
@@ -1089,12 +1090,12 @@ class _ParticipantRow extends StatelessWidget {
   final int? prize;
   final VoidCallback? onTap;
 
-  /// Podium accent for the rank numeral (gold/silver/bronze, white otherwise).
-  Color get _rankColor => switch (rank) {
+  /// Podium accent for the rank numeral (gold/silver/bronze, themed otherwise).
+  Color _rankColor(BuildContext context) => switch (rank) {
     1 => AppColors.discoGold,
     2 => AppColors.discoSilver,
     3 => AppColors.discoBronze,
-    _ => AppColors.white,
+    _ => context.palette.foreground,
   };
 
   @override
@@ -1130,7 +1131,7 @@ class _ParticipantRow extends StatelessWidget {
                       fontSize: 22,
                       fontWeight: FontWeight.w700,
                       height: 1.0,
-                      color: _rankColor,
+                      color: _rankColor(context),
                     ),
                   ),
                 ),
@@ -1161,7 +1162,7 @@ class _ParticipantRow extends StatelessWidget {
                       Text(
                         l10n.minigamesPointsAmount(score!),
                         style: AppTypography.bodySmall.copyWith(
-                          color: AppColors.mutedStrong,
+                          color: context.palette.mutedForeground,
                         ),
                       ),
                       if (prize != null) ...[
@@ -1172,7 +1173,7 @@ class _ParticipantRow extends StatelessWidget {
                           child: Text(
                             '·',
                             style: AppTypography.bodySmall.copyWith(
-                              color: AppColors.mutedStrong,
+                              color: context.palette.mutedForeground,
                             ),
                           ),
                         ),
@@ -1181,7 +1182,7 @@ class _ParticipantRow extends StatelessWidget {
                         Text(
                           '$prize',
                           style: AppTypography.bodySmall.copyWith(
-                            color: AppColors.mutedStrong,
+                            color: context.palette.mutedForeground,
                           ),
                         ),
                       ],
@@ -1191,7 +1192,7 @@ class _ParticipantRow extends StatelessWidget {
                   Text(
                     l10n.minigamesCreator,
                     style: AppTypography.bodySmall.copyWith(
-                      color: AppColors.mutedStrong,
+                      color: context.palette.mutedForeground,
                     ),
                   ),
               ],
@@ -1204,17 +1205,17 @@ class _ParticipantRow extends StatelessWidget {
           if (showReadyChip && !isCreator && participant.ready)
             VChip(label: l10n.minigamesReady, selected: false, compact: true),
           if (onTap != null)
-            const Icon(
+            Icon(
               Icons.chevron_right,
               size: 18,
-              color: AppColors.mutedStrong,
+              color: context.palette.mutedForeground,
             ),
           if (canRemove) ...[
             const SizedBox(width: AppSpacing.xs),
             IconButton(
               icon: const Icon(Icons.person_remove_outlined, size: 18),
               tooltip: l10n.minigamesRemovePlayer,
-              color: AppColors.white,
+              color: context.palette.foreground,
               padding: EdgeInsets.zero,
               constraints: const BoxConstraints(),
               onPressed: onRemove,
@@ -1423,7 +1424,7 @@ class _CountdownOverlayState extends ConsumerState<_CountdownOverlay> {
     }
 
     return ColoredBox(
-      color: AppColors.surface,
+      color: context.palette.surface,
       child: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -1483,7 +1484,7 @@ class _AliasButton extends ConsumerWidget {
                   display,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(color: AppColors.mutedStrong),
+                  style: TextStyle(color: context.palette.mutedForeground),
                 ),
               ],
             ),

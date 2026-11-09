@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/design_tokens/app_typography.dart';
 import 'package:samay/core/extensions/error_mapper.dart';
@@ -14,6 +13,7 @@ import 'package:samay/shared/widgets/v_badge.dart';
 import 'package:samay/shared/widgets/v_button.dart';
 import 'package:samay/shared/widgets/v_header_bar.dart';
 import 'package:samay/shared/widgets/v_shard_icon.dart';
+import 'package:samay/core/theme/app_palette_context.dart';
 
 /// The personal cosmetics shop (COSM spec): catalog grid over the three
 /// personal categories (Marcos/Fondos/Insignias), shard-only purchases with a
@@ -81,7 +81,7 @@ class _CosmeticsShopScreenState extends ConsumerState<CosmeticsShopScreen>
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        backgroundColor: AppColors.surface,
+        backgroundColor: context.palette.surface,
         title: Text(l10n.cosmeticsPurchaseTitle),
         content: Text(
           l10n.cosmeticsPurchaseConfirm(
@@ -171,12 +171,12 @@ class _CosmeticsShopScreenState extends ConsumerState<CosmeticsShopScreen>
               children: [
                 TabBar(
                   controller: _tabController,
-                  labelColor: AppColors.white,
+                  labelColor: context.palette.foreground,
                   // §2.4: unselected tab labels are informational text at
                   // normal size — muted #666666 fails 1.4.3 (3.66:1);
                   // mutedStrong is AA.
-                  unselectedLabelColor: AppColors.mutedStrong,
-                  indicatorColor: AppColors.white,
+                  unselectedLabelColor: context.palette.mutedForeground,
+                  indicatorColor: context.palette.foreground,
                   tabs: [
                     for (var i = 0; i < _tabTypes.length; i++)
                       Tab(text: _tabLabel(l10n, i)),
@@ -343,7 +343,7 @@ class _CosmeticCard extends StatelessWidget {
                 ),
               ),
               if (locked)
-                const Icon(Icons.lock, size: 16, color: AppColors.muted),
+                Icon(Icons.lock, size: 16, color: context.palette.mutedForeground),
               if (owned != null)
                 ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 88),
@@ -355,7 +355,7 @@ class _CosmeticCard extends StatelessWidget {
                         ? VBadge.emphasized(label: l10n.cosmeticsOwned)
                         : VBadge(
                             label: l10n.cosmeticsOwned,
-                            color: AppColors.mutedStrong,
+                            color: context.palette.mutedForeground,
                           ),
                   ),
                 ),
@@ -367,7 +367,7 @@ class _CosmeticCard extends StatelessWidget {
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              color: AppColors.white,
+              color: context.palette.foreground,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -379,7 +379,7 @@ class _CosmeticCard extends StatelessWidget {
               Text(
                 '$_cost',
                 style: TextStyle(
-                  color: locked ? AppColors.muted : AppColors.white,
+                  color: locked ? context.palette.mutedForeground : context.palette.foreground,
                   fontWeight: FontWeight.w700,
                 ),
               ),
@@ -391,7 +391,7 @@ class _CosmeticCard extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: AppColors.mutedStrong,
+                      color: context.palette.mutedForeground,
                     ),
                   ),
                 ),

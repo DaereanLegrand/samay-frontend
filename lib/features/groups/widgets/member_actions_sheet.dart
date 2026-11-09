@@ -8,6 +8,7 @@ import 'package:samay/core/repositories/repository_providers.dart';
 import 'package:samay/shared/widgets/profile_avatar.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/show_app_error.dart';
+import 'package:samay/core/theme/app_palette_context.dart';
 
 /// The admin member-actions bottom sheet.
 ///
@@ -41,7 +42,7 @@ Future<void> showMemberActionsSheet(
 
   return showModalBottomSheet<void>(
     context: context,
-    backgroundColor: AppColors.discoBlack,
+    backgroundColor: context.palette.background,
     // Sharp: the sheet itself carries no radius — the glass slab inside
     // owns the liquid corners.
     shape: const RoundedRectangleBorder(),
@@ -49,8 +50,8 @@ Future<void> showMemberActionsSheet(
       child: Container(
         padding: EdgeInsets.zero,
         decoration: BoxDecoration(
-          color: AppColors.surface,
-          border: Border.all(color: AppColors.hairline),
+          color: context.palette.surface,
+          border: Border.all(color: context.palette.hairline),
           borderRadius: const BorderRadius.all(Radius.circular(20)),
         ),
         child: Column(
@@ -68,7 +69,7 @@ Future<void> showMemberActionsSheet(
                 subtitle: Text(
                   role.toUpperCase(),
                   style: AppTypography.labelMedium.copyWith(
-                    color: AppColors.mutedStrong,
+                    color: context.palette.mutedForeground,
                   ),
                 ),
               ),

@@ -1,18 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/extensions/error_mapper.dart';
 import 'package:samay/core/models/event.dart';
 import 'package:samay/core/providers/service_providers.dart';
 import 'package:samay/core/router/route_paths.dart';
 import 'package:samay/features/events/logic/event_formatters.dart';
-import 'package:samay/features/groups/theme/group_theme_palette.dart';
-import 'package:samay/features/groups/theme/group_theme_scope.dart';
+import 'package:samay/core/theme/app_palette.dart';
+import 'package:samay/core/theme/app_theme_scope.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/error_view.dart';
 import 'package:samay/shared/widgets/state_views.dart';
+import 'package:samay/core/theme/app_palette_context.dart';
 
 /// The group's events rendered INLINE (non-scrolling) — the group detail is
 /// a single scroll: the Events tab is gone and this section feeds the parent
@@ -73,15 +73,15 @@ class _GroupEventsSectionState extends ConsumerState<GroupEventsSection> {
       return ErrorView(message: _error!.toAppError().message, onRetry: _load);
     }
     if (_events.isEmpty) return const SizedBox.shrink();
-    final palette = GroupThemeScope.paletteOf(context);
-    final themed = !identical(palette, GroupThemeScope.standardPalette);
+    final palette = AppThemeScope.paletteOf(context);
+    final themed = AppThemeScope.isThemed(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           l10n.groupsTabEvents.toUpperCase(),
           style: Theme.of(context).textTheme.titleSmall?.copyWith(
-            color: themed ? palette.foreground : AppColors.mutedStrong,
+            color: themed ? palette.foreground : context.palette.mutedForeground,
           ),
         ),
         const SizedBox(height: AppSpacing.md),
@@ -97,7 +97,7 @@ class _EventRow extends StatelessWidget {
   const _EventRow({required this.event, this.palette});
 
   final Event event;
-  final GroupThemePalette? palette;
+  final AppPalette? palette;
 
   @override
   Widget build(BuildContext context) {
@@ -106,8 +106,8 @@ class _EventRow extends StatelessWidget {
       event.endsAt,
       Localizations.localeOf(context).languageCode,
     );
-    final muted = palette?.mutedForeground ?? AppColors.mutedStrong;
-    final ink = palette?.foreground ?? AppColors.white;
+    final muted = palette?.mutedForeground ?? context.palette.mutedForeground;
+    final ink = palette?.foreground ?? context.palette.foreground;
 
     return InkWell(
       onTap: () => context.push(RoutePaths.eventDetail(event.id)),
@@ -138,7 +138,7 @@ class _EventRow extends StatelessWidget {
             ),
             trailing: Icon(Icons.chevron_right, size: 20, color: muted),
           ),
-          Divider(height: 1, color: palette?.hairline ?? AppColors.hairline),
+          Divider(height: 1, color: palette?.hairline ?? context.palette.hairline),
         ],
       ),
     );

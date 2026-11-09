@@ -3,13 +3,13 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/core/logging/app_logger.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:samay/core/providers/service_providers.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/v_button.dart';
 import 'package:samay/shared/widgets/v_header_bar.dart';
+import 'package:samay/core/theme/app_palette_context.dart';
 
 /// Data portability (Ley N° 29733): exports the caller's own data.
 ///
@@ -82,7 +82,7 @@ class _ExportDataScreenState extends ConsumerState<ExportDataScreen> {
                 l10n.profileExportChatNote,
                 style: Theme.of(
                   context,
-                ).textTheme.bodyMedium?.copyWith(color: AppColors.mutedStrong),
+                ).textTheme.bodyMedium?.copyWith(color: context.palette.mutedForeground),
               ),
               const SizedBox(height: 24),
               VButton.emphasized(
@@ -94,7 +94,7 @@ class _ExportDataScreenState extends ConsumerState<ExportDataScreen> {
                 Text(
                   l10n.profileExportSaved,
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: AppColors.mutedStrong,
+                    color: context.palette.mutedForeground,
                   ),
                 ),
                 const SizedBox(height: 4),

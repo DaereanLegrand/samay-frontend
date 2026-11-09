@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/core/design_tokens/app_icon_sizes.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/design_tokens/app_typography.dart';
@@ -26,6 +25,7 @@ import 'package:samay/shared/widgets/v_card.dart';
 import 'package:samay/shared/widgets/v_count_badge.dart';
 import 'package:samay/shared/widgets/v_header_bar.dart';
 import 'package:samay/shared/widgets/v_network_image.dart';
+import 'package:samay/core/theme/app_palette_context.dart';
 
 /// The agnostic social feed — the app's landing tab.
 ///
@@ -47,7 +47,7 @@ class FeedScreen extends ConsumerWidget {
 
     return Scaffold(
       // Black background always — even outside the theme.
-      backgroundColor: AppColors.discoBlack,
+      backgroundColor: context.palette.background,
       body: RefreshIndicator(
         onRefresh: () => ref.read(feedProvider.notifier).refresh(),
         child: CustomScrollView(
@@ -203,10 +203,10 @@ class _EventCard extends StatelessWidget {
               const SizedBox(height: AppSpacing.sm),
               Row(
                 children: [
-                  const Icon(
+                  Icon(
                     Icons.schedule,
                     size: AppIconSizes.sm,
-                    color: AppColors.mutedStrong,
+                    color: context.palette.mutedForeground,
                   ),
                   const SizedBox(width: AppSpacing.xs),
                   Expanded(
@@ -218,8 +218,8 @@ class _EventCard extends StatelessWidget {
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: AppColors.mutedStrong,
+                      style: TextStyle(
+                        color: context.palette.mutedForeground,
                         fontSize: 13,
                       ),
                     ),
@@ -229,10 +229,10 @@ class _EventCard extends StatelessWidget {
               const SizedBox(height: AppSpacing.xs),
               Row(
                 children: [
-                  const Icon(
+                  Icon(
                     Icons.place_outlined,
                     size: AppIconSizes.sm,
-                    color: AppColors.mutedStrong,
+                    color: context.palette.mutedForeground,
                   ),
                   const SizedBox(width: AppSpacing.xs),
                   Expanded(
@@ -240,8 +240,8 @@ class _EventCard extends StatelessWidget {
                       event.locationCity ?? event.locationName ?? l10n.eventNoLocation,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: AppColors.mutedStrong,
+                      style: TextStyle(
+                        color: context.palette.mutedForeground,
                         fontSize: 13,
                       ),
                     ),

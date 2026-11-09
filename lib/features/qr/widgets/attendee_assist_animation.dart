@@ -7,6 +7,7 @@ import 'package:samay/core/theme/samay_durations.dart';
 import 'package:samay/features/qr/widgets/attendance_qr_view.dart';
 import 'package:samay/shared/widgets/v_display_text.dart';
 import 'package:samay/shared/widgets/v_header_bar.dart';
+import 'package:samay/core/theme/app_palette_context.dart';
 
 /// Peak blur (logical px) the QR dissolves into as it fades out; the terminal
 /// check/word condense in FROM the same blur. Feature-local animation constant
@@ -197,11 +198,11 @@ class _AttendeeAssistAnimationState extends State<AttendeeAssistAnimation>
   Widget _checkCondense() {
     return AnimatedBuilder(
       animation: _controller,
-      child: const RepaintBoundary(
+      child: RepaintBoundary(
         child: Icon(
           Icons.check,
           size: kAttendanceQrSide * 0.6,
-          color: AppColors.white,
+          color: context.palette.foreground,
         ),
       ),
       builder: (context, child) {
@@ -252,7 +253,7 @@ class _AttendeeAssistAnimationState extends State<AttendeeAssistAnimation>
           DecoratedBox(
             decoration: BoxDecoration(
               border: Border.all(
-                color: AppColors.white,
+                color: context.palette.foreground,
                 width: kAttendanceQrRingWidth,
               ),
             ),

@@ -5,6 +5,7 @@ import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/services/minigame_service.dart';
 import 'package:samay/features/minigames/logic/minigame_meta.dart';
 import 'package:samay/l10n/app_localizations.dart';
+import 'package:samay/core/theme/app_palette_context.dart';
 
 /// "Cómo se juega" for any minigame — the numbered-steps panel Charadas
 /// carried on its starter screen, lifted out so every game has the same one.
@@ -19,7 +20,7 @@ Future<void> showMinigameRules(BuildContext context, MinigameType type) {
   final l10n = AppLocalizations.of(context);
   return showModalBottomSheet<void>(
     context: context,
-    backgroundColor: AppColors.surface,
+    backgroundColor: context.palette.surface,
     showDragHandle: true,
     isScrollControlled: true,
     shape: const RoundedRectangleBorder(
@@ -40,14 +41,14 @@ Future<void> showMinigameRules(BuildContext context, MinigameType type) {
             Text(
               l10n.minigamesRulesTitle,
               style: Theme.of(sheetContext).textTheme.headlineSmall?.copyWith(
-                    color: AppColors.white,
+                    color: context.palette.foreground,
                   ),
             ),
             const SizedBox(height: AppSpacing.xs),
             Text(
               type.tagline(l10n),
               style: Theme.of(sheetContext).textTheme.bodyMedium?.copyWith(
-                    color: AppColors.mutedStrong,
+                    color: context.palette.mutedForeground,
                   ),
             ),
             const SizedBox(height: AppSpacing.lg),
@@ -73,7 +74,7 @@ class MinigameRulesButton extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     return IconButton(
       icon: const Icon(Icons.help_outline, size: 22),
-      color: AppColors.white,
+      color: context.palette.foreground,
       tooltip: l10n.minigamesRulesAction,
       onPressed: () => showMinigameRules(context, type),
     );
@@ -96,14 +97,14 @@ class _Step extends StatelessWidget {
           width: 24,
           height: 24,
           alignment: Alignment.center,
-          decoration: const BoxDecoration(
+          decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: AppColors.surfaceAlt,
+            color: context.palette.surfaceAlt,
           ),
           child: Text(
             '$number',
             style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                  color: AppColors.white,
+                  color: context.palette.foreground,
                   fontWeight: FontWeight.w700,
                 ),
           ),

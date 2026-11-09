@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/core/design_tokens/app_icon_sizes.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/design_tokens/app_typography.dart';
@@ -15,6 +14,7 @@ import 'package:samay/shared/widgets/v_header_bar.dart';
 import 'package:samay/shared/widgets/state_views.dart';
 import 'package:samay/shared/widgets/v_display_text.dart';
 import 'package:samay/shared/widgets/v_network_image.dart';
+import 'package:samay/core/theme/app_palette_context.dart';
 
 /// The event photo-wall — every photo of
 /// the event (the [eventPhotosProvider] signed-URL gallery) in a tight grid
@@ -100,11 +100,11 @@ class _CollageWall extends StatelessWidget {
               final url = photo.signedUrl;
               return ColoredBox(
                 key: ValueKey('photo-tile-${photo.id}'),
-                color: AppColors.surfaceAlt,
+                color: context.palette.surfaceAlt,
                 child: (url == null || url.isEmpty)
-                    ? const Icon(
+                    ? Icon(
                         Icons.photo_outlined,
-                        color: AppColors.mutedStrong,
+                        color: context.palette.mutedForeground,
                         size: AppIconSizes.lg,
                       )
                     : VNetworkImage(imageUrl: url, fit: BoxFit.cover),
@@ -123,7 +123,7 @@ class _CollageWall extends StatelessWidget {
               AppSpacing.md,
               AppSpacing.sm,
             ),
-            color: AppColors.discoBlack.withValues(alpha: 0.6),
+            color: context.palette.background.withValues(alpha: 0.6),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -132,7 +132,7 @@ class _CollageWall extends StatelessWidget {
                 Text(
                   l10n.collagePhotoCount(photos.length),
                   style: AppTypography.bodySmall.copyWith(
-                    color: AppColors.mutedStrong,
+                    color: context.palette.mutedForeground,
                   ),
                 ),
               ],

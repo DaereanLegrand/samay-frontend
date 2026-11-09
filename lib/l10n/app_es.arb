@@ -977,6 +977,54 @@
   "@settingsThemeSystem": {
     "description": "Theme picker option: follow the system appearance"
   },
+  "appThemeTitle": "Color de la app",
+  "@appThemeTitle": {
+    "description": "Settings row: the app-wide theme preset picker"
+  },
+  "appThemeSubtitle": "Elige el color de toda la app",
+  "@appThemeSubtitle": {
+    "description": "Settings row subtitle for the app theme picker"
+  },
+  "appThemeClassic": "Clásico",
+  "@appThemeClassic": {
+    "description": "App theme preset: the default black palette"
+  },
+  "appThemeMidnight": "Medianoche",
+  "@appThemeMidnight": {
+    "description": "App theme preset name"
+  },
+  "appThemeForest": "Bosque",
+  "@appThemeForest": {
+    "description": "App theme preset name"
+  },
+  "appThemeViolet": "Violeta",
+  "@appThemeViolet": {
+    "description": "App theme preset name (paid tier)"
+  },
+  "appThemeEmber": "Brasa",
+  "@appThemeEmber": {
+    "description": "App theme preset name (paid tier)"
+  },
+  "appThemeTeal": "Turquesa",
+  "@appThemeTeal": {
+    "description": "App theme preset name (premium tier)"
+  },
+  "appThemeRose": "Rosa",
+  "@appThemeRose": {
+    "description": "App theme preset name (premium tier)"
+  },
+  "appThemeLockedPro": "Requiere Pro",
+  "@appThemeLockedPro": {
+    "description": "Lock label on an app theme preset that needs Pro"
+  },
+  "appThemeLockedVip": "Requiere VIP",
+  "@appThemeLockedVip": {
+    "description": "Lock label on an app theme preset that needs VIP"
+  },
+  "appThemeGroupFollowsApp": "Los grupos sin tema propio usan el color de la app.",
+  "@appThemeGroupFollowsApp": {
+    "description": "Explainer under the app theme picker"
+  },
   "settingsSectionAppearance": "Apariencia",
   "@settingsSectionAppearance": {
     "description": "Settings section header for the visual preferences group (R6)"

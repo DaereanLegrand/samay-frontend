@@ -17,6 +17,7 @@ import 'package:samay/shared/widgets/error_view.dart';
 import 'package:samay/shared/widgets/state_views.dart';
 import 'package:samay/shared/widgets/v_badge.dart';
 import 'package:samay/shared/widgets/v_network_image.dart';
+import 'package:samay/core/theme/app_palette_context.dart';
 
 /// The Grupos segment of the Social tab.
 ///
@@ -84,7 +85,7 @@ class GroupsTab extends ConsumerWidget {
                     SliverList.separated(
                       itemCount: groups.length,
                       separatorBuilder: (_, _) =>
-                          const Divider(height: 1, color: AppColors.hairline),
+                          Divider(height: 1, color: context.palette.hairline),
                       itemBuilder: (_, i) => _GroupRow(group: groups[i]),
                     ),
                     const SliverToBoxAdapter(
@@ -163,16 +164,16 @@ class _GroupRow extends ConsumerWidget {
                       Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Icon(
+                          Icon(
                             Icons.group_outlined,
                             size: AppIconSizes.sm,
-                            color: AppColors.mutedStrong,
+                            color: context.palette.mutedForeground,
                           ),
                           const SizedBox(width: AppSpacing.xs),
                           Text(
                             l10n.groupsMembersCountShort(group.memberCount),
                             style: Theme.of(context).textTheme.bodySmall
-                                ?.copyWith(color: AppColors.mutedStrong),
+                                ?.copyWith(color: context.palette.mutedForeground),
                           ),
                           if (group.myStatus == 'invited') ...[
                             const SizedBox(width: AppSpacing.sm),
@@ -218,15 +219,16 @@ class _GroupThumbnail extends StatelessWidget {
       width: size,
       height: size,
       child: _dissolveLeftEdge(
+        context,
         hasCover
             ? VNetworkImage(imageUrl: coverUrl!, fit: BoxFit.cover)
             : Container(
-                color: AppColors.surfaceAlt,
+                color: context.palette.surfaceAlt,
                 alignment: Alignment.center,
-                child: const Icon(
+                child: Icon(
                   Icons.group,
                   size: AppIconSizes.xxl,
-                  color: AppColors.muted,
+                  color: context.palette.mutedForeground,
                 ),
               ),
       ),
@@ -236,15 +238,15 @@ class _GroupThumbnail extends StatelessWidget {
   /// Slightly rounds + clips [child] and fades its LEFT edge to transparent so
   /// it dissolves into the black background (`BlendMode.dstIn` keeps the
   /// opaque right side; only the left ~8% fades out).
-  static Widget _dissolveLeftEdge(Widget child) {
+  static Widget _dissolveLeftEdge(BuildContext context, Widget child) {
     return ClipRRect(
       borderRadius: BorderRadius.circular(AppRadius.md),
       child: ShaderMask(
         blendMode: BlendMode.dstIn,
-        shaderCallback: (rect) => const LinearGradient(
+        shaderCallback: (rect) => LinearGradient(
           begin: Alignment.centerLeft,
           end: Alignment.centerRight,
-          colors: [AppColors.transparent, AppColors.white, AppColors.white],
+          colors: [AppColors.transparent, context.palette.foreground, context.palette.foreground],
           stops: [0, 0.08, 1],
         ).createShader(rect),
         child: child,

@@ -2,7 +2,6 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/physics.dart';
-import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/core/design_tokens/app_radius.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/services/minigame_service.dart';
@@ -12,6 +11,7 @@ import 'package:samay/features/minigames/widgets/game_name_band.dart';
 import 'package:samay/features/minigames/widgets/match_bubble_field.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/v_count_badge.dart';
+import 'package:samay/core/theme/app_palette_context.dart';
 
 /// The Games tab's card deck — a vertical, finger-tracked stack.
 ///
@@ -457,9 +457,9 @@ class _DeckCard extends StatelessWidget {
       button: true,
       child: Container(
         decoration: BoxDecoration(
-          color: AppColors.surfaceAlt,
+          color: context.palette.surfaceAlt,
           borderRadius: BorderRadius.circular(AppRadius.card),
-          border: Border.all(color: AppColors.muted),
+          border: Border.all(color: context.palette.mutedForeground),
         ),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(AppRadius.card),
@@ -503,7 +503,7 @@ class _DeckCard extends StatelessWidget {
                   Center(
                     child: Icon(
                       Icons.play_arrow_rounded,
-                      color: AppColors.white,
+                      color: context.palette.foreground,
                       size: playSize,
                     ),
                   ),

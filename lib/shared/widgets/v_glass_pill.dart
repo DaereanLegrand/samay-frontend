@@ -1,7 +1,7 @@
 import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/material.dart';
-import 'package:samay/core/design_tokens/app_colors.dart';
+import 'package:samay/core/theme/app_palette_context.dart';
 
 /// Apple-style floating glass pill — the iOS "liquid glass" toolbar element.
 ///
@@ -70,10 +70,10 @@ class VGlassPill extends StatelessWidget {
         filter: ImageFilter.blur(sigmaX: blur * r, sigmaY: blur * r),
         child: DecoratedBox(
           decoration: BoxDecoration(
-            color: AppColors.surface.withValues(alpha: _fillOpacity * r),
+            color: context.palette.surface.withValues(alpha: _fillOpacity * r),
             borderRadius: BorderRadius.circular(_radius),
             border: Border.all(
-              color: AppColors.white.withValues(alpha: _sheenOpacity * r),
+              color: context.palette.foreground.withValues(alpha: _sheenOpacity * r),
             ),
           ),
         ),

@@ -16,7 +16,7 @@ group surface reaches — group detail itself, the donate action, and the
 minigame headers/screens — plus breathing room between the group description
 and the action row.
 
-Done (verified: `flutter analyze` clean, `flutter test` 21/21, `make check`,
+Done (verified: `flutter analyze` clean, `flutter test` 30/30, `make check`,
 `make test`):
 
 - `GroupThemeSurface` / `groupThemeTheme`
@@ -38,11 +38,53 @@ Done (verified: `flutter analyze` clean, `flutter test` 21/21, `make check`,
 - `RankBadge` is theme-aware; `GroupEventsSection` rows/dividers use the
   palette.
 - Tests: `test/group_theme_widgets_test.dart` removed (UI-level tests are not
-  kept per `frontend/AGENTS.md`); `test/group_theme_palette_test.dart` keeps the
-  derivation math plus two `groupThemeTheme` assertions.
+  kept per `frontend/AGENTS.md`); `test/app_theme_test.dart` keeps
+  the derivation math, the presets and the group-follows-app rule.
 
 Open: on-device verification of the new surfaces (group detail, donate overlay
 with the keyboard up, minigame hub/lobby/play) after a hot restart.
+
+## WIP — app-wide theme (paywall-ready)
+
+Owner request: theming for the REST of the app, paid in the future. Groups keep
+their own theme EXCEPT when a group is still on the default, in which case it
+follows the app-wide theme.
+
+Done (verified: `flutter analyze` clean, `flutter test` 30/30, `make check`,
+`make test`; on device the Feed + a default-theme group paint `#080F23` with
+`#E1C575` ink):
+
+- Palette/scope generalised: `GroupThemePalette`→`AppPalette` and
+  `GroupThemeScope`→`AppThemeScope` now live in `lib/core/theme/`; every
+  identical-reference check became `AppThemeScope.isThemed(context)` (value
+  comparison), so a computed app palette counts as themed.
+- `AppThemePreset` (7 presets: classic, midnight, forest, violet, ember, teal,
+  rose) with `tierRequirement` as the paywall seam; `classic` IS the design
+  tokens, so an unset app paints byte-identically to before.
+- `appThemePresetProvider` persists the choice in the encrypted `config_cache`
+  (`theme.palette`) and reconciles it when the tier changes;
+  `appPaletteProvider` resolves the painted palette (gated, fail-safe).
+- `SamayApp.builder` mounts `AppThemeScope` + `themedData` for every route;
+  `themedData` moved to `lib/core/theme/themed_data.dart` and grew the
+  app/segmented/card/switch/checkbox/tab/date/bottom-sheet roles.
+- Migrated ~100 files to `context.palette.*` (shared widgets + every screen), so
+  the app theme actually reaches the UI instead of only Material defaults.
+- Settings → Apariencia → "Color de la app" opens `AppThemeScreen` with 7
+  preview cards; locked presets show "Requiere Pro"/"Requiere VIP".
+- Groups: `isDefaultGroupTheme` + `groupSurfacePalette` implement the owner
+  rule; `GroupThemeSurface`/`MinigameSessionSurface` inherit the app theme for
+  default groups and override for custom ones.
+- l10n es/en for the new copy.
+
+Verified on device (Pro account, iPhone 18 Pro): Feed paints Bosque `#05150B`;
+the group "Cowboy Bebopers" (no `group_themes` row) inherits the same green;
+"Noche de Cracks" (custom `#1E3A8A`) keeps its navy override; the unselected
+minigame "Directa" chip matches its page colour (never `#000000`); the picker
+locks Turquesa/Rosa as "Requiere VIP".
+
+Open: the paywall is client-side only (tier comes from `users.subscription_tier`);
+when the store ships, gate the picker + enforce server-side. No backend change
+yet.
 
 ## TODO
 - [x] **Wave 1B consolidated** (tag `wave1b-base`): l10n key union + regenerate,
@@ -56,7 +98,7 @@ with the keyboard up, minigame hub/lobby/play) after a hot restart.
       colours) + `GroupThemeScope`; applied to chat bubbles/date band/composer,
       member rows, minigame cards/chips/buttons and the theme editor. Contract:
       `docs/GROUP-THEME-COLORS.md`; derivation + themed-`ThemeData` tests in
-      `test/group_theme_palette_test.dart`.
+      `test/app_theme_test.dart`.
 - [x] Group theme client (E4 remainder): `GroupTheme` model + repository/
       service/provider, theme editor (preview, control mode for the host,
       tier palette, localized errors) reachable from the group menu; the

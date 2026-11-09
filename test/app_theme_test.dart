@@ -3,8 +3,12 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:samay/features/groups/theme/group_theme_colors.dart';
-import 'package:samay/features/groups/theme/group_theme_palette.dart';
+import 'package:samay/core/services/shards_service.dart' show tierRank;
+import 'package:samay/core/theme/app_palette.dart';
+import 'package:samay/core/models/group_theme.dart';
+import 'package:samay/core/theme/app_theme_presets.dart';
 import 'package:samay/features/groups/theme/group_theme_theme.dart';
+import 'package:samay/core/theme/themed_data.dart';
 import 'package:samay/core/theme/app_theme.dart';
 
 /// The server palette from `240_group_theme.get_group_theme` (pro/vip).
@@ -21,11 +25,11 @@ const _palette = <String>[
   '#164E63',
 ];
 
-GroupThemePalette _derive(String bg, {String accent = '#FACC15'}) {
+AppPalette _derive(String bg, {String accent = '#FACC15'}) {
   final background = groupThemeColor(bg);
   final accentColor = groupThemeColor(accent);
   // Mirrors `theme_best_foreground` / `theme_best_foreground(accent)`.
-  return GroupThemePalette.derive(
+  return AppPalette.derive(
     background: background,
     foreground: _bestForeground(background),
     accent: accentColor,
@@ -34,8 +38,8 @@ GroupThemePalette _derive(String bg, {String accent = '#FACC15'}) {
 }
 
 Color _bestForeground(Color bg) {
-  final onBlack = GroupThemePalette.contrastRatio(bg, Colors.black);
-  final onWhite = GroupThemePalette.contrastRatio(bg, Colors.white);
+  final onBlack = AppPalette.contrastRatio(bg, Colors.black);
+  final onWhite = AppPalette.contrastRatio(bg, Colors.white);
   return onBlack >= onWhite ? Colors.black : Colors.white;
 }
 
@@ -51,14 +55,14 @@ Color _flat(Color c, Color over) {
 }
 
 double _ratio(Color a, Color b, {Color over = const Color(0xFF000000)}) =>
-    GroupThemePalette.contrastRatio(_flat(a, over), _flat(b, over));
+    AppPalette.contrastRatio(_flat(a, over), _flat(b, over));
 
 void main() {
-  group('GroupThemePalette.derive', () {
+  group('AppPalette.derive', () {
     test('standard palette matches the design tokens exactly', () {
-      expect(GroupThemePalette.standard.background, const Color(0xFF000000));
-      expect(GroupThemePalette.standard.surface, const Color(0xFF0A0A0A));
-      expect(GroupThemePalette.standard.foreground, const Color(0xFFFFFFFF));
+      expect(AppPalette.standard.background, const Color(0xFF000000));
+      expect(AppPalette.standard.surface, const Color(0xFF0A0A0A));
+      expect(AppPalette.standard.foreground, const Color(0xFFFFFFFF));
     });
 
     test('every server palette keeps AA text on every derived surface', () {
@@ -114,10 +118,10 @@ void main() {
     test('surface steps are visibly distinct but stay under the text', () {
       for (final bg in _palette) {
         final p = _derive(bg);
-        final bgL = GroupThemePalette.relativeLuminance(p.background);
-        final surfaceL = GroupThemePalette.relativeLuminance(p.surface);
-        final altL = GroupThemePalette.relativeLuminance(p.surfaceAlt);
-        final fgL = GroupThemePalette.relativeLuminance(p.foreground);
+        final bgL = AppPalette.relativeLuminance(p.background);
+        final surfaceL = AppPalette.relativeLuminance(p.surface);
+        final altL = AppPalette.relativeLuminance(p.surfaceAlt);
+        final fgL = AppPalette.relativeLuminance(p.foreground);
 
         // Raised steps move toward the foreground and are ordered.
         expect(surfaceL, greaterThan(bgL), reason: 'bg=$bg surface bumps up');
@@ -149,7 +153,7 @@ void main() {
       // The server clamps; simulate a pathological all-white background to
       // prove the helper degrades instead of producing invisible text.
       final bg = Colors.white;
-      final p = GroupThemePalette.derive(
+      final p = AppPalette.derive(
         background: bg,
         foreground: _bestForeground(bg),
         accent: Colors.white,
@@ -216,19 +220,19 @@ void main() {
 
     test('darken and complement behave as documented', () {
       expect(
-        GroupThemePalette.darken(Colors.white, 0.75),
+        AppPalette.darken(Colors.white, 0.75),
         const Color(0xFF404040),
       );
       expect(
-        GroupThemePalette.darken(const Color(0xFF000000), 0.75),
+        AppPalette.darken(const Color(0xFF000000), 0.75),
         const Color(0xFF000000),
       );
       expect(
-        GroupThemePalette.complement(const Color(0xFF1E3A8A)),
+        AppPalette.complement(const Color(0xFF1E3A8A)),
         const Color(0xFFE1C575),
       );
-      expect(GroupThemePalette.complement(Colors.white), Colors.black);
-      expect(GroupThemePalette.complement(Colors.black), Colors.white);
+      expect(AppPalette.complement(Colors.white), Colors.black);
+      expect(AppPalette.complement(Colors.black), Colors.white);
     });
 
     test('distinct backgrounds produce distinct palettes', () {
@@ -240,24 +244,27 @@ void main() {
 
   group('contrast helpers match the SQL implementation', () {
     test('black/white ratio is 21:1', () {
-      final r = GroupThemePalette.contrastRatio(Colors.black, Colors.white);
+      final r = AppPalette.contrastRatio(Colors.black, Colors.white);
       expect(r, closeTo(21.0, 0.01));
     });
 
     test('mid grey (#777777) picks black as the better foreground', () {
       final bg = const Color(0xFF777777);
-      final onBlack = GroupThemePalette.contrastRatio(bg, Colors.black);
-      final onWhite = GroupThemePalette.contrastRatio(bg, Colors.white);
+      final onBlack = AppPalette.contrastRatio(bg, Colors.black);
+      final onWhite = AppPalette.contrastRatio(bg, Colors.white);
       // Same ordering the SQL `theme_best_foreground` uses.
       expect(onBlack, greaterThan(onWhite));
       expect(math.max(onBlack, onWhite), greaterThanOrEqualTo(4.5));
     });
   });
 
-  group('groupThemeTheme', () {
+  _presets();
+  _groupFollowsApp();
+
+  group('themedData', () {
     test('a colourless Material shows the page instead of painting black', () {
       final palette = _derive('#1E3A8A');
-      final theme = groupThemeTheme(SamayTheme.dark, palette);
+      final theme = themedData(SamayTheme.dark, palette);
       // `Chip` wraps itself in a colourless `Material`, which falls back to
       // `canvasColor` — the black-chip defect's root cause.
       expect(theme.canvasColor, const Color(0x00000000));
@@ -271,11 +278,117 @@ void main() {
       'unselected chips resolve transparent, selected use the foreground',
       () {
         final palette = _derive('#1E3A8A');
-        final chip = groupThemeTheme(SamayTheme.dark, palette).chipTheme;
+        final chip = themedData(SamayTheme.dark, palette).chipTheme;
         expect(chip.color!.resolve({}), const Color(0x00000000));
         expect(chip.color!.resolve({WidgetState.selected}), palette.foreground);
         expect(chip.surfaceTintColor, const Color(0x00000000));
       },
     );
+  });
+}
+
+/// App-wide theme presets + the group↔app inheritance rule.
+void _presets() {
+  group('AppThemePreset', () {
+    test('every preset derives an AA-safe palette', () {
+      for (final preset in AppThemePreset.values) {
+        final palette = preset.palette;
+        expect(
+          AppPalette.contrastRatio(palette.foreground, palette.background),
+          greaterThanOrEqualTo(4.5),
+          reason: '${preset.id} ink on page',
+        );
+        expect(
+          AppPalette.contrastRatio(
+            palette.accentForeground,
+            palette.accent,
+          ),
+          greaterThanOrEqualTo(4.5),
+          reason: '${preset.id} accent pair',
+        );
+        expect(
+          AppPalette.contrastRatio(palette.mutedForeground, palette.surfaceAlt),
+          greaterThanOrEqualTo(4.5),
+          reason: '${preset.id} muted ink on the raised step',
+        );
+      }
+    });
+
+    test('classic IS the design tokens, so an unset app is unchanged', () {
+      expect(AppThemePreset.classic.palette, AppPalette.standard);
+    });
+
+    test('every other preset paints a different page', () {
+      for (final preset in AppThemePreset.values) {
+        if (preset == AppThemePreset.classic) continue;
+        expect(preset.palette.background, isNot(AppPalette.standard.background));
+      }
+    });
+
+    test('tiers gate as free < pro < vip', () {
+      bool unlocked(AppThemePreset p, String tier) =>
+          tierRank(p.tierRequirement) <= tierRank(tier);
+      expect(unlocked(AppThemePreset.classic, 'free'), isTrue);
+      expect(unlocked(AppThemePreset.midnight, 'free'), isTrue);
+      expect(unlocked(AppThemePreset.violet, 'free'), isFalse);
+      expect(unlocked(AppThemePreset.violet, 'pro'), isTrue);
+      expect(unlocked(AppThemePreset.teal, 'pro'), isFalse);
+      expect(unlocked(AppThemePreset.teal, 'vip'), isTrue);
+    });
+
+    test('tryParse round-trips every id and rejects junk', () {
+      for (final preset in AppThemePreset.values) {
+        expect(AppThemePreset.tryParse(preset.id), preset);
+      }
+      expect(AppThemePreset.tryParse(null), isNull);
+      expect(AppThemePreset.tryParse('nope'), isNull);
+    });
+  });
+}
+
+/// The owner rule: a group on the server default follows the app theme.
+void _groupFollowsApp() {
+  group('groupSurfacePalette', () {
+    GroupTheme theme(String background) => GroupTheme(
+      groupId: 'g',
+      controlMode: 'everyone',
+      backgroundColor: background,
+      accentColor: '#FFFFFF',
+      foregroundColor: '#FFFFFF',
+      accentForegroundColor: '#000000',
+    );
+
+    test('a default group inherits the app palette', () {
+      final app = AppThemePreset.midnight.palette;
+      expect(
+        groupSurfacePalette(theme('#000000'), appPalette: app),
+        app,
+      );
+    });
+
+    test('a custom group overrides the app palette', () {
+      final app = AppThemePreset.midnight.palette;
+      final palette = groupSurfacePalette(
+        theme('#4C1D95'),
+        appPalette: app,
+      );
+      expect(palette, isNot(app));
+      expect(palette.background, isNot(app.background));
+    });
+
+    test('default + classic app collapses onto the design tokens', () {
+      expect(
+        groupSurfacePalette(
+          theme('#000000'),
+          appPalette: AppPalette.standard,
+        ),
+        AppPalette.standard,
+      );
+    });
+
+    test('background comparison is case-insensitive', () {
+      expect(isDefaultGroupTheme(theme('#000000')), isTrue);
+      expect(isDefaultGroupTheme(theme('#1E3A8A')), isFalse);
+    });
   });
 }

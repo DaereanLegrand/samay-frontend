@@ -1,12 +1,12 @@
 import 'dart:ui' show lerpDouble;
 
 import 'package:flutter/material.dart';
-import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/design_tokens/app_typography.dart';
 import 'package:samay/core/theme/samay_durations.dart';
 import 'package:samay/shared/widgets/v_display_text.dart';
 import 'package:samay/shared/widgets/v_glass_pill.dart';
+import 'package:samay/core/theme/app_palette_context.dart';
 
 /// Single source of truth for every top-header dimension in the app.
 ///
@@ -664,8 +664,8 @@ class _TransparentHeaderDelegate extends SliverPersistentHeaderDelegate {
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [
-                    AppColors.discoBlack.withValues(alpha: 0.45),
-                    AppColors.discoBlack.withValues(alpha: 0.0),
+                    context.palette.background.withValues(alpha: 0.45),
+                    context.palette.background.withValues(alpha: 0.0),
                   ],
                 ),
               ),

@@ -21,6 +21,7 @@ import 'package:samay/features/auth/screens/privacy_terms_screen.dart';
 import 'package:samay/features/auth/screens/profile_setup_screen.dart';
 import 'package:samay/features/profile/screens/profile_screen.dart';
 import 'package:samay/features/profile/screens/edit_profile_screen.dart';
+import 'package:samay/features/profile/screens/app_theme_screen.dart';
 import 'package:samay/features/profile/screens/settings_screen.dart';
 import 'package:samay/features/profile/screens/public_profile_screen.dart';
 import 'package:samay/features/profile/screens/delete_account_screen.dart';
@@ -714,6 +715,13 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: RoutePaths.settings,
         builder: (_, _) => const SettingsScreen(),
+      ),
+      GoRoute(
+        // The app-wide theme (Settings → Apariencia → Color de la app). Kept
+        // open while the paywall is client-side; locked presets are shown with
+        // their tier label instead of being hidden.
+        path: RoutePaths.appTheme,
+        builder: (_, _) => const AppThemeScreen(),
       ),
       GoRoute(
         path: RoutePaths.deleteAccount,

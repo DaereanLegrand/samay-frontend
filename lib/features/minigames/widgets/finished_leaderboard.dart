@@ -24,6 +24,7 @@ import 'package:samay/shared/widgets/v_display_text.dart';
 import 'package:samay/shared/widgets/v_header_bar.dart';
 import 'package:samay/shared/widgets/v_shard_icon.dart';
 import 'package:samay/shared/widgets/v_spinner.dart';
+import 'package:samay/core/theme/app_palette_context.dart';
 
 /// The finished-game leaderboard (201/202) — a 3D "coverflow" carousel of rank
 /// cards, centered on the WHOLE viewport (the floating back arrow is the only
@@ -432,7 +433,7 @@ class _RankCardState extends State<_RankCard> {
     1 => AppColors.discoGold,
     2 => AppColors.discoSilver,
     3 => AppColors.discoBronze,
-    _ => AppColors.white,
+    _ => context.palette.foreground,
   };
 
   /// Arms the celebration once the CURRENT answer's picture has loaded.
@@ -460,7 +461,7 @@ class _RankCardState extends State<_RankCard> {
         decoration: BoxDecoration(
           color: MinigameInks.of(context).themed
               ? MinigameInks.of(context).surface
-              : AppColors.discoBlack,
+              : context.palette.background,
         ),
         child: _LeaderboardEmojiRise(
           active: widget.selected && _imageReady,
@@ -482,7 +483,7 @@ class _RankCardState extends State<_RankCard> {
                   fit: StackFit.expand,
                   children: [
                     if (_currentHasImage) ...[
-                      const DecoratedBox(
+                      DecoratedBox(
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
                             begin: Alignment.topCenter,
@@ -490,7 +491,7 @@ class _RankCardState extends State<_RankCard> {
                             colors: [
                               AppColors.transparent,
                               AppColors.transparent,
-                              AppColors.discoBlack,
+                              context.palette.background,
                             ],
                             stops: [0, 0.55, 1],
                           ),
@@ -502,7 +503,7 @@ class _RankCardState extends State<_RankCard> {
                             begin: Alignment.topCenter,
                             end: Alignment.bottomCenter,
                             colors: [
-                              AppColors.discoBlack.withValues(alpha: 0.8),
+                              context.palette.background.withValues(alpha: 0.8),
                               AppColors.transparent,
                             ],
                             stops: const [0, 0.3],
@@ -813,7 +814,7 @@ class _RankPager extends StatelessWidget {
                   style: AppTypography.labelMedium.copyWith(
                     color: hasPrev || hasNext
                         ? MinigameInks.of(context).muted
-                        : AppColors.muted,
+                        : context.palette.mutedForeground,
                   ),
                 ),
               ),
@@ -872,7 +873,7 @@ class _RankChevron extends StatelessWidget {
           child: Icon(
             icon,
             size: 20,
-            color: enabled ? MinigameInks.of(context).primary : AppColors.muted,
+            color: enabled ? MinigameInks.of(context).primary : context.palette.mutedForeground,
           ),
         ),
       ),
@@ -959,7 +960,7 @@ class _PromptHeader extends StatelessWidget {
             label.toUpperCase(),
             textAlign: TextAlign.center,
             style: AppTypography.labelSmall.copyWith(
-              color: AppColors.white,
+              color: context.palette.foreground,
               shadows: AppTypography.legibilityShadows,
             ),
           ),
@@ -972,7 +973,7 @@ class _PromptHeader extends StatelessWidget {
           overflow: TextOverflow.ellipsis,
           style: Theme.of(context).textTheme.titleMedium?.copyWith(
             fontFamily: AppTypography.quicksand,
-            color: AppColors.white,
+            color: context.palette.foreground,
             height: 1.25,
             shadows: AppTypography.legibilityShadows,
           ),
@@ -1087,7 +1088,7 @@ class _AnswerPage extends ConsumerWidget {
       style: AppTypography.headlineMedium.copyWith(
         fontSize: 24,
         fontWeight: FontWeight.w400,
-        color: AppColors.muted,
+        color: context.palette.mutedForeground,
       ),
     );
   }

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/core/design_tokens/app_typography.dart';
 import 'package:samay/core/providers/auth_provider.dart';
 import 'package:samay/core/router/route_paths.dart';
@@ -14,6 +13,7 @@ import 'package:samay/shared/widgets/v_button.dart';
 import 'package:samay/shared/widgets/v_display_text.dart';
 import 'package:samay/shared/widgets/v_header_bar.dart';
 import 'package:samay/shared/widgets/v_input.dart';
+import 'package:samay/core/theme/app_palette_context.dart';
 
 class ProfileSetupScreen extends ConsumerStatefulWidget {
   final String email;
@@ -132,7 +132,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
                         // §2.4/§3.3: informational caption = bodySmall in
                         // mutedStrong (7.37:1 AA — was grey[500]).
                         style: AppTypography.bodySmall.copyWith(
-                          color: AppColors.mutedStrong,
+                          color: context.palette.mutedForeground,
                         ),
                       ),
                       const Spacer(),

@@ -19,6 +19,7 @@ import 'package:samay/shared/widgets/v_button.dart';
 import 'package:samay/shared/widgets/v_card.dart';
 import 'package:samay/shared/widgets/v_chip.dart';
 import 'package:samay/shared/widgets/v_header_bar.dart';
+import 'package:samay/core/theme/app_palette_context.dart';
 
 /// The word categories a turn can be drawn from — wire value (as seeded in
 /// `minigame_prompts.category`) plus its localized label. A null wire value
@@ -113,7 +114,7 @@ class CharadesScreen extends ConsumerWidget {
     return MinigameSessionSurface(
       sessionId: sessionId,
       child: Scaffold(
-        backgroundColor: inks.themed ? inks.surface : AppColors.discoBlack,
+        backgroundColor: inks.themed ? inks.surface : context.palette.background,
         body: VHeaderBar(
           titleWidget: headerTitle,
           title: headerTitle == null ? gameNameLower : null,
@@ -657,7 +658,7 @@ class _SummaryView extends StatelessWidget {
                           size: 16,
                           color: entry.correct
                               ? AppColors.mint
-                              : AppColors.muted,
+                              : context.palette.mutedForeground,
                         ),
                         const SizedBox(width: AppSpacing.sm),
                         Expanded(

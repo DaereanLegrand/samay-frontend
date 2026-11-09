@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/providers/service_providers.dart';
 import 'package:samay/l10n/app_localizations.dart';
@@ -9,6 +8,7 @@ import 'package:samay/shared/widgets/show_app_error.dart';
 import 'package:samay/shared/widgets/v_button.dart';
 import 'package:samay/shared/widgets/v_card.dart';
 import 'package:samay/shared/widgets/v_header_bar.dart';
+import 'package:samay/core/theme/app_palette_context.dart';
 
 /// Appeals + reporter outcomes (Q6). Reachable from settings for every user
 /// and from the banned screen (the AuthGuard allows this route while banned).
@@ -156,7 +156,7 @@ class _AppealsScreenState extends ConsumerState<AppealsScreen> {
                         ),
                         child: Text(
                           l10n.appealsEmpty,
-                          style: const TextStyle(color: AppColors.mutedStrong),
+                          style: TextStyle(color: context.palette.mutedForeground),
                         ),
                       )
                     else
@@ -191,7 +191,7 @@ class _AppealsScreenState extends ConsumerState<AppealsScreen> {
                         ),
                         child: Text(
                           l10n.reportOutcomeEmpty,
-                          style: const TextStyle(color: AppColors.mutedStrong),
+                          style: TextStyle(color: context.palette.mutedForeground),
                         ),
                       )
                     else

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/design_tokens/app_typography.dart';
-import 'package:samay/features/groups/theme/group_theme_scope.dart';
+import 'package:samay/core/theme/app_theme_scope.dart';
 import 'package:samay/shared/widgets/rank_bracket.dart';
 
 /// Rank-bracket badge — DESIGN.md §5.5.
@@ -12,7 +12,7 @@ import 'package:samay/shared/widgets/rank_bracket.dart';
 /// and label with `discoGold`/`discoSilver`/`discoBronze` (all AA on black);
 /// non-top rows stay white.
 ///
-/// Inside a [GroupThemeScope] the fill/border/label switch to the group's
+/// Inside a [AppThemeScope] the fill/border/label switch to the group's
 /// derived scale so the badge is a shade of the themed page instead of a black
 /// box (podium colours are semantic and unchanged).
 class RankBadge extends StatelessWidget {
@@ -30,8 +30,8 @@ class RankBadge extends StatelessWidget {
       3 => AppColors.discoBronze,
       _ => null,
     };
-    final palette = GroupThemeScope.paletteOf(context);
-    final themed = !identical(palette, GroupThemeScope.standardPalette);
+    final palette = AppThemeScope.paletteOf(context);
+    final themed = AppThemeScope.isThemed(context);
     final fill = themed ? palette.surfaceAlt : AppColors.border;
     final edge = accent ?? (themed ? palette.border : AppColors.border);
     final ink = accent ?? (themed ? palette.foreground : AppColors.white);

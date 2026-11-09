@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/core/design_tokens/app_icon_sizes.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/design_tokens/app_typography.dart';
@@ -17,6 +16,7 @@ import 'package:samay/shared/widgets/error_view.dart';
 import 'package:samay/shared/widgets/state_views.dart';
 import 'package:samay/shared/widgets/v_header_bar.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' show RealtimeChannel;
+import 'package:samay/core/theme/app_palette_context.dart';
 
 /// Icon per notification type (NOTI spec table, 16 rows). The title/body
 /// text ships in the row itself (inserted by the push pipeline with the spec
@@ -215,7 +215,7 @@ class _NotificationCenterScreenState
           if (a is _DayLabel || b is _DayLabel) {
             return const SizedBox(height: AppSpacing.xs);
           }
-          return const Divider(height: 1, color: AppColors.hairline);
+          return Divider(height: 1, color: context.palette.hairline);
         },
         itemBuilder: (context, index) {
           final entry = entries[index];
@@ -297,7 +297,7 @@ class _NotificationTile extends StatelessWidget {
             Icon(
               notificationIconForType(item.type),
               size: AppIconSizes.md,
-              color: unread ? AppColors.white : AppColors.mutedStrong,
+              color: unread ? context.palette.foreground : context.palette.mutedForeground,
             ),
             const SizedBox(width: AppSpacing.md),
             Expanded(
@@ -323,7 +323,7 @@ class _NotificationTile extends StatelessWidget {
                       Text(
                         time,
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: AppColors.mutedStrong,
+                          color: context.palette.mutedForeground,
                         ),
                       ),
                     ],
@@ -334,7 +334,7 @@ class _NotificationTile extends StatelessWidget {
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: AppColors.mutedStrong,
+                      color: context.palette.mutedForeground,
                     ),
                   ),
                 ],
@@ -348,8 +348,8 @@ class _NotificationTile extends StatelessWidget {
                 height: 8,
                 // Monochrome: flat white dot (the bold title + dot pair
                 // carries the unread state, never color alone).
-                decoration: const BoxDecoration(
-                  color: AppColors.white,
+                decoration: BoxDecoration(
+                  color: context.palette.foreground,
                   shape: BoxShape.circle,
                 ),
               ),

@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:samay/core/design_tokens/app_colors.dart';
-import 'package:samay/features/groups/theme/group_theme_scope.dart';
+import 'package:samay/core/theme/app_theme_scope.dart';
 import 'package:samay/core/design_tokens/app_icon_sizes.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/design_tokens/app_typography.dart';
 import 'package:samay/features/minigames/logic/minigame_engine.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/v_shard_icon.dart';
+import 'package:samay/core/theme/app_palette_context.dart';
 
 /// The TOTAL prize pool of a partida — [wager] shards per player times the
 /// live [players] count — rendered as a bare shard diamond + number.
@@ -52,11 +52,11 @@ class MinigamePoolAmount extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final palette = GroupThemeScope.paletteOf(context);
+    final palette = AppThemeScope.paletteOf(context);
     final tint = color ??
-        (!identical(palette, GroupThemeScope.standardPalette)
+        (AppThemeScope.isThemed(context)
             ? palette.foreground
-            : AppColors.white);
+            : context.palette.foreground);
     final row = Row(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -117,7 +117,7 @@ Future<void> showMinigamePoolBreakdown(
             Text(
               l10n.minigamesPoolNoPrize,
               textAlign: TextAlign.center,
-              style: const TextStyle(color: AppColors.mutedStrong),
+              style: TextStyle(color: context.palette.mutedForeground),
             )
           else
             for (var i = 0; i < prizes.length; i++)
@@ -127,8 +127,8 @@ Future<void> showMinigamePoolBreakdown(
                   children: [
                     Text(
                       l10n.minigamesPoolRank(i + 1),
-                      style: const TextStyle(
-                        color: AppColors.mutedStrong,
+                      style: TextStyle(
+                        color: context.palette.mutedForeground,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -137,8 +137,8 @@ Future<void> showMinigamePoolBreakdown(
                     const SizedBox(width: AppSpacing.xs),
                     Text(
                       '${prizes[i]}',
-                      style: const TextStyle(
-                        color: AppColors.white,
+                      style: TextStyle(
+                        color: context.palette.foreground,
                         fontWeight: FontWeight.w700,
                       ),
                     ),

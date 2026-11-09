@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/extensions/error_mapper.dart';
 import 'package:samay/core/logging/app_logger.dart';
@@ -9,7 +8,7 @@ import 'package:samay/core/providers/service_providers.dart';
 import 'package:samay/core/repositories/repository_providers.dart';
 import 'package:samay/core/router/route_paths.dart';
 import 'package:samay/features/groups/providers/groups_providers.dart';
-import 'package:samay/features/groups/theme/group_theme_colors.dart';
+import 'package:samay/core/theme/app_theme_provider.dart';
 import 'package:samay/features/groups/theme/group_theme_theme.dart';
 import 'package:samay/features/groups/widgets/member_actions_sheet.dart';
 import 'package:samay/shared/widgets/profile_avatar.dart';
@@ -17,6 +16,7 @@ import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/state_views.dart';
 import 'package:samay/shared/widgets/v_badge.dart';
 import 'package:samay/shared/widgets/v_header_bar.dart';
+import 'package:samay/core/theme/app_palette_context.dart';
 
 class GroupMembersScreen extends ConsumerStatefulWidget {
   final String groupId;
@@ -87,7 +87,9 @@ class _GroupMembersScreenState extends ConsumerState<GroupMembersScreen> {
     final myRole = myRow?['role'] as String? ?? 'member';
     final error = _error;
     final theme = ref.watch(groupThemeProvider(widget.groupId)).valueOrNull;
-    final palette = theme == null ? null : groupThemePaletteOf(theme);
+    final palette = theme == null
+        ? null
+        : groupSurfacePalette(theme, appPalette: ref.watch(appPaletteProvider));
     final body = VHeaderBar(
         title: l10n.groupsMembersTitle,
         child: VStateView(
@@ -106,7 +108,7 @@ class _GroupMembersScreenState extends ConsumerState<GroupMembersScreen> {
                   itemCount: _members.length,
                   separatorBuilder: (_, _) => Divider(
                     height: 1,
-                    color: palette?.hairline ?? AppColors.hairline,
+                    color: palette?.hairline ?? context.palette.hairline,
                   ),
                   itemBuilder: (context, index) {
                     final m = _members[index];
@@ -153,7 +155,7 @@ class _GroupMembersScreenState extends ConsumerState<GroupMembersScreen> {
                                   ?.copyWith(
                                     color:
                                         palette?.foreground ??
-                                        AppColors.white,
+                                        context.palette.foreground,
                                   ),
                             ),
                           ),

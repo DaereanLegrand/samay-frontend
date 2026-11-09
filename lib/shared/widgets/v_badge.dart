@@ -3,7 +3,7 @@ import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/core/design_tokens/app_radius.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/design_tokens/app_typography.dart';
-import 'package:samay/features/groups/theme/group_theme_scope.dart';
+import 'package:samay/core/theme/app_theme_scope.dart';
 
 /// Samay badge — DESIGN.md §5.5, monochrome
 ///
@@ -43,8 +43,8 @@ class VBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final palette = GroupThemeScope.paletteOf(context);
-    final themed = !identical(palette, GroupThemeScope.standardPalette);
+    final palette = AppThemeScope.paletteOf(context);
+    final themed = AppThemeScope.isThemed(context);
     final Color fill;
     final Color textColor;
     final Color borderColor;

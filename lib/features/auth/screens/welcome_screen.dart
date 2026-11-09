@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/core/router/route_paths.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/v_button.dart';
 import 'package:samay/shared/widgets/v_display_text.dart';
+import 'package:samay/core/theme/app_palette_context.dart';
 
 class WelcomeScreen extends StatelessWidget {
   const WelcomeScreen({super.key});
@@ -45,8 +45,8 @@ class WelcomeScreen extends StatelessWidget {
                         onPressed: () => context.push(RoutePaths.login),
                         child: Text(
                           l10n.commonSignIn,
-                          style: const TextStyle(
-                            color: AppColors.mutedStrong,
+                          style: TextStyle(
+                            color: context.palette.mutedForeground,
                           ),
                         ),
                       ),

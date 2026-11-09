@@ -1,10 +1,10 @@
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
-import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/v_network_image.dart';
+import 'package:samay/core/theme/app_palette_context.dart';
 
 /// Full-screen image viewer — the shared "pop to visualize" surface
 /// abstracted from the truth-dare answer preview so every feature
@@ -27,9 +27,9 @@ Future<void> showFullScreenImage(
   return showDialog<void>(
     context: context,
     useSafeArea: false,
-    barrierColor: AppColors.discoBlack,
+    barrierColor: context.palette.background,
     builder: (dialogContext) => Dialog(
-      backgroundColor: AppColors.discoBlack,
+      backgroundColor: context.palette.background,
       insetPadding: EdgeInsets.zero,
       child: SizedBox.expand(
         child: Stack(
@@ -62,8 +62,8 @@ Future<void> showFullScreenImage(
                     tooltip: AppLocalizations.of(dialogContext).commonClose,
                     icon: const Icon(Icons.close),
                     style: IconButton.styleFrom(
-                      backgroundColor: AppColors.surface,
-                      foregroundColor: AppColors.white,
+                      backgroundColor: context.palette.surface,
+                      foregroundColor: context.palette.foreground,
                     ),
                   ),
                 ),

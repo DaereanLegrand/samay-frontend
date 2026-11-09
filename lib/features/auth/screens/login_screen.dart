@@ -17,6 +17,7 @@ import 'package:samay/shared/widgets/v_button.dart';
 import 'package:samay/shared/widgets/v_display_text.dart';
 import 'package:samay/shared/widgets/v_header_bar.dart';
 import 'package:samay/shared/widgets/v_input.dart';
+import 'package:samay/core/theme/app_palette_context.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -176,9 +177,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               minimumSize: Size.zero,
               tapTargetSize: MaterialTapTargetSize.shrinkWrap,
               shape: const CircleBorder(),
-              foregroundColor: AppColors.white,
+              foregroundColor: context.palette.foreground,
               backgroundColor: AppColors.transparent,
-              overlayColor: AppColors.white,
+              overlayColor: context.palette.foreground,
             ),
             child: AnimatedOpacity(
               duration: const Duration(milliseconds: 150),
@@ -207,8 +208,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         width: 44,
         height: 44,
         alignment: Alignment.center,
-        decoration: const BoxDecoration(
-          color: AppColors.white,
+        decoration: BoxDecoration(
+          color: context.palette.foreground,
           shape: BoxShape.circle,
         ),
         child: Image.asset(
@@ -246,8 +247,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         height: 44,
         alignment: Alignment.center,
         clipBehavior: Clip.antiAlias,
-        decoration: const BoxDecoration(
-          color: AppColors.white,
+        decoration: BoxDecoration(
+          color: context.palette.foreground,
           shape: BoxShape.circle,
         ),
         child: Transform.scale(
@@ -329,8 +330,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           // primary CTA must dominate.
                           child: Text(
                             l10n.authForgotPassword,
-                            style: const TextStyle(
-                              color: AppColors.mutedStrong,
+                            style: TextStyle(
+                              color: context.palette.mutedForeground,
                             ),
                           ),
                         ),
@@ -360,20 +361,20 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       const SizedBox(height: 24),
                       Row(
                         children: [
-                          const Expanded(
-                            child: Divider(color: AppColors.hairline),
+                          Expanded(
+                            child: Divider(color: context.palette.hairline),
                           ),
                           Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 12),
                             child: Text(
                               l10n.authOrDivider,
-                              style: const TextStyle(
-                                color: AppColors.mutedStrong,
+                              style: TextStyle(
+                                color: context.palette.mutedForeground,
                               ),
                             ),
                           ),
-                          const Expanded(
-                            child: Divider(color: AppColors.hairline),
+                          Expanded(
+                            child: Divider(color: context.palette.hairline),
                           ),
                         ],
                       ),
@@ -395,7 +396,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         onPressed: () => context.push(RoutePaths.signup),
                         child: Text(
                           l10n.commonCreateAccount,
-                          style: const TextStyle(color: AppColors.mutedStrong),
+                          style: TextStyle(color: context.palette.mutedForeground),
                         ),
                       ),
                       const SizedBox(height: 24),

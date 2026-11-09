@@ -20,7 +20,7 @@ import 'package:samay/core/theme/samay_durations.dart';
 import 'package:samay/features/chat/providers/chat_providers.dart';
 import 'package:samay/features/friends/providers/friends_providers.dart';
 import 'package:samay/features/groups/providers/groups_providers.dart';
-import 'package:samay/features/groups/theme/group_theme_scope.dart';
+import 'package:samay/core/theme/app_theme_scope.dart';
 import 'package:samay/features/minigames/logic/minigame_meta.dart';
 import 'package:samay/features/minigames/providers/minigames_providers.dart';
 import 'package:samay/l10n/app_localizations.dart';
@@ -35,6 +35,7 @@ import 'package:samay/shared/widgets/v_spinner.dart';
 import 'package:samay/shared/widgets/v_input.dart';
 import 'package:samay/shared/widgets/v_thinking_dots.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' show RealtimeChannel;
+import 'package:samay/core/theme/app_palette_context.dart';
 
 /// The E2EE message thread, reusable across entry points: the 1:1 chat screen
 /// and the group detail Chat tab mount the SAME widget. It shows decrypted
@@ -500,7 +501,7 @@ class _ChatThreadViewState extends ConsumerState<ChatThreadView> {
               names.join(', '),
               style: Theme.of(
                 context,
-              ).textTheme.bodySmall?.copyWith(color: AppColors.mutedStrong),
+              ).textTheme.bodySmall?.copyWith(color: context.palette.mutedForeground),
             ),
           ],
         ],
@@ -952,13 +953,13 @@ class _ChatThreadViewState extends ConsumerState<ChatThreadView> {
     // The input is borderless/backgroundless, so the composer docks as a bar
     // — surface fill + hairline top edge divide it from the thread. The send
     // control is a circular white up-arrow button.
-    final palette = GroupThemeScope.paletteOf(context);
-    final themed = !identical(palette, GroupThemeScope.standardPalette);
+    final palette = AppThemeScope.paletteOf(context);
+    final themed = AppThemeScope.isThemed(context);
     return Container(
       decoration: BoxDecoration(
-        color: themed ? palette.surface : AppColors.surface,
+        color: themed ? palette.surface : context.palette.surface,
         border: Border(
-          top: BorderSide(color: themed ? palette.hairline : AppColors.hairline),
+          top: BorderSide(color: themed ? palette.hairline : context.palette.hairline),
         ),
       ),
       child: SafeArea(
@@ -1022,9 +1023,9 @@ class _ChatThreadViewState extends ConsumerState<ChatThreadView> {
           clipBehavior: Clip.antiAlias,
           child: InkWell(
             onTap: _openMinigames,
-            child: const Icon(
+            child: Icon(
               Icons.sports_esports,
-              color: AppColors.mutedStrong,
+              color: context.palette.mutedForeground,
             ),
           ),
         ),
@@ -1049,8 +1050,8 @@ class _ChatThreadViewState extends ConsumerState<ChatThreadView> {
   Widget _sendButton(AppLocalizations l10n) {
     final Widget content = Center(
       child: _sending
-          ? const VThinkingDots(color: AppColors.discoBlack)
-          : const Icon(Icons.arrow_upward, color: AppColors.discoBlack),
+          ? VThinkingDots(color: context.palette.background)
+          : Icon(Icons.arrow_upward, color: context.palette.background),
     );
     return SizedBox(
       key: const ValueKey('chatSendButton'),
@@ -1059,7 +1060,7 @@ class _ChatThreadViewState extends ConsumerState<ChatThreadView> {
       child: Tooltip(
         message: l10n.chatSend,
         child: Material(
-          color: AppColors.white,
+          color: context.palette.foreground,
           shape: const CircleBorder(),
           clipBehavior: Clip.antiAlias,
           child: InkWell(onTap: _sending ? null : _send, child: content),
@@ -1131,7 +1132,7 @@ class _MinigameNoticeCard extends StatelessWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.sports_esports, color: AppColors.white),
+                Icon(Icons.sports_esports, color: context.palette.foreground),
                 const SizedBox(height: AppSpacing.sm),
                 Text(
                   l10n.minigamesGroupMessage(gameName),
@@ -1185,7 +1186,7 @@ class _DateHeaderDelegate extends SliverPersistentHeaderDelegate {
   ) {
     // The pinned band must match the actual page background — on a themed
     // group chat a black band cut a hole across the thread.
-    final palette = GroupThemeScope.paletteOf(context);
+    final palette = AppThemeScope.paletteOf(context);
     return ColoredBox(
       color: palette.background,
       child: Center(child: _DateChip(label: label)),
@@ -1206,23 +1207,23 @@ class _DateChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final palette = GroupThemeScope.paletteOf(context);
-    final themed = !identical(palette, GroupThemeScope.standardPalette);
+    final palette = AppThemeScope.paletteOf(context);
+    final themed = AppThemeScope.isThemed(context);
     return Container(
       padding: const EdgeInsets.symmetric(
         horizontal: AppSpacing.md,
         vertical: AppSpacing.xs,
       ),
       decoration: BoxDecoration(
-        color: themed ? palette.surfaceAlt : AppColors.surfaceAlt,
+        color: themed ? palette.surfaceAlt : context.palette.surfaceAlt,
         border: Border.fromBorderSide(
-          BorderSide(color: themed ? palette.hairline : AppColors.hairline),
+          BorderSide(color: themed ? palette.hairline : context.palette.hairline),
         ),
       ),
       child: Text(
         label,
         style: Theme.of(context).textTheme.labelSmall?.copyWith(
-          color: themed ? palette.foreground : AppColors.mutedStrong,
+          color: themed ? palette.foreground : context.palette.mutedForeground,
         ),
       ),
     );
@@ -1370,17 +1371,17 @@ class _MessageBubble extends StatelessWidget {
   ) {
     final readAt = _readAtOf(row);
     final time = _timeLabel(row);
-    final palette = GroupThemeScope.paletteOf(context);
-    final themed = !identical(palette, GroupThemeScope.standardPalette);
+    final palette = AppThemeScope.paletteOf(context);
+    final themed = AppThemeScope.isThemed(context);
     final timeStyle = AppTypography.bodySmall.copyWith(
       color: themed ? palette.mutedForeground : AppColors.statusGrey,
     );
     return DecoratedBox(
       key: ValueKey('chatBubbleOwn-$id'),
       decoration: BoxDecoration(
-        color: themed ? palette.surfaceAlt : AppColors.surfaceAlt,
+        color: themed ? palette.surfaceAlt : context.palette.surfaceAlt,
         border: Border.fromBorderSide(
-          BorderSide(color: themed ? palette.hairline : AppColors.hairline),
+          BorderSide(color: themed ? palette.hairline : context.palette.hairline),
         ),
         borderRadius: _bubbleRadius,
       ),
@@ -1394,8 +1395,8 @@ class _MessageBubble extends StatelessWidget {
               text,
               style: TextStyle(
                 color: decryptFailed
-                    ? (themed ? palette.mutedForeground : AppColors.mutedStrong)
-                    : (themed ? palette.foreground : AppColors.white),
+                    ? (themed ? palette.mutedForeground : context.palette.mutedForeground)
+                    : (themed ? palette.foreground : context.palette.foreground),
                 fontStyle: decryptFailed ? FontStyle.italic : FontStyle.normal,
               ),
             ),
@@ -1438,23 +1439,23 @@ class _MessageBubble extends StatelessWidget {
   ) {
     final time = _timeLabel(row);
     final senderName = this.senderName;
-    final palette = GroupThemeScope.paletteOf(context);
-    final themed = !identical(palette, GroupThemeScope.standardPalette);
+    final palette = AppThemeScope.paletteOf(context);
+    final themed = AppThemeScope.isThemed(context);
     final msgStyle = TextStyle(
       color: decryptFailed
-          ? (themed ? palette.mutedForeground : AppColors.mutedStrong)
-          : (themed ? palette.foreground : AppColors.white),
+          ? (themed ? palette.mutedForeground : context.palette.mutedForeground)
+          : (themed ? palette.foreground : context.palette.foreground),
       fontStyle: decryptFailed ? FontStyle.italic : FontStyle.normal,
     );
     final timeStyle = AppTypography.bodySmall.copyWith(
-      color: themed ? palette.mutedForeground : AppColors.mutedStrong,
+      color: themed ? palette.mutedForeground : context.palette.mutedForeground,
     );
     return DecoratedBox(
       key: ValueKey('chatBubblePeer-$id'),
       decoration: BoxDecoration(
-        color: themed ? palette.surface : AppColors.surface,
+        color: themed ? palette.surface : context.palette.surface,
         border: Border.fromBorderSide(
-          BorderSide(color: themed ? palette.hairline : AppColors.hairline),
+          BorderSide(color: themed ? palette.hairline : context.palette.hairline),
         ),
         borderRadius: _bubbleRadius,
       ),
@@ -1475,7 +1476,7 @@ class _MessageBubble extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                    color: themed ? palette.foreground : AppColors.white,
+                    color: themed ? palette.foreground : context.palette.foreground,
                   ),
                 ),
               ),
@@ -1535,8 +1536,8 @@ class _MessageStatus extends StatelessWidget {
     // On a themed group bubble the fixed grey/blue ticks are unreadable against
     // the coloured surface, so the neutral tick uses the derived muted tone and
     // the "read" tick uses the group's own accent (its semantic highlight).
-    final palette = GroupThemeScope.paletteOf(context);
-    final themed = !identical(palette, GroupThemeScope.standardPalette);
+    final palette = AppThemeScope.paletteOf(context);
+    final themed = AppThemeScope.isThemed(context);
     final neutral = themed ? palette.mutedForeground : AppColors.statusGrey;
     final read = themed ? palette.accent : AppColors.statusRead;
     final Color color;

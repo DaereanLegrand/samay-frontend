@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
+import 'package:samay/core/theme/app_palette_context.dart';
 
 /// Glass pill segmented control matching the floating nav bar's palette: a
 /// `surface`@[trackOpacity] track with a white@[borderOpacity] hairline border;
@@ -35,24 +36,24 @@ class VPillTabBar extends StatelessWidget {
     return Container(
       height: trackHeight,
       decoration: BoxDecoration(
-        color: AppColors.surface.withValues(alpha: trackOpacity),
+        color: context.palette.surface.withValues(alpha: trackOpacity),
         borderRadius: BorderRadius.circular(_radius),
         border: Border.all(
-          color: AppColors.white.withValues(alpha: borderOpacity),
+          color: context.palette.foreground.withValues(alpha: borderOpacity),
         ),
       ),
       child: TabBar(
         controller: controller,
         indicator: BoxDecoration(
-          border: Border.all(color: AppColors.white),
+          border: Border.all(color: context.palette.foreground),
           borderRadius: BorderRadius.circular(_radius),
         ),
         indicatorSize: TabBarIndicatorSize.tab,
         dividerColor: AppColors.transparent,
-        labelColor: AppColors.white,
+        labelColor: context.palette.foreground,
         // `muted` is 3.66:1 on black — AA-large only, and these are 12px
         // labels, so unselected tabs were unreadable. `mutedStrong` is AA.
-        unselectedLabelColor: AppColors.mutedStrong,
+        unselectedLabelColor: context.palette.mutedForeground,
         labelStyle: Theme.of(context).textTheme.labelMedium,
         padding: EdgeInsets.zero,
         labelPadding: EdgeInsets.zero,

@@ -62,61 +62,81 @@ Two guards make this safe for any host pick:
 Because `mutedForeground`/`border`/`hairline` are solved against the **lightest**
 step (`surfaceAlt`), they are automatically safe on every darker step.
 
-`test/group_theme_palette_test.dart` asserts all of the above for the whole
+`test/app_theme_test.dart` asserts all of the above for the whole
 server palette (`#000000` … `#164E63`) and several accents.
+
+## App-wide theme vs group theme
+
+The palette math is shared by two features (`lib/core/theme/`):
+
+| | App-wide theme | Group theme |
+|---|---|---|
+| Who owns it | the user (Settings → Apariencia) | the group host |
+| Scope | every screen | that group's surfaces |
+| Storage | local `config_cache` key `theme.palette` | `group_themes` table |
+| Paywall | `AppThemePreset.tierRequirement` (`free`/`pro`/`vip`) | host tier palette |
+
+**Owner rule — groups follow the app unless they have their own colour.** A
+group still on the server default (`background_color = '#000000'`, see
+`isDefaultGroupTheme`) inherits the app-wide palette, so the app reads as one
+surface everywhere. A group with a real custom colour overrides the app theme
+inside its own screens. `groupSurfacePalette` encodes that rule, and
+`GroupThemeSurface` applies it for the scope + `ThemeData`.
 
 ## Where it is applied
 
-`GroupThemeSurface` (`lib/features/groups/theme/group_theme_theme.dart`) is the
-single entry point. It mounts two things:
+`GroupThemeSurface` (`lib/features/groups/theme/group_theme_theme.dart`) mounts
+two things for a group:
 
-1. `GroupThemeScope` (an `InheritedWidget`) — shared widgets read
-   `GroupThemeScope.paletteOf(context)`, which returns
-   `GroupThemePalette.standard` (the exact design tokens) when no scope exists,
-   so every other screen is byte-identical to before.
-2. A re-mapped `ThemeData` (`groupThemeTheme`) — because `GroupThemeScope` only
-   serves widgets that ask for it, while Material itself keeps resolving the
-   app-wide black defaults: `Chip` wraps itself in a colourless `Material` that
-   falls back to `Theme.canvasColor` (black), which is why unselected chips used
-   to paint a black box on a coloured page. The themed `ThemeData` sets
-   `canvasColor: transparent` (chips reveal the page), plus the scaffold,
-   divider, colour-scheme, text/icon, chip, dialog, popup, snackbar, text-button,
-   input and tooltip roles.
+1. `AppThemeScope` (an `InheritedWidget`) — shared widgets read
+   `AppThemeScope.paletteOf(context)` (or `context.palette`), which returns
+   `AppPalette.standard` (the exact design tokens) when no scope exists.
+2. A re-mapped `ThemeData` (`themedData`, `lib/core/theme/themed_data.dart`) —
+   because the scope only serves widgets that ask for it, while Material itself
+   keeps resolving the app-wide defaults: `Chip` wraps itself in a colourless
+   `Material` that falls back to `Theme.canvasColor` (black), which is why
+   unselected chips used to paint a black box on a coloured page. The themed
+   `ThemeData` sets `canvasColor: transparent` plus the scaffold, divider,
+   colour-scheme, text/icon, chip, dialog, popup, sheet, snackbar, button,
+   input, slider, switch and tooltip roles.
 
-Surfaces that mount it:
+The app-wide theme mounts the same pair once in `SamayApp.builder`, so every
+route paints the user's chosen preset.
+
+Surfaces that mount the group surface:
 
 - **Group detail** — banner identity strip, description, action row, events
   section, header menu; loading/error/invited states too.
-- **Group chat**.
-- **Member list**.
-- **Group theme editor**.
-- **Group minigames** — hub (`/minigames/:groupId`), the partida lobby and every
+- **Group chat**, **member list**, **theme editor**.
+- **Group minigames** — hub (`/minigames/:groupId`), the partida lobby, every
   play screen (truth/dare, 2 lies, charades, bottle) and the finished
   leaderboard, via `MinigameSessionSurface` (resolves the session's `group_id`;
-  a DIRECT partida stays on the standard theme).
+  a DIRECT partida stays on the ambient app theme).
 
 Widgets that are theme-aware:
 
 `VCard` · `VChip` · `VButton` · `VBadge` · `VInput` · `ProfileAvatar` ·
-`VEmptyView` · `RankBadge` · `MinigameHeaderTitle` (display voice) ·
-chat bubbles (own/peer), date chip, day-divider band, composer bar, timestamps
-and delivery ticks · `MinigamePoolAmount` · minigame game/session cards, scope
-row and group banner avatar · the group surfaces' own inks.
+`VEmptyView` · `RankBadge` · `VDisplayText` · `VGlassPill` · the nav pill ·
+`VHeaderBar` scrim · `MinigameHeaderTitle` · chat bubbles, date chip,
+day-divider band, composer bar, timestamps and delivery ticks ·
+`MinigamePoolAmount` · minigame cards/rows · every migrated screen's own inks.
 
 The donate action is an **overlay** on group detail
 (`showDonateToGroupDialog` in `lib/features/groups/widgets/donate_shards_dialog.dart`):
 a centered themed `Dialog` over a dimmed barrier — it is not a route.
 
-`test/group_theme_palette_test.dart` pins the derivation math and the themed
+`test/app_theme_test.dart` pins the derivation math, every app-theme preset
+(AA, tier gate, classic == tokens), the group-follows-app rule and the themed
 `ThemeData` (canvas transparency, chip fills, palette roles). UI-level widget
 tests are intentionally not kept (see `frontend/AGENTS.md`: testing is
 backend-only apart from these light math/theme assertions).
 
 ## Adding a new surface
 
-1. Wrap the screen in `GroupThemeSurface(groupId: …, child: Scaffold(
-   backgroundColor: palette.background, …))` — or, for a minigame,
-   `MinigameSessionSurface(sessionId: …)`.
-2. Use the palette for fills/borders/text instead of `AppColors` constants; add
-   a themed branch to a shared widget if it paints its own fill
-   (`MinigameInks.of(context)` is the minigame-side helper).
+1. App-wide screens need nothing: they already sit under the app theme. Read
+   `context.palette` for any colour the widget paints itself.
+2. Group screens: wrap in `GroupThemeSurface(groupId: …)` (or
+   `MinigameSessionSurface(sessionId: …)`) and take the palette from
+   `groupSurfacePalette(theme, appPalette: ref.watch(appPaletteProvider))`.
+3. Never hardcode `AppColors.*` surface/text roles in new code — use
+   `context.palette.*`, which is the design tokens when no theme is active.

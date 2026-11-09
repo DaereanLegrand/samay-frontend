@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/router/main_shell.dart';
 import 'package:samay/core/router/route_paths.dart';
@@ -11,6 +10,7 @@ import 'package:samay/features/minigames/widgets/games_deck.dart';
 import 'package:samay/features/minigames/widgets/minigame_header_title.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/v_header_bar.dart';
+import 'package:samay/core/theme/app_palette_context.dart';
 
 /// The Games tab: the plugged minigames as a stack of cards ([GamesDeck]).
 /// The current game is centred on top; `cur - 1` sits below it and `cur + 1`
@@ -35,7 +35,7 @@ class GamesTabScreen extends ConsumerWidget {
     final headerTotal = statusTop + VHeaderMetrics.barOuterHeight(statusTop);
 
     return Scaffold(
-      backgroundColor: AppColors.discoBlack,
+      backgroundColor: context.palette.background,
       body: Stack(
         children: [
           Positioned.fill(
@@ -76,9 +76,9 @@ class GamesTabScreen extends ConsumerWidget {
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
                     colors: [
-                      AppColors.discoBlack,
-                      AppColors.discoBlack,
-                      AppColors.discoBlack.withValues(alpha: 0),
+                      context.palette.background,
+                      context.palette.background,
+                      context.palette.background.withValues(alpha: 0),
                     ],
                     stops: const [0, 0.78, 1],
                   ),

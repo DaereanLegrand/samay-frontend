@@ -4,8 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:forge2d/forge2d.dart' as f2d;
-import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/shared/widgets/profile_avatar.dart';
+import 'package:samay/core/theme/app_palette_context.dart';
 
 /// One avatar in an [AvatarPhysicsCluster] — deliberately feature-agnostic so
 /// the feed (minigame participants) and the groups list (group members) can
@@ -538,9 +538,9 @@ class _AvatarBubble extends StatelessWidget {
     return Container(
       width: size,
       height: size,
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: AppColors.discoBlack,
+        color: context.palette.background,
       ),
       padding: const EdgeInsets.all(2),
       child: ProfileAvatar(
@@ -566,14 +566,14 @@ class _OverflowBubble extends StatelessWidget {
       width: size,
       height: size,
       alignment: Alignment.center,
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: AppColors.white,
+        color: context.palette.foreground,
       ),
       child: Text(
         '+$count',
         style: TextStyle(
-          color: AppColors.discoBlack,
+          color: context.palette.background,
           fontSize: size * 0.32,
           fontWeight: FontWeight.w600,
         ),

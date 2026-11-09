@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:samay/core/config/feature_flags.dart';
-import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/design_tokens/app_typography.dart';
 import 'package:samay/core/errors/app_error.dart';
@@ -19,6 +18,7 @@ import 'package:samay/shared/widgets/state_views.dart';
 import 'package:samay/shared/widgets/v_button.dart';
 import 'package:samay/shared/widgets/v_display_text.dart';
 import 'package:samay/shared/widgets/v_header_bar.dart';
+import 'package:samay/core/theme/app_palette_context.dart';
 
 class PublicProfileScreen extends ConsumerStatefulWidget {
   final String userId;
@@ -276,7 +276,7 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
                     l10n.profileNoSharedGroups,
                     textAlign: TextAlign.center,
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: AppColors.mutedStrong,
+                      color: context.palette.mutedForeground,
                     ),
                   ),
                 ],
@@ -477,9 +477,9 @@ class _ProfileHero extends StatelessWidget {
         Container(
           height: _coverHeight,
           alignment: Alignment.center,
-          decoration: const BoxDecoration(
-            color: AppColors.surfaceAlt,
-            border: Border(bottom: BorderSide(color: AppColors.hairline)),
+          decoration: BoxDecoration(
+            color: context.palette.surfaceAlt,
+            border: Border(bottom: BorderSide(color: context.palette.hairline)),
           ),
           child: ProfileAvatar(initials: initials, imageUrl: imageUrl),
         ),
@@ -498,7 +498,7 @@ class _ProfileHero extends StatelessWidget {
                 Text(
                   '@$handle',
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: AppColors.mutedStrong,
+                    color: context.palette.mutedForeground,
                   ),
                 ),
               ],
@@ -508,7 +508,7 @@ class _ProfileHero extends StatelessWidget {
                 textAlign: TextAlign.center,
                 style: Theme.of(
                   context,
-                ).textTheme.bodyMedium?.copyWith(color: AppColors.mutedStrong),
+                ).textTheme.bodyMedium?.copyWith(color: context.palette.mutedForeground),
               ),
             ],
           ),

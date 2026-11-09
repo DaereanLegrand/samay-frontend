@@ -18,6 +18,7 @@ import 'package:samay/shared/widgets/state_views.dart';
 import 'package:samay/shared/widgets/v_button.dart';
 import 'package:samay/shared/widgets/v_header_bar.dart';
 import 'package:samay/shared/widgets/v_spinner.dart';
+import 'package:samay/core/theme/app_palette_context.dart';
 
 /// Camera-widget seam for tests: `mobile_scanner` is a platform plugin that
 /// cannot run in widget tests, so the screen accepts an injectable builder
@@ -279,7 +280,7 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen> {
     final eventName = eventAsync.valueOrNull?.name ?? l10n.qrScanEventFallback;
 
     return Scaffold(
-      backgroundColor: AppColors.discoBlack,
+      backgroundColor: context.palette.background,
       body: VHeaderBar(
         title: l10n.qrScannerTitle.toLowerCase(),
         actions: [
@@ -288,7 +289,7 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen> {
               tooltip: _torchOn ? l10n.qrTorchOff : l10n.qrTorchOn,
               icon: Icon(
                 _torchOn ? Icons.flash_on : Icons.flash_off,
-                color: AppColors.white,
+                color: context.palette.foreground,
               ),
               onPressed: _toggleTorch,
             ),
@@ -348,7 +349,7 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen> {
                     l10n.qrScanEventName(eventName),
                     textAlign: TextAlign.center,
                     style: AppTypography.titleMedium.copyWith(
-                      color: AppColors.white,
+                      color: context.palette.foreground,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -356,7 +357,7 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen> {
                   Text(
                     l10n.qrScanPrompt,
                     textAlign: TextAlign.center,
-                    style: const TextStyle(color: AppColors.mutedStrong),
+                    style: TextStyle(color: context.palette.mutedForeground),
                   ),
                 ],
               ),
@@ -380,8 +381,8 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen> {
         _Processing() => Container(
           padding: const EdgeInsets.all(AppSpacing.md),
           decoration: BoxDecoration(
-            color: AppColors.surface,
-            border: Border.all(color: AppColors.hairline),
+            color: context.palette.surface,
+            border: Border.all(color: context.palette.hairline),
             borderRadius: BorderRadius.circular(16),
           ),
           child: Row(
@@ -391,7 +392,7 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen> {
               const SizedBox(width: AppSpacing.md),
               Text(
                 l10n.qrScanProcessing,
-                style: const TextStyle(color: AppColors.white),
+                style: TextStyle(color: context.palette.foreground),
               ),
             ],
           ),
@@ -399,8 +400,8 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen> {
         _Confirmed(attendeeName: final name) => Container(
           padding: const EdgeInsets.all(AppSpacing.lg),
           decoration: BoxDecoration(
-            color: AppColors.surface,
-            border: Border.all(color: AppColors.hairline),
+            color: context.palette.surface,
+            border: Border.all(color: context.palette.hairline),
             borderRadius: BorderRadius.circular(16),
           ),
           child: Column(
@@ -416,7 +417,7 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen> {
                 l10n.qrScanConfirmed,
                 textAlign: TextAlign.center,
                 style: AppTypography.titleLarge.copyWith(
-                  color: AppColors.white,
+                  color: context.palette.foreground,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -424,13 +425,13 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen> {
                 const SizedBox(height: AppSpacing.xs),
                 Text(
                   l10n.qrScanAttendee(name),
-                  style: const TextStyle(color: AppColors.mutedStrong),
+                  style: TextStyle(color: context.palette.mutedForeground),
                 ),
               ],
               const SizedBox(height: AppSpacing.sm),
               Text(
                 l10n.qrScanReady,
-                style: const TextStyle(color: AppColors.mutedStrong),
+                style: TextStyle(color: context.palette.mutedForeground),
               ),
             ],
           ),
@@ -439,8 +440,8 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen> {
           Container(
             padding: const EdgeInsets.all(AppSpacing.lg),
             decoration: BoxDecoration(
-              color: AppColors.surface,
-              border: Border.all(color: AppColors.hairline),
+              color: context.palette.surface,
+              border: Border.all(color: context.palette.hairline),
               borderRadius: BorderRadius.circular(16),
             ),
             child: Column(

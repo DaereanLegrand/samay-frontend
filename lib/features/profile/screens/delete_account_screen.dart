@@ -10,6 +10,7 @@ import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/v_button.dart';
 import 'package:samay/shared/widgets/v_header_bar.dart';
 import 'package:samay/shared/widgets/v_input.dart';
+import 'package:samay/core/theme/app_palette_context.dart';
 
 class DeleteAccountScreen extends ConsumerStatefulWidget {
   const DeleteAccountScreen({super.key});
@@ -128,7 +129,7 @@ class _DeleteAccountScreenState extends ConsumerState<DeleteAccountScreen> {
                       Text(
                         l10n.profileDeleteNowBody,
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: AppColors.mutedStrong,
+                          color: context.palette.mutedForeground,
                         ),
                       ),
                       const SizedBox(height: 12),

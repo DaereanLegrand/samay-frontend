@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/extensions/error_mapper.dart';
 import 'package:samay/core/providers/auth_provider.dart';
@@ -14,6 +13,7 @@ import 'package:samay/shared/widgets/v_button.dart';
 import 'package:samay/shared/widgets/v_card.dart';
 import 'package:samay/shared/widgets/v_display_text.dart';
 import 'package:samay/shared/widgets/v_input.dart';
+import 'package:samay/core/theme/app_palette_context.dart';
 
 /// Resolves the display name of a participant: temp nickname in anonymous mode
 /// (falling back to localized default), otherwise the username.
@@ -99,7 +99,7 @@ class MinigameFinishedLeaderboard extends ConsumerWidget {
                         row.prize > 0
                             ? l10n.minigamesPrizeAmount(row.prize)
                             : '${row.score}',
-                        style: const TextStyle(color: AppColors.mutedStrong),
+                        style: TextStyle(color: context.palette.mutedForeground),
                       ),
                     ],
                   ),
@@ -171,7 +171,7 @@ class _MinigameAliasEditorState extends ConsumerState<MinigameAliasEditor> {
             const SizedBox(height: AppSpacing.sm),
             Text(
               current ?? defaultAnonAlias(l10n, seed: myId ?? ''),
-              style: const TextStyle(color: AppColors.mutedStrong),
+              style: TextStyle(color: context.palette.mutedForeground),
             ),
             const SizedBox(height: AppSpacing.sm),
             VInput(

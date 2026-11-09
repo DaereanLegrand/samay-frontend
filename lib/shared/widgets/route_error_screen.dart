@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/core/design_tokens/app_icon_sizes.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/v_button.dart';
 import 'package:samay/shared/widgets/v_header_bar.dart';
+import 'package:samay/core/theme/app_palette_context.dart';
 
 /// Fallback screen for unrecoverable routing failures: unknown routes,
 /// missing path parameters, and invalid navigation extras. Never crashes —
@@ -28,10 +28,10 @@ class RouteErrorScreen extends StatelessWidget {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(
+                  Icon(
                     Icons.error_outline,
                     size: AppIconSizes.xxl,
-                    color: AppColors.border,
+                    color: context.palette.border,
                   ),
                   const SizedBox(height: AppSpacing.lg),
                   Text(

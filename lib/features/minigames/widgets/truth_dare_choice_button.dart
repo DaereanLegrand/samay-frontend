@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/core/design_tokens/app_typography.dart';
 import 'package:samay/core/theme/samay_durations.dart';
+import 'package:samay/core/theme/app_palette_context.dart';
 
 /// A full-width, chrome-less Verdad / Reto choice CTA.
 ///
@@ -65,7 +66,6 @@ class _TruthDareChoiceButtonState extends State<TruthDareChoiceButton>
     fontWeight: FontWeight.w700,
     letterSpacing: -1.4,
     height: 1.1,
-    color: AppColors.white,
   );
 
   /// Resting and maximum glyph-shadow geometry (offset-free — no direction).
@@ -145,27 +145,28 @@ class _TruthDareChoiceButtonState extends State<TruthDareChoiceButton>
                   widget.label,
                   textAlign: TextAlign.center,
                   style: _base.copyWith(
+                    color: context.palette.foreground,
                     shadows: [
                       Shadow(
-                        color: AppColors.white.withValues(
+                        color: context.palette.foreground.withValues(
                           alpha: _lerp(_idleUltraAlpha, _maxUltraAlpha, g),
                         ),
                         blurRadius: _lerp(_idleUltraBlur, _maxUltraBlur, g),
                       ),
                       Shadow(
-                        color: AppColors.white.withValues(
+                        color: context.palette.foreground.withValues(
                           alpha: _lerp(_idleWideAlpha, _maxWideAlpha, g),
                         ),
                         blurRadius: _lerp(_idleWideBlur, _maxWideBlur, g),
                       ),
                       Shadow(
-                        color: AppColors.white.withValues(
+                        color: context.palette.foreground.withValues(
                           alpha: _lerp(_idleMidAlpha, _maxMidAlpha, g),
                         ),
                         blurRadius: _lerp(_idleMidBlur, _maxMidBlur, g),
                       ),
                       Shadow(
-                        color: AppColors.white.withValues(
+                        color: context.palette.foreground.withValues(
                           alpha: _lerp(_idleTightAlpha, _maxTightAlpha, g),
                         ),
                         blurRadius: _lerp(_idleTightBlur, _maxTightBlur, g),

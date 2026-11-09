@@ -1424,6 +1424,78 @@ abstract class AppLocalizations {
   /// **'Sistema'**
   String get settingsThemeSystem;
 
+  /// Settings row: the app-wide theme preset picker
+  ///
+  /// In es, this message translates to:
+  /// **'Color de la app'**
+  String get appThemeTitle;
+
+  /// Settings row subtitle for the app theme picker
+  ///
+  /// In es, this message translates to:
+  /// **'Elige el color de toda la app'**
+  String get appThemeSubtitle;
+
+  /// App theme preset: the default black palette
+  ///
+  /// In es, this message translates to:
+  /// **'Clásico'**
+  String get appThemeClassic;
+
+  /// App theme preset name
+  ///
+  /// In es, this message translates to:
+  /// **'Medianoche'**
+  String get appThemeMidnight;
+
+  /// App theme preset name
+  ///
+  /// In es, this message translates to:
+  /// **'Bosque'**
+  String get appThemeForest;
+
+  /// App theme preset name (paid tier)
+  ///
+  /// In es, this message translates to:
+  /// **'Violeta'**
+  String get appThemeViolet;
+
+  /// App theme preset name (paid tier)
+  ///
+  /// In es, this message translates to:
+  /// **'Brasa'**
+  String get appThemeEmber;
+
+  /// App theme preset name (premium tier)
+  ///
+  /// In es, this message translates to:
+  /// **'Turquesa'**
+  String get appThemeTeal;
+
+  /// App theme preset name (premium tier)
+  ///
+  /// In es, this message translates to:
+  /// **'Rosa'**
+  String get appThemeRose;
+
+  /// Lock label on an app theme preset that needs Pro
+  ///
+  /// In es, this message translates to:
+  /// **'Requiere Pro'**
+  String get appThemeLockedPro;
+
+  /// Lock label on an app theme preset that needs VIP
+  ///
+  /// In es, this message translates to:
+  /// **'Requiere VIP'**
+  String get appThemeLockedVip;
+
+  /// Explainer under the app theme picker
+  ///
+  /// In es, this message translates to:
+  /// **'Los grupos sin tema propio usan el color de la app.'**
+  String get appThemeGroupFollowsApp;
+
   /// Settings section header for the visual preferences group (R6)
   ///
   /// In es, this message translates to:

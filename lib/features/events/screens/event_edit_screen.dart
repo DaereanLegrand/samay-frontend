@@ -17,6 +17,7 @@ import 'package:samay/shared/widgets/v_header_bar.dart';
 import 'package:samay/shared/widgets/state_views.dart';
 import 'package:samay/shared/widgets/v_button.dart';
 import 'package:samay/shared/widgets/v_input.dart';
+import 'package:samay/core/theme/app_palette_context.dart';
 
 /// Event editor (EDET — hosts only, pre-live). Core details are always
 /// editable until the event goes live; the preshard pool/cap/remainder are
@@ -231,10 +232,10 @@ class _EventEditScreenState extends ConsumerState<EventEditScreen> {
             alignment: Alignment.centerLeft,
             child: TextButton.icon(
               onPressed: _pickCoordinates,
-              icon: const Icon(
+              icon: Icon(
                 Icons.place_outlined,
                 size: 18,
-                color: AppColors.white,
+                color: context.palette.foreground,
               ),
               label: Text(
                 (_lat == null || _lng == null)
@@ -243,7 +244,7 @@ class _EventEditScreenState extends ConsumerState<EventEditScreen> {
                         '${_lat!.toStringAsFixed(5)}, '
                         '${_lng!.toStringAsFixed(5)}',
                       ),
-                style: const TextStyle(color: AppColors.white),
+                style: TextStyle(color: context.palette.foreground),
               ),
             ),
           ),
@@ -303,10 +304,10 @@ class _EventEditScreenState extends ConsumerState<EventEditScreen> {
                   const SizedBox(height: AppSpacing.md),
                   DropdownButtonFormField<String>(
                     initialValue: _remainderAction,
-                    dropdownColor: AppColors.surfaceAlt,
+                    dropdownColor: context.palette.surfaceAlt,
                     decoration: InputDecoration(
                       labelText: l10n.eventsRemainderLabel,
-                      labelStyle: const TextStyle(color: AppColors.mutedStrong),
+                      labelStyle: TextStyle(color: context.palette.mutedForeground),
                       // Pinned: dropdown row, not a text input (theme
                       // default `never`).
                       floatingLabelBehavior: FloatingLabelBehavior.always,
@@ -367,7 +368,7 @@ class _DateTimeButton extends StatelessWidget {
             const SizedBox(width: AppSpacing.md),
             Text(
               DateFormat('EEE d MMM, HH:mm', locale).format(value.toLocal()),
-              style: const TextStyle(color: AppColors.white),
+              style: TextStyle(color: context.palette.foreground),
             ),
           ],
         ),

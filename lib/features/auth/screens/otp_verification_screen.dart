@@ -15,6 +15,7 @@ import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/v_button.dart';
 import 'package:samay/shared/widgets/v_display_text.dart';
 import 'package:samay/shared/widgets/v_header_bar.dart';
+import 'package:samay/core/theme/app_palette_context.dart';
 
 class OtpVerificationScreen extends ConsumerStatefulWidget {
   final String email;
@@ -154,9 +155,9 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
       duration: shellDuration,
       curve: SamayDurations.defaultCurve,
       decoration: BoxDecoration(
-        color: AppColors.surfaceAlt,
+        color: context.palette.surfaceAlt,
         border: Border.all(
-          color: _codeFocused ? AppColors.white : AppColors.border,
+          color: _codeFocused ? context.palette.foreground : context.palette.border,
         ),
       ),
       padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
@@ -166,7 +167,7 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
         maxLength: OtpVerificationScreen.otpCodeLength,
         textAlign: TextAlign.center,
         keyboardType: TextInputType.number,
-        style: AppTypography.otpInputText.copyWith(color: AppColors.white),
+        style: AppTypography.otpInputText.copyWith(color: context.palette.foreground),
         decoration: const InputDecoration(
           counterText: '',
           border: InputBorder.none,
@@ -303,7 +304,7 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
                             style: TextStyle(
                               color: _remainingAttempts <= 1
                                   ? AppColors.error
-                                  : AppColors.mutedStrong,
+                                  : context.palette.mutedForeground,
                             ),
                           ),
                         ),
@@ -330,7 +331,7 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
                           _resendSeconds > 0
                               ? l10n.authResendCodeIn(_resendSeconds)
                               : l10n.authResendCode,
-                          style: const TextStyle(color: AppColors.mutedStrong),
+                          style: TextStyle(color: context.palette.mutedForeground),
                         ),
                       ),
                       const SizedBox(height: AppSpacing.sm),
@@ -338,7 +339,7 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
                         onPressed: _backToLogin,
                         child: Text(
                           l10n.authBackToLogin,
-                          style: const TextStyle(color: AppColors.mutedStrong),
+                          style: TextStyle(color: context.palette.mutedForeground),
                         ),
                       ),
                       const SizedBox(height: AppSpacing.xxl),

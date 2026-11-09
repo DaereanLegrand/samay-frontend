@@ -36,6 +36,7 @@ import 'package:samay/shared/widgets/v_card.dart';
 import 'package:samay/shared/widgets/v_header_bar.dart';
 import 'package:samay/shared/widgets/v_input.dart';
 import 'package:samay/shared/widgets/v_spinner.dart';
+import 'package:samay/core/theme/app_palette_context.dart';
 
 /// The subject's currently-picked reto picture for one session, before submit.
 /// Lifted to the screen level so the picture can render as a full-viewport
@@ -1381,7 +1382,6 @@ class _FloatingAnswerLabelState extends State<_FloatingAnswerLabel> {
     fontFamily: AppTypography.quicksand,
     fontSize: _baseFontSize,
     fontWeight: FontWeight.w600,
-    color: AppColors.white,
     shadows: AppTypography.legibilityShadows,
   );
 
@@ -1440,7 +1440,7 @@ class _FloatingAnswerLabelState extends State<_FloatingAnswerLabel> {
           keyboardType: TextInputType.multiline,
           textInputAction: TextInputAction.newline,
           cursorColor: MinigameInks.of(context).primary,
-          style: _baseStyle,
+          style: _baseStyle.copyWith(color: context.palette.foreground),
           onTapOutside: (_) => widget.focusNode.unfocus(),
           decoration: InputDecoration.collapsed(
             hintText: widget.placeholder,
@@ -1466,7 +1466,7 @@ class _FloatingAnswerLabelState extends State<_FloatingAnswerLabel> {
             hasText ? widget.text : widget.placeholder,
             textAlign: TextAlign.center,
             style: hasText
-                ? _baseStyle
+                ? _baseStyle.copyWith(color: context.palette.foreground)
                 : _baseStyle.copyWith(color: MinigameInks.of(context).muted),
           ),
         ),
@@ -1535,7 +1535,7 @@ class _PromptBanner extends StatelessWidget {
                 imageFilter: ImageFilter.blur(sigmaX: sigma, sigmaY: sigma),
                 child: DecoratedBox(
                   decoration: BoxDecoration(
-                    color: AppColors.discoBlack.withValues(alpha: alpha),
+                    color: context.palette.background.withValues(alpha: alpha),
                     borderRadius: const BorderRadius.all(
                       Radius.circular(_promptBannerRadius),
                     ),
@@ -1559,7 +1559,7 @@ class _PromptBanner extends StatelessWidget {
                 // glows against the darker pill.
                 shadows: [
                   Shadow(
-                    color: AppColors.discoBlack.withValues(alpha: 1),
+                    color: context.palette.background.withValues(alpha: 1),
                     blurRadius: 50,
                   ),
                 ],

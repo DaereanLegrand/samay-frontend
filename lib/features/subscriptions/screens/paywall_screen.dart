@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:samay/core/config/env_config.dart';
-import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/extensions/error_mapper.dart';
 import 'package:samay/core/providers/config_provider.dart';
@@ -16,6 +15,7 @@ import 'package:samay/shared/widgets/v_badge.dart';
 import 'package:samay/shared/widgets/v_button.dart';
 import 'package:samay/shared/widgets/v_display_text.dart';
 import 'package:samay/shared/widgets/v_header_bar.dart';
+import 'package:samay/core/theme/app_palette_context.dart';
 
 /// Subscription tier identifiers, matching `users.subscription_tier`.
 class PaywallTier {
@@ -465,12 +465,12 @@ class _TierCardState extends State<_TierCard> {
               tooltip: l10n.commonMoreOptions,
               icon: Icon(
                 _expanded ? Icons.expand_less : Icons.expand_more,
-                color: AppColors.mutedStrong,
+                color: context.palette.mutedForeground,
               ),
             ),
           ),
           if (_expanded) ...[
-            const Divider(height: 1, thickness: 1, color: AppColors.hairline),
+            Divider(height: 1, thickness: 1, color: context.palette.hairline),
             const SizedBox(height: AppSpacing.md),
             for (final row in paywallRows) _FeatureRow(row: row, l10n: l10n),
           ],
@@ -520,10 +520,10 @@ class _FeatureCell extends StatelessWidget {
   Widget build(BuildContext context) {
     final text = paywallRowLabel(l10n, value);
     if (value == 'check') {
-      return const Icon(Icons.check, size: 16, color: AppColors.white);
+      return Icon(Icons.check, size: 16, color: context.palette.foreground);
     }
     if (value == 'cross') {
-      return const Icon(Icons.close, size: 16, color: AppColors.mutedStrong);
+      return Icon(Icons.close, size: 16, color: context.palette.mutedForeground);
     }
     return SizedBox(width: 88, child: Text(text, textAlign: TextAlign.right));
   }

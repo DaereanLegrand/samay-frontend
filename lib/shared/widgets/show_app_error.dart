@@ -4,6 +4,7 @@ import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/extensions/error_mapper.dart';
 import 'package:samay/core/logging/app_logger.dart';
 import 'package:samay/l10n/app_localizations.dart';
+import 'package:samay/core/theme/app_palette_context.dart';
 
 /// One consistent error-presentation pattern.
 ///
@@ -28,23 +29,23 @@ Future<void> showAppError(
     await showDialog<void>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        backgroundColor: AppColors.discoBlack,
+        backgroundColor: context.palette.background,
         title: Text(
           l10n.commonError,
-          style: const TextStyle(color: AppColors.white),
+          style: TextStyle(color: context.palette.foreground),
         ),
         content: Text(
           message,
           style: Theme.of(
             dialogContext,
-          ).textTheme.bodyMedium?.copyWith(color: AppColors.mutedStrong),
+          ).textTheme.bodyMedium?.copyWith(color: context.palette.mutedForeground),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(),
             child: Text(
               l10n.commonOk,
-              style: const TextStyle(color: AppColors.white),
+              style: TextStyle(color: context.palette.foreground),
             ),
           ),
         ],
@@ -53,7 +54,7 @@ Future<void> showAppError(
   } else {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        backgroundColor: AppColors.discoBlack,
+        backgroundColor: context.palette.background,
         behavior: SnackBarBehavior.floating,
         content: Row(
           children: [
@@ -70,7 +71,7 @@ Future<void> showAppError(
                 message,
                 style: Theme.of(
                   context,
-                ).textTheme.bodyMedium?.copyWith(color: AppColors.white),
+                ).textTheme.bodyMedium?.copyWith(color: context.palette.foreground),
               ),
             ),
           ],

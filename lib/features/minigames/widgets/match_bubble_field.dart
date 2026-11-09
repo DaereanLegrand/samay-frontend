@@ -4,9 +4,9 @@ import 'dart:math' as math;
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:samay/core/config/env_config.dart';
-import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/features/minigames/logic/match_preview.dart';
 import 'package:samay/shared/widgets/v_network_image.dart';
+import 'package:samay/core/theme/app_palette_context.dart';
 
 /// Bubbles whose avatar image has genuinely resolved (or which carry no photo).
 ///
@@ -120,8 +120,8 @@ class _MatchBubbleFieldState extends State<MatchBubbleField> {
               child: DecoratedBox(
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: AppColors.discoBlack.withValues(alpha: 0.65),
-                  border: Border.all(color: AppColors.muted),
+                  color: context.palette.background.withValues(alpha: 0.65),
+                  border: Border.all(color: context.palette.mutedForeground),
                 ),
               ),
             ),
@@ -454,9 +454,9 @@ class _AvatarBubbleState extends State<_AvatarBubble> {
     return Container(
       width: size,
       height: size,
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: AppColors.discoBlack,
+        color: context.palette.background,
       ),
       padding: const EdgeInsets.all(1),
       child: ClipOval(
@@ -464,13 +464,13 @@ class _AvatarBubbleState extends State<_AvatarBubble> {
           child:
               image ??
               ColoredBox(
-                color: AppColors.surfaceAlt,
+                color: context.palette.surfaceAlt,
                 child: Center(
                   child: Text(
                     _initials(widget.player.username),
                     style: TextStyle(
                       fontSize: size * 0.3,
-                      color: AppColors.white,
+                      color: context.palette.foreground,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -587,14 +587,14 @@ class _OverflowBubble extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       alignment: Alignment.center,
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: AppColors.white,
+        color: context.palette.foreground,
       ),
       child: Text(
         '+$count',
         style: TextStyle(
-          color: AppColors.discoBlack,
+          color: context.palette.background,
           fontSize: size * 0.32,
           fontWeight: FontWeight.w600,
         ),

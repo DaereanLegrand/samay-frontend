@@ -16,6 +16,7 @@ import 'package:samay/shared/widgets/state_views.dart';
 import 'package:samay/shared/widgets/v_chip.dart';
 import 'package:samay/shared/widgets/v_header_bar.dart';
 import 'package:samay/shared/widgets/v_shard_icon.dart';
+import 'package:samay/core/theme/app_palette_context.dart';
 
 /// One Rankings surface: Users | Groups.
 ///
@@ -43,7 +44,7 @@ class _RankingsScreenState extends ConsumerState<RankingsScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     return Scaffold(
-      backgroundColor: AppColors.discoBlack,
+      backgroundColor: context.palette.background,
       body: VHeaderBar(
         title: l10n.socialRankingTitle,
         child: Column(
@@ -151,7 +152,7 @@ class _UsersRanking extends ConsumerWidget {
                 physics: const AlwaysScrollableScrollPhysics(),
                 itemCount: entries.length,
                 separatorBuilder: (_, _) =>
-                    const Divider(height: 1, color: AppColors.hairline),
+                    Divider(height: 1, color: context.palette.hairline),
                 itemBuilder: (_, i) {
                   final entry = entries[i];
                   final rank = i + 1;
@@ -162,7 +163,7 @@ class _UsersRanking extends ConsumerWidget {
                       child: Text(
                         '#$rank',
                         style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                          color: _rankColor(rank),
+                          color: _rankColor(context, rank),
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -233,7 +234,7 @@ class _GroupsRanking extends ConsumerWidget {
                 physics: const AlwaysScrollableScrollPhysics(),
                 itemCount: rankings.length,
                 separatorBuilder: (_, _) =>
-                    const Divider(height: 1, color: AppColors.hairline),
+                    Divider(height: 1, color: context.palette.hairline),
                 itemBuilder: (_, i) {
                   final entry = rankings[i];
                   final group = entry.group;
@@ -244,7 +245,7 @@ class _GroupsRanking extends ConsumerWidget {
                       child: Text(
                         '#$rank',
                         style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                          color: _rankColor(rank),
+                          color: _rankColor(context, rank),
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -273,12 +274,12 @@ class _GroupsRanking extends ConsumerWidget {
   }
 }
 
-/// Semantic podium numerals (gold/silver/bronze) — everything else white.
-Color? _rankColor(int rank) {
+/// Semantic podium numerals (gold/silver/bronze) — everything else themed.
+Color? _rankColor(BuildContext context, int rank) {
   return switch (rank) {
     1 => AppColors.discoGold,
     2 => AppColors.discoSilver,
     3 => AppColors.discoBronze,
-    _ => AppColors.white,
+    _ => context.palette.foreground,
   };
 }

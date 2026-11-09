@@ -3,16 +3,17 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
 
-/// Full set of surface/text roles a themed group screen paints.
+/// Full set of surface/text roles a themed surface paints.
 ///
-/// The server owns two values per group (`background_color`, `foreground_color`,
-/// `accent_color`, `accent_foreground_color`) and guarantees the base pair
-/// meets WCAG AA. Everything a screen needs *between* those roles — card fills,
-/// hairlines, dividers, secondary text — is derived here mathematically so the
-/// whole surface keeps working as one tonal scale instead of black boxes pasted
-/// on a coloured page.
-class GroupThemePalette {
-  const GroupThemePalette({
+/// The same tonal scale drives both the app-wide theme (chosen in Settings,
+/// paywalled) and a group's own theme. The server (or the preset) owns four
+/// values — background, foreground, accent, accent foreground — and guarantees
+/// the base pair meets WCAG AA. Everything a screen needs *between* those roles
+/// — card fills, hairlines, dividers, secondary text — is derived here
+/// mathematically so the whole surface keeps working as one tonal scale instead
+/// of black boxes pasted on a coloured page.
+class AppPalette {
+  const AppPalette({
     required this.background,
     required this.surface,
     required this.surfaceAlt,
@@ -55,7 +56,7 @@ class GroupThemePalette {
   /// The app's own un-themed palette — identical to the design tokens, so every
   /// screen that is *not* inside a themed group renders byte-for-byte as
   /// before.
-  static const GroupThemePalette standard = GroupThemePalette(
+  static const AppPalette standard = AppPalette(
     background: AppColors.discoBlack,
     surface: AppColors.surface,
     surfaceAlt: AppColors.surfaceAlt,
@@ -88,7 +89,7 @@ class GroupThemePalette {
   ///   final foreground by a fixed step (6% / 13%).
   /// * [mutedForeground], [hairline] and [border] are solved against
   ///   [surfaceAlt] (the lightest step) so they stay safe on every step.
-  factory GroupThemePalette.derive({
+  factory AppPalette.derive({
     required Color background,
     required Color foreground,
     required Color accent,
@@ -149,7 +150,7 @@ class GroupThemePalette {
     // Labels and outlines sit on `surfaceAlt` in the densest case (raised
     // cards, bubbles, the composer), so they are solved against the LIGHTEST
     // step — the hardest background — and are therefore safe on every step.
-    return GroupThemePalette(
+    return AppPalette(
       background: darkBackground,
       surface: surface,
       surfaceAlt: surfaceAlt,
@@ -303,7 +304,7 @@ class GroupThemePalette {
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other is GroupThemePalette &&
+      other is AppPalette &&
           other.background == background &&
           other.surface == surface &&
           other.surfaceAlt == surfaceAlt &&

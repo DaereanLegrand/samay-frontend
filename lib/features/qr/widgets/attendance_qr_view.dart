@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
+import 'package:samay/core/theme/app_palette_context.dart';
 
 /// QR geometry on the black page (px): the code sits directly on the page and
 /// is framed by a thin ring of exactly [kAttendanceQrRingWidth]. The single
@@ -28,13 +29,13 @@ class AttendanceQrView extends StatelessWidget {
         version: QrVersions.auto,
         padding: EdgeInsets.zero,
         backgroundColor: AppColors.transparent,
-        eyeStyle: const QrEyeStyle(
+        eyeStyle: QrEyeStyle(
           eyeShape: QrEyeShape.square,
-          color: AppColors.white,
+          color: context.palette.foreground,
         ),
-        dataModuleStyle: const QrDataModuleStyle(
+        dataModuleStyle: QrDataModuleStyle(
           dataModuleShape: QrDataModuleShape.square,
-          color: AppColors.white,
+          color: context.palette.foreground,
         ),
       ),
     );

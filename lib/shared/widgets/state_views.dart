@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
-import 'package:samay/features/groups/theme/group_theme_scope.dart';
+import 'package:samay/core/theme/app_theme_scope.dart';
 import 'package:samay/core/design_tokens/app_icon_sizes.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/l10n/app_localizations.dart';
@@ -73,8 +73,8 @@ class VEmptyView extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     // Inside a themed group surface every ink here comes from the derived
     // palette; [iconColor] remains an explicit override for callers.
-    final palette = GroupThemeScope.paletteOf(context);
-    final themed = !identical(palette, GroupThemeScope.standardPalette);
+    final palette = AppThemeScope.paletteOf(context);
+    final themed = AppThemeScope.isThemed(context);
     final resolvedIcon = iconColor ??
         (themed ? palette.mutedForeground : AppColors.border);
     final titleColor = themed ? palette.foreground : null;

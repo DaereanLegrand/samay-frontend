@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/core/design_tokens/app_typography.dart';
+import 'package:samay/core/theme/app_palette_context.dart';
 
 /// Tiny count badge for the "pending" voice — the shell tab, the
 /// switch-groups icon and minigame invites.
@@ -31,7 +32,7 @@ class VCountBadge extends StatelessWidget {
       ),
       child: Text(
         text,
-        style: AppTypography.labelSmall.copyWith(color: AppColors.white),
+        style: AppTypography.labelSmall.copyWith(color: context.palette.foreground),
       ),
     );
   }

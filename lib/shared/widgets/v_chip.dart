@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/core/design_tokens/app_radius.dart';
-import 'package:samay/features/groups/theme/group_theme_scope.dart';
+import 'package:samay/core/theme/app_theme_scope.dart';
 
 /// Samay chip — DESIGN.md §5.4, monochrome
 ///
@@ -30,8 +30,8 @@ class VChip extends StatelessWidget {
     final textStyle = compact
         ? Theme.of(context).textTheme.labelSmall
         : Theme.of(context).textTheme.labelMedium;
-    final palette = GroupThemeScope.paletteOf(context);
-    final themed = !identical(palette, GroupThemeScope.standardPalette);
+    final palette = AppThemeScope.paletteOf(context);
+    final themed = AppThemeScope.isThemed(context);
     // Inside a themed group surface the chip's "ink" is the group foreground,
     // so unselected chips stay legible and selected chips invert correctly.
     final ink = themed ? palette.foreground : AppColors.white;

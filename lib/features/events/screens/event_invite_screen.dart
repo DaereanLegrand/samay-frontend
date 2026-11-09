@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/design_tokens/app_typography.dart';
 import 'package:samay/core/models/user_search_result.dart';
@@ -8,6 +7,7 @@ import 'package:samay/features/events/providers/events_providers.dart';
 import 'package:samay/features/friends/widgets/user_picker_view.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/v_header_bar.dart';
+import 'package:samay/core/theme/app_palette_context.dart';
 
 /// Event guest picker (060_events/05_manual_invites, Stage 2) — a THIN
 /// scaffold over the reusable [UserPickerView] (the ChatThreadView / minigame
@@ -67,7 +67,7 @@ class _EventInviteScreenState extends ConsumerState<EventInviteScreen> {
       padding: const EdgeInsets.only(left: AppSpacing.sm),
       child: Text(
         l10n.eventsInviteSentTag,
-        style: AppTypography.bodySmall.copyWith(color: AppColors.mutedStrong),
+        style: AppTypography.bodySmall.copyWith(color: context.palette.mutedForeground),
       ),
     );
   }

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/router/main_shell.dart';
 import 'package:samay/core/router/route_paths.dart';
@@ -12,6 +11,7 @@ import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/v_count_badge.dart';
 import 'package:samay/shared/widgets/v_header_bar.dart';
 import 'package:samay/shared/widgets/v_pill_tab_bar.dart';
+import 'package:samay/core/theme/app_palette_context.dart';
 
 /// The Social tab root.
 ///
@@ -67,7 +67,7 @@ class _SocialScreenState extends ConsumerState<SocialScreen>
     final l10n = AppLocalizations.of(context);
     final pendingCount = ref.watch(pendingCountsProvider);
     return Scaffold(
-      backgroundColor: AppColors.discoBlack,
+      backgroundColor: context.palette.background,
       body: NestedScrollView(
         headerSliverBuilder: (context, innerBoxIsScrolled) => [
           SliverOverlapAbsorber(

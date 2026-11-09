@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:samay/core/config/legal_links.dart';
-import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/v_card.dart';
 import 'package:samay/shared/widgets/v_header_bar.dart';
+import 'package:samay/core/theme/app_palette_context.dart';
 
 /// Static privacy/terms info — wires the settings Privacidad row.
 ///
@@ -72,7 +72,7 @@ class _Section extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(icon, color: AppColors.mutedStrong),
+              Icon(icon, color: context.palette.mutedForeground),
               const SizedBox(width: AppSpacing.sm),
               Expanded(
                 child: Text(
@@ -87,7 +87,7 @@ class _Section extends StatelessWidget {
             subtitle,
             style: Theme.of(
               context,
-            ).textTheme.bodyMedium?.copyWith(color: AppColors.mutedStrong),
+            ).textTheme.bodyMedium?.copyWith(color: context.palette.mutedForeground),
           ),
           const SizedBox(height: AppSpacing.md),
           Text(body, style: Theme.of(context).textTheme.bodyMedium),

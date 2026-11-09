@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/core/logging/app_logger.dart';
 import 'package:samay/core/providers/service_providers.dart';
 import 'package:samay/core/utils/form_validators.dart';
@@ -15,6 +14,7 @@ import 'package:samay/shared/widgets/v_button.dart';
 import 'package:samay/shared/widgets/v_card.dart';
 import 'package:samay/shared/widgets/v_header_bar.dart';
 import 'package:samay/shared/widgets/v_input.dart';
+import 'package:samay/core/theme/app_palette_context.dart';
 
 /// Gallery-picking seam for tests: `image_picker` is a platform plugin that
 /// cannot run in widget tests, so the screen accepts an injectable function
@@ -134,8 +134,8 @@ class _CreateGroupScreenState extends ConsumerState<CreateGroupScreen> {
                       decoration: BoxDecoration(
                         // Skeleton-base surface for the empty cover slot +
                         // the interactive-outline token (never raw greys).
-                        color: AppColors.surfaceAlt,
-                        border: Border.all(color: AppColors.border),
+                        color: context.palette.surfaceAlt,
+                        border: Border.all(color: context.palette.border),
                       ),
                       child: _coverImage != null
                           ? ClipRect(
@@ -150,16 +150,16 @@ class _CreateGroupScreenState extends ConsumerState<CreateGroupScreen> {
                               child: Column(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  const Icon(
+                                  Icon(
                                     Icons.camera_alt,
                                     size: 40,
-                                    color: AppColors.muted,
+                                    color: context.palette.mutedForeground,
                                   ),
                                   const SizedBox(height: 8),
                                   Text(
                                     l10n.groupsAddCover,
-                                    style: const TextStyle(
-                                      color: AppColors.mutedStrong,
+                                    style: TextStyle(
+                                      color: context.palette.mutedForeground,
                                     ),
                                   ),
                                 ],

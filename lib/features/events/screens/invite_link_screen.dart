@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/providers/service_providers.dart';
 import 'package:samay/core/services/location_service.dart';
@@ -13,6 +12,7 @@ import 'package:samay/shared/widgets/state_views.dart';
 import 'package:samay/shared/widgets/v_button.dart';
 import 'package:samay/shared/widgets/v_card.dart';
 import 'package:samay/shared/widgets/v_header_bar.dart';
+import 'package:samay/core/theme/app_palette_context.dart';
 
 /// Consent screen for `/e/`, `/g/` and `/u/` links.
 ///
@@ -187,7 +187,7 @@ class _InviteLinkScreenState extends ConsumerState<InviteLinkScreen> {
                       'u' => '@${p['username'] ?? name}',
                       _ => city ?? l10n.eventNoLocation,
                     },
-                    style: const TextStyle(color: AppColors.mutedStrong),
+                    style: TextStyle(color: context.palette.mutedForeground),
                   ),
                   if (kind == 'event') ...[
                     if (distance != null) ...[
@@ -196,14 +196,14 @@ class _InviteLinkScreenState extends ConsumerState<InviteLinkScreen> {
                         l10n.linkDistance(
                           (distance as num).toStringAsFixed(1),
                         ),
-                        style: const TextStyle(color: AppColors.mutedStrong),
+                        style: TextStyle(color: context.palette.mutedForeground),
                       ),
                     ],
                     if (venue != null) ...[
                       const SizedBox(height: AppSpacing.sm),
                       Text(
                         venue,
-                        style: const TextStyle(color: AppColors.white),
+                        style: TextStyle(color: context.palette.foreground),
                       ),
                     ],
                   ],
@@ -221,7 +221,7 @@ class _InviteLinkScreenState extends ConsumerState<InviteLinkScreen> {
             if (_done != null) ...[
               Text(
                 _done!,
-                style: const TextStyle(color: AppColors.white),
+                style: TextStyle(color: context.palette.foreground),
               ),
               const SizedBox(height: AppSpacing.md),
               if (_eventId != null)
@@ -249,7 +249,7 @@ class _InviteLinkScreenState extends ConsumerState<InviteLinkScreen> {
             else
               Text(
                 _stateLabel(l10n, kind, state),
-                style: const TextStyle(color: AppColors.mutedStrong),
+                style: TextStyle(color: context.palette.mutedForeground),
               ),
           ],
         ),
