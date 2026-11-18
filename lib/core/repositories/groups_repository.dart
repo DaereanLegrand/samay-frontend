@@ -2,7 +2,6 @@ import 'package:samay/core/models/group.dart';
 import 'package:samay/core/models/group_member.dart';
 import 'package:samay/core/models/group_theme.dart';
 import 'package:samay/core/services/group_service.dart';
-import 'package:samay/core/services/shards_service.dart';
 
 /// Groups domain repository: thin, typed facade over [GroupService]
 /// (memberships, invites, roles) and [ShardsService] (economy, leaderboard).
@@ -18,14 +17,9 @@ import 'package:samay/core/services/shards_service.dart';
 /// the model maps `users`; `getLeaderboard` rank snapshots; aggregated
 /// `getGroupContributions` rows).
 class GroupsRepository {
-  GroupsRepository({
-    required GroupService groups,
-    required ShardsService shards,
-  })  : _groups = groups,
-        _shards = shards;
+  GroupsRepository({required GroupService groups}) : _groups = groups;
 
   final GroupService _groups;
-  final ShardsService _shards;
 
   /// Groups the current user belongs to (each [Group] carries `myRole`).
   Future<List<Group>> getMyGroups() async {
@@ -101,24 +95,6 @@ class GroupsRepository {
   /// Invites [userIds] to [groupId] as pending `invited` members.
   Future<void> inviteMembers(String groupId, List<String> userIds) =>
       _groups.inviteMembers(groupId, userIds);
-
-  /// Group rankings for a size tier (`micro`/`small`/`medium`/`large`) —
-  /// rank-snapshot rows, not modeled — Map passthrough.
-  Future<List<Map<String, dynamic>>> getLeaderboard(String sizeTier) =>
-      _shards.getLeaderboard(sizeTier);
-
-  /// Active per-user contribution rows of a group (aggregation happens at
-  /// the provider boundary, same as before the repository layer).
-  Future<List<Map<String, dynamic>>> getGroupContributions(String groupId) =>
-      _shards.getGroupContributions(groupId);
-
-  /// The current user's own active contribution total for a group.
-  Future<int> getUserContributionToGroup(String groupId) =>
-      _shards.getUserContributionToGroup(groupId);
-
-  /// Donates [amount] shards to [groupId] (RPC with boost window).
-  Future<void> donateToGroup(String groupId, int amount) =>
-      _shards.donateToGroup(groupId, amount);
 
   /// The host-owned group theme plus the caller's permissions (E4).
   Future<GroupTheme> getGroupTheme(String groupId) async {

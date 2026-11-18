@@ -14,7 +14,7 @@ import 'package:samay/shared/widgets/v_refreshable.dart';
 
 /// Users the current user muted. Mute is one-way and weaker than block: the
 /// muted user can still DM/invite, but their activity disappears from the
-/// muter's feed, rankings and notifications.
+/// muter's notifications and profile visibility.
 class MutedUsersScreen extends ConsumerWidget {
   const MutedUsersScreen({super.key});
 

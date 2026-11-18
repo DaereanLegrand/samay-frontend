@@ -83,7 +83,7 @@ class _DeleteAccountScreenState extends ConsumerState<DeleteAccountScreen> {
     if (confirmed == true) {
       final notifier = ref.read(authStateProvider.notifier);
       await notifier.deleteAccountNow();
-      if (mounted) context.go(RoutePaths.login);
+      if (mounted) context.go(RoutePaths.onboarding);
     }
   }
 

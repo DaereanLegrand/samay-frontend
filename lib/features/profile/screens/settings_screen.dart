@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:samay/core/config/feature_flags.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/core/design_tokens/app_icon_sizes.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
@@ -9,11 +8,9 @@ import 'package:samay/core/design_tokens/app_typography.dart';
 import 'package:samay/core/providers/auth_provider.dart';
 import 'package:samay/core/providers/theme_provider.dart';
 import 'package:samay/core/router/route_paths.dart';
-import 'package:samay/features/chat/providers/chat_providers.dart';
 import 'package:samay/features/minigames/providers/minigames_providers.dart';
 import 'package:samay/features/profile/screens/notification_settings_screen.dart';
 import 'package:samay/features/profile/screens/privacy_info_screen.dart';
-import 'package:samay/features/social/providers/social_providers.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/v_card.dart';
 import 'package:samay/shared/widgets/v_chip.dart';
@@ -52,7 +49,7 @@ class SettingsScreen extends ConsumerWidget {
     );
     if (confirmed == true) {
       await ref.read(authStateProvider.notifier).signOut();
-      if (context.mounted) context.go(RoutePaths.login);
+      if (context.mounted) context.go(RoutePaths.onboarding);
     }
   }
 
@@ -89,7 +86,7 @@ class SettingsScreen extends ConsumerWidget {
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(SnackBar(content: Text(l10n.settingsClearLocalDataDone)));
-    context.go(RoutePaths.login);
+    context.go(RoutePaths.onboarding);
   }
 
   @override
@@ -134,16 +131,6 @@ class SettingsScreen extends ConsumerWidget {
                 ),
               ),
             ),
-            // The read-receipts privacy switch —
-            // WhatsApp-style ✓/✓✓/read ticks. When off, the reader's device
-            // never stamps `read_at`, so the peer never sees blue checks.
-            _SectionHeader(l10n.settingsSectionChat),
-            VCard(
-              child: Material(
-                type: MaterialType.transparency,
-                child: Column(children: [_ReadReceiptsTile()]),
-              ),
-            ),
             // Minigames group (140_minigame_invites): the invite privacy
             // switch — when ON only accepted friends may invite this user to
             // a minigame (enforced server-side in create_minigame_session).
@@ -160,18 +147,6 @@ class SettingsScreen extends ConsumerWidget {
                 type: MaterialType.transparency,
                 child: Column(
                   children: [
-                    // Subscriptions ship dark (prod builds carry no RevenueCat
-                    // key); when the flag is off the row is absent entirely.
-                    if (ref
-                        .watch(featureFlagsProvider)
-                        .isEnabled(AppFeatureFlag.subscriptions)) ...[
-                      _SettingsTile(
-                        icon: Icons.subscriptions,
-                        label: l10n.profileSubscription,
-                        onTap: () => context.push(RoutePaths.subscriptions),
-                      ),
-                      Divider(height: 1, color: context.palette.hairline),
-                    ],
                     // The notifications row opens the server-backed category screen
                     // (Q4a: users.notification_preferences).
                     _SettingsTile(
@@ -189,12 +164,6 @@ class SettingsScreen extends ConsumerWidget {
                       label: l10n.profileEditTitle,
                       onTap: () => context.push(RoutePaths.profileEdit),
                     ),
-                    Divider(height: 1, color: context.palette.hairline),
-                    // The public-profile privacy
-                    // switch — when ON the name/photo appear on the global
-                    // user ranking (Social tab). Bound to users.profile_public
-                    // via profilePublicProvider.
-                    _PublicProfileTile(),
                     Divider(height: 1, color: context.palette.hairline),
                     // The privacy row opens the static privacy/terms info
                     // screen (the signup-funnel consent gate cannot render
@@ -302,41 +271,6 @@ class _SectionHeader extends StatelessWidget {
   }
 }
 
-/// The public-profile privacy switch:
-/// `users.profile_public` via [profilePublicProvider]. When ON the name and
-/// photo appear on the global user ranking. Optimistic — a persistence
-/// failure rolls the switch back and surfaces a snackbar.
-class _PublicProfileTile extends ConsumerWidget {
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = AppLocalizations.of(context);
-    final enabled = ref.watch(profilePublicProvider).valueOrNull ?? false;
-    return SwitchListTile(
-      contentPadding: EdgeInsets.zero,
-      secondary: const Icon(Icons.public),
-      title: Text(l10n.socialPublicProfileLabel),
-      subtitle: Text(
-        l10n.socialPublicProfileBody,
-        style: Theme.of(
-          context,
-        ).textTheme.bodySmall?.copyWith(color: context.palette.mutedForeground),
-      ),
-      value: enabled,
-      onChanged: (value) async {
-        try {
-          await ref.read(profilePublicProvider.notifier).setEnabled(value);
-        } catch (_) {
-          if (context.mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(l10n.chatReadReceiptsSaveError)),
-            );
-          }
-        }
-      },
-    );
-  }
-}
-
 /// One settings row: icon, label and a chevron affordance when it navigates.
 /// Destructive rows use the error semantic.
 class _SettingsTile extends StatelessWidget {
@@ -427,42 +361,6 @@ class _ThemeSection extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
-}
-
-/// The read-receipts privacy switch: `users.read_receipts_enabled`
-/// via [readReceiptsEnabledProvider]. Optimistic — a persistence failure
-/// rolls the switch back and surfaces a snackbar.
-class _ReadReceiptsTile extends ConsumerWidget {
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = AppLocalizations.of(context);
-    final enabled = ref.watch(readReceiptsEnabledProvider).valueOrNull ?? true;
-    return SwitchListTile(
-      contentPadding: EdgeInsets.zero,
-      secondary: const Icon(Icons.done_all),
-      title: Text(l10n.chatReadReceipts),
-      subtitle: Text(
-        l10n.chatReadReceiptsBody,
-        style: Theme.of(
-          context,
-        ).textTheme.bodySmall?.copyWith(color: context.palette.mutedForeground),
-      ),
-      value: enabled,
-      onChanged: (value) async {
-        try {
-          await ref
-              .read(readReceiptsEnabledProvider.notifier)
-              .setEnabled(value);
-        } catch (_) {
-          if (context.mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(l10n.chatReadReceiptsSaveError)),
-            );
-          }
-        }
-      },
     );
   }
 }

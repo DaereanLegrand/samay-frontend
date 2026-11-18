@@ -8,12 +8,12 @@ import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/extensions/error_mapper.dart';
 import 'package:samay/core/models/group.dart';
 import 'package:samay/core/models/group_member.dart';
-import 'package:samay/core/router/main_shell.dart';
+import 'package:samay/core/router/page_insets.dart';
 import 'package:samay/core/router/route_paths.dart';
-import 'package:samay/features/feed/widgets/avatar_physics_cluster.dart';
 import 'package:samay/features/groups/providers/groups_providers.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/error_view.dart';
+import 'package:samay/shared/widgets/profile_avatar.dart';
 import 'package:samay/shared/widgets/state_views.dart';
 import 'package:samay/shared/widgets/v_badge.dart';
 import 'package:samay/shared/widgets/v_network_image.dart';
@@ -97,7 +97,7 @@ class GroupsTab extends ConsumerWidget {
           // Clear the floating shell nav bar so the last row can scroll above
           // it (nav-bar height + 16).
           SliverToBoxAdapter(
-            child: SizedBox(height: MainShell.navBarInset(context)),
+            child: SizedBox(height: pageBottomInset(context)),
           ),
         ],
       ),
@@ -110,13 +110,13 @@ class GroupsTab extends ConsumerWidget {
 /// 112px thumbnail against the ~354px content width (112/354 × 1.5 ≈ 0.475).
 const double _kGroupThumbFraction = 0.475;
 
-/// Height of the members bubble cluster under a group row's text.
+/// Height of the member avatar stack under a group row's text.
 const double _kGroupClusterHeight = 68;
 
 /// One group row: the name + member count on the left, the cover thumbnail
 /// (or an icon placeholder) right-aligned. Under the text block, the active
-/// members render as a downward-gravity bubble cluster of their profile pics
-///. The whole row opens the group.
+/// members render as an overlapping stack of their profile pics. The whole
+/// row opens the group.
 class _GroupRow extends ConsumerWidget {
   final Group group;
 
@@ -128,14 +128,6 @@ class _GroupRow extends ConsumerWidget {
     final members =
         ref.watch(groupMembersProvider(group.id)).valueOrNull ??
         const <GroupMember>[];
-    final avatars = [
-      for (final member in members)
-        ClusterAvatar(
-          id: member.userId,
-          username: member.username ?? '',
-          avatarUrl: member.avatarUrl,
-        ),
-    ];
     return InkWell(
       onTap: () => context.push(RoutePaths.groupDetail(group.id)),
       child: Padding(
@@ -181,12 +173,11 @@ class _GroupRow extends ConsumerWidget {
                           ],
                         ],
                       ),
-                      if (avatars.isNotEmpty) ...[
+                      if (members.isNotEmpty) ...[
                         const SizedBox(height: AppSpacing.sm),
-                        AvatarPhysicsCluster(
-                          participants: avatars,
+                        _MemberAvatarStack(
+                          members: members,
                           height: _kGroupClusterHeight,
-                          gravity: ClusterGravity.down,
                         ),
                       ],
                     ],
@@ -200,6 +191,89 @@ class _GroupRow extends ConsumerWidget {
         ),
       ),
     );
+  }
+}
+
+/// An overlapping stack of member avatars under a group row (up to
+/// [_kMemberStackMax] circles plus a `+N` overflow bubble). A plain,
+/// animation-free replacement for the removed feed physics cluster: the
+/// bubbles overlap horizontally inside a fixed-height band.
+class _MemberAvatarStack extends StatelessWidget {
+  const _MemberAvatarStack({required this.members, required this.height});
+
+  final List<GroupMember> members;
+  final double height;
+
+  /// Bubble diameter; a value comfortably inside [height].
+  static const double _diameter = 44;
+
+  /// How much each bubble overlaps its predecessor.
+  static const double _overlap = 14;
+
+  static const int _kMemberStackMax = 5;
+
+  @override
+  Widget build(BuildContext context) {
+    final shown = members.take(_kMemberStackMax).toList();
+    final overflow = members.length - shown.length;
+    final step = _diameter - _overlap;
+    final ring = context.palette.background;
+    return SizedBox(
+      height: height,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          for (var i = 0; i < shown.length; i++)
+            Positioned(
+              left: i * step,
+              top: (height - _diameter) / 2,
+              child: Container(
+                width: _diameter,
+                height: _diameter,
+                decoration: BoxDecoration(shape: BoxShape.circle, color: ring),
+                padding: const EdgeInsets.all(2),
+                child: ProfileAvatar(
+                  size: _diameter - 4,
+                  initials: _initials(shown[i].username ?? ''),
+                  imageUrl: shown[i].avatarUrl,
+                ),
+              ),
+            ),
+          if (overflow > 0)
+            Positioned(
+              left: shown.length * step,
+              top: (height - _diameter) / 2,
+              child: Container(
+                width: _diameter,
+                height: _diameter,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: context.palette.foreground,
+                ),
+                child: Text(
+                  '+$overflow',
+                  style: TextStyle(
+                    color: context.palette.background,
+                    fontSize: _diameter * 0.32,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  static String _initials(String username) {
+    final trimmed = username.trim();
+    if (trimmed.isEmpty) return '?';
+    final parts = trimmed
+        .split(RegExp(r'[\s_.-]+'))
+        .where((p) => p.isNotEmpty);
+    final letters = parts.take(2).map((p) => p[0]).join();
+    return (letters.isEmpty ? trimmed[0] : letters).toUpperCase();
   }
 }
 

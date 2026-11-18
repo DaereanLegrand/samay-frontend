@@ -21,8 +21,6 @@ class NotificationSettingsScreen extends ConsumerWidget {
     final prefs = ref.watch(notificationPrefsProvider);
 
     final toggleTiles = [
-      (Icons.chat_bubble, l10n.notificationSettingsChatMessages, 'chat', true),
-      (Icons.event, l10n.notificationSettingsEventReminders, 'events', true),
       (
         Icons.person_add,
         l10n.notificationSettingsFriendRequests,

@@ -19,7 +19,7 @@ class MyProfileNotifier extends AsyncNotifier<Map<String, dynamic>?>
   }
 }
 
-/// The current user's profile row (username, bio, shard balances).
+/// The current user's profile row (username, bio, avatar).
 final myProfileProvider = AsyncNotifierProvider<MyProfileNotifier,
     Map<String, dynamic>?>(MyProfileNotifier.new);
 

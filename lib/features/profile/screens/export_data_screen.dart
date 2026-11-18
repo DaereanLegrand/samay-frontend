@@ -13,10 +13,9 @@ import 'package:samay/core/theme/app_palette_context.dart';
 
 /// Data portability (Ley N° 29733): exports the caller's own data.
 ///
-/// The server (`export_my_data`) returns everything it holds, but chat is E2EE
-/// so it can only return ciphertext; readable chat history lives only on the
-/// device. The document is copied to the clipboard so the user can save or send
-/// it without any third party receiving it first.
+/// The server (`export_my_data`) returns everything it holds. The document is
+/// copied to the clipboard so the user can save or send it without any third
+/// party receiving it first.
 class ExportDataScreen extends ConsumerStatefulWidget {
   const ExportDataScreen({super.key});
 
@@ -76,13 +75,6 @@ class _ExportDataScreenState extends ConsumerState<ExportDataScreen> {
               Text(
                 l10n.profileExportBody,
                 style: Theme.of(context).textTheme.bodyLarge,
-              ),
-              const SizedBox(height: 12),
-              Text(
-                l10n.profileExportChatNote,
-                style: Theme.of(
-                  context,
-                ).textTheme.bodyMedium?.copyWith(color: context.palette.mutedForeground),
               ),
               const SizedBox(height: 24),
               VButton.emphasized(

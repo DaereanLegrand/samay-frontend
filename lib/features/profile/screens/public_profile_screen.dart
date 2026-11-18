@@ -1,15 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
-import 'package:samay/core/config/feature_flags.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/design_tokens/app_typography.dart';
-import 'package:samay/core/errors/app_error.dart';
 import 'package:samay/core/extensions/error_mapper.dart';
 import 'package:samay/core/logging/app_logger.dart';
 import 'package:samay/core/providers/service_providers.dart';
 import 'package:samay/core/repositories/repository_providers.dart';
-import 'package:samay/core/router/route_paths.dart';
 import 'package:samay/features/friends/providers/friends_providers.dart';
 import 'package:samay/shared/widgets/profile_avatar.dart';
 import 'package:samay/shared/widgets/report_sheet.dart';
@@ -236,17 +232,6 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
                   Row(
                     children: [
                       Expanded(child: _buildActionButton()),
-                      if (_friendshipStatus == 'accepted' &&
-                          !_isBlocked &&
-                          ref.isEnabled(AppFeatureFlag.chat)) ...[
-                        const SizedBox(width: AppSpacing.sm),
-                        Expanded(
-                          child: VButton(
-                            label: l10n.profileMessage,
-                            onPressed: _openChat,
-                          ),
-                        ),
-                      ],
                       if (_friendshipStatus == 'pending' &&
                           _friendshipId != null) ...[
                         const SizedBox(width: AppSpacing.sm),
@@ -286,30 +271,6 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
         ),
       ),
     );
-  }
-
-  /// Resolves (or creates) the E2EE direct chat with this friend via
-  /// `create_direct_chat` and opens the thread.
-  Future<void> _openChat() async {
-    try {
-      final chatId = await ref
-          .read(chatServiceProvider)
-          .createDirectChat(widget.userId);
-      if (!mounted) return;
-      await context.push(RoutePaths.chat(chatId));
-    } catch (e) {
-      if (!mounted) return;
-      final blocked = e is ConflictError && e.code == 'blocked';
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            blocked
-                ? AppLocalizations.of(context).profileChatUnavailable
-                : e.toAppError().message,
-          ),
-        ),
-      );
-    }
   }
 
   Widget _buildActionButton() {

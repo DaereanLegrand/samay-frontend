@@ -1,8 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:samay/core/models/user_search_result.dart';
 import 'package:samay/core/utils/input_sanitizer.dart';
+import 'package:samay/features/friends/providers/friends_cache_provider.dart';
 import 'package:samay/features/friends/providers/friends_providers.dart';
-import 'package:samay/features/friends/providers/recent_friends_provider.dart';
 
 /// Combined user-search rows for the user-picking UIs (groups invite, friends
 /// buscar/search, minigame picker) — the "cached friends + backend search"
@@ -24,7 +24,7 @@ final userSearchProvider = Provider.family<AsyncValue<List<UserSearchResult>>,
     String>((ref, arg) {
   final query = arg.trim();
   final needle = query.toLowerCase();
-  final friends = ref.watch(recentFriendsProvider);
+  final friends = ref.watch(friendsCacheProvider);
 
   if (query.length < InputSanitizer.searchQueryMinLength) {
     return friends.whenData(

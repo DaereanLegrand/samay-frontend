@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:samay/core/config/feature_flags.dart';
 import 'package:samay/core/design_tokens/app_icon_sizes.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/design_tokens/app_typography.dart';
 import 'package:samay/core/extensions/error_mapper.dart';
 import 'package:samay/core/providers/auth_provider.dart';
-import 'package:samay/core/router/main_shell.dart';
+import 'package:samay/core/router/page_insets.dart';
 import 'package:samay/core/router/route_paths.dart';
 import 'package:samay/features/profile/providers/profile_providers.dart';
 import 'package:samay/shared/widgets/profile_avatar.dart';
@@ -36,7 +35,6 @@ class ProfileScreen extends ConsumerWidget {
     final authState = ref.watch(authStateProvider);
     final profileAsync = ref.watch(myProfileProvider);
     final groupsAsync = ref.watch(myGroupsProvider);
-    final featureFlags = ref.watch(featureFlagsProvider);
     final l10n = AppLocalizations.of(context);
 
     final showLoading =
@@ -98,7 +96,6 @@ class ProfileScreen extends ConsumerWidget {
                 groups,
                 displayName,
                 initials,
-                showCosmetics: featureFlags.cosmeticsSection,
               ),
           ],
         ),
@@ -114,12 +111,9 @@ class ProfileScreen extends ConsumerWidget {
     Map<String, dynamic>? profile,
     List<Map<String, dynamic>> groups,
     String displayName,
-    String initials, {
-    required bool showCosmetics,
-  }) {
+    String initials,
+  ) {
     final bio = profile?['bio'] as String?;
-    final personalShards = profile?['personal_shards'] as int? ?? 0;
-    final preshards = profile?['preshards'] as int? ?? 0;
     final horizontal = AppSpacing.screenHorizontal;
     return [
       // Cover hero: a flat `surfaceAlt` band with the avatar centered. The
@@ -160,14 +154,9 @@ class ProfileScreen extends ConsumerWidget {
                 ),
               ],
               const SizedBox(height: AppSpacing.xl),
-              _StatStrip(
-                personalShards: personalShards,
-                preshards: preshards,
+              _GroupsCountStrip(
                 groupsCount: groups.length,
-                shardsLabel: l10n.shardsLedgerTabShards,
-                preshardsLabel: l10n.shardsLedgerTabPreshards,
                 groupsLabel: l10n.profileMyGroups,
-                onTap: () => context.push(RoutePaths.shardsLedger),
               ),
               const SizedBox(height: AppSpacing.xl),
               Text(
@@ -193,28 +182,12 @@ class ProfileScreen extends ConsumerWidget {
                 itemCount: groups.length,
                 itemBuilder: (context, i) => _GroupTile(
                   name: groups[i]['name'] as String? ?? '',
-                  shards: l10n.groupsShardsCountShort(
-                    (groups[i]['group_shards'] as num?)?.toInt() ?? 0,
-                  ),
                   showDivider: i > 0,
                 ),
               ),
       ),
       SliverToBoxAdapter(
-        child: Padding(
-          padding: EdgeInsets.fromLTRB(
-            horizontal,
-            showCosmetics ? AppSpacing.xxl : 0,
-            horizontal,
-            AppSpacing.xl + MainShell.navBarInset(context),
-          ),
-          child: showCosmetics
-              ? _CosmeticsRow(
-                  label: l10n.profileCosmetics,
-                  onTap: () => context.push(RoutePaths.cosmetics),
-                )
-              : const SizedBox.shrink(),
-        ),
+        child: SizedBox(height: AppSpacing.xl + pageBottomInset(context)),
       ),
     ];
   }
@@ -257,54 +230,27 @@ class _CoverHero extends StatelessWidget {
   }
 }
 
-/// The shards / preshards / groups numbers as a three-cell strip with hairline
-/// rules; the whole strip opens the shard ledger.
-class _StatStrip extends StatelessWidget {
-  const _StatStrip({
-    required this.personalShards,
-    required this.preshards,
+/// The groups total as a single centered stat with hairline rules.
+class _GroupsCountStrip extends StatelessWidget {
+  const _GroupsCountStrip({
     required this.groupsCount,
-    required this.shardsLabel,
-    required this.preshardsLabel,
     required this.groupsLabel,
-    required this.onTap,
   });
 
-  final int personalShards;
-  final int preshards;
   final int groupsCount;
-  final String shardsLabel;
-  final String preshardsLabel;
   final String groupsLabel;
-  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      child: Container(
-        decoration: BoxDecoration(
-          border: Border.symmetric(
-            horizontal: BorderSide(color: context.palette.hairline),
-          ),
-        ),
-        padding: const EdgeInsets.symmetric(vertical: AppSpacing.lg),
-        child: Row(
-          children: [
-            Expanded(
-              child: _StatCell(value: '$personalShards', label: shardsLabel),
-            ),
-            const _StatDivider(),
-            Expanded(
-              child: _StatCell(value: '$preshards', label: preshardsLabel),
-            ),
-            const _StatDivider(),
-            Expanded(
-              child: _StatCell(value: '$groupsCount', label: groupsLabel),
-            ),
-          ],
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        border: Border.symmetric(
+          horizontal: BorderSide(color: context.palette.hairline),
         ),
       ),
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.lg),
+      child: _StatCell(value: '$groupsCount', label: groupsLabel),
     );
   }
 }
@@ -334,28 +280,13 @@ class _StatCell extends StatelessWidget {
   }
 }
 
-class _StatDivider extends StatelessWidget {
-  const _StatDivider();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 1,
-      height: AppSpacing.xxl,
-      color: context.palette.hairline,
-    );
-  }
-}
-
-/// One profile-groups row: icon, name and shard count, hairline-separated.
+/// One profile-groups row: icon and name, hairline-separated.
 class _GroupTile extends StatelessWidget {
   final String name;
-  final String shards;
   final bool showDivider;
 
   const _GroupTile({
     required this.name,
-    required this.shards,
     required this.showDivider,
   });
 
@@ -384,57 +315,10 @@ class _GroupTile extends StatelessWidget {
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
               ),
-              const SizedBox(width: AppSpacing.sm),
-              Text(
-                shards,
-                style: Theme.of(
-                  context,
-                ).textTheme.bodySmall?.copyWith(color: context.palette.mutedForeground),
-              ),
             ],
           ),
         ),
       ],
-    );
-  }
-}
-
-/// The flag-gated cosmetics entry, as a hairline row.
-class _CosmeticsRow extends StatelessWidget {
-  const _CosmeticsRow({required this.label, required this.onTap});
-
-  final String label;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      child: Container(
-        decoration: BoxDecoration(
-          border: Border(top: BorderSide(color: context.palette.hairline)),
-        ),
-        padding: const EdgeInsets.symmetric(
-          vertical: AppSpacing.listRowVertical,
-        ),
-        child: Row(
-          children: [
-            Icon(
-              Icons.style,
-              size: AppIconSizes.md,
-              color: context.palette.mutedForeground,
-            ),
-            const SizedBox(width: AppSpacing.md),
-            Expanded(
-              child: Text(
-                label,
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-            ),
-            const Icon(Icons.chevron_right, size: AppIconSizes.md),
-          ],
-        ),
-      ),
     );
   }
 }

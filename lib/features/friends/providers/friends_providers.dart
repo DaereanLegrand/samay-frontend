@@ -6,6 +6,7 @@ import 'package:samay/core/models/user_search_result.dart';
 import 'package:samay/core/providers/service_providers.dart';
 import 'package:samay/core/repositories/repository_providers.dart';
 import 'package:samay/core/utils/throttled_refresh.dart';
+import 'package:samay/features/groups/providers/groups_providers.dart';
 
 /// Combined view of a user's friend requests: received + sent rows and the
 /// display names of the users involved.
@@ -190,3 +191,22 @@ final searchResultsProvider =
       List<UserSearchResult>,
       String
     >(SearchResultsNotifier.new);
+
+/// The Social surface's pending counter — received friend requests plus group
+/// invites. It used to live in the retired nav shell; the slim build has no
+/// nav bar, so the Social header badge owns it here next to its data sources.
+final pendingCountsProvider = Provider<int>((ref) {
+  final requests = ref.watch(
+    friendRequestsProvider.select(
+      (v) =>
+          v.valueOrNull?.requests
+              .where((r) => r.type == 'received')
+              .length ??
+          0,
+    ),
+  );
+  final invites = ref.watch(
+    groupInvitesProvider.select((v) => v.valueOrNull?.length ?? 0),
+  );
+  return requests + invites;
+});

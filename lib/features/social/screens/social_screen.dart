@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
-import 'package:samay/core/router/main_shell.dart';
+
 import 'package:samay/core/router/route_paths.dart';
+import 'package:samay/features/friends/providers/friends_providers.dart';
 import 'package:samay/features/groups/providers/groups_providers.dart';
 import 'package:samay/features/groups/screens/groups_tab_screen.dart';
 import 'package:samay/features/social/screens/amigos_tab_screen.dart';
@@ -16,10 +17,10 @@ import 'package:samay/core/theme/app_palette_context.dart';
 /// The Social tab root.
 ///
 /// Minimal: the pill sub-tabs (Grupos | Amigos) stay, but the per-segment
-/// button-tile rows are gone. The header carries search + the single shared
-/// Rankings entry, plus ONE contextual action — "+" (create group) on Grupos,
-/// the requests icon (with the pending count) on Amigos. The nav-bar Social
-/// badge keeps requests visible whichever segment is active.
+/// button-tile rows are gone. The header carries search plus ONE contextual
+/// action — "+" (create group) on Grupos, the requests icon (with the pending
+/// count) on Amigos. The nav-bar Social badge keeps requests visible whichever
+/// segment is active.
 class SocialScreen extends ConsumerStatefulWidget {
   const SocialScreen({super.key});
 
@@ -89,11 +90,6 @@ class _SocialScreenState extends ConsumerState<SocialScreen>
                   )
                 else
                   _RequestsButton(count: pendingCount),
-                IconButton(
-                  icon: const Icon(Icons.emoji_events_outlined),
-                  tooltip: l10n.socialRankingTitle,
-                  onPressed: () => context.push(RoutePaths.rankings),
-                ),
               ],
               bottomHeight: _kSegmentTabBarHeight,
               bottom: Padding(

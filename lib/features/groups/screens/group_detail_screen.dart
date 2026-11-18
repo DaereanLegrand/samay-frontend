@@ -9,33 +9,27 @@ import 'package:samay/core/models/group.dart';
 import 'package:samay/core/models/group_member.dart';
 import 'package:samay/core/repositories/repository_providers.dart';
 import 'package:samay/core/router/route_paths.dart';
-import 'package:samay/features/chat/providers/chat_providers.dart';
 import 'package:samay/features/groups/providers/groups_providers.dart';
 import 'package:samay/core/theme/app_palette.dart';
 import 'package:samay/core/theme/app_theme_provider.dart';
 import 'package:samay/features/groups/theme/group_theme_theme.dart';
-import 'package:samay/features/groups/widgets/donate_shards_dialog.dart';
-import 'package:samay/features/groups/widgets/group_events_section.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/error_view.dart';
 import 'package:samay/shared/widgets/full_screen_image.dart';
-import 'package:samay/shared/widgets/rank_badge.dart';
 import 'package:samay/shared/widgets/state_views.dart';
 import 'package:samay/shared/widgets/v_button.dart';
 import 'package:samay/shared/widgets/report_sheet.dart';
 import 'package:samay/shared/widgets/v_header_bar.dart';
 import 'package:samay/shared/widgets/v_network_image.dart';
-import 'package:samay/shared/widgets/v_shard_icon.dart';
 import 'package:samay/core/theme/app_palette_context.dart';
 
 /// Group detail: a full-bleed cover banner with the group name and menu in a
-/// transparent header, a flat identity strip (shards / members / rank), the
-/// group description and an action row (Chat · Donar · Miembros · Crear
-/// partida), then the inline events section. Invite/create-event/leave live in
-/// the header menu. Chat opens the shared [ChatScreen].
+/// transparent header, a flat identity strip (members), the group description
+/// and an action row (Miembros · Crear partida). Invite/leave live in the
+/// header menu.
 ///
 /// The whole screen is part of the group surface: it paints the host's derived
-/// theme (page, banner strip, inks) exactly like chat, the member list and the
+/// theme (page, banner strip, inks) exactly like the member list and the
 /// group minigames do.
 class GroupDetailScreen extends ConsumerStatefulWidget {
   const GroupDetailScreen({super.key, required this.groupId});
@@ -115,12 +109,7 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen> {
         if (data.membership?['status'] == 'invited') {
           return _buildInvitedPanel(data.group!, data.membership!, palette);
         }
-        return _buildDetail(
-          data.group!,
-          data.members,
-          data.contributions,
-          palette,
-        );
+        return _buildDetail(data.group!, data.members, palette);
       },
     );
     return GroupThemeSurface(palette: palette, child: body);
@@ -182,7 +171,6 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen> {
   Widget _buildDetail(
     Group g,
     List<GroupMember> members,
-    GroupContributionsData contributions,
     AppPalette? palette,
   ) {
     final l10n = AppLocalizations.of(context);
@@ -236,22 +224,7 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen> {
                         ),
                         const SizedBox(height: AppSpacing.md),
                       ],
-                      if (contributions.myContribution > 0) ...[
-                        Text(
-                          l10n.groupsMyContribution(
-                            contributions.myContribution,
-                          ),
-                          style: Theme.of(context).textTheme.bodyMedium
-                              ?.copyWith(
-                                color: palette?.mutedForeground ??
-                                    context.palette.mutedForeground,
-                              ),
-                        ),
-                        const SizedBox(height: AppSpacing.md),
-                      ],
-                      _actionRow(l10n, g, palette),
-                      const SizedBox(height: AppSpacing.lg),
-                      GroupEventsSection(groupId: widget.groupId),
+                      _actionRow(l10n, palette),
                     ],
                   ),
                 ),
@@ -292,8 +265,7 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen> {
   }
 
   /// The full-bleed banner: cover image (or a flat surface when absent), a
-  /// legibility scrim, and the shards + members rows with the rank letter
-  /// right-aligned and vertically centered against them.
+  /// legibility scrim, and the member count row.
   Widget _banner(
     AppLocalizations l10n,
     Group g,
@@ -303,7 +275,6 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen> {
     final hasCover = g.coverUrl != null && g.coverUrl!.isNotEmpty;
     final strip = palette?.surface ?? context.palette.background;
     final primaryInk = palette?.foreground ?? context.palette.foreground;
-    final secondaryInk = palette?.mutedForeground ?? context.palette.mutedForeground;
     final content = Stack(
       fit: StackFit.expand,
       children: [
@@ -312,8 +283,8 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen> {
         else
           ColoredBox(color: palette?.background ?? context.palette.background),
         // Flat identity strip at the banner floor (no gradient): it keeps the
-        // shards/members/rank legible over any cover and now carries the
-        // group's themed surface instead of a black box.
+        // member count legible over any cover and carries the group's themed
+        // surface instead of a black box.
         Positioned(
           left: 0,
           right: 0,
@@ -325,35 +296,12 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen> {
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          VShardIcon(color: primaryInk),
-                          const SizedBox(width: AppSpacing.sm),
-                          Flexible(
-                            child: Text(
-                              l10n.groupsShardsCountShort(g.groupShards),
-                              style: Theme.of(context).textTheme.bodyLarge
-                                  ?.copyWith(color: primaryInk),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: AppSpacing.xs),
-                      Text(
-                        l10n.groupsMembersCountShort(members.length),
-                        style: Theme.of(context).textTheme.bodyMedium
-                            ?.copyWith(color: secondaryInk),
-                      ),
-                    ],
+                  child: Text(
+                    l10n.groupsMembersCountShort(members.length),
+                    style: Theme.of(context).textTheme.bodyLarge
+                        ?.copyWith(color: primaryInk),
                   ),
                 ),
-                if (g.rankBracket != null) ...[
-                  const SizedBox(width: AppSpacing.md),
-                  RankBadge(bracket: g.rankBracket!),
-                ],
               ],
             ),
           ),
@@ -370,7 +318,7 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen> {
     );
   }
 
-  /// The header three-dot menu: Invitar · Crear evento · Abandonar.
+  /// The header three-dot menu: Invitar · Tema · Abandonar.
   Widget _menu(AppLocalizations l10n, Group g) {
     return PopupMenuButton<String>(
       tooltip: l10n.commonMoreOptions,
@@ -380,10 +328,6 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen> {
         PopupMenuItem(
           value: 'theme',
           child: Text(l10n.groupThemeTitle),
-        ),
-        PopupMenuItem(
-          value: 'create_event',
-          child: Text(l10n.groupsCreateEvent),
         ),
         if (g.coverUrl != null && g.coverUrl!.isNotEmpty)
           PopupMenuItem(
@@ -401,8 +345,6 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen> {
         context.push(RoutePaths.inviteToGroup(widget.groupId));
       case 'theme':
         context.push(RoutePaths.groupTheme(widget.groupId));
-      case 'create_event':
-        context.push(RoutePaths.createGroupEvent(widget.groupId));
       case 'report_cover':
         showReportSheet(
           context,
@@ -416,13 +358,9 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen> {
     }
   }
 
-  /// The group action row: Chat · Donar · Miembros · Crear partida, each an
-  /// icon over its label. The top pad keeps it clear of the description.
-  Widget _actionRow(
-    AppLocalizations l10n,
-    Group g,
-    AppPalette? palette,
-  ) {
+  /// The group action row: Miembros · Crear partida, each an icon over its
+  /// label. The top pad keeps it clear of the description.
+  Widget _actionRow(AppLocalizations l10n, AppPalette? palette) {
     final showGames = ref.isEnabled(AppFeatureFlag.minigames);
     final iconInk = palette?.foreground ?? context.palette.foreground;
     final labelInk = palette?.mutedForeground ?? context.palette.mutedForeground;
@@ -432,28 +370,6 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen> {
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _ActionIcon(
-            icon: Icons.chat_bubble_outline,
-            label: l10n.chatTitle,
-            ink: iconInk,
-            labelInk: labelInk,
-            onTap: _openChat,
-          ),
-          _ActionIcon(
-            icon: Icons.volunteer_activism_outlined,
-            label: l10n.groupsDonateTitle,
-            ink: iconInk,
-            labelInk: labelInk,
-            onTap: () async {
-              await showDonateToGroupDialog(
-                context,
-                groupId: widget.groupId,
-                groupName: g.name,
-                palette: palette,
-              );
-              _invalidateData();
-            },
-          ),
           _ActionIcon(
             icon: Icons.people_outline,
             label: l10n.groupsTabMembers,
@@ -472,16 +388,6 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen> {
         ],
       ),
     );
-  }
-
-  /// Opens the group's chat in the shared [ChatScreen] (the feed flow's chat
-  /// screen). The inbox is refreshed so the screen resolves the group name +
-  /// `referenceId` (sender labels).
-  Future<void> _openChat() async {
-    final chatId = await ref.read(groupChatIdProvider(widget.groupId).future);
-    if (!mounted || chatId == null) return;
-    ref.invalidate(chatInboxProvider);
-    context.push(RoutePaths.chat(chatId));
   }
 
   Future<void> _leaveGroup() async {

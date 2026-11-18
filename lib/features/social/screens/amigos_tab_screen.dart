@@ -4,7 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/extensions/error_mapper.dart';
 import 'package:samay/core/models/user_profile.dart';
-import 'package:samay/core/router/main_shell.dart';
+import 'package:samay/core/router/page_insets.dart';
 import 'package:samay/core/router/route_paths.dart';
 import 'package:samay/features/friends/providers/friends_providers.dart';
 import 'package:samay/l10n/app_localizations.dart';
@@ -85,7 +85,7 @@ class AmigosTab extends ConsumerWidget {
           // Clear the floating shell nav bar so the last row can scroll above
           // it (nav-bar height + 16).
           SliverToBoxAdapter(
-            child: SizedBox(height: MainShell.navBarInset(context)),
+            child: SizedBox(height: pageBottomInset(context)),
           ),
         ],
       ),

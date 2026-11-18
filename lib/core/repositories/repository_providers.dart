@@ -28,10 +28,7 @@ final friendsRepositoryProvider = Provider<FriendsRepository>((ref) {
 });
 
 final groupsRepositoryProvider = Provider<GroupsRepository>((ref) {
-  return GroupsRepository(
-    groups: ref.watch(groupServiceProvider),
-    shards: ref.watch(shardsServiceProvider),
-  );
+  return GroupsRepository(groups: ref.watch(groupServiceProvider));
 });
 
 final profileRepositoryProvider = Provider<ProfileRepository>((ref) {

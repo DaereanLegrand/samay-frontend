@@ -85,13 +85,12 @@ class _RequestsScreenState extends ConsumerState<RequestsScreen>
         ref.invalidate(myGroupsProvider);
         // While the user was INVITED, RLS denied the group member
         // list and groupMembersProvider cached an empty list (keepAlive
-        // family + ThrottledRefresh) — the chat thread's sender labels and
-        // the members tab would stay empty after the accept. Invalidate the
-        // membership-dependent providers so they re-fetch as an active member.
+        // family + ThrottledRefresh) — the members tab would stay empty after
+        // the accept. Invalidate the membership-dependent providers so they
+        // re-fetch as an active member.
         if (groupId.isNotEmpty) {
           ref.invalidate(groupMembersProvider(groupId));
           ref.invalidate(groupDetailProvider(groupId));
-          ref.invalidate(contributionsProvider(groupId));
         }
       });
 
