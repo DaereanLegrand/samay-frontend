@@ -3,7 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:samay/features/groups/theme/group_theme_colors.dart';
-import 'package:samay/core/services/shards_service.dart' show tierRank;
+import 'package:samay/core/services/prompt_pack_service.dart' show tierRank;
 import 'package:samay/core/theme/app_palette.dart';
 import 'package:samay/core/models/group_theme.dart';
 import 'package:samay/core/theme/app_theme_presets.dart';

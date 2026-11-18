@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:samay/core/models/event.dart';
 import 'package:samay/core/models/group.dart';
 import 'package:samay/core/models/group_theme.dart';
 import 'package:samay/core/models/user_profile.dart';
@@ -75,17 +74,14 @@ void main() {
       return (json['samples'] as List).first as Map<String, dynamic>;
     }
 
+    // Slim build: only the kept-feature fixtures are decoded. The generic
+    // shape check above already covers every fixture that ships.
     expect(UserProfile.fromJson(sample('user_profile')).id, isNotEmpty);
-    expect(Event.fromJson(sample('event')).id, isNotEmpty);
     expect(Group.fromJson(sample('group')).id, isNotEmpty);
     final theme = GroupTheme.fromJson(sample('group_theme'));
     expect(theme.groupId, isNotEmpty);
     expect(theme.palette, isNotEmpty);
     expect(theme.controlMode, 'everyone');
-
-    final blocked = sample('direct_chat_blocked');
-    expect(blocked['status'], 'blocked');
-    expect(sample('direct_chat_ok')['chatId'], isNotEmpty);
   });
 }
 
