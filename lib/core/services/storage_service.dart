@@ -43,6 +43,7 @@ class HiveService {
   static const friendsBoxName = 'friends_cache';
   static const minigameSummaryBoxName = 'minigame_summary_cache';
   static const feedBoxName = 'feed_cache';
+  static const promptPackCacheBoxName = 'prompt_pack_cache';
 
   /// Secure-storage key under which the base64-encoded Hive encryption key
   /// (32 bytes = 256 bit, AES-256) is persisted.
@@ -175,11 +176,34 @@ class HiveService {
     await _openBox(friendsBoxName, key);
     await _openBox(minigameSummaryBoxName, key);
     await _openBox(feedBoxName, key);
+    await _openBox(promptPackCacheBoxName, key);
   }
 
   Future<void> cacheConfig(Map<String, String> config) async {
     final box = _hive.box<String>(configBoxName);
     await box.putAll(config);
+  }
+
+  /// Marks that the player has already seen the app once (used to defer the
+  /// notification-permission dialog past the very first session).
+  Future<void> markFirstRunComplete() async {
+    try {
+      final box = _hive.box<String>(configBoxName);
+      await box.put('app.firstRunComplete', '1');
+    } catch (_) {
+      // Best-effort: an unwritable cache only re-asks one extra time.
+    }
+  }
+
+  /// True once [markFirstRunComplete] has run on this install.
+  bool get isFirstRunComplete {
+    try {
+      return _hive.box<String>(configBoxName).get('app.firstRunComplete') == '1';
+    } catch (_) {
+      // No cache (e.g. unentitled simulator build) → treat as first run so the
+      // dialog is never shown at a bad moment.
+      return false;
+    }
   }
 
   Map<String, String>? getCachedConfig() {
@@ -368,6 +392,88 @@ class HiveService {
     await box.delete(userId);
   }
 
+  // On-device prompt-pack cache (300_slim prompt packs).
+  // The catalogue and each fetched pack are stored as JSON in
+  // `prompt_pack_cache`, so the single-device mini-game engine keeps drawing
+  // prompts with zero network I/O (offline play) and a re-opened pack renders
+  // instantly. The catalogue entry (`prompt_packs`) is the `list_prompt_packs`
+  // array; each pack (`prompt_pack:<id>`) is the `get_prompt_pack` payload.
+  // Pack contents are versioned by `pack_version`, so a server bump simply
+  // overwrites the cached copy on the next fetch.
+  //
+  // Every method degrades to "no cache" on a Hive failure (unopened box after
+  // key loss, corrupt JSON): a disposable cache must never crash a screen.
+
+  static const _promptPacksKey = 'prompt_packs';
+  static const _promptPackPrefix = 'prompt_pack:';
+
+  /// Persists the [packs] catalogue rows (JSON-encoded list).
+  Future<void> putCachedPromptPacks(List<Map<String, dynamic>> packs) async {
+    try {
+      final box = _hive.box<String>(promptPackCacheBoxName);
+      await box.put(_promptPacksKey, jsonEncode(packs));
+    } catch (e, st) {
+      AppLogger.instance.warn(
+        'Hive putCachedPromptPacks failed: $e',
+        '$st',
+      );
+    }
+  }
+
+  /// The cached catalogue rows, or null when the cache is cold / unreadable.
+  List<Map<String, dynamic>>? getCachedPromptPacks() {
+    try {
+      final box = _hive.box<String>(promptPackCacheBoxName);
+      final raw = box.get(_promptPacksKey);
+      if (raw == null) return null;
+      final decoded = jsonDecode(raw);
+      if (decoded is! List) return null;
+      return decoded
+          .whereType<Map>()
+          .map((e) => Map<String, dynamic>.from(e))
+          .toList();
+    } catch (e, st) {
+      AppLogger.instance.warn(
+        'Hive getCachedPromptPacks failed: $e',
+        '$st',
+      );
+      return null;
+    }
+  }
+
+  /// Persists one fetched pack payload under [packId].
+  Future<void> putCachedPromptPack(
+    String packId,
+    Map<String, dynamic> json,
+  ) async {
+    try {
+      final box = _hive.box<String>(promptPackCacheBoxName);
+      await box.put('$_promptPackPrefix$packId', jsonEncode(json));
+    } catch (e, st) {
+      AppLogger.instance.warn(
+        'Hive putCachedPromptPack($packId) failed: $e',
+        '$st',
+      );
+    }
+  }
+
+  /// The cached payload of [packId], or null when not cached / unreadable.
+  Map<String, dynamic>? getCachedPromptPack(String packId) {
+    try {
+      final box = _hive.box<String>(promptPackCacheBoxName);
+      final raw = box.get('$_promptPackPrefix$packId');
+      if (raw == null) return null;
+      final decoded = jsonDecode(raw);
+      return decoded is Map ? Map<String, dynamic>.from(decoded) : null;
+    } catch (e, st) {
+      AppLogger.instance.warn(
+        'Hive getCachedPromptPack($packId) failed: $e',
+        '$st',
+      );
+      return null;
+    }
+  }
+
   /// Boxes that contain account-scoped data and must never survive a logout
   /// or an account switch (SEC-033).
   static const userDataBoxNames = <String>[
@@ -378,6 +484,7 @@ class HiveService {
     friendsBoxName,
     minigameSummaryBoxName,
     feedBoxName,
+    promptPackCacheBoxName,
   ];
 
   /// Empties every on-device cache. The boxes stay open (and encrypted); only
