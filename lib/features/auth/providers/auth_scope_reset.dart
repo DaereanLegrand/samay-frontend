@@ -5,29 +5,21 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:samay/core/providers/auth_provider.dart';
 import 'package:samay/core/providers/service_providers.dart';
 import 'package:samay/core/providers/user_provider.dart';
-import 'package:samay/features/chat/providers/chat_providers.dart';
-import 'package:samay/features/cosmetics/providers/cosmetics_providers.dart';
-import 'package:samay/features/events/providers/events_providers.dart';
-import 'package:samay/features/feed/providers/feed_providers.dart';
 import 'package:samay/features/friends/providers/friends_cache_provider.dart';
 import 'package:samay/features/friends/providers/friends_providers.dart';
-import 'package:samay/features/friends/providers/recent_friends_provider.dart';
 import 'package:samay/features/groups/providers/groups_providers.dart';
 import 'package:samay/features/minigames/providers/minigames_providers.dart';
 import 'package:samay/features/notifications/providers/notifications_providers.dart';
-import 'package:samay/features/photos/providers/photos_providers.dart';
+import 'package:samay/features/packs/providers/packs_providers.dart';
 import 'package:samay/features/profile/providers/profile_providers.dart' as profile;
-import 'package:samay/features/qr/providers/code_providers.dart';
-import 'package:samay/features/shards/providers/shard_ledger_providers.dart';
-import 'package:samay/features/social/providers/social_providers.dart';
 
 /// Account-switch staleness guard.
 ///
-/// **ON LOGOUT, FLUSH ALL DATA** (user directive): non-autodispose providers
-/// live for the whole container lifetime, so after signing out — and then
-/// signing in as another user in the same app session — every cached
-/// user-scoped provider would otherwise show the PREVIOUS account's data (friends
-/// lists, requests, groups, notifications, chats, QR tokens...).
+/// **ON LOGOUT, FLUSH ALL DATA**: non-autodispose providers live for the whole
+/// container lifetime, so after signing out — and then signing in as another
+/// user in the same app session — every cached user-scoped provider would
+/// otherwise show the PREVIOUS account's data (friends lists, requests,
+/// groups, notifications, partidas, packs...).
 ///
 /// This widget is mounted once at the app root (`SamayApp`, above the
 /// Navigator) and `ref.listen`s [authStateProvider]: the instant the session
@@ -36,11 +28,14 @@ import 'package:samay/features/social/providers/social_providers.dart';
 /// provider, flushing the whole per-account cache. The next read rebuilds
 /// fresh for the new session.
 ///
-/// Invalidating a `.family` provider (chat messages, QR tokens, event
-/// details...) clears ALL its instances. Derived providers
-/// (`pendingCountsProvider`, `unreadCountProvider`) recompute from the
-/// invalidated roots. The realtime listener (`FriendshipsRealtimeListener`)
-/// independently unsubscribes on sign-out.
+/// Invalidating a `.family` provider clears ALL its instances. Derived
+/// providers (`pendingCountsProvider`) recompute from
+/// the invalidated roots. The realtime listeners independently unsubscribe on
+/// sign-out.
+///
+/// Slim build note: only the kept features are listed. Guest → social
+/// conversion keeps the SAME uid (GoTrue manual linking), so it is not an
+/// account switch and deliberately does NOT flush the cache.
 class AuthScopeReset extends ConsumerWidget {
   const AuthScopeReset({super.key});
 
@@ -53,36 +48,18 @@ class AuthScopeReset extends ConsumerWidget {
     friendRequestsProvider,
     blockedUsersProvider,
     searchResultsProvider,
-    recentFriendsProvider,
     friendsCacheProvider,
     // groups
     myGroupsProvider,
     groupInvitesProvider,
     groupDetailProvider,
     groupMembersProvider,
-    leaderboardProvider,
-    contributionsProvider,
-    // profile (both myGroups: the groups tab's and the profile's own)
+    // profile (both myGroups: the social tab's and the profile's own)
     profile.myProfileProvider,
     profile.myGroupsProvider,
     currentUserProvider,
-    myCosmeticsProvider,
-    profilePublicProvider,
-    readReceiptsEnabledProvider,
-    // notifications / chat / qr / minigames / photos / feed / shards
+    // notifications / minigames / packs
     notificationsProvider,
-    chatMessagesProvider,
-    chatInboxProvider,
-    // chat service + E2EE stores: the ChatService singleton
-    // caches sessions/outbox in memory — without flushing it, a same-process
-    // sign-out/in keeps sending with the previous account's stale sessions
-    // (the "Mensaje no descifrable" bug survived sign-out because of this).
-    chatE2eeServiceProvider,
-    chatE2eeRepositoryProvider,
-    e2eePrekeyServiceProvider,
-    e2eeKeyStoreProvider,
-    e2eeSessionStoreProvider,
-    myCodeProvider,
     minigameSessionsProvider,
     myMinigameSessionsProvider,
     myPendingInvitesProvider,
@@ -95,14 +72,9 @@ class AuthScopeReset extends ConsumerWidget {
     minigameParticipantsProvider,
     minigamePlayerContentProvider,
     minigameResultProvider,
-    groupDetailCombinedProvider,
-    groupChatIdProvider,
-    eventPhotosProvider,
-    feedProvider,
-    shardLedgerProvider,
-    // events
-    eventDetailProvider,
     sessionStatusProvider,
+    promptPacksProvider,
+    localPacksForProvider,
   ];
 
   @override
@@ -112,15 +84,14 @@ class AuthScopeReset extends ConsumerWidget {
       final nextAuth = next.valueOrNull;
       final prevUid = prevAuth?.user?['id'];
       final nextUid = nextAuth?.user?['id'];
-      final loggedOut = prevAuth?.authenticated == true &&
-          nextAuth?.authenticated != true;
+      final loggedOut =
+          prevAuth?.authenticated == true && nextAuth?.authenticated != true;
       if (!loggedOut && prevUid == nextUid) return;
       // Logout (or account switch) → flush the per-account cache.
       for (final provider in _userScoped) {
         ref.invalidate(provider);
       }
-      // SEC-033: the on-disk caches (messages, notifications, photos,
-      // friends, feed, prefs) and network-image cache must be gone too —
+      // SEC-033: the on-disk caches and network-image cache must be gone too —
       // invalidating providers only clears memory. An initial authentication
       // (no previous uid) is NOT a logout and must not wipe a cache warming
       // up for the same session.

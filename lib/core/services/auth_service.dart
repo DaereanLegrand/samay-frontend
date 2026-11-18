@@ -45,6 +45,41 @@ class AuthService {
     );
   }
 
+  /// Creates an ANONYMOUS GoTrue session (the slim build's default entry).
+  ///
+  /// Anonymous users are real GoTrue users with `role=authenticated`, so every
+  /// existing RLS/grant contract applies unchanged; only the credential is
+  /// missing. Returns the new session's user id. Idempotent by caller: the
+  /// app must NOT call this when a session already exists.
+  Future<String> signInAnonymously() async {
+    final res = await auth.signInAnonymously();
+    final user = res.user;
+    if (user == null) {
+      throw const AuthException('Anonymous sign-in returned no user.');
+    }
+    return user.id;
+  }
+
+  /// Creates the guest's `users` row and records the 18+ / terms acceptance
+  /// atomically (server RPC `bootstrap_profile`). Safe to call again: an
+  /// existing row is returned rather than duplicated.
+  Future<void> bootstrapProfile({required String termsVersion}) async {
+    if (auth.currentUser == null) throw const UnauthorizedError();
+    await client.rpc(
+      'bootstrap_profile',
+      params: {'p_terms_version': termsVersion},
+    );
+  }
+
+  /// True when the CURRENT session is an anonymous guest.
+  bool get isCurrentUserAnonymous => auth.currentUser?.isAnonymous ?? false;
+
+  /// Flips the guest's own row to a full account after Apple/Google linking.
+  Future<void> confirmAccount() async {
+    if (auth.currentUser == null) throw const UnauthorizedError();
+    await client.rpc('confirm_my_account');
+  }
+
   Future<void> signIn(String email, String password) async {
     await auth.signInWithPassword(email: email, password: password);
   }
@@ -99,6 +134,16 @@ class AuthService {
     if (idToken == null) {
       throw const AuthException('Google sign-in returned no ID token.');
     }
+    // A guest KEEPS its uid: manual linking attaches the identity to the
+    // existing anonymous user instead of creating a second account.
+    if (auth.currentUser?.isAnonymous == true) {
+      await auth.linkIdentityWithIdToken(
+        provider: OAuthProvider.google,
+        idToken: idToken,
+      );
+      await confirmAccount();
+      return;
+    }
     await auth.signInWithIdToken(
       provider: OAuthProvider.google,
       idToken: idToken,
@@ -120,6 +165,16 @@ class AuthService {
     final idToken = credential.identityToken;
     if (idToken == null) {
       throw const AuthException('Apple sign-in returned no ID token.');
+    }
+    // Guest → keep the same uid (manual linking), then promote the row.
+    if (auth.currentUser?.isAnonymous == true) {
+      await auth.linkIdentityWithIdToken(
+        provider: OAuthProvider.apple,
+        idToken: idToken,
+        nonce: rawNonce,
+      );
+      await confirmAccount();
+      return;
     }
     await auth.signInWithIdToken(
       provider: OAuthProvider.apple,
