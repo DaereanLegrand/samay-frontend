@@ -72,3 +72,8 @@ make analyze     # dart analyze
 make test        # Makefile static gate (test/opt-008-makefile-static.sh)
 make check       # dart analyze + flutter analyze + secret scan
 ```
+
+## Branch notes
+
+This is the `slim-prod` branch: what it is, what was changed and why is
+documented in [`docs/SLIM-PROD.md`](docs/SLIM-PROD.md).
