@@ -76,6 +76,14 @@
 	</dict>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>FirebaseMessagingAutoInitEnabled</key>
+	<false/>
+	<!-- Do not let the Firebase SDK swizzle the app delegate at launch: that
+	     path registers for remote notifications and raises the notification
+	     permission dialog before the first screen. PushService activates
+	     explicitly after onboarding instead. -->
+	<key>FirebaseAppDelegateProxyEnabled</key>
+	<false/>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>remote-notification</string>

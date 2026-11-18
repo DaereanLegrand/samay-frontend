@@ -27,19 +27,12 @@ dependencies:
   firebase_core: ^4.15.0
   firebase_messaging: ^16.7.0
   image_picker: ^1.1.2
-  permission_handler: ^12.0.3
   # Connectivity awareness (I-67): device network status for the offline
   # banner + future offline-cache fallbacks. Flutter favorite, verified
   # publisher fluttercommunity.dev. Injectable seam in
   # lib/core/services/connectivity_service.dart — the plugin itself is only
   # touched by the default stream/check implementations.
   connectivity_plus: ^7.3.1
-  # Feed match-card avatar physics (2026-09-20): the participants are little
-  # colliding circles that pile under gravity. Pure-Dart Box2D port — pinned to
-  # 0.14.x deliberately: 0.15+ binds native Box2D v3 through build hooks (C
-  # toolchain / native assets), which this project does not want for a feed
-  # flourish. Verified publisher flame-engine.org.
-  forge2d: ^0.14.0
   intl: ^0.20.2
   json_annotation: ^4.12.0
   path_provider: ^2.1.6
@@ -75,24 +68,10 @@ dependencies:
   # RevenueCat SDK (I-61 re-add per DEP-01/RSDK re-add plan; 10.x dropped the
   # transitive freezed_annotation pin that forced the original ^8.4.1 bump).
   purchases_flutter: ^10.8.0
-  # Event location picker + km discovery filter (2026-09-24): vector tiles
-  # served by tiles.qallariy.lat via flutter_map + vector_map_tiles (the same
-  # stack used by the reference app) and device geolocation via geolocator.
-  flutter_map: ^7.0.2
-  vector_map_tiles: ^8.0.0
-  vector_map_tiles_pmtiles: ^1.5.0
-  vector_tile: ^2.0.1
-  latlong2: ^0.9.1
-  geolocator: ^14.0.2
   http: ^1.4.0
   google_sign_in: ^7.2.0
   sign_in_with_apple: ^8.2.0
   crypto: ^3.0.7
-  # Renders the official vector (SVG) "Sign in with Apple" logo-only artwork for
-  # the custom logo-only button (HIG: use SVG/PDF for logo-only buttons that are
-  # not 44x44 pt). Flutter Favorite; the SVG is bundled unmodified so the logo
-  # is Apple's download, never a hand-drawn mark.
-  flutter_svg: ^2.3.0
   flutter_local_notifications: ^22.3.2
 
 dev_dependencies:
