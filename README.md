@@ -3,6 +3,9 @@
 Samay is a party/minigames app for groups of friends: four games, one-tap
 guest onboarding, and either a single shared phone or a multi-device session.
 
+- Client: <https://github.com/DaereanLegrand/samay-frontend>
+- Backend: <https://github.com/DaereanLegrand/samay-backend>
+
 ## What this is
 
 - **Games only.** Verdad o Reto, Botella, 2 Mentiras 1 Verdad and Charadas.
@@ -27,8 +30,9 @@ guest onboarding, and either a single shared phone or a multi-device session.
   against); the app requires Dart SDK `^3.11.4` (`pubspec.yaml`)
 - Xcode with CocoaPods (iOS) or the Android SDK and a device/emulator
 - `gum` — `make init` is an interactive script
-- A reachable backend: run the backend repo locally, or point `.env` at your
-  own project
+- A reachable backend: run the [backend
+  repo](https://github.com/DaereanLegrand/samay-backend) locally, or point `.env`
+  at your own project
 
 ## Quick start
 
@@ -56,6 +60,9 @@ make start ENV=testing-local   # = make dev; runs against the local stack
 | `lib/features/{friends,groups,notifications,profile,social}/` | header-menu screens |
 | `lib/crypto/` | E2EE primitives used by multiplayer answers |
 | `test/` | Dart tests, including `local_match_test.dart` |
+
+The server side (self-hosted Supabase + Go admin API) lives in the
+[backend repo](https://github.com/DaereanLegrand/samay-backend).
 
 ## Testing
 
