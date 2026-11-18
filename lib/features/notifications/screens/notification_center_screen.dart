@@ -9,7 +9,7 @@ import 'package:samay/core/design_tokens/app_typography.dart';
 import 'package:samay/core/logging/app_logger.dart';
 import 'package:samay/core/models/notification_item.dart';
 import 'package:samay/core/providers/service_providers.dart';
-import 'package:samay/core/router/main_shell.dart';
+import 'package:samay/core/router/page_insets.dart';
 import 'package:samay/features/notifications/providers/notifications_providers.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/error_view.dart';
@@ -18,35 +18,29 @@ import 'package:samay/shared/widgets/v_header_bar.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' show RealtimeChannel;
 import 'package:samay/core/theme/app_palette_context.dart';
 
-/// Icon per notification type (NOTI spec table, 16 rows). The title/body
-/// text ships in the row itself (inserted by the push pipeline with the spec
-/// copy); unknown types fall back to the bell.
+/// Icon per notification type. The title/body text ships in the row itself
+/// (inserted by the push pipeline with the spec copy); unknown types fall back
+/// to the bell.
+///
+/// Only the kept surfaces have an arm: friends, groups, minigames and the QR
+/// attendance code. Removed feature types (events, chat, rankings, shards,
+/// social) render through the generic bell fallback.
 IconData notificationIconForType(String type) {
   return switch (type) {
-    'event_invite' => Icons.event,
     'friend_request' => Icons.person_add,
-    // Server emits `event_live`; the spec/seeds used `event_starting`.
-    'event_starting' || 'event_live' => Icons.notifications_active,
     'qr_active' => Icons.qr_code,
     'attendance_confirmed' => Icons.check_circle,
-    'shard_received' => Icons.diamond,
-    // Server emits `rank_bracket`; the spec used `rank_update`.
-    'rank_update' || 'rank_bracket' => Icons.leaderboard,
-    // Server emits `new_message`; the spec/seeds used `chat_message`.
-    'chat_message' || 'new_message' => Icons.chat_bubble,
     'minigame_invite' => Icons.sports_esports,
     // Generic "it's your turn" across every minigame (truth_dare,
     // drunk_bottle, two_lies_one_truth, charades).
     'minigame_turn' => Icons.sports_esports,
     'poke_received' => Icons.bolt,
-    'invite_approval' => Icons.event_available,
     // Server emits a single `feature_request` carrying data.status; the spec
     // split it into approved/rejected.
     'feature_request' || 'feature_approved' => Icons.star,
     'feature_rejected' => Icons.star_border,
     'report_warned' => Icons.warning_amber,
     'content_removed' => Icons.delete,
-    'event_cancelled' => Icons.event_busy,
     _ => Icons.notifications,
   };
 }
@@ -146,7 +140,7 @@ class _NotificationCenterScreenState
             // Clear the floating shell nav bar so the last row can scroll
             // above it (nav-bar height + 16).
             SliverToBoxAdapter(
-              child: SizedBox(height: MainShell.navBarInset(context)),
+              child: SizedBox(height: pageBottomInset(context)),
             ),
           ],
         ),

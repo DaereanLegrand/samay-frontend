@@ -10,6 +10,7 @@ import 'package:samay/core/theme/themed_data.dart';
 import 'package:samay/core/router/app_router.dart';
 import 'package:samay/features/auth/providers/auth_scope_reset.dart';
 import 'package:samay/features/friends/providers/friends_cache_provider.dart';
+import 'package:samay/features/notifications/providers/push_notification_listener.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/connectivity_banner.dart';
 import 'package:samay/shared/widgets/crash_recovery_banner.dart';
@@ -75,6 +76,10 @@ class SamayApp extends ConsumerWidget {
               // user-scoped provider is invalidated (no stale data survives
               // an account switch in the same session).
               const AuthScopeReset(),
+              // PUSH: mounted once at the root (it used to live in the deleted
+              // nav shell). It is inert until the player is onboarded, then it
+              // activates FCM, asks for the permission and syncs the token.
+              const PushNotificationListener(),
               // FRIENDS CACHE: fetches the friend list in the
               // background on auth and persists it to the device DB so the
               // invite/buscar pickers render friends for empty + <5-char

@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:samay/core/logging/app_logger.dart';
 import 'package:samay/core/providers/auth_provider.dart';
+import 'package:samay/core/providers/service_providers.dart';
 import 'package:samay/core/router/app_router.dart';
 import 'package:samay/core/router/route_paths.dart';
 import 'package:samay/core/services/local_notifications_service.dart';
@@ -36,11 +37,18 @@ class _PushNotificationListenerState
     extends ConsumerState<PushNotificationListener> {
   StreamSubscription<RemoteMessage>? _foreground;
   StreamSubscription<RemoteMessage>? _opened;
+  bool _started = false;
 
   @override
   void initState() {
     super.initState();
+    // Start once onboarded: immediately when that is already true, otherwise
+    // on the first auth transition that completes onboarding.
     WidgetsBinding.instance.addPostFrameCallback((_) => _start());
+    ref.listenManual<AsyncValue<AuthState>>(authStateProvider, (_, next) {
+      final a = next.valueOrNull;
+      if (a != null && a.authenticated && a.hasProfile) unawaited(_start());
+    });
   }
 
   @override
@@ -51,9 +59,26 @@ class _PushNotificationListenerState
   }
 
   Future<void> _start() async {
-    // Register the token for the current session (the shell mounts only after
-    // authentication, so a user exists).
-    if (!mounted) return;
+    if (!mounted || _started) return;
+    // First-run friendliness: nothing push-related happens until the player is
+    // onboarded (has a real app screen). That keeps the OS permission dialog
+    // off onboarding and out of the very first session.
+    final auth = ref.read(authStateProvider).valueOrNull;
+    if (auth == null || !auth.authenticated || !auth.hasProfile) return;
+    _started = true;
+
+    // The permission dialog never greets a first-run player: it is deferred to
+    // the NEXT launch (the first session only records that it happened). On
+    // every later launch the player is already inside the app when it fires.
+    final cache = ref.read(hiveServiceProvider);
+    final repeatLaunch = cache.isFirstRunComplete;
+    if (!repeatLaunch) {
+      await cache.markFirstRunComplete();
+    } else {
+      await ref.read(pushServiceProvider).activate();
+    }
+
+    // Token sync needs no permission, so it can run on every launch.
     await ref.read(pushServiceProvider).syncRegistration();
 
     // SEC-035 option C: background pushes render a generic LOCAL notification
@@ -90,7 +115,7 @@ class _PushNotificationListenerState
       if (!mounted) return;
       ref.read(routerProvider).push(
         payload == LocalNotificationsService.notificationCenterPayload
-            ? RoutePaths.mainNotifications
+            ? RoutePaths.notifications
             : payload,
       );
     });

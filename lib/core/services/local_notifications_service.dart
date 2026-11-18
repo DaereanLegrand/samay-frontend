@@ -24,7 +24,7 @@ class LocalNotificationsService {
 
   /// Payload attached to every generic notification: the in-app notification
   /// center. No per-entity ids travel through the notification.
-  static const String notificationCenterPayload = RoutePaths.mainNotifications;
+  static const String notificationCenterPayload = RoutePaths.notifications;
 
   static const String _channelId = 'samay_activity';
   static const String _channelName = 'Actividad de Samay';

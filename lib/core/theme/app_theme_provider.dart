@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:samay/core/logging/app_logger.dart';
 import 'package:samay/core/providers/service_providers.dart';
-import 'package:samay/core/services/shards_service.dart' show tierRank;
+import 'package:samay/core/services/prompt_pack_service.dart' show tierRank;
 import 'package:samay/core/services/storage_service.dart';
 import 'package:samay/core/theme/app_palette.dart';
 import 'package:samay/core/theme/app_theme_presets.dart';

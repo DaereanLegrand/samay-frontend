@@ -36,20 +36,20 @@ NotificationTimeSpan notificationTimeSpan(DateTime createdAt, DateTime now) {
 /// Types & Deep Links"): an explicit `deepLink` in `data` wins; otherwise the
 /// target is derived from the type + id
 /// fields. Returns null when the row carries no navigable target.
+///
+/// Only the kept surfaces resolve: friends, groups and minigames. Removed
+/// feature types (events, chat, rankings, shards, social) carry no arm and
+/// therefore navigate nowhere — their rows still render generically.
 String? notificationDeepLink(String type, Map<String, dynamic>? data) {
   if (data == null) return null;
   final explicit = data['deepLink'];
   if (explicit is String && explicit.isNotEmpty) return explicit;
 
-  final eventId = _firstId(data, const ['event_id', 'eventId']);
   final groupId = _firstId(data, const ['group_id', 'groupId']);
-  final chatId = _firstId(data, const ['chat_id', 'chatId']);
   final userId = _firstId(data, const ['user_id', 'userId']);
   final sessionId = _firstId(data, const ['session_id', 'sessionId']);
 
   switch (type) {
-    case 'qr_active':
-      return eventId == null ? null : RoutePaths.qr(eventId);
     case 'friend_request':
       // Spec deep link is `/user/{userId}/friend` — a route that does not
       // exist yet, so it resolves to the registered public profile instead.
@@ -62,19 +62,8 @@ String? notificationDeepLink(String type, Map<String, dynamic>? data) {
     case 'minigame_turn':
       // Generic turn notice: every minigame routes to its session.
       return sessionId == null ? null : RoutePaths.minigameSession(sessionId);
-    // Server emits `rank_bracket`; the spec used `rank_update`.
-    case 'rank_update':
-    case 'rank_bracket':
-    case 'poke_received':
-      return groupId == null ? null : RoutePaths.groupDetail(groupId);
-    // Server emits `new_message`; the spec/seeds used `chat_message`.
-    case 'chat_message':
-    case 'new_message':
-      return chatId == null ? null : RoutePaths.chat(chatId);
     default:
-      if (eventId != null) return RoutePaths.eventDetail(eventId);
       if (groupId != null) return RoutePaths.groupDetail(groupId);
-      if (chatId != null) return RoutePaths.chat(chatId);
       if (userId != null) return RoutePaths.userProfile(userId);
       return null;
   }
@@ -88,19 +77,15 @@ String? notificationDeepLink(String type, Map<String, dynamic>? data) {
 bool isRegisteredRoutePath(String path) {
   final normalized = path.split('?').first;
   const exact = {
-    RoutePaths.mainFeed,
-    RoutePaths.mainGroups,
-    RoutePaths.mainGames,
-    RoutePaths.mainEvents,
-    RoutePaths.mainNotifications,
-    RoutePaths.mainProfile,
+    RoutePaths.gamesHome,
+    RoutePaths.social,
+    RoutePaths.notifications,
+    RoutePaths.profile,
     RoutePaths.groupCreate,
-    RoutePaths.rankings,
     RoutePaths.userSearch,
     RoutePaths.friendsRequests,
     RoutePaths.friendsList,
     RoutePaths.blockedUsers,
-    RoutePaths.subscriptions,
     RoutePaths.settings,
     RoutePaths.deleteAccount,
     RoutePaths.profileEdit,
@@ -108,18 +93,9 @@ bool isRegisteredRoutePath(String path) {
   if (exact.contains(normalized)) return true;
 
   final segments = normalized.split('/').where((s) => s.isNotEmpty).toList();
-  if (segments.length == 2 && segments[0] == 'event') return true;
-  if (segments.length == 3 && segments[0] == 'event') {
-    return const {'edit', 'invite', 'photos', 'collage'}.contains(segments[2]);
-  }
   if (segments.length == 2 && segments[0] == 'group') return true;
   if (segments.length == 3 && segments[0] == 'group') {
-    return const {
-      'members',
-      'donate',
-      'create-event',
-      'invite',
-    }.contains(segments[2]);
+    return const {'members', 'theme', 'invite'}.contains(segments[2]);
   }
   if (segments.length == 3 &&
       segments[0] == 'minigames' &&
@@ -132,10 +108,7 @@ bool isRegisteredRoutePath(String path) {
       segments[2] == 'truth-dare') {
     return true;
   }
-  if (segments.length == 2 && segments[0] == 'chat') return true;
   if (segments.length == 2 && segments[0] == 'user') return true;
-  if (segments.length == 2 && segments[0] == 'qr') return true;
-  if (segments.length == 2 && segments[0] == 'scanner') return true;
   return false;
 }
 
@@ -185,7 +158,7 @@ class NotificationsNotifier extends AsyncNotifier<List<NotificationItem>> {
 
   /// Appends a realtime-delivered row (deduplicated by id, prepended so the
   /// newest-first ordering holds). Dispose-safe subscription wiring lives in
-  /// the notification center screen (chat pattern).
+  /// the notification center screen.
   void addNotification(Map<String, dynamic> row) {
     final id = row['id'];
     if (id is! String) return;

@@ -299,8 +299,35 @@ class PushService {
     return defaultTargetPlatform == TargetPlatform.iOS ? 'ios' : 'android';
   }
 
-  /// Initialises Firebase + FCM: registers the background handler, requests
-  /// permission and fetches the token. Safe to call once, before `runApp`.
+  /// Whether the OS permission has been requested in this install.
+  bool _permissionRequested = false;
+
+  /// Whether FCM has been initialised (see [activate]).
+  bool _initialized = false;
+
+  /// Initialises Firebase + FCM and asks for the notification permission.
+  ///
+  /// This is the ONLY entry point that touches APNs/FCM, and it is deliberately
+  /// NOT called at boot: on iOS `getToken()` registers for remote
+  /// notifications, which raises the system permission dialog. First-run users
+  /// must see the app, not a dialog, so the app calls [activate] only once the
+  /// player has onboarded.
+  ///
+  /// Safe to call more than once; later calls are no-ops.
+  Future<void> activate() async {
+    if (_initialized) {
+      await requestPermission();
+      return;
+    }
+    _initialized = true;
+    await initialize();
+    await requestPermission();
+  }
+
+  /// Initialises Firebase + FCM: registers the background handler and fetches
+  /// the token. Does NOT ask for notification permission — that prompt is
+  /// deferred to [requestPermission] once the player has onboarded, so a
+  /// first-run user sees the app, not a system dialog.
   Future<void> initialize() async {
     try {
       if (Firebase.apps.isEmpty) {
@@ -312,8 +339,11 @@ class PushService {
       await LocalNotificationsService.instance.initialize();
       final messaging = _messaging ?? FirebaseMessaging.instance;
       _messagingInstance = messaging;
+      // Info.plist sets FirebaseMessagingAutoInitEnabled=false so the plugin
+      // does NOT register for remote notifications at launch (that is what
+      // raised the iOS permission dialog on the first screen). Activation
+      // turns it back on, then the token is fetched.
       await messaging.setAutoInitEnabled(true);
-      await messaging.requestPermission();
       // iOS: keep the OS presentation flags for any future alert-bearing
       // message; this build only sends data-only wake-ups.
       await messaging.setForegroundNotificationPresentationOptions(
@@ -348,6 +378,25 @@ class PushService {
         'PushService disabled (Firebase config missing or invalid): $e',
         '$st',
       );
+    }
+  }
+
+  /// Asks the OS for notification permission, once per install.
+  ///
+  /// Called from the push listener only after the session is onboarded (i.e.
+  /// after the player's first screen), so onboarding is never interrupted by a
+  /// system dialog. Returns the authorization status; best-effort.
+  Future<bool> requestPermission() async {
+    if (_permissionRequested) return true;
+    try {
+      final messaging = _messagingInstance ?? FirebaseMessaging.instance;
+      final settings = await messaging.requestPermission();
+      _permissionRequested = true;
+      return settings.authorizationStatus == AuthorizationStatus.authorized ||
+          settings.authorizationStatus == AuthorizationStatus.provisional;
+    } catch (e, st) {
+      AppLogger.instance.warn('push permission request failed: $e', '$st');
+      return false;
     }
   }
 

@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 /// Injection seam for the `connectivity_plus` plugin (a platform plugin that
 /// cannot run in widget tests): callers/tests substitute this function
 /// instead of mocking the platform channel — the same pattern as
-/// [PermissionService]'s injectable seams.
+/// the old PermissionService seams.
 typedef ConnectivityStream = Stream<bool> Function();
 
 /// Injection seam for the one-shot connectivity check.
