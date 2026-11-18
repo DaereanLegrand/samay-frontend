@@ -232,9 +232,22 @@ class _MinigameDetailScreenState extends ConsumerState<MinigameDetailScreen> {
         children: [
           _buildHero(l10n, type),
           const SizedBox(height: AppSpacing.lg),
-          // White button with black font — the
-          // primary CTA voice on the per-game page.
+          // ONE tap to play: starts a pass-the-phone match immediately with
+          // two default seats — names are corrected on the play screen, so
+          // nothing has to be typed before the first prompt. The setup screen
+          // (extra players, round target) stays available below.
           VButton.emphasized(
+            label: l10n.minigamesPlayNow,
+            onPressed: () =>
+                context.push('${RoutePaths.localMatch(type.value)}?quick=1'),
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          TextButton(
+            onPressed: () => context.push(RoutePaths.localMatch(type.value)),
+            child: Text(l10n.minigamesChoosePlayers),
+          ),
+          const SizedBox(height: AppSpacing.md),
+          VButton.outlined(
             label: l10n.minigamesNewPartida,
             onPressed: _openNewPartida,
           ),
@@ -675,7 +688,6 @@ class _NewPartidaScreenState extends ConsumerState<_NewPartidaScreen> {
   static const double wizardControlHeight = 40;
 
   final _nameController = TextEditingController();
-  final _wagerController = TextEditingController(text: '10');
   final _roundsController = TextEditingController(text: '5');
   final _asyncRoundsController = TextEditingController(text: '1');
   final _asyncDaysController = TextEditingController(text: '1');
@@ -689,7 +701,6 @@ class _NewPartidaScreenState extends ConsumerState<_NewPartidaScreen> {
   @override
   void dispose() {
     _nameController.dispose();
-    _wagerController.dispose();
     _roundsController.dispose();
     _asyncRoundsController.dispose();
     _asyncDaysController.dispose();
@@ -725,7 +736,6 @@ class _NewPartidaScreenState extends ConsumerState<_NewPartidaScreen> {
     final l10n = AppLocalizations.of(context);
     final type = widget.gameType;
     final name = _nameController.text.trim();
-    final wager = int.tryParse(_wagerController.text.trim()) ?? 0;
     final rounds = int.tryParse(_roundsController.text.trim()) ?? 5;
     final prizePositions = _prizePositions;
     final asyncRoundsPerPlayer =
@@ -748,7 +758,6 @@ class _NewPartidaScreenState extends ConsumerState<_NewPartidaScreen> {
             .read(minigameSessionsProvider(groupId).notifier)
             .create(
               type,
-              wager,
               name: name,
               rounds: rounds,
               prizePositions: prizePositions,
@@ -762,7 +771,6 @@ class _NewPartidaScreenState extends ConsumerState<_NewPartidaScreen> {
             .read(myMinigameSessionsProvider.notifier)
             .create(
               type,
-              wager,
               name: name,
               rounds: rounds,
               prizePositions: prizePositions,
@@ -955,11 +963,7 @@ class _NewPartidaScreenState extends ConsumerState<_NewPartidaScreen> {
             const SizedBox(height: AppSpacing.md),
             // Total-turn target (default 5). The host-set prize-position (N)
             // selector is deferred; the client sends the default N = 3.
-            _WagerRoundsRow(
-              wagerController: _wagerController,
-              roundsController: _roundsController,
-              onWagerChanged: (_) => setState(() {}),
-            ),
+            _RoundsRow(roundsController: _roundsController),
             const SizedBox(height: AppSpacing.xl),
             VButton.emphasized(
               label: l10n.minigamesCreate,
@@ -1160,104 +1164,6 @@ Future<String?> showGroupPickerSheet(
   );
 }
 
-/// The wager + rounds row in the create-partida wizard — two columns in one
-/// row: LEFT = "Usando" (plain editable amount with a
-/// shard icon on the right); RIGHT = "Rondas" (wheel picker).
-class _WagerRoundsRow extends StatelessWidget {
-  final TextEditingController wagerController;
-  final TextEditingController roundsController;
-  final ValueChanged<String> onWagerChanged;
-
-  const _WagerRoundsRow({
-    required this.wagerController,
-    required this.roundsController,
-    required this.onWagerChanged,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(
-          child: _labelFieldColumn(
-            label: l10n.minigamesWagerLabel,
-            // Constrain the wager input width so the amount + shard icon sit
-            // together instead of the input stretching full column width.
-            field: Align(
-              alignment: Alignment.centerLeft,
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 120),
-                // Plain editable amount field (no wheel picker — the picker
-                // stays only on Rondas). Shard symbol on the
-                // RIGHT of the number.
-                child: VInput(
-                  label: l10n.minigamesWagerLabel,
-                  hint: l10n.minigamesWagerDefaultHint,
-                  controller: wagerController,
-                  keyboardType: TextInputType.number,
-                  onChanged: onWagerChanged,
-                  suffixIcon: const Padding(
-                    padding: EdgeInsets.only(
-                      left: AppSpacing.xs,
-                      right: AppSpacing.lg,
-                    ),
-                    child: VShardIcon(size: AppIconSizes.sm),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(width: AppSpacing.md),
-        Expanded(
-          child: _labelFieldColumn(
-            label: l10n.minigamesRoundsLabel,
-            field: _NumberField(
-              hint: l10n.minigamesRoundsHint,
-              controller: roundsController,
-              // Rondas value right-aligned like its column.
-              textAlign: TextAlign.end,
-            ),
-            // Rondas right-aligned against the column's right edge so the two
-            // columns mirror.
-            alignEnd: true,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _labelFieldColumn({
-    required String label,
-    required Widget field,
-    bool alignEnd = false,
-  }) {
-    return Column(
-      crossAxisAlignment: alignEnd
-          ? CrossAxisAlignment.end
-          : CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: EdgeInsets.only(
-            left: alignEnd ? 0 : AppSpacing.sm,
-            right: alignEnd ? AppSpacing.sm : 0,
-          ),
-          child: Text(
-            label.toUpperCase(),
-            style: _WizardSectionLabel.style,
-            textAlign: alignEnd ? TextAlign.end : TextAlign.start,
-          ),
-        ),
-        // Tight gap between label and its input.
-        const SizedBox(height: 0),
-        field,
-      ],
-    );
-  }
-}
-
 /// A single labeled number row used by the async mode fields (per-player
 /// rounds + game-time days): label ABOVE the wheel, same voice as the wager
 /// column's label.
@@ -1438,6 +1344,43 @@ Future<int?> showNumberWheelSheet(
 /// leaderboard. Two-column mode section: the label sits ABOVE the switch in
 /// the right column, so both mode labels share one line and both controls
 /// (chips + switch) the next.
+/// The rounds row in the create-partida wizard.
+///
+/// The shard/wager column is gone in this build (partidas are free), so only
+/// the round target remains — the single number that still shapes a match.
+class _RoundsRow extends StatelessWidget {
+  final TextEditingController roundsController;
+
+  const _RoundsRow({required this.roundsController});
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: Padding(
+            padding: const EdgeInsets.only(top: AppSpacing.xs),
+            child: Text(
+              l10n.minigamesRoundsLabel.toUpperCase(),
+              style: Theme.of(context).textTheme.titleSmall,
+            ),
+          ),
+        ),
+        SizedBox(
+          width: 120,
+          child: _NumberField(
+            hint: l10n.minigamesRoundsHint,
+            controller: roundsController,
+            textAlign: TextAlign.end,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 class _AnonymousToggle extends StatelessWidget {
   const _AnonymousToggle({required this.value, required this.onChanged});
 

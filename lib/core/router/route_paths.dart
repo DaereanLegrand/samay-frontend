@@ -1,81 +1,51 @@
 abstract final class RoutePaths {
-  static const welcome = '/';
-  static const login = '/login';
+  /// Guest-first entry: the games deck. Reached only once onboarding is done
+  /// (a guest with a profile) — otherwise the guard lands on [onboarding].
+  static const gamesHome = '/';
+
+  /// The single onboarding screen: 18+ confirmation + terms & privacy.
+  static const onboarding = '/onboarding';
+
+  /// Optional account upgrade (Sign in with Apple / Google). Reachable from
+  /// the games menu and from Settings; never required to play.
+  static const signIn = '/sign-in';
+
+  /// Store-compliance surfaces for a suspended account.
   static const banned = '/banned';
-  static const signup = '/auth/signup';
-  static const verify = '/auth/verify';
-  static const forgotPassword = '/forgot-password';
-  static const resetPassword = '/auth/reset-password';
-  static const ageGate = '/auth/age-gate';
-  static const privacyTerms = '/auth/privacy-terms';
-  static const profileSetup = '/auth/profile-setup';
-  static const mainFeed = '/main/feed';
-  static const mainGroups = '/main/groups';
-  static const mainGames = '/main/games';
-  static const mainEvents = '/main/events';
-  static const mainNotifications = '/main/notifications';
-  static const mainProfile = '/main/profile';
-  static const groupCreate = '/group/create';
-  static const rankings = '/rankings';
-  static const userSearch = '/user/search';
-  static const friendsRequests = '/friends/requests';
-  static const friendsList = '/friends/list';
-  static const blockedUsers = '/settings/blocked';
-  static const mutedUsers = '/settings/muted';
   static const appeals = '/appeals';
 
   static String appeal({bool banAppeal = false}) =>
       banAppeal ? '/appeals?ban=1' : '/appeals';
-  static const subscriptions = '/subscriptions';
-  static const cosmetics = '/cosmetics';
-  static const shardsLedger = '/shards/ledger';
-  static const settings = '/settings';
-  static const appTheme = '/settings/appearance';
-  static const deleteAccount = '/settings/delete-account';
-  static const exportData = '/settings/export-data';
-  static const profileEdit = '/profile/edit';
 
-  static String eventDetail(String eventId) => '/event/$eventId';
-  static String eventEdit(String eventId) => '/event/$eventId/edit';
-  static String eventInvite(String eventId) => '/event/$eventId/invite';
-  static String eventPhotos(String eventId) => '/event/$eventId/photos';
-  static String eventCollage(String eventId) => '/event/$eventId/collage';
-  static const eventCreate = '/events/create';
-  static String inviteLink(String kind, String token) => '/link/$kind/$token';
-  static String groupDetail(String groupId) => '/group/$groupId';
-  static String groupMembers(String groupId) => '/group/$groupId/members';
-  static String groupTheme(String groupId) => '/group/$groupId/theme';
-  static String createGroupEvent(String groupId) =>
-      '/group/$groupId/create-event';
-  static String inviteToGroup(String groupId) => '/group/$groupId/invite';
-
-  static String minigames(String groupId) => '/minigames/$groupId';
-
-  /// A fixed `/game/<game_type>` segment so the game landing page can never
-  /// shadow the `:groupId` hub or the `/play` routes.
+  // ── Games ──────────────────────────────────────────────────────────────
+  /// A game's landing page: rules, packs, "nueva partida", ongoing partidas.
   static String minigame(String gameType) => '/minigames/game/$gameType';
 
+  /// The server (multi-device) partida lobby.
   static String minigameSession(String sessionId) =>
       '/minigames/session/$sessionId';
 
-  /// The Verdad o Reto play screen (fixed `/play/truth-dare` segment).
+  /// The single-device "pass the phone" setup + play surface.
+  static String localMatch(String gameType) => '/minigames/local/$gameType';
+
+  /// The multi-device hub (direct + group scopes, join-by-code).
+  static const minigamesDirect = '/minigames';
+
+  /// The group-scoped hub.
+  static String minigames(String groupId) => '/minigames/$groupId';
+
   static String truthDare(String sessionId) =>
       '/minigames/play/truth-dare/$sessionId';
 
-  /// The Two Lies, One Truth play screen.
   static String twoLiesOneTruth(String sessionId) =>
       '/minigames/play/two-lies/$sessionId';
 
-  /// The Botella (drunk bottle) play screen (fixed `/play/drunk-bottle` segment).
   static String drunkBottle(String sessionId) =>
       '/minigames/play/drunk-bottle/$sessionId';
 
-  /// The Charadas play screen (fixed `/play/charades` segment).
   static String charades(String sessionId) =>
       '/minigames/play/charades/$sessionId';
 
-  /// The finished-match leaderboard (fixed `/leaderboard` segment). When
-  /// [participantId] is given the carousel opens focused on that player.
   static String minigameLeaderboard(String sessionId, {String? participantId}) {
     final base = '/minigames/leaderboard/$sessionId';
     return participantId == null || participantId.isEmpty
@@ -83,13 +53,37 @@ abstract final class RoutePaths {
         : '$base?p=$participantId';
   }
 
-  /// Direct (group-less) minigames hub — registered before the `:groupId`
-  /// hub so the static path cannot be shadowed.
-  static const minigamesDirect = '/minigames';
+  /// QR join: the scanner reads a partida's join code. The QR itself encodes
+  /// `samay://join/<CODE>`; the code is the same 6-character code the manual
+  /// entry dialog accepts.
+  static const joinScanner = '/minigames/scan';
 
-  static String chat(String chatId) => '/chat/$chatId';
-  static const chatList = '/chats';
+  // ── Social (friends + groups) ──────────────────────────────────────────
+  static const social = '/social';
+  static const groupCreate = '/group/create';
+  static String groupDetail(String groupId) => '/group/$groupId';
+  static String groupMembers(String groupId) => '/group/$groupId/members';
+  static String groupTheme(String groupId) => '/group/$groupId/theme';
+  static String inviteToGroup(String groupId) => '/group/$groupId/invite';
+  static const userSearch = '/user/search';
   static String userProfile(String userId) => '/user/$userId';
-  static String qr(String eventId) => '/qr/$eventId';
-  static String scanner(String eventId) => '/scanner/$eventId';
+  static const friendsRequests = '/friends/requests';
+  static const friendsList = '/friends/list';
+  static const blockedUsers = '/settings/blocked';
+  static const mutedUsers = '/settings/muted';
+
+  // ── Packs / monetization ──────────────────────────────────────────────
+  static const promptPacks = '/packs';
+  static const subscriptions = '/subscriptions';
+
+  // ── Profile / settings ────────────────────────────────────────────────
+  static const profile = '/profile';
+  static const profileEdit = '/profile/edit';
+  static const settings = '/settings';
+  static const appTheme = '/settings/appearance';
+  static const deleteAccount = '/settings/delete-account';
+  static const exportData = '/settings/export-data';
+
+  // ── Notifications ─────────────────────────────────────────────────────
+  static const notifications = '/notifications';
 }
