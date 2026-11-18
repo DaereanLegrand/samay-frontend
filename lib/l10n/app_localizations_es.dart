@@ -3311,4 +3311,123 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get groupThemeSaved => 'Tema actualizado';
+
+  @override
+  String get promptPacksTitle => 'paquetes';
+
+  @override
+  String get promptPacksEmpty => 'No hay paquetes disponibles aún';
+
+  @override
+  String promptPacksCount(int count) {
+    return '$count cartas';
+  }
+
+  @override
+  String get onboardingTagline =>
+      'juegos para jugar en grupo, sin cuenta y sin vueltas';
+
+  @override
+  String get onboardingConsent =>
+      'Confirmo que tengo 18 años o más y acepto los';
+
+  @override
+  String get onboardingStart => 'aceptar y jugar';
+
+  @override
+  String get authSignInTitle => 'iniciar sesión';
+
+  @override
+  String get authSignInBody =>
+      'Puedes jugar sin cuenta. Si inicias sesión con Apple o Google, tu progreso queda guardado y lo recuperas en otro dispositivo.';
+
+  @override
+  String get minigamesLocalNeedPlayers => 'Agrega al menos dos jugadores.';
+
+  @override
+  String get minigamesLocalNoPack =>
+      'Todavía no hay cartas descargadas. Conéctate una vez para cargarlas.';
+
+  @override
+  String get minigamesLocalIntro =>
+      'Un solo teléfono, todos en la misma sala. Pasa el teléfono: el juez lee, el jugador responde y luego tocas listo o pasar.';
+
+  @override
+  String minigamesLocalPlayerName(int number) {
+    return 'Jugador $number';
+  }
+
+  @override
+  String get minigamesLocalAddPlayer => 'Agregar jugador';
+
+  @override
+  String get minigamesLocalStart => 'empezar';
+
+  @override
+  String get minigamesLocalTie => 'empate';
+
+  @override
+  String get minigamesLocalPlayAgain => 'jugar otra vez';
+
+  @override
+  String minigamesLocalJudge(String name) {
+    return '$name lee';
+  }
+
+  @override
+  String get minigamesLocalNoPrompt => 'No hay carta para esta ronda.';
+
+  @override
+  String get minigamesLocalDone => 'listo';
+
+  @override
+  String get minigamesLocalSkip => 'pasar';
+
+  @override
+  String get minigamesLocalSingleDevice => 'en este teléfono';
+
+  @override
+  String get minigamesLocalMode => 'un solo teléfono';
+
+  @override
+  String get minigamesLeave => 'salir de la partida';
+
+  @override
+  String get minigamesLeaveConfirm => '¿Salir de esta partida?';
+
+  @override
+  String get onboardingAcceptTerms => 'Términos';
+
+  @override
+  String get onboardingAcceptAnd => 'y la';
+
+  @override
+  String get onboardingAcceptPrivacy => 'Política de Privacidad';
+
+  @override
+  String get minigamesPlayNow => 'jugar ahora';
+
+  @override
+  String get minigamesChoosePlayers => 'elegir jugadores';
+
+  @override
+  String get minigamesEditPlayers => 'jugadores';
+
+  @override
+  String get menuSocial => 'social';
+
+  @override
+  String get menuPacks => 'paquetes';
+
+  @override
+  String get menuNotifications => 'notis';
+
+  @override
+  String get menuProfile => 'perfil';
+
+  @override
+  String get menuSettings => 'ajustes';
+
+  @override
+  String get menuSignIn => 'iniciar sesión';
 }

@@ -6079,6 +6079,222 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'Tema actualizado'**
   String get groupThemeSaved;
+
+  /// Prompt-pack catalogue screen title
+  ///
+  /// In es, this message translates to:
+  /// **'paquetes'**
+  String get promptPacksTitle;
+
+  /// Empty state when the pack catalogue has no rows
+  ///
+  /// In es, this message translates to:
+  /// **'No hay paquetes disponibles aún'**
+  String get promptPacksEmpty;
+
+  /// Number of prompts in a pack
+  ///
+  /// In es, this message translates to:
+  /// **'{count} cartas'**
+  String promptPacksCount(int count);
+
+  /// Onboarding: one-line value proposition under the wordmark
+  ///
+  /// In es, this message translates to:
+  /// **'juegos para jugar en grupo, sin cuenta y sin vueltas'**
+  String get onboardingTagline;
+
+  /// Onboarding: the single combined 18+ and terms/privacy checkbox
+  ///
+  /// In es, this message translates to:
+  /// **'Confirmo que tengo 18 años o más y acepto los'**
+  String get onboardingConsent;
+
+  /// Onboarding: primary CTA that creates the guest session
+  ///
+  /// In es, this message translates to:
+  /// **'aceptar y jugar'**
+  String get onboardingStart;
+
+  /// Optional account upgrade screen title (also used as the menu row)
+  ///
+  /// In es, this message translates to:
+  /// **'iniciar sesión'**
+  String get authSignInTitle;
+
+  /// Optional account upgrade: explains guest play and what signing in adds
+  ///
+  /// In es, this message translates to:
+  /// **'Puedes jugar sin cuenta. Si inicias sesión con Apple o Google, tu progreso queda guardado y lo recuperas en otro dispositivo.'**
+  String get authSignInBody;
+
+  /// Single-device setup error: fewer than two valid players
+  ///
+  /// In es, this message translates to:
+  /// **'Agrega al menos dos jugadores.'**
+  String get minigamesLocalNeedPlayers;
+
+  /// Single-device setup error: the prompt pack cache is empty
+  ///
+  /// In es, this message translates to:
+  /// **'Todavía no hay cartas descargadas. Conéctate una vez para cargarlas.'**
+  String get minigamesLocalNoPack;
+
+  /// Single-device setup: explains pass-the-phone play
+  ///
+  /// In es, this message translates to:
+  /// **'Un solo teléfono, todos en la misma sala. Pasa el teléfono: el juez lee, el jugador responde y luego tocas listo o pasar.'**
+  String get minigamesLocalIntro;
+
+  /// Single-device setup: seat label; {number} is the 1-based seat index
+  ///
+  /// In es, this message translates to:
+  /// **'Jugador {number}'**
+  String minigamesLocalPlayerName(int number);
+
+  /// Single-device setup: adds another seat
+  ///
+  /// In es, this message translates to:
+  /// **'Agregar jugador'**
+  String get minigamesLocalAddPlayer;
+
+  /// Single-device setup: starts the match
+  ///
+  /// In es, this message translates to:
+  /// **'empezar'**
+  String get minigamesLocalStart;
+
+  /// Single-device scoreboard: no unique winner
+  ///
+  /// In es, this message translates to:
+  /// **'empate'**
+  String get minigamesLocalTie;
+
+  /// Single-device scoreboard: returns to setup
+  ///
+  /// In es, this message translates to:
+  /// **'jugar otra vez'**
+  String get minigamesLocalPlayAgain;
+
+  /// Single-device turn: who reads the prompt
+  ///
+  /// In es, this message translates to:
+  /// **'{name} lee'**
+  String minigamesLocalJudge(String name);
+
+  /// Single-device turn: pack has no prompt left
+  ///
+  /// In es, this message translates to:
+  /// **'No hay carta para esta ronda.'**
+  String get minigamesLocalNoPrompt;
+
+  /// Single-device turn: the player completed the prompt
+  ///
+  /// In es, this message translates to:
+  /// **'listo'**
+  String get minigamesLocalDone;
+
+  /// Single-device turn: the player passed
+  ///
+  /// In es, this message translates to:
+  /// **'pasar'**
+  String get minigamesLocalSkip;
+
+  /// Mode label: play on this device
+  ///
+  /// In es, this message translates to:
+  /// **'en este teléfono'**
+  String get minigamesLocalSingleDevice;
+
+  /// Mode label: single-device play
+  ///
+  /// In es, this message translates to:
+  /// **'un solo teléfono'**
+  String get minigamesLocalMode;
+
+  /// Lobby: participant leaves the partida
+  ///
+  /// In es, this message translates to:
+  /// **'salir de la partida'**
+  String get minigamesLeave;
+
+  /// Lobby: confirmation before leaving the partida
+  ///
+  /// In es, this message translates to:
+  /// **'¿Salir de esta partida?'**
+  String get minigamesLeaveConfirm;
+
+  /// No description provided for @onboardingAcceptTerms.
+  ///
+  /// In es, this message translates to:
+  /// **'Términos'**
+  String get onboardingAcceptTerms;
+
+  /// No description provided for @onboardingAcceptAnd.
+  ///
+  /// In es, this message translates to:
+  /// **'y la'**
+  String get onboardingAcceptAnd;
+
+  /// No description provided for @onboardingAcceptPrivacy.
+  ///
+  /// In es, this message translates to:
+  /// **'Política de Privacidad'**
+  String get onboardingAcceptPrivacy;
+
+  /// No description provided for @minigamesPlayNow.
+  ///
+  /// In es, this message translates to:
+  /// **'jugar ahora'**
+  String get minigamesPlayNow;
+
+  /// No description provided for @minigamesChoosePlayers.
+  ///
+  /// In es, this message translates to:
+  /// **'elegir jugadores'**
+  String get minigamesChoosePlayers;
+
+  /// No description provided for @minigamesEditPlayers.
+  ///
+  /// In es, this message translates to:
+  /// **'jugadores'**
+  String get minigamesEditPlayers;
+
+  /// Games menu: opens friends and groups
+  ///
+  /// In es, this message translates to:
+  /// **'social'**
+  String get menuSocial;
+
+  /// Games menu: opens the prompt-pack catalogue
+  ///
+  /// In es, this message translates to:
+  /// **'paquetes'**
+  String get menuPacks;
+
+  /// Games menu: opens the notification center
+  ///
+  /// In es, this message translates to:
+  /// **'notis'**
+  String get menuNotifications;
+
+  /// Games menu: opens the profile
+  ///
+  /// In es, this message translates to:
+  /// **'perfil'**
+  String get menuProfile;
+
+  /// Games menu: opens settings
+  ///
+  /// In es, this message translates to:
+  /// **'ajustes'**
+  String get menuSettings;
+
+  /// Games menu: optional Apple/Google sign-in (guests only)
+  ///
+  /// In es, this message translates to:
+  /// **'iniciar sesión'**
+  String get menuSignIn;
 }
 
 class _AppLocalizationsDelegate

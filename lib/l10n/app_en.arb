@@ -4199,5 +4199,146 @@
   "groupThemePalette": "Palette",
   "groupThemePaletteFree": "The free plan uses fixed black. Upgrade to PRO or VIP to pick colours.",
   "groupThemeLockedHint": "The host locked the theme.",
-  "groupThemeSaved": "Theme updated"
+  "groupThemeSaved": "Theme updated",
+  "promptPacksTitle": "packs",
+  "@promptPacksTitle": {
+    "description": "Prompt-pack catalogue screen title"
+  },
+  "promptPacksEmpty": "No packs available yet",
+  "@promptPacksEmpty": {
+    "description": "Empty state when the pack catalogue has no rows"
+  },
+  "promptPacksCount": "{count} cards",
+  "@promptPacksCount": {
+    "description": "Number of prompts in a pack",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "onboardingTagline": "juegos para jugar en grupo, sin cuenta y sin vueltas",
+  "@onboardingTagline": {
+    "description": "Onboarding: one-line value proposition under the wordmark"
+  },
+  "onboardingConsent": "I confirm I am 18 or older and accept the",
+  "@onboardingConsent": {
+    "description": "Onboarding: the single combined 18+ and terms/privacy checkbox"
+  },
+  "onboardingStart": "accept and play",
+  "@onboardingStart": {
+    "description": "Onboarding: primary CTA that creates the guest session"
+  },
+  "authSignInTitle": "iniciar sesión",
+  "@authSignInTitle": {
+    "description": "Optional account upgrade screen title (also used as the menu row)"
+  },
+  "authSignInBody": "Puedes jugar sin cuenta. Si inicias sesión con Apple o Google, tu progreso queda guardado y lo recuperas en otro dispositivo.",
+  "@authSignInBody": {
+    "description": "Optional account upgrade: explains guest play and what signing in adds"
+  },
+  "minigamesLocalNeedPlayers": "Add at least two players.",
+  "@minigamesLocalNeedPlayers": {
+    "description": "Single-device setup error: fewer than two valid players"
+  },
+  "minigamesLocalNoPack": "No prompts are downloaded yet. Connect once to load the pack.",
+  "@minigamesLocalNoPack": {
+    "description": "Single-device setup error: the prompt pack cache is empty"
+  },
+  "minigamesLocalIntro": "One phone, everyone in the same room. Pass the phone: the judge reads, the player answers, then tap done or skip.",
+  "@minigamesLocalIntro": {
+    "description": "Single-device setup: explains pass-the-phone play"
+  },
+  "minigamesLocalPlayerName": "Player {number}",
+  "@minigamesLocalPlayerName": {
+    "description": "Single-device setup: seat label; {number} is the 1-based seat index",
+    "placeholders": {
+      "number": {
+        "type": "int"
+      }
+    }
+  },
+  "minigamesLocalAddPlayer": "Add player",
+  "@minigamesLocalAddPlayer": {
+    "description": "Single-device setup: adds another seat"
+  },
+  "minigamesLocalStart": "start",
+  "@minigamesLocalStart": {
+    "description": "Single-device setup: starts the match"
+  },
+  "minigamesLocalTie": "tie",
+  "@minigamesLocalTie": {
+    "description": "Single-device scoreboard: no unique winner"
+  },
+  "minigamesLocalPlayAgain": "play again",
+  "@minigamesLocalPlayAgain": {
+    "description": "Single-device scoreboard: returns to setup"
+  },
+  "minigamesLocalJudge": "{name} reads",
+  "@minigamesLocalJudge": {
+    "description": "Single-device turn: who reads the prompt",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "minigamesLocalNoPrompt": "No prompt for this round.",
+  "@minigamesLocalNoPrompt": {
+    "description": "Single-device turn: pack has no prompt left"
+  },
+  "minigamesLocalDone": "done",
+  "@minigamesLocalDone": {
+    "description": "Single-device turn: the player completed the prompt"
+  },
+  "minigamesLocalSkip": "skip",
+  "@minigamesLocalSkip": {
+    "description": "Single-device turn: the player passed"
+  },
+  "minigamesLocalSingleDevice": "on this phone",
+  "@minigamesLocalSingleDevice": {
+    "description": "Mode label: play on this device"
+  },
+  "minigamesLocalMode": "one phone",
+  "@minigamesLocalMode": {
+    "description": "Mode label: single-device play"
+  },
+  "minigamesLeave": "salir de la partida",
+  "@minigamesLeave": {
+    "description": "Lobby: participant leaves the partida"
+  },
+  "minigamesLeaveConfirm": "¿Salir de esta partida?",
+  "@minigamesLeaveConfirm": {
+    "description": "Lobby: confirmation before leaving the partida"
+  },
+  "onboardingAcceptTerms": "Terms",
+  "onboardingAcceptAnd": "and the",
+  "onboardingAcceptPrivacy": "Privacy Policy",
+  "minigamesPlayNow": "play now",
+  "minigamesChoosePlayers": "choose players",
+  "minigamesEditPlayers": "players",
+  "menuSocial": "social",
+  "@menuSocial": {
+    "description": "Games menu: opens friends and groups"
+  },
+  "menuPacks": "paquetes",
+  "@menuPacks": {
+    "description": "Games menu: opens the prompt-pack catalogue"
+  },
+  "menuNotifications": "notis",
+  "@menuNotifications": {
+    "description": "Games menu: opens the notification center"
+  },
+  "menuProfile": "perfil",
+  "@menuProfile": {
+    "description": "Games menu: opens the profile"
+  },
+  "menuSettings": "ajustes",
+  "@menuSettings": {
+    "description": "Games menu: opens settings"
+  },
+  "menuSignIn": "iniciar sesión",
+  "@menuSignIn": {
+    "description": "Games menu: optional Apple/Google sign-in (guests only)"
+  }
 }
