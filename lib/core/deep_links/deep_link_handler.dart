@@ -2,137 +2,67 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:samay/core/logging/app_logger.dart';
 import 'package:samay/core/providers/auth_provider.dart';
 import 'package:samay/core/providers/service_providers.dart';
 import 'package:samay/core/router/app_router.dart';
 import 'package:samay/core/router/route_paths.dart';
+import 'package:samay/core/services/minigame_service.dart';
 import 'package:samay/l10n/app_localizations.dart';
 
-/// Q9 canonical link host. The API host is never used for share links.
+/// Canonical link host for share links.
 const String kSamayLinkHost = 'samay.qallariy.lat';
 
-enum InviteLinkKind { event, group, profile }
+/// The 6-character partida join code alphabet (matches the server RPC).
+final RegExp kJoinCodePattern = RegExp(
+  r'^[ABCDEFGHJKMNPQRSTUVWXYZ23456789]{6}$',
+);
 
-/// A parsed bearer link (`/e/`, `/g/`, `/u/`). The token is opaque.
-class InviteLink {
-  const InviteLink({required this.kind, required this.token});
-
-  final InviteLinkKind kind;
-  final String token;
-
-  String get kindSegment => switch (kind) {
-    InviteLinkKind.event => 'e',
-    InviteLinkKind.group => 'g',
-    InviteLinkKind.profile => 'u',
-  };
-}
-
-/// Samay link handling (Q9).
+/// Parses a partida link into its join code.
 ///
 /// Accepted shapes:
-///   `https://samay.qallariy.lat/e/<token>`   event invite
-///   `https://samay.qallariy.lat/g/<token>`   group invite
-///   `https://samay.qallariy.lat/u/<token>`   profile friend link
-///   `samay://e|g|u/<token>`                  in-app/dev scheme
-///   `samay://event/<token>`                  legacy event scheme
+///   `samay://join/<CODE>`                      in-app / QR
+///   `https://samay.qallariy.lat/j/<CODE>`      shared link
+///   `<CODE>`                                   bare code (paste / screenshot)
 ///
-/// `http` is rejected, as is every host other than [kSamayLinkHost]. Parsing
-/// never follows a redirect/`next` parameter, so there is no open redirect.
-class DeepLinkHandler {
-  const DeepLinkHandler();
+/// `http` and every other host are rejected, and no query parameter is ever
+/// followed, so there is no open redirect. Returns null for any non-match.
+String? parseJoinCodeLink(String raw) {
+  final trimmed = raw.trim();
+  if (trimmed.isEmpty) return null;
 
-  InviteLink? parseInviteLink(String raw) {
-    final uri = Uri.tryParse(raw.trim());
-    if (uri == null || uri.scheme.isEmpty || uri.userInfo.isNotEmpty) {
-      return null;
-    }
-    final segments = List<String>.of(uri.pathSegments)
-      ..removeWhere((s) => s.isEmpty);
+  final bare = trimmed.toUpperCase();
+  if (kJoinCodePattern.hasMatch(bare)) return bare;
 
-    if (uri.scheme == 'samay') {
-      if (uri.host == 'event' && segments.length == 1) {
-        return InviteLink(kind: InviteLinkKind.event, token: segments[0]);
-      }
-      final kind = _kindFromSegment(uri.host);
-      if (kind != null && segments.length == 1 && segments[0].isNotEmpty) {
-        return InviteLink(kind: kind, token: segments[0]);
-      }
-      return null;
-    }
+  final uri = Uri.tryParse(trimmed);
+  if (uri == null || uri.scheme.isEmpty || uri.userInfo.isNotEmpty) {
+    return null;
+  }
+  final segments = List<String>.of(uri.pathSegments)
+    ..removeWhere((s) => s.isEmpty);
 
-    // Only HTTPS on the canonical host. HTTP and unknown hosts are rejected.
-    if (uri.scheme != 'https' || uri.host.toLowerCase() != kSamayLinkHost) {
-      return null;
-    }
-    if (segments.length != 2 || segments[1].isEmpty) return null;
-    final kind = _kindFromSegment(segments[0]);
-    if (kind == null) return null;
-    return InviteLink(kind: kind, token: segments[1]);
+  if (uri.scheme == 'samay') {
+    if (uri.host.toLowerCase() != 'join' || segments.length != 1) return null;
+    final code = segments.first.toUpperCase();
+    return kJoinCodePattern.hasMatch(code) ? code : null;
   }
 
-  InviteLinkKind? _kindFromSegment(String segment) => switch (segment) {
-    'e' || 'event' => InviteLinkKind.event,
-    'g' || 'group' => InviteLinkKind.group,
-    'u' || 'user' || 'profile' => InviteLinkKind.profile,
-    _ => null,
-  };
-
-  /// Validates the token and opens the consent screen. No join happens here.
-  Future<bool> handleDeepLink(
-    String raw, {
-    required GoRouter router,
-    required bool isAuthenticated,
-    required Future<bool> Function(InviteLink link) resolveLink,
-    String? failureMessage,
-  }) async {
-    final link = parseInviteLink(raw);
-    if (link == null) return false;
-
-    // Authentication is mandatory: never render a preview to anon users.
-    if (!isAuthenticated) {
-      router.go(RoutePaths.login);
-      return false;
-    }
-
-    bool valid = false;
-    try {
-      valid = await resolveLink(link);
-    } catch (e, st) {
-      AppLogger.instance.error('invite link resolution failed: $e', '$st');
-      valid = false;
-    }
-    if (!valid) {
-      // Still open the consent screen: it renders the localized invalid/expired
-      // state for the token (replacing any engine-level "route not found").
-      _showFailure(router, failureMessage);
-      router.go(RoutePaths.inviteLink(link.kindSegment, link.token));
-      return false;
-    }
-
-    router.go(RoutePaths.inviteLink(link.kindSegment, link.token));
-    return true;
+  if (uri.scheme != 'https' || uri.host.toLowerCase() != kSamayLinkHost) {
+    return null;
   }
-
-  void _showFailure(GoRouter router, String? failureMessage) {
-    try {
-      final context = router.routerDelegate.navigatorKey.currentContext;
-      if (context == null) return;
-      final message =
-          failureMessage ?? AppLocalizations.of(context).routerInvalidInvite;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(message)));
-    } catch (_) {
-      // No navigator context — the false return is still authoritative.
-    }
-  }
+  if (segments.length != 2 || segments[0] != 'j') return null;
+  final code = segments[1].toUpperCase();
+  return kJoinCodePattern.hasMatch(code) ? code : null;
 }
 
 /// Raw deep-link stream (String URIs) feeding [DeepLinkListener].
 final deepLinkStreamProvider = Provider<Stream<String>?>((ref) => null);
 
+/// Routes an incoming link to the ONE deep link this build supports: joining a
+/// multi-device partida by its 6-character code.
+///
+/// Chat/event/profile invite links belonged to removed features, so a link in
+/// any other shape is ignored (never navigates, never crashes).
 class DeepLinkListener extends ConsumerStatefulWidget {
   const DeepLinkListener({super.key});
 
@@ -156,19 +86,34 @@ class _DeepLinkListenerState extends ConsumerState<DeepLinkListener> {
   }
 
   Future<void> _handle(String raw) async {
+    final code = parseJoinCodeLink(raw);
+    if (code == null) return;
+
     final router = ref.read(routerProvider);
-    final service = ref.read(eventServiceProvider);
-    final auth = ref.read(authStateProvider).valueOrNull;
-    await const DeepLinkHandler().handleDeepLink(
-      raw,
-      router: router,
-      isAuthenticated: auth?.authenticated ?? false,
-      failureMessage: AppLocalizations.of(context).routerInvalidInvite,
-      resolveLink: (link) async {
-        final resolved = await service.resolveShareLink(link.token);
-        return resolved != null;
-      },
+    final messaging = ScaffoldMessenger.maybeOf(
+      router.routerDelegate.navigatorKey.currentContext ?? context,
     );
+
+    // A link must never join on its own: the player lands on the lobby only
+    // after the server accepts the code, which is the explicit action.
+    final auth = ref.read(authStateProvider).valueOrNull;
+    if (auth == null || !auth.authenticated) {
+      router.go(RoutePaths.onboarding);
+      return;
+    }
+
+    final invalidCode = AppLocalizations.of(context).minigamesErrorInvalidCode;
+    final invalidInvite = AppLocalizations.of(context).routerInvalidInvite;
+    try {
+      final sessionId = await ref.read(minigameServiceProvider).joinByCode(code);
+      router.go(RoutePaths.minigameSession(sessionId));
+    } catch (e, st) {
+      AppLogger.instance.error('join-by-link failed: $e', '$st');
+      final message = e is MinigameSessionRejectedException
+          ? invalidCode
+          : invalidInvite;
+      messaging?.showSnackBar(SnackBar(content: Text(message)));
+    }
   }
 
   @override

@@ -26,7 +26,6 @@ import 'package:samay/shared/widgets/v_chip.dart';
 import 'package:samay/shared/widgets/v_count_badge.dart';
 import 'package:samay/shared/widgets/v_display_text.dart';
 import 'package:samay/shared/widgets/v_header_bar.dart';
-import 'package:samay/shared/widgets/v_input.dart';
 import 'package:samay/shared/widgets/v_network_image.dart';
 import 'package:samay/core/theme/app_palette_context.dart';
 
@@ -98,7 +97,6 @@ class MinigamesScreen extends ConsumerStatefulWidget {
 class _MinigamesScreenState extends ConsumerState<MinigamesScreen> {
   late MinigameScope _scope;
   MinigameType? _selected;
-  final TextEditingController _wagerController = TextEditingController();
   bool _creating = false;
 
   /// The group resolved in Group scope (null until the user picks one —
@@ -116,7 +114,6 @@ class _MinigamesScreenState extends ConsumerState<MinigamesScreen> {
 
   @override
   void dispose() {
-    _wagerController.dispose();
     super.dispose();
   }
 
@@ -128,7 +125,6 @@ class _MinigamesScreenState extends ConsumerState<MinigamesScreen> {
     final l10n = AppLocalizations.of(context);
     final type = _selected;
     if (type == null) return;
-    final wager = int.tryParse(_wagerController.text.trim()) ?? 0;
 
     // creation is invite-free — invites happen in the lobby
     // (invite_minigame_players). The hub.create() returns the session id,
@@ -142,14 +138,13 @@ class _MinigamesScreenState extends ConsumerState<MinigamesScreen> {
         if (groupId == null) return;
         sessionId = await ref
             .read(minigameSessionsProvider(groupId).notifier)
-            .create(type, wager);
+            .create(type);
       } else {
         sessionId = await ref
             .read(myMinigameSessionsProvider.notifier)
-            .create(type, wager);
+            .create(type);
       }
       if (!mounted) return;
-      _wagerController.clear();
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(l10n.minigamesCreated)));
@@ -190,6 +185,14 @@ class _MinigamesScreenState extends ConsumerState<MinigamesScreen> {
         word: l10n.minigamesTitle,
         secondary: l10n.minigamesTagline,
       ),
+      actions: [
+        // Scan a partida QR instead of typing the 6-character code.
+        IconButton(
+          icon: const Icon(Icons.qr_code_scanner),
+          tooltip: l10n.minigamesJoinCodeTitle,
+          onPressed: () => context.push(RoutePaths.joinScanner),
+        ),
+      ],
       child: Column(
         children: [
           // "Elige un juego" sits IMMEDIATELY below the AppBar — the
@@ -412,17 +415,9 @@ class _MinigamesScreenState extends ConsumerState<MinigamesScreen> {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // The shard economy is out of this build: partidas are free,
+              // so the create row is the action alone.
               Expanded(
-                child: VInput(
-                  label: l10n.minigamesWagerLabel,
-                  hint: l10n.minigamesWagerHint,
-                  controller: _wagerController,
-                  keyboardType: TextInputType.number,
-                ),
-              ),
-              const SizedBox(width: AppSpacing.lg),
-              SizedBox(
-                width: 150,
                 child: VButton.dark(
                   label: l10n.minigamesCreate,
                   loading: _creating,

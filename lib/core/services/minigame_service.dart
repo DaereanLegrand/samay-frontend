@@ -195,8 +195,7 @@ class MinigameService {
   /// [asyncEndsAt] (the settable async deadline, no override after creation).
   Future<String> createSession(
     String? groupId,
-    MinigameType type,
-    int wager, {
+    MinigameType type, {
     List<String> inviteeIds = const [],
     String? name,
     int rounds = 5,
@@ -214,7 +213,6 @@ class MinigameService {
       params: {
         'p_group_id': groupId,
         'p_game_type': type.value,
-        'p_wager': wager,
         'p_invitees': inviteeIds,
         'p_name': name,
         'p_rounds': rounds,
@@ -1800,6 +1798,49 @@ class MinigameService {
   /// In one server transaction: the removed player's wager escrow is refunded
   /// (`minigame_refund`), they leave `participants`, their invite closes
   /// and their ready flag clears. The creator can never remove themself.
+  /// Leaves [sessionId] (self-removal) via `leave_minigame_session`.
+  ///
+  /// Distinct from [removeParticipant] (host authority): any participant may
+  /// leave, and when the CREATOR leaves with players remaining the server
+  /// promotes the next participant to host. The last remaining participant is
+  /// refused (`last_participant`) — the client should finish/abandon instead.
+  Future<void> leaveSession(String sessionId) async {
+    final user = auth.currentUser;
+    if (user == null) throw const UnauthorizedError();
+
+    final res = await client.rpc(
+      'leave_minigame_session',
+      params: {'p_session_id': sessionId},
+    );
+    final result = res is Map
+        ? Map<String, dynamic>.from(res)
+        : <String, dynamic>{};
+    switch (result['status']) {
+      case 'left':
+        return;
+      case 'not_authenticated':
+        throw const UnauthorizedError();
+      case 'session_not_found':
+        throw const NotFoundError('Partida');
+      case 'not_participant':
+        throw const NotFoundError('Participante');
+      case 'session_not_active':
+        throw ConflictError(
+          'La partida ya terminó',
+          code: 'session_not_active',
+        );
+      case 'last_participant':
+        throw ConflictError(
+          'Eres el último jugador',
+          code: 'last_participant',
+        );
+      default:
+        throw const ServerError(
+          'Unexpected leave_minigame_session response',
+        );
+    }
+  }
+
   Future<void> removeParticipant(String sessionId, String userId) async {
     final user = auth.currentUser;
     if (user == null) throw const UnauthorizedError();

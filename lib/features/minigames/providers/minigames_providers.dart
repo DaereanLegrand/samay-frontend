@@ -9,11 +9,9 @@ import 'package:samay/core/providers/realtime_provider.dart';
 import 'package:samay/core/providers/service_providers.dart';
 import 'package:samay/core/services/minigame_service.dart';
 import 'package:samay/core/utils/async_ops.dart';
-import 'package:samay/features/chat/providers/chat_providers.dart';
-import 'package:samay/features/minigames/logic/match_preview.dart';
+import 'package:samay/crypto/e2ee_providers.dart';
 import 'package:samay/features/minigames/logic/minigame_cipher.dart';
 import 'package:samay/features/minigames/logic/minigame_engine.dart';
-import 'package:samay/features/minigames/logic/minigame_meta.dart';
 import 'package:samay/features/minigames/logic/truth_dare.dart';
 import 'package:samay/features/notifications/providers/notifications_providers.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -173,8 +171,7 @@ class MinigameSessionsNotifier
   /// the screen maps [MinigameSessionRejection] to friendly localized
   /// messages.
   Future<String> create(
-    MinigameType type,
-    int wager, {
+    MinigameType type, {
     List<String> inviteeIds = const [],
     String? name,
     int rounds = 5,
@@ -187,7 +184,6 @@ class MinigameSessionsNotifier
     final id = await _service.createSession(
       arg,
       type,
-      wager,
       inviteeIds: inviteeIds,
       name: name,
       rounds: rounds,
@@ -216,31 +212,6 @@ final minigameSessionsProvider =
       String
     >(MinigameSessionsNotifier.new);
 
-/// One group's chat notices — the
-/// "match created" bubbles [ChatThreadView] renders inline as a direct access
-/// to the minigame. Family over the group id; invalidated by
-/// [MinigameSessionsRealtimeListener] on any session row event (the notice is
-/// written in the same transaction as the session insert).
-class GroupMinigameMessagesNotifier
-    extends FamilyAsyncNotifier<List<Map<String, dynamic>>, String> {
-  MinigameService get _service => ref.read(minigameServiceProvider);
-
-  @override
-  Future<List<Map<String, dynamic>>> build(String groupId) {
-    return _service.listGroupMinigameMessages(groupId);
-  }
-
-  /// Re-runs [build].
-  Future<void> refresh() async => ref.invalidateSelf();
-}
-
-final groupMinigameMessagesProvider =
-    AsyncNotifierProvider.family<
-      GroupMinigameMessagesNotifier,
-      List<Map<String, dynamic>>,
-      String
-    >(GroupMinigameMessagesNotifier.new);
-
 /// The current user's sessions — DIRECT and GROUP — newest first, where the
 /// caller is a participant (creator is participant[0]). RLS bounds the read
 /// (`ms_read_direct_participant` / `ms_read_group_member`); the client-side
@@ -267,8 +238,7 @@ class MyMinigameSessionsNotifier
   /// surface as the typed [MinigameSessionRejectedException] (insufficient
   /// shards / invitee gates / player limit) and reload the direct list.
   Future<String> create(
-    MinigameType type,
-    int wager, {
+    MinigameType type, {
     List<String> inviteeIds = const [],
     String? name,
     int rounds = 5,
@@ -281,7 +251,6 @@ class MyMinigameSessionsNotifier
     final id = await _service.createSession(
       null,
       type,
-      wager,
       inviteeIds: inviteeIds,
       name: name,
       rounds: rounds,
@@ -308,91 +277,6 @@ final myMinigameSessionsProvider =
       MyMinigameSessionsNotifier,
       List<Map<String, dynamic>>
     >(MyMinigameSessionsNotifier.new);
-
-/// How many newest matches per game the Games-tab deck packs into bubbles.
-const int kDeckMatchesPerGame = 5;
-
-/// One match's roster for the Games-tab bubble field: names + avatars only.
-///
-/// Deliberately NOT [minigameParticipantsProvider] — that notifier attaches a
-/// realtime session + game-state listener per session, which is far too much
-/// for the deck's static preview of several matches per game. This family does
-/// the single `get_minigame_participants` read and nothing else.
-final matchRosterProvider = FutureProvider.family<List<MatchPlayer>, String>((
-  ref,
-  sessionId,
-) async {
-  final rows = await ref
-      .watch(minigameServiceProvider)
-      .getMinigameParticipants(sessionId);
-  return [
-    for (final row in rows)
-      MatchPlayer(
-        id: row['id'] as String,
-        username: row['username'] as String? ?? '',
-        avatarUrl: row['avatar_url'] as String?,
-      ),
-  ];
-});
-
-/// The Games-tab deck's per-game recent matches: for each [MinigameType], the
-/// newest [kDeckMatchesPerGame] caller-participant sessions, each with its
-/// roster resolved, ready to become nested match bubbles on the card.
-///
-/// A pure read of existing providers (no new query), so seeded demo sessions
-/// flow through the same path as real ones. The deck widget stays
-/// provider-free — the Games tab passes this map in.
-final gameTabMatchesProvider = Provider<Map<MinigameType, List<MatchPreview>>>((
-  ref,
-) {
-  final sessions = ref.watch(myMinigameSessionsProvider).valueOrNull;
-  if (sessions == null || sessions.isEmpty) return const {};
-
-  final byGame = <MinigameType, List<Map<String, dynamic>>>{};
-  for (final row in sessions) {
-    final type = minigameTypeFromString(row['game_type'] as String?);
-    if (type == null) continue;
-    (byGame[type] ??= []).add(row);
-  }
-
-  final result = <MinigameType, List<MatchPreview>>{};
-  for (final entry in byGame.entries) {
-    final rows = entry.value
-      ..sort((a, b) => _createdAtOf(b).compareTo(_createdAtOf(a)));
-    final previews = <MatchPreview>[];
-    for (final row in rows.take(kDeckMatchesPerGame)) {
-      final id = row['id'] as String?;
-      if (id == null) continue;
-      final roster =
-          ref.watch(matchRosterProvider(id)).valueOrNull ??
-          const <MatchPlayer>[];
-      // The roster can omit participants the viewer cannot resolve, so the
-      // session's own `participants` array is the authoritative count — take
-      // the larger so the `+N` overflow reflects the real match.
-      final participantCount = (row['participants'] as List?)?.length ?? 0;
-      previews.add(
-        MatchPreview(
-          sessionId: id,
-          createdAt: _createdAtOf(row),
-          players: roster,
-          totalPlayers: roster.length > participantCount
-              ? roster.length
-              : participantCount,
-        ),
-      );
-    }
-    if (previews.isNotEmpty) result[entry.key] = previews;
-  }
-  return result;
-});
-
-/// Session `created_at` as a [DateTime] (epoch on a missing/unparseable value
-/// so a malformed row sorts last instead of throwing).
-DateTime _createdAtOf(Map<String, dynamic> row) {
-  final raw = row['created_at'] as String?;
-  return (raw == null ? null : DateTime.tryParse(raw)) ??
-      DateTime.fromMillisecondsSinceEpoch(0);
-}
 
 /// Live status of one session: the initial row from [MinigameService.getSession]
 /// merged with realtime row changes on the session's channel
@@ -1008,6 +892,15 @@ class MinigameGameStateNotifier
   /// rounds, but they never receive the new key). Best-effort: a
   /// distribution failure never fails the kick, and round keys are never
   /// wiped.
+  /// Leaves this session (self-removal) and refreshes the lists.
+  Future<void> leave() async {
+    await _service.leaveSession(arg);
+    await refresh();
+    ref.invalidate(sessionStatusProvider(arg));
+    ref.container.invalidate(minigameParticipantsProvider(arg));
+    ref.invalidate(myPendingInvitesProvider);
+  }
+
   Future<void> removeParticipant(String userId) async {
     await _service.removeParticipant(arg, userId);
     await refresh();

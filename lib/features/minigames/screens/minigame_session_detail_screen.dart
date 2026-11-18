@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/core/design_tokens/app_icon_sizes.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/design_tokens/app_typography.dart';
 import 'package:samay/core/extensions/error_mapper.dart';
@@ -608,6 +609,7 @@ class _LobbySection extends ConsumerWidget {
     final participantIds =
         (session?['participants'] as List?)?.cast<String?>() ?? const [];
     final isCreator = participantIds.isNotEmpty && participantIds.first == myId;
+    final isParticipant = myId != null && participantIds.contains(myId);
     final gameState = ref.watch(minigameGameStateProvider(sessionId));
     final skeleton = gameState.valueOrNull?.skeleton;
     final isPlaying = skeleton?.phase == MinigamePhase.playing;
@@ -740,6 +742,17 @@ class _LobbySection extends ConsumerWidget {
         // code; only its hash is stored server-side.
         if (isCreator && !finished && session?['group_id'] == null)
           _JoinCodeCard(sessionId: sessionId),
+        // Any participant may leave; the server refuses when they are the
+        // last one (finish/abandon instead) and transfers host authority when
+        // the creator leaves with players remaining.
+        if (!finished && isParticipant)
+          Padding(
+            padding: const EdgeInsets.only(top: AppSpacing.md),
+            child: VButton.outlined(
+              label: l10n.minigamesLeave,
+              onPressed: () => _confirmLeave(context, ref),
+            ),
+          ),
         if (finished)
           // Finished-match entry point to the leaderboard.
           VButton.emphasized(
@@ -854,6 +867,43 @@ class _LobbySection extends ConsumerWidget {
     }
   }
 
+  /// Leaves this partida after a confirmation. The listener's kicked-poll
+  /// would otherwise also fire for a voluntary exit, so we leave explicitly
+  /// and pop back to the list ourselves.
+  Future<void> _confirmLeave(BuildContext context, WidgetRef ref) async {
+    final l10n = AppLocalizations.of(context);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l10n.minigamesLeaveConfirm),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: Text(l10n.commonCancel),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: Text(l10n.minigamesLeave),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !context.mounted) return;
+    try {
+      await ref
+          .read(minigameGameStateProvider(sessionId).notifier)
+          .leave();
+      if (!context.mounted) return;
+      final navigator = Navigator.of(context);
+      if (navigator.canPop()) navigator.pop();
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.toAppError().message)),
+      );
+    }
+  }
+
   Future<void> _confirmRemove(
     BuildContext context,
     WidgetRef ref,
@@ -936,9 +986,26 @@ class _JoinCodeCardState extends ConsumerState<_JoinCodeCard> {
         context: context,
         builder: (dialogContext) => AlertDialog(
           title: Text(l10n.minigamesJoinCodeShareTitle),
-          content: SelectableText(
-            l10n.minigamesJoinCodeShareBody(code),
-            style: AppTypography.displaySmall,
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // The QR is the primary join path: scan it with the in-app
+              // scanner (or any camera that opens links).
+              Container(
+                color: Colors.white,
+                padding: const EdgeInsets.all(AppSpacing.md),
+                child: QrImageView(
+                  data: 'samay://join/$code',
+                  size: 200,
+                  backgroundColor: Colors.white,
+                ),
+              ),
+              const SizedBox(height: AppSpacing.md),
+              SelectableText(
+                l10n.minigamesJoinCodeShareBody(code),
+                style: AppTypography.displaySmall,
+              ),
+            ],
           ),
           actions: [
             TextButton(
