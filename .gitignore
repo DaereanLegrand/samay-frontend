@@ -71,7 +71,7 @@ repo-locks/
 flutter_*.log
 
 # Rust build artifacts (UEFI boot loader)
-tools/<ops-tooling>/bootloader/target/
+tools/*/bootloader/target/
 
 # LUXE campaign screenshot captures (XL-15 harness output)
 luxe-screenshots/

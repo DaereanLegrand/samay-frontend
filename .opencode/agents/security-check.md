@@ -34,12 +34,12 @@ opt-001 RLS) + pgTAP (`supabase/tests/schema_test.sql`).
 - `docs/process/DEVELOPMENT-WORKFLOW.md` (rules incl. the port map)
 - `docs/security/SECURITY.md` + `docs/security/E2EE-ARCHITECTURE.md`
 - `docs/security/SECURITY.md` §6 (open items table)
-- `<private-ops-repo>/SELFHOSTING.md` (approved ports, the reference app coexistence)
+- `README.md` (approved ports and the local stack layout)
 
 ## What you do
 
 1. **Gates (must all exit 0):**
-   - `make secrets-check` — no secret material in tracked files
+   - `make secrets` — no secret material in tracked files
      (`tools/check_secrets.sh`: dev/service-role key shapes, placeholders).
 2. **Audit scope (report-only, ranked by severity):**
    - Hardcoded secrets/keys/placeholder literals outside allowlists.

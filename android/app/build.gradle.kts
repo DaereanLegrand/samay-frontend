@@ -135,7 +135,7 @@ tasks.matching {
             throw GradleException(
                 "Android release signing is not configured: set the §3.3 keystore envs " +
                     "ANDROID_KEYSTORE_PATH, ANDROID_KEYSTORE_ALIAS, ANDROID_KEYSTORE_PASSWORD, " +
-                    "ANDROID_KEY_ALIAS_PASSWORD (see <private-ops-repo>/DEPLOYMENT-PLACEHOLDER.md §3.3 / R22). " +
+                    "ANDROID_KEY_ALIAS_PASSWORD. " +
                     "Release builds NEVER fall back to the debug key."
             )
         }
@@ -143,8 +143,7 @@ tasks.matching {
             throw GradleException(
                 "Android release signing keystore not found at " +
                     "'${keystoreEnv["ANDROID_KEYSTORE_PATH"]}' (ANDROID_KEYSTORE_PATH). " +
-                    "Generate + keep the .jks in a secret store — never in the repo " +
-                    "(<private-ops-repo>/DEPLOYMENT-PLACEHOLDER.md §3.3 / R22)."
+                    "Generate + keep the .jks in a secret store — never in the repo."
             )
         }
     }
