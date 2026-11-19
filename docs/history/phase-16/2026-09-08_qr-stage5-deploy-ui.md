@@ -39,7 +39,7 @@ Fix in `060_events/06_staff.sql` (byte-identical mirror in
 Safe because the view can never reveal any roster but the caller's own;
 full-roster reads still go through `event_hosts` + the policy. Recursion is
 still avoided (view owner postgres bypasses RLS). Updated the header/design
-comments and `<private-ops-repo>/DATABASE.md` (the old "no grants — policy-internal
+comments and the backend `DATABASE.md` (the old "no grants — policy-internal
 only" claim was the lie the fresh reset caught).
 
 ### 3. Waydroid camera — environment, not an app bug

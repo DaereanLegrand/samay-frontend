@@ -42,9 +42,8 @@ report, never fix.
    approved map (54382/54381/54384/54386/54388/54443).
 4. **Security claims:** every "applied now" precaution in SECURITY.md has its
    enforcement visible in code/migrations; open items are genuinely open.
-6. **No placeholder drift:** no invented deployment URLs; no secrets in docs;
-   no references to deleted trees (`docs/specs`, `<private-ops-repo>`, `docs/to-fix`,
-   `docs/audit`).
+5. **No placeholder drift:** no invented deployment URLs; no secrets in docs;
+   no references to deleted trees (`docs/to-fix`, `docs/audit`).
 
 ## Report format
 

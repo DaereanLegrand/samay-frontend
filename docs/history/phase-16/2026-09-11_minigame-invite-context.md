@@ -82,7 +82,7 @@ Two items from the user's review of the latest `alignment-header` merge:
 - `lib/features/minigames/providers/minigames_providers.dart`
 - `lib/features/minigames/screens/minigame_session_detail_screen.dart`
 - `lib/l10n/app_es.arb`, `lib/l10n/app_en.arb` (+ generated localizations)
-- `README.md`, `<private-ops-repo>/DATABASE.md` (baselines)
+- `README.md`, the backend `DATABASE.md` (baselines)
 
 ## Commands
 
