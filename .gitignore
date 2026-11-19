@@ -16,9 +16,8 @@
 
 # Firebase client config. testing (Android flavor "dev") is OPEN and committed
 # (android/app/src/dev/google-services.json,
-# ios/Runner/GoogleService-Info.plist); staging/prod are vault-gated and
-# materialized into these paths at release by tools/release-signing-not-in-repo.sh
-# (fetch android|apple) — never commit them. See <private-ops-repo>.
+# ios/Runner/GoogleService-Info.plist); staging/prod files are supplied by the
+# operator at release time — never commit them.
 android/app/src/staging/google-services.json
 android/app/src/prod/google-services.json
 # flutterfire-generated options for a contributor's own Firebase project; not
@@ -71,7 +70,7 @@ repo-locks/
 # Stray agent logs
 flutter_*.log
 
-# Rust build artifacts (<boot-loader> UEFI loader)
+# Rust build artifacts (UEFI boot loader)
 tools/<ops-tooling>/bootloader/target/
 
 # LUXE campaign screenshot captures (XL-15 harness output)
