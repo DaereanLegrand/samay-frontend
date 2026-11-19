@@ -8,9 +8,9 @@
 # relies on those placeholders lets Xcode auto-resolve a profile by bundle id,
 # which can land on a stale profile lacking the app's capabilities
 # ("requires a provisioning profile with the Push Notifications and Sign In with
-# Apple features"). `make build PROD=true TARGET=ios` therefore patches the REAL
-# team + the vault-staged App Store profile's specifier + the distribution
-# identity for the archive, and the Makefile restores the placeholders on exit.
+# Apple features"). `make build ENV=prod TARGET=ios` therefore patches the REAL
+# team + the App Store profile's specifier + the distribution identity for the
+# archive, and the Makefile restores the placeholders on exit.
 #
 # Usage:
 #   bundle exec ruby tools/ios_store_signing.rb apply <TEAM> <PROFILE_NAME>

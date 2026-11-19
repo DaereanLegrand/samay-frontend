@@ -29,7 +29,7 @@ Build a signed ad-hoc IPA for on-device installs (make build TARGET=ios-adhoc â†
 [bundle exec] fastlane ios track_internal
 ```
 
-Upload the vault-built IPA to TestFlight internal testers (TRACK=internal)
+Upload the built IPA to TestFlight internal testers (TRACK=internal)
 
 ### ios track_external
 
@@ -37,7 +37,7 @@ Upload the vault-built IPA to TestFlight internal testers (TRACK=internal)
 [bundle exec] fastlane ios track_external
 ```
 
-Upload the vault-built IPA to TestFlight external testers (TRACK=external; set TESTFLIGHT_EXTERNAL_GROUPS)
+Upload the built IPA to TestFlight external testers (TRACK=external; set TESTFLIGHT_EXTERNAL_GROUPS)
 
 ### ios track_prod
 
@@ -45,7 +45,7 @@ Upload the vault-built IPA to TestFlight external testers (TRACK=external; set T
 [bundle exec] fastlane ios track_prod
 ```
 
-Submit the vault-built IPA to the App Store (TRACK=prod; App Store Connect review)
+Submit the built IPA to the App Store (TRACK=prod; App Store Connect review)
 
 ----
 
@@ -58,7 +58,7 @@ Submit the vault-built IPA to the App Store (TRACK=prod; App Store Connect revie
 [bundle exec] fastlane android track_play
 ```
 
-Upload the vault-built AAB to a Google Play track ($TRACK: internal|alpha|beta|production)
+Upload the built AAB to a Google Play track ($TRACK: internal|alpha|beta|production)
 
 ----
 

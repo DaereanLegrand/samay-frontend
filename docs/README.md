@@ -1,7 +1,7 @@
 # Samay — Documentation Hub
 
 Docs describe the codebase **as it is right now**. Historical records live in
-git history, not in the docs tree; `docs/history/` holds dated session logs.
+git history; `docs/history/` holds dated session logs.
 
 ## Where things live
 
@@ -9,23 +9,22 @@ git history, not in the docs tree; `docs/history/` holds dated session logs.
 |---|---|---|
 | **Hub** | `docs/README.md` | This index |
 | **Process (how-to)** | `docs/process/` | `DEVELOPMENT-WORKFLOW.md` (task cycle, locks, tests, ports, commit policy), `FILE-OWNERSHIP.md` (path ownership map) |
-| **Step specs (pending work)** | `docs/specs/steps/` | Specs for steps NOT yet implemented + `cross-references.md` (dependency graph + statuses). Implemented steps have no spec — their behavior is documented by code and tests |
 | **Design** | `docs/design/DESIGN.md`, `docs/design/AUTH-BUTTONS.md` | The current minimal design language (token source of truth is code, `lib/core/design_tokens/`); the social sign-in button rules (Apple HIG logo-only + Google branding) and how the login controls satisfy them |
-| **Security** | `docs/security/` | `SECURITY.md` (precautions applied now + why + open items), `E2EE-ARCHITECTURE.md` (chat crypto spec) |
-| **Infra** | `<private-ops-repo>/` | `SELFHOSTING.md` (stack runbook), `BACKEND-SERVER-VM.md` (Alpine AArch64 backend VM: tart + Docker Engine + RustFS), `DEPLOYMENT-PLACEHOLDER.md` (deployment targets as placeholders), `DATABASE.md` (DB catalog: tables/RPCs/triggers/realtime/cron/storage), `BACKEND.md` (Go CLI command tree + API routes + internals) |
-| **Vault / <build-host> (confidential, commit-only)** | repo root + `tools/vault/` | `LAPTOP-GUIDE.md` (vault host ops: store layout, profiles, rotation G1–G11, recovery), `DOCUMENTATION.md` (vault structure + provenance + broker), `GUIDE.md` (topology/pipelines), `OPS-TODO.md` (job checklist), `tools/vault/` (broker core + `samay-vault`) |
-| **History** | `docs/history/phase-XX/` | Dated session logs (`YYYY-MM-DD_<slug>.md`, MISTAKE blocks) — already populated (`docs/history/phase-16/…`) |
+| **Security** | `docs/security/` | `SECURITY.md` (precautions applied now + why + open items), `E2EE-ARCHITECTURE.md` (multiplayer answer crypto spec) |
+| **Diagrams** | `docs/diagrams/` | `architecture.mmd` / `.svg` — the app's layers and its backend/services boundaries |
+| **History** | `docs/history/phase-XX/` | Dated session logs (`YYYY-MM-DD_<slug>.md`, MISTAKE blocks) |
+
+Deployment, credentials and release-signing operations are not documented in
+this repository. Building a staging or production artifact requires release
+material supplied by the operator (see the `Makefile` release targets).
 
 ## Quick navigation
 
 - **New to the repo:** root [`README.md`](../README.md) →
   `docs/process/DEVELOPMENT-WORKFLOW.md`
-- **Building a feature:** find the step spec in `docs/specs/steps/` (if the
-  step has no spec, it's already built — read the code), check dependencies in
-  `cross-references.md`, then follow the TDD cycle.
-- **Baseline numbers:** root `README.md` §Testing summary.
-- **What's done / what's left:** `cross-references.md` status columns +
-  root README "Status & known gaps".
+- **Building a feature:** check the dependency notes in
+  `docs/process/DEVELOPMENT-WORKFLOW.md`, then follow the TDD cycle.
+- **Testing:** root `README.md` §Testing.
 - **Security posture:** `docs/security/SECURITY.md` §6 open items.
 
 ## Rules

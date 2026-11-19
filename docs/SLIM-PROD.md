@@ -235,11 +235,9 @@ existing grant and RLS policy applies unchanged.
 - Contract fixtures for removed features deleted. The fixture list is now
   directory-derived, so deleting a fixture cannot break the check.
 
-### 4.5 Known leftovers (deliberately not committed)
-- `tools/<secret-init>.sh` — a local change adding `prod` to an env guard, not
-  authored on this branch.
-- `supabase/.temp/cli-latest` — an auto-generated CLI version cache that is
-  tracked and probably should not be.
+### 4.5 Known leftovers
+- `supabase/.temp/cli-latest` (backend) — an auto-generated CLI version cache
+  that is tracked and probably should not be.
 
 ---
 
@@ -304,7 +302,34 @@ Nothing needs to be rebuilt or restored from history.
   with an entitlement error, so the encrypted caches (including the pack cache)
   do not persist there. The app degrades safely and packs still load over the
   network. This is a signing limitation, not a code defect.
-- **Public repos:** both are public, so the internal infrastructure notes under
-  `<private-ops-repo>/`, the vault helper scripts and some private LAN addresses are
-  visible. No credentials are exposed.
-- **No LICENSE file** exists in either repo.
+- **Public repos:** infrastructure and release-operation material is not part
+  of this repository. Release signing and deployment provisioning are handled
+  by the operator out-of-band. No credentials are exposed.
+- **License:** AGPL-3.0 — see `LICENSE`, `NOTICE`, and §9 below.
+
+---
+
+## 9. License
+
+Samay is licensed under the **GNU Affero General Public License, version 3**
+(AGPL-3.0), as published in `LICENSE` at the root of both this repository and
+the backend repository. The text is the unmodified official license.
+
+Why AGPL-3.0: Samay is a network-delivered application. AGPL-3.0 keeps the
+source of the deployed service available to the people using it, which matches
+how this project is intended to be published and run.
+
+- Third-party assets and components, the AI-assistance disclosure, and the
+  pre-licensing commit note are in `NOTICE`.
+- The license applies to the project as published from this point forward.
+  Commits made before `LICENSE` existed carry no license and no contributor
+  consent for one (see `NOTICE`); this is not a retroactive grant.
+- Running a modified version of Samay as a network service obliges the operator
+  to offer its corresponding source to that service's users.
+
+### Internal-ops history
+
+Infrastructure and release-operation documentation is not part of this
+repository. It was removed from the current trees and from the published
+history so that only Samay application code and its own engineering history
+remain.

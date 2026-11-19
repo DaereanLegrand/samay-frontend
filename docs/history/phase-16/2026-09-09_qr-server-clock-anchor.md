@@ -177,7 +177,7 @@ Wall clock is used only at apply to establish the phase.
 - `dart analyze lib/features/qr` → **No issues found!**;
   `flutter analyze lib` → **No issues found!** (1.6 s).
 - `make build TARGET=android` → APK built; installed to the emulator
-  (`localhost:5565`, tunnel to `<build-host>`) and launched:
+  (`localhost:5565`, tunnel to the build host) and launched:
   `mCurrentFocus=com.qallariy.samay/.MainActivity`, pid 7828 — ready for
   tap-verification.
 

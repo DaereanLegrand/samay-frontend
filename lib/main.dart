@@ -130,7 +130,7 @@ Future<void> main() async {
     ),
   );
   // RevenueCat (RSDK): configure the SDK only when the build carries a public
-  // SDK key for this platform (vault-fetched via `RC=true`, passed as
+  // SDK key for this platform (supplied at build time via `RC=true` and
   // --dart-define=REVENUECAT_PUBLIC_SDK_KEY_APPLE|_GOOGLE, or
   // REVENUECAT_TEST_STORE_KEY in debug). Without one the app stays in stub
   // mode (no store calls). `logIn(<supabase uid>)` sets RevenueCat's

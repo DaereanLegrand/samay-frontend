@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Interactive setup for the Samay app. gum-driven; back/quit on every menu.
 # Writes .env (consumed via --dart-define-from-file). No secrets here: testing
-# uses PUBLIC config only; staging/prod are vault-gated at release
-# (tools/release-signing-not-in-repo.sh). See <private-ops-repo>.
+# uses PUBLIC config only. Release signing material for staging/prod is
+# provisioned out-of-band by the operator; this repo never fetches it.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -32,7 +32,7 @@ echo
 
 mode="" url="" anon="" google_client_id="" google_ios_client_id=""
 while :; do
-  choice=$(gum choose --header "App backend (see <private-ops-repo>)" \
+  choice=$(gum choose --header "App backend (README → Requirements)" \
     "testing (hosted, public config — recommended)" \
     "local   (http://127.0.0.1:$KONG_PORT)" \
     "own     (your own backend + Firebase project)" \
@@ -79,5 +79,5 @@ umask 177
 chmod 600 "$ROOT_ENV"
 echo
 echo "wrote $ROOT_ENV (mode=$mode, url=$url)"
-[ "$mode" = "own" ] && echo "own-project setup: see <private-ops-repo> (google-services.json / GoogleService-Info.plist + SHA-1)"
+[ "$mode" = "own" ] && echo "own-project setup: see README → Requirements (google-services.json / GoogleService-Info.plist + SHA-1)"
 echo "next: make start            # run against the chosen backend"

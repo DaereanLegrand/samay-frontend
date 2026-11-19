@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Debug-only policy: permit cleartext so TESTING=true dev workflows work
-     against local stacks (10.0.2.2 emulator alias, 127.0.0.1/localhost,
-     <local-lan-ip> LAN, <vm-ip-prefix>x VM bridge). Debug builds are never
-     distributed. See README (Local backend) and Makefile TESTING targets. -->
+<!-- Debug-only policy: permit cleartext so local development works against
+     a stack on the host machine (10.0.2.2 emulator alias,
+     127.0.0.1/localhost, or your LAN address). Debug builds are never
+     distributed. See README (Requirements) and the Makefile ENV targets. -->
 <network-security-config>
     <base-config cleartextTrafficPermitted="true" />
 </network-security-config>

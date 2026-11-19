@@ -5,9 +5,9 @@
 #
 # Google Sign-In on iOS needs the iOS OAuth client id as `GIDClientID` and its
 # reversed form as a `CFBundleURLSchemes` entry (so the SDK can receive the
-# auth callback). Neither value is committed; the PROD build materializes the
-# id from the vault (`google-oauth-client-id`) into the RAM disk and this
-# script patches the tracked Info.plist transiently.
+# auth callback). Neither value is committed; a release build reads the id from
+# the operator-supplied release material and this script patches the tracked
+# Info.plist transiently.
 #
 # Usage:
 #   tools/ios_google_oauth.sh apply <client_id> [<Info.plist>]

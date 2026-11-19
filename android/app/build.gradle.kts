@@ -17,14 +17,14 @@ plugins {
 // ── Release signing — §3.3 keystore env contract (M-27, mirrors the M-18
 // fastlane guard semantics) ──────────────────────────────────────────────────
 // The keystore is NEVER in the repo (android/app/keystores/ is absent; *.jks
-// is gitignored; DEPLOYMENT-PLACEHOLDER.md §3.3 row R22). The four
+// is gitignored). The four
 // ANDROID_KEYSTORE_* env vars are the ONLY signing source:
 //   - ALL FOUR set  → the release buildType signs with the keystore.
 //   - ANY unset     → release builds FAIL FAST at task time with a clear
 //                     message. Release NEVER falls back to the debug key.
-// File-first: KEYSTORE_PROPERTIES points at a RAM-disk keystore.properties
-// (written by tools/release-signing-not-in-repo.sh). Env vars remain as a fallback for the
-// existing §3.3 contract. Release still fails fast when nothing is configured.
+// File-first: KEYSTORE_PROPERTIES points at a keystore.properties file
+// provisioned out-of-band by the operator for release builds. Env vars remain
+// as a fallback. Release still fails fast when nothing is configured.
 val keystoreProps = Properties().apply {
     System.getenv("KEYSTORE_PROPERTIES")?.let { p ->
         File(p).takeIf(File::isFile)?.inputStream()?.use { load(it) }

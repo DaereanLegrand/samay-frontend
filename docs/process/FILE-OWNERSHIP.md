@@ -22,7 +22,6 @@ before an edit. Ownership is enforced by the **file semaphore**
 | `AGENTS.md`, `docs/process/**` | Standing protocol — changes affect every session |
 | `docs/README.md` | Docs hub — keep the map accurate |
 | `README.md` | Baseline numbers — update in the same commit as count changes |
-| `docs/specs/steps/cross-references.md` | Dependency graph + statuses — single writer at a time |
 | `lib/core/router/app_router.dart`, `route_paths.dart`, `route_extras.dart` | Central routing; many features depend on it |
 | `lib/core/providers/auth_provider.dart` | Auth state machine; auth flows across features depend on it |
 | `lib/main.dart` | Bootstrap order (Supabase init, Hive, handlers) |

@@ -89,9 +89,8 @@ class AuthService {
   }
 
   /// Google OAuth client id (public), injected at build time via
-  /// `--dart-define` from the vault (`public/google-oauth-client-id`). No
-  /// fallback: an unconfigured build fails loudly instead of silently
-  /// downgrading the flow.
+  /// `--dart-define=GOOGLE_OAUTH_CLIENT_ID`. No fallback: an unconfigured build
+  /// fails loudly instead of silently downgrading the flow.
   static const String _googleServerClientId = String.fromEnvironment(
     'GOOGLE_OAUTH_CLIENT_ID',
   );

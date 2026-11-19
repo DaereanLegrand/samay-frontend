@@ -16,8 +16,8 @@ APP_NAME := samay_app
 # Single environment selector — the ONLY environment flag. Values:
 #   testing-local — local Docker stack (dev signing, needs JWT_SECRET)
 #   testing       — hosted testing API behind the free Cloudflare tunnel
-#   staging       — vault-gated staging release
-#   prod          — vault-gated production release
+#   staging       — staging release (release material provisioned out-of-band)
+#   prod          — production release (release material provisioned out-of-band)
 # ENV is explicit: there is no default. Internal aliases below are derived.
 RELEASE := $(filter staging prod,$(ENV))
 PROD    := $(if $(RELEASE),true,false)
@@ -32,39 +32,37 @@ APP_ENV := $(if $(filter prod,$(ENV)),prod,dev)
 # default) or ad-hoc (an on-device ad-hoc IPA). MODE=adhoc is the shorthand.
 MODE ?= store
 IOS_EXPORT_METHOD ?= $(if $(filter adhoc,$(MODE)),ad-hoc,app-store-connect)
-# RevenueCat opt-in: RC=true injects the env's public SDK key from the vault
-# (the app-build profile emits it). Unset/false ⇒ no key ⇒ the app is in stub
-# mode (purchase UI disabled). See <private-ops-repo> docs + <private-ops-repo>.
+# RevenueCat: unset public SDK keys keep the app in stub mode (purchase UI
+# disabled). Supply REVENUECAT_PUBLIC_SDK_KEY_APPLE / _GOOGLE as dart defines.
 RC ?= false
 APK := build/app/outputs/flutter-apk/app-$(ANDROID_FLAVOR)-$(BUILD_MODE).apk
 IPA_ADHOC := build/ios/ipa/$(APP_NAME)-adhoc.ipa
 APP_ID := com.qallariy.samay
-# Vault fetch/wipe helper for staging/prod builds. No fallback: it stops if it is
-# absent (all-or-nothing).
-RELEASE_SECRETS ?= tools/release-signing-not-in-repo.sh
 
 export PATH := /opt/homebrew/opt/ruby/bin:/Users/daerean/.local/share/gem/ruby/4.0.0/bin:$(PATH)
 BREW_BUNDLE := /opt/homebrew/opt/ruby/bin/bundle
 
 IOS_DEVELOPMENT_TEAM ?= $(shell sed -n 's/^IOS_DEVELOPMENT_TEAM=//p' .env.local 2>/dev/null | head -1)
 
-TUNNEL_HOST          ?= <build-host>
+TUNNEL_HOST          ?=
 TUNNEL_ANDROID_PORT  ?= 5565
 TUNNEL_WAYDROID_PORT ?= 5566
 
+define require-tunnel-host
+	@[ -n "$(TUNNEL_HOST)" ] || { echo "TUNNEL_HOST is required: 'ssh <host>' is used to reach the Android/Waydroid device. Example: make $(1) TUNNEL_HOST=user@host"; exit 2; }
+endef
+
 define tunnel-android
-  HOST="$(TUNNEL_HOST)"; [ -n "$$HOST" ] || { echo "TUNNEL_HOST is required"; exit 2; }; \
   (trap 'kill $$SSH_PID 2>/dev/null; adb disconnect localhost:$(TUNNEL_ANDROID_PORT) 2>/dev/null' EXIT; \
-   ssh -N -L $(TUNNEL_ANDROID_PORT):127.0.0.1:5555 "$$HOST" & SSH_PID=$$!; sleep 3; \
+   ssh -N -L $(TUNNEL_ANDROID_PORT):127.0.0.1:5555 "$(TUNNEL_HOST)" & SSH_PID=$$!; sleep 3; \
    adb connect localhost:$(TUNNEL_ANDROID_PORT); \
    $(1))
 endef
 
 define tunnel-waydroid
-  HOST="$(TUNNEL_HOST)"; [ -n "$$HOST" ] || { echo "TUNNEL_HOST is required"; exit 2; }; \
-  WIP=$$(ssh "$$HOST" "waydroid status | awk '/IP address/ {print \$$3}'"); \
+  WIP=$$(ssh "$(TUNNEL_HOST)" "waydroid status | awk '/IP address/ {print \$$3}'"); \
   (trap 'kill $$SSH_PID 2>/dev/null; adb disconnect localhost:$(TUNNEL_WAYDROID_PORT) 2>/dev/null' EXIT; \
-   ssh -N -L $(TUNNEL_WAYDROID_PORT):$$WIP:5555 "$$HOST" & SSH_PID=$$!; sleep 3; \
+   ssh -N -L $(TUNNEL_WAYDROID_PORT):$$WIP:5555 "$(TUNNEL_HOST)" & SSH_PID=$$!; sleep 3; \
    adb connect localhost:$(TUNNEL_WAYDROID_PORT); \
    $(1))
 endef
@@ -133,26 +131,27 @@ tunnel-android: | testing-kong-register
 endif
 
 # ── Resolved env defines — ONE source per ENV, used by dev + non-store builds ─
-#   local   → local Docker stack (:$(LOCAL_KONG_PORT)) + the Kong anon registration
-#   testing → .env verbatim (written by `make init`)
-#   staging → vault app-build profile (staging-apple / staging-android)
-#   prod    → vault app-build profile (apple / android)
+#   testing-local → local Docker stack (:$(LOCAL_KONG_PORT)) + the Kong anon registration
+#   testing       → .env verbatim (written by `make init`)
+#   staging       → dart defines from $(PROD_DEFINES)
+#   prod          → dart defines from $(PROD_DEFINES)
 # Recursive `=` so PROD_DEFINES (defined in the PROD block below) resolves at
-# use time. RC=true adds the vault RevenueCat public keys on any ENV.
-VAULT_PROFILE_FOR = $(if $(filter ios ios-adhoc simulator,$(1)),apple,android)
+# use time.
 ENV_DEFINES = $(if $(filter true,$(TESTING)),$(LOCAL_DEFINES),$(if $(RELEASE),--dart-define-from-file=$(PROD_DEFINES) --dart-define=APP_ENV=$(APP_ENV),$(FLUTTER_DEFINES)))
 
 # Android/Waydroid dev run command, shared by `dev` and the tunnel targets. It
 # ALWAYS pins the selected product flavor: without `--flavor`, `flutter run`
 # triggers an unflavored `assembleDebug` that builds EVERY flavor, including the
-# vault-gated `staging`/`prod` ones whose `google-services.json` is absent (so
-# it dies in `process<Flavor>DebugGoogleServices`).
+# staging/prod ones whose `google-services.json` is absent (so it dies in
+# `process<Flavor>DebugGoogleServices`).
 ANDROID_RUN = flutter run --flavor $(ANDROID_FLAVOR) $(PUB_FLAG) $(ENV_DEFINES)
 
 ifeq ($(PROD),true)
 ifeq ($(TESTING),true)
 $(error internal: RELEASE and TESTING are mutually exclusive)
 endif
+# Release material is provisioned out-of-band: these files are inputs, never
+# generated by this Makefile.
 RAM_DIR             ?= /Volumes/SamayRAM
 KEYSTORE_PROPERTIES ?= $(RAM_DIR)/keystore.properties
 PROD_DEFINES        ?= $(RAM_DIR)/dart_defines.env
@@ -160,7 +159,7 @@ EXPORT_OPTIONS      ?= $(RAM_DIR)/ExportOptions.plist
 endif
 
 ifeq ($(TESTING),true)
-LANE_SUPABASE_URL := http://<local-lan-ip>:54386
+LANE_SUPABASE_URL ?= $(shell sed -n 's/^SUPABASE_URL=//p' .env 2>/dev/null | head -1)
 else
 LANE_SUPABASE_URL := $(shell sed -n 's/^SUPABASE_URL=//p' .env 2>/dev/null | head -1)
 endif
@@ -187,12 +186,12 @@ help:
 	@echo "  GATES:     analyze check secrets hooks env"
 	@echo "  RELEASE:   release bundle-install"
 	@echo "  TRACKS:    deploy TARGET=ios|android|all TRACK=<list>  (build honours TRACK too)"
-	@echo "  ENV:       testing-local (Docker) | testing (tunnel) | staging|prod (vault)"
+	@echo "  ENV:       testing-local (Docker) | testing (tunnel) | staging|prod (release)"
 	@echo "  IOS MODE:  build ENV=prod|staging TARGET=ios MODE=store|adhoc"
 
 env:
 	@echo "ENV=$(ENV)"
-	@echo "config: $(if $(filter true,$(TESTING)),local stack (:$(LOCAL_KONG_PORT)),$(if $(RELEASE),vault profile $(call VAULT_PROFILE_FOR,$(TARGET)) ($(ENV)),.env))"
+	@echo "config: $(if $(filter true,$(TESTING)),local stack (:$(LOCAL_KONG_PORT)),$(if $(RELEASE),release material $(RAM_DIR),.env))"
 	@echo "APP_ENV=$(APP_ENV) ANDROID_FLAVOR=$(ANDROID_FLAVOR) BUILD_MODE=$(BUILD_MODE)"
 	@echo "ENV_FILE=$(ENV_FILE)"
 	@echo "ENV_DEFINES=$(ENV_DEFINES)"
@@ -218,6 +217,14 @@ testing-kong-register:
 	fi
 
 # ── Flutter ──────────────────────────────────────────────────────────────────
+# Release material for ENV=staging|prod (keystore.properties, dart_defines.env,
+# ExportOptions.plist, google-services.json / GoogleService-Info.plist, the
+# provisioning profile and the OAuth client id) is provisioned by the operator
+# out-of-band onto $(RAM_DIR). This Makefile never fetches secrets.
+define require-release-material
+	@[ -d "$(RAM_DIR)" ] || { echo "ENV=$(ENV): $(RAM_DIR) is not mounted. Release material is provisioned out-of-band by the operator; this repo does not fetch release secrets."; exit 1; }
+endef
+
 build:
 	$(load-env)
 	@if [ "$(TARGET)" = "all" ]; then \
@@ -232,7 +239,7 @@ build:
 		mkdir -p ipa && zip -r -y ipa/$(APP_NAME).ipa Payload && rm -rf Payload && \
 		echo "IPA: build/ios/ipa/$(APP_NAME).ipa"; \
 	elif [ "$(TARGET)" = "ios-adhoc" ]; then \
-		[ -n "$(RELEASE)" ] && { echo "ENV=$(ENV): use 'make build ENV=$(ENV) TARGET=ios MODE=adhoc' for a vault-signed ad-hoc IPA."; exit 1; }; \
+		[ -n "$(RELEASE)" ] && { echo "ENV=$(ENV): use 'make build ENV=$(ENV) TARGET=ios MODE=adhoc' for an ad-hoc signed IPA."; exit 1; }; \
 		IOS_DEVELOPMENT_TEAM="$(IOS_DEVELOPMENT_TEAM)" \
 		SUPABASE_URL="$(LANE_SUPABASE_URL)" \
 		SUPABASE_ANON_KEY="$(LANE_SUPABASE_ANON_KEY)" \
@@ -243,12 +250,11 @@ build:
 		sim_cleanup() { \
 			[ -n "$$PLIST_BACKUP" ] && tools/ios_google_oauth.sh restore "$$PLIST_BACKUP" >/dev/null 2>&1 || true; \
 			if [ -n "$$FIREBASE_BACKUP" ]; then cp "$$FIREBASE_BACKUP" ios/Runner/GoogleService-Info.plist; rm -f "$$FIREBASE_BACKUP"; fi; \
-			[ -n "$(RELEASE)" ] && $(RELEASE_SECRETS) wipe >/dev/null 2>&1 || true; \
 		}; \
 		trap sim_cleanup EXIT INT TERM HUP; \
 		if [ -n "$(RELEASE)" ]; then \
-			[ -x "$(RELEASE_SECRETS)" ] || { echo "ENV=$(ENV) needs executable $(RELEASE_SECRETS) (vault fetch)."; exit 1; }; \
-			RC="$(RC)" $(RELEASE_SECRETS) fetch apple $(ENV); \
+			$(require-release-material) || exit 1; \
+			[ -f "$(PROD_DEFINES)" ] || { echo "ENV=$(ENV): $(PROD_DEFINES) missing. Release material is provisioned out-of-band by the operator."; exit 1; }; \
 			if [ -s "$(RAM_DIR)/GoogleService-Info.plist" ]; then FIREBASE_BACKUP=$$(mktemp); cp ios/Runner/GoogleService-Info.plist "$$FIREBASE_BACKUP"; cp "$(RAM_DIR)/GoogleService-Info.plist" ios/Runner/GoogleService-Info.plist; fi; \
 			IOS_GID=$$(cat "$(RAM_DIR)/google-oauth-ios-client-id" 2>/dev/null || true); \
 			if [ -n "$$IOS_GID" ]; then PLIST_BACKUP=$$(tools/ios_google_oauth.sh apply "$$IOS_GID") || exit 1; fi; \
@@ -256,41 +262,34 @@ build:
 		flutter build ios --simulator $(PUB_FLAG) $(ENV_DEFINES) && \
 		echo "Simulator app: build/ios/iphonesimulator/Runner.app"; \
 	elif [ "$(TARGET)" = "android" ] && [ "$(PROD)" = "true" ]; then \
-		[ -x "$(RELEASE_SECRETS)" ] || { echo "ENV=staging|prod needs executable $(RELEASE_SECRETS) (vault fetch/wipe)."; exit 1; }; \
+		$(require-release-material); \
+		[ -f "$(KEYSTORE_PROPERTIES)" ] || { echo "ENV=$(ENV): $(KEYSTORE_PROPERTIES) missing. Release material is provisioned out-of-band by the operator."; exit 1; }; \
+		[ -f "$(PROD_DEFINES)" ] || { echo "ENV=$(ENV): $(PROD_DEFINES) missing. Release material is provisioned out-of-band by the operator."; exit 1; }; \
+		[ -f "$(RAM_DIR)/google-services.json" ] || { echo "ENV=$(ENV): $(RAM_DIR)/google-services.json missing (Firebase config). Release material is provisioned out-of-band by the operator."; exit 1; }; \
 		mkdir -p android/app/src/$(ANDROID_FLAVOR); \
-		android_cleanup() { rm -f android/app/src/$(ANDROID_FLAVOR)/google-services.json; $(RELEASE_SECRETS) wipe >/dev/null 2>&1 || true; }; \
+		android_cleanup() { rm -f android/app/src/$(ANDROID_FLAVOR)/google-services.json; }; \
 		trap android_cleanup EXIT INT TERM HUP; \
-		$(RELEASE_SECRETS) wipe >/dev/null 2>&1 || true; \
-		RC="$(RC)" $(RELEASE_SECRETS) fetch android $(ENV); \
-		[ -f "$(KEYSTORE_PROPERTIES)" ] || { echo "vault '$(ENV)/android' profile yielded no $(KEYSTORE_PROPERTIES)."; exit 1; }; \
-		[ -f "$(PROD_DEFINES)" ] || { echo "vault '$(ENV)/android' profile yielded no $(PROD_DEFINES)."; exit 1; }; \
-		[ -f "$(RAM_DIR)/google-services.json" ] || { echo "vault '$(ENV)/android' profile yielded no google-services.json ($(ENV) Firebase config)."; exit 1; }; \
 		cp "$(RAM_DIR)/google-services.json" android/app/src/$(ANDROID_FLAVOR)/google-services.json; \
 		KEYSTORE_PROPERTIES="$(KEYSTORE_PROPERTIES)" flutter build appbundle --release --flavor $(ANDROID_FLAVOR) $(PUB_FLAG) --dart-define-from-file="$(PROD_DEFINES)" --dart-define=APP_ENV=$(APP_ENV) && \
 		KEYSTORE_PROPERTIES="$(KEYSTORE_PROPERTIES)" flutter build apk --release --flavor $(ANDROID_FLAVOR) $(PUB_FLAG) --dart-define-from-file="$(PROD_DEFINES)" --dart-define=APP_ENV=$(APP_ENV) && \
 		echo "AAB: build/app/outputs/bundle/$(ANDROID_FLAVOR)Release/app-$(ANDROID_FLAVOR)-release.aab" && \
 		echo "APK: $(APK)"; \
 	elif [ "$(TARGET)" = "ios" ] && [ "$(PROD)" = "true" ]; then \
-		[ -x "$(RELEASE_SECRETS)" ] || { echo "ENV=staging|prod needs executable $(RELEASE_SECRETS) (vault fetch/wipe)."; exit 1; }; \
-		PLIST_BACKUP=""; \
-		PBX_BACKUP=""; \
-		FIREBASE_BACKUP=""; \
+		$(require-release-material); \
+		[ -f "$(EXPORT_OPTIONS)" ] || { echo "ENV=$(ENV): $(EXPORT_OPTIONS) missing. Release material is provisioned out-of-band by the operator."; exit 1; }; \
+		[ -f "$(PROD_DEFINES)" ] || { echo "ENV=$(ENV): $(PROD_DEFINES) missing. Release material is provisioned out-of-band by the operator."; exit 1; }; \
+		[ -f "$(RAM_DIR)/GoogleService-Info.plist" ] || { echo "ENV=$(ENV): $(RAM_DIR)/GoogleService-Info.plist missing (Firebase config). Release material is provisioned out-of-band by the operator."; exit 1; }; \
+		[ -f "$(RAM_DIR)/provisioning-profile.mobileprovision" ] || { echo "ENV=$(ENV): $(RAM_DIR)/provisioning-profile.mobileprovision missing. Release material is provisioned out-of-band by the operator."; exit 1; }; \
+		PLIST_BACKUP=""; PBX_BACKUP=""; FIREBASE_BACKUP=""; \
 		cleanup() { \
 			[ -n "$$PLIST_BACKUP" ] && tools/ios_google_oauth.sh restore "$$PLIST_BACKUP" >/dev/null 2>&1 || true; \
 			if [ -n "$$FIREBASE_BACKUP" ]; then cp "$$FIREBASE_BACKUP" ios/Runner/GoogleService-Info.plist; rm -f "$$FIREBASE_BACKUP"; fi; \
 			if [ -n "$$PBX_BACKUP" ]; then cp "$$PBX_BACKUP" ios/Runner.xcodeproj/project.pbxproj; rm -f "$$PBX_BACKUP"; fi; \
-			$(RELEASE_SECRETS) wipe >/dev/null 2>&1 || true; \
 		}; \
 		trap cleanup EXIT INT TERM HUP; \
-		$(RELEASE_SECRETS) wipe >/dev/null 2>&1 || true; \
-		RC="$(RC)" IOS_EXPORT_METHOD="$(IOS_EXPORT_METHOD)" $(RELEASE_SECRETS) fetch apple $(ENV); \
-		[ -f "$(EXPORT_OPTIONS)" ] || { echo "vault '$(ENV)/apple' profile yielded no $(EXPORT_OPTIONS)."; exit 1; }; \
-		[ -f "$(PROD_DEFINES)" ] || { echo "vault '$(ENV)/apple' profile yielded no $(PROD_DEFINES)."; exit 1; }; \
-		[ -f "$(RAM_DIR)/GoogleService-Info.plist" ] || { echo "vault '$(ENV)/apple' profile yielded no GoogleService-Info.plist ($(ENV) Firebase config)."; exit 1; }; \
 		FIREBASE_BACKUP=$$(mktemp); cp ios/Runner/GoogleService-Info.plist "$$FIREBASE_BACKUP"; cp "$(RAM_DIR)/GoogleService-Info.plist" ios/Runner/GoogleService-Info.plist; \
 		IOS_GID=$$(cat "$(RAM_DIR)/google-oauth-ios-client-id" 2>/dev/null); \
-		[ -n "$$IOS_GID" ] || { echo "vault '$(ENV)/apple' profile yielded no google-oauth-ios-client-id."; exit 1; }; \
-		[ -f "$(RAM_DIR)/provisioning-profile.mobileprovision" ] || { echo "vault '$(ENV)/apple' profile yielded no provisioning-profile.mobileprovision."; exit 1; }; \
+		[ -n "$$IOS_GID" ] || { echo "ENV=$(ENV): $(RAM_DIR)/google-oauth-ios-client-id missing. Release material is provisioned out-of-band by the operator."; exit 1; }; \
 		PROF_NAME=$$(security cms -D -i "$(RAM_DIR)/provisioning-profile.mobileprovision" | plutil -extract Name raw -); \
 		PROF_TEAM=$$(security cms -D -i "$(RAM_DIR)/provisioning-profile.mobileprovision" | plutil -extract TeamIdentifier.0 raw -); \
 		PBX_BACKUP=$$(mktemp); cp ios/Runner.xcodeproj/project.pbxproj "$$PBX_BACKUP"; \
@@ -312,13 +311,11 @@ build: track-guard
 dev: guard-local
 	$(load-env)
 	@UNAME=$$(uname); \
-	PROFILE="$(call VAULT_PROFILE_FOR,$(TARGET))"; \
 	PLIST_BACKUP=""; FIREBASE_BACKUP=""; GS_DEST=""; \
 	dev_cleanup() { \
 		[ -n "$$PLIST_BACKUP" ] && tools/ios_google_oauth.sh restore "$$PLIST_BACKUP" >/dev/null 2>&1 || true; \
 		if [ -n "$$FIREBASE_BACKUP" ]; then cp "$$FIREBASE_BACKUP" ios/Runner/GoogleService-Info.plist; rm -f "$$FIREBASE_BACKUP"; fi; \
 		if [ -n "$$GS_DEST" ]; then rm -f "$$GS_DEST"; fi; \
-		[ -n "$(RELEASE)" ] && $(RELEASE_SECRETS) wipe >/dev/null 2>&1 || true; \
 		true; \
 	}; \
 	trap dev_cleanup EXIT INT TERM HUP; \
@@ -329,10 +326,9 @@ dev: guard-local
 			   echo "On-device iOS: make build ENV=$(ENV) TARGET=ios MODE=adhoc && make install TARGET=ios-adhoc."; \
 			   exit 1 ;; \
 		esac; \
-		[ -x "$(RELEASE_SECRETS)" ] || { echo "ENV=$(ENV) needs executable $(RELEASE_SECRETS) (vault fetch)."; exit 1; }; \
-		RC="$(RC)" IOS_EXPORT_METHOD="$(IOS_EXPORT_METHOD)" $(RELEASE_SECRETS) fetch "$$PROFILE" $(ENV) || exit 1; \
+		[ -d "$(RAM_DIR)" ] || { echo "ENV=$(ENV): $(RAM_DIR) is not mounted. Release material is provisioned out-of-band by the operator; this repo does not fetch release secrets."; exit 1; }; \
 		if [ "$(TARGET)" = "android" ] || [ "$(TARGET)" = "waydroid" ]; then \
-			[ -s "$(RAM_DIR)/google-services.json" ] || { echo "ENV=$(ENV): vault profile produced no google-services.json."; exit 1; }; \
+			[ -s "$(RAM_DIR)/google-services.json" ] || { echo "ENV=$(ENV): $(RAM_DIR)/google-services.json missing. Release material is provisioned out-of-band by the operator."; exit 1; }; \
 			mkdir -p android/app/src/$(ANDROID_FLAVOR); \
 			GS_DEST="android/app/src/$(ANDROID_FLAVOR)/google-services.json"; \
 			cp "$(RAM_DIR)/google-services.json" "$$GS_DEST"; \
@@ -602,17 +598,17 @@ hooks:
 	@echo "core.hooksPath -> tools/hooks"
 
 tunnel-android:
-	@HOST="$(TUNNEL_HOST)"; [ -n "$$HOST" ] || { echo "TUNNEL_HOST is required"; exit 2; }; \
-		(trap 'kill $$SSH_PID 2>/dev/null; adb disconnect localhost:$(TUNNEL_ANDROID_PORT) 2>/dev/null' EXIT; \
-		ssh -N -L $(TUNNEL_ANDROID_PORT):127.0.0.1:5555 "$$HOST" & SSH_PID=$$!; sleep 1; \
+	$(call require-tunnel-host,tunnel-android)
+	@(trap 'kill $$SSH_PID 2>/dev/null; adb disconnect localhost:$(TUNNEL_ANDROID_PORT) 2>/dev/null' EXIT; \
+		ssh -N -L $(TUNNEL_ANDROID_PORT):127.0.0.1:5555 "$(TUNNEL_HOST)" & SSH_PID=$$!; sleep 1; \
 		adb connect localhost:$(TUNNEL_ANDROID_PORT); \
 		$(ANDROID_RUN) -d localhost:$(TUNNEL_ANDROID_PORT))
 
 tunnel-waydroid:
-	@HOST="$(TUNNEL_HOST)"; [ -n "$$HOST" ] || { echo "TUNNEL_HOST is required"; exit 2; }; \
-		WIP=$$(ssh "$$HOST" "waydroid status | awk '/IP address/ {print \$$3}'"); \
+	$(call require-tunnel-host,tunnel-waydroid)
+	@WIP=$$(ssh "$(TUNNEL_HOST)" "waydroid status | awk '/IP address/ {print \$$3}'"); \
 		(trap 'kill $$SSH_PID 2>/dev/null; adb disconnect localhost:$(TUNNEL_WAYDROID_PORT) 2>/dev/null' EXIT; \
-		ssh -N -L $(TUNNEL_WAYDROID_PORT):$$WIP:5555 "$$HOST" & SSH_PID=$$!; sleep 1; \
+		ssh -N -L $(TUNNEL_WAYDROID_PORT):$$WIP:5555 "$(TUNNEL_HOST)" & SSH_PID=$$!; sleep 1; \
 		adb connect localhost:$(TUNNEL_WAYDROID_PORT); \
 		$(ANDROID_RUN) -d localhost:$(TUNNEL_WAYDROID_PORT))
 
@@ -624,11 +620,11 @@ signing-restore:
 login:
 	@python3 tools/xcode_login.py --target "$(TARGET)" --device "$(DEVICE)" $(if $(DRY_RUN),--dry-run,)
 
-# Vault-gated ENVs (staging/prod) are LOCAL-ONLY: run on the Mac with the vault
-# profile materialized on a RAM disk; never in CI. No-op for testing-local/testing.
+# Release ENVs (staging/prod) are LOCAL-ONLY: run on the Mac with the release
+# material mounted on $(RAM_DIR); never in CI. No-op for testing-local/testing.
 guard-local:
 	@if [ -n "$(RELEASE)" ] && { [ -n "$$CI" ] || [ -n "$$GITHUB_ACTIONS" ] || [ -n "$$GITEA_ACTIONS" ] || [ -n "$$ACT" ]; }; then \
-		echo "ENV=$(ENV) is vault-gated (staging/prod); LOCAL-ONLY — refusing in CI."; exit 1; \
+		echo "ENV=$(ENV) is a release environment (staging/prod); LOCAL-ONLY — refusing in CI."; exit 1; \
 	fi
 
 # Validate TRACK against the per-TARGET store-native vocabulary. Silent no-op
@@ -655,11 +651,10 @@ bundle-install:
 	@[ -f Gemfile ] || { echo "No Gemfile — fastlane not wired yet."; exit 1; }
 	$(BREW_BUNDLE) install
 
-# Signed PROD artifacts for BOTH platforms in one command (local-only,
-# vault-gated). Each platform fetches its vault profile into the RAM disk,
-# builds, then wipes — so each prompts for the vault passphrase once. The
-# per-platform targets are `build ENV=staging|prod TARGET=ios|android`; this target
-# is just the two-step convenience wrapper.
+# Signed PROD artifacts for BOTH platforms in one command (local-only, release
+# material provisioned out-of-band). The per-platform targets are
+# `build ENV=staging|prod TARGET=ios|android`; this target is just the two-step
+# convenience wrapper.
 release:
 	@$(MAKE) build TARGET=ios ENV="$(ENV)" NO_PUB=$(NO_PUB)
 	@$(MAKE) build TARGET=android ENV="$(ENV)" NO_PUB=$(NO_PUB)
@@ -667,12 +662,14 @@ release:
 # ── Track-aware build + deploy ───────────────────────────────────────────────
 # build ENV=staging|prod TARGET=ios|android TRACK=<list>   → validated build only
 # deploy TARGET=ios|android|all TRACK=<list>        → build every platform in
-#   scope (vault-gated), then publish the built artifact to each requested
-#   store track via fastlane. TRACK is required, store-native, comma-separated;
-#   there is NO TRACK=all. For TARGET=all a track valid for only one platform
-#   is applied there and skipped on the other.
+#   scope, then publish the built artifact to each requested store track via
+#   fastlane. TRACK is required, store-native, comma-separated; there is NO
+#   TRACK=all. For TARGET=all a track valid for only one platform is applied
+#   there and skipped on the other.
 #   ios tracks: internal (TestFlight internal) external (TestFlight external) prod (App Store)
 #   android tracks: internal alpha beta production (Google Play)
+# Store credentials are NOT in this repo: upload lanes read App Store Connect and
+# Google Play credentials from the invoking environment.
 deploy: TRACK_REQUIRED=true
 deploy: track-guard
 	@set -e; \
@@ -686,13 +683,7 @@ publish: track-guard
 	@set -e; \
 	targets="$(TARGET)"; \
 	case "$$targets" in ios|android) : ;; all) targets="ios android";; *) echo "publish: TARGET must be ios|android|all"; exit 1;; esac; \
-	[ -x "$(RELEASE_SECRETS)" ] || { echo "publish: needs executable $(RELEASE_SECRETS) (vault fetch/wipe)."; exit 1; }; \
-	pub_cleanup() { $(RELEASE_SECRETS) wipe >/dev/null 2>&1 || true; true; }; \
-	trap pub_cleanup EXIT INT TERM HUP; \
 	for t in $$targets; do \
-		case "$$t" in ios) profile=apple;; android) profile=android;; esac; \
-		RC="$(RC)" IOS_EXPORT_METHOD="$(IOS_EXPORT_METHOD)" $(RELEASE_SECRETS) fetch "$$profile" $(ENV); \
-		eval "$$($(RELEASE_SECRETS) env "$$profile")"; \
 		for track in $$(echo "$(TRACK)" | tr ',' ' '); do \
 			[ -n "$$track" ] || continue; \
 			case "$$t" in \
@@ -705,5 +696,4 @@ publish: track-guard
 					ENV="$(ENV)" TRACK="$$track" bundle exec fastlane android track_play;; \
 			esac; \
 		done; \
-		$(RELEASE_SECRETS) wipe; \
 	done

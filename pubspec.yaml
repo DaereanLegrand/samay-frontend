@@ -21,7 +21,7 @@ dependencies:
   supabase_flutter: ^2.8.4
   # Push notifications (Track 2 PUSH): FCM HTTP v1 (Android) + APNs (iOS).
   # Client wiring is dark-first behind AppFeatureFlag.push; the backend sends
-  # with the vault-held `fcm-service-account.json`. Requires Firebase platform
+  # with an operator-supplied FCM service account. Requires Firebase platform
   # config (android/app/google-services.json via `flutterfire configure`) and
   # the google-services Gradle plugin (settings.gradle.kts / app build.gradle.kts).
   firebase_core: ^4.15.0

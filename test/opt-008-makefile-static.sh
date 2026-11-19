@@ -10,7 +10,7 @@
 #      inventory, incl. override forms TARGET=/OVERRIDES=/FLUTTER_DEFINES=).
 #   2. Fastlane upload-lane contract: `publish` maps each ios track to its
 #      upload lane and android to `track_play`; every lane uploads the
-#      vault-built artifact (no rebuild, no `match`):
+#      prebuilt artifact (no rebuild, no `match`):
 #        TRACK=internal → fastlane ios track_internal
 #        TRACK=external → fastlane ios track_external
 #        TRACK=prod     → fastlane ios track_prod
@@ -27,7 +27,7 @@
 # no-real-credential-shape scan over fastlane/ (placeholder policy).
 # M-18 (2026-08-10) extended §2b: platform :android + the track_play upload
 # lane, no .jks/JSON-key material in fastlane/ OR android/, and
-# android/app/keystores/ absent (the keystore lives in the vault, never the repo).
+# android/app/keystores/ absent (signing material is never in the repo).
 # M-27 (2026-08-10) added §6: the android platform contract —
 #   - the gradle wrapper is COMMITTED and deterministic (gradlew / gradlew.bat
 #     / gradle-wrapper.jar exist and are NOT gitignored; flutter_tools would
@@ -53,7 +53,7 @@
 #   - signing stays placeholder-only: CODE_SIGN_STYLE = Manual,
 #     DEVELOPMENT_TEAM = XXXXXXXXXX (the §3.3 TEAM_ID placeholder), empty
 #     PROVISIONING_PROFILE_SPECIFIER, bundle id com.qallariy.samay (matches
-#     fastlane/Appfile) — the vault .p12 + provisioning profile sign the build,
+#     fastlane/Appfile) — operator-supplied .p12 + profile sign the build,
 #   - Podfile.lock / SPM Package.resolved resolve purchases_flutter 10.8.0
 #     → PurchasesHybridCommon 18.29.0 → RevenueCat 5.83.0 (the I-71 conflict
 #     fix; stale lock pinned PurchasesHybridCommon 14.3.0 and broke pod
@@ -161,7 +161,7 @@ fi
 
 # ── 1c. ENV drives every run/build/install verb ──────────────────────────────
 # ENV=testing-local|testing|staging|prod must resolve for dev/build/install, reach the
-# nested $(MAKE) sweeps, and pull the vault dart-defines for staging/prod.
+# nested $(MAKE) sweeps, and read operator-supplied dart-defines for staging/prod.
 # ENV is required; prod is not gated by a separate confirmation.
 echo ""
 echo "━━━ 1c. ENV honored by dev/build/install ━━━"
@@ -191,9 +191,9 @@ for pair in "build TARGET=all ENV=staging" "install TARGET=all ENV=staging"; do
 done
 OUT="$(make -n build TARGET=simulator ENV=staging 2>/dev/null || true)"
 if grep -q -- '--dart-define-from-file=' <<<"$OUT"; then
-  pass "staging simulator build pulls the vault dart-defines file"
+  pass "staging simulator build pulls the release dart-defines file"
 else
-  fail "staging simulator build does not reference the vault dart-defines file"
+  fail "staging simulator build does not reference the release dart-defines file"
 fi
 OUT="$(make -s env ENV=staging 2>/dev/null || true)"
 if grep -q 'ENV=staging' <<<"$OUT"; then
@@ -226,11 +226,11 @@ else
   pass "guard-release rejects ENV=testing"
 fi
 
-# ── 2. Fastlane upload-lane contract (vault-built artifacts; no match) ───────
+# ── 2. Fastlane upload-lane contract (prebuilt artifacts; no match) ─────────
 echo ""
 echo "━━━ 2. Fastlane upload-lane contract ━━━"
 # `publish` maps each ios track to its upload lane and android to track_play —
-# all upload lanes consume the vault-built artifact (no rebuild, no match).
+# all upload lanes consume the prebuilt artifact (no rebuild, no match).
 for pair in internal:track_internal external:track_external prod:track_prod; do
   tk="${pair%%:*}"; ln="${pair##*:}"
   if grep -qE "lane=$ln" "$MAKEFILE"; then
@@ -288,9 +288,9 @@ if [ -f "$FL" ]; then
     fi
   done
   if grep -q 'match(' "$FL"; then
-    fail "Fastfile still references fastlane match (must be vault-only signing)"
+    fail "Fastfile still references fastlane match (signing must be out-of-band)"
   else
-    pass "Fastfile has no match (vault-only signalling)"
+    pass "Fastfile has no match (signing is out-of-band)"
   fi
   grep -q 'credentials not configured' "$FL" && pass "lanes fail fast on placeholder credentials" || fail "Fastfile missing the fail-fast placeholder guard"
 else
@@ -512,7 +512,7 @@ fi
 # Signing: placeholder team + Manual style on the Runner target; the bundle id
 # must match fastlane/Appfile. RunnerTests (test bundle) may stay Automatic.
 if [ -f "$PBX" ]; then
-  grep -q 'CODE_SIGN_STYLE = Manual' "$PBX" && pass "pbxproj CODE_SIGN_STYLE = Manual (vault-cert manual signing)" || fail "pbxproj CODE_SIGN_STYLE = Manual missing"
+  grep -q 'CODE_SIGN_STYLE = Manual' "$PBX" && pass "pbxproj CODE_SIGN_STYLE = Manual (manual signing)" || fail "pbxproj CODE_SIGN_STYLE = Manual missing"
   grep -q 'DEVELOPMENT_TEAM = XXXXXXXXXX' "$PBX" && pass "pbxproj DEVELOPMENT_TEAM = XXXXXXXXXX (§3.3 placeholder)" || fail "pbxproj DEVELOPMENT_TEAM is not the placeholder"
   grep -q 'PROVISIONING_PROFILE_SPECIFIER = ""' "$PBX" && pass "pbxproj PROVISIONING_PROFILE_SPECIFIER empty" || fail "pbxproj PROVISIONING_PROFILE_SPECIFIER not empty"
   grep -q 'PRODUCT_BUNDLE_IDENTIFIER = com.qallariy.samay;' "$PBX" && pass "pbxproj bundle id com.qallariy.samay (Appfile-verified)" || fail "pbxproj bundle id mismatch"

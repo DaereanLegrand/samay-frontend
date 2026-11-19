@@ -9,10 +9,11 @@
 #   make deploy TARGET=ios   TRACK=prod      → fastlane ios track_prod
 #   make deploy TARGET=android TRACK=…        → fastlane android track_play
 #
-# iOS signing has ONE source: the vault. `tools/release-signing-not-in-repo.sh` imports the
-# distribution cert (.p12) into a throwaway keychain, installs the provisioning
-# profile, and writes ExportOptions.plist; `make build ENV=… TARGET=ios` then
-# runs `flutter build ipa --export-options-plist`. There is NO fastlane `match`.
+# iOS signing has ONE source: the release material mounted on the Makefile's
+# $(RAM_DIR) (distribution cert .p12 + provisioning profile + ExportOptions.plist),
+# imported by the operator's out-of-band release tooling before `make build`.
+# `make build ENV=… TARGET=ios` then runs `flutter build ipa
+# --export-options-plist`. There is NO fastlane `match`.
 #
 # CREDENTIALS are read from the environment; `assert_credentials_configured!`
 # fails fast when a value is missing or still the §3.3 placeholder.
@@ -89,7 +90,7 @@ def build_ios_ipa_with_export(plist_path)
   ipa
 end
 
-# The already-built artifact from the vault-gated Makefile step (`make build
+# The already-built artifact from the Makefile build step (`make build
 # ENV=… TARGET=…`). fastlane runs chdir'd into fastlane/, so repo-root paths are
 # `../`-relative.
 def prebuilt_ios_ipa
@@ -232,14 +233,14 @@ platform :ios do
     end
   end
 
-  # ── `make deploy` upload lanes (upload the vault-built IPA; no rebuild) ────
-  desc "Upload the vault-built IPA to TestFlight internal testers (TRACK=internal)"
+  # ── `make deploy` upload lanes (upload the built IPA; no rebuild) ────
+  desc "Upload the built IPA to TestFlight internal testers (TRACK=internal)"
   lane :track_internal do
     assert_credentials_configured!(REQUIRED_ASC_UPLOAD_ENV)
     upload_to_testflight(api_key: app_store_connect_key, ipa: prebuilt_ios_ipa, changelog: beta_changelog)
   end
 
-  desc "Upload the vault-built IPA to TestFlight external testers (TRACK=external; set TESTFLIGHT_EXTERNAL_GROUPS)"
+  desc "Upload the built IPA to TestFlight external testers (TRACK=external; set TESTFLIGHT_EXTERNAL_GROUPS)"
   lane :track_external do
     assert_credentials_configured!(REQUIRED_ASC_UPLOAD_ENV)
     groups = ENV.fetch("TESTFLIGHT_EXTERNAL_GROUPS", "").split(",").map(&:strip).reject(&:empty?)
@@ -253,7 +254,7 @@ platform :ios do
     )
   end
 
-  desc "Submit the vault-built IPA to the App Store (TRACK=prod; App Store Connect review)"
+  desc "Submit the built IPA to the App Store (TRACK=prod; App Store Connect review)"
   lane :track_prod do
     assert_credentials_configured!(REQUIRED_ASC_UPLOAD_ENV)
     deliver(
@@ -267,8 +268,8 @@ platform :ios do
 end
 
 platform :android do
-  # ── `make deploy` upload lane (uploads the vault-built AAB; no rebuild) ────
-  desc "Upload the vault-built AAB to a Google Play track ($TRACK: internal|alpha|beta|production)"
+  # ── `make deploy` upload lane (uploads the built AAB; no rebuild) ────
+  desc "Upload the built AAB to a Google Play track ($TRACK: internal|alpha|beta|production)"
   lane :track_play do
     assert_credentials_configured!(REQUIRED_ANDROID_UPLOAD_ENV)
     track = ENV["TRACK"].to_s

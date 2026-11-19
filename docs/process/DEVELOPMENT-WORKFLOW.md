@@ -14,11 +14,8 @@ Authoritative companions: `AGENTS.md` (methodology, ports) and
 
 ### 1.1 PLAN
 
-- Read the as-is references first: `<private-ops-repo>/DATABASE.md` (DB catalog),
-  `<private-ops-repo>/BACKEND.md` (Go CLI/API surface), and `docs/specs/steps/`
-  (specs for steps not yet implemented).
-- Read `docs/specs/steps/cross-references.md` for your step's dependencies and
-  current statuses.
+- Read the as-is references first: the backend repository's schema
+  (`supabase/migrations/`) and Go CLI/API surface (`cmd/`, `internal/`).
 - Break the task into small, reviewable steps; each step = one cycle.
 - Run `tools/agent_lock.sh list` to see who is currently working where.
 
@@ -77,7 +74,6 @@ Run the new test and confirm it fails for the *right* reason.
   `bash test/run_all_backend.sh` and `make test db` (need the Docker stack up).
 - Baseline numbers live in `README.md` §Testing summary — update them in the
   same commit if your change moved them.
-- Update `docs/specs/steps/cross-references.md` statuses if a step's state changed.
 
 ### 1.7 DOCUMENT
 

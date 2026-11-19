@@ -1,8 +1,8 @@
 import 'package:url_launcher/url_launcher.dart';
 
-/// Public legal documents served from the Qallariy websites stack
-/// (`<private-ops-repo>/samay/`). These URLs are also the ones registered in the
-/// App Store / Play Store listings, so they must stay available.
+/// Public legal documents served from the Samay website. These URLs are also
+/// the ones registered in the App Store / Play Store listings, so they must
+/// stay available.
 class LegalLinks {
   const LegalLinks._();
 

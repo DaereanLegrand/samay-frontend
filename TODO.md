@@ -1,7 +1,6 @@
 # TODO — samay-frontend (slim-prod)
 
-> Live cross-cutting state lives in `<private-ops-repo>/STATUS.md`. This file is
-> repo-scoped only.
+> This file is repo-scoped.
 
 ## Branch purpose
 
