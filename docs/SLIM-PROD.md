@@ -113,7 +113,8 @@ playing. Nothing is typed before the first prompt.
 `lib/core/router/`
 
 - `main_shell.dart` and the six-tab bar were deleted.
-- The root screen is the list of games.
+- The root screen is the vertical games deck (one card per game, drag to cycle,
+  tap to open; header is just the `samay` wordmark).
 - Social, packs, notifications, profile, settings and sign-in live in a header
   menu sheet.
 - The redirect logic is now tiny: no account or no profile → onboarding; banned
@@ -170,7 +171,13 @@ anything removed:
 
 ### 3.11 Changes made after first device testing
 - The games carousel was replaced with a plain list. The carousel clipped game
-  names mid-word and hid three of the four games behind gestures.
+  names mid-word and hid three of the four games behind gestures. **Reverted:**
+  the vertical finger-tracked deck is back as the root, and the root header is
+  just the `samay` wordmark. Each card is only the game name (centred, one word
+  per line for short names, never clipped) plus a circular symbol-only play
+  button in the bottom-right corner. Title lines alternate colours: odd lines
+  are soft pastels (random per game, distinct per card), even lines are a white
+  outline. The circulating name bands and the match bubbles were removed.
 - The match screen title used a 40px display widget and clipped
   "verdad o reto"; it now uses the fitted header title.
 - Menu labels were normalized to lowercase.

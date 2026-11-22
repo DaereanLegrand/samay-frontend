@@ -71,21 +71,21 @@ token changes in code, change it here in the same commit.
 - **Rounded surfaces are scoped to minigame cards.** `lib/features/minigames/
   widgets/games_deck.dart` renders the Games-tab cards with `AppRadius.card`
   (16) so a card reads as a card in the fanned hand (user directive
-  2026-09-21). Each card carries **two circulating name bands**
-  (`game_name_band.dart`): one flush to the top edge and one to the bottom,
-  scrolling in opposite directions so the copy loops like a ring. A band is a
-  repeated `icon + lowercase game name` strip in small Playfair
-  (`VDisplayText`, size 18 — below the §3.3 display tokens); the old centred
-  icon/24px title was removed (user directive 2026-09-21). Bands freeze under
-  reduced motion. Each card also carries a background-less **white play glyph**
-  (`Icons.play_arrow_rounded`, no container) at its centre and, scattered
-  around it, **nested match bubbles** (`match_bubble_field.dart`): one mega
-  bubble per recent match, sized by its player count, each nesting up to six
-  randomly-sized `ProfileAvatar` bubbles plus a white `+N` overflow. The mega
-  bubbles are a deterministic, collision-free scatter that avoids each other,
-  the play glyph and the two name-band zones; the newest matches are tried
-  first and only the ones that fit are drawn (cap 5). The 2 Lies statement
-  cards (`two_lies_screen.dart`) use the same `AppRadius.card` so an input
+  2026-09-21). Each card carries **only** the game name as a large centred
+  display title and the primary **play button** directly below it, plus the
+  invite badge when there are pending partidas (user directive 2026-11-19).
+  The title is *fitted*, not clipped: its size is solved against the real text
+  metrics so one line is preferred, and only names that cannot read well on one
+  line take a second one ("2 mentiras," / "1 verdad"). The button is
+  **symbol-only** — a `palette.foreground` circle carrying a play triangle, no
+  label; the text "jugar ahora" survives only as its accessibility label. The
+  control is positioned by the card itself (bottom-right inset of
+  `AppSpacing.lg`), independent of the title. The title is the deck's single
+  colour surface: **odd lines take soft pastels, even lines are a white
+  outline** (a stroked `Paint` with no fill), and the pastel assignment is
+  shuffled once per app launch with one distinct slot per game. The circulating
+  name bands and the nested match bubbles were removed with that directive. The 2 Lies statement cards
+  (`two_lies_screen.dart`) use the same `AppRadius.card` so an input
   reads as a card; every other surface stays sharp
   (`AppRadius.none`) and every other title stays Inter. The deck stays strictly
   monochrome: every card is a `surfaceAlt` fill outlined by a 1px `muted`

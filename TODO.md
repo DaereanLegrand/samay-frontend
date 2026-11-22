@@ -11,11 +11,16 @@ original commits and may be fully squashed at release.
 ## What shipped on this branch
 
 - **No nav bar.** `lib/core/router/main_shell.dart` and the six-tab shell are
-  gone. The root (`GamesHomeScreen`) is a plain vertical LIST of the four games
-  — all visible at once, one tap each (the finger-tracked carousel deck was
-  removed: it clipped the game names and hid three of the four games).
-  Everything else (social, packs, notifications, profile, settings, sign-in)
-  opens from the header menu sheet.
+  gone. The root (`GamesHomeScreen`) is the vertical finger-tracked deck
+  (`GamesDeck`): the current game is the centred card, the previous one sits
+  behind/below, the next behind/above; dragging vertically cycles, tapping
+  opens. Each card shows only the game name (centred, one word per line for
+  short names, never truncated) and a circular symbol-only play button in its
+  bottom-right corner (play triangle, no label). Title lines alternate: odd
+  lines take a soft pastel picked at random per game, even lines are a white
+  outline. The invite badge shows while a partida awaits an answer. The header is just the `samay` wordmark. Everything else (social,
+  packs, notifications, profile, settings, sign-in) opens from the header menu
+  sheet.
 - **One tap to first play.** Onboarding is a single affirmative button
   ("aceptar y jugar") — no checkbox, with inline tappable Terms/Privacy links.
   The game page's primary CTA ("jugar ahora") deals round 1 immediately with
