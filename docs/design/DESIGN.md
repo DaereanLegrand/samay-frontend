@@ -73,12 +73,12 @@ token changes in code, change it here in the same commit.
   (16) so a card reads as a card in the fanned hand (user directive
   2026-09-21). Each card carries **only** the game name as a large centred
   display title and the primary **play button** directly below it, plus the
-  invite badge when there are pending partidas (user directive 2026-11-19).
+  invite badge when there are pending sessions (user directive 2026-11-19).
   The title is *fitted*, not clipped: its size is solved against the real text
   metrics so one line is preferred, and only names that cannot read well on one
-  line take a second one ("2 mentiras," / "1 verdad"). The button is
+  line take a second one (`minigamesGameTwoLiesOneTruth`). The button is
   **symbol-only** — a `palette.foreground` circle carrying a play triangle, no
-  label; the text "jugar ahora" survives only as its accessibility label. The
+  label; the text `minigamesPlayNow` survives only as its accessibility label. The
   control is positioned by the card itself (bottom-right inset of
   `AppSpacing.lg`), independent of the title. The title is the deck's single
   colour surface: **odd lines take soft pastels, even lines are a white
@@ -112,11 +112,11 @@ token changes in code, change it here in the same commit.
   headline + control block with the action pinned at the bottom inset, and a
   keyboard-first `_BigNameField` (display-size value over a 2px underline).
   Short fixed choices (rounds, charades duration) are segmented controls
-  (`_Segmented`) with **Personalizado** on its own full-width row
-  (`_CustomValueRow`) that opens a numeric prompt; the charades categories are a
-  2-column emoji card grid (`_DeckGrid`). The name step counts from 1; its
-  headline is the seat ("Jugador 1") and the question sits in the field as its
-  hint ("Escribe tu nombre o alias"). List rows in the roster are fully tappable cards
+  (`_Segmented`) with the custom option (`minigamesLobbyCustom`) on its own
+  full-width row (`_CustomValueRow`) that opens a numeric prompt; the charades
+  categories are a 2-column emoji card grid (`_DeckGrid`). The name step counts
+  from 1; its headline is the seat (`minigamesLocalPlayerName`) and the question
+  sits in the field as its hint (`minigamesLobbyNamePrompt`). List rows in the roster are fully tappable cards
   (rename) with a trailing X (remove) followed by a drag handle
   (`ReorderableListView`) that reorders the seat — and therefore the turn order.
   Rename/add/custom use a stateful themed bottom sheet (`_PromptSheet`) that owns

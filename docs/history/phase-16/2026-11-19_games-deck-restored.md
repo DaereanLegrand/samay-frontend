@@ -111,11 +111,11 @@ Owner directive: *"Some titles can be in 2 lines. Button no text only symbol."*
   width can hold, measured with `TextPainter` against
   `VDisplayText.styleFor` at the ambient `TextScaler` (2% width safety margin).
   One line wins whenever it can reach 75% of the max size; otherwise the name
-  takes its second line at a larger size. Result: "verdad o reto", "botella"
-  and "charadas" are one line, "2 mentiras, 1 verdad" is two — none truncated.
+  takes its second line at a larger size. Result: the three-word and single-word game names are one line, the
+  four-word name is two — none truncated.
 - The card's primary action is a **symbol-only** `VButton.emphasized` with a
   play triangle (`Icons.play_arrow_rounded`, 28, painted in
-  `palette.background`). The "jugar ahora" string is kept solely as the
+  `palette.background`). The `minigamesPlayNow` string is kept solely as the
   button's `Semantics` label, so screen readers still announce the action.
 - The name size ceiling moved to `min(cardWidth × 0.24, 56)` with a 20px floor.
 
@@ -127,13 +127,13 @@ NOW IN BOTTOM RIGHT."* then *"Color must be random"*.
 
 - Title lines: a name of up to three words stacks **one word per line**
   ("verdad" / "o" / "reto"); a longer one splits in two balanced lines
-  ("2 mentiras," / "1 verdad"). `_fittedTitleSize()` then binary-searches the
+  (`minigamesGameTwoLiesOneTruth`). `_fittedTitleSize()` then binary-searches the
   largest size at which EVERY line fits on its own, measured with `TextPainter`
   against `VDisplayText.styleFor` at the ambient `TextScaler`.
 - The card's primary action is a **circular** `_PlayButton` (56px
   `palette.foreground` disc, play triangle in `palette.background`, ink ripple)
   positioned bottom-right (`AppSpacing.lg`) by the card's `Stack` — it is laid
-  out by the card, never by its neighbours, and paints no text ("jugar ahora" is
+  out by the card, never by its neighbours, and paints no text (`minigamesPlayNow` is
   the `Semantics` label only).
 - Title colour contract: **odd lines** (1st, 3rd, …) are soft pastels from
   `AppColors.pastel*`; **even lines** (2nd, 4th, …) are a **white outline**
@@ -193,11 +193,11 @@ Owner directive: *"min 2"*.
   `minigamesLobbyNeedPlayers` and reworded ("al menos dos jugadores").
 - Name collection: the pass-the-device line is now the step's headline and is
   shown for EVERY name (the first person also hands the phone over), and the
-  question "Escribe tu nombre o alias" is a real label above the field.
+  question (`minigamesLobbyNamePrompt`) is a real label above the field.
   Previously it was passed as `VInput.label`, which VInput paints as the hint —
   so the prompt vanished as soon as the first character was typed, and the bare
   field looked like the whole screen. The field's placeholder is the seat
-  ("Jugador 1"), so no line is duplicated.
+  (`minigamesLocalPlayerName`), so no line is duplicated.
 
 ## Follow-up 7 (same day) — modern lobby UI
 
@@ -215,7 +215,7 @@ current design"*.
 - **Keyboard-first name entry.** `_BigNameField` autofocuses on the name step,
   renders the value in the display voice above a 2px underline that brightens on
   focus, and submits from the keyboard (`TextInputAction.done`).
-- **Segmented controls.** Rounds and charadas duration are single-select
+- **Segmented controls.** Rounds and charades duration are single-select
   `_Segmented<T>` pills (one sliding token), replacing loose chip rows — the
   Material 3 / iOS pattern for a short fixed set.
 - **Deck grid.** Charadas categories are a 2-column grid of emoji cards
@@ -233,19 +233,20 @@ current design"*.
 
 ## Follow-up 8 (same day) — custom values, 1-based counting, reorder, seat avatar
 
-Owner directives: *"Rondas and duration must have custom option. Number indexing
+Owner directives: *"Rounds and duration must have a custom option. Number indexing
 is not user friendly, right now in screenshot says '0 DE 3' normal people counts
 from 1. Also in lobby must exist a 3 line draggable after the X for removing,
 which must serve to change the list order. No hint at name or alias input, also
 this screen does not look modern at all."*
 
 - **Custom values.** `_PresetPicker` keeps the presets in a segmented control and
-  puts **Personalizado** on its own full-width row (`_CustomValueRow`) — as a
-  fifth segment it ellipsized to "Person…". The row shows the active custom value
+  puts the custom option (`minigamesLobbyCustom`) on its own full-width row
+  (`_CustomValueRow`) — as a
+  fifth segment it ellipsized the label. The row shows the active custom value
   and clears when a preset is tapped. Rounds clamp to 1–99, turn length to
   5–600 s.
 - **1-based counting.** The name step's overline is the seat being filled
-  (`_pending.length + 1`), so the first screen reads "1 de 3".
+  (`_pending.length + 1`), so the first screen reads "1 of 3".
 - **Drag to reorder.** Each roster row gained a `Icons.drag_handle` after the X;
   `_RosterList` wraps `ReorderableListView` (`buildDefaultDragHandles: false`,
   `ReorderableDragStartListener` on the handle only) and `LocalRosterNotifier.
@@ -269,13 +270,12 @@ controller now selects its whole text on init, so typing replaces.
 
 ## Follow-up 9 (same day) — wording + name-step revert
 
-Owner directives: *"Instead of 'Rondas personalizadas' 'Cantidad de rondas…' also
-'Escribe tu nombre o alias' looks worse go back."*
+Owner directives: *"Instead of 'custom rounds' 'number of rounds…' also
+the name prompt as a field label looks worse go back."*
 
-- Custom prompts reworded as questions with an ellipsis: **"Cantidad de
-  rondas…"** / **"Cantidad de segundos…"** (English "Number of rounds…" /
-  "Number of seconds…").
+- Custom prompts reworded as questions with an ellipsis: `minigamesLobbyCustomRounds`
+  / `minigamesLobbyCustomSeconds` ("Number of rounds…" / "Number of seconds…").
 - The name step is back to the earlier, simpler composition: the display
-  headline is the seat ("Jugador 1"), the question **"Escribe tu nombre o
-  alias"** is the field's in-input hint, and the big initials avatar /
+  headline is the seat (`minigamesLocalPlayerName`), the question
+  (`minigamesLobbyNamePrompt`) is the field's in-input hint, and the big initials avatar /
   seat-rows are removed (`_SeatEntry`, `_MiniSeat`, `_EmptySeat` deleted).
