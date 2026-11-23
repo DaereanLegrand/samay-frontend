@@ -676,7 +676,11 @@ guard-local:
 # True only when make was invoked with -n/--just-print/--dry-run. Reads the
 # flag LETTERS of $(MFLAGS) (never the command-line variable assignments, which
 # also land there: `TRACK=internal` and `ENV=staging` both contain an "n").
-DRY_RUN := $(foreach f,$(MFLAGS),$(if $(findstring n,$(filter-out --%,$(f))),1))
+# $(strip) is REQUIRED: $(foreach …) that never matches yields a single space,
+# and `[ -n " " ]` is true — the guard then fires on every nested call
+# (deploy invokes build/publish with --no-print-directory, which leaves that
+# space and silently skipped the publish step).
+DRY_RUN := $(strip $(foreach f,$(MFLAGS),$(if $(findstring n,$(filter-out --%,$(f))),1)))
 
 # Validate TRACK against the per-TARGET store-native vocabulary. Silent no-op
 # when TRACK is empty and TRACK_REQUIRED is false (so `build` stays usable

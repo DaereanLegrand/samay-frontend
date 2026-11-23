@@ -250,34 +250,56 @@ for t in deploy publish; do
   fi
 done
 
-# The INVERSE is what broke once: the guard tested
-# `$(findstring n,$(firstword $(MAKEFLAGS)))`, and command-line assignments land
-# in MAKEFLAGS too — `TRACK=internal` and `ENV=staging` both contain an "n", so
-# a REAL `make deploy` printed "dry run" and exited without building. Assert
-# that a normal invocation leaves DRY_RUN empty. Read it from make's database
-# (`-p`) rather than running the target: never execute deploy/publish here.
-DRY_VAL="$(make -p help TARGET=all ENV=testing TRACK=internal 2>/dev/null |
-  sed -n 's/^DRY_RUN *[:?]*= *//p' | head -1)"
-if [ -z "$DRY_VAL" ]; then
-  pass "DRY_RUN empty on a real run (TARGET=all ENV=testing TRACK=internal)"
-else
-  fail "DRY_RUN='$DRY_VAL' on a real run — a real deploy would be skipped as a dry run"
-fi
-for probe in ENV=staging ENV=testing TRACK=internal TRACK=production; do
-  V="$(make -p help TARGET=all $probe 2>/dev/null | sed -n 's/^DRY_RUN *[:?]*= *//p' | head -1)"
-  if [ -z "$V" ]; then
-    pass "DRY_RUN empty with $probe (no 'n' false positive)"
+# The INVERSE is what broke, TWICE. Both bugs made a REAL deploy print
+# "dry run" and exit 0 without building:
+#   1. `$(findstring n,$(firstword $(MAKEFLAGS)))` — assignments land in
+#      MAKEFLAGS, so `TRACK=internal` / `ENV=staging` (both contain "n") hit.
+#   2. `$(foreach …)` with no match yields a single SPACE, and `[ -n " " ]` is
+#      true. deploy invokes build/publish with --no-print-directory, which left
+#      that space, so every nested call short-circuited — the publish step was
+#      silently skipped after a successful build.
+# So read DRY_RUN from make's database (`-p`, never executing the target) and
+# require it WHITESPACE-FREE and empty. Checking `[ -z ]` on the raw value is
+# not enough: sed trims the trailing space that caused bug 2.
+dry_run_value() { # dry_run_value <make args...> -> whitespace-stripped value
+  make "$@" -p help 2>/dev/null |
+    sed -n 's/^DRY_RUN *[:?]*=//p' | head -1 | tr -d '[:space:]'
+}
+assert_dry_empty() { # assert_dry_empty <label> <make args...>
+  local label="$1"; shift
+  local v
+  v="$(dry_run_value "$@")"
+  if [ -z "$v" ]; then
+    pass "DRY_RUN empty: $label"
   else
-    fail "DRY_RUN='$V' with $probe — the guard misfires on a variable assignment"
+    fail "DRY_RUN='$v' ($label) — a real run would be skipped as a dry run"
+  fi
+}
+
+# Top-level, with the env/track words that contain "n".
+assert_dry_empty "TARGET=all ENV=testing TRACK=internal" \
+  TARGET=all ENV=testing TRACK=internal
+for probe in ENV=staging ENV=testing TRACK=internal TRACK=production; do
+  assert_dry_empty "$probe" TARGET=all "$probe"
+done
+
+# The NESTED form deploy actually uses: $(MAKE) --no-print-directory …
+# This is where bug 2 lived (the space) — it must not fire the guard.
+assert_dry_empty "--no-print-directory (nested build/publish form)" \
+  --no-print-directory TARGET=all ENV=testing TRACK=internal RAM_MANAGED=1
+assert_dry_empty "--no-print-directory -j4" \
+  --no-print-directory -j4 TARGET=all ENV=testing TRACK=internal
+
+# And it must STILL fire for a real dry run, in both forms.
+for form in "" "--no-print-directory"; do
+  v="$(make -n $form -p help TARGET=all ENV=testing 2>/dev/null |
+    sed -n 's/^DRY_RUN *[:?]*=//p' | head -1 | tr -d '[:space:]')"
+  if [ "$v" = "1" ]; then
+    pass "DRY_RUN=1 under make -n ${form:-(top level)}"
+  else
+    fail "DRY_RUN='$v' under make -n ${form:-(top level)} — a dry run would unlock the vault"
   fi
 done
-N_VAL="$(make -n -p help TARGET=all ENV=testing 2>/dev/null |
-  sed -n 's/^DRY_RUN *[:?]*= *//p' | head -1)"
-if [ -n "$N_VAL" ]; then
-  pass "DRY_RUN set under make -n (dry runs still short-circuit)"
-else
-  fail "DRY_RUN not set under make -n — a dry run would unlock the vault"
-fi
 
 # The recipe itself must consume $(DRY_RUN). Checking only the variable's value
 # is not enough: a recipe left on the old `$(findstring n,$(firstword
