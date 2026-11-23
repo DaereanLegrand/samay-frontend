@@ -280,6 +280,7 @@ platform :android do
     supply(
       track: track,
       aab: prebuilt_android_aab,
+      package_name: "com.qallariy.samay",
       json_key: ENV["PLAY_SERVICE_ACCOUNT_JSON"],
       skip_upload_metadata: true,
       skip_upload_screenshots: true,

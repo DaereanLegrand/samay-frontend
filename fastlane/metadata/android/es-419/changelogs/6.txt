@@ -1,0 +1,9 @@
+Inicio con juegos: la app abre en el mazo de cartas (arrastra para cambiar,
+toca para jugar). Elige cuántos juegan, un nombre por asiento y guarda el
+grupo para la próxima.
+
+Nuevo en esta versión:
+- Charadas: el teléfono en la frente, inclina hacia abajo para sumar y hacia
+  arriba para pasar, con categorías peruanas y un tiempo de turno a elección.
+- Botella: una botella girando de verdad sobre una tabla de pizza.
+- Tabla de posiciones de tus partidas presenciales, guardada en el dispositivo.
