@@ -42,7 +42,7 @@
   },
   "commonContinue": "Continue",
   "@commonContinue": {
-    "description": "Generic continue button label"
+    "description": "Advances to the next step"
   },
   "commonBack": "Back",
   "@commonBack": {
@@ -4084,9 +4084,9 @@
   "@codeAlreadyAttendedReturn": {
     "description": "Attendance code: return button on the already-attended terminal state"
   },
-  "minigamesLeaderboardTitle": "Leaderboard",
+  "minigamesLeaderboardTitle": "leaderboard",
   "@minigamesLeaderboardTitle": {
-    "description": "Finished-game leaderboard title (201_minigame_voting)"
+    "description": "Local leaderboard heading"
   },
   "chatReportMessage": "Report message",
   "@chatReportMessage": {
@@ -4340,5 +4340,277 @@
   "menuSignIn": "iniciar sesión",
   "@menuSignIn": {
     "description": "Games menu: optional Apple/Google sign-in (guests only)"
+  },
+  "minigamesLobbyPlayersQuestion": "How many are playing?",
+  "@minigamesLobbyPlayersQuestion": {
+    "description": "Lobby: asks for the player count before play"
+  },
+  "minigamesLobbyPlayersHint": "At least 2 players.",
+  "@minigamesLobbyPlayersHint": {
+    "description": "Lobby: the player-count rule"
+  },
+  "minigamesLobbyNamePrompt": "Enter your name or alias",
+  "@minigamesLobbyNamePrompt": {
+    "description": "Lobby: the prompt shown while collecting names"
+  },
+  "minigamesLobbyPassRight": "Pass the device to someone on your right",
+  "@minigamesLobbyPassRight": {
+    "description": "Lobby: instruction between names"
+  },
+  "minigamesLobbyNamesProgress": "{done} of {total}",
+  "@minigamesLobbyNamesProgress": {
+    "description": "Lobby: how many names are already entered",
+    "placeholders": {
+      "done": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "minigamesLobbySaveGroupQuestion": "Save this group?",
+  "@minigamesLobbySaveGroupQuestion": {
+    "description": "Lobby: offers to save the roster for reuse"
+  },
+  "minigamesLobbySaveGroupHint": "You can reuse it on the next game night.",
+  "@minigamesLobbySaveGroupHint": {
+    "description": "Lobby: why saving helps"
+  },
+  "minigamesLobbyGroupNameLabel": "Group name",
+  "@minigamesLobbyGroupNameLabel": {
+    "description": "Lobby: label of the saved-group name field"
+  },
+  "minigamesLobbySavedGroups": "Saved groups",
+  "@minigamesLobbySavedGroups": {
+    "description": "Lobby: saved-groups section heading"
+  },
+  "minigamesLobbyNoSavedGroups": "No saved groups yet.",
+  "@minigamesLobbyNoSavedGroups": {
+    "description": "Lobby: empty saved-groups state"
+  },
+  "minigamesLobbyUseGroup": "use",
+  "@minigamesLobbyUseGroup": {
+    "description": "Lobby: apply a saved group"
+  },
+  "minigamesLobbyPlayersTitle": "Players",
+  "@minigamesLobbyPlayersTitle": {
+    "description": "Lobby: roster heading"
+  },
+  "minigamesLobbyEditPlayer": "change name",
+  "@minigamesLobbyEditPlayer": {
+    "description": "Lobby: edit a player's name"
+  },
+  "minigamesLobbyRoundsTitle": "Rounds",
+  "@minigamesLobbyRoundsTitle": {
+    "description": "Lobby: rounds heading"
+  },
+  "minigamesLobbyPlay": "play",
+  "@minigamesLobbyPlay": {
+    "description": "Lobby: big play button"
+  },
+  "minigamesLobbyNameRequired": "Enter a name.",
+  "@minigamesLobbyNameRequired": {
+    "description": "Lobby: blank name rejected"
+  },
+  "minigamesLobbySaved": "group saved",
+  "@minigamesLobbySaved": {
+    "description": "Lobby: confirmation after saving"
+  },
+  "minigamesLobbyDeleteGroup": "Delete group",
+  "@minigamesLobbyDeleteGroup": {
+    "description": "Lobby: delete a saved group"
+  },
+  "charadesTiltDown": "Tilt the phone down when they get it",
+  "@charadesTiltDown": {
+    "description": "Charades: the correct-answer gesture"
+  },
+  "charadesTiltUp": "Tilt up to pass",
+  "@charadesTiltUp": {
+    "description": "Charades: the pass gesture"
+  },
+  "charadesHoldForehead": "Hold the phone on your forehead",
+  "@charadesHoldForehead": {
+    "description": "Charades: how the guesser holds the phone"
+  },
+  "charadesGetReady": "Get ready…",
+  "@charadesGetReady": {
+    "description": "Charades: countdown before the turn"
+  },
+  "charadesCorrect": "Correct!",
+  "@charadesCorrect": {
+    "description": "Charades: correct feedback"
+  },
+  "charadesPassed": "Passed",
+  "@charadesPassed": {
+    "description": "Charades: pass feedback"
+  },
+  "charadesWordsLeft": "{count} words left",
+  "@charadesWordsLeft": {
+    "description": "Charades: words remaining",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "charadesPrecision": "{percent}% accuracy",
+  "@charadesPrecision": {
+    "description": "Charades: precision on the summary",
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "charadesCategoryAnimals": "Animals",
+  "@charadesCategoryAnimals": {
+    "description": "Charades category"
+  },
+  "charadesCategoryPop": "Pop culture",
+  "@charadesCategoryPop": {
+    "description": "Charades category"
+  },
+  "charadesCategoryLiterature": "Literature",
+  "@charadesCategoryLiterature": {
+    "description": "Charades category"
+  },
+  "charadesCategoryArt": "Art",
+  "@charadesCategoryArt": {
+    "description": "Charades category"
+  },
+  "charadesCategorySports": "Sports",
+  "@charadesCategorySports": {
+    "description": "Charades category"
+  },
+  "charadesCategoryDrama": "Drama & TV",
+  "@charadesCategoryDrama": {
+    "description": "Charades category"
+  },
+  "charadesCategoryFood": "Food",
+  "@charadesCategoryFood": {
+    "description": "Charades category"
+  },
+  "charadesLobbyTitle": "Charades",
+  "@charadesLobbyTitle": {
+    "description": "Charades lobby heading"
+  },
+  "charadesLobbyPlayers": "Player's turn",
+  "@charadesLobbyPlayers": {
+    "description": "Charades lobby: whose turn"
+  },
+  "commonSkip": "Skip",
+  "@commonSkip": {
+    "description": "Skips an optional step"
+  },
+  "minigamesLocalTurnOf": "turn of {name}",
+  "@minigamesLocalTurnOf": {
+    "description": "Local play: whose turn it is; {name} is the player",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "minigamesLocalPassTo": "pass the phone to {name}",
+  "@minigamesLocalPassTo": {
+    "description": "Local play: hand the device to the next player",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "minigamesLocalSpin": "spin the bottle",
+  "@minigamesLocalSpin": {
+    "description": "Local bottle: spin control"
+  },
+  "minigamesLocalSpinning": "spinning…",
+  "@minigamesLocalSpinning": {
+    "description": "Local bottle: while the bottle turns"
+  },
+  "minigamesLocalLandedOn": "it landed on {name}",
+  "@minigamesLocalLandedOn": {
+    "description": "Local bottle: the seat the bottle landed on",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "minigamesLocalCharadesTurn": "{name} guesses",
+  "@minigamesLocalCharadesTurn": {
+    "description": "Local charades: the player holding the phone",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "minigamesLocalRoundOf": "round {round} of {total}",
+  "@minigamesLocalRoundOf": {
+    "description": "Local play: round counter",
+    "placeholders": {
+      "round": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "minigamesLeaderboardEmpty": "No games played yet.",
+  "@minigamesLeaderboardEmpty": {
+    "description": "Local leaderboard empty state"
+  },
+  "minigamesLeaderboardGames": "{count} games",
+  "@minigamesLeaderboardGames": {
+    "description": "Local leaderboard: games played",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "minigamesLobbyNeedPlayers": "You need at least two players.",
+  "@minigamesLobbyNeedPlayers": {
+    "description": "Lobby: cannot start with fewer than two players"
+  },
+  "minigamesLobbyEditTitle": "Change name",
+  "@minigamesLobbyEditTitle": {
+    "description": "Dialog title when renaming a player"
+  },
+  "minigamesLobbyAddTitle": "Add player",
+  "@minigamesLobbyAddTitle": {
+    "description": "Dialog title when adding a player"
+  },
+  "minigamesLobbyPlayerCount": "{count, plural, =1{1 player} other{{count} players}}",
+  "@minigamesLobbyPlayerCount": {
+    "description": "Roster: how many players are in the group",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "minigamesLobbyRosterHint": "Tap a name to change it",
+  "@minigamesLobbyRosterHint": {
+    "description": "Roster: how to edit a player"
+  },
+  "minigamesLobbyCustom": "Custom",
+  "@minigamesLobbyCustom": {
+    "description": "Lobby: opens a custom value instead of the presets"
+  },
+  "minigamesLobbyCustomRounds": "Number of rounds…",
+  "@minigamesLobbyCustomRounds": {
+    "description": "Dialog title: type a custom round count"
+  },
+  "minigamesLobbyCustomSeconds": "Number of seconds…",
+  "@minigamesLobbyCustomSeconds": {
+    "description": "Dialog title: type a custom turn length in seconds"
+  },
+  "minigamesLobbyReorderHint": "Hold and drag to change the order",
+  "@minigamesLobbyReorderHint": {
+    "description": "Roster: explains the drag handle"
   }
 }

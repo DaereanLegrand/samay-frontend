@@ -55,9 +55,10 @@ class GamesHomeScreen extends ConsumerWidget {
                   pendingByType: pendingByType,
                   onOpen: (type) =>
                       context.push(RoutePaths.minigame(type.value)),
-                  onPlay: (type) => context.push(
-                    '${RoutePaths.localMatch(type.value)}?quick=1',
-                  ),
+                  // The play control starts the game the proper way: the
+                  // lobby collects who is playing first (and remembers groups).
+                  onPlay: (type) =>
+                      context.push(RoutePaths.localLobby(type.value)),
                 ),
               ),
             ),
@@ -187,6 +188,11 @@ class _GamesMenuSheet extends ConsumerWidget {
             label: l10n.menuNotifications,
             route: RoutePaths.notifications,
             badge: unread,
+          ),
+          row(
+            icon: Icons.emoji_events_outlined,
+            label: l10n.minigamesLeaderboardTitle,
+            route: RoutePaths.localLeaderboard,
           ),
           row(
             icon: Icons.person_outline,

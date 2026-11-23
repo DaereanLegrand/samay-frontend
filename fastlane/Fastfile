@@ -100,12 +100,15 @@ def prebuilt_ios_ipa
 end
 
 def prebuilt_android_aab
-  # Flavor follows the release environment (ENV=prod|staging) set by the
-  # Makefile; the AAB name embeds the flavor.
-  flavor = ENV.fetch("ENV", "prod")
+  # Flavor follows the release environment set by the Makefile; the AAB name
+  # embeds the flavor. The testing env is built as the "dev" flavor (AGP
+  # reserves product-flavor names starting with "test"), so it must be mapped
+  # here too or the upload looks for testingRelease/ and never finds the AAB.
+  env = ENV.fetch("ENV", "prod")
+  flavor = env == "testing" ? "dev" : env
   rel = "#{flavor}Release/app-#{flavor}-release.aab"
   aab = File.expand_path("../build/app/outputs/bundle/#{rel}", Dir.pwd)
-  UI.user_error!("No AAB at build/app/outputs/bundle/#{rel} — build it first: make build ENV=#{flavor} TARGET=android TRACK=…") unless File.exist?(aab)
+  UI.user_error!("No AAB at build/app/outputs/bundle/#{rel} — build it first: make build ENV=#{env} TARGET=android TRACK=…") unless File.exist?(aab)
   aab
 end
 

@@ -83,7 +83,10 @@ token changes in code, change it here in the same commit.
   `AppSpacing.lg`), independent of the title. The title is the deck's single
   colour surface: **odd lines take soft pastels, even lines are a white
   outline** (a stroked `Paint` with no fill), and the pastel assignment is
-  shuffled once per app launch with one distinct slot per game. The circulating
+  shuffled once per app launch with one distinct slot per game. The pastel ink
+  is the §2.3 gradient token **blended 35% toward white** (`_DeckTitle.
+  tinted`), so the hue survives but the title reads as a tint instead of a
+  saturated glyph. The circulating
   name bands and the nested match bubbles were removed with that directive. The 2 Lies statement cards
   (`two_lies_screen.dart`) use the same `AppRadius.card` so an input
   reads as a card; every other surface stays sharp
@@ -104,6 +107,20 @@ token changes in code, change it here in the same commit.
   offset is **unbounded**: dragging past a slot keeps cycling and a hard throw
   is projected through several slots, so the deck keeps flipping instead of
   locking at one card.
+- **Pass-the-phone lobby patterns.** The three setup questions (player count →
+  names → save group) use a 3-segment progress bar under the header, a centred
+  headline + control block with the action pinned at the bottom inset, and a
+  keyboard-first `_BigNameField` (display-size value over a 2px underline).
+  Short fixed choices (rounds, charades duration) are segmented controls
+  (`_Segmented`) with **Personalizado** on its own full-width row
+  (`_CustomValueRow`) that opens a numeric prompt; the charades categories are a
+  2-column emoji card grid (`_DeckGrid`). The name step counts from 1; its
+  headline is the seat ("Jugador 1") and the question sits in the field as its
+  hint ("Escribe tu nombre o alias"). List rows in the roster are fully tappable cards
+  (rename) with a trailing X (remove) followed by a drag handle
+  (`ReorderableListView`) that reorders the seat — and therefore the turn order.
+  Rename/add/custom use a stateful themed bottom sheet (`_PromptSheet`) that owns
+  its controller.
 - **Display copy routes through `VDisplayText`** — verbatim case, white
   glyphs, size-token mapping (64/40/32/28).
 - **Header vertical alignment is optical, not geometric.** Every header routes

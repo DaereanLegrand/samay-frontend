@@ -1,1 +1,10 @@
-First open beta. Thanks for testing Samay — please send feedback from Profile → Support.
+Games-first home: the app opens on the card deck (drag to cycle, tap the play
+button). Pick how many are playing, type one name per seat, and save the group
+to reuse it next time.
+
+New in this build:
+- Charadas: hold the phone on your forehead, tilt down for a point and up to
+  pass, with Peruvian categories (animals, pop culture, literature, art,
+  sports, TV, food) and a turn length you choose.
+- Botella: a real spinning bottle on a pizza board.
+- Leaderboard of your pass-the-phone games, kept on the device.

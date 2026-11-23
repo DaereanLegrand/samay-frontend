@@ -25,8 +25,24 @@ abstract final class RoutePaths {
   static String minigameSession(String sessionId) =>
       '/minigames/session/$sessionId';
 
-  /// The single-device "pass the phone" setup + play surface.
-  static String localMatch(String gameType) => '/minigames/local/$gameType';
+  /// The single-device "pass the phone" LOBBY: player count, names, roster.
+  static String localLobby(String gameType) => '/minigames/local/$gameType';
+
+  /// The single-device play surface for a PROMPT game (verdad o reto, 2
+  /// mentiras 1 verdad), dealt straight from the lobby's roster.
+  static String localMatch(String gameType) =>
+      '/minigames/local/$gameType/play';
+
+  /// The single-device charadas turn (forehead tilt).
+  static String localCharades(String gameType) =>
+      '/minigames/local/$gameType/charadas';
+
+  /// The single-device bottle board (same animation as the multi-device one).
+  static String localBottle(String gameType) =>
+      '/minigames/local/$gameType/bottle';
+
+  /// Pass-the-phone history/leaderboard.
+  static const localLeaderboard = '/minigames/local/history';
 
   /// The multi-device hub (direct + group scopes, join-by-code).
   static const minigamesDirect = '/minigames';

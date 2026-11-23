@@ -16,13 +16,14 @@
 # What IS enforced here (fail-fast, exit 1 on first failure):
 #   1. dart analyze          — must be 0 issues (the campaign baseline; any
 #                              new issue blocks the commit)
-#   2. make secrets-check    — no committed secrets (tools/check_secrets.sh)
-#   3. tools/check_ports.sh --strict — no port-map violations (AGENTS.md)
+#   2. make secrets          — no committed secrets (tools/check_secrets.sh)
+#   3. tools/check_ports.sh --strict — only when the script is present (the
+#                              port map is backend-owned; this repo carries none)
 #   4. bash test/opt-008-makefile-static.sh — Makefile surface resolves
 #
-# NOTE (directive 2026-08-31): there are NO Flutter/Dart tests in this repo —
-# the test/ Dart tree and integration_test/ were deleted. Testing is reserved
-# for the backend (Go + pgTAP + curl opt-tests).
+# NOTE: the campaign-era "no Flutter/Dart tests" directive was rescinded (Q16,
+# pubspec dev_dependencies). This repo carries Dart tests under test/ (analyze +
+# full `flutter test` are CI gates; the fast pre-commit gate stays static).
 #
 # Lock protocol: this script deliberately does NOT take file locks. The
 # semaphore (tools/agent_lock.sh) arbitrates EDITORS; a read-only gate that
@@ -52,18 +53,22 @@ fi
 printf '  ✅ dart analyze clean\n'
 
 step "2/4  secrets-check (committed-secret scan)"
-if ! make secrets-check; then
+if ! make secrets; then
   fail "secrets-check FAILED — a secret pattern was found in tracked files."
   exit 1
 fi
 printf '  ✅ secrets-check passed\n'
 
 step "3/4  port-map gate (tools/check_ports.sh --strict)"
-if ! tools/check_ports.sh --strict >/dev/null; then
-  fail "port-map violations — see tools/check_ports.sh --strict output."
-  exit 1
+if [ -x tools/check_ports.sh ]; then
+  if ! tools/check_ports.sh --strict >/dev/null; then
+    fail "port-map violations — see tools/check_ports.sh --strict output."
+    exit 1
+  fi
+  printf '  ✅ port map consistent\n'
+else
+  printf '  ⏭  tools/check_ports.sh absent (port map is backend-owned) — skipped\n'
 fi
-printf '  ✅ port map consistent\n'
 
 step "4/4  Makefile surface (test/opt-008-makefile-static.sh)"
 if ! bash test/opt-008-makefile-static.sh >/dev/null; then

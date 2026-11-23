@@ -3052,7 +3052,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get codeAlreadyAttendedReturn => 'Go back';
 
   @override
-  String get minigamesLeaderboardTitle => 'Leaderboard';
+  String get minigamesLeaderboardTitle => 'leaderboard';
 
   @override
   String get chatReportMessage => 'Report message';
@@ -3418,4 +3418,194 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get menuSignIn => 'iniciar sesión';
+
+  @override
+  String get minigamesLobbyPlayersQuestion => 'How many are playing?';
+
+  @override
+  String get minigamesLobbyPlayersHint => 'At least 2 players.';
+
+  @override
+  String get minigamesLobbyNamePrompt => 'Enter your name or alias';
+
+  @override
+  String get minigamesLobbyPassRight =>
+      'Pass the device to someone on your right';
+
+  @override
+  String minigamesLobbyNamesProgress(int done, int total) {
+    return '$done of $total';
+  }
+
+  @override
+  String get minigamesLobbySaveGroupQuestion => 'Save this group?';
+
+  @override
+  String get minigamesLobbySaveGroupHint =>
+      'You can reuse it on the next game night.';
+
+  @override
+  String get minigamesLobbyGroupNameLabel => 'Group name';
+
+  @override
+  String get minigamesLobbySavedGroups => 'Saved groups';
+
+  @override
+  String get minigamesLobbyNoSavedGroups => 'No saved groups yet.';
+
+  @override
+  String get minigamesLobbyUseGroup => 'use';
+
+  @override
+  String get minigamesLobbyPlayersTitle => 'Players';
+
+  @override
+  String get minigamesLobbyEditPlayer => 'change name';
+
+  @override
+  String get minigamesLobbyRoundsTitle => 'Rounds';
+
+  @override
+  String get minigamesLobbyPlay => 'play';
+
+  @override
+  String get minigamesLobbyNameRequired => 'Enter a name.';
+
+  @override
+  String get minigamesLobbySaved => 'group saved';
+
+  @override
+  String get minigamesLobbyDeleteGroup => 'Delete group';
+
+  @override
+  String get charadesTiltDown => 'Tilt the phone down when they get it';
+
+  @override
+  String get charadesTiltUp => 'Tilt up to pass';
+
+  @override
+  String get charadesHoldForehead => 'Hold the phone on your forehead';
+
+  @override
+  String get charadesGetReady => 'Get ready…';
+
+  @override
+  String get charadesCorrect => 'Correct!';
+
+  @override
+  String get charadesPassed => 'Passed';
+
+  @override
+  String charadesWordsLeft(int count) {
+    return '$count words left';
+  }
+
+  @override
+  String charadesPrecision(int percent) {
+    return '$percent% accuracy';
+  }
+
+  @override
+  String get charadesCategoryAnimals => 'Animals';
+
+  @override
+  String get charadesCategoryPop => 'Pop culture';
+
+  @override
+  String get charadesCategoryLiterature => 'Literature';
+
+  @override
+  String get charadesCategoryArt => 'Art';
+
+  @override
+  String get charadesCategorySports => 'Sports';
+
+  @override
+  String get charadesCategoryDrama => 'Drama & TV';
+
+  @override
+  String get charadesCategoryFood => 'Food';
+
+  @override
+  String get charadesLobbyTitle => 'Charades';
+
+  @override
+  String get charadesLobbyPlayers => 'Player\'s turn';
+
+  @override
+  String get commonSkip => 'Skip';
+
+  @override
+  String minigamesLocalTurnOf(String name) {
+    return 'turn of $name';
+  }
+
+  @override
+  String minigamesLocalPassTo(String name) {
+    return 'pass the phone to $name';
+  }
+
+  @override
+  String get minigamesLocalSpin => 'spin the bottle';
+
+  @override
+  String get minigamesLocalSpinning => 'spinning…';
+
+  @override
+  String minigamesLocalLandedOn(String name) {
+    return 'it landed on $name';
+  }
+
+  @override
+  String minigamesLocalCharadesTurn(String name) {
+    return '$name guesses';
+  }
+
+  @override
+  String minigamesLocalRoundOf(int round, int total) {
+    return 'round $round of $total';
+  }
+
+  @override
+  String get minigamesLeaderboardEmpty => 'No games played yet.';
+
+  @override
+  String minigamesLeaderboardGames(int count) {
+    return '$count games';
+  }
+
+  @override
+  String get minigamesLobbyNeedPlayers => 'You need at least two players.';
+
+  @override
+  String get minigamesLobbyEditTitle => 'Change name';
+
+  @override
+  String get minigamesLobbyAddTitle => 'Add player';
+
+  @override
+  String minigamesLobbyPlayerCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count players',
+      one: '1 player',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get minigamesLobbyRosterHint => 'Tap a name to change it';
+
+  @override
+  String get minigamesLobbyCustom => 'Custom';
+
+  @override
+  String get minigamesLobbyCustomRounds => 'Number of rounds…';
+
+  @override
+  String get minigamesLobbyCustomSeconds => 'Number of seconds…';
+
+  @override
+  String get minigamesLobbyReorderHint => 'Hold and drag to change the order';
 }

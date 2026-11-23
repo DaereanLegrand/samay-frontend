@@ -23,6 +23,10 @@ import 'package:samay/features/minigames/logic/minigame_meta.dart';
 import 'package:samay/features/minigames/screens/charades_screen.dart';
 import 'package:samay/features/minigames/screens/drunk_bottle_screen.dart';
 import 'package:samay/features/minigames/screens/games_home_screen.dart';
+import 'package:samay/features/minigames/screens/local_bottle_screen.dart';
+import 'package:samay/features/minigames/screens/local_charades_screen.dart';
+import 'package:samay/features/minigames/screens/local_lobby_screen.dart';
+import 'package:samay/features/minigames/screens/local_leaderboard_screen.dart';
 import 'package:samay/features/minigames/screens/local_match_screen.dart';
 import 'package:samay/features/minigames/screens/minigame_detail_screen.dart';
 import 'package:samay/features/minigames/screens/minigame_leaderboard_screen.dart';
@@ -130,6 +134,22 @@ final routerProvider = Provider<GoRouter>((ref) {
           errorMessage: AppLocalizations.of(context).routerGroupNotFound,
         ),
       ),
+      // The games-first flow: the deck's play button opens the LOBBY, the
+      // lobby's play button opens the game itself. Only the lobby collects
+      // players; every play screen just reads the roster it left behind.
+      GoRoute(
+        path: RoutePaths.localLobby(':gameType'),
+        builder: (context, state) => _screenForId(
+          state,
+          'gameType',
+          (gameType) {
+            final type = minigameTypeFromString(gameType);
+            if (type == null) return const RouteErrorScreen();
+            return LocalLobbyScreen(gameType: type);
+          },
+          errorMessage: AppLocalizations.of(context).routerGroupNotFound,
+        ),
+      ),
       GoRoute(
         path: RoutePaths.localMatch(':gameType'),
         builder: (context, state) => _screenForId(
@@ -138,15 +158,40 @@ final routerProvider = Provider<GoRouter>((ref) {
           (gameType) {
             final type = minigameTypeFromString(gameType);
             if (type == null) return const RouteErrorScreen();
-            // `?quick=1` deals the first round immediately (the game page's
-            // primary CTA); without it the setup step is shown.
-            return LocalMatchScreen(
-              gameType: type,
-              quick: state.uri.queryParameters['quick'] == '1',
-            );
+            return LocalMatchScreen(gameType: type);
           },
           errorMessage: AppLocalizations.of(context).routerGroupNotFound,
         ),
+      ),
+      GoRoute(
+        path: RoutePaths.localCharades(':gameType'),
+        builder: (context, state) => _screenForId(
+          state,
+          'gameType',
+          (gameType) {
+            final type = minigameTypeFromString(gameType);
+            if (type == null) return const RouteErrorScreen();
+            return LocalCharadesScreen(gameType: type);
+          },
+          errorMessage: AppLocalizations.of(context).routerGroupNotFound,
+        ),
+      ),
+      GoRoute(
+        path: RoutePaths.localBottle(':gameType'),
+        builder: (context, state) => _screenForId(
+          state,
+          'gameType',
+          (gameType) {
+            final type = minigameTypeFromString(gameType);
+            if (type == null) return const RouteErrorScreen();
+            return LocalBottleScreen(gameType: type);
+          },
+          errorMessage: AppLocalizations.of(context).routerGroupNotFound,
+        ),
+      ),
+      GoRoute(
+        path: RoutePaths.localLeaderboard,
+        builder: (_, _) => const LocalLeaderboardScreen(),
       ),
       GoRoute(
         path: RoutePaths.minigameSession(':sessionId'),

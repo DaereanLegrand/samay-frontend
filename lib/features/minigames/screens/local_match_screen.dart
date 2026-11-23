@@ -1,8 +1,10 @@
+import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive/hive.dart';
+import 'package:samay/core/services/storage_service.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
 import 'package:samay/core/design_tokens/app_typography.dart';
 import 'package:samay/core/services/minigame_service.dart';
@@ -10,8 +12,8 @@ import 'package:samay/core/theme/app_palette_context.dart';
 import 'package:samay/features/minigames/local/local_match.dart';
 import 'package:samay/features/minigames/local/local_match_config.dart';
 import 'package:samay/features/minigames/local/local_match_store.dart';
-import 'package:samay/features/minigames/local/local_player.dart';
 import 'package:samay/features/minigames/local/local_prompt_pack.dart';
+import 'package:samay/features/minigames/local/local_roster.dart';
 import 'package:samay/features/minigames/logic/minigame_meta.dart';
 import 'package:samay/features/minigames/widgets/minigame_header_title.dart';
 import 'package:samay/features/packs/providers/packs_providers.dart';
@@ -20,51 +22,41 @@ import 'package:samay/shared/widgets/v_button.dart';
 import 'package:samay/shared/widgets/v_card.dart';
 import 'package:samay/shared/widgets/v_display_text.dart';
 import 'package:samay/shared/widgets/v_header_bar.dart';
-import 'package:samay/shared/widgets/v_input.dart';
 
-/// Single-device ("pass the phone") play.
+/// Single-device ("pass the phone") play for the PROMPT games —
+/// verdad o reto, 2 mentiras 1 verdad.
 ///
-/// Two entry modes, one screen:
+/// The roster, the round target and the rest of the setup come from the lobby
+/// ([localRosterProvider]), so this screen never asks anything: opening it with
+/// a playable roster deals round 1 immediately, exactly like the deck's play
+/// button promises.
 ///
-/// * **quick** (`?quick=1`, the game page's primary CTA): the match starts
-///   IMMEDIATELY with two default seats. Nothing is typed before play; the
-///   table renames itself from the play screen's header action.
-/// * **setup** (the secondary CTA): a roster + round target are collected
-///   first, for a group that wants to be named up front.
-///
-/// In both modes the match is fully local from the cached prompt pack: no
-/// account, no network, no per-player device.
+/// Charadas and botella have their own local screens (a forehead tilt game and
+/// a spinning board cannot share this turn shape).
 class LocalMatchScreen extends ConsumerStatefulWidget {
-  const LocalMatchScreen({super.key, required this.gameType, this.quick = false});
+  const LocalMatchScreen({super.key, required this.gameType});
 
   final MinigameType gameType;
-
-  /// Skip the setup step and deal the first round with default seats.
-  final bool quick;
 
   @override
   ConsumerState<LocalMatchScreen> createState() => _LocalMatchScreenState();
 }
 
 class _LocalMatchScreenState extends ConsumerState<LocalMatchScreen> {
-  final List<TextEditingController> _names = [];
-  int _rounds = 5;
   LocalMatch? _match;
   LocalPromptPack? _pack;
   bool _loadingPack = true;
-  bool _quickStarted = false;
+  String? _loadError;
 
   @override
   void initState() {
     super.initState();
-    _addPlayer();
-    _addPlayer();
     _loadPack();
   }
 
   /// The playable bank for this game: the on-device cache when warm, one
-  /// network fetch when cold. A failure leaves `_pack` null and the setup's
-  /// start button explains it rather than crashing.
+  /// network fetch when cold. A failure leaves `_pack` null and the screen
+  /// explains it rather than crashing.
   Future<void> _loadPack() async {
     try {
       final pack = await ref.read(
@@ -75,50 +67,39 @@ class _LocalMatchScreenState extends ConsumerState<LocalMatchScreen> {
         _pack = pack;
         _loadingPack = false;
       });
-      // Quick mode: deal as soon as the bank is ready.
-      if (widget.quick) _start();
-    } catch (_) {
+      _start();
+    } catch (e) {
       if (!mounted) return;
       setState(() {
         _pack = null;
         _loadingPack = false;
+        _loadError = '$e';
       });
     }
   }
 
-  @override
-  void dispose() {
-    for (final c in _names) {
-      c.dispose();
+  /// Deals round 1 from the lobby's roster.
+  void _start() {
+    final l10n = AppLocalizations.of(context);
+    final roster = ref.read(localRosterProvider(widget.gameType));
+    final pack = _pack;
+    if (pack == null || pack.prompts.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.minigamesLocalNoPack)),
+      );
+      return;
     }
-    super.dispose();
-  }
-
-  void _addPlayer() => setState(() => _names.add(TextEditingController()));
-
-  void _removePlayer(int index) {
-    setState(() {
-      _names.removeAt(index).dispose();
-    });
-  }
-
-  List<LocalPlayer> _players() {
-    final l10n = AppLocalizations.of(context);
-    return [
-      for (var i = 0; i < _names.length; i++)
-        LocalPlayer.create(l10n.minigamesLocalPlayerName(i + 1)),
-    ];
-  }
-
-  Future<void> _start() async {
-    if (_quickStarted && _match != null) return;
-    final l10n = AppLocalizations.of(context);
-    final players = _players();
+    if (!roster.isPlayable) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.minigamesLobbyNeedPlayers)),
+      );
+      return;
+    }
     final config = LocalMatchConfig(
       gameType: widget.gameType,
-      players: players,
-      rounds: _rounds,
-      packId: _pack?.id ?? '',
+      players: roster.players,
+      rounds: roster.rounds,
+      packId: pack.id,
     );
     try {
       config.assertValid();
@@ -128,17 +109,7 @@ class _LocalMatchScreenState extends ConsumerState<LocalMatchScreen> {
       );
       return;
     }
-    final pack = _pack;
-    if (pack == null || pack.prompts.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.minigamesLocalNoPack)),
-      );
-      return;
-    }
-    setState(() {
-      _match = LocalMatch.start(config, pack, random: Random());
-      _quickStarted = true;
-    });
+    setState(() => _match = LocalMatch.start(config, pack, random: Random()));
   }
 
   Future<void> _persist(LocalMatch match) async {
@@ -153,7 +124,9 @@ class _LocalMatchScreenState extends ConsumerState<LocalMatchScreen> {
     );
     try {
       await HiveLocalMatchStore(
-        openBox: () => Hive.openBox<String>('minigame_summary_cache'),
+        // Already opened by HiveService.init; resolves synchronously.
+        openBox: () async =>
+            Hive.box<String>(HiveService.minigameSummaryBoxName),
       ).save(summary);
     } catch (_) {
       // History is a convenience; a cache failure must never break the board.
@@ -169,149 +142,46 @@ class _LocalMatchScreenState extends ConsumerState<LocalMatchScreen> {
       backgroundColor: context.palette.background,
       body: VHeaderBar(
         titleWidget: MinigameHeaderTitle(word: title),
-        actions: match == null
-            ? null
-            : [
-                // Renaming happens HERE, mid-match — that is what removes the
-                // typing step from the first run.
-                IconButton(
-                  icon: const Icon(Icons.group_outlined),
-                  tooltip: l10n.minigamesEditPlayers,
-                  onPressed: () => _editPlayers(match),
-                ),
-              ],
         child: match == null
-            ? _loadingPack && widget.quick
-                  ? const Center(child: CircularProgressIndicator())
-                  : _setup(context, l10n)
+            ? _pending(context, l10n)
             : _board(context, l10n, match),
       ),
     );
   }
 
-  /// Sheet to correct the seat names while the match runs.
-  Future<void> _editPlayers(LocalMatch match) async {
-    final l10n = AppLocalizations.of(context);
-    final controllers = {
-      for (final p in match.config.players) p.id: TextEditingController(text: p.name),
-    };
-    await showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      showDragHandle: true,
-      builder: (sheetContext) => Padding(
-        padding: EdgeInsets.only(
-          left: AppSpacing.lg,
-          right: AppSpacing.lg,
-          bottom:
-              MediaQuery.viewInsetsOf(sheetContext).bottom + AppSpacing.lg,
-        ),
+  Widget _pending(BuildContext context, AppLocalizations l10n) {
+    if (_loadingPack) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(AppSpacing.xl),
         child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Text(
-              l10n.minigamesEditPlayers.toUpperCase(),
-              style: Theme.of(sheetContext).textTheme.titleSmall,
-            ),
-            const SizedBox(height: AppSpacing.md),
-            for (final entry in controllers.entries)
-              Padding(
-                padding: const EdgeInsets.only(bottom: AppSpacing.md),
-                child: VInput(
-                  label: l10n.minigamesLocalPlayerName(
-                    match.config.players.indexWhere((p) => p.id == entry.key) + 1,
-                  ),
-                  controller: entry.value,
-                ),
+              _loadError == null
+                  ? l10n.minigamesLocalNoPack
+                  : l10n.minigamesLocalNoPack,
+              textAlign: TextAlign.center,
+              style: AppTypography.bodyLarge.copyWith(
+                color: context.palette.mutedForeground,
               ),
+            ),
+            const SizedBox(height: AppSpacing.lg),
             VButton.emphasized(
-              label: l10n.commonSave,
+              label: l10n.minigamesLocalPlayAgain,
               onPressed: () {
                 setState(() {
-                  for (final entry in controllers.entries) {
-                    final name = entry.value.text.trim();
-                    if (name.isEmpty) continue;
-                    match.renamePlayer(entry.key, name);
-                  }
+                  _loadingPack = true;
+                  _loadError = null;
                 });
-                Navigator.of(sheetContext).pop();
+                _loadPack();
               },
             ),
           ],
         ),
       ),
-    );
-  }
-
-  Widget _setup(BuildContext context, AppLocalizations l10n) {
-    return ListView(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.screenHorizontal,
-      ),
-      children: [
-        const SizedBox(height: AppSpacing.lg),
-        Text(
-          l10n.minigamesLocalIntro,
-          style: AppTypography.bodyLarge.copyWith(
-            color: context.palette.mutedForeground,
-            height: 1.4,
-          ),
-        ),
-        const SizedBox(height: AppSpacing.xl),
-        for (var i = 0; i < _names.length; i++)
-          Padding(
-            padding: const EdgeInsets.only(bottom: AppSpacing.md),
-            child: Row(
-              children: [
-                Expanded(
-                  child: VInput(
-                    label: l10n.minigamesLocalPlayerName(i + 1),
-                    controller: _names[i],
-                  ),
-                ),
-                if (_names.length > 2)
-                  IconButton(
-                    icon: const Icon(Icons.remove_circle_outline),
-                    onPressed: () => _removePlayer(i),
-                  ),
-              ],
-            ),
-          ),
-        Align(
-          alignment: Alignment.centerLeft,
-          child: TextButton.icon(
-            onPressed: _addPlayer,
-            icon: const Icon(Icons.add),
-            label: Text(l10n.minigamesLocalAddPlayer),
-          ),
-        ),
-        const SizedBox(height: AppSpacing.lg),
-        Row(
-          children: [
-            Expanded(
-              child: Text(
-                l10n.minigamesRoundsLabel.toUpperCase(),
-                style: Theme.of(context).textTheme.titleSmall,
-              ),
-            ),
-            DropdownButton<int>(
-              value: _rounds,
-              onChanged: (v) => setState(() => _rounds = v ?? _rounds),
-              items: [
-                for (final n in [3, 5, 10, 15])
-                  DropdownMenuItem(value: n, child: Text('$n')),
-              ],
-            ),
-          ],
-        ),
-        const SizedBox(height: AppSpacing.xl),
-        VButton.emphasized(
-          label: l10n.minigamesLocalStart,
-          loading: _loadingPack,
-          onPressed: _loadingPack ? null : _start,
-        ),
-      ],
     );
   }
 
@@ -346,7 +216,10 @@ class _LocalMatchScreenState extends ConsumerState<LocalMatchScreen> {
           const SizedBox(height: AppSpacing.lg),
           VButton.emphasized(
             label: l10n.minigamesLocalPlayAgain,
-            onPressed: () => setState(() => _match = null),
+            onPressed: () {
+              match.restart();
+              setState(() {});
+            },
           ),
         ],
       );
@@ -371,12 +244,14 @@ class _LocalMatchScreenState extends ConsumerState<LocalMatchScreen> {
       children: [
         const SizedBox(height: AppSpacing.lg),
         Text(
-          '${state.round + 1} / ${state.roundTarget}',
+          l10n.minigamesLocalRoundOf(state.round + 1, state.roundTarget),
           style: Theme.of(context).textTheme.titleSmall,
         ),
         const SizedBox(height: AppSpacing.sm),
+        // The pass-the-phone line the owner asked for: who reads, and who the
+        // device goes to next.
         Text(
-          l10n.minigamesLocalJudge(judge),
+          l10n.minigamesLocalTurnOf(judge),
           style: AppTypography.bodyMedium.copyWith(
             color: context.palette.mutedForeground,
           ),

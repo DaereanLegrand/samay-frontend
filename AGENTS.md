@@ -5,14 +5,23 @@ The Flutter app **Samay** (`com.qallariy.samay`); split from `Vive`.
 ## Commands
 - Setup: `make init ENV=testing` (gum; writes `.env`).
 - Run: `make start ENV=…` (= `make dev`). `ENV=testing-local|testing|staging|prod` selects
-  the backend for **every** verb (`testing` reads `.env`; `staging`/`prod` need
-  operator-supplied release material, local-only). Build: `make build ENV=… TARGET=ios-adhoc|simulator|android|all`.
-- Release: `make build ENV=prod|staging TARGET=ios|android [MODE=adhoc]` · `make deploy TARGET=… ENV=… TRACK=…`.
+  the backend for **every** verb (`testing-local` reads the Docker stack;
+  `testing`/`staging`/`prod` need the vault, local-only). Build:
+  `make build ENV=… TARGET=ios-adhoc|simulator|android|all`.
+- Release: `make deploy TARGET=ios|android|all ENV=testing|staging|prod TRACK=<tracks>`
+  — it fetches the vault profile into a RAM disk (one passphrase prompt), builds
+  the signed IPA/AAB, uploads and wipes. `make build …` alone also fetches/wipes
+  when not under `deploy`. The fetch tooling is NOT in this repo:
+  `RELEASE_SECRETS` defaults to `../../Admin/infra/tools/release-secrets.sh`
+  (override via env).
+- `ENV=testing` is store-grade, same path as staging/prod: vault profile
+  `testing-apple`/`testing-android`, backend `samay-api-testing.qallariy.lat`,
+  Android flavor `dev` (AGP reserves `test*`).
 - `ENV` is required on every run/build/install verb (no default).
 - Gates: `make check`, `make test`.
 
 ## Rules
-- Testing is backend-only; do not recreate Dart tests.
+- Tests live in `test/` (Dart); `make test` runs `flutter test` plus the static gates.
 - Never kill/restart the user's `make dev`; ask them to press `r`/`R`
   (`.opencode/DEV-SERVER.md`).
 - `.env` is local + gitignored; no secrets in the repo.

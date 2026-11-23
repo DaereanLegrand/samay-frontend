@@ -220,10 +220,18 @@ if make -s guard-env ENV=local >/dev/null 2>&1; then
 else
   pass "guard-env rejects the removed ENV=local"
 fi
-if make -s guard-release ENV=testing >/dev/null 2>&1; then
-  fail "guard-release accepted ENV=testing"
+# testing is a RELEASE env (same signed/store path as staging/prod).
+for e in testing staging prod; do
+  if make -s guard-release ENV="$e" >/dev/null 2>&1; then
+    pass "guard-release accepts ENV=$e"
+  else
+    fail "guard-release rejected ENV=$e"
+  fi
+done
+if make -s guard-release ENV=testing-local >/dev/null 2>&1; then
+  fail "guard-release accepted ENV=testing-local"
 else
-  pass "guard-release rejects ENV=testing"
+  pass "guard-release rejects ENV=testing-local"
 fi
 
 # ── 2. Fastlane upload-lane contract (prebuilt artifacts; no match) ─────────

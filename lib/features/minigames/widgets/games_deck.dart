@@ -675,15 +675,34 @@ class _DeckTitle extends StatelessWidget {
   /// This card's offset into [order].
   final int start;
 
-  /// The pool the deck shuffles.
-  static const List<Color> pastels = [
+  /// How far each pastel is pushed toward white for the title ink.
+  ///
+  /// The §2.3 pastel tokens are gradient ends (already near-white), but as
+  /// display-size title glyphs they still read as fully saturated on the card.
+  /// Blending them a third of the way to white keeps the hue recognisable while
+  /// making the ink read as a *soft* tint (owner directive).
+  static const double whitening = 0.35;
+
+  /// The pool the deck shuffles, whitened for title use.
+  static final List<Color> pastels = [
     AppColors.pastelRose,
     AppColors.pastelCyan,
     AppColors.pastelGold,
     AppColors.pastelViolet,
     AppColors.pastelMint,
     AppColors.pastelPeach,
-  ];
+  ].map<Color>((c) => tinted(c, whitening)).toList(growable: false);
+
+  /// Blends [color] toward white by [amount] (0 = unchanged, 1 = white).
+  static Color tinted(Color color, double amount) {
+    final t = amount.clamp(0.0, 1.0);
+    return Color.fromARGB(
+      255,
+      (color.r * 255 + (255 - color.r * 255) * t).round(),
+      (color.g * 255 + (255 - color.g * 255) * t).round(),
+      (color.b * 255 + (255 - color.b * 255) * t).round(),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {

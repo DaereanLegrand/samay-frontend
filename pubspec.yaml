@@ -1,7 +1,7 @@
 name: samay
-description: "Samay — Social event planning app"
+description: "Samay — party games for a group of friends"
 publish_to: 'none'
-version: 1.0.0+5
+version: 1.0.0+6
 
 environment:
   sdk: ^3.11.4
@@ -73,6 +73,10 @@ dependencies:
   sign_in_with_apple: ^8.2.0
   crypto: ^3.0.7
   flutter_local_notifications: ^22.3.2
+  # Accelerometer for the local charadas turn: the player holds the phone on
+  # their forehead, face-DOWN = +1 and face-UP = skip. Falls back to tap zones,
+  # so the game is still playable when the sensor is unavailable.
+  sensors_plus: ^7.1.0
 
 dev_dependencies:
   # Q16 (owner decision): the no-Dart-tests rule is rescinded for critical

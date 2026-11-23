@@ -158,7 +158,7 @@ abstract class AppLocalizations {
   /// **'Eliminar'**
   String get commonDelete;
 
-  /// Generic continue button label
+  /// Advances to the next step
   ///
   /// In es, this message translates to:
   /// **'Continuar'**
@@ -5594,10 +5594,10 @@ abstract class AppLocalizations {
   /// **'Regresar'**
   String get codeAlreadyAttendedReturn;
 
-  /// Finished-game leaderboard title (201_minigame_voting)
+  /// Local leaderboard heading
   ///
   /// In es, this message translates to:
-  /// **'Clasificación'**
+  /// **'clasificación'**
   String get minigamesLeaderboardTitle;
 
   /// Chat long-press action: report the specific message (226_chat_moderation)
@@ -6295,6 +6295,330 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'iniciar sesión'**
   String get menuSignIn;
+
+  /// Lobby: asks for the player count before play
+  ///
+  /// In es, this message translates to:
+  /// **'¿Cuántos juegan?'**
+  String get minigamesLobbyPlayersQuestion;
+
+  /// Lobby: the player-count rule
+  ///
+  /// In es, this message translates to:
+  /// **'Mínimo 2 jugadores.'**
+  String get minigamesLobbyPlayersHint;
+
+  /// Lobby: the prompt shown while collecting names
+  ///
+  /// In es, this message translates to:
+  /// **'Escribe tu nombre o alias'**
+  String get minigamesLobbyNamePrompt;
+
+  /// Lobby: instruction between names
+  ///
+  /// In es, this message translates to:
+  /// **'Pasa el teléfono a la persona de tu derecha'**
+  String get minigamesLobbyPassRight;
+
+  /// Lobby: how many names are already entered
+  ///
+  /// In es, this message translates to:
+  /// **'{done} de {total}'**
+  String minigamesLobbyNamesProgress(int done, int total);
+
+  /// Lobby: offers to save the roster for reuse
+  ///
+  /// In es, this message translates to:
+  /// **'¿Guardar este grupo?'**
+  String get minigamesLobbySaveGroupQuestion;
+
+  /// Lobby: why saving helps
+  ///
+  /// In es, this message translates to:
+  /// **'Podrás volver a usarlo en la próxima partida.'**
+  String get minigamesLobbySaveGroupHint;
+
+  /// Lobby: label of the saved-group name field
+  ///
+  /// In es, this message translates to:
+  /// **'Nombre del grupo'**
+  String get minigamesLobbyGroupNameLabel;
+
+  /// Lobby: saved-groups section heading
+  ///
+  /// In es, this message translates to:
+  /// **'Grupos guardados'**
+  String get minigamesLobbySavedGroups;
+
+  /// Lobby: empty saved-groups state
+  ///
+  /// In es, this message translates to:
+  /// **'Todavía no guardaste ningún grupo.'**
+  String get minigamesLobbyNoSavedGroups;
+
+  /// Lobby: apply a saved group
+  ///
+  /// In es, this message translates to:
+  /// **'usar'**
+  String get minigamesLobbyUseGroup;
+
+  /// Lobby: roster heading
+  ///
+  /// In es, this message translates to:
+  /// **'Jugadores'**
+  String get minigamesLobbyPlayersTitle;
+
+  /// Lobby: edit a player's name
+  ///
+  /// In es, this message translates to:
+  /// **'cambiar nombre'**
+  String get minigamesLobbyEditPlayer;
+
+  /// Lobby: rounds heading
+  ///
+  /// In es, this message translates to:
+  /// **'Rondas'**
+  String get minigamesLobbyRoundsTitle;
+
+  /// Lobby: big play button
+  ///
+  /// In es, this message translates to:
+  /// **'jugar'**
+  String get minigamesLobbyPlay;
+
+  /// Lobby: blank name rejected
+  ///
+  /// In es, this message translates to:
+  /// **'Escribe un nombre.'**
+  String get minigamesLobbyNameRequired;
+
+  /// Lobby: confirmation after saving
+  ///
+  /// In es, this message translates to:
+  /// **'grupo guardado'**
+  String get minigamesLobbySaved;
+
+  /// Lobby: delete a saved group
+  ///
+  /// In es, this message translates to:
+  /// **'Eliminar grupo'**
+  String get minigamesLobbyDeleteGroup;
+
+  /// Charades: the correct-answer gesture
+  ///
+  /// In es, this message translates to:
+  /// **'Inclina el celular hacia abajo si aciertan'**
+  String get charadesTiltDown;
+
+  /// Charades: the pass gesture
+  ///
+  /// In es, this message translates to:
+  /// **'Inclina hacia arriba para pasar'**
+  String get charadesTiltUp;
+
+  /// Charades: how the guesser holds the phone
+  ///
+  /// In es, this message translates to:
+  /// **'Pon el celular en tu frente'**
+  String get charadesHoldForehead;
+
+  /// Charades: countdown before the turn
+  ///
+  /// In es, this message translates to:
+  /// **'Prepárate…'**
+  String get charadesGetReady;
+
+  /// Charades: correct feedback
+  ///
+  /// In es, this message translates to:
+  /// **'¡Correcto!'**
+  String get charadesCorrect;
+
+  /// Charades: pass feedback
+  ///
+  /// In es, this message translates to:
+  /// **'Pasada'**
+  String get charadesPassed;
+
+  /// Charades: words remaining
+  ///
+  /// In es, this message translates to:
+  /// **'Quedan {count} palabras'**
+  String charadesWordsLeft(int count);
+
+  /// Charades: precision on the summary
+  ///
+  /// In es, this message translates to:
+  /// **'Precisión {percent}%'**
+  String charadesPrecision(int percent);
+
+  /// Charades category
+  ///
+  /// In es, this message translates to:
+  /// **'Animales'**
+  String get charadesCategoryAnimals;
+
+  /// Charades category
+  ///
+  /// In es, this message translates to:
+  /// **'Cultura pop'**
+  String get charadesCategoryPop;
+
+  /// Charades category
+  ///
+  /// In es, this message translates to:
+  /// **'Literatura'**
+  String get charadesCategoryLiterature;
+
+  /// Charades category
+  ///
+  /// In es, this message translates to:
+  /// **'Arte'**
+  String get charadesCategoryArt;
+
+  /// Charades category
+  ///
+  /// In es, this message translates to:
+  /// **'Deportes'**
+  String get charadesCategorySports;
+
+  /// Charades category
+  ///
+  /// In es, this message translates to:
+  /// **'Drama y TV'**
+  String get charadesCategoryDrama;
+
+  /// Charades category
+  ///
+  /// In es, this message translates to:
+  /// **'Comida'**
+  String get charadesCategoryFood;
+
+  /// Charades lobby heading
+  ///
+  /// In es, this message translates to:
+  /// **'Charadas'**
+  String get charadesLobbyTitle;
+
+  /// Charades lobby: whose turn
+  ///
+  /// In es, this message translates to:
+  /// **'Jugador del turno'**
+  String get charadesLobbyPlayers;
+
+  /// Skips an optional step
+  ///
+  /// In es, this message translates to:
+  /// **'Omitir'**
+  String get commonSkip;
+
+  /// Local play: whose turn it is; {name} is the player
+  ///
+  /// In es, this message translates to:
+  /// **'turno de {name}'**
+  String minigamesLocalTurnOf(String name);
+
+  /// Local play: hand the device to the next player
+  ///
+  /// In es, this message translates to:
+  /// **'pasa el teléfono a {name}'**
+  String minigamesLocalPassTo(String name);
+
+  /// Local bottle: spin control
+  ///
+  /// In es, this message translates to:
+  /// **'girar la botella'**
+  String get minigamesLocalSpin;
+
+  /// Local bottle: while the bottle turns
+  ///
+  /// In es, this message translates to:
+  /// **'girando…'**
+  String get minigamesLocalSpinning;
+
+  /// Local bottle: the seat the bottle landed on
+  ///
+  /// In es, this message translates to:
+  /// **'le tocó a {name}'**
+  String minigamesLocalLandedOn(String name);
+
+  /// Local charades: the player holding the phone
+  ///
+  /// In es, this message translates to:
+  /// **'{name} adivina'**
+  String minigamesLocalCharadesTurn(String name);
+
+  /// Local play: round counter
+  ///
+  /// In es, this message translates to:
+  /// **'ronda {round} de {total}'**
+  String minigamesLocalRoundOf(int round, int total);
+
+  /// Local leaderboard empty state
+  ///
+  /// In es, this message translates to:
+  /// **'Todavía no hay partidas jugadas.'**
+  String get minigamesLeaderboardEmpty;
+
+  /// Local leaderboard: games played
+  ///
+  /// In es, this message translates to:
+  /// **'{count} partidas'**
+  String minigamesLeaderboardGames(int count);
+
+  /// Lobby: cannot start with fewer than two players
+  ///
+  /// In es, this message translates to:
+  /// **'Necesitas al menos dos jugadores.'**
+  String get minigamesLobbyNeedPlayers;
+
+  /// Dialog title when renaming a player
+  ///
+  /// In es, this message translates to:
+  /// **'Cambiar nombre'**
+  String get minigamesLobbyEditTitle;
+
+  /// Dialog title when adding a player
+  ///
+  /// In es, this message translates to:
+  /// **'Agregar jugador'**
+  String get minigamesLobbyAddTitle;
+
+  /// Roster: how many players are in the group
+  ///
+  /// In es, this message translates to:
+  /// **'{count, plural, =1{1 jugador} other{{count} jugadores}}'**
+  String minigamesLobbyPlayerCount(int count);
+
+  /// Roster: how to edit a player
+  ///
+  /// In es, this message translates to:
+  /// **'Toca un nombre para cambiarlo'**
+  String get minigamesLobbyRosterHint;
+
+  /// Lobby: opens a custom value instead of the presets
+  ///
+  /// In es, this message translates to:
+  /// **'Personalizado'**
+  String get minigamesLobbyCustom;
+
+  /// Dialog title: type a custom round count
+  ///
+  /// In es, this message translates to:
+  /// **'Cantidad de rondas…'**
+  String get minigamesLobbyCustomRounds;
+
+  /// Dialog title: type a custom turn length in seconds
+  ///
+  /// In es, this message translates to:
+  /// **'Cantidad de segundos…'**
+  String get minigamesLobbyCustomSeconds;
+
+  /// Roster: explains the drag handle
+  ///
+  /// In es, this message translates to:
+  /// **'Mantén y arrastra para cambiar el orden'**
+  String get minigamesLobbyReorderHint;
 }
 
 class _AppLocalizationsDelegate

@@ -232,19 +232,18 @@ class _MinigameDetailScreenState extends ConsumerState<MinigameDetailScreen> {
         children: [
           _buildHero(l10n, type),
           const SizedBox(height: AppSpacing.lg),
-          // ONE tap to play: starts a pass-the-phone match immediately with
-          // two default seats — names are corrected on the play screen, so
-          // nothing has to be typed before the first prompt. The setup screen
-          // (extra players, round target) stays available below.
+          // ONE tap to play: the lobby asks how many are playing, collects one
+          // name per seat ("pass the device to your right"), offers to save the
+          // group and then shows the roster with one big play control.
           VButton.emphasized(
             label: l10n.minigamesPlayNow,
-            onPressed: () =>
-                context.push('${RoutePaths.localMatch(type.value)}?quick=1'),
+            onPressed: () => context.push(RoutePaths.localLobby(type.value)),
           ),
           const SizedBox(height: AppSpacing.sm),
           TextButton(
-            onPressed: () => context.push(RoutePaths.localMatch(type.value)),
-            child: Text(l10n.minigamesChoosePlayers),
+            onPressed: () =>
+                context.push(RoutePaths.localLeaderboard),
+            child: Text(l10n.minigamesLeaderboardTitle),
           ),
           const SizedBox(height: AppSpacing.md),
           VButton.outlined(
