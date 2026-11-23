@@ -226,18 +226,34 @@ the only remaining unknown is the app/track state.
 ### Known risk on the Android upload
 
 - `versionCode` = 6. If 6 was ever uploaded, Play rejects it; bump to `+7`.
-- `fastlane/metadata/android/en-US/changelogs/1.txt` is stale (version code 1).
-  Add `default.txt` or rename to `6.txt`. Cosmetic today because
-  `track_play` passes `skip_upload_metadata: true` (changelogs only upload
-  alongside metadata), but it will bite the first time metadata is uploaded.
+- ~~`fastlane/metadata/android/en-US/changelogs/1.txt` is stale~~ — done
+  2026-11-23: `changelogs/6.txt` added for `en-US` and `es-419`.
 
-### Optional small fixes, not yet done
+### Small fixes — done 2026-11-23
 
-- `fastlane android track_play`: pass `package_name: "com.qallariy.samay"`
-  explicitly instead of letting supply infer it from the AAB.
+- `track_play` passes `package_name: "com.qallariy.samay"` explicitly.
+- `make -n deploy|publish` no longer executes the recipe (the `$(MAKE)` line was
+  run even under `-n`, unlocking the vault on a dry run); both guard on the `n`
+  flag and `opt-008` asserts it.
+- `tools/pre-commit.sh` called a non-existent `make secrets-check` and a
+  backend-owned `tools/check_ports.sh`; `opt-008` asserted `guard-release`
+  rejects `ENV=testing` (now store-grade). All three repaired; `make hooks`
+  installed.
+
+### Still operator-only
+
 - Record the Play signing SHA-1 in the vault
   (`qallariy/samay/signing/android/play-signing-sha1`) so the
   `KEY-ACQUISITION.md` requirement is mechanical.
+
+### Verified locally 2026-11-23
+
+- `flutter build apk --debug --flavor dev` and `flutter build ios --simulator`
+  both succeed with the new `sensors_plus` plugin.
+- `dart analyze` clean, `flutter test` 102/102, pre-commit 4/4, secrets PASS,
+  `opt-008` all green.
+- No store credential exists on this host: the ASC `.p8` and the Play service
+  account JSON are vault-only, so steps 2/3/6 below need the passphrase.
 
 ### Deploy path reference (as built)
 
