@@ -250,6 +250,51 @@ for t in deploy publish; do
   fi
 done
 
+# The INVERSE is what broke once: the guard tested
+# `$(findstring n,$(firstword $(MAKEFLAGS)))`, and command-line assignments land
+# in MAKEFLAGS too — `TRACK=internal` and `ENV=staging` both contain an "n", so
+# a REAL `make deploy` printed "dry run" and exited without building. Assert
+# that a normal invocation leaves DRY_RUN empty. Read it from make's database
+# (`-p`) rather than running the target: never execute deploy/publish here.
+DRY_VAL="$(make -p help TARGET=all ENV=testing TRACK=internal 2>/dev/null |
+  sed -n 's/^DRY_RUN *[:?]*= *//p' | head -1)"
+if [ -z "$DRY_VAL" ]; then
+  pass "DRY_RUN empty on a real run (TARGET=all ENV=testing TRACK=internal)"
+else
+  fail "DRY_RUN='$DRY_VAL' on a real run — a real deploy would be skipped as a dry run"
+fi
+for probe in ENV=staging ENV=testing TRACK=internal TRACK=production; do
+  V="$(make -p help TARGET=all $probe 2>/dev/null | sed -n 's/^DRY_RUN *[:?]*= *//p' | head -1)"
+  if [ -z "$V" ]; then
+    pass "DRY_RUN empty with $probe (no 'n' false positive)"
+  else
+    fail "DRY_RUN='$V' with $probe — the guard misfires on a variable assignment"
+  fi
+done
+N_VAL="$(make -n -p help TARGET=all ENV=testing 2>/dev/null |
+  sed -n 's/^DRY_RUN *[:?]*= *//p' | head -1)"
+if [ -n "$N_VAL" ]; then
+  pass "DRY_RUN set under make -n (dry runs still short-circuit)"
+else
+  fail "DRY_RUN not set under make -n — a dry run would unlock the vault"
+fi
+
+# The recipe itself must consume $(DRY_RUN). Checking only the variable's value
+# is not enough: a recipe left on the old `$(findstring n,$(firstword
+# $(MAKEFLAGS)))` expression still misfires while DRY_RUN stays correct.
+if grep -qE '\$\(findstring n,\$\(firstword \$\(MAKEFLAGS\)\)\)' "$MAKEFILE"; then
+  fail "a recipe still guards on \$(firstword \$(MAKEFLAGS)) — variable assignments misfire it"
+else
+  pass "no recipe guards on \$(firstword \$(MAKEFLAGS))"
+fi
+for t in deploy publish; do
+  if awk -v t="$t" '$0 ~ "^"t":" {f=1} f && /\$\(DRY_RUN\)/ {print "yes"; exit}' "$MAKEFILE" | grep -q yes; then
+    pass "$t recipe short-circuits on \$(DRY_RUN)"
+  else
+    fail "$t recipe does not reference \$(DRY_RUN)"
+  fi
+done
+
 # ── 2. Fastlane upload-lane contract (prebuilt artifacts; no match) ─────────
 echo ""
 echo "━━━ 2. Fastlane upload-lane contract ━━━"

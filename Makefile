@@ -672,6 +672,11 @@ guard-local:
 		echo "ENV=$(ENV) is a release environment (staging/prod); LOCAL-ONLY — refusing in CI."; exit 1; \
 	fi
 
+# True only when make was invoked with -n/--just-print/--dry-run. Reads the
+# flag LETTERS of $(MFLAGS) (never the command-line variable assignments, which
+# also land there: `TRACK=internal` and `ENV=staging` both contain an "n").
+DRY_RUN := $(foreach f,$(MFLAGS),$(if $(findstring n,$(filter-out --%,$(f))),1))
+
 # Validate TRACK against the per-TARGET store-native vocabulary. Silent no-op
 # when TRACK is empty and TRACK_REQUIRED is false (so `build` stays usable
 # without it); `deploy` sets TRACK_REQUIRED=true. No TRACK=all.
@@ -722,7 +727,7 @@ release:
 deploy: TRACK_REQUIRED=true
 deploy: track-guard
 	@set -e; \
-	if [ -n "$(findstring n,$(firstword $(MAKEFLAGS)))" ]; then \
+	if [ -n "$(DRY_RUN)" ]; then \
 		echo "deploy: dry run (-n) — not fetching the vault or touching the RAM disk."; \
 		echo "deploy: TARGET=$(TARGET) ENV=$(ENV) TRACK=$(TRACK)"; \
 		exit 0; \
@@ -744,7 +749,7 @@ deploy: track-guard
 publish: TRACK_REQUIRED=true
 publish: track-guard
 	@set -e; \
-	if [ -n "$(findstring n,$(firstword $(MAKEFLAGS)))" ]; then \
+	if [ -n "$(DRY_RUN)" ]; then \
 		echo "publish: dry run (-n) — not fetching the vault or touching the RAM disk."; \
 		echo "publish: TARGET=$(TARGET) ENV=$(ENV) TRACK=$(TRACK)"; \
 		exit 0; \
