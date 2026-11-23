@@ -3,7 +3,7 @@
         analyze check secrets hooks guard-local guard-env guard-release track-guard deploy publish \
         testing-kong-register \
         tunnel-android tunnel-waydroid signing-restore login \
-        release bundle-install
+        release bundle-install ruby-toolchain
 
 ifneq ($(filter command line environment,$(origin PROD)),)
 $(error PROD is not an input; use ENV=testing-local|testing|staging|prod)
@@ -195,7 +195,7 @@ help:
 	@echo "  BUILD/RUN: build dev install build-install uninstall clear clean"
 	@echo "  TUNNELS:   tunnel-android tunnel-waydroid signing-restore"
 	@echo "  LOGIN:     login [TARGET=simulator]"
-	@echo "  GATES:     analyze check secrets hooks env"
+	@echo "  GATES:     analyze check secrets hooks env ruby-toolchain"
 	@echo "  RELEASE:   release bundle-install"
 	@echo "  TRACKS:    deploy TARGET=ios|android|all TRACK=<list>  (build honours TRACK too)"
 	@echo "  ENV:       testing-local (Docker) | testing|staging|prod (vault + store)"
@@ -347,6 +347,7 @@ build:
 # here — only `deploy` requires it (see the track-aware deploy section).
 build: guard-local
 build: track-guard
+build: ruby-toolchain
 
 dev: guard-local
 	$(load-env)
@@ -630,7 +631,7 @@ analyze:
 test:
 	bash test/opt-008-makefile-static.sh
 
-check: secrets
+check: secrets ruby-toolchain
 	dart analyze
 	flutter analyze
 
@@ -697,9 +698,18 @@ track-guard:
 		case " $$allowed " in *" $$t "*) : ;; *) echo "unknown TRACK '$$t' for TARGET=$(TARGET) (allowed: $$allowed)."; exit 1;; esac; \
 	done
 
-bundle-install:
+bundle-install: ruby-toolchain
 	@[ -f Gemfile ] || { echo "No Gemfile — fastlane not wired yet."; exit 1; }
 	$(BREW_BUNDLE) install
+
+# Self-healing Ruby/bundler gate. `brew upgrade ruby` can leave a stale
+# bundler gemspec with no gem directory, which kills the `bundle` shim before
+# any project code runs (a release build died this way on 2026-11-23). This
+# repairs the shim, rebuilds unbuilt native extensions, and asserts the
+# Gemfile is satisfied. Cheap (~0.5s), so every Ruby-touching target depends
+# on it. `--repair` mutates only the local gem environment, never the repo.
+ruby-toolchain:
+	@bash tools/check_ruby_toolchain.sh --repair
 
 # Signed PROD artifacts for BOTH platforms in one command (local-only, release
 # material provisioned out-of-band). The per-platform targets are
@@ -726,6 +736,7 @@ release:
 # vault passphrase prompt) nor wipe early.
 deploy: TRACK_REQUIRED=true
 deploy: track-guard
+deploy: ruby-toolchain
 	@set -e; \
 	if [ -n "$(DRY_RUN)" ]; then \
 		echo "deploy: dry run (-n) — not fetching the vault or touching the RAM disk."; \
@@ -748,6 +759,7 @@ deploy: track-guard
 # both, so only the store credentials are derived here.
 publish: TRACK_REQUIRED=true
 publish: track-guard
+publish: ruby-toolchain
 	@set -e; \
 	if [ -n "$(DRY_RUN)" ]; then \
 		echo "publish: dry run (-n) — not fetching the vault or touching the RAM disk."; \

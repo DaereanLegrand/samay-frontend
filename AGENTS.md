@@ -19,6 +19,11 @@ The Flutter app **Samay** (`com.qallariy.samay`); split from `Vive`.
   Android flavor `dev` (AGP reserves `test*`).
 - `ENV` is required on every run/build/install verb (no default).
 - Gates: `make check`, `make test`.
+- Ruby toolchain: `make ruby-toolchain` self-checks the Homebrew Ruby + bundler
+  the release lanes need. `brew upgrade ruby` can leave a stale bundler gemspec
+  with no gem directory, killing the `bundle` shim before any project code runs;
+  the gate reinstalls the pinned version and rebuilds unbuilt native extensions.
+  `build`/`deploy`/`publish`/`bundle-install`/`check` depend on it.
 
 ## Rules
 - Tests live in `test/` (Dart); `make test` runs `flutter test` plus the static gates.
