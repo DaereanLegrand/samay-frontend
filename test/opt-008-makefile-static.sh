@@ -234,6 +234,22 @@ else
   pass "guard-release rejects ENV=testing-local"
 fi
 
+# deploy/publish contain $(MAKE), which GNU make EXECUTES even under `-n`. A
+# dry run must never unlock the vault or touch the RAM disk, so both guard on
+# the `n` flag before any fetch. Assert the guard is present and that a dry run
+# prints the skip message instead of a vault banner.
+for t in deploy publish; do
+  if grep -q 'dry run (-n)' "$MAKEFILE"; then
+    DRY_OUT="$(make -n "$t" TARGET=all ENV=testing TRACK=internal 2>&1 || true)"
+    case "$DRY_OUT" in
+      *"dry run (-n)"*) pass "make -n $t is side-effect free (no vault fetch)" ;;
+      *) fail "make -n $t did not hit the dry-run guard" ;;
+    esac
+  else
+    fail "no 'dry run (-n)' guard for $t (a -n dry run would unlock the vault)"
+  fi
+done
+
 # ── 2. Fastlane upload-lane contract (prebuilt artifacts; no match) ─────────
 echo ""
 echo "━━━ 2. Fastlane upload-lane contract ━━━"

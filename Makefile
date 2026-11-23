@@ -722,6 +722,11 @@ release:
 deploy: TRACK_REQUIRED=true
 deploy: track-guard
 	@set -e; \
+	if [ -n "$(findstring n,$(firstword $(MAKEFLAGS)))" ]; then \
+		echo "deploy: dry run (-n) — not fetching the vault or touching the RAM disk."; \
+		echo "deploy: TARGET=$(TARGET) ENV=$(ENV) TRACK=$(TRACK)"; \
+		exit 0; \
+	fi; \
 	targets="$(TARGET)"; \
 	case "$$targets" in ios|android) : ;; all) targets="ios android";; *) echo "deploy: TARGET must be ios|android|all"; exit 1;; esac; \
 	[ -x "$(RELEASE_SECRETS)" ] || { echo "deploy: $(RELEASE_SECRETS) not found (private ops repo: Admin/infra/tools/)."; exit 1; }; \
@@ -739,6 +744,11 @@ deploy: track-guard
 publish: TRACK_REQUIRED=true
 publish: track-guard
 	@set -e; \
+	if [ -n "$(findstring n,$(firstword $(MAKEFLAGS)))" ]; then \
+		echo "publish: dry run (-n) — not fetching the vault or touching the RAM disk."; \
+		echo "publish: TARGET=$(TARGET) ENV=$(ENV) TRACK=$(TRACK)"; \
+		exit 0; \
+	fi; \
 	targets="$(TARGET)"; \
 	case "$$targets" in ios|android) : ;; all) targets="ios android";; *) echo "publish: TARGET must be ios|android|all"; exit 1;; esac; \
 	[ -x "$(RELEASE_SECRETS)" ] || { echo "publish: $(RELEASE_SECRETS) not found (private ops repo: Admin/infra/tools/)."; exit 1; }; \
