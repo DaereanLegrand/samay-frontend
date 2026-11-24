@@ -365,6 +365,16 @@ for t in android ios; do
     fail "build $t does not verify the anon key against the stack"
   fi
 done
+# The gate must never block a store build just because the LOCAL stack is down:
+# an absent Kong is "cannot verify", not "wrong credential". Refusing there
+# aborted `make deploy` mid-verb (iOS had built, Android never started).
+if ! grep -q 'no Kong publishing' tools/check_anon_matches_stack.sh; then
+  fail "check_anon_matches_stack.sh has no stack-absent branch"
+elif grep -A 8 'no Kong publishing' tools/check_anon_matches_stack.sh | grep -q 'exit 0'; then
+  pass "stack absent -> warn and continue (does not block deploy)"
+else
+  fail "stack absent is fatal — it would abort a store build"
+fi
 # ENV=testing ALWAYS takes the vault, for `dev` exactly as for `deploy` — that
 # is the whole point of the env: one secret generation, the vault's. (The old
 # exception made dev read .env while deploy read the vault, which is how a
