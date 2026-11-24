@@ -8,8 +8,8 @@
 # a single hit means a live local secret leaked into version control -> FAIL.
 #
 # Env files scanned (may not exist):
-#   .env  .env.local  supabase/.env  supabase/.env.local
-#   supabase-testing/.env  supabase-testing/.env.local
+#   .env.local
+#   ../backend/.env/testing-local.env   (the shared local secrets)
 #
 # Those env files are EXCLUDED from the scan itself: a value defined there and
 # present nowhere else is not a leak. A value found in code, tests, docs,
@@ -28,8 +28,7 @@ cd "$ROOT" || exit 2
 
 VIOLATIONS=0
 
-ENV_FILES=(.env .env.local supabase/.env supabase/.env.local
-           supabase-testing/.env supabase-testing/.env.local)
+ENV_FILES=(.env.local ../backend/.env/testing-local.env)
 EXCLUDES=()
 for f in "${ENV_FILES[@]}"; do EXCLUDES+=(":(exclude)$f"); done
 

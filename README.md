@@ -36,14 +36,17 @@ guest onboarding, and either a single shared phone or a multi-device session.
 
 ## Quick start
 
-Run the backend first. For `ENV=testing-local` the Makefile reads the local
-stack's JWT secret and anon key from the backend checkout (override the location
-with `LOCAL_JWT_ENV`) and expects Kong on port 54386. Then:
+Run the backend first. This app has **no env file of its own**: for
+`ENV=testing-local` the Makefile reads the monorepo-level
+`../backend/.env/testing-local.env` (URL, anon key, OAuth ids; override the path with
+`LOCAL_JWT_ENV`) and expects Kong on port 54396. Release ENVs read the vault.
 
 ```sh
 flutter pub get
-make init ENV=testing-local    # interactive; choose "local" to write .env
-make start ENV=testing-local   # = make dev; runs against the local stack
+make -C ../backend init  APP=samay ENV=testing-local   # once: mint the local secrets
+make -C ../backend start APP=samay ENV=testing-local   # the stack the app talks to
+make init ENV=testing-local                            # check the prerequisites
+make start ENV=testing-local                           # = make dev
 ```
 
 `ENV` is required on every run/build verb and is one of

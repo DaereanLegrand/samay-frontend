@@ -9,6 +9,8 @@
 *.exe
 
 # Environment
+# There is no app env file: testing-local reads ../.env/testing-local.env
+# and release ENVs read the vault. Kept ignored so a stray file cannot be committed.
 .env
 # Local-only per-developer overrides (load-env sources it; the Makefile's
 # "never committed" contract for values like IOS_DEVELOPMENT_TEAM).

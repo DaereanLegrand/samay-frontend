@@ -2,12 +2,12 @@
 """Mint a temporary HS256 anon JWT for Samay's LOCAL testing stack.
 
 Mirrors the committed anon key payload {"role":"anon","iss":"supabase",
-"iat":..,"exp":..} (verified against supabase/.env 2026-08-11) but with a
+"iat":..,"exp":..} (verified against the backend's testing-local.env) but with a
 fresh iat/exp (24h window) signed with the LOCAL stack's JWT_SECRET.
 
 Secret resolution order:
   1. JWT_SECRET env var (the Makefile TESTING=true path passes it here)
-  2. supabase/.env in the repo root (standalone runs)
+  2. ../backend/.env/testing-local.env (standalone runs)
 
 Prints ONLY the JWT on stdout — no logs. Exit 1 with a message on stderr
 if the secret cannot be resolved.
@@ -29,7 +29,7 @@ def _b64url(data: bytes) -> str:
 
 
 def _secret_from_env_file(repo_root: Path) -> str:
-    env_file = repo_root / "supabase" / ".env"
+    env_file = repo_root / ".." / "backend" / ".env" / "testing-local.env"
     if not env_file.is_file():
         return ""
     for line in env_file.read_text().splitlines():
@@ -45,7 +45,8 @@ def main() -> int:
     if not secret:
         print(
             "gen_testing_anon_key: no JWT_SECRET found (env var or "
-            "supabase/.env) — start with the local stack's secret.",
+            "../backend/.env/testing-local.env) — start with the "
+            "local stack's secret.",
             file=sys.stderr,
         )
         return 1

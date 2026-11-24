@@ -1,0 +1,8 @@
+Games-first home: the app opens on the card deck (drag to cycle, tap play).
+Choose how many are playing, one name per seat, and save the group to reuse it.
+
+New in this build:
+- Charadas: phone on the forehead, tilt down to score and up to pass, with
+  Peruvian categories and a turn length you choose.
+- Botella: a real spinning bottle on a pizza board.
+- Leaderboard of your pass-the-phone games, kept on the device.

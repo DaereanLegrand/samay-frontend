@@ -3,15 +3,12 @@
 The Flutter app **Samay** (`com.qallariy.samay`); split from `Vive`.
 
 ## Commands
-- Setup: `make init ENV=testing` (gum; writes `.env`).
-- Vault → `.env` public config: `bash tools/sync_vault_env.sh` (dry run, prints
-  fingerprints only) or `--write` to copy. Operator-run: it unlocks `pass`.
-  Needed because `make deploy` builds with the vault's `testing/public/*`, so a
-  store build only reaches the local Docker stack through the tunnel when these
-  match — the anon key is a JWT minted from that stack's `JWT_SECRET`.
+- Setup, local only: `make init ENV=testing-local` (gum; checks the backend's
+  `../backend/.env/testing-local.env`). This app has no env file of its own.
 - Run: `make start ENV=…` (= `make dev`). `ENV=testing-local|testing|staging|prod` selects
-  the backend for **every** verb (`testing-local` reads the Docker stack;
-  `testing`/`staging`/`prod` need the vault, local-only). Build:
+  the backend for **every** verb (`testing-local` reads the backend's
+  `../backend/.env/testing-local.env`; `testing`/`staging`/`prod` read the vault,
+  local-only). Build:
   `make build ENV=… TARGET=ios-adhoc|simulator|android|all`.
 - Release: `make deploy TARGET=ios|android|all ENV=testing|staging|prod TRACK=<tracks>`
   — it fetches the vault profile into a RAM disk (one passphrase prompt), builds
@@ -34,7 +31,8 @@ The Flutter app **Samay** (`com.qallariy.samay`); split from `Vive`.
 - Tests live in `test/` (Dart); `make test` runs `flutter test` plus the static gates.
 - Never kill/restart the user's `make dev`; ask them to press `r`/`R`
   (`.opencode/DEV-SERVER.md`).
-- `.env` is local + gitignored; no secrets in the repo.
+- No app env file exists. Local config lives in the backend's
+  `../backend/.env/testing-local.env` (gitignored); release config comes from the vault.
 
 ## Layout
 `lib/features/*`, `lib/core/*`, `lib/crypto/*` (E2EE), `docs/`, `tools/`, `.opencode/`.

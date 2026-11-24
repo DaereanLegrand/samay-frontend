@@ -96,45 +96,51 @@ else
 PUB_FLAG := --no-pub
 endif
 
+comma := ,
 ENV_FILE := $(wildcard .env)
-ifeq ($(ENV_FILE),)
-FLUTTER_DEFINES :=
-else
-FLUTTER_DEFINES := --dart-define-from-file=.env
+# No frontend env file takes part in any build. testing-local resolves from the
+# backend's file (LOCAL_DEFINES); testing/staging/prod resolve from the vault
+# ($(PROD_DEFINES)). `$(warning)` makes a stray .env impossible to ignore.
+ifneq ($(ENV_FILE),)
+$(warning frontend/.env exists but is unused; delete it. Local builds read ../backend/.env/testing-local.env; release ENVs read the vault.)
 endif
-# Environment define for dev/build runs (the prod build lines add it explicitly).
-FLUTTER_DEFINES += --dart-define=APP_ENV=$(APP_ENV)
-
 ANDROID_GATEWAY_HOST := $(if $(findstring Linux,$(shell uname -s)),10.0.2.2,127.0.0.1)
 OS_IS_DARWIN := $(findstring Darwin,$(shell uname -s))
-# Local stack wiring. Defaults read the monorepo backend env; a lane can point
-# at its own disposable stack with LOCAL_JWT_ENV and LOCAL_KONG_PORT.
-# The backend now runs TWO independent stacks (backend/Makefile ENV_STACK_ENV_*):
-#   testing       → supabase/testing.env        project samay-testing       Kong 54386
-#   testing-local → supabase/testing-local.env  project samay-testing-local Kong 54396
-# They have separate projects, ports, volumes AND secret generations, so a
-# testing-built app can never talk to the testing-local stack (and vice versa).
-LOCAL_JWT_ENV ?= ../backend/supabase/testing-local.env
+# Local stack wiring. testing-local is the ONLY env whose config lives in a
+# file, and that file is the BACKEND's: one generation, shared by construction.
+# The backend runs two independent stacks (backend/Makefile ENV_STACK_ENV_*):
+#   testing       → ../backend/.env/testing.env (layout) + vault   project samay-testing       Kong 54386
+#   testing-local → ../backend/.env/testing-local.env (secrets)   project samay-testing-local Kong 54396
+# There is no frontend env file: release ENVs read the vault, testing-local
+# reads the backend's file below.
+LOCAL_JWT_ENV ?= ../backend/.env/testing-local.env
 JWT_SECRET ?= $(shell sed -n 's/^JWT_SECRET=//p' $(LOCAL_JWT_ENV) 2>/dev/null | head -1)
 LOCAL_KONG_PORT ?= $(shell sed -n 's/^KONG_HTTP_PORT=\([0-9]*\).*/\1/p' $(LOCAL_JWT_ENV) 2>/dev/null | head -1)
 ifeq ($(strip $(LOCAL_KONG_PORT)),)
-LOCAL_KONG_PORT := 54386
+LOCAL_KONG_PORT := 54396
 endif
 
-# ENV=testing-local points builds at the local stack (TESTING is derived above); needs JWT_SECRET.
 ifeq ($(TESTING),true)
 TESTING_JWT_SECRET := $(JWT_SECRET)
-# Prefer the stack's registered anon key. A freshly minted JWT has a different
-# signature/iat and Kong's REST key-auth does not accept it unless it is added
-# to keyauth_credentials (the old register target appended it under
-# jwt_secrets, so /auth worked but /rest returned 401).
+# The stack's registered anon key, from the same file the stack runs on. A
+# freshly minted JWT has a different signature/iat and Kong's REST key-auth
+# rejects it unless it is in keyauth_credentials.
 TESTING_ANON_KEY := $(shell sed -n 's/^SUPABASE_ANON_KEY=//p' $(LOCAL_JWT_ENV) 2>/dev/null | head -1 | tr -d '"')
 ifeq ($(strip $(TESTING_ANON_KEY)),)
 ifneq ($(strip $(TESTING_JWT_SECRET)),)
 TESTING_ANON_KEY := $(shell JWT_SECRET='$(TESTING_JWT_SECRET)' python3 tools/gen_testing_anon_key.py)
 endif
 endif
-LOCAL_DEFINES := --dart-define=SUPABASE_URL=http://$(ANDROID_GATEWAY_HOST):$(LOCAL_KONG_PORT) --dart-define=SUPABASE_ANON_KEY=$(TESTING_ANON_KEY)
+# OAuth ids: the backend file carries the pair WEB-FIRST, comma-joined (GoTrue's
+# audience list). The app needs them split: web is serverClientId, iOS is
+# GIDClientID.
+TESTING_GOOGLE_CLIENTS := $(shell sed -n 's/^GOTRUE_EXTERNAL_GOOGLE_CLIENT_ID=//p' $(LOCAL_JWT_ENV) 2>/dev/null | head -1 | tr -d '"')
+TESTING_GOOGLE_CLIENT_ID := $(word 1,$(subst $(comma), ,$(TESTING_GOOGLE_CLIENTS)))
+TESTING_GOOGLE_IOS_CLIENT_ID := $(word 2,$(subst $(comma), ,$(TESTING_GOOGLE_CLIENTS)))
+APP_SUPABASE_URL := http://$(ANDROID_GATEWAY_HOST):$(LOCAL_KONG_PORT)
+LOCAL_DEFINES := --dart-define=SUPABASE_URL=$(APP_SUPABASE_URL) --dart-define=SUPABASE_ANON_KEY=$(TESTING_ANON_KEY) \
+                 --dart-define=GOOGLE_OAUTH_CLIENT_ID=$(TESTING_GOOGLE_CLIENT_ID) \
+                 --dart-define=GOOGLE_OAUTH_IOS_CLIENT_ID=$(TESTING_GOOGLE_IOS_CLIENT_ID)
 build: | testing-kong-register
 dev: | testing-kong-register
 install: | testing-kong-register
@@ -142,13 +148,11 @@ tunnel-android: | testing-kong-register
 endif
 
 # ── Resolved env defines — ONE source per ENV, used by dev + non-store builds ─
-#   testing-local → local Docker stack (:$(LOCAL_KONG_PORT)) + the Kong anon registration
-#   testing       → .env verbatim (written by `make init`)
-#   staging       → dart defines from $(PROD_DEFINES)
-#   prod          → dart defines from $(PROD_DEFINES)
-# Recursive `=` so PROD_DEFINES (defined in the PROD block below) resolves at
-# use time.
-ENV_DEFINES = $(if $(filter true,$(TESTING)),$(LOCAL_DEFINES),$(if $(RELEASE),--dart-define-from-file=$(PROD_DEFINES) --dart-define=APP_ENV=$(APP_ENV),$(FLUTTER_DEFINES)))
+#   testing-local → ../backend/.env/testing-local.env (URL, anon, OAuth)
+#   testing|staging|prod → the vault's dart_defines.env (release material)
+# A verb whose ENV is not one of those four aborts in guard-env, so there is no
+# third branch: every build either reads a file that exists or dies.
+ENV_DEFINES = $(if $(filter true,$(TESTING)),$(LOCAL_DEFINES),--dart-define-from-file=$(PROD_DEFINES) --dart-define=APP_ENV=$(APP_ENV))
 
 # Vault broker profile serving a build target: the shared Apple signing material
 # for the iOS targets, the Android/Play material otherwise.
@@ -186,15 +190,15 @@ EXPORT_OPTIONS      ?= $(RAM_DIR)/ExportOptions.plist
 RELEASE_SECRETS     ?= ../../Admin/infra/tools/release-secrets.sh
 endif
 
-ifeq ($(TESTING),true)
-LANE_SUPABASE_URL ?= $(shell sed -n 's/^SUPABASE_URL=//p' .env 2>/dev/null | head -1)
-else
-LANE_SUPABASE_URL := $(shell sed -n 's/^SUPABASE_URL=//p' .env 2>/dev/null | head -1)
-endif
-LANE_SUPABASE_ANON_KEY := $(shell sed -n 's/^SUPABASE_ANON_KEY=//p' .env 2>/dev/null | head -1)
+# Signed ad-hoc IPA for on-device installs. The URL/anon key it bakes in follow
+# the ENV: testing-local from the backend file, release ENVs from the vault.
+LANE_SUPABASE_URL = $(if $(filter true,$(TESTING)),$(APP_SUPABASE_URL),$(shell sed -n 's/^SUPABASE_URL=//p' "$(PROD_DEFINES)" 2>/dev/null | head -1))
+LANE_SUPABASE_ANON_KEY = $(if $(filter true,$(TESTING)),$(TESTING_ANON_KEY),$(shell sed -n 's/^SUPABASE_ANON_KEY=//p' "$(PROD_DEFINES)" 2>/dev/null | head -1))
 
+# .env.local carries per-developer overrides only (IOS_DEVELOPMENT_TEAM); there
+# is no .env. Sourced for dev/local verbs, never for a release build.
 define load-env
-set -a; [ -r ./.env.local ] && . ./.env.local || true; [ -r ./.env ] && . ./.env || true; set +a
+set -a; [ -r ./.env.local ] && . ./.env.local || true; set +a
 endef
 
 ENV_TARGETS := init dev start build build-install install testing-kong-register env deploy publish release
@@ -219,9 +223,8 @@ help:
 
 env:
 	@echo "ENV=$(ENV)"
-	@echo "config: $(if $(filter true,$(TESTING)),local stack (:$(LOCAL_KONG_PORT)),$(if $(RELEASE),release material $(RAM_DIR),.env))"
+	@echo "config: $(if $(filter true,$(TESTING)),local stack $(LOCAL_JWT_ENV) (Kong :$(LOCAL_KONG_PORT)),release material $(RAM_DIR))"
 	@echo "APP_ENV=$(APP_ENV) ANDROID_FLAVOR=$(ANDROID_FLAVOR) BUILD_MODE=$(BUILD_MODE)"
-	@echo "ENV_FILE=$(ENV_FILE)"
 	@echo "ENV_DEFINES=$(ENV_DEFINES)"
 
 # Interactive setup; then `make start` runs against the chosen backend.
@@ -322,7 +325,6 @@ build:
 		[ -f "$(KEYSTORE_PROPERTIES)" ] || { echo "ENV=$(ENV): $(KEYSTORE_PROPERTIES) missing. Release material is provisioned out-of-band by the operator."; exit 1; }; \
 		[ -f "$(PROD_DEFINES)" ] || { echo "ENV=$(ENV): $(PROD_DEFINES) missing. Release material is provisioned out-of-band by the operator."; exit 1; }; \
 		[ -f "$(RAM_DIR)/google-services.json" ] || { echo "ENV=$(ENV): $(RAM_DIR)/google-services.json missing (Firebase config). Release material is provisioned out-of-band by the operator."; exit 1; }; \
-		ENV="$(ENV)" bash tools/check_anon_matches_stack.sh "$(PROD_DEFINES)" || exit 1; \
 		mkdir -p android/app/src/$(ANDROID_FLAVOR); \
 		GS_DEST="android/app/src/$(ANDROID_FLAVOR)/google-services.json"; \
 		GS_BACKUP=""; \
@@ -346,7 +348,6 @@ build:
 		[ -f "$(PROD_DEFINES)" ] || { echo "ENV=$(ENV): $(PROD_DEFINES) missing. Release material is provisioned out-of-band by the operator."; exit 1; }; \
 		[ -f "$(RAM_DIR)/GoogleService-Info.plist" ] || { echo "ENV=$(ENV): $(RAM_DIR)/GoogleService-Info.plist missing (Firebase config). Release material is provisioned out-of-band by the operator."; exit 1; }; \
 		[ -f "$(RAM_DIR)/provisioning-profile.mobileprovision" ] || { echo "ENV=$(ENV): $(RAM_DIR)/provisioning-profile.mobileprovision missing. Release material is provisioned out-of-band by the operator."; exit 1; }; \
-		ENV="$(ENV)" bash tools/check_anon_matches_stack.sh "$(PROD_DEFINES)" || exit 1; \
 		PLIST_BACKUP=""; PBX_BACKUP=""; FIREBASE_BACKUP=""; \
 		cleanup() { \
 			[ -n "$$PLIST_BACKUP" ] && tools/ios_google_oauth.sh restore "$$PLIST_BACKUP" >/dev/null 2>&1 || true; \

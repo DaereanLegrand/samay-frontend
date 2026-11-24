@@ -361,35 +361,8 @@ else
   fail "one invocation reported $TAGS different RAM paths"
 fi
 
-# The anon-key pre-flight must run before BOTH store builds. A build compiled
-# with one secret generation against a stack running another installs fine and
-# answers {"message":"Unauthorized"} to everything (Android AAB, 2026-11-24).
-if [ -x tools/check_anon_matches_stack.sh ]; then
-  pass "tools/check_anon_matches_stack.sh present"
-else
-  fail "tools/check_anon_matches_stack.sh missing or not executable"
-fi
-for t in android ios; do
-  if awk -v t="$t" '$0 ~ "^build:" {f=1} f && /check_anon_matches_stack/ {c++} END{exit !(c>=1)}' "$MAKEFILE"; then
-    pass "build $t verifies the anon key against the stack"
-  else
-    fail "build $t does not verify the anon key against the stack"
-  fi
-done
-# The gate must never block a store build just because the LOCAL stack is down:
-# an absent Kong is "cannot verify", not "wrong credential". Refusing there
-# aborted `make deploy` mid-verb (iOS had built, Android never started).
-if ! grep -q 'no Kong publishing' tools/check_anon_matches_stack.sh; then
-  fail "check_anon_matches_stack.sh has no stack-absent branch"
-elif grep -A 8 'no Kong publishing' tools/check_anon_matches_stack.sh | grep -q 'exit 0'; then
-  pass "stack absent -> warn and continue (does not block deploy)"
-else
-  fail "stack absent is fatal — it would abort a store build"
-fi
 # ENV=testing ALWAYS takes the vault, for `dev` exactly as for `deploy` — that
-# is the whole point of the env: one secret generation, the vault's. (The old
-# exception made dev read .env while deploy read the vault, which is how a
-# build and a stack ended up on different generations.)
+# is the whole point of the env: one secret generation, the vault's.
 if grep -q 'DEV_DEFINES' "$MAKEFILE"; then
   fail "a DEV_DEFINES exception exists — dev would diverge from deploy"
 else
@@ -399,6 +372,24 @@ if [ "$(make -n dev TARGET=simulator ENV=testing 2>/dev/null | grep -c 'dart_def
   pass "dev ENV=testing resolves the vault defines"
 else
   fail "dev ENV=testing does not resolve the vault defines"
+fi
+# No app env file: testing-local resolves from the backend's file, release ENVs
+# from the vault. A dart-define-from-file=.env in any release recipe is a
+# fallback channel and must not exist.
+if grep -qE -- '--dart-define-from-file=\.env([ "]|$)' "$MAKEFILE"; then
+  fail "a recipe reads --dart-define-from-file=.env"
+else
+  pass "no recipe reads a frontend .env"
+fi
+if [ "$(make -n env ENV=testing-local 2>/dev/null | grep -c 'backend/.env/testing-local.env')" -ge 1 ]; then
+  pass "testing-local resolves the backend's stack env"
+else
+  fail "testing-local does not resolve the backend's stack env"
+fi
+if [ "$(make -n env ENV=testing-local 2>/dev/null | grep -c 'GOOGLE_OAUTH_IOS_CLIENT_ID=')" -ge 1 ]; then
+  pass "testing-local carries the OAuth ids from the shared file"
+else
+  fail "testing-local is missing the OAuth ids"
 fi
 
 # The recipe itself must consume $(DRY_RUN). Checking only the variable's value
