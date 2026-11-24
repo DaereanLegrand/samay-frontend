@@ -365,7 +365,15 @@ build:
 		grep -q "DEVELOPMENT_TEAM = $$PROF_TEAM" ios/Runner.xcodeproj/project.pbxproj || { echo "store signing patch did not stick (profile '$$PROF_NAME', team '$$PROF_TEAM')."; exit 1; }; \
 		PLIST_BACKUP=$$(tools/ios_google_oauth.sh apply "$$IOS_GID"); \
 		flutter build ipa --release $(PUB_FLAG) --dart-define-from-file="$(PROD_DEFINES)" --dart-define=GOOGLE_OAUTH_IOS_CLIENT_ID="$$IOS_GID" --dart-define=APP_ENV=$(APP_ENV) --export-options-plist="$(EXPORT_OPTIONS)" && \
-		echo "IPA: build/ios/ipa/*.ipa"; \
+		IPA_OUT=$$(ls -t build/ios/ipa/*.ipa 2>/dev/null | head -1); \
+		[ -n "$$IPA_OUT" ] || { echo "ENV=$(ENV): flutter build ipa produced no .ipa"; exit 1; }; \
+		if [ "$(IOS_EXPORT_METHOD)" = "ad-hoc" ]; then \
+			mv -f "$$IPA_OUT" "$(IPA_ADHOC)"; \
+			echo "IPA (ad-hoc): $(IPA_ADHOC)"; \
+			echo "install:  make install ENV=$(ENV) TARGET=ios-adhoc"; \
+		else \
+			echo "IPA: $$IPA_OUT"; \
+		fi; \
 	else \
 		flutter build apk --$(BUILD_MODE) --flavor $(ANDROID_FLAVOR) $(PUB_FLAG) $(ENV_DEFINES) && \
 		echo "APK: $(APK)"; \

@@ -329,6 +329,17 @@ for form in "" "--no-print-directory"; do
   fi
 done
 
+# `flutter build ipa` names the artifact after the pubspec (`samay.ipa`), not
+# $(APP_NAME). `build TARGET=ios MODE=adhoc` therefore had to rename it to
+# $(IPA_ADHOC), or `make install TARGET=ios-adhoc` failed with
+# "IPA not found at build/ios/ipa/samay_app-adhoc.ipa" (2026-11-24) — after a
+# successful 107s archive and signing run.
+if awk '/IOS_EXPORT_METHOD.*ad-hoc/{f=1} f && /mv -f .*IPA_ADHOC/{print; exit}' "$MAKEFILE" | grep -q 'IPA_ADHOC'; then
+  pass "build MODE=adhoc renames the IPA to \$(IPA_ADHOC)"
+else
+  fail "build MODE=adhoc does not rename the IPA — install would find nothing"
+fi
+
 # ONE RAM disk per verb. The tag must be computed with `:=` (immediate), never
 # `?=` with $(shell): the latter re-expands on every reference, so a single
 # `deploy` mounted one disk per fetch and the build then looked in a directory
