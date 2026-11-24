@@ -4217,7 +4217,7 @@
       }
     }
   },
-  "onboardingTagline": "juegos para jugar en grupo, sin cuenta y sin vueltas",
+  "onboardingTagline": "juegos para pasar el tiempo con amigos",
   "@onboardingTagline": {
     "description": "Onboarding: one-line value proposition under the wordmark"
   },
@@ -4228,6 +4228,22 @@
   "onboardingStart": "aceptar y jugar",
   "@onboardingStart": {
     "description": "Onboarding: primary CTA that creates the guest session"
+  },
+  "onboardingDecline": "ahora no",
+  "@onboardingDecline": {
+    "description": "Onboarding: secondary action that declines consent (the X)"
+  },
+  "onboardingDeclinedTitle": "no podemos dejarte pasar todavía",
+  "@onboardingDeclinedTitle": {
+    "description": "Declined screen: headline explaining play requires consent"
+  },
+  "onboardingDeclinedBody": "Para usar Samay tienes que confirmar que eres mayor de 18 años y aceptar los términos y la política de privacidad. No guardamos nada hasta que lo hagas.",
+  "@onboardingDeclinedBody": {
+    "description": "Declined screen: body explaining nothing was recorded and consent is required"
+  },
+  "onboardingDeclinedBack": "volver a los términos",
+  "@onboardingDeclinedBack": {
+    "description": "Declined screen: button returning to the consent screen"
   },
   "authSignInTitle": "iniciar sesión",
   "@authSignInTitle": {

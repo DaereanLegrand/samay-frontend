@@ -3324,8 +3324,7 @@ class AppLocalizationsEs extends AppLocalizations {
   }
 
   @override
-  String get onboardingTagline =>
-      'juegos para jugar en grupo, sin cuenta y sin vueltas';
+  String get onboardingTagline => 'juegos para pasar el tiempo con amigos';
 
   @override
   String get onboardingConsent =>
@@ -3333,6 +3332,19 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get onboardingStart => 'aceptar y jugar';
+
+  @override
+  String get onboardingDecline => 'ahora no';
+
+  @override
+  String get onboardingDeclinedTitle => 'no podemos dejarte pasar todavía';
+
+  @override
+  String get onboardingDeclinedBody =>
+      'Para usar Samay tienes que confirmar que eres mayor de 18 años y aceptar los términos y la política de privacidad. No guardamos nada hasta que lo hagas.';
+
+  @override
+  String get onboardingDeclinedBack => 'volver a los términos';
 
   @override
   String get authSignInTitle => 'iniciar sesión';

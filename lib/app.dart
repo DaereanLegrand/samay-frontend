@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:samay/core/deep_links/deep_link_handler.dart';
 import 'package:samay/core/providers/theme_provider.dart';
+import 'package:samay/core/providers/auth_provider.dart';
 import 'package:samay/core/theme/app_palette.dart';
+import 'package:samay/core/theme/app_palette_context.dart';
 import 'package:samay/core/theme/app_theme.dart';
 import 'package:samay/core/theme/app_theme_provider.dart';
 import 'package:samay/core/theme/app_theme_scope.dart';
@@ -60,6 +62,13 @@ class SamayApp extends ConsumerWidget {
       // per widget.
       builder: (context, child) {
         final mediaQuery = MediaQuery.of(context);
+        // BOOT GATE: the initial session probe is network I/O (ban check +
+        // profile lookup), so the router used to evaluate against
+        // `AsyncLoading` and paint the requested route — the games deck — for
+        // a second or two before the consent gate appeared. Nothing may be
+        // interactive before consent, so hold a blank brand surface until the
+        // auth state resolves. The router then redirects deterministically.
+        final authResolved = ref.watch(authStateProvider).hasValue;
         // The ambient palette for EVERY route. A group screen mounts its own
         // [GroupThemeSurface] inside and overrides this when the group has a
         // real (non-default) theme.
@@ -69,7 +78,9 @@ class SamayApp extends ConsumerWidget {
             children: [
               // Main content fills the screen — no margin push from banners.
               Positioned.fill(
-                child: Stack(children: [?child, const DeepLinkListener()]),
+                child: authResolved
+                    ? Stack(children: [?child, const DeepLinkListener()])
+                    : const _BootCover(),
               ),
               // LOGOUT FLUSH: mounted above the Navigator so
               // the auth screens are covered too — on logout every
@@ -110,6 +121,24 @@ class SamayApp extends ConsumerWidget {
       },
       routerConfig: router,
       debugShowCheckedModeBanner: false,
+    );
+  }
+}
+
+/// Brand-blank surface painted until the initial auth probe resolves.
+///
+/// Exists so no route — and therefore no game — is interactive before the
+/// consent gate has been evaluated. Deliberately silent: the wordmark and the
+/// gate appear together once [authStateProvider] has a value, so there is no
+/// flash of the deck, and no spinner that implies play is imminent.
+class _BootCover extends StatelessWidget {
+  const _BootCover();
+
+  @override
+  Widget build(BuildContext context) {
+    return ColoredBox(
+      color: context.palette.background,
+      child: const SizedBox.expand(),
     );
   }
 }

@@ -6101,7 +6101,7 @@ abstract class AppLocalizations {
   /// Onboarding: one-line value proposition under the wordmark
   ///
   /// In es, this message translates to:
-  /// **'juegos para jugar en grupo, sin cuenta y sin vueltas'**
+  /// **'juegos para pasar el tiempo con amigos'**
   String get onboardingTagline;
 
   /// Onboarding: the single combined 18+ and terms/privacy checkbox
@@ -6115,6 +6115,30 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'aceptar y jugar'**
   String get onboardingStart;
+
+  /// Onboarding: secondary action that declines consent (the X)
+  ///
+  /// In es, this message translates to:
+  /// **'ahora no'**
+  String get onboardingDecline;
+
+  /// Declined screen: headline explaining play requires consent
+  ///
+  /// In es, this message translates to:
+  /// **'no podemos dejarte pasar todavía'**
+  String get onboardingDeclinedTitle;
+
+  /// Declined screen: body explaining nothing was recorded and consent is required
+  ///
+  /// In es, this message translates to:
+  /// **'Para usar Samay tienes que confirmar que eres mayor de 18 años y aceptar los términos y la política de privacidad. No guardamos nada hasta que lo hagas.'**
+  String get onboardingDeclinedBody;
+
+  /// Declined screen: button returning to the consent screen
+  ///
+  /// In es, this message translates to:
+  /// **'volver a los términos'**
+  String get onboardingDeclinedBack;
 
   /// Optional account upgrade screen title (also used as the menu row)
   ///

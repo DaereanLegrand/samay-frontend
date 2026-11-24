@@ -4,6 +4,11 @@ The Flutter app **Samay** (`com.qallariy.samay`); split from `Vive`.
 
 ## Commands
 - Setup: `make init ENV=testing` (gum; writes `.env`).
+- Vault → `.env` public config: `bash tools/sync_vault_env.sh` (dry run, prints
+  fingerprints only) or `--write` to copy. Operator-run: it unlocks `pass`.
+  Needed because `make deploy` builds with the vault's `testing/public/*`, so a
+  store build only reaches the local Docker stack through the tunnel when these
+  match — the anon key is a JWT minted from that stack's `JWT_SECRET`.
 - Run: `make start ENV=…` (= `make dev`). `ENV=testing-local|testing|staging|prod` selects
   the backend for **every** verb (`testing-local` reads the Docker stack;
   `testing`/`staging`/`prod` need the vault, local-only). Build:

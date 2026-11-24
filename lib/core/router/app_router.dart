@@ -8,6 +8,7 @@ import 'package:samay/core/router/route_extras.dart';
 import 'package:samay/core/router/route_paths.dart';
 import 'package:samay/features/auth/screens/banned_screen.dart';
 import 'package:samay/features/auth/screens/onboarding_screen.dart';
+import 'package:samay/features/auth/screens/onboarding_declined_screen.dart';
 import 'package:samay/features/auth/screens/sign_in_screen.dart';
 import 'package:samay/features/friends/screens/blocked_users_screen.dart';
 import 'package:samay/features/friends/screens/friends_list_screen.dart';
@@ -87,6 +88,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: RoutePaths.onboarding,
         builder: (_, _) => const OnboardingScreen(),
+      ),
+      GoRoute(
+        path: RoutePaths.onboardingDeclined,
+        builder: (_, _) => const OnboardingDeclinedScreen(),
       ),
       GoRoute(
         path: RoutePaths.gamesHome,

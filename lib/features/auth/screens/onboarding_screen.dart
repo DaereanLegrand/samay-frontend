@@ -83,6 +83,17 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // DECLINE affordance: the X. Declining records nothing, so this
+              // screen returns on the next boot until consent is given.
+              Align(
+                alignment: Alignment.centerRight,
+                child: IconButton(
+                  onPressed: _busy ? null : _decline,
+                  icon: const Icon(Icons.close_rounded),
+                  color: context.palette.mutedForeground,
+                  tooltip: l10n.onboardingDecline,
+                ),
+              ),
               const Spacer(),
               const VDisplayText(text: 'samay'),
               const SizedBox(height: AppSpacing.md),
@@ -129,6 +140,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       ),
     );
   }
+
+  void _decline() => context.go(RoutePaths.onboardingDeclined);
 
   TextSpan _legalLink(String label, String url, TextStyle style) {
     return TextSpan(

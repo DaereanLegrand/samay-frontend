@@ -6,6 +6,11 @@ abstract final class RoutePaths {
   /// The single onboarding screen: 18+ confirmation + terms & privacy.
   static const onboarding = '/onboarding';
 
+  /// Reached from onboarding's decline (X). Blocks play until the visitor
+  /// accepts; deliberately re-appears on every boot because nothing is
+  /// recorded until acceptance (store consent requirement).
+  static const onboardingDeclined = '/onboarding/declined';
+
   /// Optional account upgrade (Sign in with Apple / Google). Reachable from
   /// the games menu and from Settings; never required to play.
   static const signIn = '/sign-in';
