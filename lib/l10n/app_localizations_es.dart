@@ -3331,7 +3331,7 @@ class AppLocalizationsEs extends AppLocalizations {
       'Confirmo que tengo 18 años o más y acepto los';
 
   @override
-  String get onboardingStart => 'aceptar y jugar';
+  String get onboardingStart => 'aceptar';
 
   @override
   String get onboardingDecline => 'ahora no';

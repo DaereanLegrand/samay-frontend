@@ -3319,7 +3319,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get onboardingConsent => 'I confirm I am 18 or older and accept the';
 
   @override
-  String get onboardingStart => 'accept and play';
+  String get onboardingStart => 'accept';
 
   @override
   String get onboardingDecline => 'not now';

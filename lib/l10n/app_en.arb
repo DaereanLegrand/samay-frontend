@@ -4225,7 +4225,7 @@
   "@onboardingConsent": {
     "description": "Onboarding: the single combined 18+ and terms/privacy checkbox"
   },
-  "onboardingStart": "accept and play",
+  "onboardingStart": "accept",
   "@onboardingStart": {
     "description": "Onboarding: primary CTA that creates the guest session"
   },

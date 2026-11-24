@@ -6113,7 +6113,7 @@ abstract class AppLocalizations {
   /// Onboarding: primary CTA that creates the guest session
   ///
   /// In es, this message translates to:
-  /// **'aceptar y jugar'**
+  /// **'aceptar'**
   String get onboardingStart;
 
   /// Onboarding: secondary action that declines consent (the X)

@@ -329,6 +329,29 @@ for form in "" "--no-print-directory"; do
   fi
 done
 
+# The anon-key pre-flight must run before BOTH store builds. A build compiled
+# with one secret generation against a stack running another installs fine and
+# answers {"message":"Unauthorized"} to everything (Android AAB, 2026-11-24).
+if [ -x tools/check_anon_matches_stack.sh ]; then
+  pass "tools/check_anon_matches_stack.sh present"
+else
+  fail "tools/check_anon_matches_stack.sh missing or not executable"
+fi
+for t in android ios; do
+  if awk -v t="$t" '$0 ~ "^build:" {f=1} f && /check_anon_matches_stack/ {c++} END{exit !(c>=1)}' "$MAKEFILE"; then
+    pass "build $t verifies the anon key against the stack"
+  else
+    fail "build $t does not verify the anon key against the stack"
+  fi
+done
+# `dev` for ENV=testing must not need the vault (it would mount a RAM disk that
+# only exists to be forgotten and ejected by hand afterwards).
+if grep -q 'DEV_DEFINES = $(if $(filter testing,$(ENV)),$(FLUTTER_DEFINES)' "$MAKEFILE"; then
+  pass "dev ENV=testing reads .env (no vault fetch)"
+else
+  fail "dev ENV=testing would fetch the vault"
+fi
+
 # The recipe itself must consume $(DRY_RUN). Checking only the variable's value
 # is not enough: a recipe left on the old `$(findstring n,$(firstword
 # $(MAKEFLAGS)))` expression still misfires while DRY_RUN stays correct.
