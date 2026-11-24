@@ -195,6 +195,34 @@ if grep -q -- '--dart-define-from-file=' <<<"$OUT"; then
 else
   fail "staging simulator build does not reference the release dart-defines file"
 fi
+
+# The vault `fetch` wipes the RAM disk on EVERY exit path unless RAM_KEEP=1, so
+# every standalone fetch (not under `deploy`, which manages the disk itself) must
+# pass it — otherwise the material is ejected before the build/run that consumes
+# $(PROD_DEFINES), and the verb dies on a missing dart-defines file. The disk must
+# still die with the verb: each of those recipes installs its own EXIT wipe trap.
+# Regression guard for the 2026-11-24 breakage (`make dev`/`make build` failed
+# with "/Volumes/SamayRAM/dart_defines.env" not found).
+for verb in "dev TARGET=simulator" "build TARGET=simulator" "build TARGET=android" "build TARGET=ios"; do
+  OUT="$(make -n $verb ENV=staging 2>/dev/null || true)"
+  FETCH_LINES="$(grep -- 'release-secrets.sh" fetch' <<<"$OUT" || true)"
+  if [ -z "$FETCH_LINES" ]; then
+    fail "no vault fetch emitted for: make -n $verb ENV=staging"
+  elif grep -qv 'RAM_KEEP=1' <<<"$FETCH_LINES"; then
+    fail "vault fetch without RAM_KEEP=1 (disk wiped before the build) for: make -n $verb ENV=staging"
+  else
+    pass "vault fetch keeps the RAM disk for: make -n $verb ENV=staging"
+  fi
+done
+# And the recipes must still own the wipe, so the disk never outlives the verb.
+if grep -q 'trap dev_cleanup EXIT INT TERM HUP' "$MAKEFILE" \
+   && grep -q 'trap sim_cleanup EXIT INT TERM HUP' "$MAKEFILE" \
+   && grep -q 'trap android_cleanup EXIT INT TERM HUP' "$MAKEFILE" \
+   && grep -q 'trap cleanup EXIT INT TERM HUP' "$MAKEFILE"; then
+  pass "standalone release verbs trap their RAM wipe"
+else
+  fail "a standalone release verb lost its RAM wipe trap (disk would outlive the verb)"
+fi
 OUT="$(make -s env ENV=staging 2>/dev/null || true)"
 if grep -q 'ENV=staging' <<<"$OUT"; then
   pass "env verb reports ENV=staging"

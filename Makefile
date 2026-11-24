@@ -247,10 +247,16 @@ endef
 
 # Fetch the vault profile for [1] (apple|android) unless an outer target already
 # did.
+#
+# RAM_KEEP=1 is mandatory here: `fetch` wipes the RAM disk on EVERY exit path by
+# default, so without it the material would be ejected before the build/run that
+# consumes $(PROD_DEFINES) — the caller's own EXIT trap (sim_cleanup,
+# android_pre_cleanup, ios_pre_cleanup, dev_cleanup) performs the wipe once the
+# verb is done, so the disk still never outlives the command.
 define fetch-release-material
 if [ "$(RAM_MANAGED)" != "1" ]; then \
 	  [ -x "$(RELEASE_SECRETS)" ] || { echo "ENV=$(ENV): $(RELEASE_SECRETS) not found. It lives in the private ops repo (Admin/infra/tools/)."; exit 1; }; \
-	  RAM_KEEP="$(RAM_KEEP)" RC="$(RC)" IOS_EXPORT_METHOD="$(IOS_EXPORT_METHOD)" "$(RELEASE_SECRETS)" fetch $(1) "$(ENV)" || exit 1; \
+	  RAM_KEEP=1 RC="$(RC)" IOS_EXPORT_METHOD="$(IOS_EXPORT_METHOD)" "$(RELEASE_SECRETS)" fetch $(1) "$(ENV)" || exit 1; \
 	fi
 endef
 
