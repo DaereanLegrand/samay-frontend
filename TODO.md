@@ -315,3 +315,212 @@ testing has no RevenueCat keys, so `RC=true` would hard-fail — leave `RC=false
 Note: `samay-testing.qallariy.lat` does **not** resolve; the API host is
 `samay-api-testing.qallariy.lat` (vault + `.env` agree). Change the vault entry
 `qallariy/samay/testing/public/supabase-url` if that hostname is meant to change.
+
+---
+
+# 🔴 NEXT SESSION — READ THIS FIRST (written 2026-11-24, after the v9 failure)
+
+`ENV=testing` is broken end to end. `ENV=staging` works. Make testing work the
+same way. Nothing below is fixed yet; the operator will run the `rm` and
+`make deploy` commands, the next session evaluates.
+
+## 1. What is proven (all verified by extraction, not by log-reading)
+
+**The stack and the vault agree with each other and with both env files:**
+
+| | JWT secret | anon key |
+|---|---|---|
+| `samay-testing-auth` (container) | `be5f37b0…` | — |
+| `samay-testing-kong` (container) | — | `7788a3b4…` (len 124) |
+| `samay-testing-rest` (container) | `be5f37b0…` | — |
+| `backend/supabase/testing.env` | `be5f37b0…` | `7788a3b4…` |
+| `backend/supabase/.env` | `be5f37b0…` | `7788a3b4…` |
+| `frontend/.env` | `be5f37b0…` | `7788a3b4…` |
+| RAM `dart_defines.env` (during that deploy) | — | `7788a3b4…` (len 124) |
+
+The kong anon key cryptographically validates against the auth secret, so the
+running stack is internally consistent. `make deploy`'s own pre-flight printed
+`check-anon: OK — build credential matches the stack (samay-testing-kong)`.
+
+**The backend is healthy through the public tunnel.** Using the app's own anon
+key against `https://samay-api-testing.qallariy.lat`:
+`auth/v1/health` 200, `auth/v1/signup` 200 (returns a token), the boot ban
+check `users?select=banned_at,ban_reason` 200, `bootstrap_profile` 200
+(`{status: created}`), `list_prompt_packs` 200, `storage/v1/version` 200.
+
+**Both shipped builds (v9, built 14:49–14:51) fail on device with
+`Error del servidor. Intenta de nuevo.` — iOS and Android alike.**
+
+**The Android artifacts embed a stale credential; the iOS one is correct:**
+
+| artifact | embedded anon fp | len | validates vs live stack |
+|---|---|---|---|
+| `build/app/outputs/bundle/devRelease/app-dev-release.aab` | `7ccfef00…` | **169** | **NO** |
+| `build/app/outputs/flutter-apk/app-dev-release.apk` | `7ccfef00…` | **169** | **NO** |
+| `build/ios/ipa/samay.ipa` | `7788a3b4…` | 124 | yes |
+
+169 chars is the *old hand-written* `.env` value; the live key is 124 chars.
+So Android shipped a previous secret generation from the same deploy that
+printed "check-anon: OK".
+
+**Mechanism for the stale Android binary (high confidence, verify in step 3):**
+
+```
+build/app/intermediates/flutter/devRelease/.last_build_id = 40f9a6d7…
+.dart_tool/flutter_build/40f9a6d7…  mtime = 2026-11-24 00:15
+```
+Gradle considered the Flutter task up to date and reused `libapp.so` compiled
+at 00:15 — before `frontend/.env` was corrected at 12:56 — even though
+`--dart-define-from-file` is an input. iOS archives through Xcode's own cache
+and was compiled fresh, which is why only Android was wrong *in that run*. The
+v9 iOS build now also fails on device, so iOS has a separate cause (step 5).
+
+**Unknown:** why the iOS artifact, whose key validates, still fails on device.
+Not diagnosed. Do not guess; capture the device log first (step 5).
+
+## 2. Why staging works and testing does not
+
+Staging has **one writer**: the VM boots from the vault `server.env` and the app
+is compiled from the vault `staging-*` profiles. Same generation, and no local
+file sits in the path.
+
+Testing has **four independent writers**, none of which validates the others:
+
+1. `frontend/.env` — hand-written; was still the 169-char key at 14:49.
+2. `backend/supabase/testing.env` and `supabase/.env` — hand-written.
+3. the vault `testing/public/supabase-anon-key` (what `deploy` compiles in);
+4. two build caches (Gradle `libapp.so`, Xcode archive) that can each serve a
+   binary compiled against an older generation.
+
+`check_anon_matches_stack.sh` reads the **defines file** and passed, while the
+**artifact** carried something else. That is the hole that shipped v9.
+
+## 3. Operator runs first (this session)
+
+```sh
+cd ~/Codes/apps/Samay/frontend
+make clean                     # flutter clean + rm -rf build/ios/ipa
+rm -rf build/ .dart_tool/flutter_build android/app/build
+rm -rf .dart_tool/flutter_build/*/   # belt and braces if the above left dirs
+make deploy ENV=testing TRACK=internal TARGET=all
+```
+
+Notes:
+- `make clean` runs `flutter clean` (Makefile:660) and removes `build/ios/ipa`.
+- No RAM disk should be mounted before starting; if one is, it is a leftover
+  from a killed verb and must be ejected (`diskutil eject /Volumes/SamayRAM-*`).
+- Expect `1.0.1+9` to be rejected by Play: v9 is already on the internal track
+  (Play Console showed `Version codes: 9`, released Nov 24 2:58 PM). Bump
+  `pubspec.yaml` to `1.0.1+10` **before** the deploy, or Android will fail with
+  "Version code 9 has already been used".
+
+## 4. Next session evaluates — with these exact checks
+
+Extract, never trust a log line. All three must equal
+`docker exec samay-testing-kong printenv ANON_KEY` and validate against
+`samay-testing-auth`'s `GOTRUE_JWT_SECRET`:
+
+```sh
+# Android (both the AAB and the APK)
+unzip -o -q build/app/outputs/bundle/devRelease/app-dev-release.aab -d /tmp/a
+#   -> /tmp/a/base/lib/arm64-v8a/libapp.so: grep the eyJ… string, hash it
+unzip -o -q build/app/outputs/flutter-apk/app-dev-release.apk -d /tmp/p
+#   -> /tmp/p/lib/arm64-v8a/libapp.so
+# iOS
+unzip -o -q build/ios/ipa/samay.ipa -d /tmp/i
+#   -> /tmp/i/Payload/Runner.app/Frameworks/App.framework/App
+```
+
+Also confirm `versionCode` is 10 (`aapt2 dump badging` on the APK) and that the
+AAB mtime is newer than the defines file used.
+
+If all three match and the device still shows `Error del servidor`, the fault is
+client-side or in the tunnel path — go to step 5.
+
+## 5. iOS device diagnosis (not yet done — do this before any iOS code change)
+
+```sh
+xcrun devicectl list devices
+xcrun devicectl device process launch --console \
+  --device <iphone-udid> com.qallariy.samay
+```
+or `idevicesyslog | grep -i flutter`. Need the real exception: which URL, which
+HTTP status, whether it is `SocketException` (tunnel/DNS), 401 (credential) or
+`PGRST`/`42501` (RLS). `Error del servidor` is `errorsServer`, mapped from
+`ServerError` — which `error_mapper.dart` also returns for any unmapped
+Postgrest/auth code, so the message alone does not identify the cause.
+
+## 6. Structural fixes (the "make it work like staging" part)
+
+- [ ] **One writer per environment.** `frontend/.env` must be *generated*, not
+      hand-maintained: `testing-local` → derived from
+      `backend/supabase/testing-local.env`; `testing|staging|prod` → the vault
+      only (never `.env`). Staging already behaves this way; testing must.
+- [ ] **Ship stack and app from one generation.** `start-stack.sh` merges the
+      vault `server.env` for `ENV=testing`; the build separately fetches
+      `dart_defines.env`. Make both read the same materialized file so an app
+      built with `ENV=testing` cannot disagree with a stack started with it.
+- [ ] **Gate the artifact, not the input.** Move/extend the anon check to read
+      the key **out of the built AAB/IPA** and refuse to publish on mismatch.
+      The current check inspects the defines file and passed while the output
+      was wrong (v9).
+- [ ] **Kill the stale-cache class.** Make `build` depend on the defines
+      content, or always `flutter clean` for release builds; and assert
+      `.last_build_id` is newer than the defines file before publishing.
+- [ ] **Boot cover must fail open.** `lib/app.dart:71` uses
+      `ref.watch(authStateProvider).hasValue`; `AsyncError` is not a value, so
+      any failed initial probe leaves `_BootCover` painting an empty screen
+      forever with no error and no retry. Treat `AsyncError` as resolved and
+      surface a retryable error. (This is the "stalls at black screen".)
+- [ ] **Guard `Supabase.initialize`** in `lib/main.dart` (~line 110): it is
+      `await`ed before `runApp` with no try/catch, so a throw there produces no
+      UI at all.
+- [ ] **Audit every verb** — `dev`, `build`, `install`, `publish`, `deploy`,
+      `release` — so each resolves defines through exactly one function per
+      `ENV`, and pin it in `opt-008`.
+
+## 7. Separate, still blocking the deploy (unrelated to secrets)
+
+`flutter build ipa` for `ENV=testing` failed on 2026-11-24 ~15:40 with:
+
+```
+"Runner" requires a provisioning profile with the Associated Domains,
+Push Notifications, and Sign in with Apple features.
+```
+
+Facts gathered:
+
+- `ios/Runner/Runner.entitlements` requests `aps-environment`,
+  `com.apple.developer.associated-domains` (`applinks:samay.qallariy.lat`) and
+  `com.apple.developer.applesignin`.
+- The installed `Samay-AppStore` profile (created 2026-11-23T23:04Z) has
+  `aps-environment: production`, `com.apple.developer.applesignin`, and
+  `com.apple.developer.associated-domains` — but its value is the **wildcard
+  `*`**, while the entitlements file asks for `applinks:samay.qallariy.lat`.
+- Earlier builds (v6–v9) signed fine with this same profile, so something
+  changed at 15:40; note the build log also shows Xcode auto-upgrading
+  `project.pbxproj` / `Runner.xcscheme` ("Updating project for Xcode
+  compatibility"), and a stray `project.pbxproj` diff (`objectVersion 60 → 54`,
+  SPM package reference rename) keeps reappearing in the working tree.
+- `tools/ios_store_signing.rb` patches only `DEVELOPMENT_TEAM` and
+  `PROVISIONING_PROFILE_SPECIFIER`; `CODE_SIGN_ENTITLEMENTS` is untouched from
+  the tracked pbxproj.
+
+- [ ] Determine whether the portal App ID still has Associated Domains enabled
+      **and** whether the wildcard `*` entitlement is acceptable to Xcode 26
+      against `applinks:samay.qallariy.lat`; regenerate `Samay-AppStore` if not.
+- [ ] Stop the pbxproj churn: the tracked file must survive a build unchanged
+      (the Fastfile backs it up/restores; verify that still happens after the
+      Xcode auto-upgrade).
+
+## 8. Known-good state (do not regress)
+
+- `make start APP=samay ENV=testing` works: project `samay-testing`, Kong on
+  **54386**, `auth/v1/health` 200. `ENV=testing-local` is a separate stack,
+  project `samay-testing-local`, Kong **54396** — both may run at once.
+- Migrations: 110 recorded; the pre-ledger September volume that blocked
+  `make start` was destroyed with `docker compose -p samay-testing down -v`.
+  Do not `migrate-adopt` — it would stamp `300_slim/*` without running it.
+- `test/opt-001-rls-security.sh` passes 44/44 against `:54396`.
+- Gates green at `aabcfc6`: `dart analyze` clean, `flutter test` 115/115,
+  `opt-008`, `pre-commit` 4/4; backend `opt-008` + Go tests green.
