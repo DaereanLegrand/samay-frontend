@@ -250,7 +250,7 @@ endef
 define fetch-release-material
 if [ "$(RAM_MANAGED)" != "1" ]; then \
 	  [ -x "$(RELEASE_SECRETS)" ] || { echo "ENV=$(ENV): $(RELEASE_SECRETS) not found. It lives in the private ops repo (Admin/infra/tools/)."; exit 1; }; \
-	  RC="$(RC)" IOS_EXPORT_METHOD="$(IOS_EXPORT_METHOD)" "$(RELEASE_SECRETS)" fetch $(1) "$(ENV)" || exit 1; \
+	  RAM_KEEP="$(RAM_KEEP)" RC="$(RC)" IOS_EXPORT_METHOD="$(IOS_EXPORT_METHOD)" "$(RELEASE_SECRETS)" fetch $(1) "$(ENV)" || exit 1; \
 	fi
 endef
 
@@ -293,6 +293,8 @@ build:
 		flutter build ios --simulator $(PUB_FLAG) $(ENV_DEFINES) && \
 		echo "Simulator app: build/ios/iphonesimulator/Runner.app"; \
 	elif [ "$(TARGET)" = "android" ] && [ "$(PROD)" = "true" ]; then \
+		android_pre_cleanup() { [ "$(RAM_MANAGED)" = "1" ] || "$(RELEASE_SECRETS)" wipe >/dev/null 2>&1 || true; }; \
+		trap android_pre_cleanup EXIT INT TERM HUP; \
 		$(call fetch-release-material,android); \
 		$(require-release-material); \
 		[ -f "$(KEYSTORE_PROPERTIES)" ] || { echo "ENV=$(ENV): $(KEYSTORE_PROPERTIES) missing. Release material is provisioned out-of-band by the operator."; exit 1; }; \
@@ -313,6 +315,8 @@ build:
 		echo "AAB: build/app/outputs/bundle/$(ANDROID_FLAVOR)Release/app-$(ANDROID_FLAVOR)-release.aab" && \
 		echo "APK: $(APK)"; \
 	elif [ "$(TARGET)" = "ios" ] && [ "$(PROD)" = "true" ]; then \
+		ios_pre_cleanup() { [ "$(RAM_MANAGED)" = "1" ] || "$(RELEASE_SECRETS)" wipe >/dev/null 2>&1 || true; }; \
+		trap ios_pre_cleanup EXIT INT TERM HUP; \
 		$(call fetch-release-material,$(call VAULT_PROFILE_FOR,ios)); \
 		$(require-release-material); \
 		[ -f "$(EXPORT_OPTIONS)" ] || { echo "ENV=$(ENV): $(EXPORT_OPTIONS) missing. Release material is provisioned out-of-band by the operator."; exit 1; }; \
@@ -753,7 +757,7 @@ deploy: ruby-toolchain
 	deploy_cleanup() { "$(RELEASE_SECRETS)" wipe >/dev/null 2>&1 || true; }; \
 	trap deploy_cleanup EXIT INT TERM HUP; \
 	for t in $$targets; do \
-		RC="$(RC)" IOS_EXPORT_METHOD="$(IOS_EXPORT_METHOD)" "$(RELEASE_SECRETS)" fetch "$$(echo "ios ios-adhoc simulator" | grep -qw "$$t" && echo apple || echo android)" "$(ENV)"; \
+		RAM_KEEP=1 RC="$(RC)" IOS_EXPORT_METHOD="$(IOS_EXPORT_METHOD)" "$(RELEASE_SECRETS)" fetch "$$(echo "ios ios-adhoc simulator" | grep -qw "$$t" && echo apple || echo android)" "$(ENV)"; \
 	done; \
 	for t in $$targets; do $(MAKE) --no-print-directory build TARGET=$$t ENV="$(ENV)" TRACK="$(TRACK)" NO_PUB=$(NO_PUB) RAM_MANAGED=1; done; \
 	$(MAKE) --no-print-directory publish TARGET="$(TARGET)" ENV="$(ENV)" TRACK="$(TRACK)" RAM_MANAGED=1
@@ -777,7 +781,7 @@ publish: ruby-toolchain
 	trap pub_cleanup EXIT INT TERM HUP; \
 	for t in $$targets; do \
 		if [ "$(RAM_MANAGED)" != "1" ]; then \
-			RC="$(RC)" IOS_EXPORT_METHOD="$(IOS_EXPORT_METHOD)" "$(RELEASE_SECRETS)" fetch "$$(echo "ios ios-adhoc simulator" | grep -qw "$$t" && echo apple || echo android)" "$(ENV)"; \
+		RAM_KEEP=1 RC="$(RC)" IOS_EXPORT_METHOD="$(IOS_EXPORT_METHOD)" "$(RELEASE_SECRETS)" fetch "$$(echo "ios ios-adhoc simulator" | grep -qw "$$t" && echo apple || echo android)" "$(ENV)"; \
 		fi; \
 		[ -d "$(RAM_DIR)" ] || { echo "publish: $(RAM_DIR) not mounted (vault fetch failed)."; exit 1; }; \
 		if [ "$$t" = "ios" ]; then eval "$$("$(RELEASE_SECRETS)" env apple)"; else eval "$$("$(RELEASE_SECRETS)" env android)"; fi; \
