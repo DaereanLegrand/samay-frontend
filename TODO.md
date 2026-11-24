@@ -28,8 +28,8 @@ original commits and may be fully squashed at release.
   packs, notifications, profile, settings, sign-in) opens from the header menu
   sheet.
 - **One tap to first play.** Onboarding is a single affirmative button
-  ("aceptar y jugar") — no checkbox, with inline tappable Terms/Privacy links.
-  The game page's primary CTA ("jugar ahora") deals round 1 immediately with
+  (`onboardingStart`) — no checkbox, with inline tappable Terms/Privacy links.
+  The game page's primary CTA (`minigamesPlayNow`) deals round 1 immediately with
   two default seats; names are corrected mid-match from the header players
   sheet, so nothing is typed before playing.
 - **No permission dialog on first run.** FCM/push is not initialised at boot
@@ -98,28 +98,25 @@ each re-add is a GRANT plus the feature code.
 | `Samay/frontend` | `slim-prod` | feature work committed 2026-11-23 |
 | `Admin/infra` | `main` | clean — `tools/release-secrets.sh` committed in `3674eba` |
 
-Uncommitted in `Samay/frontend`: `Makefile`, `AGENTS.md`, `fastlane/Fastfile`,
-`fastlane/metadata/en-US/release_notes.txt`, `pubspec.yaml` (+6),
-`docs/design/DESIGN.md`, `docs/history/phase-16/2026-11-19_games-deck-restored.md`,
-plus the whole local-games feature: `lib/features/minigames/local/{charades_decks,
-local_group_providers,local_group_store,local_roster}.dart`,
-`lib/features/minigames/screens/{local_bottle_screen,local_charades_screen,
-local_leaderboard_screen,local_lobby_screen}.dart`,
-`lib/features/minigames/widgets/bottle_board.dart`, and the router/l10n/deck edits.
+Uncommitted in `Samay/frontend`: nothing — the whole feature landed in `2bdc6e5`,
+followed by `ea82106` (changelogs + explicit Play package), `c10c865`/`faf0206`
+(the `$(MAKE)` dry-run guard), `b7e9a71`, `da78785`, and `c8ffb53`
+(fastlane 2.242.0 + `1.0.0+7`). Superseded by this line: everything below is a
+historical record.
 
-Gates at time of writing: `flutter analyze` clean, `flutter test` 102/102,
+Gates at that time: `flutter analyze` clean, `flutter test` 102/102,
 `make check` clean (incl. secrets gate), `make -n` expansion of
 `deploy`/`publish`/`build` verified.
 
-## What was built this session (uncommitted)
+## What was built in that session
 
 1. **Games-first root deck** restored, card content reduced to name + circular
    play button; pastel/outline alternating title; whitened pastels.
 2. **Pass-the-phone lobby** (`local_lobby_screen.dart`): `− n +` stepper (floor 2),
-   one name per seat with "pasa el teléfono…", save-group step, roster with
-   tap-to-rename + X + 3-line drag handle (reorder = turn order), segmented
-   rounds/duration with a separate "Personalizado" numeric row, 3-segment step
-   progress bar.
+   one name per seat with the pass-the-device prompt (`minigamesLocalPassTo`),
+   save-group step, roster with tap-to-rename + X + 3-line drag handle
+   (reorder = turn order), segmented rounds/duration with a separate
+   custom-value row (`minigamesLobbyCustom`), 3-segment step progress bar.
 3. **Local play screens:** prompt games (`local_match_screen.dart`), charadas
    forehead-tilt game with Peruvian decks + tile/haptic/timer
    (`local_charades_screen.dart`, `local/charades_decks.dart`), botella with the
@@ -165,67 +162,61 @@ Then, both platforms, one command (asks for the vault passphrase once):
 make deploy TARGET=all ENV=testing TRACK=internal
 ```
 
-iOS needs no console work beyond adding `onepunchman2506@gmail.com` as an
-internal tester. **Android has hard blockers — see below.**
+iOS needs no console work beyond adding `onepunchman2506@gmail.com` to the
+`Internal Test Group`. Android state is below — the old "hard blockers" were
+mostly already satisfied.
 
-### Android blockers (Google Play) — do these BEFORE `TARGET=all`
+### Android state (Google Play)
 
-The Play API cannot create an app. Verified this session:
+Settled 2026-11-23 — most of the old blocker list was already done:
 
-- `applicationId` is `com.qallariy.samay` for every flavor
-  (`android/app/build.gradle.kts:72`).
-- `android/app/src/dev/google-services.json` → project `samay-testing`, and its
-  **only** OAuth client is `client_type: 3` (web). **No Android client at all.**
-- No Play App Signing SHA-1 is recorded in the repo or the vault
-  (`KEY-ACQUISITION.md:260` requires upload SHA-1 **and** Play SHA-1).
+- [x] **App exists and Play App Signing is enrolled.** `Admin/infra/STATUS.md`
+  records H6 (`deploy TARGET=android ENV=staging TRACK=beta` → "approved; Play
+  Open Testing live"), so the first AAB was hand-uploaded in October. **Do not
+  create the app or hand-upload a first bundle again** — Play would reject it.
+- [x] Android OAuth client for Play builds: `samay-testing-android-play` created
+  with the app-signing SHA-1 extracted from the Play-signed APK:
 
-**1. Confirm the app exists in Play Console.** If `com.qallariy.samay` is absent:
-Play Console → Create app (es-419, App, Free). The package name is fixed on the
-first upload.
+  ```
+  BB:FC:5D:DB:95:BE:D6:3C:9A:9F:B2:D4:7B:5A:89:33:77:0E:F5:9D
+  ```
 
-**2. Upload the first AAB by hand — this cannot be automated.**
+  (`apksigner verify --print-certs` on the v2 universal APK; the existing
+  `samay-testing-android-debug` client holds the debug keystore SHA-1 and is
+  what `make dev` needs — leave it alone.) The client ID it returned is not
+  used anywhere: the app authenticates via package + signature, and
+  `serverClientId` is the web client (`auth_service.dart:126`).
+- [ ] Record that SHA-1 in the vault
+  (`qallariy/samay/testing/public/google-oauth-android-sha1`) and, for H8, on
+  the `samay-staging` Android client.
+- [ ] Google Sign-In on a Play-installed build is the real proof; untested.
 
-```sh
-make build TARGET=android ENV=testing
-# → build/app/outputs/bundle/devRelease/app-dev-release.aab
-```
+**Remaining manual steps** (the Play API still cannot do these):
 
-Play Console → Test and release → Testing → Internal testing → Create new
-release → upload that `.aab` → accept **Play App Signing** → Save → Start
-rollout. Reason: fastlane/supply docs state you must upload at least one build
-manually first, and the Play signing key does not exist until the first bundle
-arrives.
+**1. Confirm the service account is still invited.** Users and permissions →
+`play-upload@samay-510205…` → *Release to testing tracks*; and that
+`androidpublisher.googleapis.com` is enabled in the **same** Cloud project
+(401 otherwise, regardless of role).
 
-**3. Copy the Play signing SHA-1.** App integrity → App signing key certificate.
-Register **both** fingerprints (upload key + Play key) on the Android OAuth
-client for `com.qallariy.samay` in the `samay-testing` GCP project. Without this,
-Google Sign-In fails with `DEVELOPER_ERROR (10)` on every Play-installed build.
+**2. Add internal testers.** Internal testing → Testers → `onepunchman2506@gmail.com`.
 
-**4. Invite the service account.** Play Console → Users and permissions → the
-`client_email` from `play-upload-service-account.json` → App permissions → the
-app → *Release to testing tracks*. Also confirm
-`androidpublisher.googleapis.com` is enabled in the **same** Cloud project as
-that service account (401 otherwise, regardless of role).
-
-**5. Add internal testers.** Internal testing → Testers → list with
-`onepunchman2506@gmail.com` → Save.
-
-**6. Pre-flight the credential chain without uploading.** After any `fetch`
-(the RAM disk is mounted), prove the service account can reach Play:
+**3. Pre-flight the credential chain without uploading.** After any `fetch`
+(the RAM disk is mounted):
 
 ```sh
 fastlane run validate_play_store_json_key \
   json_key:/Volumes/SamayRAM/play-upload-service-account.json
 ```
 
-A green result means SA + API enablement + Play permission are all correct, so
-the only remaining unknown is the app/track state.
+**4. Then:** `make deploy TARGET=all ENV=testing TRACK=internal`.
 
-**7. Only then:** `make deploy TARGET=all ENV=testing TRACK=internal`.
+Android has never been reached in a run: the iOS lane failed first on
+2026-11-23, so `testing-android` → `TRACK=internal` is still untested end to end.
 
 ### Known risk on the Android upload
 
-- `versionCode` = 6. If 6 was ever uploaded, Play rejects it; bump to `+7`.
+- ~~`versionCode` = 6~~ — done 2026-11-23: bumped to `1.0.0+7`. Build 6 is on
+  App Store Connect (iOS), so a repeat upload needs the new number regardless.
 - ~~`fastlane/metadata/android/en-US/changelogs/1.txt` is stale~~ — done
   2026-11-23: `changelogs/6.txt` added for `en-US` and `es-419`.
 
@@ -245,6 +236,59 @@ the only remaining unknown is the app/track state.
 - Record the Play signing SHA-1 in the vault
   (`qallariy/samay/signing/android/play-signing-sha1`) so the
   `KEY-ACQUISITION.md` requirement is mechanical.
+
+### Worldwide release — NOT YET (France currently excluded)
+
+Current state: App Store availability is **Peru only**, and the App Encryption
+Documentation question "Is your app going to be available for distribution in
+France?" is answered **No**. That answer suppresses the French declaration, so
+no documentation is uploaded today.
+
+Revisit all of this before widening availability beyond Peru.
+
+**Encryption documentation (Apple reference: *Export compliance documentation for
+encryption*).** Both branches ship the same crypto, so this does not change with
+`slim-prod` vs `main`:
+
+| Crypto in use | Required documentation |
+|---|---|
+| Only what Apple's OS provides | none |
+| Industry-standard algorithm NOT provided by Apple's OS | **French encryption declaration** (France only) |
+| Proprietary / not accepted by IEEE, IETF, ITU | CCATS **and** French declaration |
+
+Samay is the middle row: `cryptography: ^2.9.0` is pure Dart (no
+`cryptography_flutter` bridge), so AES-256-GCM / X25519 / Ed25519 / HKDF run
+in-app, not in CryptoKit (`lib/crypto/e2ee_primitives.dart`). Expected work:
+
+- [ ] Answer the France question **Yes** and upload the French encryption
+      declaration in App Store Connect.
+- [ ] No CCATS: nothing proprietary ships (`docs/security/SECURITY.md` §4 approves
+      only standard constructions; RSA/MD5/SHA-1/RC4/3DES/ECB are banned).
+- [ ] Confirm whether the French regime also requires an ANSSI notification, or
+      whether Apple's upload alone satisfies it. Not verified.
+- [ ] `ios/Runner/Info.plist`: keep `ITSAppUsesNonExemptEncryption` **absent**
+      while France is in scope. Setting `false` asserts "no documentation
+      required" and would suppress the French-declaration flow. It is only
+      appropriate for a Peru-only release.
+
+**EU/EEA obligations that are NOT encryption** (must be settled before shipping
+to France, since France is EU):
+
+- [ ] **GDPR Article 27 EU representative.** Qallariy Wasi E.I.R.L. is a Peruvian
+      controller offering services to EU users, so an EU-based representative is
+      likely required. Legal review, not a code change.
+- [x] DSA trader status (already recorded in `Admin/infra/STATUS.md`).
+- [ ] Store metadata: only `en-US` and `es-419` exist. Not a blocker, but a
+      French store listing with no `fr-FR` metadata is a poor experience.
+- [ ] Re-check age rating per country: the current rating is 18+ via override for
+      a drinking-game app; some EU markets classify alcohol content differently.
+
+**Other markets** (apply the same exercise when widening):
+
+- [ ] Play Console country list is separate from App Store availability; widen
+      both together or the storefronts diverge.
+- [ ] China mainland requires a separate filing and a local entity; not planned.
+- [ ] Korea has its own compliance block in App Store Connect.
 
 ### Verified locally 2026-11-23
 
