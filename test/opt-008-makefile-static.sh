@@ -344,12 +344,19 @@ for t in android ios; do
     fail "build $t does not verify the anon key against the stack"
   fi
 done
-# `dev` for ENV=testing must not need the vault (it would mount a RAM disk that
-# only exists to be forgotten and ejected by hand afterwards).
-if grep -q 'DEV_DEFINES = $(if $(filter testing,$(ENV)),$(FLUTTER_DEFINES)' "$MAKEFILE"; then
-  pass "dev ENV=testing reads .env (no vault fetch)"
+# ENV=testing ALWAYS takes the vault, for `dev` exactly as for `deploy` — that
+# is the whole point of the env: one secret generation, the vault's. (The old
+# exception made dev read .env while deploy read the vault, which is how a
+# build and a stack ended up on different generations.)
+if grep -q 'DEV_DEFINES' "$MAKEFILE"; then
+  fail "a DEV_DEFINES exception exists — dev would diverge from deploy"
 else
-  fail "dev ENV=testing would fetch the vault"
+  pass "no DEV_DEFINES exception: dev ENV=testing uses the vault"
+fi
+if [ "$(make -n dev TARGET=simulator ENV=testing 2>/dev/null | grep -c 'dart_defines.env')" -ge 1 ]; then
+  pass "dev ENV=testing resolves the vault defines"
+else
+  fail "dev ENV=testing does not resolve the vault defines"
 fi
 
 # The recipe itself must consume $(DRY_RUN). Checking only the variable's value

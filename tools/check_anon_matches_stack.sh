@@ -24,7 +24,15 @@ set -uo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 DEFINES="${1:?usage: check_anon_matches_stack.sh <defines-file>}"
-BACKEND_ENV="${BACKEND_ENV:-$ROOT/../backend/supabase/.env}"
+# One env file per stack (backend/Makefile ENV_STACK_ENV_*): testing and
+# testing-local are separate compose projects on separate ports with separate
+# secret generations.
+case "${ENV:-testing-local}" in
+  testing)       BACKEND_ENV_DEFAULT="$ROOT/../backend/supabase/testing.env" ;;
+  testing-local) BACKEND_ENV_DEFAULT="$ROOT/../backend/supabase/testing-local.env" ;;
+  *)             BACKEND_ENV_DEFAULT="$ROOT/../backend/supabase/.env" ;;
+esac
+BACKEND_ENV="${BACKEND_ENV:-$BACKEND_ENV_DEFAULT}"
 
 [ -r "$DEFINES" ] || { echo "check-anon: defines file not readable: $DEFINES" >&2; exit 2; }
 

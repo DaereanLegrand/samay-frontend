@@ -109,7 +109,12 @@ ANDROID_GATEWAY_HOST := $(if $(findstring Linux,$(shell uname -s)),10.0.2.2,127.
 OS_IS_DARWIN := $(findstring Darwin,$(shell uname -s))
 # Local stack wiring. Defaults read the monorepo backend env; a lane can point
 # at its own disposable stack with LOCAL_JWT_ENV and LOCAL_KONG_PORT.
-LOCAL_JWT_ENV ?= ../backend/supabase/.env
+# The backend now runs TWO independent stacks (backend/Makefile ENV_STACK_ENV_*):
+#   testing       → supabase/testing.env        project samay-testing       Kong 54386
+#   testing-local → supabase/testing-local.env  project samay-testing-local Kong 54396
+# They have separate projects, ports, volumes AND secret generations, so a
+# testing-built app can never talk to the testing-local stack (and vice versa).
+LOCAL_JWT_ENV ?= ../backend/supabase/testing-local.env
 JWT_SECRET ?= $(shell sed -n 's/^JWT_SECRET=//p' $(LOCAL_JWT_ENV) 2>/dev/null | head -1)
 LOCAL_KONG_PORT ?= $(shell sed -n 's/^KONG_HTTP_PORT=\([0-9]*\).*/\1/p' $(LOCAL_JWT_ENV) 2>/dev/null | head -1)
 ifeq ($(strip $(LOCAL_KONG_PORT)),)
@@ -154,12 +159,7 @@ VAULT_PROFILE_FOR = $(if $(filter ios ios-adhoc simulator,$(1)),apple,android)
 # triggers an unflavored `assembleDebug` that builds EVERY flavor, including the
 # staging/prod ones whose `google-services.json` is absent (so it dies in
 # `process<Flavor>DebugGoogleServices`).
-# `dev` is interactive. For ENV=testing it must not need the vault at all (the
-# testing public config lives in .env and the testing Firebase plist is
-# committed), so it reads .env instead of the RAM disk's dart_defines. staging/
-# prod keep the vault path.
-DEV_DEFINES = $(if $(filter testing,$(ENV)),$(FLUTTER_DEFINES),$(ENV_DEFINES))
-ANDROID_RUN = flutter run --flavor $(ANDROID_FLAVOR) $(PUB_FLAG) $(DEV_DEFINES)
+ANDROID_RUN = flutter run --flavor $(ANDROID_FLAVOR) $(PUB_FLAG) $(ENV_DEFINES)
 
 ifeq ($(PROD),true)
 ifeq ($(TESTING),true)
@@ -311,7 +311,7 @@ build:
 		[ -f "$(KEYSTORE_PROPERTIES)" ] || { echo "ENV=$(ENV): $(KEYSTORE_PROPERTIES) missing. Release material is provisioned out-of-band by the operator."; exit 1; }; \
 		[ -f "$(PROD_DEFINES)" ] || { echo "ENV=$(ENV): $(PROD_DEFINES) missing. Release material is provisioned out-of-band by the operator."; exit 1; }; \
 		[ -f "$(RAM_DIR)/google-services.json" ] || { echo "ENV=$(ENV): $(RAM_DIR)/google-services.json missing (Firebase config). Release material is provisioned out-of-band by the operator."; exit 1; }; \
-		bash tools/check_anon_matches_stack.sh "$(PROD_DEFINES)" || exit 1; \
+		ENV="$(ENV)" bash tools/check_anon_matches_stack.sh "$(PROD_DEFINES)" || exit 1; \
 		mkdir -p android/app/src/$(ANDROID_FLAVOR); \
 		GS_DEST="android/app/src/$(ANDROID_FLAVOR)/google-services.json"; \
 		GS_BACKUP=""; \
@@ -335,7 +335,7 @@ build:
 		[ -f "$(PROD_DEFINES)" ] || { echo "ENV=$(ENV): $(PROD_DEFINES) missing. Release material is provisioned out-of-band by the operator."; exit 1; }; \
 		[ -f "$(RAM_DIR)/GoogleService-Info.plist" ] || { echo "ENV=$(ENV): $(RAM_DIR)/GoogleService-Info.plist missing (Firebase config). Release material is provisioned out-of-band by the operator."; exit 1; }; \
 		[ -f "$(RAM_DIR)/provisioning-profile.mobileprovision" ] || { echo "ENV=$(ENV): $(RAM_DIR)/provisioning-profile.mobileprovision missing. Release material is provisioned out-of-band by the operator."; exit 1; }; \
-		bash tools/check_anon_matches_stack.sh "$(PROD_DEFINES)" || exit 1; \
+		ENV="$(ENV)" bash tools/check_anon_matches_stack.sh "$(PROD_DEFINES)" || exit 1; \
 		PLIST_BACKUP=""; PBX_BACKUP=""; FIREBASE_BACKUP=""; \
 		cleanup() { \
 			[ -n "$$PLIST_BACKUP" ] && tools/ios_google_oauth.sh restore "$$PLIST_BACKUP" >/dev/null 2>&1 || true; \
@@ -380,7 +380,7 @@ dev: guard-local
 		true; \
 	}; \
 	trap dev_cleanup EXIT INT TERM HUP; \
-	if [ -n "$(RELEASE)" ] && [ "$(ENV)" != "testing" ]; then \
+	if [ -n "$(RELEASE)" ]; then \
 		case "$(TARGET)" in \
 			simulator|android|waydroid) : ;; \
 			*) echo "ENV=$(ENV) dev runs are supported for TARGET=simulator|android|waydroid."; \
@@ -429,7 +429,7 @@ dev: guard-local
 			echo "$$DEVS" | gum choose --header "Pick a simulator:" > /tmp/_sim_pick && \
 			DEV=$$(cat /tmp/_sim_pick); \
 		fi; \
-		flutter run $(PUB_FLAG) $(DEV_DEFINES) -d "$$DEV"; \
+		flutter run $(PUB_FLAG) $(ENV_DEFINES) -d "$$DEV"; \
 	elif [ "$(TARGET)" = "ios" ]; then \
 		DEVICE=$$(flutter devices --machine 2>/dev/null | python3 -c 'import json,sys; devs=json.load(sys.stdin); ios=[d["id"] for d in devs if d.get("targetPlatform")=="ios" and not d.get("emulator")]; print(ios[0] if ios else "")'); \
 		if [ -z "$$DEVICE" ]; then DEVICE=$$(idevice_id -l 2>/dev/null | head -1); fi; \
@@ -457,7 +457,7 @@ dev: guard-local
 		else \
 			xcrun devicectl device process terminate --device "$$DEVICE" "$(APP_ID)" 2>/dev/null || true; \
 		fi; \
-		flutter run $(PUB_FLAG) $(DEV_DEFINES) -d "$$DEVICE"; \
+		flutter run $(PUB_FLAG) $(ENV_DEFINES) -d "$$DEVICE"; \
 		RC=$$?; \
 		if [ "$$RC" -ne 0 ]; then \
 			echo "Known iOS/Xcode regression (flutter/flutter#181480); stale Xcode windows are auto-closed (NO_XCODE_RESET=1 disables)."; \
@@ -473,9 +473,9 @@ dev: guard-local
 			echo "Installed, but could not launch $(APP_ID)."; \
 		fi; \
 	elif [ -n "$(TARGET)" ]; then \
-		flutter run $(PUB_FLAG) $(DEV_DEFINES) -d "$(TARGET)"; \
+		flutter run $(PUB_FLAG) $(ENV_DEFINES) -d "$(TARGET)"; \
 	else \
-		flutter run $(PUB_FLAG) $(DEV_DEFINES); \
+		flutter run $(PUB_FLAG) $(ENV_DEFINES); \
 	fi
 
 install: guard-local
