@@ -204,8 +204,10 @@ Settled 2026-11-23 — most of the old blocker list was already done:
 (the RAM disk is mounted):
 
 ```sh
+# The RAM disk is per-run, so capture the path from THE SAME invocation that
+# fetched it (deploy prints it) rather than minting a fresh tag here.
 fastlane run validate_play_store_json_key \
-  json_key:/Volumes/SamayRAM/play-upload-service-account.json
+  json_key:/Volumes/SamayRAM-*/play-upload-service-account.json
 ```
 
 **4. Then:** `make deploy TARGET=all ENV=testing TRACK=internal`.

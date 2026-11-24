@@ -329,6 +329,27 @@ for form in "" "--no-print-directory"; do
   fi
 done
 
+# ONE RAM disk per verb. The tag must be computed with `:=` (immediate), never
+# `?=` with $(shell): the latter re-expands on every reference, so a single
+# `deploy` mounted one disk per fetch and the build then looked in a directory
+# that never existed ("/Volumes/SamayRAM is not mounted", 2026-11-24).
+if grep -qE '^RAM_TAG[[:space:]]*:=' "$MAKEFILE"; then
+  pass "RAM_TAG is immediately expanded (one disk per verb)"
+else
+  fail "RAM_TAG is not set with := — each reference would mint a new path"
+fi
+if grep -qE '^export .*RAM_DIR' "$MAKEFILE"; then
+  pass "RAM_DIR is exported to nested make (build/publish share it)"
+else
+  fail "RAM_DIR is not exported — nested build/publish would get a different disk"
+fi
+TAGS="$(make -s env ENV=testing 2>/dev/null | grep -oE 'SamayRAM-[0-9]+' | sort -u | wc -l | tr -d ' ')"
+if [ "${TAGS:-0}" -le 1 ]; then
+  pass "one RAM path per invocation"
+else
+  fail "one invocation reported $TAGS different RAM paths"
+fi
+
 # The anon-key pre-flight must run before BOTH store builds. A build compiled
 # with one secret generation against a stack running another installs fine and
 # answers {"message":"Unauthorized"} to everything (Android AAB, 2026-11-24).

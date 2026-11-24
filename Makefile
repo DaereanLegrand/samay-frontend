@@ -168,7 +168,18 @@ endif
 # Release material is fetched from the vault into a RAM disk by the operator
 # tooling, which lives in the private ops repo (this AGPL app repo carries no
 # vault automation). The Makefile drives it so a release is ONE command.
-RAM_DIR             ?= /Volumes/SamayRAM
+# ONE RAM disk per verb, not per fetch. `deploy` fetches apple AND android; if
+# each fetch minted its own path they would mount two disks and the build —
+# which reads $(PROD_DEFINES) once — would find neither. RAM_TAG is computed
+# once per invocation and exported, so nested `build`/`publish` inherit the
+# same dir through the environment (?= never overrides an inherited value).
+# := (immediate) is REQUIRED: `?=` is recursively expanded, so $(shell ...) would
+# run again on every reference and each line would resolve a different path.
+ifeq ($(origin RAM_TAG),undefined)
+RAM_TAG := $(shell od -An -N3 -tu4 /dev/urandom | tr -d ' ')
+endif
+RAM_DIR             ?= /Volumes/SamayRAM-$(RAM_TAG)
+export RAM_TAG RAM_DIR
 KEYSTORE_PROPERTIES ?= $(RAM_DIR)/keystore.properties
 PROD_DEFINES        ?= $(RAM_DIR)/dart_defines.env
 EXPORT_OPTIONS      ?= $(RAM_DIR)/ExportOptions.plist
