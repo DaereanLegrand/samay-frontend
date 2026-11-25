@@ -16,9 +16,7 @@ import 'package:samay/core/repositories/profile_repository.dart';
 ///
 /// Overriding a service provider (e.g. `userServiceProvider`) also rewires
 /// the repositories, since they are built from the service providers via
-/// `ref.watch`. There is deliberately NO chat repository provider here — the
-/// chat feature wires its own E2EE repository (`chatE2eeRepositoryProvider`,
-/// `lib/features/chat/chat_providers.dart`); see `chat_repository.dart`.
+/// `ref.watch`.
 final friendsRepositoryProvider = Provider<FriendsRepository>((ref) {
   return FriendsRepository(
     users: ref.watch(userServiceProvider),

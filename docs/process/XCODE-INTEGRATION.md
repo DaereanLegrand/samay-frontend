@@ -164,8 +164,9 @@ iPhone 17, plus iPads (`xcrun simctl list devices available`).
 
 The macOS host → iOS Simulator keyboard path never delivers `@` to the device
 area (a Mac text box types it fine), so an email can't be typed by hand into
-the running app. `make login` injects it through the MCP `DeviceInteraction`
-tools instead (the same path that bypasses the host keyboard):
+the running app. `make login` targeted a **password/email** sign-in surface and
+injects the address through the MCP `DeviceInteraction` tools (the same path
+that bypasses the host keyboard):
 
 ```bash
 make login TARGET=simulator                      # iPhone 11 → tester4, else tester3
@@ -173,13 +174,16 @@ make login TARGET=simulator DEVICE="iPhone 11"
 make login TARGET=simulator DRY_RUN=1            # capture + print, inject nothing
 ```
 
+- **`slim-prod` has no email/password screen.** Auth is guest-first, and
+  signing in is Apple/Google linking on `sign_in_screen.dart`. The email
+  field the helper targets no longer exists, so `make login` is currently a
+  **no-op that aborts** (it refuses to act unless the captured hierarchy shows
+  the old login screen).
 - Driver: `tools/xcode_login.py` — a stdio JSON-RPC client for
-  `xcrun mcpbridge` (no LLM). It focuses the login screen's **email** field and
-  types the address as `\u{0040}` for `@`; the password (`tester123`) and Sign
-  in stay manual.
+  `xcrun mcpbridge` (no LLM). When the old surface existed it focused the email
+  field and typed the address as `\u{0040}` for `@`.
 - It is interaction-only: no build/install/launch, and it never touches a
   running `make dev` session.
-- It aborts (no taps) unless the captured hierarchy shows the login screen.
 
 ### First-run approval (per agent identity)
 

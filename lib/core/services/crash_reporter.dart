@@ -18,7 +18,8 @@ const String sentryDsn = String.fromEnvironment(
 );
 
 /// Non-reversible identifier scrub for crash-report user context
-/// (SECURITY.md §2.8 data-minimization contract): SHA-256 hex of [userId].
+/// (data minimization — SECURITY.md §3, the `CrashReporter` row): SHA-256 hex
+/// of [userId].
 ///
 /// The sink never receives the raw id — in particular never an email — and
 /// the hash is deterministic, so a crash backend can correlate a user's

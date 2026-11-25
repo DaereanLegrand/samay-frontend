@@ -16,9 +16,10 @@ LLC. Apache-2.0 grants no trademark rights (Section 6). Use is governed by the
 Sign in with Google Branding Guidelines:
 https://developers.google.com/identity/branding-guidelines
 
-Requirements honored by this app: the "G" is displayed full color (never
-monochrome), on a white background, unmodified, and the Google sign-in control
-is presented at least as prominently as the other sign-in option.
+Requirements honored by this app: the assets are bundled unmodified for brand
+compliance. The current sign-in screen does not render them (it uses full-width
+text buttons), so the Google branding requirements apply only if/when the
+logo-only control is reintroduced.
 
 apple_logo_only.svg
 -------------------
@@ -36,6 +37,7 @@ Trademarks: the Apple logo and "Sign in with Apple" are trademarks of Apple
 Inc. Use is governed by the Human Interface Guidelines "Creating a custom Sign
 in with Apple button" (logo-only) rules.
 
-Requirements honored by this app: the artwork is rendered unmodified at a 1:1
-aspect ratio (no crop, no added padding, no re-drawn logo), and the control is
-only shown on iOS/macOS where the native Sign in with Apple flow is available.
+Requirements honored by this app: the artwork is bundled unmodified at a 1:1
+aspect ratio (no crop, no added padding, no re-drawn logo). The current sign-in
+screen does not render it; if the logo-only control is reintroduced, it would
+only be shown on iOS/macOS where the native Sign in with Apple flow is available.

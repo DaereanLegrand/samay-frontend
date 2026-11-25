@@ -6,9 +6,10 @@ import 'package:samay/core/design_tokens/app_spacing.dart';
 /// A single-line text that stays put when it fits and circulates (a seamless
 /// horizontal marquee) when it is wider than the space it is given.
 ///
-/// This is the generic sibling of the Games-tab `GameNameBand`: the feed uses
-/// it for card titles so a long name never wraps to a second row — it either
-/// renders whole or scrolls as a ring of repeated units.
+/// Generic marquee helper. It has no callers since the games-deck `GameNameBand`
+/// and the feed that consumed it were removed; kept because the behaviour (a
+/// long name renders whole or scrolls as a ring of repeated units instead of
+/// wrapping) is still wanted for card titles.
 ///
 /// Reduced motion (`MediaQuery.disableAnimationsOf`) freezes the strip on its
 /// first unit with no ticker.

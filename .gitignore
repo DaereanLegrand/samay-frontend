@@ -9,7 +9,7 @@
 *.exe
 
 # Environment
-# There is no app env file: testing-local reads ../.env/testing-local.env
+# There is no app env file: testing-local reads ../backend/.env/testing-local.env
 # and release ENVs read the vault. Kept ignored so a stray file cannot be committed.
 .env
 # Local-only per-developer overrides (load-env sources it; the Makefile's
@@ -54,12 +54,6 @@ build/
 .pub/
 .pubspec.lock
 .flutter-plugins-dependencies
-
-# Supabase temp
-supabase/.temp/
-supabase-testing/.temp/
-supabase/.branches/
-supabase-testing/.branches/
 
 # fastlane (M-17): App Store Connect .p8 keys + Match keys never committed.
 # The .p8 path is a §3.3 env placeholder — the directory must stay ignored so

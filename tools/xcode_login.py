@@ -1,12 +1,17 @@
 #!/usr/bin/env python3
-"""Samay — MCP-driven simulator login helper.
+"""Samay — MCP-driven simulator login helper (legacy: no-ops on slim-prod).
 
-Focuses the login screen's EMAIL field and injects the account address through
-Xcode's ``DeviceInteraction`` MCP tools. This exists because the macOS host ->
-iOS Simulator keyboard path never delivers ``@`` to the device area (typing
-works fine in a normal Mac text box), so an email cannot be typed by hand.
-Only the email is injected: the password (``tester123``) contains no ``@`` and
-is typed manually, then Sign in is tapped manually.
+**The slim-prod app has no email/password screen** (auth is guest-first;
+sign-in is Apple/Google linking), so in practice this helper aborts without
+touching the device. It is kept because the MCP approval mechanics and the
+device-mapped email table are still useful if a password surface returns.
+
+When such a screen exists it focuses the EMAIL field and injects the account
+address through Xcode's ``DeviceInteraction`` MCP tools. This exists because
+the macOS host -> iOS Simulator keyboard path never delivers ``@`` to the
+device area (typing works fine in a normal Mac text box), so an email cannot be
+typed by hand. Only the email is injected: the password (``tester123``) contains
+no ``@`` and is typed manually, then Sign in is tapped manually.
 
 Interaction-only: it never builds / installs / launches the app, and it never
 touches a running ``make dev`` session beyond activating the app for the

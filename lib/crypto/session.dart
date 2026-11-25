@@ -14,8 +14,10 @@ import 'package:samay/crypto/x3dh.dart';
 /// Ratchet + envelope framing, persisted after every operation
 /// (E2EE-ARCHITECTURE.md §7).
 ///
-/// This is the concrete [E2eeMessageCipher]: the chat layer holds
-/// one instance per chat and calls [encryptText]/[decryptEnvelope].
+/// This is the concrete [E2eeMessageCipher]: the current consumer is the
+/// minigame answer cipher (`lib/features/minigames/logic/minigame_cipher.dart`),
+/// which holds one instance per (session, peer) pair and calls
+/// [encryptText]/[decryptEnvelope].
 ///
 /// ## Wire behavior
 ///

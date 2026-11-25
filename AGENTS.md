@@ -28,7 +28,8 @@ The Flutter app **Samay** (`com.qallariy.samay`); split from `Vive`.
   `build`/`deploy`/`publish`/`bundle-install`/`check` depend on it.
 
 ## Rules
-- Tests live in `test/` (Dart); `make test` runs `flutter test` plus the static gates.
+- Tests live in `test/` (Dart). `make test` runs the static Makefile gate
+  (`test/opt-008-makefile-static.sh`); `flutter test` is run separately (115 tests).
 - Never kill/restart the user's `make dev`; ask them to press `r`/`R`
   (`.opencode/DEV-SERVER.md`).
 - No app env file exists. Local config lives in the backend's

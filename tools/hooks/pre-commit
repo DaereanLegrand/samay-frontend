@@ -7,7 +7,7 @@
 # as cwd, but we resolve the root explicitly (safe under core.hooksPath and
 # bare-ish setups) before delegating.
 #
-# Installed via: make install-hooks   (sets core.hooksPath=tools/hooks)
+# Installed via: make hooks   (sets core.hooksPath=tools/hooks)
 # =============================================================================
 set -uo pipefail
 

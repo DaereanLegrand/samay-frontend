@@ -1,5 +1,5 @@
 ---
-description: Samay working agent — enforces the repo protocol: read the docs first, file-semaphore locks, backend-only testing, commit policy, report format. Switch to this agent for any Samay work.
+description: Samay working agent — enforces the repo protocol: read the docs first, editing coordination, test policy, commit policy, report format. Switch to this agent for any Samay work.
 mode: primary
 temperature: 0.2
 color: '#FF5C8A'
@@ -33,49 +33,43 @@ exactly — your instructions ARE the rules.
 
 1. **READ THE REPO FIRST. NO SHORTCUTS.** Before any work: read `AGENTS.md`,
    `docs/process/DEVELOPMENT-WORKFLOW.md`, `docs/process/FILE-OWNERSHIP.md`,
-   `README.md`, then `lib/`, `cmd/`, `internal/`, `supabase/`, `docs/` (all
-   of it) via Glob/Grep/Read. Only skip vendor/build/generated output.
-2. **File semaphore (MANDATORY):** before modifying any file, acquire its
-   lock — `tools/agent_lock.sh acquire <path> --owner "$AGENT_NAME"` — and
-   release it after. If another agent holds a lock, WAIT (`--timeout`, never
-   barge). `tools/agent_lock.sh list` shows who works where. Use a stable
-   `AGENT_NAME` (your agent ID).
-3. **Testing is BACKEND-ONLY (directive 2026-08-31), or per task there are
-   NO integration tests.** The Flutter/Dart test trees were deleted:
-   `test/*.dart` (unit/widget/provider/router/theme), `integration_test/`
-   (all flows + runner), `test_driver/`. They must NOT be recreated and no
-   `make flutter-test` / `make test-file` / `make test-feature` /
-   `make test-integration` targets exist. What ships with every change:
-   Go unit tests (`*_test.go` next to `internal/`/`cmd/` code, `go test
-   ./...`), pgTAP (`supabase/tests/schema_test.sql`, mirrored in
-   `supabase/`), and curl opt-tests (`test/opt-NNN-*.sh`,
-   `bash test/run_all_backend.sh` — needs the stack up). No Flutter
-   test-first cycle exists; do not invent one.
-4. **Commit policy:** coordinate commits — check `git status` and
-   `tools/agent_lock.sh list` first so you never sweep away another session's
-   in-flight work; commit only what you did. Destructive remote/history ops
-   (pull/rebase/merge/reset/checkout/switch/clean/stash) are denied by your
-   permissions.
+   `README.md`, then `lib/`, `docs/` (all of it) via Glob/Grep/Read. The backend
+   schema/CLI (`cmd/`, `internal/`, `supabase/`) lives in the sibling
+   `Samay/backend` repo — read there when the task touches it. Only skip
+   vendor/build/generated output.
+2. **Editing coordination:** no lock tool ships in this repo. Check
+   `git status` before you start, tell the human when you begin editing a
+   coordination-sensitive path (`docs/process/FILE-OWNERSHIP.md`), keep edits
+   scoped to the task, and never sweep away another session's uncommitted work.
+3. **Testing.** Backend-first: Go tests (`*_test.go`, `go test ./...`), pgTAP
+   (`supabase/tests/schema_test.sql`) and curl opt-tests
+   (`test/opt-NNN-*.sh`, `bash test/run_all_backend.sh`) live in the backend
+   repo. **This repo carries Dart unit tests** under `test/*.dart` (115 tests);
+   the 2026-08-31 "no Dart tests" directive was rescinded (Q16). `flutter test`
+   is the Dart gate, `make test` the static Makefile gate, `make check` the
+   analyze + secrets gate. No widget/integration tree exists and none should be
+   re-created.
+4. **Commit policy:** coordinate commits — check `git status` first so you never
+   sweep away another session's in-flight work; commit only what you did.
+   Destructive remote/history ops (pull/rebase/merge/reset/checkout/switch/
+   clean/stash) are denied by your permissions.
 5. **Never touch the reference app** (`/Users/daerean/Codes/apps/Hakuy`) — read-only
-   reference. Never use the reference app's ports (5432/54321/54323/8443); Samay uses
-   DB 54382, Kong 54386, Studio 54381, Mailpit 54384, Analytics 54388,
-   Kong-https 54443.
+   reference. Never use the reference app's ports (5432/54321/54323/8443). Samay's
+   `ENV=testing-local` stack is Kong 54396 / Postgres 54392 / Studio 54391 /
+   Mailpit 54394; `ENV=testing` is 54386 / 54382 / 54381 / 54384.
 6. **Security by default:** no secrets in code/tests/docs (placeholders
    only); industry-standard research with cited sources (Signal X3DH +
    Double Ratchet, OWASP MASVS, Supabase/Postgres docs, NVD/OSV for CVEs).
-7. **Validation:** iterate with the focused backend loop — `go test ./...`,
-   `bash test/opt-NNN-<name>.sh`, `bash test/opt-005-seeds-static.sh`,
-   `bash test/opt-007-compose-static.sh` — running only the tests your change
-   touches, NOT the whole matrix. Run the full `make check` + `make test`
-   gate ONLY when the human explicitly asks for a full validation. Baselines
-   live in README.md §Testing summary — any new failure is yours. If the
-   session deserves a record, write a dated log at
-   `docs/history/phase-XX/YYYY-MM-DD_<slug>.md` (create the dir in PREP;
-   history starts empty).
+7. **Validation:** iterate with the focused loop — `flutter test` (or a single
+   `test/<file>_test.dart`) and `dart analyze` here; `go test ./...` and
+   `bash test/opt-NNN-<name>.sh` in the backend repo — running only the tests
+   your change touches, NOT the whole matrix. Run the full `make check` +
+   `make test` gate ONLY when the human explicitly asks. Baselines live in
+   README.md §Testing; any new failure is yours. If the session deserves a
+   record, write a dated log at `docs/history/phase-XX/YYYY-MM-DD_<slug>.md`.
 8. **Report format** (final message): agent ID + role · what was built ·
-   files created/modified with lock acquire/release evidence · tests added +
-   results · sources consulted (URLs) · issues found / pre-existing bugs
-   (report, don't fix out of scope).
+   files created/modified · tests added + results · sources consulted (URLs) ·
+   issues found / pre-existing bugs (report, don't fix out of scope).
 
 ## Style
 
@@ -85,5 +79,6 @@ exactly — your instructions ARE the rules.
   features go in `lib/features/<feature>/` with `screens/ providers/ widgets/
   logic/` subdirs; cross-cutting code in `lib/core/`; behavior behind feature
   flags (`lib/core/config/feature_flags.dart`); tuneable values in
-  `app_config`.
-- Spanish UI strings move to ARB (`AppLocalizations`).
+  `lib/core/config/app_constants.dart` + the backend `app_config`.
+- User-facing strings go through ARB (`lib/l10n/app_*.arb` →
+  `AppLocalizations`); never hardcode UI copy.

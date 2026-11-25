@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/core/theme/app_palette_context.dart';
 
-/// Glass pill segmented control matching the floating nav bar's palette: a
-/// `surface`@[trackOpacity] track with a white@[borderOpacity] hairline border;
+/// Glass pill segmented control: a `surface`@[trackOpacity] track with a
+/// white@[borderOpacity] hairline border (flat glass — unlike `VGlassPill`,
+/// no `BackdropFilter` blur);
 /// the active segment carries a white outline and a white label, every other
 /// segment a plain `muted` label. Built on [TabBar] so callers keep their
 /// [TabController].
@@ -22,10 +23,10 @@ class VPillTabBar extends StatelessWidget {
   /// Track height — also the minimum tap-target height per segment (44pt).
   static const double trackHeight = 44;
 
-  /// Opacity of the `surface` track fill, matching the nav pill.
+  /// Opacity of the `surface` track fill.
   static const double trackOpacity = 0.85;
 
-  /// Opacity of the white hairline border, matching the nav pill.
+  /// Opacity of the white hairline border.
   static const double borderOpacity = 0.15;
 
   /// Fully-rounded pill geometry, derived from the track height.

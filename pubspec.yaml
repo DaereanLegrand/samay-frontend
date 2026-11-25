@@ -45,10 +45,10 @@ dependencies:
   flutter_cache_manager: ^3.4.1
   unorm_dart: ^0.3.2
   uuid: ^4.5.3
-  # QR attendance + host scanner (I-57 re-add per DEP-02/DEP-03
-  # re-adoption — removed by I-23 as dead when QR was unbuilt; the
-  # phase-06 QRAT/QRSC foundations import them). 7.x: iOS backend moved
-  # from MLKit (no arm64-simulator slice — blocked `flutter run` on
+  # Minigame join QR: `qr_flutter` renders `samay://join/<CODE>` in the lobby
+  # and `mobile_scanner` backs `lib/features/minigames/screens/
+  # join_scanner_screen.dart` (attendance/events were removed). 7.x: iOS backend
+  # moved from MLKit (no arm64-simulator slice — blocked `flutter run` on
   # Apple Silicon iOS 26+ simulators) to Apple Vision.
   qr_flutter: ^4.1.0
   mobile_scanner: ^7.4.0
@@ -59,11 +59,13 @@ dependencies:
   # by ImageProcessor; already a transitive dep of dev tooling, so promoting it
   # adds zero new packages.
   image: ^4.8.0
-  # Deep-link / universal-link handling for invite links `samay://event/{token}`
-  # (EINV — I-66). Already a transitive dep of supabase_flutter (>=6.2.0 <8.0.0)
-  # and registered as a native plugin on every platform, so the direct
-  # dependency adds zero new packages. Platform intent-filter / Associated
-  # Domains config is M-27/M-28 work (DEPLOYMENT-PLACEHOLDER.md R01).
+  # Deep-link / universal-link handling for invite links `samay://join/<CODE>`
+  # and `https://samay.qallariy.lat/j/<CODE>` (EINV — I-66). Already a
+  # transitive dep of supabase_flutter (>=6.2.0 <8.0.0) and registered as a
+  # native plugin on every platform, so the direct dependency adds zero new
+  # packages. The platform intent-filter lives in
+  # android/app/src/main/AndroidManifest.xml and the associated domain in
+  # ios/Runner/Runner.entitlements (both tracked).
   app_links: ^7.0.0
   # RevenueCat SDK (I-61 re-add per DEP-01/RSDK re-add plan; 10.x dropped the
   # transitive freezed_annotation pin that forced the original ^8.4.1 bump).
@@ -96,15 +98,13 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   generate: true
-  # Bundled brand icon for the "Continue with Google" control. Official Google
-  # "G" (from the Google Sign-In SDK, Apache-2.0); density variants resolve from
-  # assets/icons/{2.0x,3.0x}/google.png. See assets/icons/NOTICE for provenance
-  # and the Google branding requirements (full color, on white, unmodified).
-  #
-  # The Apple logo-only SVG is the official artwork from Apple Design Resources
-  # (Logo-Sign-in-with-Apple.dmg), bundled unmodified and rendered via
-  # flutter_svg for the logo-only Sign in with Apple control. See
-  # assets/icons/NOTICE for provenance and the HIG usage terms.
+  # Bundled brand icons for the Google and Apple sign-in controls. Official
+  # Google "G" (from the Google Sign-In SDK, Apache-2.0), density variants under
+  # assets/icons/{2.0x,3.0x}/google.png; and Apple's logo-only SVG from Apple
+  # Design Resources (Logo-Sign-in-with-Apple.dmg). Both are bundled verbatim
+  # for brand compliance but are currently UNREFERENCED by Dart code (the
+  # sign-in screen uses full-width text buttons; flutter_svg is not a
+  # dependency). See assets/icons/NOTICE for provenance and usage terms.
   assets:
     - assets/icons/google.png
     - assets/icons/apple_logo_only.svg

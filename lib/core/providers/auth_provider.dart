@@ -128,9 +128,9 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
   /// `users` row is an account that no longer exists on the server (backend
   /// reset, account deletion, admin wipe). The profile probe must NOT
   /// masquerade as the signup funnel — the funnel is only ever entered
-  /// EXPLICITLY (OTP → age gate). Sign out and return unauthenticated instead
-  /// of surfacing an `authenticated && !hasProfile` state to the router (which
-  /// would flash the feed or bounce to the birthdate screen).
+  /// EXPLICITLY (onboarding consent). Sign out and return unauthenticated
+  /// instead of surfacing an `authenticated && !hasProfile` state to the
+  /// router (which would bounce into the consent route with a stale session).
   Future<AuthState> _orphanGate(
     Map<String, dynamic> user,
     AuthState state,

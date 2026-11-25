@@ -6,8 +6,9 @@ import 'package:flutter/material.dart';
 /// Every UI component radius is `0`: buttons, cards, chips, inputs, dialogs,
 /// sheets, badges. The `#333333` hairline borders carry the geometry.
 /// Documented exceptions (only these): avatars `full` (circle), live/online
-/// dots (circle), progress spinners (natively round). `BottomSheet` top
-/// corners stay 0 (flush).
+/// dots (circle), progress spinners (natively round), the minigame card deck /
+/// 2 Lies cards (`card`), and the rules bottom sheet, whose top corners use
+/// `card` (see `minigame_rules_sheet.dart`).
 abstract final class AppRadius {
   /// Sharp corners — the Samay default for every component.
   static const double none = 0;
@@ -15,18 +16,16 @@ abstract final class AppRadius {
   /// Alias making the intent explicit at call sites.
   static const double radiusZero = none;
 
-  // Nominal scale values exist for parity with the design-doc table but are
-  // **unused** by design: the doc marks xs/sm/md/lg as `(unused)`.
-  /// Unused — sharp design does not use small radii.
+  // Small nominal radii. Most surfaces stay sharp (`none`); these are used by
+  // a handful of small insets — the groups-tab dissolve mask (`md`), the
+  // leaderboard answer rail (`xs`), the 2 Lies cards (`sm`) and the
+  // local-lobby charades deck card (`lg`).
   static const double xs = 2;
 
-  /// Unused — sharp design does not use small radii.
   static const double sm = 4;
 
-  /// Unused — sharp design does not use small radii.
   static const double md = 8;
 
-  /// Unused — sharp design does not use small radii.
   static const double lg = 12;
 
   /// Circles only — avatars, live/online dots (the only non-sharp elements,

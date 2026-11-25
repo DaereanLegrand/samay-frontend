@@ -1,15 +1,17 @@
-# Auth buttons — Google + Sign in with Apple (logo-only)
+# Auth buttons — Google + Sign in with Apple
 
-**Status:** living document. Describes the social sign-in controls on the login
-screen (`lib/features/auth/screens/login_screen.dart`) and the **vendor rules
-they must satisfy**. The UI is the source of truth; this records *why* it is
-shaped the way it is so the constraints are not lost on the next edit.
+**Status:** living document. Describes the vendor rules for the social sign-in
+controls (Apple HIG, Google branding) and how today's UI relates to them.
 
-Both controls are **icon-only** (logo-only) on purpose: a single compact row
-above "Create account". The Apple control is a **custom** button — Apple's
-system-provided `ASAuthorizationAppleIDButton` / `SignInWithAppleButton` / web
-button *always* carry a title, so a logo-only Apple button must be built by hand
-from Apple's downloadable artwork.
+**What ships today:** `lib/features/auth/screens/sign_in_screen.dart` renders
+two **full-width text buttons** — `VButton.emphasized` for Apple and
+`VButton.outlined` for Google — behind the header menu. The screen is optional:
+guests play forever, and signing in only links Apple/Google onto the existing
+anonymous account (same uid). The logo-only design in §2 is **reference, not
+applied by the current control**: `assets/icons/google.png` and
+`assets/icons/apple_logo_only.svg` are declared Flutter assets (packaged into
+the build) but referenced by no Dart file, and `flutter_svg` is not a
+dependency — so the logo-only artwork is bundled but never rendered.
 
 ---
 
@@ -49,7 +51,7 @@ options. That is the constraint the layout is built around.
 
 ---
 
-## 2. Sizing — the numbers
+## 2. Sizing — the numbers (reference, not applied by the current control)
 
 The marks do **not** fill their buttons equally — each vendor ships its own
 built-in padding:
@@ -65,59 +67,57 @@ its supplied 18pt — a 18pt G in a 28pt disc is **64%**, far above Google's own
 artwork's padding is fixed (it may not be cropped) and the Google "G" may not be
 resized arbitrarily, the fix is a **larger shared button**, not a re-drawn mark.
 
-**This app: both discs are 44pt** (Apple's recommended logo-only size) — Google
-"G" 18pt (≈41%), Apple logo ≈19pt (≈43%). The Apple mark is no smaller than the
-Google mark, and both sit at (or beside) their vendor proportion.
+**Reference design: both discs are 44pt** (Apple's recommended logo-only size)
+— Google "G" 18pt (≈41%), Apple logo ≈19pt (≈43%). The Apple mark is no smaller
+than the Google mark, and both sit at (or beside) their vendor proportion. This
+is the design in §2, which the current control does not implement.
 
-Measured on the iOS simulator (device pixels, 3×): both discs `132×132`
-(= 44pt); Google "G" `54px` tall (18pt), Apple glyph `57px` tall (19pt).
+Measured on the iOS simulator (device pixels, 3×) when the logo-only control was
+in place: both discs `132×132` (= 44pt); Google "G" `54px` tall (18pt), Apple
+glyph `57px` tall (19pt).
 
 ---
 
-## 3. Implementation
+## 3. Implementation (today)
 
-`lib/features/auth/screens/login_screen.dart`:
+`lib/features/auth/screens/sign_in_screen.dart`:
 
-- **`_socialIconButton({label, onPressed, child})`** — one 44pt borderless,
-  transparent `TextButton` (`CircleBorder` ripple), a `Semantics` label and a
-  `Tooltip`, dimmed (no spinner) and inert while `_submitting`. Google and Apple
-  both use it, so the two controls are guaranteed the same size.
-- **`_googleSignInButton`** — white `CircleBorder` with the bundled official
-  `assets/icons/google.png` at its supplied **18pt** (never recoloured or
-  distorted).
-- **`_appleSignInButton`** — white circle, `Clip.antiAlias`, holding the
-  official **SVG** scaled so its 44pt square fills the 44pt disc and then
-  clipped to a circle (Apple's sanctioned "circular mask"). The scale factor is
-  `56 / 44` because the bundled SVG canvas is 56pt while its coloured square is
-  44pt — this keeps the artwork's built-in proportion (never cropped).
-- **Platform guard** — the Apple control shows only on iOS/macOS
-  (`defaultTargetPlatform`); elsewhere only Google is shown.
-- **Accessibility** — `Semantics(button: true, label: …)` + `Tooltip`; the
-  label comes from l10n (`authContinueWithApple` / `authContinueWithGoogle`).
-  The Apple logo-only button is still announced as "Sign in with Apple".
+- Two full-width **text** buttons inside a `ListView` under the `VHeaderBar`:
+  `VButton.emphasized(label: l10n.authContinueWithApple)` for Apple, then
+  `VButton.outlined(label: l10n.authContinueWithGoogle)` for Google.
+- Each button is disabled while `_busy` (a local `bool`), and a link failure is
+  surfaced through `ScaffoldMessenger` (`e.toAppError().message`).
+- The actions call `authStateProvider.notifier.linkWithApple` /
+  `.linkWithGoogle` — they **link** onto the guest account, they do not create a
+  new one.
+- The Google/Apple logo-only `_socialIconButton`, the white `CircleBorder`
+  discs, the SVG scaling and the platform guard described in earlier revisions
+  of this doc are **not present** in the current screen.
 
-### Assets & provenance
+### Assets & provenance (bundled, currently unreferenced)
 
 - `assets/icons/apple_logo_only.svg` — Apple's official "Logo - SIWA -
   Logo-only - Black" (white square + black logo), bundled **verbatim** (SHA-256
   `7ee1bc17…`). Provenance and the Developer Artwork licence terms are recorded
-  in `assets/icons/NOTICE`.
+  in `assets/icons/NOTICE`. No Dart file references it.
 - `assets/icons/google.png` (+ `2.0x`/`3.0x`) — the official Google "G", see
-  `assets/icons/NOTICE`.
-- Rendered with `flutter_svg` (vector required for a non-44×44 logo-only button).
+  `assets/icons/NOTICE`. No Dart file references it.
+- `flutter_svg` is not a dependency, so the SVG is not rendered by any code.
 
 ---
 
 ## 4. Pitfalls
 
-- **Do not switch the Apple mark to the PNG artwork** at this size — Apple
-  sanctions PNG only at 44×44 pt; use the SVG.
+- **The logo-only design in §2 is not what ships.** If it is reintroduced, the
+  asset and vendor rules below apply.
+- **Do not switch the Apple mark to the PNG artwork** at 44pt — Apple
+  sanctions PNG only at 44×44 pt; use the SVG, and add `flutter_svg` if the
+  logo-only control returns.
 - **Do not crop/scale the Apple artwork's padding** to make the logo bigger.
   Enlarge the *button* instead.
 - **Do not drop the Google "G" below its supplied 18pt** or recolour it, and
   keep it on a white disc.
-- **Keep the two buttons the same size.** Shrinking one reintroduces the
-  "Apple smaller" failure.
+- **Keep the two controls the same size and similar visual weight.**
 - **Never hand-draw the Apple logo.**
 
 ---

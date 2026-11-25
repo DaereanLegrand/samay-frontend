@@ -43,12 +43,11 @@ class SamayTheme {
         backgroundColor: AppColors.discoBlack,
         foregroundColor: AppColors.white,
       ),
-      // v2: the shell bar is a liquid-glass strip — the Material
-      // bar paints a translucent dark tint (`surface` α0.85) OVER the white
-      // glass sheen + blur + top hairline that MainShell's `_NavGlassStrip`
-      // paints behind it. `withValues` is not const → this block drops
-      // `const` (same as the inputDecorationTheme below); value equality of
-      // `SamayTheme.dark` is preserved (pinned by the theme equality test).
+      // The app has no bottom navigation. This block is retained for the
+      // Material default: it only paints if a `BottomNavigationBar` is ever
+      // used. `withValues` is not const → this block drops `const` (same as
+      // the inputDecorationTheme below); value equality of `SamayTheme.dark`
+      // is preserved (pinned by the theme equality test).
       bottomNavigationBarTheme: BottomNavigationBarThemeData(
         backgroundColor: AppColors.surface.withValues(alpha: 0.85),
         selectedItemColor: AppColors.white,

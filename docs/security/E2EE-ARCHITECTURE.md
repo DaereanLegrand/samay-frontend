@@ -1,25 +1,55 @@
 # Samay — E2EE Chat Architecture (X3DH + Double Ratchet)
 
-**Status:** authoritative design spec for the shipped E2EE chat stack
-(`lib/crypto/**`, 1:1 + group sender-key). Keep this document aligned with
-code in the same commit that changes either; deviations are summarized in §0.
+**Status:** historical design spec for the E2EE chat stack that shipped before
+`slim-prod`; chat was removed (tables retained, client grants revoked in
+`300_slim/05_revoke_removed.sql`). The `lib/crypto/` primitives below are still
+used by the multiplayer minigame answer cipher
+(`lib/features/minigames/logic/minigame_cipher.dart`).
 
 > Companion docs: `docs/security/SECURITY.md` (threat model, crypto policy).
-> Server-side schema lives in `supabase/migrations/` (`080_chat/*`, mirrored
-> byte-identical in `supabase-testing/migrations/`).
+> Server-side schema lives in the backend repo's `supabase/migrations/`
+> (single stack, `080_chat/*`).
 
 ---
 
-## 0. Implementation status
+## 0. Current state (2026-11-25)
 
-`lib/crypto/` ships 10 modules (codec, constants, x3dh, double_ratchet,
+`lib/crypto/` still contains these modules: `codec.dart`, `constants.dart`,
+`double_ratchet.dart`, `e2ee_key_store.dart`, `e2ee_prekey_service.dart`,
+`e2ee_primitives.dart`, `e2ee_providers.dart`, `envelope.dart`,
+`group_cipher.dart`, `interfaces.dart`, `session.dart`, `x3dh.dart`.
+
+`lib/core/services/chat_service.dart`, `lib/features/chat/**` and `ChatScreen`
+do not exist. `test/opt-003-chat.sh` and `test/opt-040-*` were deleted. The live
+consumer of the pairwise primitives (`x3dh`, `double_ratchet`, `session`,
+`envelope`, `e2ee_primitives`, `codec`, `constants`, `interfaces`,
+`e2ee_key_store`, `e2ee_prekey_service`) is
+`lib/features/minigames/logic/minigame_cipher.dart` (per-round AES-256-GCM round
+keys distributed over the pairwise X3DH session), wired through
+`e2ee_providers.dart` from `minigames_providers.dart`. `group_cipher.dart`
+(the chat sender-key cipher) has no remaining callers.
+
+Two caveats, both consequences of the removal:
+
+- `E2eePrekeyService.publishAll()` writes `e2ee_identity_keys`, which
+  `300_slim/05_revoke_removed.sql` revokes from `authenticated`; no live UI
+  path calls it, so publishing a fresh bundle is dormant, not broken.
+  `fetch_prekey_bundle` itself stays executable.
+- The minigame answer cipher reuses the pairwise session/X3DH code but its
+  per-round keys are distributed by the minigame RPCs, not the chat path.
+
+The sections below remain the design record for the removed chat stack.
+
+## 0A. Historical implementation status
+
+`lib/crypto/` shipped 10 modules (codec, constants, x3dh, double_ratchet,
 envelope, session, e2ee_key_store, e2ee_primitives, e2ee_prekey_service,
-interfaces) plus `group_cipher.dart` (Signal sender keys). Chat is live with
-E2EE; the server stores ciphertext only. The sections below remain
-authoritative for the design; where the implementation went further or
+interfaces) plus `group_cipher.dart` (Signal sender keys). Chat was live with
+E2EE (removed in slim-prod); the server stored ciphertext only. The sections
+below remain the design record; where the implementation went further or
 differed, it is listed here.
 
-### 0.1 Implemented beyond the original spec (now part of the design)
+### 0A.1 Implemented beyond the original spec (now part of the design)
 
 | Feature | Where | Notes |
 |---|---|---|
@@ -35,7 +65,7 @@ differed, it is listed here.
 | **Reinstall heal + bundle-identity binding** | an identity-changed bundle (reinstall/device change) is accepted regardless of epoch, authenticated by the pairwise session's bound peer identity (`boundPeerIkDh`); per-chat send mutex prevents AEAD key/nonce reuse on concurrent sends | §7.5 semantics applied to the sender-key path |
 | **Receiver-initiated key-request retry** | throttled (1/min per chat+sender) `samay.group_key_request` riding the pairwise session; chain owner un-marks + immediately re-distributes | heals members who missed/stale-processed a distribution without waiting for a roster-change rekey |
 
-### 0.2 Known deviations from the original design
+### 0A.2 Known deviations from the original design
 
 | Original claim | Actual |
 |---|---|
@@ -43,7 +73,7 @@ differed, it is listed here.
 | Three-table prekey model (`user_devices` / `signed_prekeys` / `one_time_prekeys`) | Merged into ONE table `e2ee_identity_keys` (`080_chat/02_e2ee_keys.sql`) |
 | `flutter_secure_storage ^11` | Still `^9.2.4` |
 
-### 0.3 Verification posture
+### 0A.3 Verification posture
 
 Crypto behavior is pinned by the backend contract (`test/opt-003-chat.sh`,
 `test/opt-010-groups-chat.sh` + pgTAP) — the Flutter unit suites in
@@ -55,7 +85,7 @@ No plaintext persists client-side — only envelope bytes reach
 
 
 
-## 0. Sources & References
+## 0B. Sources & References
 
 
 
@@ -96,6 +126,11 @@ No plaintext persists client-side — only envelope bytes reach
 ---
 
 
+
+> **Sections 1-14 below are the historical design record, written before the
+> `slim-prod` removal.** They describe the chat stack as it was. Present-tense
+> file names in them (`chat_service.dart`, `lib/features/chat/**`,
+> `test/opt-003-chat.sh`) refer to files that no longer exist — see §0.
 
 ## 1. Scope, Goals, Non-Goals
 
@@ -285,7 +320,7 @@ Assets, actors and trust boundaries are defined in `docs/security/SECURITY.md` �
 
 | Fingerprint | `samay.e2ee.fingerprint.v1` | 30 |
 
-| Init-envelope replay marker | `samay.e2ee.init-marker.v1` (`constants.dart:32`) | 32 — HMAC marker over the init header (§0.1) |
+| Init-envelope replay marker | `samay.e2ee.init-marker.v1` (`constants.dart:79`) | 32 — HMAC marker over the init header (§0.1) |
 
 
 
@@ -635,7 +670,7 @@ SK  = HKDF-SHA256(salt = 0x00×32,
 
 
 
-`fetch_prekey_bundle` is a `SECURITY DEFINER` RPC with `SET search_path = ''` (pattern: `check_signup_email`, migration the chat migrations (080_chat/*)) enforcing **10 fetches/hour per caller** (server-trust requirement R1 §4.7: prevent OPK draining). Counter lives in `prekey_fetch_log` (user_id, fetched_at); window prune on insert.
+`fetch_prekey_bundle` is a `SECURITY DEFINER` RPC with `SET search_path = ''` (pattern: `check_signup_email`, `080_chat/*`) enforcing **10 fetches/hour per caller** (server-trust requirement R1 §4.7: prevent OPK draining). Counter lives in `prekey_fetch_log` (user_id, fetched_at); window prune on insert.
 
 
 
@@ -887,7 +922,7 @@ Follows Sesame (R3) semantics reduced to single-device async messaging.
 
 - Reinstall ⇒ new identity keypairs ⇒ the `e2ee_identity_keys` row is replaced on the next heal (auth-restore `handleMissingSession` republishes on identity mismatch — 2026-08-15) **and the one-time-prekey pool is REPLACED with a fresh batch** (2026-08-16: the stale row's OPKs belong to the old identity — their private keys are gone, so any peer initiating with them can never be decrypted; see §9.3).
 
-- **Reinstall history = silently absent (Signal semantics, 2026-08-16).** Rows that fail decryption with NO local session are the pre-reinstall class — permanently undecryptable by anyone (the keys are gone). The client HIDES them (the thread starts fresh — Signal shows no history after a fresh install, and its server holds none) and **deletes them server-side** (`delete_undecryptable_messages`, migration the chat migrations (080_chat/*) — participant-gated, audited in `deleted_messages`): the server never stores bytes nobody can ever read again (offload). The "Mensaje no descifrable" bubble survives ONLY for failures against an EXISTING session (tamper / skip-gap — the case Signal itself error-bubbles).
+- **Reinstall history = silently absent (Signal semantics, 2026-08-16).** Rows that fail decryption with NO local session are the pre-reinstall class — permanently undecryptable by anyone (the keys are gone). The client HIDES them (the thread starts fresh — Signal shows no history after a fresh install, and its server holds none) and **deletes them server-side** (`delete_undecryptable_messages`, `080_chat/*` — participant-gated, audited in `deleted_messages`): the server never stores bytes nobody can ever read again (offload). The "Mensaje no descifrable" bubble survives ONLY for failures against an EXISTING session (tamper / skip-gap — the case Signal itself error-bubbles).
 
 - **Peer behavior** (Sesame conditional update, R3 §3.2/§6.1): on bundle fetch, if `IK_dh` differs from the value bound to the stored session → **retire that session** (keep it for decrypting in-flight ciphertext up to 30 days, then delete) and create a fresh session for the new identity. Detection is wired at chat open (`E2eeSession.peerIdentityChanged` restores the session from the store first — 2026-08-16) and surfaces **once per peer**: "El otro usuario reinstaló la app o cambió de dispositivo" (flag persisted in the Hive config box). Informational — the conversation heals automatically on this device's next send (unacknowledged-init semantics, §7.8/§0.2). Fingerprint re-verification UI is post-MVP (S-07/S-20 gate item).
 
@@ -895,7 +930,7 @@ Follows Sesame (R3) semantics reduced to single-device async messaging.
 
 
 
-### 7.5a Message deletion (2026-08-16, migration the chat migrations (080_chat/*))
+### 7.5a Message deletion (2026-08-16, `080_chat/*`)
 
 
 
@@ -903,7 +938,7 @@ WhatsApp-style two-option long-press deletion, plus the automatic cleanup above:
 
 
 
-- **"Eliminar para todos"** — sender-only, within a **5-minute window anchored on the SERVER clock** (`messages.sent_at`, default `now()` at insert; existing rows backfilled from `created_at`). `delete_message_for_everyone` enforces sender + age inside Postgres — the client can never extend the window by lying (client `created_at` is untrusted for this). Verdicts surface as `MESSAGE_TOO_OLD` / `NOT_THE_SENDER` / `MESSAGE_NOT_FOUND` → l10n. Rows are hard-deleted + audited in `deleted_messages`; the peer's open thread removes them **live** via the realtime DELETE channel (REPLICA IDENTITY FULL, the chat migrations (080_chat/*)).
+- **"Eliminar para todos"** — sender-only, within a **5-minute window anchored on the SERVER clock** (`messages.sent_at`, default `now()` at insert; existing rows backfilled from `created_at`). `delete_message_for_everyone` enforces sender + age inside Postgres — the client can never extend the window by lying (client `created_at` is untrusted for this). Verdicts surface as `MESSAGE_TOO_OLD` / `NOT_THE_SENDER` / `MESSAGE_NOT_FOUND` → l10n. Rows are hard-deleted + audited in `deleted_messages`; the peer's open thread removes them **live** via the realtime DELETE channel (REPLICA IDENTITY FULL, `080_chat/*`).
 
 - **"Eliminar para mí"** — any participant, any age: client-local tombstone only; server rows stay (the peer keeps them). MVP tombstone is in-memory.
 
@@ -939,7 +974,7 @@ WhatsApp-style two-option long-press deletion, plus the automatic cleanup above:
 
   `hard_delete_expired_users()` cron already anonymizes `messages`
 
-  (`supabase/migrations/the chat migrations (080_chat/*).sql:19`).
+  (`supabase/migrations/080_chat/*`).
 
 - A regenerated identity (reinstall, delete+re-register) is healed at the
 
@@ -971,7 +1006,7 @@ WhatsApp-style two-option long-press deletion, plus the automatic cleanup above:
 
 
 
-`flutter_secure_storage` — already a dependency (`pubspec.yaml:17`, `^9.2.4`). I-37 should **bump to `^11.0.0`** (R12) for: Android Keystore RSA-OAEP + AES-GCM by default, backup-aware cipher migration, `AndroidOptions` controls. Config:
+`flutter_secure_storage` — already a dependency (`pubspec.yaml`, `^9.2.4`). I-37 should **bump to `^11.0.0`** (R12) for: Android Keystore RSA-OAEP + AES-GCM by default, backup-aware cipher migration, `AndroidOptions` controls. Config:
 
 
 
@@ -1215,7 +1250,7 @@ The existing `SecureStorageService` (`lib/core/services/storage_service.dart:4-1
 
 - `one_time_prekeys`: INSERT own, SELECT **denied** (direct reads would let clients drain the pool — consumption happens inside the RPC with `FOR UPDATE`).
 
-- `fetch_prekey_bundle(p_peer_id uuid)` — `SECURITY DEFINER`, `SET search_path = ''`, REVOKE/GRANT to `authenticated` (pattern: migration the chat migrations (080_chat/*) `check_signup_email`):
+- `fetch_prekey_bundle(p_peer_id uuid)` — `SECURITY DEFINER`, `SET search_path = ''`, REVOKE/GRANT to `authenticated` (pattern: `080_chat/*` `check_signup_email`):
 
   1. rate-limit check (§5.5)
 
@@ -1902,7 +1937,7 @@ Two in-memory "clients" (the real `lib/crypto/`) against a fake server implement
 
 | 5 | `test/opt-003-chat.sh` (the `integration_test/e2ee_flow_test.dart` flow was deleted 2026-08-31 — backend-only testing) | I5 green |
 
-| 6 | Wire `RoutePaths.chat` to the real chat screen (**landed** — ChatScreen live at app_router.dart:414-420, replaces `VComingSoonScreen`) with decrypt path | chat UI shows decrypted text; session-present failures → "Mensaje no descifrable"; no-session failures (reinstall history) are hidden + auto-deleted (§7.5, 2026-08-16) |
+| 6 | Wire `RoutePaths.chat` to the real chat screen (**removed in slim-prod** — `ChatScreen`, `RoutePaths.chat` and `lib/features/chat/**` do not exist) | not applicable |
 
 
 
@@ -1912,10 +1947,11 @@ Two in-memory "clients" (the real `lib/crypto/`) against a fake server implement
 
 ### 12.3 Code map
 
-- Crypto core: `lib/crypto/**`. Chat integration: `lib/features/chat/**`,
-  `lib/core/services/chat_service.dart`. Server schema:
-  `supabase/migrations/080_chat/*` (mirrored byte-identical in
-  `supabase-testing/migrations/`).
+- Crypto core: `lib/crypto/**`, consumed only by
+  `lib/features/minigames/logic/minigame_cipher.dart` in the current tree.
+  Chat integration (`lib/features/chat/**`,
+  `lib/core/services/chat_service.dart`) was removed in slim-prod. Server schema
+  (single stack, backend repo): `supabase/migrations/080_chat/*`.
 
 
 

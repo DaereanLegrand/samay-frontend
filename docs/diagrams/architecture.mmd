@@ -1,6 +1,6 @@
 flowchart TB
     subgraph Presentation["Presentation"]
-        UI["features/*/screens<br/>games, packs, auth, friends,<br/>groups, notifications, profile, social"]
+        UI["features/*/screens<br/>games deck + packs,<br/>auth consent gate, friends,<br/>groups, notifications, profile, social"]
         WID["shared/widgets<br/>design-system v_* widgets"]
         THEME["core/theme + core/design_tokens"]
     end
@@ -25,7 +25,7 @@ flowchart TB
     end
     subgraph Services["Services"]
         SVC["core/services<br/>auth, minigame, packs, friends,<br/>groups, notifications, media,<br/>realtime, moderation, billing"]
-        CRYPTO["crypto/<br/>multiplayer answer crypto"]
+        CRYPTO["crypto/<br/>multiplayer minigame<br/>answer cipher (AES-256-GCM)"]
         REST["core/services/rest_client<br/>PostgREST envelope"]
         STORE["StorageService<br/>Hive encrypted + secure storage"]
     end

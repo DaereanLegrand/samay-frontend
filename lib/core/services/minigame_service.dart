@@ -105,8 +105,9 @@ class MinigameSessionRejectedException implements Exception {
   String toString() => 'MinigameSessionRejectedException($rejection)';
 }
 
-/// Group-scoped mini-games with optional shard wagers, backed by the
-/// `minigame_sessions` table.
+/// Group-scoped mini-games backed by the `minigame_sessions` table.
+/// slim-prod retired the shard wager: `shard_wager` stays as an always-0
+/// column and no shards move on create/join/finish.
 class MinigameService {
   final SupabaseClient client;
   final RealtimeService realtime;
@@ -162,12 +163,10 @@ class MinigameService {
     return res == null ? null : Map<String, dynamic>.from(res);
   }
 
-  /// Creates a session for [groupId] of type [type] with an optional
-  /// [wager] (0 = no wager). The server-side RPC (migration
-  /// 20260809000006 + 140_minigame_invites) validates group membership and
-  /// balance and performs the atomic deduct + `minigame_wager` ledger +
-  /// session insert + one pending `minigame_invites` row per [inviteeIds]
-  /// (the returned session id is the initiator's escrow anchor).
+  /// Creates a session for [groupId] of type [type]. slim-prod removed the
+  /// wager: the RPC (`300_slim/03_remove_wagers.sql`) validates group
+  /// membership, inserts the session and one pending `minigame_invites` row
+  /// per [inviteeIds]. No shards are deducted and no ledger row is written.
   ///
   /// [groupId] is NULL for a DIRECT session —
   /// playing with friends without belonging to a group. The server skips the
@@ -279,13 +278,12 @@ class MinigameService {
   }
 
   /// Appends the current user to [sessionId]'s participants via the
-  /// `join_minigame_session` SECURITY DEFINER RPC (migration
-  /// 20260813000001) — `minigame_sessions` has no UPDATE policy under FORCE
-  /// RLS, so the join is a server-side contract (self only — never another
-  /// user): session-exists + group-membership validation, idempotent
-  /// participants append, and — for wagered sessions — the atomic wager
-  /// deduction + `minigame_wager` escrow ledger entry (mirroring
-  /// create_minigame_session). Business outcomes come back as jsonb statuses
+  /// `join_minigame_session` SECURITY DEFINER RPC (`100_minigames/sessions.sql`,
+  /// wager-free body in `300_slim/03_remove_wagers.sql`) — `minigame_sessions`
+  /// has no UPDATE policy under FORCE RLS, so the join is a server-side
+  /// contract (self only — never another user): session-exists +
+  /// group-membership validation and an idempotent participants append. No
+  /// wager is deducted. Business outcomes come back as jsonb statuses
   Future<void> joinSession(String id) async {
     final user = auth.currentUser;
     if (user == null) throw const UnauthorizedError();

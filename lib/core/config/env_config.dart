@@ -52,10 +52,10 @@ class EnvConfig {
   static String get supabaseAnonKey =>
       validate(supabaseAnonKeyRaw, 'SUPABASE_ANON_KEY');
 
-  /// Pure validation seam (unit-tested in `test/core/env_config_test.dart`):
-  /// returns [url] when non-blank, otherwise throws a [StateError] naming
-  /// [key]. Public so the missing-var behavior is testable without a
-  /// compile-time define.
+  /// Pure validation seam (covered indirectly; no dedicated test): returns
+  /// [url] when non-blank, otherwise throws a [StateError] naming [key].
+  /// Public so the missing-var behavior is exercisable without a compile-time
+  /// define.
   static String validate(String url, String key) {
     if (url.trim().isEmpty) {
       throw StateError('Missing required env variable: $key');

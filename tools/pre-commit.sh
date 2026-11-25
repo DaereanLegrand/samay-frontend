@@ -4,33 +4,32 @@
 #
 # Runs the FAST static gates only. The full validation matrix is CI's job
 # (`make check` + `make test` — see docs/process/DEVELOPMENT-WORKFLOW.md
-# §3.6); a pre-commit hook must finish in seconds, not minutes, or developers
+# §1.6); a pre-commit hook must finish in seconds, not minutes, or developers
 # will bypass it. Tradeoff, documented:
 #
-#   FULL GATE (CI / make test)          FAST GATE (this script, pre-commit)
-#   go test ./...                       (skipped — Go changes are rare and CI covers)
-#   go vet / golangci-lint              (skipped)
-#   supabase db test (pgTAP)            (skipped — needs the stack up)
-#   bash test/run_all_backend.sh        (skipped — needs the stack up)
+#   FULL GATE                           FAST GATE (this script, pre-commit)
+#   go test ./... (backend repo)        (skipped — backend-only, CI covers)
+#   go vet / golangci-lint (backend)    (skipped)
+#   supabase db test (pgTAP, backend)   (skipped — needs the stack up)
+#   bash test/run_all_backend.sh (backend repo — not in this repo)
 #
 # What IS enforced here (fail-fast, exit 1 on first failure):
 #   1. dart analyze          — must be 0 issues (the campaign baseline; any
 #                              new issue blocks the commit)
 #   2. make secrets          — no committed secrets (tools/check_secrets.sh)
-#   3. tools/check_ports.sh --strict — only when the script is present (the
-#                              port map is backend-owned; this repo carries none)
+#   3. tools/check_ports.sh --strict — only when the script is present. The
+#                              port-map gate lives in the private Admin/infra
+#                              tree; this repo carries none.
 #   4. bash test/opt-008-makefile-static.sh — Makefile surface resolves
 #
 # NOTE: the campaign-era "no Flutter/Dart tests" directive was rescinded (Q16,
 # pubspec dev_dependencies). This repo carries Dart tests under test/ (analyze +
 # full `flutter test` are CI gates; the fast pre-commit gate stays static).
 #
-# Lock protocol: this script deliberately does NOT take file locks. The
-# semaphore (tools/agent_lock.sh) arbitrates EDITORS; a read-only gate that
-# only runs checks cannot clobber another agent's work, and locking staged
-# files would make every commit O(locks) slower. If a parallel agent is
-# mid-edit when you commit, the analyze/test gates catch the half-written
-# state — the check, not the lock, is the gate.
+# Lock protocol: this script takes no locks. It only runs checks, so it cannot
+# clobber another agent's work. If a parallel agent is mid-edit when you
+# commit, the analyze/test gates catch the half-written state — the check, not
+# a lock, is the gate.
 #
 # Usage: bash tools/pre-commit.sh     (or via tools/hooks/pre-commit)
 # Exit 0 = all gates pass, 1 = a gate failed (message printed).
@@ -52,7 +51,7 @@ if ! dart analyze --fatal-infos --fatal-warnings; then
 fi
 printf '  ✅ dart analyze clean\n'
 
-step "2/4  secrets-check (committed-secret scan)"
+step "2/4  secrets (committed-secret scan)"
 if ! make secrets; then
   fail "secrets-check FAILED — a secret pattern was found in tracked files."
   exit 1
@@ -67,7 +66,7 @@ if [ -x tools/check_ports.sh ]; then
   fi
   printf '  ✅ port map consistent\n'
 else
-  printf '  ⏭  tools/check_ports.sh absent (port map is backend-owned) — skipped\n'
+  printf '  ⏭  tools/check_ports.sh absent (gate lives in Admin/infra) — skipped\n'
 fi
 
 step "4/4  Makefile surface (test/opt-008-makefile-static.sh)"

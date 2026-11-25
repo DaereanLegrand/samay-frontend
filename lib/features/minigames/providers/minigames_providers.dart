@@ -60,12 +60,11 @@ final pendingMinigameInvitesProvider = Provider<int>((ref) {
   );
 });
 
-/// Pending minigame invites grouped by game type — the per-game feed badges
+/// Pending minigame invites grouped by game type — the per-game deck badges
 /// (170_minigame_invite_badges). Derived from the unread `minigame_invite`
-/// notifications, using the `gameType` the notify trigger now embeds in
-/// `data` (no extra round-trip). Missing/unknown types fall under a `null`
-/// key, which the feed simply ignores (the badge only renders for the five
-/// known tiles).
+/// notifications, using the `gameType` the notify trigger embeds in `data`
+/// (no extra round-trip). Missing/unknown types fall under a `null` key, which
+/// the deck ignores (the badge only renders for the four known games).
 final pendingMinigameInvitesByTypeProvider = Provider<Map<String?, int>>((ref) {
   final notifications = ref.watch(
     notificationsProvider.select((v) => v.valueOrNull),
@@ -360,7 +359,7 @@ class MinigameInviteNotifier
   /// Stale-state repair: accept also refreshes the roster (the
   /// lobby must show the new participant immediately), the pending-invite
   /// list (the game page must drop the "Invitación pendiente" row) and marks
-  /// the invite's notification read (the feed tile's red badge clears in the
+  /// the invite's notification read (the deck card's red badge clears in the
   /// same tap). Without these, only a hot restart reflected the accept.
   ///
   /// E2EE round-key distribution: after the accept lands, the

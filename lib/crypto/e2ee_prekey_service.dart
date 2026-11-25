@@ -7,7 +7,7 @@ import 'package:samay/crypto/x3dh.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 /// Supabase-backed prekey service (E2EE-ARCHITECTURE.md §9.3, migration
-/// 20260809000003): publishes identity + signed prekey + one-time prekeys to
+/// `080_chat/02_e2ee_keys.sql`): publishes identity + signed prekey + one-time prekeys to
 /// the per-user `e2ee_identity_keys` row and fetches peer bundles through the
 /// `fetch_prekey_bundle` SECURITY DEFINER RPC (which consumes one one-time
 /// prekey atomically server-side).

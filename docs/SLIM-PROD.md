@@ -62,7 +62,7 @@ The rules I set for this build:
 
 ## 3. Frontend — what was done
 
-15 commits on top of `4db6702`.
+Commits on top of `4db6702` (count: `git rev-list --count 4db6702..HEAD`).
 
 ### 3.1 New: single-device game engine
 `lib/features/minigames/local/` — pure Dart, no server, no plugins.
@@ -95,7 +95,7 @@ playing. Nothing is typed before the first prompt.
 ### 3.3 New: guest-first onboarding
 `lib/features/auth/screens/onboarding_screen.dart`
 
-- One button, "aceptar y jugar". The tap **is** the acceptance.
+- One button (`onboardingStart`). The tap **is** the acceptance.
 - Terms and Privacy are inline, tappable links (the previous screen did not
   offer them at all).
 - Acceptance and account creation happen in one server call
@@ -125,8 +125,11 @@ playing. Nothing is typed before the first prompt.
 
 - The lobby shows the join code as a QR (`samay://join/<CODE>`) next to the
   copyable code.
-- Scanning joins the match. A bare 6-character code and an `https://…/j/<CODE>`
-  link also work.
+- Scanning joins the match. A bare 6-character code also works. The
+  `https://…/j/<CODE>` and `samay://join/<CODE>` links are parsed by
+  `core/deep_links/deep_link_handler.dart`. The scanner's own `extractJoinCode`
+  accepts a bare code or any URI whose host is `join` (it does not require the
+  `samay` scheme).
 - `leave_minigame_session` backs a "salir" action for participants.
 
 ### 3.7 New: first run has no system dialogs
@@ -186,12 +189,13 @@ anything removed:
 
 ## 4. Backend — what was done
 
-9 commits on top of `09e74ae`.
+Commits on top of `09e74ae` (count: `git rev-list --count 09e74ae..HEAD`).
 
 ### 4.1 New: the `300_slim/` migration layer
-`supabase/migrations/300_slim/` sits after `970`, so it is the only place this
-branch changes the schema. It is idempotent: it applies cleanly to a fresh
-stack and to an existing one.
+`supabase/migrations/300_slim/` is a forward-fix layer numbered `300` so it
+sorts before the `940`-`970` infrastructure migrations. It is the only place
+this branch changes feature schema, and it is idempotent: it applies cleanly to
+a fresh stack and to an existing one.
 
 | File | What it does |
 |---|---|
@@ -213,7 +217,7 @@ code — not a migration rebuild. Every server path that still needs those
 tables runs as `SECURITY DEFINER`, so nothing breaks.
 
 ### 4.2 Changed: anonymous accounts and linking
-`supabase/config.toml`, `supabase/docker-compose.yml`, `supabase/.env.example`
+`supabase/config.toml`, `supabase/docker-compose.yml`, `.env/example.env`
 
 - `GOTRUE_EXTERNAL_ANONYMOUS_USERS_ENABLED`
 - `GOTRUE_SECURITY_MANUAL_LINKING_ENABLED`
@@ -243,8 +247,9 @@ existing grant and RLS policy applies unchanged.
   directory-derived, so deleting a fixture cannot break the check.
 
 ### 4.5 Known leftovers
-- `supabase/.temp/cli-latest` (backend) — an auto-generated CLI version cache
-  that is tracked and probably should not be.
+- `supabase/.temp/` (backend) — an auto-generated CLI cache directory. It is
+  gitignored (`.gitignore` in the backend repo) and is not tracked; no action
+  needed.
 
 ---
 
@@ -253,7 +258,7 @@ existing grant and RLS policy applies unchanged.
 | Check | Result |
 |---|---|
 | `flutter analyze` | clean |
-| `flutter test` | 102 passing |
+| `flutter test` | 115 passing |
 | `flutter build ios --simulator` | succeeds |
 | `flutter build apk --debug` | succeeds |
 | `go build ./…` / `go vet ./…` / `go test ./…` | clean, all packages pass |
@@ -274,10 +279,10 @@ prompts; paid pack returns `locked`.
 | | Client | Backend |
 |---|---|---|
 | Branch | `slim-prod` | `slim-prod` |
-| Commits on top of the old branch | 15 | 9 |
+| Commits on top of the old branch | see `git rev-list --count 4db6702..HEAD` | see `git rev-list --count 09e74ae..HEAD` |
 | Public repo | `github.com/DaereanLegrand/samay-frontend` | `github.com/DaereanLegrand/samay-backend` |
 | Mirrored to | Gitea | Gitea |
-| `main` | `b0ddcfa` (unchanged) | `a9f0f88` (unchanged) |
+| `main` | protected; see `git rev-parse main` | protected; see `git rev-parse main` |
 
 Both `main` branches are protected: changes must arrive by pull request, and
 force-push and deletion are blocked. Only the repository owner can bypass.

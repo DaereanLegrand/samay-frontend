@@ -70,11 +70,11 @@ String minigameRejectionMessage(
 /// group) and a GROUP session.
 enum MinigameScope { direct, group }
 
-/// Minigames hub: the five game-type
-/// cards (icon + name + tagline), the optional wager input (0 = no wager)
-/// with the create action, and the session list with lifecycle status
-/// chips. Tapping a session shows the detail placeholder — the per-game UIs
-/// (turns, timers, votes) are future work.
+/// Minigames hub: the four game-type
+/// cards (icon + name + tagline), the create action (partidas are free — no
+/// wager input), and the session list with lifecycle status chips. Tapping a
+/// session shows the detail placeholder — the per-game UIs (turns, timers,
+/// votes) are future work.
 ///
 /// A DIRECT/GROUP toggle sits at the top: Direct is first-class — a new
 /// user with zero groups can play with a friend without creating a group;

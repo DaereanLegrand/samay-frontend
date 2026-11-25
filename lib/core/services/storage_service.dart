@@ -358,10 +358,10 @@ class HiveService {
     }
   }
 
-  // On-device agnostic feed cache. The feed is a mix of event
-  // and minigame-match items; the JSON-encoded list is cached under the user
-  // id so an account switch never leaks the previous account's feed, and the
-  // tab renders instantly from disk before the network refresh lands.
+  // Legacy on-device feed cache. The feed feature was removed from the slim
+  // build, so nothing calls these three methods; they are kept with the box
+  // name because the encoded payload is cached per user id (an account switch
+  // must never leak the previous account's data).
 
   /// Persists the [items] feed payload (JSON-encoded list) for [userId].
   Future<void> cacheFeed(String userId, List<Map<String, dynamic>> items) async {

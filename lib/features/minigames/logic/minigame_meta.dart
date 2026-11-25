@@ -34,8 +34,8 @@ String minigameGameNameLower(AppLocalizations l10n, String? gameType) {
 
 /// Icon for a [MinigameType].
 ///
-/// Shared by the home-page games section (feed) and the group minigames hub
-/// (`minigames_screen.dart`) so the five games always render the same icon
+/// Shared by the games deck and the group minigames hub
+/// (`minigames_screen.dart`) so the four games always render the same icon
 /// everywhere.
 IconData minigameIcon(MinigameType type) => switch (type) {
   MinigameType.truthDare => Icons.psychology,

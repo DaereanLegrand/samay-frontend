@@ -4,7 +4,7 @@ import 'package:samay/core/models/group_theme.dart';
 import 'package:samay/core/services/group_service.dart';
 
 /// Groups domain repository: thin, typed facade over [GroupService]
-/// (memberships, invites, roles) and [ShardsService] (economy, leaderboard).
+/// (memberships, invites, roles).
 ///
 /// Dependency direction doctrine (DEVELOPMENT-WORKFLOW §5): providers depend
 /// on repositories, repositories on services, services on the Supabase client.
@@ -14,8 +14,7 @@ import 'package:samay/core/services/group_service.dart';
 /// Typed where the freezed models match the service shape ([Group],
 /// [GroupMember]); raw `Map<String, dynamic>` rows are passed through where
 /// the service shapes are not modeled (`getGroupInvites` joins `groups` while
-/// the model maps `users`; `getLeaderboard` rank snapshots; aggregated
-/// `getGroupContributions` rows).
+/// the model maps `users`).
 class GroupsRepository {
   GroupsRepository({required GroupService groups}) : _groups = groups;
 

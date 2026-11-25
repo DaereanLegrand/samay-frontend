@@ -34,8 +34,8 @@ import 'package:samay/features/minigames/logic/minigame_engine.dart';
 /// The host distributes (a bundle of) round keys to each participant through
 /// the existing `minigame_e2ee_bundles` table (via [MinigameService.putE2eeBundle]
 /// / [getE2eeBundles]) inside the existing [E2eeSession] (X3DH + Double
-/// Ratchet) pairwise envelopes — the same synthetic pairwise namespace
-/// pattern as the chat group-key distribution. Each bundle payload is a JSON
+/// Ratchet) pairwise envelopes — a synthetic pairwise namespace per (session,
+/// peer) pair. Each bundle payload is a JSON
 /// map `{ 'rounds': { '<round>': base64url(K_r),... } }`.
 ///
 /// - On accept, the host calls [distributeHistoryKeys] to hand the new player
@@ -97,10 +97,9 @@ class MinigameCipher {
   final Map<int, Uint8List> _roundKeys = {};
 
   /// Cached pairwise distribution sessions, keyed by the synthetic namespace
-  /// (`g:minigame:<sessionId>:<peerId>`) — mirrors
-  /// `chat_service._pairwiseCipherFor`'s `putIfAbsent`. Reusing the SAME
-  /// [E2eeSession] across [distributeHistoryKeys] / [rotateRoundKey] means a
-  /// still-unacknowledged init RE-WRAPS with the same base key (Signal
+  /// (`g:minigame:<sessionId>:<peerId>`), created via `putIfAbsent`. Reusing
+  /// the SAME [E2eeSession] across [distributeHistoryKeys] / [rotateRoundKey]
+  /// means a still-unacknowledged init RE-WRAPS with the same base key (Signal
   /// unacknowledged-prekey semantics) instead of re-running fresh X3DH and
   /// burning the peer's one-time prekeys.
   final Map<String, E2eeSession> _sessions = {};
@@ -112,8 +111,7 @@ class MinigameCipher {
   /// this session) — a cheap `hasKey()` without scanning every round key.
   String get _roundIndexKey => 'minigame:$sessionId:rounds';
 
-  /// The synthetic pairwise-session namespace key for [peerUserId] — mirrors
-  /// `chat_service._pairwiseSessionKey` (`g:<chatId>:<peerUserId>`), so the
+  /// The synthetic pairwise-session namespace key for [peerUserId], so the
   /// sender and the recipient resolve the SAME namespace for a (session,
   /// peer) pair.
   String _pairwiseSessionKey(String peerUserId) =>

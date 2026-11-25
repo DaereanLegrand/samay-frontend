@@ -103,10 +103,10 @@ class SamayApp extends ConsumerWidget {
                 right: 0,
                 child: ConnectivityBanner(),
               ),
-              // The recovery banner sits above the bottom nav bar,
-              // fully reachable regardless of the OS status bar or Dynamic
-              // Island. Positioned with safe-area inset so it never hides
-              // behind the gesture bar on iOS/home-indicator devices.
+              // The recovery banner floats just above the OS gesture bar
+              // (there is no bottom nav), fully reachable regardless of the
+              // status bar or Dynamic Island, and never hidden behind the
+              // home-indicator inset.
               if (recoveredFromCrash)
                 Positioned(
                   bottom:

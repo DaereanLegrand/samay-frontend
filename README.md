@@ -9,11 +9,12 @@ guest onboarding, and either a single shared phone or a multi-device session.
 ## What this is
 
 - **Games only.** Verdad o Reto, Botella, 2 Mentiras 1 Verdad and Charadas.
-  There is no bottom navigation: the app opens on a list of the four games, and
-  social, packs, notifications, profile and settings live in the header menu.
-- **Guest-first.** One tap ("aceptar y jugar") creates an anonymous account and
-  records the 18+/terms acceptance. Apple/Google sign-in is optional and links
-  onto the same account (same uid).
+  There is no bottom navigation: the app opens on the vertical games deck (the
+  current game centred, drag to cycle, tap to open), and social, packs,
+  notifications, profile and settings live in the header menu.
+- **Guest-first.** One tap on the onboarding button (`onboardingStart`)
+  creates an anonymous account and records the 18+/terms acceptance.
+  Apple/Google sign-in is optional and links onto the same account (same uid).
 - **Two play modes.**
   - Single device ("pass the phone"): fully local, no server session, two or
     more players on one phone, prompts from a cached pack.
@@ -31,8 +32,9 @@ guest onboarding, and either a single shared phone or a multi-device session.
 - Xcode with CocoaPods (iOS) or the Android SDK and a device/emulator
 - `gum` — `make init` is an interactive script
 - A reachable backend: run the [backend
-  repo](https://github.com/DaereanLegrand/samay-backend) locally, or point `.env`
-  at your own project
+  repo](https://github.com/DaereanLegrand/samay-backend) locally. There is no
+  app env file: config comes from the backend's `.env/testing-local.env` for
+  `ENV=testing-local`, or from the vault for the release ENVs.
 
 ## Quick start
 
@@ -43,8 +45,8 @@ Run the backend first. This app has **no env file of its own**: for
 
 ```sh
 flutter pub get
-make -C ../backend init  APP=samay ENV=testing-local   # once: mint the local secrets
-make -C ../backend start APP=samay ENV=testing-local   # the stack the app talks to
+make -C ../backend init  ENV=testing-local   # once: mint the local secrets
+make -C ../backend start ENV=testing-local   # the stack the app talks to
 make init ENV=testing-local                            # check the prerequisites
 make start ENV=testing-local                           # = make dev
 ```
@@ -70,7 +72,7 @@ The server side (self-hosted Supabase + Go admin API) lives in the
 ## Testing
 
 ```sh
-flutter test     # Dart unit tests (102 currently)
+flutter test     # Dart unit tests (115 currently)
 make analyze     # dart analyze
 make test        # Makefile static gate (test/opt-008-makefile-static.sh)
 make check       # dart analyze + flutter analyze + secret scan

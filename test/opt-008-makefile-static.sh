@@ -3,8 +3,8 @@
 # Samay — STATIC gate for the Makefile finalization (agent M-15).
 #
 # Makefile-side verification of the release-pipeline surface (fastlane stubs,
-# migrate-check refresh, deploy placeholders, bundle-install) — no stack, no
-# docker, no bundle, no fastlane required. Exit 0 = all checks pass:
+# deploy placeholders, bundle-install) — no stack, no docker, no bundle, no
+# fastlane required. Exit 0 = all checks pass:
 #
 #   1. `make -n` resolves for ALL documented targets (the full .PHONY
 #      inventory, incl. override forms TARGET=/OVERRIDES=/FLUTTER_DEFINES=).
@@ -15,11 +15,8 @@
 #        TRACK=external → fastlane ios track_external
 #        TRACK=prod     → fastlane ios track_prod
 #        android        → fastlane android track_play
-#   3. migrate-check RED probe: tools/check_migrations.sh is run against a
-#      SCRATCH git repo — GREEN on a clean committed pair of stacks, RED on a
-#      planted untracked migration, RED on a planted future-dated migration
-#      (real repo is never touched).
-#   4. bash -n on tools/check_migrations.sh and this file.
+#   3. (removed) The old migrate-check RED probe and its bash -n covered
+#      tools/check_migrations.sh, which does not exist in this repo.
 #
 # NOTE for M-17/M-18: when fastlane/Fastfile + Gemfile land, the conditional
 # stub probe (§2) auto-skips; keep the four lane names EXACTLY as above.

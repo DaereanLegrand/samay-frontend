@@ -123,8 +123,10 @@ extension ObjectX on Object {
       final code = e.code ?? '';
       if (code == 'PGRST301') return const UnauthorizedError();
       // Search abuse protection (OWASP API4): SR001 is raised by the
-      // search_users per-user limiter; 429 comes from the Kong route limiter
-      // (PostgrestException.fromJson falls back to the HTTP status string).
+      // search_users per-user limiter; 429 is the generic HTTP status
+      // (PostgrestException.fromJson falls back to the status string). The
+      // Kong route limiter was removed, so 429 today comes from GoTrue /
+      // PostgREST, not the gateway.
       if (code == 'SR001' || code == '429') return RateLimitError();
       // SR002 = the query failed the 2..50 server-side length cap;
       // SR003 = the RPC rejected an unauthenticated caller.

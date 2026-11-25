@@ -29,7 +29,7 @@ class ConfigService {
     return map;
   }
 
-  /// Number of shards granted at signup (`economy.user_signup_shards`),
+  /// Legacy signup shard grant (slim-prod grants none; kept for the removed economy) (`economy.user_signup_shards`),
   /// falling back to the hardcoded default of 256 when the config is
   /// unavailable.
   Future<int> getSignupShardGrant() async {

@@ -169,8 +169,8 @@ class FriendshipService {
 
   /// Blocks [userId] through the server RPC (234_safety_moderation). The
   /// server owns the ownership rules: a peer's existing block cannot be
-  /// altered by the blocked party, and blocking cascades to feed/discovery/
-  /// rankings/notifications/invites.
+  /// altered by the blocked party, and blocking cascades to discovery,
+  /// notifications and invites.
   Future<void> blockUser(String userId) async {
     final user = auth.currentUser;
     if (user == null) throw const UnauthorizedError();
@@ -215,9 +215,9 @@ class FriendshipService {
     }
   }
 
-  /// Mutes [userId]. Mute is one-way and weaker than block: DMs and invites
-  /// stay available, but the muted user's activity leaves the caller's feed,
-  /// rankings and notifications.
+  /// Mutes [userId]. Mute is one-way and weaker than block: invites stay
+  /// available, but the muted user's activity leaves the caller's
+  /// notifications.
   Future<void> muteUser(String userId) async {
     final user = auth.currentUser;
     if (user == null) throw const UnauthorizedError();

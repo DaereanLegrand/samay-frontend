@@ -43,13 +43,15 @@ original commits and may be fully squashed at release.
   then `confirm_my_account`.
 - **Single-device play.** `lib/features/minigames/local/` is a pure-Dart engine
   (judge/subject rotation, no-repeat prompts, done/skip scoring, scoreboard) with
-  33 unit tests in `test/local_match_test.dart`. The screen
+  37 unit tests in `test/local_match_test.dart`. The screen
   (`local_match_screen.dart`) reuses the shared design widgets, loads its bank
   through `localMatchPackProvider` (cache-first, one network fetch on a cold
   cache) and persists finished matches to the `minigame_summary_cache` box.
 - **QR multi-device.** The lobby renders `samay://join/<CODE>` with `qr_flutter`;
-  `join_scanner_screen.dart` scans it (bare codes and `/j/<CODE>` https links
-  also parse), and `leave_minigame_session` backs the participant leave action.
+  `join_scanner_screen.dart` scans it (a bare 6-character code also parses;
+  `https://…/j/<CODE>` and `samay://join/<CODE>` links go through
+  `core/deep_links/deep_link_handler.dart`), and `leave_minigame_session` backs
+  the participant leave action.
 - **Prompt packs.** `prompt_pack_service.dart` + `packs_repository.dart`
   (encrypted `prompt_pack_cache` box, stale-while-revalidate) and the catalogue
   screen with lock states for paid packs.
@@ -59,7 +61,7 @@ original commits and may be fully squashed at release.
 
 ## Verified
 
-- `flutter analyze` clean (whole repo), `flutter test` 98/98.
+- `flutter analyze` clean (whole repo), `flutter test` 115/115.
 - `flutter build ios --simulator` and `flutter build apk --debug --flavor dev`
   both succeed.
 - On device (iPhone 18 Pro, local stack): onboarding → deck → menu → game page →
@@ -80,7 +82,7 @@ original commits and may be fully squashed at release.
 ## Next (not on this branch)
 
 Re-add, in order: chat, events, feed/photos, rankings, shards/wagers. The
-backend keeps the tables (client grants revoked in `300_slim/05_removed.sql`), so
+backend keeps the tables (client grants revoked in `300_slim/05_revoke_removed.sql`), so
 each re-add is a GRANT plus the feature code.
 
 ---
@@ -139,9 +141,9 @@ Gates at that time: `flutter analyze` clean, `flutter test` 102/102,
 9. `pubspec.yaml` → `1.0.0+6` (build 5 was consumed by `401b0c2`).
 
 `Admin/infra/tools/release-secrets.sh` was promoted from the stale 101-line copy
-to the maintained 222-line version (currently 264 lines after the additions),
+to the maintained 222-line version (currently 309 lines after the additions),
 plus: `env apple` emits `TEAM_ID` (else
-`fastlane/Appfile:5` injects `XXXXXXXXXX`), testing-only Firebase fallback
+`fastlane/Appfile:6` injects `XXXXXXXXXX`), testing-only Firebase fallback
 (gated so prod/staging can never ship the testing Firebase project), keychain
 reuse (skips the throwaway keychain when an `Apple Distribution` identity is
 already in the login keychain), idempotent keychain setup.
@@ -151,8 +153,9 @@ already in the login keychain), idempotent keychain setup.
 ### Step 0 — done (2026-11-23)
 
 Frontend feature work committed and the fast gates repaired:
-`tools/pre-commit.sh` called a non-existent `make secrets-check` and a
-backend-owned `tools/check_ports.sh` (now conditional); `opt-008` asserted
+`tools/pre-commit.sh` called a non-existent `make secrets-check` and
+`tools/check_ports.sh` (which lives in `Admin/infra`, so it is conditional
+here); `opt-008` asserted
 `guard-release` rejects `ENV=testing`, which is now a store-grade release env.
 `make hooks` installed.
 
@@ -228,8 +231,9 @@ Android has never been reached in a run: the iOS lane failed first on
 - `make -n deploy|publish` no longer executes the recipe (the `$(MAKE)` line was
   run even under `-n`, unlocking the vault on a dry run); both guard on the `n`
   flag and `opt-008` asserts it.
-- `tools/pre-commit.sh` called a non-existent `make secrets-check` and a
-  backend-owned `tools/check_ports.sh`; `opt-008` asserted `guard-release`
+- `tools/pre-commit.sh` called a non-existent `make secrets-check` and
+  `tools/check_ports.sh` (an `Admin/infra` gate, not in either app repo);
+  `opt-008` asserted `guard-release`
   rejects `ENV=testing` (now store-grade). All three repaired; `make hooks`
   installed.
 
@@ -318,11 +322,20 @@ Note: `samay-testing.qallariy.lat` does **not** resolve; the API host is
 
 ---
 
-# 🔴 NEXT SESSION — READ THIS FIRST (written 2026-11-24, after the v9 failure)
+> **STATUS: SUPERSEDED — this section is a historical record of the
+> 2026-11-24 `ENV=testing` v9 failure.** The structural fix it proposed has
+> landed: `fb04b2e` removed the frontend env file entirely, so `ENV=testing`
+> builds read the vault `dart_defines.env` and `testing-local` reads
+> `../backend/.env/testing-local.env` (see `AGENTS.md`, `README.md`,
+> `tools/init.sh`). There is no `frontend/.env`, no
+> `backend/supabase/testing.env` and no `backend/supabase/.env` any more. Keep
+> the diagnosis below as history; do not follow its "next session" steps.
 
-`ENV=testing` is broken end to end. `ENV=staging` works. Make testing work the
-same way. Nothing below is fixed yet; the operator will run the `rm` and
-`make deploy` commands, the next session evaluates.
+# 🔴 (historical) NEXT SESSION — the v9 failure (written 2026-11-24)
+
+`ENV=testing` was broken end to end. `ENV=staging` worked. The sections below
+are the diagnosis at the time (files named here have since moved to `.env/`
+and the frontend env file is gone).
 
 ## 1. What is proven (all verified by extraction, not by log-reading)
 
@@ -406,7 +419,7 @@ make deploy ENV=testing TRACK=internal TARGET=all
 ```
 
 Notes:
-- `make clean` runs `flutter clean` (Makefile:660) and removes `build/ios/ipa`.
+- `make clean` runs `flutter clean` (Makefile:671) and removes `build/ios/ipa`.
 - No RAM disk should be mounted before starting; if one is, it is a leftover
   from a killed verb and must be ejected (`diskutil eject /Volumes/SamayRAM-*`).
 - Expect `1.0.1+9` to be rejected by Play: v9 is already on the internal track
@@ -515,12 +528,22 @@ Facts gathered:
 
 ## 8. Known-good state (do not regress)
 
-- `make start APP=samay ENV=testing` works: project `samay-testing`, Kong on
+- `make start ENV=testing` works: project `samay-testing`, Kong on
   **54386**, `auth/v1/health` 200. `ENV=testing-local` is a separate stack,
   project `samay-testing-local`, Kong **54396** — both may run at once.
 - Migrations: 110 recorded; the pre-ledger September volume that blocked
   `make start` was destroyed with `docker compose -p samay-testing down -v`.
   Do not `migrate-adopt` — it would stamp `300_slim/*` without running it.
-- `test/opt-001-rls-security.sh` passes 44/44 against `:54396`.
+- `test/opt-001-rls-security.sh` (backend repo) passes 44/44 against `:54396`.
 - Gates green at `aabcfc6`: `dart analyze` clean, `flutter test` 115/115,
   `opt-008`, `pre-commit` 4/4; backend `opt-008` + Go tests green.
+
+---
+
+## Documentation audit (2026-11-25)
+
+Docs were reconciled with the code. The l10n template `app_en.arb` had Spanish
+values replaced with English for `authSignInTitle`, `authSignInBody`,
+`minigamesLeave`, `minigamesLeaveConfirm`, `menuSettings`, `menuSignIn`,
+`menuNotifications` and `minigamesScopeLabel`; `l10n.yaml` dropped the
+deprecated `synthetic-package` key; `docs/diagrams` were regenerated.

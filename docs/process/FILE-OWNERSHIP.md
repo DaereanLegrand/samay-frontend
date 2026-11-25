@@ -1,19 +1,20 @@
 # FILE OWNERSHIP MAP — Samay
 
 How file ownership works in this repo, and which paths need coordination
-before an edit. Ownership is enforced by the **file semaphore**
-(`tools/agent_lock.sh`) — see `docs/process/DEVELOPMENT-WORKFLOW.md` §2.
+before an edit. There is no lock tool in this repo; coordinate through the
+human — see `docs/process/DEVELOPMENT-WORKFLOW.md` §2.
 
 ## Rules
 
 1. **Default:** every path not listed below is free for any agent/human with a
-   legitimate need — take its lock first.
-2. **Always coordinate (⚙️) before editing** the paths in the table below:
-   acquire all locks you need up front, edit, release. If someone else holds a
-   lock, wait — never edit under a held lock, never delete another lock.
+   legitimate need.
+2. **Always coordinate (⚙️) before editing** the paths in the table below: tell
+   the human and check `git status` first, so you never edit over another
+   session's in-flight work.
 3. **Read-only for everyone (🔒)** except through an explicit human decision:
-   `repo-locks/*`, `tools/agent_lock.sh` itself, `.git/**`.
-4. Creating/renaming/deleting a file: lock the path too (both paths on rename).
+   `.git/**`.
+4. Creating/renaming/deleting a file: announce it so concurrent work is not
+   clobbered.
 
 ## Coordination-sensitive paths (⚙️)
 
@@ -27,18 +28,19 @@ before an edit. Ownership is enforced by the **file semaphore**
 | `lib/main.dart` | Bootstrap order (Supabase init, Hive, handlers) |
 | `lib/core/design_tokens/**`, `lib/core/theme/**` | Token/theme layer |
 | `lib/shared/widgets/**` | Shared component contracts |
-| `lib/core/services/chat_service.dart`, `lib/crypto/**` | E2EE chat stack — crypto changes must pair with opt-tests |
-| `pubspec.yaml` (+ generated lockfiles) | Dependency contract — testing deps were removed (directive 2026-08-31) |
+| `lib/crypto/**` | E2EE primitives used by the multiplayer answer cipher (`lib/features/minigames/logic/minigame_cipher.dart`) |
+| `pubspec.yaml` (+ generated lockfiles) | Dependency contract |
 | `Makefile` | Gate definitions (`make check` / `make test`) |
-| `tools/check_secrets.sh`, `tools/check_ports.sh`, `tools/hooks/pre-commit` | Repo gates — loosening them requires explicit human sign-off |
-| `supabase/migrations/**` ↔ `supabase-testing/migrations/**` | Byte-identical mirror rule; move both or neither |
-| `supabase/tests/schema_test.sql` ↔ `supabase-testing/tests/schema_test.sql` | pgTAP parity; keep `plan(N)` == assertion count |
-| `test/opt-NNN-*.sh` + `test/run_all_backend.sh` | Backend curl test suite — register new opt-tests in the runner |
+| `tools/check_secrets.sh`, `tools/hooks/pre-commit` | Repo gates — loosening them requires explicit human sign-off |
+| `test/opt-008-makefile-static.sh` | The only opt script in this repo — the Makefile static gate |
+
+Migrations and pgTAP live in the backend repo (single stack), not here.
 
 ## Dead paths
 
 Do not recreate: `docs/to-fix/`, `docs/audit/`, campaign-era docs,
-`DISCO-*` design docs (replaced by `docs/design/DESIGN.md`). Also dead
-(directive 2026-08-31): the Flutter/Dart test trees — `test/*.dart`,
-`test/support/`, `test/meta/conventions_test.dart`, `test_driver/`,
-`integration_test/` (flows + `runner.sh`). Testing is backend-only.
+`DISCO-*` design docs (replaced by `docs/design/DESIGN.md`).
+
+Dart unit tests live in `test/*.dart` and are welcome — Q16 rescinded the old
+2026-08-31 ban. `test/support/`, `test/meta/conventions_test.dart`,
+`test_driver/` and `integration_test/` remain absent by convention.

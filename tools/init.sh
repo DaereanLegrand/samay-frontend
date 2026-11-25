@@ -3,7 +3,7 @@
 #
 # There is no frontend env file. A local run reads the backend's
 # `../backend/.env/testing-local.env` (URL, anon key, OAuth ids) through the Makefile's
-# LOCAL_DEFINES, so one `make init APP=samay ENV=testing-local` in the backend is
+# LOCAL_DEFINES, so one `make init ENV=testing-local` in the backend is
 # all the configuration this app needs.
 #
 # Release ENVs (testing|staging|prod) read the vault via `make deploy`; there is
@@ -29,8 +29,8 @@ echo
 if [ ! -r "$BACKEND_ENV" ]; then
   echo "MISS $BACKEND_ENV" >&2
   echo "This app has no env file of its own. Configure the local backend first:" >&2
-  echo "  make -C ../backend init APP=samay ENV=testing-local" >&2
-  echo "  make -C ../backend start APP=samay ENV=testing-local" >&2
+  echo "  make -C ../backend init ENV=testing-local" >&2
+  echo "  make -C ../backend start ENV=testing-local" >&2
   exit 1
 fi
 

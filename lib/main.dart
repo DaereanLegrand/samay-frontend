@@ -168,8 +168,9 @@ Future<void> main() async {
   // captured: `uriLinkStream` delivers the initial link exactly once
   // (Android's native `initialLinkSent` guard) plus every later link, and
   // `DeepLinkListener` (mounted in SamayApp) forwards each to the handler.
-  // Platform config (Android intent-filter / iOS Associated Domains) is
-  // work — see DEPLOYMENT-PLACEHOLDER.md R01 (`app.samay.example.com`).
+  // Platform config: android/app/src/main/AndroidManifest.xml registers the
+  // /j/ link + samay://join, and ios/Runner/Runner.entitlements declares the
+  // associated domain. Both are tracked here.
   final container = ProviderContainer(
     overrides: [
       deepLinkStreamProvider.overrideWithValue(

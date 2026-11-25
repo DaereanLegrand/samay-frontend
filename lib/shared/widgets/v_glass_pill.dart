@@ -7,9 +7,9 @@ import 'package:samay/core/theme/app_palette_context.dart';
 ///
 /// A stadium capsule (a perfect circle on a square child) that blurs whatever
 /// is behind it: `ClipRRect` → [BackdropFilter] (blur 20) → a `surface` α0.1
-/// fill with a white α0.15 hairline. This is the exact recipe of the floating
-/// bottom-nav pill (`MainShell._FloatingNavBar`) and `VPillTabBar`, so every
-/// glass surface in the app reads the same.
+/// fill with a white α0.15 hairline. It is the blurred variant of the glass
+/// language; `VPillTabBar` shares the same palette (α0.85 track, α0.15
+/// hairline) without the blur, so every glass surface reads the same.
 ///
 /// The pill hugs its [child]'s size (plus [padding]); the child is painted ON
 /// TOP of the glass, un-clipped and untransformed, so a badge or a shadow that
@@ -34,7 +34,8 @@ class VGlassPill extends StatelessWidget {
   /// The pill's content, painted over the glass (never clipped or scaled).
   final Widget child;
 
-  /// Backdrop-blur sigma (logical px) at full reveal — matches the nav pill.
+  /// Backdrop-blur sigma (logical px) at full reveal — shared by every glass
+  /// surface in the app.
   final double blur;
 
   /// Optional inner padding so a bare glyph gets a capsule around it.

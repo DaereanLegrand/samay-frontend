@@ -3,16 +3,15 @@
 /// One validation pattern for every form in the app: field validators return
 /// a user-facing message or `null` (valid), [compose] chains several into a
 /// first-failure-wins pipeline, and [FormState] groups per-field errors for a
-/// whole form. Pure Dart, no BuildContext, no Flutter imports
-/// (mirrors `password_policy.dart` / `age_policy.dart`).
+/// whole form. Pure Dart, no BuildContext, no Flutter imports.
 ///
 /// Validators are strict on purpose: they validate what they receive. Callers
 /// sanitize first (`InputSanitizer`) and decide whether to trim; the only
 /// trimming built in is [requiredValidator]'s presence check (a
 /// whitespace-only field is empty). Error messages stay Spanish literals by
 /// default (BuildContext-free constants, same rationale as the error classes
-/// in `lib/core/errors/**` and `password_policy.dart`); screens pass their
-/// localized ARB string when they render the error.
+/// in `lib/core/errors/**`); screens pass their localized ARB string when they
+/// render the error.
 ///
 /// NOTE: [FormState] shadows Flutter's `FormState` (widgets). Files that also
 /// import `package:flutter/material.dart` should import this library with a
