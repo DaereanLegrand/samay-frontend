@@ -433,7 +433,7 @@
   "@shellEvents": {
     "description": "Bottom navigation tab label"
   },
-  "shellNotifications": "Notis",
+  "shellNotifications": "Notifications",
   "@shellNotifications": {
     "description": "Bottom navigation tab label"
   },
@@ -1073,7 +1073,7 @@
   "@settingsServiceTermsBody": {
     "description": "Static service-terms body on the privacy info screen"
   },
-  "notificationSettingsTitle": "notis",
+  "notificationSettingsTitle": "notifications",
   "@notificationSettingsTitle": {
     "description": "Notification-settings screen app bar title"
   },
@@ -1709,7 +1709,7 @@
   "@permissionsOpenSettings": {
     "description": "Dialog action that opens the system app settings"
   },
-  "notificationsTitle": "notis",
+  "notificationsTitle": "notifications",
   "@notificationsTitle": {
     "description": "Notification center app bar title"
   },
@@ -1896,7 +1896,7 @@
   "@eventsTypeCasualDescription": {
     "description": "Event type chip helper text for casual events"
   },
-  "eventsTypeJuerga": "Juerga",
+  "eventsTypeJuerga": "Party",
   "@eventsTypeJuerga": {
     "description": "Event type chip: juerga (private venue)"
   },
@@ -1904,7 +1904,7 @@
   "@eventsTypeJuergaDescription": {
     "description": "Event type chip helper text for juerga events"
   },
-  "eventsTypeTono": "Tono",
+  "eventsTypeTono": "Club night",
   "@eventsTypeTono": {
     "description": "Event type chip: tono (public venue, bar or club)"
   },
@@ -2628,7 +2628,7 @@
   "@minigamesNewPartida": {
     "description": "Create-partida flow: default capitalized form. The wizard AppBar title lowercases it (minigamesNewPartida.toLowerCase()); the detail CTA uses it as-is."
   },
-  "minigamesScopeLabel": "Partida",
+  "minigamesScopeLabel": "Game",
   "@minigamesScopeLabel": {
     "description": "Create-partida wizard: section title above the Directa/Grupo scope toggle"
   },
@@ -3469,7 +3469,7 @@
   "@minigamesRemovePlayer": {
     "description": "Partida lobby: creator-only tooltip/action to remove a participant"
   },
-  "minigamesRemovePlayerConfirm": "Remove {name} from this partida?",
+  "minigamesRemovePlayerConfirm": "Remove {name} from this game?",
   "@minigamesRemovePlayerConfirm": {
     "description": "Partida lobby: confirmation dialog title before removing a participant",
     "placeholders": {
@@ -3924,7 +3924,7 @@
   "@minigamesJoinCodeTitle": {
     "description": "E4 code-only matches"
   },
-  "minigamesJoinCodeHint": "Ask the host for the 6-character code of a direct partida.",
+  "minigamesJoinCodeHint": "Ask the host for the 6-character code of a direct game.",
   "@minigamesJoinCodeHint": {
     "description": "E4 code-only matches"
   },
@@ -3936,7 +3936,7 @@
   "@minigamesJoinCodePlaceholder": {
     "description": "E4 code-only matches"
   },
-  "minigamesJoinCodeShareTitle": "Partida code",
+  "minigamesJoinCodeShareTitle": "Game code",
   "@minigamesJoinCodeShareTitle": {
     "description": "E4 code-only matches"
   },
@@ -4245,11 +4245,11 @@
   "@onboardingDeclinedBack": {
     "description": "Declined screen: button returning to the consent screen"
   },
-  "authSignInTitle": "iniciar sesión",
+  "authSignInTitle": "sign in",
   "@authSignInTitle": {
     "description": "Optional account upgrade screen title (also used as the menu row)"
   },
-  "authSignInBody": "Puedes jugar sin cuenta. Si inicias sesión con Apple o Google, tu progreso queda guardado y lo recuperas en otro dispositivo.",
+  "authSignInBody": "You can play without an account. If you sign in with Apple or Google, your progress is saved and you get it back on another device.",
   "@authSignInBody": {
     "description": "Optional account upgrade: explains guest play and what signing in adds"
   },
@@ -4319,11 +4319,11 @@
   "@minigamesLocalMode": {
     "description": "Mode label: single-device play"
   },
-  "minigamesLeave": "salir de la partida",
+  "minigamesLeave": "leave the game",
   "@minigamesLeave": {
     "description": "Lobby: participant leaves the partida"
   },
-  "minigamesLeaveConfirm": "¿Salir de esta partida?",
+  "minigamesLeaveConfirm": "Leave this game?",
   "@minigamesLeaveConfirm": {
     "description": "Lobby: confirmation before leaving the partida"
   },
@@ -4337,23 +4337,23 @@
   "@menuSocial": {
     "description": "Games menu: opens friends and groups"
   },
-  "menuPacks": "paquetes",
+  "menuPacks": "packs",
   "@menuPacks": {
     "description": "Games menu: opens the prompt-pack catalogue"
   },
-  "menuNotifications": "notis",
+  "menuNotifications": "notifications",
   "@menuNotifications": {
     "description": "Games menu: opens the notification center"
   },
-  "menuProfile": "perfil",
+  "menuProfile": "profile",
   "@menuProfile": {
     "description": "Games menu: opens the profile"
   },
-  "menuSettings": "ajustes",
+  "menuSettings": "settings",
   "@menuSettings": {
     "description": "Games menu: opens settings"
   },
-  "menuSignIn": "iniciar sesión",
+  "menuSignIn": "sign in",
   "@menuSignIn": {
     "description": "Games menu: optional Apple/Google sign-in (guests only)"
   },

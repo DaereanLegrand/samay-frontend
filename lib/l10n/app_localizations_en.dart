@@ -334,7 +334,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get shellEvents => 'Events';
 
   @override
-  String get shellNotifications => 'Notis';
+  String get shellNotifications => 'Notifications';
 
   @override
   String get shellProfile => 'Profile';
@@ -810,7 +810,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'By using Samay you agree to behave respectfully: no harassment, no spam, and no inappropriate content. Misuse may lead to account suspension.';
 
   @override
-  String get notificationSettingsTitle => 'notis';
+  String get notificationSettingsTitle => 'notifications';
 
   @override
   String get notificationSettingsLocalNote =>
@@ -1300,7 +1300,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get permissionsOpenSettings => 'Open Settings';
 
   @override
-  String get notificationsTitle => 'notis';
+  String get notificationsTitle => 'notifications';
 
   @override
   String get notificationSettingsEventReminders => 'Event reminders';
@@ -1441,14 +1441,14 @@ class AppLocalizationsEn extends AppLocalizations {
       'Movies, dinner, informal — no preshards';
 
   @override
-  String get eventsTypeJuerga => 'Juerga';
+  String get eventsTypeJuerga => 'Party';
 
   @override
   String get eventsTypeJuergaDescription =>
       'Private venue — invitees will see the address';
 
   @override
-  String get eventsTypeTono => 'Tono';
+  String get eventsTypeTono => 'Club night';
 
   @override
   String get eventsTypeTonoDescription => 'Public venue, bar or club';
@@ -2091,7 +2091,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get minigamesJoinCodeHint =>
-      'Ask the host for the 6-character code of a direct partida.';
+      'Ask the host for the 6-character code of a direct game.';
 
   @override
   String get minigamesJoinCodeButton => 'Join with code';
@@ -2100,7 +2100,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get minigamesJoinCodePlaceholder => 'ABC234';
 
   @override
-  String get minigamesJoinCodeShareTitle => 'Partida code';
+  String get minigamesJoinCodeShareTitle => 'Game code';
 
   @override
   String minigamesJoinCodeShareBody(String code) {
@@ -2218,7 +2218,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get minigamesNewPartida => 'New game';
 
   @override
-  String get minigamesScopeLabel => 'Partida';
+  String get minigamesScopeLabel => 'Game';
 
   @override
   String get minigamesPartidaNameLabel => 'Name (optional)';
@@ -2824,7 +2824,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String minigamesRemovePlayerConfirm(String name) {
-    return 'Remove $name from this partida?';
+    return 'Remove $name from this game?';
   }
 
   @override
@@ -3335,11 +3335,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get onboardingDeclinedBack => 'back to the terms';
 
   @override
-  String get authSignInTitle => 'iniciar sesión';
+  String get authSignInTitle => 'sign in';
 
   @override
   String get authSignInBody =>
-      'Puedes jugar sin cuenta. Si inicias sesión con Apple o Google, tu progreso queda guardado y lo recuperas en otro dispositivo.';
+      'You can play without an account. If you sign in with Apple or Google, your progress is saved and you get it back on another device.';
 
   @override
   String get minigamesLocalNeedPlayers => 'Add at least two players.';
@@ -3390,10 +3390,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get minigamesLocalMode => 'one phone';
 
   @override
-  String get minigamesLeave => 'salir de la partida';
+  String get minigamesLeave => 'leave the game';
 
   @override
-  String get minigamesLeaveConfirm => '¿Salir de esta partida?';
+  String get minigamesLeaveConfirm => 'Leave this game?';
 
   @override
   String get onboardingAcceptTerms => 'Terms';
@@ -3417,19 +3417,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get menuSocial => 'social';
 
   @override
-  String get menuPacks => 'paquetes';
+  String get menuPacks => 'packs';
 
   @override
-  String get menuNotifications => 'notis';
+  String get menuNotifications => 'notifications';
 
   @override
-  String get menuProfile => 'perfil';
+  String get menuProfile => 'profile';
 
   @override
-  String get menuSettings => 'ajustes';
+  String get menuSettings => 'settings';
 
   @override
-  String get menuSignIn => 'iniciar sesión';
+  String get menuSignIn => 'sign in';
 
   @override
   String get minigamesLobbyPlayersQuestion => 'How many are playing?';
