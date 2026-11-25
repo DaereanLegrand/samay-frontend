@@ -2243,7 +2243,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get minigamesDetailEmptyBody =>
-      'Tap \"New game\" to start the first one.';
+      'Tap \"Play now\" to play the first one.';
 
   @override
   String get minigamesWagerDefaultHint => 'Default: 10';
@@ -3378,10 +3378,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get minigamesLocalNoPrompt => 'No prompt for this round.';
 
   @override
-  String get minigamesLocalDone => 'done';
+  String get minigamesLocalDone => 'Done';
 
   @override
-  String get minigamesLocalSkip => 'skip';
+  String get minigamesLocalSkip => 'Skip';
 
   @override
   String get minigamesLocalSingleDevice => 'on this phone';
@@ -3405,7 +3405,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get onboardingAcceptPrivacy => 'Privacy Policy';
 
   @override
-  String get minigamesPlayNow => 'play now';
+  String get minigamesPlayNow => 'Play now';
 
   @override
   String get minigamesChoosePlayers => 'choose players';
@@ -3620,4 +3620,28 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get minigamesLobbyReorderHint => 'Hold and drag to change the order';
+
+  @override
+  String get minigamesLocalRecent => 'recent';
+
+  @override
+  String minigamesLocalRecord(int wins, int played) {
+    return '$wins wins · $played games';
+  }
+
+  @override
+  String minigamesLocalRoundsPlayed(int count) {
+    return '$count rounds';
+  }
+
+  @override
+  String get minigamesLobbyPlayedWith => 'People you\'ve played with';
+
+  @override
+  String get minigamesLobbyRoundsPerPlayerTitle => 'Rounds per player';
+
+  @override
+  String minigamesLobbyRoundsTotal(int count) {
+    return '$count rounds in total';
+  }
 }

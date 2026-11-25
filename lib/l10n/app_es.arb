@@ -2978,7 +2978,7 @@
       }
     }
   },
-  "minigamesDetailEmptyBody": "Toca «Nueva partida» para crear la primera.",
+  "minigamesDetailEmptyBody": "Toca «Jugar ahora» para jugar la primera.",
   "@minigamesDetailEmptyBody": {
     "description": "Per-game page: empty state body prompting the user to start the first partida"
   },
@@ -4303,11 +4303,11 @@
   "@minigamesLocalNoPrompt": {
     "description": "Single-device turn: pack has no prompt left"
   },
-  "minigamesLocalDone": "listo",
+  "minigamesLocalDone": "Listo",
   "@minigamesLocalDone": {
     "description": "Single-device turn: the player completed the prompt"
   },
-  "minigamesLocalSkip": "pasar",
+  "minigamesLocalSkip": "Pasar",
   "@minigamesLocalSkip": {
     "description": "Single-device turn: the player passed"
   },
@@ -4330,7 +4330,7 @@
   "onboardingAcceptTerms": "Términos",
   "onboardingAcceptAnd": "y la",
   "onboardingAcceptPrivacy": "Política de Privacidad",
-  "minigamesPlayNow": "jugar ahora",
+  "minigamesPlayNow": "Jugar ahora",
   "minigamesChoosePlayers": "elegir jugadores",
   "minigamesEditPlayers": "jugadores",
   "menuSocial": "social",
@@ -4628,5 +4628,47 @@
   "minigamesLobbyReorderHint": "Mantén y arrastra para cambiar el orden",
   "@minigamesLobbyReorderHint": {
     "description": "Roster: explains the drag handle"
+  },
+  "minigamesLocalRecent": "recientes",
+  "@minigamesLocalRecent": {
+    "description": "Local leaderboard: heading of the most recent matches"
+  },
+  "minigamesLocalRecord": "{wins} victorias · {played} partidas",
+  "@minigamesLocalRecord": {
+    "description": "Local leaderboard: a player's wins and games played",
+    "placeholders": {
+      "wins": {
+        "type": "int"
+      },
+      "played": {
+        "type": "int"
+      }
+    }
+  },
+  "minigamesLocalRoundsPlayed": "{count} rondas",
+  "@minigamesLocalRoundsPlayed": {
+    "description": "Local scoreboard: rounds played in the match",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "minigamesLobbyPlayedWith": "Con quienes has jugado",
+  "@minigamesLobbyPlayedWith": {
+    "description": "Lobby count step: heading of the known-player chips"
+  },
+  "minigamesLobbyRoundsPerPlayerTitle": "Rondas por jugador",
+  "@minigamesLobbyRoundsPerPlayerTitle": {
+    "description": "Lobby knobs: rounds are per player so every seat plays the same"
+  },
+  "minigamesLobbyRoundsTotal": "{count} rondas en total",
+  "@minigamesLobbyRoundsTotal": {
+    "description": "Lobby knobs: total rounds the table will play",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   }
 }

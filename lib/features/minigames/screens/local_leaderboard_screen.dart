@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive/hive.dart';
-import 'package:samay/core/design_tokens/app_colors.dart';
 import 'package:samay/core/design_tokens/app_spacing.dart';
+import 'package:samay/core/design_tokens/app_typography.dart';
 import 'package:samay/core/services/storage_service.dart';
 import 'package:samay/core/theme/app_palette_context.dart';
 import 'package:samay/features/minigames/local/local_match_store.dart';
 import 'package:samay/features/minigames/widgets/minigame_header_title.dart';
+import 'package:samay/features/minigames/widgets/minigame_rank_row.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/v_header_bar.dart';
 
@@ -35,8 +36,7 @@ class LocalHistory {
 final localHistoryProvider = FutureProvider<LocalHistory>((ref) async {
   try {
     final store = HiveLocalMatchStore(
-      openBox: () async =>
-          Hive.box<String>(HiveService.minigameSummaryBoxName),
+      openBox: () async => Hive.box<String>(HiveService.minigameSummaryBoxName),
     );
     final summaries = await store.recent();
     if (summaries.isEmpty) return LocalHistory.empty;
@@ -57,14 +57,15 @@ final localHistoryProvider = FutureProvider<LocalHistory>((ref) async {
         wins[entries.first.key] = (wins[entries.first.key] ?? 0) + 1;
       }
     }
-    final rows = [
-      for (final name in games.keys)
-        (name: name, wins: wins[name] ?? 0, games: games[name] ?? 0),
-    ]..sort((a, b) {
-        final byWins = b.wins.compareTo(a.wins);
-        if (byWins != 0) return byWins;
-        return b.games.compareTo(a.games);
-      });
+    final rows =
+        [
+          for (final name in games.keys)
+            (name: name, wins: wins[name] ?? 0, games: games[name] ?? 0),
+        ]..sort((a, b) {
+          final byWins = b.wins.compareTo(a.wins);
+          if (byWins != 0) return byWins;
+          return b.games.compareTo(a.games);
+        });
     return LocalHistory(
       rows: rows,
       matches: summaries.length,
@@ -110,102 +111,39 @@ class LocalLeaderboardScreen extends ConsumerWidget {
                 children: [
                   const SizedBox(height: AppSpacing.lg),
                   Text(
-                    l10n.minigamesLeaderboardGames(history.matches).toUpperCase(),
-                    style: Theme.of(context).textTheme.titleSmall,
+                    l10n
+                        .minigamesLeaderboardGames(history.matches)
+                        .toUpperCase(),
+                    style: AppTypography.labelSmall.copyWith(
+                      color: context.palette.mutedForeground,
+                      letterSpacing: 1.2,
+                    ),
                   ),
-                  const SizedBox(height: AppSpacing.md),
+                  const SizedBox(height: AppSpacing.xs),
                   for (var i = 0; i < history.rows.length; i++)
-                    _RankRow(
+                    MinigameRankRow(
                       rank: i + 1,
                       name: history.rows[i].name,
-                      wins: history.rows[i].wins,
-                      games: history.rows[i].games,
+                      meta: l10n.minigamesLocalRecord(
+                        history.rows[i].wins,
+                        history.rows[i].games,
+                      ),
+                      divider: i < history.rows.length - 1,
                     ),
                   const SizedBox(height: AppSpacing.xl),
                   Text(
-                    l10n.minigamesLocalPlayAgain.toUpperCase(),
-                    style: Theme.of(context).textTheme.titleSmall,
+                    l10n.minigamesLocalRecent.toUpperCase(),
+                    style: AppTypography.labelSmall.copyWith(
+                      color: context.palette.mutedForeground,
+                      letterSpacing: 1.2,
+                    ),
                   ),
-                  const SizedBox(height: AppSpacing.md),
-                  for (final summary in history.recent) _RecentRow(summary: summary),
+                  const SizedBox(height: AppSpacing.xs),
+                  for (final summary in history.recent)
+                    _RecentRow(summary: summary),
                   const SizedBox(height: AppSpacing.xl),
                 ],
               ),
-      ),
-    );
-  }
-}
-
-class _RankRow extends StatelessWidget {
-  const _RankRow({
-    required this.rank,
-    required this.name,
-    required this.wins,
-    required this.games,
-  });
-
-  final int rank;
-  final String name;
-  final int wins;
-  final int games;
-
-  Color? get _podium => switch (rank) {
-    1 => AppColors.discoGold,
-    2 => AppColors.discoSilver,
-    3 => AppColors.discoBronze,
-    _ => null,
-  };
-
-  @override
-  Widget build(BuildContext context) {
-    final accent = _podium;
-    return Container(
-      margin: const EdgeInsets.only(bottom: AppSpacing.xs),
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.md,
-        vertical: AppSpacing.sm,
-      ),
-      decoration: BoxDecoration(
-        color: context.palette.surfaceAlt,
-        border: Border.all(
-          color: accent ?? context.palette.hairline,
-          width: accent == null ? 1 : 2,
-        ),
-      ),
-      child: Row(
-        children: [
-          SizedBox(
-            width: 26,
-            child: Text(
-              '$rank',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                color: accent ?? context.palette.mutedForeground,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-          ),
-          Expanded(
-            child: Text(
-              name,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.bodyLarge,
-            ),
-          ),
-          Text(
-            '$wins',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-          const SizedBox(width: AppSpacing.xs),
-          Text(
-            '/ $games',
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: context.palette.mutedForeground,
-            ),
-          ),
-        ],
       ),
     );
   }

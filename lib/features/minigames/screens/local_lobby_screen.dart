@@ -25,16 +25,15 @@ import 'package:samay/shared/widgets/v_input.dart';
 ///
 /// Three steps, in order, and nothing else:
 ///
-/// 1. **How many are playing?** A number field; fewer than [LocalRoster.
-///    minPlayers] never starts.
-/// 2. **One name per seat.** The name field asks "escribe tu nombre o alias"
-///    and the sheet says "pasa el teléfono a la persona de tu derecha" between
-///    entries, until the roster is full.
+/// 1. **Who is playing?** The table's size (stepper OR typed), the saved
+///    groups (one tap loads that table) and the people this device has already
+///    played with (one tap adds them).
+/// 2. **One name per seat.** Only the seats still empty ask for a name.
 /// 3. **Save the group?** So the same table can play again without typing.
 ///
 /// Then the roster screen: symbol-only edit/delete per player, symbol-only add,
-/// the game's own knobs (rounds or turn seconds + deck) and ONE big circular
-/// play control in the bottom-right corner.
+/// the game's own knobs (rounds per player or turn seconds + deck) and ONE big
+/// circular play control in the bottom-right corner.
 class LocalLobbyScreen extends ConsumerStatefulWidget {
   const LocalLobbyScreen({super.key, required this.gameType});
 
@@ -51,16 +50,52 @@ class _LocalLobbyScreenState extends ConsumerState<LocalLobbyScreen> {
 
   final _name = TextEditingController();
   final _groupName = TextEditingController();
+  final _count = TextEditingController();
 
   /// The names typed so far — the thing the roster is built from.
   final List<String> _pending = [];
   int _total = LocalRoster.minPlayers;
 
   @override
+  void initState() {
+    super.initState();
+    _count.text = '$_total';
+  }
+
+  @override
   void dispose() {
     _name.dispose();
     _groupName.dispose();
+    _count.dispose();
     super.dispose();
+  }
+
+  /// Keeps the typed count inside the playable bounds without fighting the
+  /// field while it is being edited.
+  void _setCount(int value) {
+    final next = value.clamp(_minPlayers, _maxPlayers);
+    setState(() => _total = next);
+    final text = '$next';
+    if (_count.text != text) {
+      _count.value = TextEditingValue(
+        text: text,
+        selection: TextSelection.collapsed(offset: text.length),
+      );
+    }
+  }
+
+  /// Adds a name straight to the roster (a person you've played with). Grows
+  /// the table when it was full, so the tap always does what it says.
+  void _addKnownPlayer(String name) {
+    final clean = name.trim();
+    if (clean.isEmpty) return;
+    if (_pending.any((n) => n.toLowerCase() == clean.toLowerCase())) return;
+    setState(() {
+      _pending.add(clean);
+      if (_pending.length > _total) {
+        _total = _pending.length.clamp(_minPlayers, _maxPlayers);
+      }
+    });
   }
 
   LocalRoster get _roster => ref.watch(localRosterProvider(widget.gameType));
@@ -73,18 +108,18 @@ class _LocalLobbyScreenState extends ConsumerState<LocalLobbyScreen> {
   /// [_maxPlayers].
   int get _minPlayers => LocalRoster.minPlayers;
 
-  void _bumpCount(int delta) {
-    setState(() {
-      _total = (_total + delta).clamp(_minPlayers, _maxPlayers);
-    });
-  }
+  void _bumpCount(int delta) => _setCount(_total + delta);
 
   void _startCollecting() {
     setState(() {
       _total = _total.clamp(_minPlayers, _maxPlayers);
-      _pending.clear();
       _name.clear();
-      _step = _LobbyStep.collect;
+      if (_pending.length >= _total) {
+        _groupName.text = LocalGroup.suggestedName(_pending);
+        _step = _LobbyStep.save;
+      } else {
+        _step = _LobbyStep.collect;
+      }
     });
   }
 
@@ -106,9 +141,9 @@ class _LocalLobbyScreenState extends ConsumerState<LocalLobbyScreen> {
   }
 
   void _finishCollecting() {
-    ref
-        .read(localRosterProvider(widget.gameType).notifier)
-        .setPlayers([..._pending]);
+    ref.read(localRosterProvider(widget.gameType).notifier).setPlayers([
+      ..._pending,
+    ]);
     setState(() => _step = _LobbyStep.roster);
   }
 
@@ -159,18 +194,47 @@ class _LocalLobbyScreenState extends ConsumerState<LocalLobbyScreen> {
   // ── Step 1: how many ──────────────────────────────────────────────────────
 
   Widget _countStep(BuildContext context, AppLocalizations l10n) {
+    final known = ref.watch(playedWithNamesProvider).valueOrNull ?? const [];
     return _LobbyStepLayout(
       title: l10n.minigamesLobbyPlayersQuestion,
-      subtitle: l10n.minigamesLobbyPlayersHint,
       action: VButton.emphasized(
         label: l10n.commonContinue,
         onPressed: _startCollecting,
       ),
-      child: _CountStepper(
-        value: _total,
-        min: _minPlayers,
-        max: _maxPlayers,
-        onStep: _bumpCount,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _CountStepper(
+            value: _total,
+            min: _minPlayers,
+            max: _maxPlayers,
+            controller: _count,
+            onStep: _bumpCount,
+            onTyped: (raw) => _setCount(int.tryParse(raw) ?? _total),
+          ),
+          if (known.isNotEmpty) ...[
+            const SizedBox(height: AppSpacing.xl),
+            _SectionLabel(l10n.minigamesLobbyPlayedWith),
+            const SizedBox(height: AppSpacing.sm),
+            Wrap(
+              alignment: WrapAlignment.center,
+              spacing: AppSpacing.sm,
+              runSpacing: AppSpacing.sm,
+              children: [
+                for (final name in known)
+                  _KnownPlayerChip(
+                    name: name,
+                    added: _pending.any(
+                      (n) => n.toLowerCase() == name.toLowerCase(),
+                    ),
+                    onTap: () => _addKnownPlayer(name),
+                  ),
+              ],
+            ),
+          ],
+          _SavedGroups(onUse: _useGroup),
+        ],
       ),
     );
   }
@@ -179,6 +243,17 @@ class _LocalLobbyScreenState extends ConsumerState<LocalLobbyScreen> {
 
   Widget _collectStep(BuildContext context, AppLocalizations l10n) {
     final next = _pending.length + 1;
+    if (_pending.length >= _total) {
+      // The count step let the table pre-load people; every seat is taken.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && _step == _LobbyStep.collect) {
+          setState(() {
+            _groupName.text = LocalGroup.suggestedName(_pending);
+            _step = _LobbyStep.save;
+          });
+        }
+      });
+    }
     return _LobbyStepLayout(
       // Humans count from 1: the line names the seat being filled (1..total).
       overline: l10n.minigamesLobbyNamesProgress(next, _total),
@@ -207,9 +282,7 @@ class _LocalLobbyScreenState extends ConsumerState<LocalLobbyScreen> {
               alignment: WrapAlignment.center,
               spacing: AppSpacing.sm,
               runSpacing: AppSpacing.sm,
-              children: [
-                for (final name in _pending) _PlayerPill(name: name),
-              ],
+              children: [for (final name in _pending) _PlayerPill(name: name)],
             ),
           ],
         ],
@@ -245,15 +318,10 @@ class _LocalLobbyScreenState extends ConsumerState<LocalLobbyScreen> {
             alignment: WrapAlignment.center,
             spacing: AppSpacing.sm,
             runSpacing: AppSpacing.sm,
-            children: [
-              for (final name in _pending) _PlayerPill(name: name),
-            ],
+            children: [for (final name in _pending) _PlayerPill(name: name)],
           ),
           const SizedBox(height: AppSpacing.xl),
-          _BigNameField(
-            controller: _groupName,
-            onSubmitted: (_) {},
-          ),
+          _BigNameField(controller: _groupName, onSubmitted: (_) {}),
         ],
       ),
     );
@@ -263,7 +331,6 @@ class _LocalLobbyScreenState extends ConsumerState<LocalLobbyScreen> {
 
   Widget _rosterStep(BuildContext context, AppLocalizations l10n) {
     final roster = _roster;
-    final count = roster.players.length;
     return Stack(
       children: [
         Positioned.fill(
@@ -276,33 +343,6 @@ class _LocalLobbyScreenState extends ConsumerState<LocalLobbyScreen> {
             ),
             children: [
               VDisplayText(text: l10n.minigamesLobbyPlayersTitle, maxLines: 2),
-              const SizedBox(height: AppSpacing.sm),
-              Row(
-                children: [
-                  Text(
-                    l10n.minigamesLobbyPlayerCount(count),
-                    style: AppTypography.bodyLarge.copyWith(
-                      color: context.palette.mutedForeground,
-                    ),
-                  ),
-                  Text(
-                    ' · ',
-                    style: AppTypography.bodyLarge.copyWith(
-                      color: context.palette.mutedForeground,
-                    ),
-                  ),
-                  Expanded(
-                    child: Text(
-                      '${l10n.minigamesLobbyRosterHint} · ${l10n.minigamesLobbyReorderHint}',
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppTypography.bodySmall.copyWith(
-                        color: context.palette.mutedForeground,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
               const SizedBox(height: AppSpacing.xl),
               _RosterList(
                 players: roster.players,
@@ -323,8 +363,6 @@ class _LocalLobbyScreenState extends ConsumerState<LocalLobbyScreen> {
               ),
               const SizedBox(height: AppSpacing.xxl),
               _GameKnobs(gameType: widget.gameType),
-              const SizedBox(height: AppSpacing.xxl),
-              _SavedGroups(onUse: _useGroup),
             ],
           ),
         ),
@@ -382,19 +420,25 @@ class _LocalLobbyScreenState extends ConsumerState<LocalLobbyScreen> {
       context: context,
       isScrollControlled: true,
       backgroundColor: context.palette.surfaceAlt,
-      builder: (_) => _PromptSheet(
-        title: title,
-        initial: initial,
-        autofocus: false,
-      ),
+      builder: (_) =>
+          _PromptSheet(title: title, initial: initial, autofocus: false),
     );
   }
 
   void _useGroup(LocalGroup group) {
-    ref
-        .read(localRosterProvider(widget.gameType).notifier)
-        .setPlayers(group.playerNames);
-    setState(() {});
+    final names = [
+      for (final name in group.playerNames)
+        if (name.trim().isNotEmpty) name.trim(),
+    ];
+    if (names.isEmpty) return;
+    setState(() {
+      _pending
+        ..clear()
+        ..addAll(names);
+      _total = names.length.clamp(_minPlayers, _maxPlayers);
+      _step = _LobbyStep.roster;
+    });
+    _finishCollecting();
   }
 }
 
@@ -614,7 +658,6 @@ class _GameKnobs extends ConsumerWidget {
             presets: const [30, 60, 90],
             value: roster.seconds,
             format: l10n.charadesSeconds,
-            customLabel: l10n.minigamesLobbyCustom,
             onPreset: notifier.setSeconds,
             customTitle: l10n.minigamesLobbyCustomSeconds,
             min: 5,
@@ -639,18 +682,26 @@ class _GameKnobs extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _SectionLabel(l10n.minigamesLobbyRoundsTitle),
+        // Rounds are PER PLAYER: every seat gets the same number of turns, so
+        // the match is fair however many are playing.
+        _SectionLabel(l10n.minigamesLobbyRoundsPerPlayerTitle),
         const SizedBox(height: AppSpacing.sm),
         _PresetPicker(
-          presets: const [3, 5, 10, 15],
+          presets: const [3, 5, 7],
           value: roster.rounds,
           format: (n) => '$n',
-          customLabel: l10n.minigamesLobbyCustom,
           onPreset: notifier.setRounds,
           customTitle: l10n.minigamesLobbyCustomRounds,
           min: 1,
           max: 99,
           onCustom: notifier.setRounds,
+        ),
+        const SizedBox(height: AppSpacing.xs),
+        Text(
+          l10n.minigamesLobbyRoundsTotal(roster.rounds * roster.players.length),
+          style: AppTypography.bodySmall.copyWith(
+            color: context.palette.mutedForeground,
+          ),
         ),
       ],
     );
@@ -667,6 +718,69 @@ class _GameKnobs extends ConsumerWidget {
       'Food' => l10n.charadesCategoryFood,
       _ => deck.id,
     };
+  }
+}
+
+/// One person the device has already played with: a quiet pill that fills with
+/// a check once they hold a seat, so a tap both adds and confirms.
+class _KnownPlayerChip extends StatelessWidget {
+  const _KnownPlayerChip({
+    required this.name,
+    required this.added,
+    required this.onTap,
+  });
+
+  final String name;
+  final bool added;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      selected: added,
+      label: name,
+      child: Material(
+        color: added ? context.palette.foreground : context.palette.surfaceAlt,
+        shape: StadiumBorder(
+          side: BorderSide(
+            color: added ? Colors.transparent : context.palette.hairline,
+          ),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.md,
+              vertical: AppSpacing.sm,
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  added ? Icons.check : Icons.add,
+                  size: 14,
+                  color: added
+                      ? context.palette.background
+                      : context.palette.mutedForeground,
+                ),
+                const SizedBox(width: AppSpacing.xs),
+                Text(
+                  name,
+                  style: AppTypography.bodyMedium.copyWith(
+                    color: added
+                        ? context.palette.background
+                        : context.palette.foreground,
+                    fontWeight: added ? FontWeight.w700 : FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }
 
@@ -699,75 +813,94 @@ class _SavedGroups extends ConsumerWidget {
     final l10n = AppLocalizations.of(context);
     final groups =
         ref.watch(savedLocalGroupsProvider).valueOrNull ?? const <LocalGroup>[];
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _SectionLabel(l10n.minigamesLobbySavedGroups),
-        const SizedBox(height: AppSpacing.sm),
-        if (groups.isEmpty)
-          Text(
-            l10n.minigamesLobbyNoSavedGroups,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: context.palette.mutedForeground,
-            ),
-          )
-        else
-          for (final group in groups)
-            Container(
-              margin: const EdgeInsets.only(bottom: AppSpacing.sm),
-              padding: const EdgeInsets.fromLTRB(
-                AppSpacing.lg,
-                AppSpacing.sm,
-                AppSpacing.xs,
-                AppSpacing.sm,
+    return Padding(
+      padding: const EdgeInsets.only(top: AppSpacing.xl),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _SectionLabel(l10n.minigamesLobbySavedGroups),
+          const SizedBox(height: AppSpacing.sm),
+          if (groups.isEmpty)
+            Text(
+              l10n.minigamesLobbyNoSavedGroups,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: context.palette.mutedForeground,
               ),
-              decoration: BoxDecoration(
-                color: context.palette.surfaceAlt,
-                borderRadius: BorderRadius.circular(AppRadius.full),
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          group.name,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: AppTypography.bodyLarge.copyWith(
-                            color: context.palette.foreground,
-                            fontWeight: FontWeight.w600,
+            )
+          else
+            for (final group in groups)
+              Padding(
+                padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+                child: Material(
+                  color: context.palette.surfaceAlt,
+                  shape: const StadiumBorder(),
+                  clipBehavior: Clip.antiAlias,
+                  // The WHOLE row loads the table: the glyph is the hint, not
+                  // the only target (a 48px dot was the whole affordance).
+                  child: InkWell(
+                    onTap: () => onUse(group),
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(
+                        AppSpacing.lg,
+                        AppSpacing.sm,
+                        AppSpacing.xs,
+                        AppSpacing.sm,
+                      ),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  group.name,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: AppTypography.bodyLarge.copyWith(
+                                    color: context.palette.foreground,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                Text(
+                                  // The roster itself, so two tables that
+                                  // suggest the same name still differ. When
+                                  // they coincide the count is the useful
+                                  // second line.
+                                  group.playerNames.join(', ') == group.name
+                                      ? l10n.minigamesLobbyPlayerCount(
+                                          group.playerNames.length,
+                                        )
+                                      : group.playerNames.join(', '),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: AppTypography.bodySmall.copyWith(
+                                    color: context.palette.mutedForeground,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
-                        Text(
-                          group.playerNames.join(', '),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: AppTypography.bodySmall.copyWith(
-                            color: context.palette.mutedForeground,
+                          _CircleIconButton(
+                            icon: Icons.play_arrow_rounded,
+                            tooltip: l10n.minigamesLobbyUseGroup,
+                            onPressed: () => onUse(group),
                           ),
-                        ),
-                      ],
+                          const SizedBox(width: AppSpacing.xs),
+                          _CircleIconButton(
+                            icon: Icons.close,
+                            tooltip: l10n.minigamesLobbyDeleteGroup,
+                            onPressed: () => ref
+                                .read(savedLocalGroupsProvider.notifier)
+                                .delete(group.id),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                  _CircleIconButton(
-                    icon: Icons.play_arrow_rounded,
-                    tooltip: l10n.minigamesLobbyUseGroup,
-                    onPressed: () => onUse(group),
-                  ),
-                  const SizedBox(width: AppSpacing.xs),
-                  _CircleIconButton(
-                    icon: Icons.close,
-                    tooltip: l10n.minigamesLobbyDeleteGroup,
-                    onPressed: () => ref
-                        .read(savedLocalGroupsProvider.notifier)
-                        .delete(group.id),
-                  ),
-                ],
+                ),
               ),
-            ),
-      ],
+        ],
+      ),
     );
   }
 }
@@ -783,13 +916,23 @@ class _CountStepper extends StatelessWidget {
     required this.value,
     required this.min,
     required this.max,
+    required this.controller,
     required this.onStep,
+    required this.onTyped,
   });
 
   final int value;
   final int min;
   final int max;
+
+  /// The live number the table can also TYPE (the field is the number itself,
+  /// so the steppers and the keyboard never disagree).
+  final TextEditingController controller;
+
   final ValueChanged<int> onStep;
+
+  /// Called with the raw field text on every keystroke.
+  final ValueChanged<String> onTyped;
 
   /// Diameter of the round symbol buttons.
   static const double _buttonSize = 64;
@@ -813,16 +956,31 @@ class _CountStepper extends StatelessWidget {
               semanticLabel: '−',
               onPressed: () => onStep(-1),
             ),
-            Text(
-              '$value',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontFamily: AppTypography.inter,
-                fontSize: 88,
-                fontWeight: FontWeight.w700,
-                height: 1,
-                letterSpacing: -2,
-                color: context.palette.foreground,
+            Expanded(
+              child: TextField(
+                controller: controller,
+                keyboardType: TextInputType.number,
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                textAlign: TextAlign.center,
+                maxLength: 2,
+                onChanged: onTyped,
+                cursorColor: context.palette.foreground,
+                style: TextStyle(
+                  fontFamily: AppTypography.inter,
+                  fontSize: 88,
+                  fontWeight: FontWeight.w700,
+                  height: 1,
+                  letterSpacing: -2,
+                  color: context.palette.foreground,
+                ),
+                decoration: const InputDecoration(
+                  border: InputBorder.none,
+                  enabledBorder: InputBorder.none,
+                  focusedBorder: InputBorder.none,
+                  counterText: '',
+                  isDense: true,
+                  contentPadding: EdgeInsets.zero,
+                ),
               ),
             ),
             _StepperButton(
@@ -1136,11 +1294,7 @@ class _PlayerPill extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            Icons.check,
-            size: 14,
-            color: context.palette.mutedForeground,
-          ),
+          Icon(Icons.check, size: 14, color: context.palette.mutedForeground),
           const SizedBox(width: AppSpacing.xs),
           Text(
             name,
@@ -1313,8 +1467,7 @@ class _DeckGrid extends StatelessWidget {
       builder: (context, constraints) {
         final columns = constraints.maxWidth > 340 ? 2 : 2;
         final gap = AppSpacing.sm;
-        final width =
-            (constraints.maxWidth - gap * (columns - 1)) / columns;
+        final width = (constraints.maxWidth - gap * (columns - 1)) / columns;
         return Wrap(
           spacing: gap,
           runSpacing: gap,
@@ -1447,18 +1600,17 @@ class _RosterList extends StatelessWidget {
   }
 }
 
-/// A preset segmented control plus a **custom** slot.
+/// A preset row with a custom slot ON THE SAME LINE: the presets are segments
+/// and the trailing pencil opens the numeric prompt for any other value.
 ///
-/// The presets cover the common answers; "Personalizado" opens a numeric prompt
-/// so a table that wants 7 rounds or 45 seconds is not forced into a bucket.
-/// When the current value is not one of the presets the custom slot is the
-/// selected segment and shows the live value.
+/// The old layout pushed "Personalizado" onto its own full-width row below the
+/// segments, which made a short choice list look like a form. A pencil is the
+/// convention for "other value" and costs one 44pt target.
 class _PresetPicker extends StatelessWidget {
   const _PresetPicker({
     required this.presets,
     required this.value,
     required this.format,
-    required this.customLabel,
     required this.onPreset,
     required this.customTitle,
     required this.min,
@@ -1470,7 +1622,6 @@ class _PresetPicker extends StatelessWidget {
   final List<int> presets;
   final int value;
   final String Function(int value) format;
-  final String customLabel;
   final ValueChanged<int> onPreset;
   final String customTitle;
   final int min;
@@ -1482,29 +1633,44 @@ class _PresetPicker extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
+    return Row(
       children: [
-        // Presets only: the segmented control stays legible with 3–4 short
-        // values. "Personalizado" lives on its own row below instead of being
-        // squeezed in as a fifth segment (it ellipsized to "Person…").
-        _Segmented<int>(
-          value: value,
-          options: [
-            for (final preset in presets)
-              (value: preset, label: format(preset)),
-          ],
-          // A custom value is not a segment; nothing is selected until the
-          // table picks a preset again.
-          onChanged: onPreset,
-          allowNoSelection: !_isPreset,
+        Expanded(
+          child: _Segmented<int>(
+            value: value,
+            options: [
+              for (final preset in presets)
+                (value: preset, label: format(preset)),
+            ],
+            onChanged: onPreset,
+            allowNoSelection: !_isPreset,
+          ),
         ),
-        const SizedBox(height: AppSpacing.sm),
-        _CustomValueRow(
-          selected: !_isPreset,
-          label: customLabel,
-          value: _isPreset ? null : format(value),
-          onTap: () => _promptCustom(context),
+        const SizedBox(width: AppSpacing.sm),
+        Semantics(
+          button: true,
+          label: customTitle,
+          child: Material(
+            color: _isPreset
+                ? context.palette.surfaceAlt
+                : context.palette.foreground,
+            shape: const CircleBorder(),
+            clipBehavior: Clip.antiAlias,
+            child: InkWell(
+              onTap: () => _promptCustom(context),
+              child: SizedBox(
+                width: 48,
+                height: 48,
+                child: Icon(
+                  Icons.edit,
+                  size: 18,
+                  color: _isPreset
+                      ? context.palette.mutedForeground
+                      : context.palette.background,
+                ),
+              ),
+            ),
+          ),
         ),
       ],
     );
@@ -1618,85 +1784,6 @@ class _PromptSheetState extends State<_PromptSheet> {
               ),
             ),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-/// The "Personalizado" affordance: one full-width row under the presets.
-///
-/// When a custom value is active the row is filled and shows it, so the choice
-/// is visible without a fifth, ellipsized segment.
-class _CustomValueRow extends StatelessWidget {
-  const _CustomValueRow({
-    required this.selected,
-    required this.label,
-    required this.value,
-    required this.onTap,
-  });
-
-  final bool selected;
-  final String label;
-
-  /// The formatted custom value, or null while a preset is active.
-  final String? value;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final shownValue = value;
-    return Semantics(
-      button: true,
-      selected: selected,
-      label: shownValue == null ? label : '$label $shownValue',
-      child: Material(
-        color: selected
-            ? context.palette.foreground
-            : context.palette.surfaceAlt,
-        borderRadius: BorderRadius.circular(AppRadius.full),
-        clipBehavior: Clip.antiAlias,
-        child: InkWell(
-          onTap: onTap,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppSpacing.lg,
-              vertical: AppSpacing.md,
-            ),
-            child: Row(
-              children: [
-                Icon(
-                  Icons.tune,
-                  size: 18,
-                  color: selected
-                      ? context.palette.background
-                      : context.palette.mutedForeground,
-                ),
-                const SizedBox(width: AppSpacing.sm),
-                Expanded(
-                  child: Text(
-                    label,
-                    style: AppTypography.bodyMedium.copyWith(
-                      color: selected
-                          ? context.palette.background
-                          : context.palette.mutedForeground,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-                if (shownValue != null)
-                  Text(
-                    shownValue,
-                    style: AppTypography.bodyMedium.copyWith(
-                      color: selected
-                          ? context.palette.background
-                          : context.palette.foreground,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-              ],
-            ),
-          ),
         ),
       ),
     );

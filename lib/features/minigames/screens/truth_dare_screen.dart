@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:math' as math;
 import 'dart:typed_data';
-import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -24,6 +23,7 @@ import 'package:samay/features/minigames/widgets/finished_leaderboard.dart';
 import 'package:samay/features/minigames/widgets/minigame_answer_text.dart';
 import 'package:samay/features/minigames/widgets/minigame_bleed_image.dart';
 import 'package:samay/features/minigames/widgets/minigame_header_title.dart';
+import 'package:samay/features/minigames/widgets/minigame_prompt_pill.dart';
 import 'package:samay/features/minigames/widgets/minigame_session_surface.dart';
 import 'package:samay/features/minigames/widgets/reaction_rise.dart';
 import 'package:samay/features/minigames/widgets/truth_dare_choice_button.dart';
@@ -1490,87 +1490,16 @@ class _FloatingAnswerLabelState extends State<_FloatingAnswerLabel> {
   }
 }
 
-/// The prompt banner's display size (slightly above the 20px `headlineSmall`
-/// base) and its `5em` corner radius — larger than the banner's own height, so
-/// the hug-to-text panel renders as a pill.
-const double _promptBannerFontSize = 22;
-const double _promptBannerRadius = 5 * _promptBannerFontSize;
-
-/// The prompt's soft backdrop: three stacked blurs of the SAME pill, each wider
-/// and fainter than the last — `(sigma, alpha)` — so the darkness is strong
-/// right behind the text and diffuses progressively into the picture with no
-/// boundary.
-///
-/// Why blurs of the shape and not `BoxShadow`: a shadow is cast by an opaque
-/// silhouette, so it always keeps a visible edge no matter how large the blur
-/// or spread. Feathering the shape ITSELF (each layer is a blurred pill) melts
-/// the edge; the successive sigmas give the eased "strong at the start,
-/// diffusing more and more" falloff.
-///
-/// The outer alphas are deliberately HIGH (darker tint) so the pill keeps the
-/// prompt legible even over a LIGHT picked picture.
-const List<(double sigma, double alpha)> _promptBannerLayers = [(36, 0.85)];
-
 /// The current prompt — a Verdad question or a Reto challenge, prefixed by its
-/// kind label on its own line (`Reto:\n…`) — on a soft black pill so it stays
-/// legible over the full-bleed picked-image background.
-/// Hugs the text (centered); the pill melts into the picture via
-/// [_promptBannerLayers]. Quicksand w600 at [_promptBannerFontSize].
+/// kind label on its own line (`Reto:\n…`) — on the soft black pill shared with
+/// the pass-the-phone round card ([MinigamePromptPill]).
 class _PromptBanner extends StatelessWidget {
   const _PromptBanner({required this.text});
 
   final String text;
 
   @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Stack(
-        // The blurs bleed past the pill — never clip them.
-        clipBehavior: Clip.none,
-        alignment: Alignment.center,
-        children: [
-          for (final (sigma, alpha) in _promptBannerLayers)
-            Positioned.fill(
-              child: ImageFiltered(
-                imageFilter: ImageFilter.blur(sigmaX: sigma, sigmaY: sigma),
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    color: context.palette.background.withValues(alpha: alpha),
-                    borderRadius: const BorderRadius.all(
-                      Radius.circular(_promptBannerRadius),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          // The label sizes the stack; the blurred layers fill its padded box.
-          Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppSpacing.md,
-              vertical: AppSpacing.sm,
-            ),
-            child: Text(
-              text,
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                fontFamily: AppTypography.quicksand,
-                fontSize: _promptBannerFontSize,
-                fontWeight: FontWeight.w600,
-                // Lighter-tinted glyph shadow (a soft light halo) so the prompt
-                // glows against the darker pill.
-                shadows: [
-                  Shadow(
-                    color: context.palette.background.withValues(alpha: 1),
-                    blurRadius: 50,
-                  ),
-                ],
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+  Widget build(BuildContext context) => MinigamePromptPill(text: text);
 }
 
 /// The non-subject's view of the current by_turns round (202 answer-first):

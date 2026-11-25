@@ -16,10 +16,12 @@ import 'package:samay/features/minigames/local/local_prompt_pack.dart';
 import 'package:samay/features/minigames/local/local_roster.dart';
 import 'package:samay/features/minigames/logic/minigame_meta.dart';
 import 'package:samay/features/minigames/widgets/minigame_header_title.dart';
+import 'package:samay/features/minigames/widgets/minigame_prompt_pill.dart';
+import 'package:samay/features/minigames/widgets/minigame_rank_row.dart';
+import 'package:samay/features/minigames/widgets/minigame_session_surface.dart';
 import 'package:samay/features/packs/providers/packs_providers.dart';
 import 'package:samay/l10n/app_localizations.dart';
 import 'package:samay/shared/widgets/v_button.dart';
-import 'package:samay/shared/widgets/v_card.dart';
 import 'package:samay/shared/widgets/v_display_text.dart';
 import 'package:samay/shared/widgets/v_header_bar.dart';
 
@@ -84,29 +86,32 @@ class _LocalMatchScreenState extends ConsumerState<LocalMatchScreen> {
     final roster = ref.read(localRosterProvider(widget.gameType));
     final pack = _pack;
     if (pack == null || pack.prompts.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.minigamesLocalNoPack)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.minigamesLocalNoPack)));
       return;
     }
     if (!roster.isPlayable) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.minigamesLobbyNeedPlayers)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.minigamesLobbyNeedPlayers)));
       return;
     }
+    // The lobby sets rounds PER PLAYER; one turn per seat per round, so the
+    // match target is the product (a fair table plays the same number of turns
+    // per person however many are seated).
     final config = LocalMatchConfig(
       gameType: widget.gameType,
       players: roster.players,
-      rounds: roster.rounds,
+      rounds: roster.rounds * roster.players.length,
       packId: pack.id,
     );
     try {
       config.assertValid();
     } on ArgumentError {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.minigamesLocalNeedPlayers)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.minigamesLocalNeedPlayers)));
       return;
     }
     setState(() => _match = LocalMatch.start(config, pack, random: Random()));
@@ -133,15 +138,34 @@ class _LocalMatchScreenState extends ConsumerState<LocalMatchScreen> {
     }
   }
 
+  /// The seat the current round belongs to, by id.
+  String? _subjectName(LocalMatch match) {
+    final id = match.state.subjectPlayerId;
+    if (id == null) return null;
+    for (final p in match.config.players) {
+      if (p.id == id) return p.name;
+    }
+    return null;
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final title = minigameGameNameLower(l10n, widget.gameType.value);
     final match = _match;
+    final subject = match == null ? null : _subjectName(match);
+    // The modern two-line play header: whose turn it is over the game name.
     return Scaffold(
       backgroundColor: context.palette.background,
       body: VHeaderBar(
-        titleWidget: MinigameHeaderTitle(word: title),
+        titleWidget: subject == null
+            ? MinigameHeaderTitle(word: title)
+            : MinigameHeaderTitle(
+                prefix: l10n.minigamesTurnBarPrefix,
+                name: subject,
+                suffix: l10n.minigamesTurnBarSuffix,
+                secondary: title,
+              ),
         child: match == null
             ? _pending(context, l10n)
             : _board(context, l10n, match),
@@ -188,101 +212,170 @@ class _LocalMatchScreenState extends ConsumerState<LocalMatchScreen> {
   Widget _board(BuildContext context, AppLocalizations l10n, LocalMatch match) {
     final state = match.state;
     if (state.isFinished) {
-      final scores = match.scoreboard();
-      final winner = match.winner();
-      return ListView(
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.screenHorizontal,
-        ),
-        children: [
-          const SizedBox(height: AppSpacing.lg),
-          VDisplayText(
-            text: winner == null ? l10n.minigamesLocalTie : winner.name,
-            maxLines: 2,
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          for (final s in scores)
-            Padding(
-              padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-              child: VCard(
-                child: Row(
-                  children: [
-                    Expanded(child: Text(s.name)),
-                    Text('${s.score}'),
-                  ],
-                ),
-              ),
-            ),
-          const SizedBox(height: AppSpacing.lg),
-          VButton.emphasized(
-            label: l10n.minigamesLocalPlayAgain,
-            onPressed: () {
-              match.restart();
-              setState(() {});
-            },
-          ),
-        ],
-      );
+      return _summary(context, l10n, match);
     }
 
-    final judge = state.judgePlayerId == null
-        ? ''
-        : match.config.players
-              .firstWhere((p) => p.id == state.judgePlayerId)
-              .name;
-    final subject = state.subjectPlayerId == null
-        ? ''
-        : match.config.players
-              .firstWhere((p) => p.id == state.subjectPlayerId)
-              .name;
-    final prompt = state.prompt?.body;
+    final prompt = state.prompt;
+    final promptBody = prompt?.body;
+    final roundCounter = l10n.minigamesLocalRoundOf(
+      state.round + 1,
+      state.roundTarget,
+    );
 
-    return ListView(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.screenHorizontal,
-      ),
+    // The round reads like the multi-device play card: the prompt on the
+    // sanctioned rounded card (play voice), VERTICALLY CENTERED in the region
+    // between the header and the pinned answer/pass bar, with the round
+    // counter tucked under that bar.
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const SizedBox(height: AppSpacing.lg),
-        Text(
-          l10n.minigamesLocalRoundOf(state.round + 1, state.roundTarget),
-          style: Theme.of(context).textTheme.titleSmall,
-        ),
-        const SizedBox(height: AppSpacing.sm),
-        // The pass-the-phone line the owner asked for: who reads, and who the
-        // device goes to next.
-        Text(
-          l10n.minigamesLocalTurnOf(judge),
-          style: AppTypography.bodyMedium.copyWith(
-            color: context.palette.mutedForeground,
+        Expanded(
+          child: Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.cardPadding,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  if (promptBody != null)
+                    MinigamePromptCard(
+                      body: promptBody,
+                      promptType: prompt?.promptType,
+                    )
+                  else
+                    Text(
+                      l10n.minigamesLocalNoPrompt,
+                      textAlign: TextAlign.center,
+                      style: AppTypography.bodyLarge.copyWith(
+                        color: MinigameInks.of(context).muted,
+                      ),
+                    ),
+                ],
+              ),
+            ),
           ),
         ),
-        const SizedBox(height: AppSpacing.xl),
-        VCard(
-          child: Padding(
-            padding: const EdgeInsets.all(AppSpacing.lg),
+        Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.cardPadding,
+          ),
+          child: Text(
+            l10n.minigamesAnswerPasarLine,
+            textAlign: TextAlign.center,
+            style: AppTypography.bodySmall.copyWith(
+              color: MinigameInks.of(context).muted,
+            ),
+          ),
+        ),
+        const SizedBox(height: AppSpacing.md),
+        Padding(
+          // Bottom action bar: inset from the display's rounded corners and
+          // lifted above the home-indicator strip by the SafeArea inset —
+          // the same bar the multi-device round pins.
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.screenHorizontal,
+          ),
+          child: SafeArea(
+            top: false,
+            minimum: const EdgeInsets.only(bottom: AppSpacing.md),
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Text(subject, style: Theme.of(context).textTheme.titleMedium),
-                const SizedBox(height: AppSpacing.md),
+                Row(
+                  children: [
+                    Expanded(
+                      // "Listo" is the primary resolution of a round: white
+                      // fill, black label — the inverse of the dark/outlined
+                      // pair it used to share, so it reads as THE action.
+                      child: VButton.emphasized(
+                        label: l10n.minigamesLocalDone,
+                        onPressed: () =>
+                            _advance(match, LocalRoundOutcome.done),
+                      ),
+                    ),
+                    const SizedBox(width: AppSpacing.md),
+                    Expanded(
+                      child: VButton.outlined(
+                        label: l10n.minigamesLocalSkip,
+                        onPressed: () =>
+                            _advance(match, LocalRoundOutcome.skip),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: AppSpacing.sm),
                 Text(
-                  prompt ?? l10n.minigamesLocalNoPrompt,
-                  style: AppTypography.bodyLarge.copyWith(height: 1.4),
+                  roundCounter,
+                  textAlign: TextAlign.center,
+                  style: AppTypography.labelSmall.copyWith(
+                    color: MinigameInks.of(context).muted,
+                  ),
                 ),
               ],
             ),
           ),
         ),
+      ],
+    );
+  }
+
+  /// The settled board: the winner in the display voice over the rank rows,
+  /// each in the finished-leaderboard card footer's voice.
+  Widget _summary(
+    BuildContext context,
+    AppLocalizations l10n,
+    LocalMatch match,
+  ) {
+    final scores = match.scoreboard();
+    final winner = match.winner();
+    final rounds = match.state.results.length;
+    return ListView(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.screenHorizontal,
+      ),
+      children: [
+        const SizedBox(height: AppSpacing.xl),
+        Text(
+          l10n.minigamesFinished.toUpperCase(),
+          textAlign: TextAlign.center,
+          style: AppTypography.labelSmall.copyWith(
+            color: MinigameInks.of(context).muted,
+            letterSpacing: 1.2,
+          ),
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        VDisplayText(
+          text: winner == null ? l10n.minigamesLocalTie : winner.name,
+          maxLines: 2,
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: AppSpacing.lg),
+        Text(
+          l10n.minigamesLocalRoundsPlayed(rounds).toUpperCase(),
+          style: AppTypography.labelSmall.copyWith(
+            color: MinigameInks.of(context).muted,
+            letterSpacing: 1.2,
+          ),
+        ),
+        const SizedBox(height: AppSpacing.xs),
+        for (var i = 0; i < scores.length; i++)
+          MinigameRankRow(
+            rank: i + 1,
+            name: scores[i].name,
+            meta: l10n.minigamesPointsAmount(scores[i].score),
+            divider: i < scores.length - 1,
+          ),
         const SizedBox(height: AppSpacing.xl),
         VButton.emphasized(
-          label: l10n.minigamesLocalDone,
-          onPressed: () => _advance(match, LocalRoundOutcome.done),
+          label: l10n.minigamesLocalPlayAgain,
+          onPressed: () {
+            match.restart();
+            setState(() {});
+          },
         ),
-        const SizedBox(height: AppSpacing.md),
-        VButton.outlined(
-          label: l10n.minigamesLocalSkip,
-          onPressed: () => _advance(match, LocalRoundOutcome.skip),
-        ),
+        const SizedBox(height: AppSpacing.xl),
       ],
     );
   }

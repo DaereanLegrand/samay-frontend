@@ -29,7 +29,9 @@ class LocalRoster {
   final MinigameType gameType;
   final List<LocalPlayer> players;
 
-  /// Rounds for the prompt games (truth/dare, two lies).
+  /// Rounds PER PLAYER for the prompt games (truth/dare, two lies). The match
+  /// target is this times the seated player count, so every seat gets the same
+  /// number of turns.
   final int rounds;
 
   /// Turn length for charadas.

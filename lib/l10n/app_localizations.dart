@@ -4163,7 +4163,7 @@ abstract class AppLocalizations {
   /// Per-game page: empty state body prompting the user to start the first partida
   ///
   /// In es, this message translates to:
-  /// **'Toca «Nueva partida» para crear la primera.'**
+  /// **'Toca «Jugar ahora» para jugar la primera.'**
   String get minigamesDetailEmptyBody;
 
   /// Create-partida wizard: wager input hint (default 10 shards)
@@ -6215,13 +6215,13 @@ abstract class AppLocalizations {
   /// Single-device turn: the player completed the prompt
   ///
   /// In es, this message translates to:
-  /// **'listo'**
+  /// **'Listo'**
   String get minigamesLocalDone;
 
   /// Single-device turn: the player passed
   ///
   /// In es, this message translates to:
-  /// **'pasar'**
+  /// **'Pasar'**
   String get minigamesLocalSkip;
 
   /// Mode label: play on this device
@@ -6269,7 +6269,7 @@ abstract class AppLocalizations {
   /// No description provided for @minigamesPlayNow.
   ///
   /// In es, this message translates to:
-  /// **'jugar ahora'**
+  /// **'Jugar ahora'**
   String get minigamesPlayNow;
 
   /// No description provided for @minigamesChoosePlayers.
@@ -6643,6 +6643,42 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'Mantén y arrastra para cambiar el orden'**
   String get minigamesLobbyReorderHint;
+
+  /// Local leaderboard: heading of the most recent matches
+  ///
+  /// In es, this message translates to:
+  /// **'recientes'**
+  String get minigamesLocalRecent;
+
+  /// Local leaderboard: a player's wins and games played
+  ///
+  /// In es, this message translates to:
+  /// **'{wins} victorias · {played} partidas'**
+  String minigamesLocalRecord(int wins, int played);
+
+  /// Local scoreboard: rounds played in the match
+  ///
+  /// In es, this message translates to:
+  /// **'{count} rondas'**
+  String minigamesLocalRoundsPlayed(int count);
+
+  /// Lobby count step: heading of the known-player chips
+  ///
+  /// In es, this message translates to:
+  /// **'Con quienes has jugado'**
+  String get minigamesLobbyPlayedWith;
+
+  /// Lobby knobs: rounds are per player so every seat plays the same
+  ///
+  /// In es, this message translates to:
+  /// **'Rondas por jugador'**
+  String get minigamesLobbyRoundsPerPlayerTitle;
+
+  /// Lobby knobs: total rounds the table will play
+  ///
+  /// In es, this message translates to:
+  /// **'{count} rondas en total'**
+  String minigamesLobbyRoundsTotal(int count);
 }
 
 class _AppLocalizationsDelegate
