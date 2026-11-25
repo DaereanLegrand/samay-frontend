@@ -104,8 +104,18 @@ ENV_FILE := $(wildcard .env)
 ifneq ($(ENV_FILE),)
 $(warning frontend/.env exists but is unused; delete it. Local builds read ../backend/.env/testing-local.env; release ENVs read the vault.)
 endif
-ANDROID_GATEWAY_HOST := $(if $(findstring Linux,$(shell uname -s)),10.0.2.2,127.0.0.1)
 OS_IS_DARWIN := $(findstring Darwin,$(shell uname -s))
+OS_IS_LINUX  := $(findstring Linux,$(shell uname -s))
+# Host address a device uses to reach the host's Docker stack:
+#   waydroid (Linux host) → the waydroid0 bridge address (10.0.2.2 is
+#              emulator-only and times out there); auto-detected,
+#              192.168.240.1 as fallback.
+#   android  → 10.0.2.2 on Linux (emulator alias), 127.0.0.1 on Darwin.
+#   waydroid on Darwin (remote build host via tunnel), simulator, other
+#            → 127.0.0.1 (device shares the host network).
+# `?=` keeps `make ... ANDROID_GATEWAY_HOST=<ip>` as a manual override.
+WAYDROID_BRIDGE_IP ?= $(shell ip -4 -o addr show waydroid0 2>/dev/null | awk '{print $$4}' | cut -d/ -f1)
+ANDROID_GATEWAY_HOST ?= $(if $(and $(OS_IS_LINUX),$(filter waydroid,$(TARGET))),$(if $(WAYDROID_BRIDGE_IP),$(WAYDROID_BRIDGE_IP),192.168.240.1),$(if $(OS_IS_LINUX),10.0.2.2,127.0.0.1))
 # Local stack wiring. testing-local is the ONLY env whose config lives in a
 # file, and that file is the BACKEND's: one generation, shared by construction.
 # The backend runs two independent stacks (backend/Makefile ENV_STACK_ENV_*):
