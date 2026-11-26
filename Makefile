@@ -37,12 +37,31 @@ APP_ENV := $(if $(filter prod,$(ENV)),prod,dev)
 # iOS export method for `build ENV=staging|prod TARGET=ios`: store (App Store Connect,
 # default) or ad-hoc (an on-device ad-hoc IPA). MODE=adhoc is the shorthand.
 MODE ?= store
+# `install TARGET=ios` can only push a SIGNED ipa, so it forces ad-hoc
+# regardless of the ambient MODE. Without this it defaulted to MODE=store and
+# still reached for the -adhoc file — that mismatch is how a stale build once
+# got installed after the icons had changed.
+ifeq ($(TARGET),ios)
+override MODE := adhoc
+endif
+ifeq ($(TARGET),ios-adhoc)
+override MODE := adhoc
+endif
 IOS_EXPORT_METHOD ?= $(if $(filter adhoc,$(MODE)),ad-hoc,app-store-connect)
 # RevenueCat: unset public SDK keys keep the app in stub mode (purchase UI
 # disabled). Supply REVENUECAT_PUBLIC_SDK_KEY_APPLE / _GOOGLE as dart defines.
 RC ?= false
 APK := build/app/outputs/flutter-apk/app-$(ANDROID_FLAVOR)-$(BUILD_MODE).apk
+# Exactly two iOS artifacts, and their names say what they are:
+#   -adhoc    signed and installable
+#   -unsigned a --no-codesign zip for inspection only, NEVER installed
+# `install TARGET=ios` reads $(IPA_ADHOC) and nothing else. Never write a bare
+# $(APP_NAME).ipa again: an ambiguous name is what let an old build be installed.
 IPA_ADHOC := build/ios/ipa/$(APP_NAME)-adhoc.ipa
+IPA_UNSIGNED := build/ios/ipa/$(APP_NAME)-unsigned.ipa
+# Everything that ends up inside the app; `install` refuses an IPA older than
+# any of these, so a stale build can never be installed silently again.
+IPA_INPUTS := lib assets pubspec.yaml ios/Runner ios/Flutter
 APP_ID := com.qallariy.samay
 
 export PATH := /opt/homebrew/opt/ruby/bin:/Users/daerean/.local/share/gem/ruby/4.0.0/bin:$(PATH)
@@ -296,18 +315,26 @@ build:
 			echo "build for $$t"; \
 			make build TARGET=$$t ENV="$(ENV)" NO_PUB=$(NO_PUB) || true; \
 		done; \
+	elif [ "$(TARGET)" = "ios" ] && [ "$(PROD)" != "true" ] && [ "$(IOS_EXPORT_METHOD)" = "ad-hoc" ]; then \
+		IOS_DEVELOPMENT_TEAM="$(IOS_DEVELOPMENT_TEAM)" \
+		SUPABASE_URL="$(LANE_SUPABASE_URL)" \
+		SUPABASE_ANON_KEY="$(LANE_SUPABASE_ANON_KEY)" \
+		./bin/fastlane ios adhoc_local && \
+		touch "$(IPA_ADHOC)" && \
+		echo "IPA (ad-hoc): $(IPA_ADHOC)"; \
 	elif [ "$(TARGET)" = "ios" ] && [ "$(PROD)" != "true" ]; then \
 		flutter build ios --release --no-codesign $(PUB_FLAG) $(ENV_DEFINES) && \
 		cd build/ios && rm -rf Payload && mkdir Payload && \
 		cp -R iphoneos/Runner.app Payload/ && \
-		mkdir -p ipa && zip -r -y ipa/$(APP_NAME).ipa Payload && rm -rf Payload && \
-		echo "IPA: build/ios/ipa/$(APP_NAME).ipa"; \
+		mkdir -p ipa && zip -r -y "ipa/$(APP_NAME)-unsigned.ipa" Payload && rm -rf Payload && \
+		echo "IPA (unsigned, not installable): $(IPA_UNSIGNED)"; \
 	elif [ "$(TARGET)" = "ios-adhoc" ]; then \
 		[ -n "$(RELEASE)" ] && { echo "ENV=$(ENV): use 'make build ENV=$(ENV) TARGET=ios MODE=adhoc' for an ad-hoc signed IPA."; exit 1; }; \
 		IOS_DEVELOPMENT_TEAM="$(IOS_DEVELOPMENT_TEAM)" \
 		SUPABASE_URL="$(LANE_SUPABASE_URL)" \
 		SUPABASE_ANON_KEY="$(LANE_SUPABASE_ANON_KEY)" \
 		./bin/fastlane ios adhoc_local && \
+		touch "$(IPA_ADHOC)" && \
 		echo "IPA: $(IPA_ADHOC)"; \
 	elif [ "$(TARGET)" = "simulator" ]; then \
 		PLIST_BACKUP=""; FIREBASE_BACKUP=""; \
@@ -380,6 +407,7 @@ build:
 		[ -n "$$IPA_OUT" ] || { echo "ENV=$(ENV): flutter build ipa produced no .ipa"; exit 1; }; \
 		if [ "$(IOS_EXPORT_METHOD)" = "ad-hoc" ]; then \
 			mv -f "$$IPA_OUT" "$(IPA_ADHOC)"; \
+			touch "$(IPA_ADHOC)"; \
 			echo "IPA (ad-hoc): $(IPA_ADHOC)"; \
 			echo "install:  make install ENV=$(ENV) TARGET=ios-adhoc"; \
 		else \
@@ -528,8 +556,14 @@ install: guard-local
 		$(call tunnel-waydroid, adb -s localhost:$(TUNNEL_WAYDROID_PORT) install -r $(APK)); \
 	elif [ "$(TARGET)" = "ios" ] || [ "$(TARGET)" = "ios-adhoc" ]; then \
 		if [ ! -f "$(IPA_ADHOC)" ]; then \
-			echo "IPA not found at $(IPA_ADHOC) — run 'make build TARGET=ios-adhoc' first."; \
-			exit 0; \
+			echo "IPA not found at $(IPA_ADHOC) — run 'make build ENV=$(ENV) TARGET=ios MODE=adhoc' first."; \
+			exit 1; \
+		fi; \
+		NEWER=$$(find $(IPA_INPUTS) -type f -newer "$(IPA_ADHOC)" -print -quit 2>/dev/null); \
+		if [ -n "$$NEWER" ]; then \
+			echo "IPA is stale: $$NEWER is newer than $(IPA_ADHOC)."; \
+			echo "Rebuild first:  make build ENV=$(ENV) TARGET=ios MODE=adhoc"; \
+			exit 1; \
 		fi; \
 		DEVICE=$$(idevice_id -l 2>/dev/null | head -1); \
 		if [ -z "$$DEVICE" ]; then \
@@ -608,8 +642,8 @@ build-install: guard-local
 		echo "make build-install REQUIRES a target: TARGET=all|android|waydroid|ios|ios-adhoc|simulator"; \
 		exit 1; \
 	fi
-	@make build TARGET=$(TARGET) ENV="$(ENV)" NO_PUB=$(NO_PUB) && \
-		make install TARGET=$(TARGET) ENV="$(ENV)" NO_PUB=$(NO_PUB)
+	@make build TARGET=$(TARGET) ENV="$(ENV)" MODE="$(MODE)" NO_PUB=$(NO_PUB) && \
+		make install TARGET=$(TARGET) ENV="$(ENV)" MODE="$(MODE)" NO_PUB=$(NO_PUB)
 
 uninstall:
 	@if [ -z "$(TARGET)" ]; then \
